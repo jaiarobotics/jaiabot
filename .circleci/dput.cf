@@ -1,0 +1,16 @@
+[gobysoft-continuous]
+login = continuous_upload
+fqdn = packages.gobysoft.org
+method = scp
+incoming = /var/cache/archive/continuous/mini-dinstall/incoming
+allow_unsigned_uploads = 0
+post_upload_command = ssh continuous_upload@packages.gobysoft.org /usr/bin/mini-dinstall --batch
+
+[gobysoft-release]
+login = release_upload
+fqdn = packages.gobysoft.org
+method = scp
+incoming = /var/cache/archive/release/mini-dinstall/incoming
+allow_unsigned_uploads = 0
+post_upload_command = ssh release_upload@packages.gobysoft.org /usr/bin/mini-dinstall --batch
+

@@ -14,3 +14,5 @@ target_link_libraries(${APP}
 if(export_goby_interfaces)
   generate_interfaces(${APP})
 endif()
+
+project_install_bin(${APP})

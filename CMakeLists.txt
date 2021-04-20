@@ -7,6 +7,14 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# versions
+set(PROJECT_VERSION_MAJOR "1")
+set(PROJECT_VERSION_MINOR "0")
+set(PROJECT_VERSION_PATCH "0~alpha1")
+set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
+set(PROJECT_SOVERSION "1")
+
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
@@ -38,6 +46,7 @@ get_filename_component(project_LIB_DIR ${project_BUILD_DIR}/lib ABSOLUTE)
 get_filename_component(project_BIN_DIR ${project_BUILD_DIR}/bin ABSOLUTE)
 get_filename_component(project_INC_DIR ${project_BUILD_DIR}/include ABSOLUTE)
 get_filename_component(project_SHARE_DIR ${project_BUILD_DIR}/share ABSOLUTE)
+file(MAKE_DIRECTORY ${project_SHARE_DIR})
 
 ## set the cmake defaults for libraries and binaries
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH 
@@ -52,11 +61,16 @@ include_directories(${project_INC_DIR})
 protobuf_include_dirs(${project_INC_DIR})
 
 # settings for goby_clang_tool
-option(export_goby_interfaces ON "Build Goby Publish/Subscribe interface files (YML) from code")
+option(build_doc "Build documentation (requires Doxygen)" OFF)
+option(export_goby_interfaces OFF "Build Goby Publish/Subscribe interface files (YML) from code")
+
+if(build_doc)
+  set(export_goby_interfaces ON CACHE BOOL "Set export interfaces for documentation" FORCE)
+endif()
 
 if(export_goby_interfaces)
   include(GobyClangTool)
-  set(YML_OUT_DIR ${project_SHARE_DIR}/interfaces)
+  set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot-hydro/interfaces)
 endif()
 
 
@@ -69,6 +83,47 @@ foreach(I ${INCLUDE_FILES})
   configure_file(${project_SRC_DIR}/lib/${I} ${project_INC_DIR}/jaiabot/${I} @ONLY)
 endforeach()
 
+
+## set instructions for `make install`
+
+# override library version for debian sbuild cross-builds
+if(CMAKE_CROSSCOMPILING)
+  if (EXISTS "/etc/debian_version")
+    set(CMAKE_INSTALL_LIBDIR "lib/${CMAKE_LIBRARY_ARCHITECTURE}")
+  endif()
+endif()
+
+include(GNUInstallDirs)
+# include
+install(DIRECTORY ${project_INC_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING REGEX .*\\.h|.*\\.proto)
+
+# bin
+macro(project_install_bin target_bin)
+  install(TARGETS ${target_bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+endmacro()
+
+# lib
+macro(project_install_lib target_lib)
+  set_property(TARGET ${target_lib} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+    $<BUILD_INTERFACE:${project_INC_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>  # <prefix>/include
+    )
+
+  set_target_properties(${target_lib} PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION "${PROJECT_SOVERSION}")
+  
+  install(TARGETS ${target_lib} EXPORT jaiabot-hydro-config
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}) 
+  list(APPEND PROJECT_LIBRARY_LIST ${target_lib})
+  set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
+endmacro()
+
+install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share)
+
+unset(PROJECT_LIBRARY_LIST CACHE)
+
+
 # add the code
 add_subdirectory(src)
 
@@ -77,3 +132,9 @@ if(export_goby_interfaces)
 
 endif()
 
+
+# configuration export - installed version
+install(EXPORT jaiabot-hydro-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot-hydro)
+# configuration export - local build version
+export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-hydro-config.cmake)
+ 
