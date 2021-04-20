@@ -160,13 +160,13 @@ filter-template-master-only: &filter-template-master-only
       only: /.*/
     branches:
       only:
-        - "master"
+        - "1.y"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
-        - "master"
+        - "1.y"
         
 ## Begin actual config
 version: 2
