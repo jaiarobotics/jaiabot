@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message Example
+{
+    optional int32 a = 1;
+    required double b = 2;
+}
