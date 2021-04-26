@@ -41,7 +41,6 @@ EOF
     fi
 
     cat <<EOF >> /tmp/jaia_authors.tmp
-//   Community contributors (see AUTHORS file)
 // File authors:
 EOF
     
@@ -58,7 +57,7 @@ EOF
 
 pushd ../src/lib
 header_strip
-for i in `find -regex ".*\.h$\|.*\.cpp$"`;
+for i in `find -regex ".*\.h$\|.*\.cpp$\|.*\.proto$"`;
 do
     gen_authors $i
     cat /tmp/jaia_authors.tmp $here/../src/doc/copyright/header_lib.txt $i > $i.tmp; mv $i.tmp $i;
@@ -68,7 +67,7 @@ popd
 for dir in ../src/bin; do
     pushd $dir
     header_strip
-    for i in `find -regex ".*\.h$\|.*\.cpp$"`;
+    for i in `find -regex ".*\.h$\|.*\.cpp$\|.*\.proto$"`;
     do
         gen_authors $i
         cat /tmp/jaia_authors.tmp $here/../src/doc/copyright/header_bin.txt $i > $i.tmp; mv $i.tmp $i;
