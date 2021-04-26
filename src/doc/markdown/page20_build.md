@@ -111,8 +111,7 @@ Additionally the Ubuntu version that the package is build for is appended to the
 Examples:
 
 - `git tag 1.0.0` built on Ubuntu 20.04 "focal" becomes Debian version `1.0.0-0~ubuntu20.04.1`
-- git hash 8f9b675, which is 5 commits after `git tag 1.0.0_alpha1` built on Ubuntu 18.04 "xenial" becomes Debian version `
-1.0.0~alpha1+5+g8f9b675-0~ubuntu18.04.1
+- git hash 8f9b675, which is 5 commits after `git tag 1.0.0_alpha1` built on Ubuntu 18.04 "xenial" becomes Debian version `1.0.0~alpha1+5+g8f9b675-0~ubuntu18.04.1`
 
 This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built.
 
