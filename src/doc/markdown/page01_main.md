@@ -5,6 +5,7 @@
 - [Architecture](page10_architecture.md)
 - [Git Repositories](page19_repository.md)
 - [Building and CI/CD](page20_build.md)
+- [Configuration](page30_configuration.md)
 
 ## Documentation Information
 
