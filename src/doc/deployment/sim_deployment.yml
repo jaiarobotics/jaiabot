@@ -1,0 +1,8 @@
+deployment: trail_deployment
+platforms:
+  - name: topside
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_opencpn_interface_interface.yml
+  - name: auv
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_frontseat_interface_interface.yml
