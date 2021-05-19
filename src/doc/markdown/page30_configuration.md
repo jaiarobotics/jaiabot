@@ -76,7 +76,7 @@ These environmental variables are set in the `preseed.goby` file (`goby_launch` 
     - auv/{N}: Logs for AUV index {N}
     - topside: Logs for the topside
 - `goby3_lib_dir`: Directory where the libraries for Goby3 are stored. Used to dynamically load protobuf messages from the Goby3 libraries.
-- `jaia_lib_dir`: Directory to the libraries for `jaiabot-hydro`.
+- `jaia_lib_dir`: Directory to the libraries for `jaiabot`.
 - `LD_LIBRARY_PATH`: Directories to add to the load library path (e.g. used by `dlopen` to dynamically load libraries).
 - `jaia_max_number_vehicles`: Maximum number of vehicles to configure communications links for (could be greater than the number actually being run).
 - `jaia_n_auvs`: Number of vehicles to actually run

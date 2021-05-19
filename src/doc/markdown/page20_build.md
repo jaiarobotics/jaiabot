@@ -19,7 +19,7 @@ sudo apt install libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev
 
 ## CMake
 
-The `jaiabot-hydro` software is configured using CMake which (by default) then generates Makefiles that the `make` tool uses to invoke the C++ compiler and linker.
+The `jaiabot` software is configured using CMake which (by default) then generates Makefiles that the `make` tool uses to invoke the C++ compiler and linker.
 
 This process is summarized by:
 
@@ -80,11 +80,11 @@ echo "deb http://packages.gobysoft.org/ubuntu/continuous/ `lsb_release -c -s`/" 
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 # install the jaia code
-sudo apt install jaiabot-hydro-apps
-# optional: compiled documentation to /usr/share/doc/jaiabot-hydro/html
-sudo apt install jaiabot-hydro-doc
-# optional: Goby clang tool interface definitions (publish/subscribe API) to /usr/share/jaiabot-hydro/interfaces
-sudo apt install jaiabot-hydro-interfaces
+sudo apt install jaiabot-apps
+# optional: compiled documentation to /usr/share/doc/jaiabot/html
+sudo apt install jaiabot-doc
+# optional: Goby clang tool interface definitions (publish/subscribe API) to /usr/share/jaiabot/interfaces
+sudo apt install jaiabot-interfaces
 ```
 
 ### After a release is made

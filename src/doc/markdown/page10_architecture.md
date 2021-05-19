@@ -6,7 +6,7 @@ Preliminary Jaiabot system block diagram:
 
 ## Middlewares
 
-`jaiabot-hydro` is based primarily on two publish/subscribe asynchronous middlewares:
+`jaiabot` is based primarily on two publish/subscribe asynchronous middlewares:
 
 - Goby3: <https://goby.software/3.0/>
 - MOOS-IvP: <http://moos-ivp.org>
@@ -28,7 +28,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `goby_gps`: Takes GPS data from `gpsd` and publishes it to the gobyd.
 - `goby_opencpn_interface`: Interface from Goby3 to OpenCPN.
 
-#### In jaiabot-hydro project
+#### In jaiabot project
 
 - `jaiabot_health`: Overall system health using data from `goby_coroner` and possibly other sources (TBD?).
 - `jaiabot_control`: Feedback controller (PID).

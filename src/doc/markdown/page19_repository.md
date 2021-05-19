@@ -2,12 +2,12 @@
 
 The source code for the Jaiabot is split between two Git repositories:
 
-- `jaiabot-hydro`: Source code (C++ primarily) that is built into compiled code (binaries and libraries).
+- `jaiabot`: Source code (C++ primarily) that is built into compiled code (binaries and libraries).
 - `jaiabot-configuration`: Runtime configuration using Python as a preprocessor that is used as inputs to the compiled code.
 
-## jaiabot-hydro
+## jaiabot
 
-This Git repository is hosted at <https://github.com/jaiarobotics/jaiabot-hydro>.
+This Git repository is hosted at <https://github.com/jaiarobotics/jaiabot>.
 
 It consists of source code that is compiled into a variety of binary applications and libraries to be run on the target platforms (vehicles and base station computers). This compilation can carried out manually by the developers on their computers and automatically be the CircleCI service for the target hardware. See [Building and CI/CD](page20_build.md) for more details.
 
@@ -19,7 +19,7 @@ The filesystem structure of this repository is as follows:
 - `cmake`: Folder for additional CMake helper code.
 - `.git`: Git repository files (should not be directly edited)
 - `scripts`: Various helper shell scripts
-    - `update_copyright.sh`: Run to prepend copyright message to new and existing source code files in the entire jaiabot-hydro project based on latest Git author information and the templates in `src/doc/copyright`.
+    - `update_copyright.sh`: Run to prepend copyright message to new and existing source code files in the entire jaiabot project based on latest Git author information and the templates in `src/doc/copyright`.
     - `clang-format-hooks`: Git hook (scripts) for running `clang-format` on the edited files in each commit, which enforces a uniform code style across the entire repository.
 - `src`: Source code
     - `lib`: Source code for the libraries
