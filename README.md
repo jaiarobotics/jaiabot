@@ -1,5 +1,5 @@
-# JaiaBot HYDRO Software
+# JaiaBot Software
 
 This repository houses the source code for the Jaiabot micro-UUV. 
 
-Please see the documentation: [compiled by Doxygen](https://gobysoft.org/doc/jaiabot-hydro/html/) or in [Markdown](https://github.com/jaiarobotics/jaiabot-hydro/blob/1.y/src/doc/markdown/page01_main.md).
+Please see the documentation: [compiled by Doxygen](https://gobysoft.org/doc/jaiabot/html/) or in [Markdown](https://github.com/jaiarobotics/jaiabot/blob/1.y/src/doc/markdown/page01_main.md).
