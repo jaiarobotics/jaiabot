@@ -1,4 +1,4 @@
-# Jaiabot HYDRO
+# Jaiabot
 
 ## Table of Contents
 
