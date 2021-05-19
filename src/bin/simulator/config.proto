@@ -4,7 +4,7 @@
 //   Toby Schneider <toby@gobysoft.org>
 //
 //
-// This file is part of the JaiaBot Hydro Project Binaries
+// This file is part of the JaiaBot Project Binaries
 // ("The Jaia Binaries").
 //
 // The Jaia Binaries are free software: you can redistribute them and/or modify

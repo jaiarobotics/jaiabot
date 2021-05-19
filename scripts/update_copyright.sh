@@ -5,7 +5,7 @@ here=`pwd`
 header_strip()
 {
     endtext='If not, see <http:\/\/www.gnu.org\/licenses\/>.'
-    for i in `grep -lr "$endtext" | egrep "\.cpp$|\.h$"`
+    for i in `grep -lr "$endtext" | egrep "\.cpp$|\.h$|\.proto$"`
     do 
         echo $i
         l=$(grep -n "$endtext" $i | tail -1 | cut -d ":" -f 1)
