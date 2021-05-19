@@ -70,7 +70,7 @@ endif()
 
 if(export_goby_interfaces)
   include(GobyClangTool)
-  set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot-hydro/interfaces)
+  set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot/interfaces)
 endif()
 
 
@@ -112,7 +112,7 @@ macro(project_install_lib target_lib)
 
   set_target_properties(${target_lib} PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION "${PROJECT_SOVERSION}")
   
-  install(TARGETS ${target_lib} EXPORT jaiabot-hydro-config
+  install(TARGETS ${target_lib} EXPORT jaiabot-config
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}) 
   list(APPEND PROJECT_LIBRARY_LIST ${target_lib})
@@ -135,7 +135,7 @@ endif()
 
 
 # configuration export - installed version
-install(EXPORT jaiabot-hydro-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot-hydro)
+install(EXPORT jaiabot-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot)
 # configuration export - local build version
-export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-hydro-config.cmake)
+export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-config.cmake)
  
