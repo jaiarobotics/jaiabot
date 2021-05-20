@@ -22,7 +22,11 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <goby/middleware/frontseat/groups.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/moos/middleware/moos_plugin_translator.h>
+#include <goby/moos/protobuf/desired_course.pb.h>
+#include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -40,14 +44,72 @@ namespace jaiabot
 {
 namespace apps
 {
+constexpr goby::middleware::Group udp_in{"udp_in"};
+constexpr goby::middleware::Group udp_out{"udp_out"};
+
 class SimulatorTranslation : public goby::moos::Translator
 {
   public:
     SimulatorTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-        // subscribe to NAV* and create $GPRMC message, etc. Publish it on UDP output
-        // subscribe to goby::middleware::frontseat::groups::desired_course and publish to DESIRED*
+        namespace degree = boost::units::degree;
+        using boost::units::quantity;
+
+        std::vector<std::string> nav_buffer_params(
+            {"LAT", "LONG", "DEPTH", "SPEED", "ROLL", "PITCH", "HEADING", "HEADING_OVER_GROUND"});
+        for (const auto& var : nav_buffer_params) moos().add_buffer("NAV_" + var);
+        moos().add_trigger("NAV_SPEED", [this](const CMOOSMsg& msg) {
+            auto& moos_buffer = moos().buffer();
+
+            goby::util::gps::RMC rmc;
+            goby::util::gps::HDT hdt;
+
+            rmc.status = goby::util::gps::RMC::DataValid;
+            rmc.latitude = moos_buffer["NAV_LAT"].GetDouble() * degree::degree;
+            rmc.longitude = moos_buffer["NAV_LONG"].GetDouble() * degree::degree;
+
+            rmc.speed_over_ground =
+                quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
+
+            rmc.course_over_ground =
+                moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
+
+            hdt.true_heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
+            {
+                auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+                io_data->set_data(rmc.serialize().message_cr_nl());
+                interthread().publish<udp_out>(io_data);
+            }
+
+            {
+                auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+                io_data->set_data(hdt.serialize().message_cr_nl());
+                interthread().publish<udp_out>(io_data);
+            }
+        });
+
+        goby()
+            .interprocess()
+            .subscribe<goby::middleware::frontseat::groups::desired_course,
+                       goby::middleware::frontseat::protobuf::DesiredCourse,
+                       goby::middleware::MarshallingScheme::PROTOBUF>(
+                [this](
+                    const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints) {
+                    glog.is_debug1() && glog << "Received desired course: "
+                                             << desired_setpoints.ShortDebugString() << std::endl;
+
+                    moos().comms().Notify("DESIRED_HEADING", desired_setpoints.heading());
+                    moos().comms().Notify("DESIRED_SPEED", desired_setpoints.speed());
+                    moos().comms().Notify("DESIRED_DEPTH", desired_setpoints.depth());
+
+                    static bool override_posted = false;
+                    if (!override_posted)
+                    {
+                        moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
+                        override_posted = true;
+                    }
+                });
     }
 };
 
@@ -70,6 +132,9 @@ int main(int argc, char* argv[])
 jaiabot::apps::Simulator::Simulator()
 {
     glog.add_group("main", goby::util::Colors::yellow);
+
+    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<udp_in, udp_out>;
+    launch_thread<GPSUDPThread>(cfg().gps_udp_config());
 
     goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
     *sim_cfg.mutable_app() = cfg().app();
