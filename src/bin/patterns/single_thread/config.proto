@@ -35,5 +35,4 @@ message SingleThreadPattern
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     // any specific configuration parameters for your application
-    // optional int32 my_value = 3;
 }
