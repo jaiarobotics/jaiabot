@@ -4,7 +4,7 @@
 //   Toby Schneider <toby@gobysoft.org>
 //
 //
-// This file is part of the JaiaBot Hydro Project Libraries
+// This file is part of the JaiaBot Project Libraries
 // ("The Jaia Libraries").
 //
 // The Jaia Libraries are free software: you can redistribute them and/or modify
