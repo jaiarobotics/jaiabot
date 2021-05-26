@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message LoRaMessage
+{
+    required int32 src = 1;
+    required int32 dest = 2;
+    required bytes data = 3;
+}
