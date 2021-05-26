@@ -83,7 +83,7 @@ void jaiabot::apps::LoRaTest::loop()
     jaiabot::protobuf::LoRaMessage pb_msg;
     pb_msg.set_src(1);
     pb_msg.set_dest(2);
-    pb_msg.set_data("Hello");
+    pb_msg.set_data("Hello" + std::string(1, '\0'));
     io->set_data("P:" + dccl::b64_encode(pb_msg.SerializeAsString()));
     interthread().publish<serial_out>(io);
 }
