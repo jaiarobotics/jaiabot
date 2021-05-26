@@ -125,6 +125,64 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
 endfunction()
 
 
+function(PROTOBUF_GENERATE_NANOPB_C SRCS HDRS C_OUT_DIR)
+  protobuf_include_dirs(${CMAKE_CURRENT_BINARY_DIR})
+
+  if(NOT ARGN)
+    message(SEND_ERROR "Error: PROTOBUF_GENERATE_NANOPB_C() called without any proto files")
+    return()
+  endif(NOT ARGN)
+
+  set(${SRCS})
+  set(${HDRS})
+  foreach(FIL ${ARGN})
+
+    # full file name (relative to current source directory)
+    get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+    # relative file name (need to do this in case an absolute path is passed in)
+    STRING(REGEX REPLACE "^${CMAKE_CURRENT_SOURCE_DIR}/" "" REL_FIL ${ABS_FIL})
+    # name without extension, e.g. for "foo.proto", ${FIL_WE} is "foo"
+    get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
+    # relative directory to current source directory, e.g. for "dir/foo.proto", ${FIL_DIR} is "dir"
+    get_filename_component(FIL_DIR ${REL_FIL} DIRECTORY BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})     
+
+    # if not empty (that is, proto is in this directory)
+    if(FIL_DIR)
+      set(FULL_OUT_DIR "${C_OUT_DIR}/${FIL_DIR}")
+    else() # avoid an extra /
+      set(FULL_OUT_DIR "${C_OUT_DIR}")
+    endif()
+
+    set(NANOPB_FULL_OUT_DIR ${FULL_OUT_DIR})
+
+    list(APPEND ${SRCS} "${NANOPB_FULL_OUT_DIR}/${FIL_WE}.pb.c")
+    list(APPEND ${HDRS} "${NANOPB_FULL_OUT_DIR}/${FIL_WE}.pb.h")   
+
+    # we need the output proto in the same directory as the generated code to make sure we generate the relative
+    # files correctly for later inclusion into other protos (Protobuf is picky about this)
+    set(NANOPB_FIL_DEST ${NANOPB_FULL_OUT_DIR}/${FIL_WE}.proto)
+    
+    add_custom_command(
+      OUTPUT "${NANOPB_FULL_OUT_DIR}/${FIL_WE}.pb.c"
+             "${NANOPB_FULL_OUT_DIR}/${FIL_WE}.pb.h"
+      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+      ARGS ${ALL_PROTOBUF_INCLUDE_DIRS} -I${NANOPB_FULL_OUT_DIR} --nanopb_out=-I${C_OUT_DIR}:${C_OUT_DIR} ${NANOPB_FIL_DEST} 
+      DEPENDS ${NANOPB_FIL_DEST} ${NANOPB_FULL_OUT_DIR}/${FIL_WE}.options
+      COMMENT "Running C nanopb protocol buffer compiler on ${FIL}"
+      VERBATIM )
+    
+  endforeach()
+
+  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
+  set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+  set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+
+  include_directories(${C_OUT_DIR})
+
+endfunction()
+
+
+
 find_path(PROTOBUF_INCLUDE_DIR google/protobuf/service.h)
 
 # so that we can use Google's included descriptor.proto
