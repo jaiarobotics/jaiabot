@@ -32,6 +32,8 @@ char serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
 
 jaiabot_protobuf_LoRaMessage outgoing_msg = jaiabot_protobuf_LoRaMessage_init_default;
 
+bool data_to_send = false;
+
 void setup() 
 {
   pinMode(RFM95_RST, OUTPUT);
@@ -82,19 +84,15 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 void lora_tx()
 {
   Serial.println("D:Transmitting..."); // Send a message to rf95_server
-  
-  char radiopacket[20] = "Hello World #      ";
-  itoa(packetnum++, radiopacket+13, 10);
-  Serial.print("D:Sending "); Serial.println(radiopacket);
-  radiopacket[19] = 0;
-  
   Serial.println("D:Sending...");
   delay(10);
-  rf95.send((uint8_t *)radiopacket, 20);
+  rf95.send((uint8_t *)outgoing_msg.data.bytes, outgoing_msg.data.size);
+
 
   Serial.println("D:Waiting for packet to complete..."); 
   delay(10);
   rf95.waitPacketSent();
+  data_to_send = false;
 }
 
 void lora_rx()
@@ -125,10 +123,13 @@ void lora_rx()
 }
 
 void loop()
-{
-//  lora_tx();
-//  lora_rx();
-
+{  
+  if(data_to_send)
+  {
+    lora_tx();
+    lora_rx();
+  }
+  
   while (Serial.available() > 0) {
     // read prefix
     auto prefix = Serial.read();
@@ -169,6 +170,7 @@ void loop()
             for(int i = 0, n = outgoing_msg.data.size; i < n; ++i)
               Serial.print(static_cast<char>(outgoing_msg.data.bytes[i]));
             Serial.println();
+            data_to_send = true;
           }
           
           break;
