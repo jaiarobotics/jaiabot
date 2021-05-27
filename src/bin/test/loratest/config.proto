@@ -34,4 +34,8 @@ message LoRaTest
     optional goby.middleware.protobuf.AppConfig app = 1;
 
     required goby.middleware.protobuf.SerialConfig serial = 10;
+
+    required int32 src = 20;
+    required int32 dest = 21;
+    optional bool transmit = 22 [default = false];
 }
