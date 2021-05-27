@@ -7,4 +7,6 @@ message LoRaMessage
     required int32 src = 1;
     required int32 dest = 2;
     required bytes data = 3;
+    optional int32 id = 4;
+    optional int32 flags = 5;
 }

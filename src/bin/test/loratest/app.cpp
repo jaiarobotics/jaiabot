@@ -50,6 +50,12 @@ class LoRaTest : public middleware::MultiThreadStandaloneApplication<config::LoR
 
   private:
     void loop() override;
+
+  private:
+    std::uint8_t test_index_ = 0;
+    std::deque<std::uint8_t> test_data_;
+
+    constexpr static int RH_RF95_MAX_MESSAGE_LEN{5};
 };
 
 } // namespace apps
@@ -75,15 +81,31 @@ jaiabot::apps::LoRaTest::LoRaTest()
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
         glog.is_verbose() && glog << io.DebugString() << std::flush;
     });
+
+    for (; test_index_ < RH_RF95_MAX_MESSAGE_LEN; ++test_index_) test_data_.push_back(test_index_);
 }
 
 void jaiabot::apps::LoRaTest::loop()
 {
-    auto io = std::make_shared<goby::middleware::protobuf::IOData>();
-    jaiabot::protobuf::LoRaMessage pb_msg;
-    pb_msg.set_src(1);
-    pb_msg.set_dest(2);
-    pb_msg.set_data("Hello" + std::string(1, '\0'));
-    io->set_data("P:" + dccl::b64_encode(pb_msg.SerializeAsString()));
-    interthread().publish<serial_out>(io);
+    if (cfg().transmit())
+    {
+        test_data_.pop_front();
+        test_data_.push_back(test_index_++);
+
+        auto io = std::make_shared<goby::middleware::protobuf::IOData>();
+        jaiabot::protobuf::LoRaMessage pb_msg;
+        pb_msg.set_src(cfg().src());
+        pb_msg.set_dest(cfg().dest());
+        pb_msg.set_data(std::string(test_data_.begin(), test_data_.end()));
+
+        std::string pb_encoded = pb_msg.SerializeAsString();
+        std::string b64_pb_encoded = dccl::b64_encode(pb_encoded);
+        boost::erase_all(b64_pb_encoded, "\n");
+
+        glog.is_verbose() && glog << "Size: " << pb_encoded.size()
+                                  << ", after b64: " << b64_pb_encoded.size() << std::endl;
+
+        io->set_data("P:" + b64_pb_encoded + "\n");
+        interthread().publish<serial_out>(io);
+    }
 }
