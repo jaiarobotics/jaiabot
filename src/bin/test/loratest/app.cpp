@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::LoRaTest::LoRaTest()
-    : middleware::MultiThreadStandaloneApplication<config::LoRaTest>(1.0 * si::hertz)
+    : middleware::MultiThreadStandaloneApplication<config::LoRaTest>(.1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -79,7 +79,40 @@ jaiabot::apps::LoRaTest::LoRaTest()
     launch_thread<SerialThread>(cfg().serial());
 
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
-        glog.is_verbose() && glog << io.DebugString() << std::flush;
+        auto& data = io.data();
+        constexpr int min_size = 2;
+        try
+        {
+            if (data.size() < min_size)
+                throw(std::runtime_error("Message shorter than minimum"));
+
+            auto prefix = data[0];
+            switch (prefix)
+            {
+                case 'P':
+                {
+                    auto colon = data[1];
+                    if (colon != ':')
+                        throw(std::runtime_error("Expected colon at index: 1"));
+
+                    std::string b64_pb_encoded = data.substr(2);
+                    std::string pb_encoded = dccl::b64_decode(b64_pb_encoded);
+                    jaiabot::protobuf::LoRaMessage pb_msg;
+                    pb_msg.ParseFromString(pb_encoded);
+
+                    glog.is_verbose() && glog << group("main")
+                                              << "Received: " << pb_msg.ShortDebugString()
+                                              << std::endl;
+
+                    break;
+                }
+                default: break;
+            }
+        }
+        catch (const std::exception& e)
+        {
+            glog.is_warn() && glog << "Invalid message from Feather: " << e.what() << std::endl;
+        }
     });
 
     for (; test_index_ < RH_RF95_MAX_MESSAGE_LEN; ++test_index_) test_data_.push_back(test_index_);
@@ -98,12 +131,12 @@ void jaiabot::apps::LoRaTest::loop()
         pb_msg.set_dest(cfg().dest());
         pb_msg.set_data(std::string(test_data_.begin(), test_data_.end()));
 
+        glog.is_verbose() && glog << group("main") << "Sending: " << pb_msg.ShortDebugString()
+                                  << std::endl;
+
         std::string pb_encoded = pb_msg.SerializeAsString();
         std::string b64_pb_encoded = dccl::b64_encode(pb_encoded);
         boost::erase_all(b64_pb_encoded, "\n");
-
-        glog.is_verbose() && glog << "Size: " << pb_encoded.size()
-                                  << ", after b64: " << b64_pb_encoded.size() << std::endl;
 
         io->set_data("P:" + b64_pb_encoded + "\n");
         interthread().publish<serial_out>(io);

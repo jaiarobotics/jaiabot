@@ -30,28 +30,27 @@ RHDatagram rh_manager(rf95, this_address);
 
 // 8 bits -> 6 bits
 constexpr int JB_MAX_SERIAL_LINE_LENGTH = SERIAL_HEADER_SIZE + ceil(jaiabot_protobuf_LoRaMessage_size * 3) / 4 + EOL_SIZE;
-char serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
-
-jaiabot_protobuf_LoRaMessage outgoing_msg = jaiabot_protobuf_LoRaMessage_init_default;
-jaiabot_protobuf_LoRaMessage incoming_msg = jaiabot_protobuf_LoRaMessage_init_default;
 
 bool data_to_send = false;
+bool data_to_receive = false;
 
-void print_msg(const jaiabot_protobuf_LoRaMessage& msg)
-{
-  Serial.print("src: ");
-  Serial.print(msg.src);
-  Serial.print(", dest: ");
-  Serial.print(msg.dest);
-  Serial.print(", data: ");
-  for (int i = 0, n = msg.data.size; i < n; ++i)
-  {
-    Serial.print(msg.data.bytes[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
-  delay(10);
-}
+jaiabot_protobuf_LoRaMessage msg = jaiabot_protobuf_LoRaMessage_init_default;
+
+//void print_msg(const jaiabot_protobuf_LoRaMessage& msg)
+//{
+//  Serial.print("src: ");
+//  Serial.print(msg.src);
+//  Serial.print(", dest: ");
+//  Serial.print(msg.dest);
+//  Serial.print(", data: ");
+//  for (int i = 0, n = msg.data.size; i < n; ++i)
+//  {
+//    Serial.print(msg.data.bytes[i], HEX);
+//    Serial.print(" ");
+//  }
+//  Serial.println();
+//  delay(100);
+//}
 
 void setup()
 {
@@ -66,9 +65,6 @@ void setup()
   delay(100);
 
   Serial.println("D:JaiaBot LoRa");
-
-  jaiabot_protobuf_LoRaMessage lora_msg{};
-
 
   // manual reset
   digitalWrite(RFM95_RST, LOW);
@@ -99,13 +95,11 @@ void setup()
 
 }
 
-int16_t packetnum = 0;  // packet counter, we increment per xmission
-
 void lora_tx()
 {
-  if (outgoing_msg.src != this_address)
+  if (msg.src != this_address)
   {
-    this_address = outgoing_msg.src;
+    this_address = msg.src;
     Serial.print("D:Updated this address to ");
     Serial.println(this_address);
     delay(10);
@@ -115,7 +109,7 @@ void lora_tx()
   }
   Serial.println("D:Sending...");
   delay(10);
-  rh_manager.sendto((uint8_t *)outgoing_msg.data.bytes, outgoing_msg.data.size, outgoing_msg.dest);
+  rh_manager.sendto((uint8_t *)msg.data.bytes, msg.data.size, msg.dest);
   Serial.println("D:Waiting for packet to complete...");
   delay(10);
   if (rh_manager.waitPacketSent(1000 /*ms*/))
@@ -128,44 +122,76 @@ void lora_tx()
 
 void lora_rx()
 {
-  incoming_msg = jaiabot_protobuf_LoRaMessage_init_default;
-  uint8_t size = sizeof(incoming_msg.data.bytes);
+  msg = jaiabot_protobuf_LoRaMessage_init_default;
+  uint8_t size = sizeof(msg.data.bytes);
   uint8_t src = 0;
   uint8_t dest = 0;
   uint8_t id = 0;
   uint8_t flags = 0;
 
-  while (rh_manager.waitAvailableTimeout(100))
+  if (rh_manager.recvfrom(msg.data.bytes, &size, &src, &dest, &id, &flags))
   {
-    if (rh_manager.recvfrom(incoming_msg.data.bytes, &size, &src, &dest, &id, &flags))
-    {
-      incoming_msg.data.size = size;
-      incoming_msg.src = src;
-      incoming_msg.dest = dest;
-      incoming_msg.id = id;
-      incoming_msg.has_id = true;
-      incoming_msg.flags = flags;
-      incoming_msg.has_flags = true;
+    msg.data.size = size;
+    msg.src = src;
+    msg.dest = dest;
+    msg.id = id;
+    msg.has_id = true;
+    msg.flags = flags;
+    msg.has_flags = true;
 
-      Serial.print("D:incoming - ");
-      print_msg(incoming_msg);
-      Serial.print("D:RSSI: ");
-      Serial.println(rf95.lastRssi(), DEC);
-    }
-    else
-    {
-      Serial.println("D:Receive failed");
-    }
+    //Serial.print("D:incoming - ");
+    //print_msg(msg);
+    Serial.print("D:received bytes:" );
+    Serial.println(size);
+    Serial.print("D:RSSI: ");
+    Serial.println(rf95.lastRssi(), DEC);
+    data_to_receive = true;
   }
+  else
+  {
+    Serial.println("D:Receive failed");
+  }
+
+  if (data_to_receive)
+  {
+    bool status = true;
+    uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
+    size_t message_length = 0;
+    {
+      {
+        pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
+        status = pb_encode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
+        message_length = stream.bytes_written;
+        Serial.println(message_length);
+        //     if (!status)
+        //{
+        //          Serial.print("D:Encoding LoRaMessage protobuf failed:");
+        //Serial.println(PB_GET_ERROR(&stream));
+        //}
+      }
+    }
+
+
+
+    if (status)
+    {
+      uint8_t serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
+      int binary_length = encode_base64(pb_binary_data, message_length, serial_buffer);
+      Serial.print("P:");
+      Serial.write(serial_buffer, binary_length);
+      Serial.println();
+      delay(10);
+    }
+    data_to_receive = false;
+  }
+
+
 }
 
 void loop()
 {
-  lora_rx();
-  
-  if (data_to_send)
-    lora_tx();
-
+  if (rh_manager.available())
+    lora_rx();
 
   while (Serial.available() > 0) {
     // read prefix
@@ -179,28 +205,34 @@ void loop()
     }
     else
     {
-      auto bytes_read = Serial.readBytesUntil('\n', serial_buffer, JB_MAX_SERIAL_LINE_LENGTH);
-
       switch (prefix)
       {
         // Protobuf message (base 64 encoded)
         case 'P':
-          outgoing_msg = jaiabot_protobuf_LoRaMessage_init_default;
-          char binary_data[jaiabot_protobuf_LoRaMessage_size];
-          auto binary_length = decode_base64(serial_buffer, binary_data);
-
-          pb_istream_t stream = pb_istream_from_buffer(binary_data, binary_length);
-
-          bool status = pb_decode(&stream, jaiabot_protobuf_LoRaMessage_fields, &outgoing_msg);
-          if (!status)
+          msg = jaiabot_protobuf_LoRaMessage_init_default;
+          int binary_length = 0;
+          bool status = false;
           {
-            Serial.print("D:Decoding LoRaMessage protobuf failed:");
-            Serial.println(PB_GET_ERROR(&stream));
+            uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
+            // scope serial buffer to minimize RAM usage
+            {
+              uint8_t serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
+              auto bytes_read = Serial.readBytesUntil('\n', serial_buffer, JB_MAX_SERIAL_LINE_LENGTH);
+              binary_length = decode_base64(serial_buffer, pb_binary_data);
+            }
+            pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, binary_length);
+            status = pb_decode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
+            if (!status)
+            {
+              Serial.print("D:Decoding LoRaMessage protobuf failed:");
+              Serial.println(PB_GET_ERROR(&stream));
+            }
+
           }
-          else
+          if (status)
           {
             Serial.print("D:outgoing - ");
-            print_msg(outgoing_msg);
+            //     print_msg(msg);
             data_to_send = true;
           }
 
@@ -215,6 +247,9 @@ void loop()
       }
     }
   }
+
+  if (data_to_send)
+    lora_tx();
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
