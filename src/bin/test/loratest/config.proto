@@ -38,4 +38,8 @@ message LoRaTest
     required int32 src = 20;
     required int32 dest = 21;
     optional bool transmit = 22 [default = false];
+    optional int32 num_vehicles = 23 [default = 2];
+
+    optional int32 message_length = 30 [default = 64];
+    
 }

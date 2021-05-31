@@ -6,7 +6,20 @@ message LoRaMessage
 {
     required int32 src = 1;
     required int32 dest = 2;
-    required bytes data = 3;
-    optional int32 id = 4;
-    optional int32 flags = 5;
+    optional bytes data = 3;
+    enum MessageType
+    {
+        LORA_DATA = 1; // bidirectional
+        SET_PARAMETERS = 2; // control -> feather
+        PARAMETERS_ACCEPTED = 3; // feather -> control
+        FEATHER_READY = 4; // feather -> control
+        TRANSMIT_RESULT = 5; // feather -> control
+        DEBUG_MESSAGE = 100; // feather -> control
+    }
+    required MessageType type = 4 [default = LORA_DATA];
+    optional int32 id = 5;
+    optional int32 flags = 6;
+    optional sint32 rssi = 7;
+    
+    optional bool transmit_successful = 10;
 }
