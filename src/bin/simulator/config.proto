@@ -24,16 +24,19 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/moos/protobuf/moos_gateway_config.proto";
+import "goby/middleware/protobuf/udp_config.proto";
 
 package jaiabot.config;
 
-message SingleThreadPattern
+message Simulator
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    // any specific configuration parameters for your application
-    // optional int32 my_value = 3;
+    required goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
+
+    optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
 }

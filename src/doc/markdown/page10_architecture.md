@@ -36,7 +36,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `jaiabot_lights`: Light control (perhaps part of `jaiabot_power` instead?).
 - `jaiabot_payload_interface`: Pluggable interface for different payload data feeds to be logged.
 - `jaiabot_mission_manager`: Keeps a state machine of the overall mission state and switches from pHelmIvP control to profile mode as required.
-- `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output and other sources, as needed. (Could we do this in an updated `goby_gps` and do away with the need for this application?)
+- `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 
 #### In the MOOS-IvP project
 
