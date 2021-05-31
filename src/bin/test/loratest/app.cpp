@@ -51,12 +51,14 @@ class LoRaTest : public middleware::MultiThreadStandaloneApplication<config::LoR
 
   private:
     void loop() override;
+    void set_parameters();
+    void send_msg(const jaiabot::protobuf::LoRaMessage& pb_msg);
 
   private:
     std::uint8_t test_index_ = 0;
     std::deque<std::uint8_t> test_data_;
 
-    constexpr static int RH_RF95_MAX_MESSAGE_LEN{5};
+    bool feather_initialized_{false};
 };
 
 } // namespace apps
@@ -87,34 +89,71 @@ jaiabot::apps::LoRaTest::LoRaTest()
 
         glog.is_verbose() && glog << group("main") << "Received: " << pb_msg.ShortDebugString()
                                   << std::endl;
+
+        switch (pb_msg.type())
+        {
+            default: break;
+            case jaiabot::protobuf::LoRaMessage::LORA_DATA: break;
+            case jaiabot::protobuf::LoRaMessage::FEATHER_READY:
+                if (!feather_initialized_)
+                    set_parameters();
+                break;
+            case jaiabot::protobuf::LoRaMessage::PARAMETERS_ACCEPTED:
+                feather_initialized_ = true;
+                break;
+        }
     });
 
-    for (; test_index_ < RH_RF95_MAX_MESSAGE_LEN; ++test_index_) test_data_.push_back(test_index_);
+    for (; test_index_ < cfg().message_length(); ++test_index_) test_data_.push_back(test_index_);
+
+    set_parameters();
 }
 
 void jaiabot::apps::LoRaTest::loop()
 {
-    if (cfg().transmit())
+    if (!feather_initialized_)
+        set_parameters();
+
+    static int loop_index = 0;
+    if (cfg().transmit() && ((loop_index % cfg().num_vehicles()) + 1 == cfg().src()))
     {
         test_data_.pop_front();
         test_data_.push_back(test_index_++);
 
-        auto io = std::make_shared<goby::middleware::protobuf::IOData>();
         jaiabot::protobuf::LoRaMessage pb_msg;
         pb_msg.set_src(cfg().src());
         pb_msg.set_dest(cfg().dest());
         pb_msg.set_data(std::string(test_data_.begin(), test_data_.end()));
-
-        glog.is_verbose() && glog << group("main") << "Sending: " << pb_msg.ShortDebugString()
-                                  << std::endl;
-
-        std::string pb_encoded = pb_msg.SerializeAsString();
-
-        std::uint16_t size = pb_encoded.size();
-        std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
-                                static_cast<char>(size & 0xFF)};
-
-        io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
-        interthread().publish<serial_out>(io);
+        pb_msg.set_type(jaiabot::protobuf::LoRaMessage::LORA_DATA);
+        send_msg(pb_msg);
     }
+    ++loop_index;
+}
+
+void jaiabot::apps::LoRaTest::set_parameters()
+{
+    jaiabot::protobuf::LoRaMessage pb_msg;
+    pb_msg.set_src(cfg().src());
+    pb_msg.set_dest(cfg().src());
+    pb_msg.set_type(jaiabot::protobuf::LoRaMessage::SET_PARAMETERS);
+    pb_msg.set_data("");
+
+    send_msg(pb_msg);
+}
+
+void jaiabot::apps::LoRaTest::send_msg(const jaiabot::protobuf::LoRaMessage& pb_msg)
+{
+    auto io = std::make_shared<goby::middleware::protobuf::IOData>();
+
+    glog.is_verbose() && glog << group("main") << "Sending: " << pb_msg.ShortDebugString()
+                              << std::endl;
+
+    std::string pb_encoded = pb_msg.SerializeAsString();
+
+    std::uint16_t size = pb_encoded.size();
+    std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
+                            static_cast<char>(size & 0xFF)};
+
+    io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
+    interthread().publish<serial_out>(io);
 }
