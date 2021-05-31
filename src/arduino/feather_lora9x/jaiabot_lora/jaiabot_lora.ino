@@ -3,7 +3,6 @@
 #include <RHDatagram.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include <base64.hpp>
 #include "jaiabot/messages/nanopb/feather.pb.h"
 
 /* for feather32u4 */
@@ -18,24 +17,25 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 uint8_t this_address = 2;
 RHDatagram rh_manager(rf95, this_address);
 
-// ASCII Serial Protocol
-// Prefix byte + ':' + Data
-// P:[Base64 Encoded jaiabot_protobuf_LoRaMessage Protobuf Data]
-// D:[Debug String message]
+// Binary serial protocol
+// [JAIA][2-byte size - big endian][bytes][JAIA]...
+// TODO: Add CRC32?
+constexpr const char* SERIAL_MAGIC = "JAIA";
+constexpr int SERIAL_MAGIC_BYTES = 4;
+constexpr int SIZE_BYTES = 2;
+using serial_size_type = uint16_t;
 
-// prefix + ':'
-#define SERIAL_HEADER_SIZE 2
-// new line
-#define EOL_SIZE 1
+constexpr int BITS_IN_BYTE = 8;
 
-// 8 bits -> 6 bits
-constexpr int JB_MAX_SERIAL_LINE_LENGTH = SERIAL_HEADER_SIZE + ceil(jaiabot_protobuf_LoRaMessage_size * 3) / 4 + EOL_SIZE;
+constexpr auto MAX_SIZE = 1ul << (SIZE_BYTES*BITS_IN_BYTE);
+
+static_assert(jaiabot_protobuf_LoRaMessage_size < MAX_SIZE, "LoRaMessage is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
 bool data_to_receive = false;
 
 jaiabot_protobuf_LoRaMessage msg = jaiabot_protobuf_LoRaMessage_init_default;
-
+//
 //void print_msg(const jaiabot_protobuf_LoRaMessage& msg)
 //{
 //  Serial.print("src: ");
@@ -49,7 +49,7 @@ jaiabot_protobuf_LoRaMessage msg = jaiabot_protobuf_LoRaMessage_init_default;
 //    Serial.print(" ");
 //  }
 //  Serial.println();
-//  delay(100);
+//  delay(10);
 //}
 
 void setup()
@@ -64,7 +64,7 @@ void setup()
 
   delay(100);
 
-  Serial.println("D:JaiaBot LoRa");
+ // Serial.println("D:JaiaBot LoRa");
 
   // manual reset
   digitalWrite(RFM95_RST, LOW);
@@ -73,18 +73,18 @@ void setup()
   delay(10);
 
   while (!rh_manager.init()) {
-    Serial.println("D:LoRa radio init failed");
-    Serial.println("D:Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
+   // Serial.println("D:LoRa radio init failed");
+   // Serial.println("D:Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
     while (1);
   }
-  Serial.println("D:LoRa radio init OK!");
+  //Serial.println("D:LoRa radio init OK!");
 
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
-    Serial.println("D:setFrequency failed");
+    //Serial.println("D:setFrequency failed");
     while (1);
   }
-  Serial.print("D:Set Freq to: "); Serial.println(RF95_FREQ);
+  //Serial.print("D:Set Freq to: "); Serial.println(RF95_FREQ);
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
 
@@ -100,22 +100,25 @@ void lora_tx()
   if (msg.src != this_address)
   {
     this_address = msg.src;
-    Serial.print("D:Updated this address to ");
-    Serial.println(this_address);
-    delay(10);
+    //Serial.print("D:Updated this address to ");
+    //Serial.println(this_address);
+    //delay(10);
     rh_manager.setThisAddress(this_address);
-
     delay(10);
   }
-  Serial.println("D:Sending...");
-  delay(10);
+  //Serial.println("D:Sending...");
+  //delay(10);
   rh_manager.sendto((uint8_t *)msg.data.bytes, msg.data.size, msg.dest);
-  Serial.println("D:Waiting for packet to complete...");
-  delay(10);
+  //Serial.println("D:Waiting for packet to complete...");
+  //delay(10);
   if (rh_manager.waitPacketSent(1000 /*ms*/))
-    Serial.println("D:...send complete");
+  {
+    //Serial.println("D:...send complete");
+  }
   else
-    Serial.println("D:...timeout on send");
+  {
+    //Serial.println("D:...timeout on send");
+  }
   data_to_send = false;
   delay(10);
 }
@@ -141,33 +144,33 @@ void lora_rx()
 
     //Serial.print("D:incoming - ");
     //print_msg(msg);
-    Serial.print("D:received bytes:" );
-    Serial.println(size);
-    Serial.print("D:RSSI: ");
-    Serial.println(rf95.lastRssi(), DEC);
+    //Serial.print("D:received bytes:" );
+    //Serial.println(size);
+    //Serial.print("D:RSSI: ");
+    //Serial.println(rf95.lastRssi(), DEC);
     data_to_receive = true;
   }
   else
   {
-    Serial.println("D:Receive failed");
+    //Serial.println("D:Receive failed");
   }
 
   if (data_to_receive)
   {
     bool status = true;
     uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
-    size_t message_length = 0;
+    serial_size_type message_length = 0;
     {
       {
         pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
         status = pb_encode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
         message_length = stream.bytes_written;
-        Serial.println(message_length);
-        //     if (!status)
-        //{
-        //          Serial.print("D:Encoding LoRaMessage protobuf failed:");
-        //Serial.println(PB_GET_ERROR(&stream));
-        //}
+        //Serial.println(message_length);
+        if (!status)
+        {
+          //Serial.print("D:Encoding LoRaMessage protobuf failed:");
+          //Serial.println(PB_GET_ERROR(&stream));
+        }
       }
     }
 
@@ -175,17 +178,13 @@ void lora_rx()
 
     if (status)
     {
-      uint8_t serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
-      int binary_length = encode_base64(pb_binary_data, message_length, serial_buffer);
-      Serial.print("P:");
-      Serial.write(serial_buffer, binary_length);
-      Serial.println();
-      delay(10);
+      Serial.write(SERIAL_MAGIC, SERIAL_MAGIC_BYTES);
+      Serial.write((message_length >> BITS_IN_BYTE) & 0xFF);
+      Serial.write(message_length & 0xFF);
+      Serial.write(pb_binary_data, message_length);
     }
     data_to_receive = false;
   }
-
-
 }
 
 void loop()
@@ -193,58 +192,62 @@ void loop()
   if (rh_manager.available())
     lora_rx();
 
-  while (Serial.available() > 0) {
-    // read prefix
-    auto prefix = Serial.read();
-    auto colon = Serial.read();
-    if (colon != ':')
+  constexpr int prefix_size = SERIAL_MAGIC_BYTES + SIZE_BYTES;
+  while (Serial.available() >= prefix_size)
+  {
+    // read bytes until the next magic word start (hopefully)
+    while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0])
+      Serial.read();
+
+    uint8_t prefix[prefix_size] = {0};
+    if (Serial.readBytes(prefix, prefix_size) == prefix_size)
     {
-      Serial.print("D:Malformed message, expected colon after prefix ");
-      Serial.print(prefix);
-      Serial.println(colon);
+      if (memcmp(SERIAL_MAGIC, prefix, SERIAL_MAGIC_BYTES) == 0)
+      {
+        serial_size_type size = 0;
+        size |= prefix[SERIAL_MAGIC_BYTES];
+        size << BITS_IN_BYTE;
+        size |= prefix[SERIAL_MAGIC_BYTES + 1];
+        //Serial.print("D:Expecting message of size: ");
+        //Serial.println(size);
+
+        if (size <= jaiabot_protobuf_LoRaMessage_size)
+        {
+          uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
+          if (Serial.readBytes(pb_binary_data, size) == size)
+          {
+            pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
+            bool status = pb_decode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
+            if (!status)
+            {
+              //Serial.print("D:Decoding LoRaMessage protobuf failed:");
+              //Serial.println(PB_GET_ERROR(&stream));
+            }
+            //Serial.print("D:outgoing - ");
+            //print_msg(msg);
+            data_to_send = true;
+          }
+          else
+          {
+            //Serial.println("D:Read wrong number of bytes for PB data");
+          }
+        }
+        else
+        {
+          //Serial.print("D:Size is wrong, expected <= ");
+          //Serial.println(jaiabot_protobuf_LoRaMessage_size);
+        }
+
+      }
+      else
+      {
+        //Serial.print("D:Serial magic is wrong, expected");
+        //Serial.println(SERIAL_MAGIC);
+      }
     }
     else
     {
-      switch (prefix)
-      {
-        // Protobuf message (base 64 encoded)
-        case 'P':
-          msg = jaiabot_protobuf_LoRaMessage_init_default;
-          int binary_length = 0;
-          bool status = false;
-          {
-            uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
-            // scope serial buffer to minimize RAM usage
-            {
-              uint8_t serial_buffer[JB_MAX_SERIAL_LINE_LENGTH] = {0};
-              auto bytes_read = Serial.readBytesUntil('\n', serial_buffer, JB_MAX_SERIAL_LINE_LENGTH);
-              binary_length = decode_base64(serial_buffer, pb_binary_data);
-            }
-            pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, binary_length);
-            status = pb_decode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
-            if (!status)
-            {
-              Serial.print("D:Decoding LoRaMessage protobuf failed:");
-              Serial.println(PB_GET_ERROR(&stream));
-            }
-
-          }
-          if (status)
-          {
-            Serial.print("D:outgoing - ");
-            //     print_msg(msg);
-            data_to_send = true;
-          }
-
-          break;
-        // Debug message (string)
-        case 'D':
-          break;
-        default:
-          Serial.print("D:Unknown prefix ");
-          Serial.println(prefix);
-          break;
-      }
+      //Serial.println("D:Read wrong number of bytes for prefix");
     }
   }
 
