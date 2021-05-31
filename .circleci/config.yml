@@ -61,7 +61,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y &&
-          apt-get install libgoby3-dev:${TARGET_ARCH} libgoby3-moos-dev:${TARGET_ARCH} libgoby3-moos:${TARGET_ARCH} libgoby3-gui-dev:${TARGET_ARCH} goby3-interfaces:amd64 libnanopb-dev:amd64 nanopb:amd64 -y --no-install-recommends
+          apt-get install libgoby3-dev:${TARGET_ARCH} libgoby3-moos-dev:${TARGET_ARCH} libgoby3-moos:${TARGET_ARCH} libgoby3-gui-dev:${TARGET_ARCH} goby3-interfaces:amd64 libnanopb-dev:amd64 nanopb:amd64 python3-protobuf:amd64 -y --no-install-recommends
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install goby3-clang-tool || true
     - run: &run-build
         name: Build
