@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/feather.pb.h"
 
 using goby::glog;
@@ -74,45 +75,18 @@ jaiabot::apps::LoRaTest::LoRaTest()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using SerialThread = goby::middleware::io::SerialThreadLineBased<serial_in, serial_out>;
+    using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
 
     launch_thread<SerialThread>(cfg().serial());
 
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
         auto& data = io.data();
-        constexpr int min_size = 2;
-        try
-        {
-            if (data.size() < min_size)
-                throw(std::runtime_error("Message shorter than minimum"));
+        jaiabot::protobuf::LoRaMessage pb_msg;
+        constexpr auto prefix_size = jaiabot::lora::SERIAL_MAGIC_BYTES + jaiabot::lora::SIZE_BYTES;
+        pb_msg.ParseFromArray(&data[0] + prefix_size, data.size() - prefix_size);
 
-            auto prefix = data[0];
-            switch (prefix)
-            {
-                case 'P':
-                {
-                    auto colon = data[1];
-                    if (colon != ':')
-                        throw(std::runtime_error("Expected colon at index: 1"));
-
-                    std::string b64_pb_encoded = data.substr(2);
-                    std::string pb_encoded = dccl::b64_decode(b64_pb_encoded);
-                    jaiabot::protobuf::LoRaMessage pb_msg;
-                    pb_msg.ParseFromString(pb_encoded);
-
-                    glog.is_verbose() && glog << group("main")
-                                              << "Received: " << pb_msg.ShortDebugString()
-                                              << std::endl;
-
-                    break;
-                }
-                default: break;
-            }
-        }
-        catch (const std::exception& e)
-        {
-            glog.is_warn() && glog << "Invalid message from Feather: " << e.what() << std::endl;
-        }
+        glog.is_verbose() && glog << group("main") << "Received: " << pb_msg.ShortDebugString()
+                                  << std::endl;
     });
 
     for (; test_index_ < RH_RF95_MAX_MESSAGE_LEN; ++test_index_) test_data_.push_back(test_index_);
@@ -135,10 +109,12 @@ void jaiabot::apps::LoRaTest::loop()
                                   << std::endl;
 
         std::string pb_encoded = pb_msg.SerializeAsString();
-        std::string b64_pb_encoded = dccl::b64_encode(pb_encoded);
-        boost::erase_all(b64_pb_encoded, "\n");
 
-        io->set_data("P:" + b64_pb_encoded + "\n");
+        std::uint16_t size = pb_encoded.size();
+        std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
+                                static_cast<char>(size & 0xFF)};
+
+        io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
         interthread().publish<serial_out>(io);
     }
 }
