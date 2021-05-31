@@ -34,8 +34,8 @@ constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
 constexpr int BITS_IN_BYTE = 8;
-constexpr auto SERIAL_MAX_SIZE = SERIAL_MAGIC_BYTES + SIZE_BYTES + 1ul
-                                 << (SIZE_BYTES * BITS_IN_BYTE);
+constexpr auto SERIAL_MAX_SIZE =
+    SERIAL_MAGIC_BYTES + SIZE_BYTES + (1ul << (SIZE_BYTES * BITS_IN_BYTE));
 
 /// \brief Reads/Writes LoRa Adafruit feather message packages from/to serial port
 /// \tparam line_in_group goby::middleware::Group to publish to after receiving data from the serial port

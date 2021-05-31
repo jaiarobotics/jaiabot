@@ -1,11 +1,13 @@
-# Jaiabot HYDRO
+# Jaiabot
 
 ## Table of Contents
 
 - [Architecture](page10_architecture.md)
+    - [Simulator](page11_simulator.md)
 - [Git Repositories](page19_repository.md)
 - [Building and CI/CD](page20_build.md)
 - [Configuration](page30_configuration.md)
+- [Logging](page40_logging.md)
 
 ## Documentation Information
 
