@@ -11,6 +11,7 @@ On Ubuntu 20.04:
 - [Arduino 1.8.15](https://www.arduino.cc/en/software)
     - [Adafruit AVR Boards package (1.4.3)](https://learn.adafruit.com/adafruit-feather-32u4-radio-with-lora-radio-module/using-with-arduino-ide)
 - [RadioHead version 1.117](http://www.airspayce.com/mikem/arduino/RadioHead/RadioHead-1.117.zip)
+- [Nanopb 0.4.1](https://jpa.kapsi.fi/nanopb/download/nanopb-0.4.1.tar.gz)
 
 Install required thirdparty libraries:
 
@@ -18,7 +19,6 @@ Install required thirdparty libraries:
 cd ~/Arduino/libraries
 ln -s ~/opensource/jaiabot/src/arduino/libraries/RadioHead .
 ln -s ~/opensource/jaiabot/src/arduino/libraries/nanopb-0.4.1 .
-ln -s ~/opensource/jaiabot/src/arduino/libraries/base64-1.2.0  .
 ```
 
 #### Feather code
