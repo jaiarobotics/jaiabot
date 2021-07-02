@@ -8,7 +8,7 @@ We're using the Adafruit Feather 32u4 with RFM9x LoRa Radio. This is a microcont
 
 On Ubuntu 20.04:
 
-- [Arduino 1.8.15](https://www.arduino.cc/en/software)
+- [Arduino 1.8.15](https://www.arduino.cc/en/software) or arduino-cli (see below)
     - [Adafruit AVR Boards package (1.4.3)](https://learn.adafruit.com/adafruit-feather-32u4-radio-with-lora-radio-module/using-with-arduino-ide)
 - [RadioHead version 1.117](http://www.airspayce.com/mikem/arduino/RadioHead/RadioHead-1.117.zip)
 - [Nanopb 0.4.1](https://jpa.kapsi.fi/nanopb/download/nanopb-0.4.1.tar.gz)
@@ -17,13 +17,32 @@ Install required thirdparty libraries:
 
 ```
 cd ~/Arduino/libraries
-ln -s ~/opensource/jaiabot/src/arduino/libraries/RadioHead .
-ln -s ~/opensource/jaiabot/src/arduino/libraries/nanopb-0.4.1 .
+ln -s ~/jaiabot/src/arduino/libraries/RadioHead-1.117 .
+ln -s ~/jaiabot/src/arduino/libraries/nanopb-0.4.1 .
+```
+
+#### arduino-cli
+
+Instead of the graphical Arduino, you can install the [arduino-cli](https://github.com/arduino/arduino-cli) and set it up as follows:
+
+```
+arduino-cli config init --additional-urls  https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+arduino-cli core update-index
+arduino-cli core install adafruit:avr
+arduino-cli board list
 ```
 
 #### Feather code
 
-Flash application in `jaiabot/src/arduino/feather_lora9x/jaiabot_lora` using Arduino IDE (`jaiabot` must be [compiled normally](page20_build.md) before flashing with Arduino so that the Protobuf messages are compiled).
+Flash application in `jaiabot/src/arduino/feather_lora9x/jaiabot_lora` using Arduino IDE (`jaiabot` must be [compiled normally](page20_build.md) (or minimally `jaiabot_messages_c` is built) before flashing with Arduino so that the Protobuf messages are compiled).
+
+Or with the `arduino-cli`:
+
+```
+adafruit:avr:feather32u4
+arduino-cli compile -b adafruit:avr:feather32u4 
+arduino-cli upload -p /dev/ttyACM0 -b adafruit:avr:feather32u4
+```
 
 A binary serial interface centered around the `jaiabot::protobuf::LoRaMessage` Protobuf message is used to communicate between the main vehicle computer and the Adafruit Feather. This protocol is a simple wrapper around the Protobuf message:
 
