@@ -13,7 +13,7 @@ We're using the private subnet 172.20.11.0/24:
 - Server: 172.20.11.1
 - jaiabot0: 172.20.11.10
 - jaiabot1: 172.20.11.11
-- @tsaubergine dev computer: 172.20.11.240
+- tsaubergine dev computer: 172.20.11.240
 
 ### Server
 
