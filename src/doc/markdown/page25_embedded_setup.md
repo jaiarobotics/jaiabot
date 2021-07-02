@@ -12,7 +12,7 @@ Installation steps:
         unxz ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz
         sudo dd if=ubuntu-20.04.2-preinstalled-server-arm64+raspi.img of=/dev/sdd bs=1M status=progress
 
-- Enable USB in config.txt:
+- Enable USB in config.txt (in the system-boot partition of the sd card):
 
         [pi4]
         ...
@@ -20,13 +20,16 @@ Installation steps:
 
 - Connect to internet (DHCP)
 - Login as ubuntu and change password.
+- Change `/etc/hostname`.
 - Install apt packages:
 
         sudo apt update
-        sudo apt install wireguard jaiabot-apps
+        sudo apt install wireguard
         # (optional)
-        sudo apt install emacs
+        sudo apt install emacs-nox
 
 - After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` to change the appropriate line to:
 
         PasswordAuthentication no
+
+- Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
