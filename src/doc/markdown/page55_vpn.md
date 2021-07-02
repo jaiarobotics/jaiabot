@@ -19,7 +19,7 @@ We're using the private subnet 172.20.11.0/24:
 
 We're using AWS EC2 for hosting the server; other providers will likely be similar.
 
-I used the standard Ubuntu 20.04 server image (`Ubuntu Server 20.04 LTS (HVM), SSD Volume Type - ami-03d5c68bab01f3496 (64-bit x86)`) in EC2, using a t3.micro instance type with 8GB disk space. I associated the Elastic IP address 52.36.157.57 to the machine.
+I used the standard Ubuntu 20.04 server image (`Ubuntu Server 20.04 LTS (HVM), SSD Volume Type - ami-03d5c68bab01f3496 (64-bit x86)`) in EC2, using a t3.micro instance type with 8GB disk space. I associated the Elastic IP address 52.36.157.57 (which has been assigned the domain name of `vpn.jaia.tech`) to the machine.
 
 On a server (e.g. cloud machine), we configure:
 
