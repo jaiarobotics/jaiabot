@@ -18,7 +18,7 @@ Install required thirdparty libraries:
 ```
 cd ~/Arduino/libraries
 ln -s ~/jaiabot/src/arduino/libraries/RadioHead-1.117 .
-ln -s ~/opensource/jaiabot/src/arduino/libraries/nanopb-0.4.1 .
+ln -s ~/jaiabot/src/arduino/libraries/nanopb-0.4.1 .
 ```
 
 #### arduino-cli
@@ -34,7 +34,7 @@ arduino-cli board list
 
 #### Feather code
 
-Flash application in `jaiabot/src/arduino/feather_lora9x/jaiabot_lora` using Arduino IDE (`jaiabot` must be [compiled normally](page20_build.md) before flashing with Arduino so that the Protobuf messages are compiled).
+Flash application in `jaiabot/src/arduino/feather_lora9x/jaiabot_lora` using Arduino IDE (`jaiabot` must be [compiled normally](page20_build.md) (or minimally `jaiabot_messages_c` is built) before flashing with Arduino so that the Protobuf messages are compiled).
 
 Or with the `arduino-cli`:
 
