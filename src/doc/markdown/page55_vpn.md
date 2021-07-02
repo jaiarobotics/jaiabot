@@ -12,8 +12,8 @@ We're using the private subnet 172.20.11.0/24:
 
 - Server: 172.20.11.1
 - jaiabot0: 172.20.11.10
-- jaiabot0: 172.20.11.11
-- Toby's dev computer: 172.20.11.240
+- jaiabot1: 172.20.11.11
+- @tsaubergine dev computer: 172.20.11.240
 
 ### Server
 
@@ -69,6 +69,10 @@ On a server (e.g. cloud machine), we configure:
         sudo wg
         sudo ip a show wg_jaia
 
+- Enable IP forwarding so that machines on the VPN can see each other "through" the server:
+
+        sysctl -w net.ipv4.ip_forward=1
+
 ### Client
 
 On the client (jaiabot, dev machines, etc.) side, we need to configure:
@@ -94,7 +98,7 @@ On the client (jaiabot, dev machines, etc.) side, we need to configure:
         
         [Peer]
         # Server public key (from /etc/wireguard/publickey on server)
-        PublicKey =  ApEWq2w/0SIZZ/I5GTqSHts5SoKDsa7rJEE6mEmLLys=
+        PublicKey =  quIp0ErbKXgzbws0juC0YaI2FLmLHVpo8j4ChgTmjXI=
         # Allowed private IPs
         AllowedIPs = 172.20.11.0/24
         
