@@ -14,6 +14,7 @@ We're using the private subnet 172.20.11.0/24:
 - jaiabot0: 172.20.11.10
 - jaiabot1: 172.20.11.11
 - tsaubergine dev computer: 172.20.11.240
+- edsanville dev computer: 172.20.11.245
 - jason-jaia dev computer: 172.20.11.250
 
 ### Server
@@ -116,7 +117,7 @@ Add the client information to the server's `/etc/wireguard/wg_jaia.conf`:
         PublicKey = ...
         
         # client VPN IP address
-        AllowedIPs = 192.168.11.10/32
+        AllowedIPs = 172.20.11.XXX/32
 
 - Restart the **server** Wireguard:
 
