@@ -1,6 +1,6 @@
 # Architecture
 
-Preliminary Jaiabot system block diagram:
+Preliminary JaiaBot system block diagram:
 
 ![Architecture](../figures/jaiabot-software.png)
 

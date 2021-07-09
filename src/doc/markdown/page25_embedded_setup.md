@@ -2,7 +2,7 @@
 
 ## Raspberry Pi CM4
 
-Jaiabot uses the Raspberry Pi CM4 Lite (without built-in eMMC) as the embedded Linux computer.
+JaiaBot uses the Raspberry Pi CM4 Lite (without built-in eMMC) as the embedded Linux computer.
 
 Installation steps:
 
