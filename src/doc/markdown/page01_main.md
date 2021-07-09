@@ -1,4 +1,4 @@
-# Jaiabot
+# JaiaBot
 
 ## Table of Contents
 
