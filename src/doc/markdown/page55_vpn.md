@@ -14,6 +14,7 @@ We're using the private subnet 172.20.11.0/24:
 - jaiabot0: 172.20.11.10
 - jaiabot1: 172.20.11.11
 - tsaubergine dev computer: 172.20.11.240
+- jason-jaia dev computer: 172.20.11.250
 
 ### Server
 
@@ -93,8 +94,8 @@ On the client (jaiabot, dev machines, etc.) side, we need to configure:
         # from /etc/wireguard/privatekey on client
         PrivateKey = ...
         
-        # this client's IP address
-        Address = 172.20.11.10
+        # this client's VPN IP address
+        Address = 172.20.11.XXX
         
         [Peer]
         # Server public key (from /etc/wireguard/publickey on server)
@@ -123,7 +124,7 @@ Add the client information to the server's `/etc/wireguard/wg_jaia.conf`:
 
 - Start the client Wireguard:
 
-        sudo wg-quick start wg_jaia
+        sudo wg-quick up wg_jaia
 
 - Check that you can ping the server:
 
