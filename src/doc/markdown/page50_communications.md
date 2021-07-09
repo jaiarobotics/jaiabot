@@ -66,7 +66,7 @@ The actual `jaiabot::protobuf::LoRaMessage` contains most of the interesting dat
 - `flags`: Flags from RadioHead (also seems to be zero)
 - `rssi`: Received Signal Strength Indicator reported by the radio.
 
-#### Jaiabot code
+#### JaiaBot code
 
 So far we have a test application (`jaiabot_lora_test`) that sends messages between two radios.
 

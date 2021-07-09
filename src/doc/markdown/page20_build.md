@@ -1,10 +1,10 @@
-# Building Jaiabot software
+# Building JaiaBot software
 
-Jaiabot development is done on Ubuntu Linux, generally the latest LTS version.
+JaiaBot development is done on Ubuntu Linux, generally the latest LTS version.
 
 ## Dependencies
 
-The Jaiabot software depends on Goby3, MOOS, and other packages. These can be installed from the regular Ubuntu package repositories plus the packages.gobysoft.org repository:
+The JaiaBot software depends on Goby3, MOOS, and other packages. These can be installed from the regular Ubuntu package repositories plus the packages.gobysoft.org repository:
 
 ```
 # add packages.gobysoft.org to your apt sources

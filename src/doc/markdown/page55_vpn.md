@@ -1,6 +1,6 @@
 # VPN Setup
 
-We use a VPN to securely connect to the Jaiabots for development and testing.
+We use a VPN to securely connect to the JaiaBots for development and testing.
 
 ## Wireguard
 
