@@ -12,11 +12,12 @@ Installation steps:
       unxz ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz
       sudo dd if=ubuntu-20.04.2-preinstalled-server-arm64+raspi.img of=/dev/sdd bs=1M status=progress
 
-- Enable USB in config.txt (in the system-boot partition of the sd card):
+- Edit config.txt (in the system-boot partition of the sd card) to enable USB and UART5:
 
       [pi4]
       ...
       dtoverlay=dwc2,dr_mode=host
+      dtoverlay=uart5,txd5_pin=32,rxd5_pin=33
 
 - Connect to internet (DHCP)
 - Login as ubuntu and change password.
