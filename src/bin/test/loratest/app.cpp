@@ -84,7 +84,8 @@ jaiabot::apps::LoRaTest::LoRaTest()
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("lora_test", goby::util::Colors::lt_magenta);
-
+    dccl_.load<protobuf::LoRaTestData>();
+    
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
 
     launch_thread<SerialThread>(cfg().serial());
