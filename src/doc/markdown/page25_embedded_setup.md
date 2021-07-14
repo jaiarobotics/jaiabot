@@ -33,3 +33,4 @@ Installation steps:
       PasswordAuthentication no
 
 - Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
+- Install jaiabot code via instructions on the [CI/CD](page20_build.md) page from either the release or continuous repository.

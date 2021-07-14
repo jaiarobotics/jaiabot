@@ -79,6 +79,7 @@ Once the developer has completed his or her feature or bug fix, he or she puts a
 echo "deb http://packages.gobysoft.org/ubuntu/continuous/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+sudo apt update
 # install the jaia code
 sudo apt install jaiabot-apps
 # optional: compiled documentation to /usr/share/doc/jaiabot/html
@@ -97,6 +98,7 @@ To use the release repository, run these commands:
 echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+sudo apt update
 # install jaia packages as needed...
 ```
 
