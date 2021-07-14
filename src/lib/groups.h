@@ -33,6 +33,7 @@ constexpr goby::middleware::Group example{"jaiabot::example"};
 
 constexpr goby::middleware::Group lora_rx{"jaiabot::lora_rx"};
 constexpr goby::middleware::Group lora_tx{"jaiabot::lora_tx"};
+constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 
 } // namespace groups
 } // namespace jaiabot
