@@ -20,15 +20,21 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include <goby/middleware/application/multi_thread.h>
+#include <dccl/codec.h>
 #include <goby/middleware/io/line_based/serial.h>
+#include <goby/zeromq/application/multi_thread.h>
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/constants.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/feather.pb.h"
+#include "jaiabot/messages/lora_test.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -44,7 +50,7 @@ namespace jaiabot
 {
 namespace apps
 {
-class LoRaTest : public middleware::MultiThreadStandaloneApplication<config::LoRaTest>
+class LoRaTest : public zeromq::MultiThreadApplication<config::LoRaTest>
 {
   public:
     LoRaTest();
@@ -56,9 +62,10 @@ class LoRaTest : public middleware::MultiThreadStandaloneApplication<config::LoR
 
   private:
     std::uint8_t test_index_ = 0;
-    std::deque<std::uint8_t> test_data_;
+    goby::middleware::protobuf::gpsd::TimePositionVelocity latest_gps_tpv_;
 
     bool feather_initialized_{false};
+    dccl::Codec dccl_;
 };
 
 } // namespace apps
@@ -73,9 +80,10 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::LoRaTest::LoRaTest()
-    : middleware::MultiThreadStandaloneApplication<config::LoRaTest>(.1 * si::hertz)
+    : zeromq::MultiThreadApplication<config::LoRaTest>(.1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
+    glog.add_group("lora_test", goby::util::Colors::lt_magenta);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
 
@@ -90,10 +98,22 @@ jaiabot::apps::LoRaTest::LoRaTest()
         glog.is_verbose() && glog << group("main") << "Received: " << pb_msg.ShortDebugString()
                                   << std::endl;
 
+        interprocess().publish<groups::lora_rx>(pb_msg);
+
         switch (pb_msg.type())
         {
             default: break;
-            case jaiabot::protobuf::LoRaMessage::LORA_DATA: break;
+            case jaiabot::protobuf::LoRaMessage::LORA_DATA:
+            {
+                protobuf::LoRaTestData test_data;
+                dccl_.decode(pb_msg.data(), &test_data);
+                glog.is_verbose() && glog << group("lora_test") << "Received payload: " << test_data.ShortDebugString()
+                                          << std::endl;
+
+                interprocess().publish<groups::lora_rx>(test_data);
+                break;
+            }
+            
             case jaiabot::protobuf::LoRaMessage::FEATHER_READY:
                 if (!feather_initialized_)
                     set_parameters();
@@ -104,7 +124,10 @@ jaiabot::apps::LoRaTest::LoRaTest()
         }
     });
 
-    for (; test_index_ < cfg().message_length(); ++test_index_) test_data_.push_back(test_index_);
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            latest_gps_tpv_ = tpv;
+        });
 
     set_parameters();
 }
@@ -117,13 +140,36 @@ void jaiabot::apps::LoRaTest::loop()
     static int loop_index = 0;
     if (cfg().transmit() && ((loop_index % cfg().num_vehicles()) + 1 == cfg().src()))
     {
-        test_data_.pop_front();
-        test_data_.push_back(test_index_++);
+        protobuf::LoRaTestData test_data;
+        test_data.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        test_data.set_index(test_index_++);
 
+        if (latest_gps_tpv_.has_location())
+        {
+            test_data.mutable_location()->set_lat_with_units(
+                latest_gps_tpv_.location().lat_with_units());
+            test_data.mutable_location()->set_lon_with_units(
+                latest_gps_tpv_.location().lon_with_units());
+        }
+        else
+        {
+            test_data.mutable_location()->set_lat(goby::util::NaN<double>);
+            test_data.mutable_location()->set_lon(goby::util::NaN<double>);
+        }
+
+        test_data.set_padding(std::string(0xFF, 52));
+
+        std::string encoded;
+
+        dccl_.encode(&encoded, test_data);
+        interprocess().publish<groups::lora_tx>(test_data);
+        glog.is_verbose() && glog << group("lora_test") << "Sending payload: " << test_data.ShortDebugString()
+                                  << std::endl;
+        
         jaiabot::protobuf::LoRaMessage pb_msg;
         pb_msg.set_src(cfg().src());
         pb_msg.set_dest(cfg().dest());
-        pb_msg.set_data(std::string(test_data_.begin(), test_data_.end()));
+        pb_msg.set_data(encoded);
         pb_msg.set_type(jaiabot::protobuf::LoRaMessage::LORA_DATA);
         send_msg(pb_msg);
     }
@@ -156,4 +202,6 @@ void jaiabot::apps::LoRaTest::send_msg(const jaiabot::protobuf::LoRaMessage& pb_
 
     io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
     interthread().publish<serial_out>(io);
+
+    interprocess().publish<groups::lora_tx>(pb_msg);
 }

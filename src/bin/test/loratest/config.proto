@@ -33,6 +33,8 @@ message LoRaTest
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
 
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
     required goby.middleware.protobuf.SerialConfig serial = 10;
 
     required int32 src = 20;
