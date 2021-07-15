@@ -43,6 +43,7 @@ message LoRaTest
     optional bool transmit = 22 [default = false];
     optional int32 num_vehicles = 23 [default = 2];
 
+    // 12 to 251 bytes
     optional int32 message_length = 30 [default = 64];
 
     optional jaiabot.protobuf.LoRaMessage.ModemConfigChoice modem_config = 40 [default = Bw125Cr45Sf128];

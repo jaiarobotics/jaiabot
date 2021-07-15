@@ -53,6 +53,6 @@ message LoRaMessage
     
     optional ModemConfigChoice modem_config = 20 [default = Bw125Cr45Sf128];
 
-    // 5-23 dBm
+    // +5-+23 dBm 
     optional int32 tx_power = 21 [default = 13];
 }

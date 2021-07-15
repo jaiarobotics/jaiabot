@@ -11,8 +11,8 @@ target_link_libraries(${APP}
   goby_zeromq
   jaiabot_messages)
 
-#if(export_goby_interfaces)
-#  generate_interfaces(${APP})
-#endif()
+if(export_goby_interfaces)
+  generate_interfaces(${APP})
+endif()
 
 project_install_bin(${APP})

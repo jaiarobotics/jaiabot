@@ -20,15 +20,14 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <dccl/codec.h>
-#include <goby/middleware/io/line_based/serial.h>
-#include <goby/zeromq/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/io/line_based/serial.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/constants.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -90,7 +89,11 @@ jaiabot::apps::LoRaTest::LoRaTest()
     glog.add_group("lora_test", goby::util::Colors::lt_magenta);
     glog.add_group("tdma", goby::util::Colors::lt_green);
     dccl_.load<protobuf::LoRaTestData>();
-    
+
+    if (cfg().message_length() < dccl_.max_size<protobuf::LoRaTestData>())
+        glog.is_die() && glog << "message_length must be >= "
+                              << dccl_.max_size<protobuf::LoRaTestData>() << std::endl;
+
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
 
     launch_thread<SerialThread>(cfg().serial());
@@ -113,13 +116,13 @@ jaiabot::apps::LoRaTest::LoRaTest()
             {
                 protobuf::LoRaTestData test_data;
                 dccl_.decode(pb_msg.data(), &test_data);
-                glog.is_verbose() && glog << group("lora_test") << "Received payload: " << test_data.ShortDebugString()
+                glog.is_verbose() && glog << group("lora_test")
+                                          << "Received payload: " << test_data.ShortDebugString()
                                           << std::endl;
-                
+
                 expecting_packet_ = false;
                 interprocess().publish<groups::lora_rx>(test_data);
 
-                
                 protobuf::LoRaReport report;
                 report.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
                 report.set_status(protobuf::LoRaReport::GOOD_RECEPTION);
@@ -127,10 +130,10 @@ jaiabot::apps::LoRaTest::LoRaTest()
                 *report.mutable_test_data() = test_data;
                 *report.mutable_gps_tpv() = latest_gps_tpv_;
                 interprocess().publish<groups::lora_report>(report);
-                
+
                 break;
             }
-            
+
             case jaiabot::protobuf::LoRaMessage::FEATHER_READY:
                 if (!feather_initialized_)
                     set_parameters();
@@ -154,14 +157,16 @@ void jaiabot::apps::LoRaTest::loop()
     if (!feather_initialized_)
         set_parameters();
 
-    static int loop_index = std::floor(goby::time::SystemClock::now<goby::time::SITime>().value()*loop_freq);
+    static int loop_index =
+        std::floor(goby::time::SystemClock::now<goby::time::SITime>().value() * loop_freq);
 
     int tx_id = (loop_index % cfg().num_vehicles()) + 1;
 
     // we didn't receive a packet...
-    if(expecting_packet_)
+    if (expecting_packet_)
     {
-        glog.is_warn() && glog << group("tdma") << "Did not receive any packet on the last slot" << std::endl;
+        glog.is_warn() && glog << group("tdma") << "Did not receive any packet on the last slot"
+                               << std::endl;
         expecting_packet_ = false;
 
         protobuf::LoRaReport report;
@@ -169,9 +174,9 @@ void jaiabot::apps::LoRaTest::loop()
         report.set_status(protobuf::LoRaReport::NO_PACKET);
         interprocess().publish<groups::lora_report>(report);
     }
-    
+
     glog.is_verbose() && glog << group("tdma") << "Transmitter: " << tx_id << std::endl;
-    
+
     if (cfg().transmit() && (tx_id == cfg().src()))
     {
         protobuf::LoRaTestData test_data;
@@ -191,15 +196,17 @@ void jaiabot::apps::LoRaTest::loop()
             test_data.mutable_location()->set_lon(goby::util::NaN<double>);
         }
 
-        test_data.set_padding(std::string(52, 0xFF));
-
         std::string encoded;
 
         dccl_.encode(&encoded, test_data);
-        interprocess().publish<groups::lora_tx>(test_data);
-        glog.is_verbose() && glog << group("lora_test") << "Sending payload: " << test_data.ShortDebugString()
-                                  << std::endl;
+        auto dccl_size = encoded.size();
+        encoded += std::string(cfg().message_length() - dccl_size, 0xAA);
         
+        interprocess().publish<groups::lora_tx>(test_data);
+        glog.is_verbose() && glog << group("lora_test")
+                                  << "Sending payload: " << test_data.ShortDebugString()
+                                  << std::endl;
+
         jaiabot::protobuf::LoRaMessage pb_msg;
         pb_msg.set_src(cfg().src());
         pb_msg.set_dest(cfg().dest());
@@ -211,7 +218,7 @@ void jaiabot::apps::LoRaTest::loop()
     {
         expecting_packet_ = true;
     }
-    
+
     ++loop_index;
 }
 
