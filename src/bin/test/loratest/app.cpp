@@ -222,6 +222,8 @@ void jaiabot::apps::LoRaTest::set_parameters()
     pb_msg.set_dest(cfg().src());
     pb_msg.set_type(jaiabot::protobuf::LoRaMessage::SET_PARAMETERS);
     pb_msg.set_data("");
+    pb_msg.set_modem_config(cfg().modem_config());
+    pb_msg.set_tx_power(cfg().tx_power());
 
     send_msg(pb_msg);
 }
