@@ -65,4 +65,7 @@ message LoRaReport
     optional LoRaMessage feather_msg = 20;
     optional LoRaTestData test_data = 30;
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity gps_tpv = 40;
+    optional double range = 50
+        [(dccl.field) = { units { base_dimensions: "L" } }];
+    optional double packet_success = 60;
 }
