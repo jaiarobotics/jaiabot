@@ -152,8 +152,10 @@ jaiabot::apps::LoRaTest::LoRaTest()
                     report.set_range_with_units(range);
                 }
 
-                glog.is_verbose() && glog << group("stats") << "Packet success: " << static_cast<int>(report.packet_success()*100) << "%, Range: " << report.range() << "m" << std::endl;
-                
+                glog.is_verbose() && glog << group("stats") << "Packet success: "
+                                          << static_cast<int>(report.packet_success() * 100)
+                                          << "%, Range: " << report.range() << "m" << std::endl;
+
                 interprocess().publish<groups::lora_report>(report);
 
                 break;
@@ -211,7 +213,9 @@ void jaiabot::apps::LoRaTest::loop()
         *report.mutable_gps_tpv() = latest_gps_tpv_;
         report.set_packet_success(calculate_packet_success());
 
-        glog.is_verbose() && glog << group("stats") << "Packet success: " << static_cast<int>(report.packet_success()*100) << std::endl;
+        glog.is_verbose() && glog << group("stats") << "Packet success: "
+                                  << static_cast<int>(report.packet_success() * 100) << "%"
+                                  << std::endl;
 
         interprocess().publish<groups::lora_report>(report);
     }
