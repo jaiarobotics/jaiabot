@@ -28,6 +28,7 @@ Instead of the graphical Arduino, you can install the [arduino-cli](https://gith
 ```
 arduino-cli config init --additional-urls  https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
 arduino-cli core update-index
+arduino-cli core install arduino:avr
 arduino-cli core install adafruit:avr
 arduino-cli board list
 ```
@@ -39,7 +40,6 @@ Flash application in `jaiabot/src/arduino/feather_lora9x/jaiabot_lora` using Ard
 Or with the `arduino-cli`:
 
 ```
-adafruit:avr:feather32u4
 arduino-cli compile -b adafruit:avr:feather32u4 
 arduino-cli upload -p /dev/ttyACM0 -b adafruit:avr:feather32u4
 ```

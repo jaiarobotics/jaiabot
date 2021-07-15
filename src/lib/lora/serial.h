@@ -189,7 +189,7 @@ void jaiabot::lora::SerialThreadLoRaFeather<line_in_group, line_out_group, publi
             {
                 message_size_ = 0;
                 message_size_ |= buffer_[SERIAL_MAGIC_BYTES];
-                message_size_ << BITS_IN_BYTE;
+                message_size_ <<= BITS_IN_BYTE;
                 message_size_ |= buffer_[SERIAL_MAGIC_BYTES + 1];
                 if (message_size_ > jaiabot_protobuf_LoRaMessage_size)
                 {

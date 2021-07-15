@@ -126,12 +126,7 @@ void setup()
   DEBUG_MESSAGE(String("Set Freq to: " + String(RF95_FREQ)));
 
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
-
   // The default transmitter power is 13dBm, using PA_BOOST.
-  // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then
-  // you can set transmitter powers from 5 to 23 dBm:
-  rf95.setTxPower(5, false);
-
 
 
   msg = jaiabot_protobuf_LoRaMessage_init_default;
@@ -151,11 +146,43 @@ void set_parameters()
     rh_manager.setThisAddress(this_address);
   }
 
+  // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then
+  // you can set transmitter powers from 5 to 23 dBm:
+
+  bool cfg_ok = true;
+  if(msg.has_tx_power)
+    rf95.setTxPower(msg.tx_power, false);
+
+  if(msg.has_modem_config)
+  {
+      switch(msg.modem_config)
+      {
+          case jaiabot_protobuf_LoRaMessage_ModemConfigChoice_Bw125Cr45Sf128:
+              cfg_ok = rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
+              break;
+          case jaiabot_protobuf_LoRaMessage_ModemConfigChoice_Bw500Cr45Sf128:
+              cfg_ok = rf95.setModemConfig(RH_RF95::Bw500Cr45Sf128);
+              break;
+          case jaiabot_protobuf_LoRaMessage_ModemConfigChoice_Bw31_25Cr48Sf512:
+              cfg_ok = rf95.setModemConfig(RH_RF95::Bw31_25Cr48Sf512);
+              break;
+          case jaiabot_protobuf_LoRaMessage_ModemConfigChoice_Bw125Cr48Sf4096:
+              cfg_ok = rf95.setModemConfig(RH_RF95::Bw125Cr48Sf4096);
+              break;
+          case jaiabot_protobuf_LoRaMessage_ModemConfigChoice_Bw125Cr45Sf2048:
+              cfg_ok = rf95.setModemConfig(RH_RF95::Bw125Cr45Sf2048);
+              break;
+      }
+  }
 
   msg = jaiabot_protobuf_LoRaMessage_init_default;
   msg.src = this_address;
   msg.dest = this_address;
-  msg.type = jaiabot_protobuf_LoRaMessage_MessageType_PARAMETERS_ACCEPTED;
+  if(cfg_ok)
+      msg.type = jaiabot_protobuf_LoRaMessage_MessageType_PARAMETERS_ACCEPTED;
+  else
+      msg.type = jaiabot_protobuf_LoRaMessage_MessageType_PARAMETERS_REJECTED;
+  
   send_serial_msg();
 
 }
