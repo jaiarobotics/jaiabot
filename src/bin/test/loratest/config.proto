@@ -25,6 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
+import "jaiabot/messages/feather.proto";
 
 package jaiabot.config;
 
@@ -43,5 +44,8 @@ message LoRaTest
     optional int32 num_vehicles = 23 [default = 2];
 
     optional int32 message_length = 30 [default = 64];
-    
+
+    optional jaiabot.protobuf.LoRaMessage.ModemConfigChoice modem_config = 40 [default = Bw125Cr45Sf128];
+    optional int32 tx_power = 41 [default = 13];
+
 }
