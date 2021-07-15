@@ -48,5 +48,7 @@ message LoRaTest
 
     optional jaiabot.protobuf.LoRaMessage.ModemConfigChoice modem_config = 40 [default = Bw125Cr45Sf128];
     optional int32 tx_power = 41 [default = 13];
-
+    
+    // number of messages to average
+    optional int32 packet_loss_window = 50 [default = 30];
 }
