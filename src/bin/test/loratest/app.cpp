@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <numeric>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <dccl/codec.h>
@@ -27,6 +29,7 @@
 #include <goby/middleware/io/line_based/serial.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/constants.h>
+#include <goby/util/geodesy.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -59,6 +62,8 @@ class LoRaTest : public zeromq::MultiThreadApplication<config::LoRaTest>
     void set_parameters();
     void send_msg(const jaiabot::protobuf::LoRaMessage& pb_msg);
 
+    double calculate_packet_success();
+
   private:
     std::uint8_t test_index_ = 0;
     goby::middleware::protobuf::gpsd::TimePositionVelocity latest_gps_tpv_;
@@ -67,6 +72,9 @@ class LoRaTest : public zeromq::MultiThreadApplication<config::LoRaTest>
     dccl::Codec dccl_;
 
     bool expecting_packet_{false};
+
+    std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
+    std::deque<int> packet_success_;
 };
 
 } // namespace apps
@@ -88,6 +96,7 @@ jaiabot::apps::LoRaTest::LoRaTest()
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("lora_test", goby::util::Colors::lt_magenta);
     glog.add_group("tdma", goby::util::Colors::lt_green);
+    glog.add_group("stats", goby::util::Colors::lt_blue);
     dccl_.load<protobuf::LoRaTestData>();
 
     if (cfg().message_length() < dccl_.max_size<protobuf::LoRaTestData>())
@@ -119,7 +128,7 @@ jaiabot::apps::LoRaTest::LoRaTest()
                 glog.is_verbose() && glog << group("lora_test")
                                           << "Received payload: " << test_data.ShortDebugString()
                                           << std::endl;
-
+                packet_success_.push_back(1);
                 expecting_packet_ = false;
                 interprocess().publish<groups::lora_rx>(test_data);
 
@@ -129,6 +138,24 @@ jaiabot::apps::LoRaTest::LoRaTest()
                 *report.mutable_feather_msg() = pb_msg;
                 *report.mutable_test_data() = test_data;
                 *report.mutable_gps_tpv() = latest_gps_tpv_;
+                report.set_packet_success(calculate_packet_success());
+
+                if (geodesy_)
+                {
+                    auto our_xy = geodesy_->convert({latest_gps_tpv_.location().lat_with_units(),
+                                                     latest_gps_tpv_.location().lon_with_units()});
+                    auto their_xy = geodesy_->convert({test_data.location().lat_with_units(),
+                                                       test_data.location().lon_with_units()});
+                    auto dx = our_xy.x - their_xy.x;
+                    auto dy = our_xy.y - their_xy.y;
+                    auto range = boost::units::sqrt(dx * dx + dy * dy);
+                    report.set_range_with_units(range);
+                }
+
+                glog.is_verbose() && glog << group("stats") << "Packet success: "
+                                          << static_cast<int>(report.packet_success() * 100)
+                                          << "%, Range: " << report.range() << "m" << std::endl;
+
                 interprocess().publish<groups::lora_report>(report);
 
                 break;
@@ -146,6 +173,16 @@ jaiabot::apps::LoRaTest::LoRaTest()
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            if (!geodesy_)
+            {
+                // if valid fix, use this for the Geodesy datum
+                if (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                    tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D)
+                {
+                    geodesy_.reset(new goby::util::UTMGeodesy(
+                        {tpv.location().lat_with_units(), tpv.location().lon_with_units()}));
+                }
+            }
             latest_gps_tpv_ = tpv;
         });
 
@@ -168,10 +205,18 @@ void jaiabot::apps::LoRaTest::loop()
         glog.is_warn() && glog << group("tdma") << "Did not receive any packet on the last slot"
                                << std::endl;
         expecting_packet_ = false;
+        packet_success_.push_back(0);
 
         protobuf::LoRaReport report;
         report.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         report.set_status(protobuf::LoRaReport::NO_PACKET);
+        *report.mutable_gps_tpv() = latest_gps_tpv_;
+        report.set_packet_success(calculate_packet_success());
+
+        glog.is_verbose() && glog << group("stats") << "Packet success: "
+                                  << static_cast<int>(report.packet_success() * 100) << "%"
+                                  << std::endl;
+
         interprocess().publish<groups::lora_report>(report);
     }
 
@@ -201,7 +246,7 @@ void jaiabot::apps::LoRaTest::loop()
         dccl_.encode(&encoded, test_data);
         auto dccl_size = encoded.size();
         encoded += std::string(cfg().message_length() - dccl_size, 0xAA);
-        
+
         interprocess().publish<groups::lora_tx>(test_data);
         glog.is_verbose() && glog << group("lora_test")
                                   << "Sending payload: " << test_data.ShortDebugString()
@@ -252,4 +297,12 @@ void jaiabot::apps::LoRaTest::send_msg(const jaiabot::protobuf::LoRaMessage& pb_
     interthread().publish<serial_out>(io);
 
     interprocess().publish<groups::lora_tx>(pb_msg);
+}
+
+double jaiabot::apps::LoRaTest::calculate_packet_success()
+{
+    while (packet_success_.size() > cfg().packet_loss_window()) packet_success_.pop_front();
+    double number_good_packets = std::accumulate(packet_success_.begin(), packet_success_.end(), 0);
+    double packet_success = number_good_packets / packet_success_.size();
+    return packet_success;
 }
