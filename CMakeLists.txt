@@ -146,6 +146,7 @@ if(export_goby_interfaces)
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces.pdf "--no-disconnected")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces.svg "--no-disconnected")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces_inc_unused.pdf "")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/lora_test_deployment.yml ${YML_OUT_DIR} lora_test_interfaces.svg "")
 endif()
 
 

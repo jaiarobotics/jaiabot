@@ -23,9 +23,6 @@ message LoRaTestData
     required uint32 index = 2 [(dccl.field) = { min: 0 max: 1000 }];
 
     required GeographicCoordinate location = 10;
-
-    // to fill the message out to the desired test length
-    required bytes padding = 11 [(dccl.field).max_length = 52];
 }
 
 message GeographicCoordinate
