@@ -1,0 +1,10 @@
+deployment: lora_test_deployment
+platforms:
+  - name: box
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_lora_test_interface.yml
+  - name: bot
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_lora_test_interface.yml
