@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 import sys
 
-targetFile = sys.argv[1]
+#targetFile = sys.argv[1]
 delay = 1.0
 
 while True:
@@ -14,6 +14,6 @@ while True:
 
     line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
 
-    open(targetFile, 'w').write(line)
+    open('/tmp/bar30.txt', 'w').write(line)
 
     sleep(delay)
