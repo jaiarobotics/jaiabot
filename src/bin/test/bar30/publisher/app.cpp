@@ -32,6 +32,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/feather.pb.h"
+#include "jaiabot/messages/bar30.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -46,10 +47,10 @@ namespace jaiabot
 {
 namespace apps
 {
-class Bar30Test : public zeromq::MultiThreadApplication<config::Bar30Test>
+class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publisher>
 {
   public:
-    Bar30Test();
+    Bar30Publisher();
 
   private:
     void loop() override;
@@ -63,43 +64,37 @@ class Bar30Test : public zeromq::MultiThreadApplication<config::Bar30Test>
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::Bar30Test>(
-        goby::middleware::ProtobufConfigurator<config::Bar30Test>(argc, argv));
+    return goby::run<jaiabot::apps::Bar30Publisher>(
+        goby::middleware::ProtobufConfigurator<config::Bar30Publisher>(argc, argv));
 }
 
 // Main thread
 
 double loop_freq = 1;
 
-jaiabot::apps::Bar30Test::Bar30Test()
-    : zeromq::MultiThreadApplication<config::Bar30Test>(loop_freq * si::hertz)
+jaiabot::apps::Bar30Publisher::Bar30Publisher()
+    : zeromq::MultiThreadApplication<config::Bar30Publisher>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
 }
 
-void jaiabot::apps::Bar30Test::loop()
+void jaiabot::apps::Bar30Publisher::loop()
 {
-    glog.is_verbose() && glog << group("bar30_test") << "Bar 30 path: " << cfg().input_file_path() << std::endl;
+    auto f = std::ifstream(cfg().input_file_path());
+    std::string date_string;
+    std::string p_mbar_string, t_celsius_string;
+    std::getline(f, date_string, ',');
+    std::getline(f, p_mbar_string, ',');
+    std::getline(f, t_celsius_string);
+    double p_mbar = std::stod(p_mbar_string);
+    double t_celsius = std::stod(t_celsius_string);
+
+    protobuf::Bar30Data data;
+    data.set_p_mbar(p_mbar);
+    data.set_t_celsius(t_celsius);
+
+    glog.is_verbose() && glog << group("bar30_test") << "Date: " << date_string << ", p_mbar: " << p_mbar << ", t_calsius: " << t_celsius << std::endl;
+
+    interprocess().publish<groups::bar30>(data);
 }
-
-/*void jaiabot::apps::Bar30Test::send_msg(const jaiabot::protobuf::LoRaMessage& pb_msg)
-{
-    auto io = std::make_shared<goby::middleware::protobuf::IOData>();
-
-    glog.is_verbose() && glog << group("main") << "Sending: " << pb_msg.ShortDebugString()
-                              << std::endl;
-
-    std::string pb_encoded = pb_msg.SerializeAsString();
-
-    std::uint16_t size = pb_encoded.size();
-    std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
-                            static_cast<char>(size & 0xFF)};
-
-    io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
-    interthread().publish<serial_out>(io);
-
-    interprocess().publish<groups::lora_tx>(pb_msg);
-}
-*/
-

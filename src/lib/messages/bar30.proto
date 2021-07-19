@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message Bar30Data
+{
+    required double p_mbar = 1;
+    required double t_celsius = 2;
+}
