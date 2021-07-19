@@ -33,7 +33,7 @@ while True:
 
             line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
 
-            outputFile = open(sys.argv[1], 'w')
+            outputFile = open('/tmp/bar30.txt', 'w')
             outputFile.write(line)
             outputFile.close()
         else:
