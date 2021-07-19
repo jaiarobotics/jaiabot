@@ -29,12 +29,10 @@ import "jaiabot/messages/feather.proto";
 
 package jaiabot.config;
 
-message Bar30Test
+message Bar30Subscriber
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
 
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
-
-    required string input_file_path = 3;
 }
