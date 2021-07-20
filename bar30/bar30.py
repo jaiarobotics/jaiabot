@@ -30,7 +30,7 @@ if not args.simulator:
 def getRealPT():
     try:
         if sensor.read():
-            return (sensor.pressure(), sensor.temperature)
+            return (sensor.pressure(), sensor.temperature())
         else:
             print("Sensor read failed!")
             exit(1)
