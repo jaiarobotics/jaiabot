@@ -28,6 +28,7 @@
 #include <dccl/codec.h>
 #include <goby/util/constants.h>
 #include <goby/zeromq/application/multi_thread.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -47,6 +48,9 @@ namespace jaiabot
 {
 namespace apps
 {
+constexpr goby::middleware::Group bar30_udp_in{"bar30_udp_in"};
+constexpr goby::middleware::Group bar30_udp_out{"bar30_udp_out"};
+
 class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publisher>
 {
   public:
@@ -72,29 +76,59 @@ int main(int argc, char* argv[])
 
 double loop_freq = 1;
 
+
+// for string delimiter
+std::vector<std::string> split (std::string s, std::string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
+
+    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
+        token = s.substr (pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+}
+
+
 jaiabot::apps::Bar30Publisher::Bar30Publisher()
     : zeromq::MultiThreadApplication<config::Bar30Publisher>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
+
+    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<bar30_udp_in, bar30_udp_out>;
+    launch_thread<GPSUDPThread>(cfg().bar30_udp_config());
+
+    interprocess().subscribe<bar30_udp_in>([this](const goby::middleware::protobuf::IOData& bar30_data) {
+
+
+      auto s = std::string(bar30_data.data());
+      auto fields = split(s, ",");
+
+      auto date_string = fields[0];
+      double p_mbar = std::stod(fields[1]);
+      double t_celsius = std::stod(fields[2]);
+
+      glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << p_mbar << ", t_celsius: " << t_celsius << std::endl;
+
+
+      // protobuf::Bar30Data data;
+      // data.set_p_mbar(p_mbar);
+      // data.set_t_celsius(t_celsius);
+
+      // interprocess().publish<groups::bar30>(data);
+    });
+
 }
 
 void jaiabot::apps::Bar30Publisher::loop()
 {
-    auto f = std::ifstream(cfg().input_file_path());
-    std::string date_string;
-    std::string p_mbar_string, t_celsius_string;
-    std::getline(f, date_string, ',');
-    std::getline(f, p_mbar_string, ',');
-    std::getline(f, t_celsius_string);
-    double p_mbar = std::stod(p_mbar_string);
-    double t_celsius = std::stod(t_celsius_string);
-
-    protobuf::Bar30Data data;
-    data.set_p_mbar(p_mbar);
-    data.set_t_celsius(t_celsius);
-
-    glog.is_verbose() && glog << group("bar30_test") << "Date: " << date_string << ", p_mbar: " << p_mbar << ", t_calsius: " << t_celsius << std::endl;
-
-    interprocess().publish<groups::bar30>(data);
+    // Just send an empty packet
+    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    io_data->set_data("hello\n");
+    interthread().publish<bar30_udp_out>(io_data);
 }
