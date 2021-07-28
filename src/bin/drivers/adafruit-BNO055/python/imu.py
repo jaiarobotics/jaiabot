@@ -5,8 +5,13 @@ import random
 import sys
 import argparse
 import socket
-import adafruit_bno055
-import board
+
+try:
+    import adafruit_bno055
+    import board
+except NotImplementedError:
+    print('Warning:  physical device not available')
+
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')

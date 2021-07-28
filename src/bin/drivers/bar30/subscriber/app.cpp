@@ -32,7 +32,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/feather.pb.h"
-#include "jaiabot/messages/bar30.pb.h"
+#include "jaiabot/messages/pt.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -78,7 +78,7 @@ jaiabot::apps::Bar30Subscriber::Bar30Subscriber()
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
 
-    interprocess().subscribe<groups::bar30>([this](const protobuf::Bar30Data& data) {
+    interprocess().subscribe<groups::bar30>([this](const jaiabot::protobuf::PTData& data) {
       glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << data.p_mbar() << ", t_celsius: " << data.t_celsius() << std::endl;
     });
 }
