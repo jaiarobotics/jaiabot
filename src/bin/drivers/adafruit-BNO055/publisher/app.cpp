@@ -32,8 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/feather.pb.h"
-#include "jaiabot/messages/bar30.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -42,19 +41,19 @@ namespace groups = jaiabot::groups;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-constexpr goby::middleware::Group bar30{"bar30"};
+constexpr goby::middleware::Group imu{"imu"};
 
 namespace jaiabot
 {
 namespace apps
 {
-constexpr goby::middleware::Group bar30_udp_in{"bar30_udp_in"};
-constexpr goby::middleware::Group bar30_udp_out{"bar30_udp_out"};
+constexpr goby::middleware::Group imu_udp_in{"imu_udp_in"};
+constexpr goby::middleware::Group imu_udp_out{"imu_udp_out"};
 
-class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publisher>
+class AdaFruitBNO055Publisher : public zeromq::MultiThreadApplication<config::AdaFruitBNO055Publisher>
 {
   public:
-    Bar30Publisher();
+    AdaFruitBNO055Publisher();
 
   private:
     void loop() override;
@@ -68,8 +67,8 @@ class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publis
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::Bar30Publisher>(
-        goby::middleware::ProtobufConfigurator<config::Bar30Publisher>(argc, argv));
+    return goby::run<jaiabot::apps::AdaFruitBNO055Publisher>(
+        goby::middleware::ProtobufConfigurator<config::AdaFruitBNO055Publisher>(argc, argv));
 }
 
 // Main thread
@@ -94,41 +93,50 @@ std::vector<std::string> split (std::string s, std::string delimiter) {
 }
 
 
-jaiabot::apps::Bar30Publisher::Bar30Publisher()
-    : zeromq::MultiThreadApplication<config::Bar30Publisher>(loop_freq * si::hertz)
+jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
+    : zeromq::MultiThreadApplication<config::AdaFruitBNO055Publisher>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
-    glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
 
-    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<bar30_udp_in, bar30_udp_out>;
-    launch_thread<GPSUDPThread>(cfg().bar30_udp_config());
+    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<imu_udp_in, imu_udp_out>;
+    launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interprocess().subscribe<bar30_udp_in>([this](const goby::middleware::protobuf::IOData& bar30_data) {
-
-
-      auto s = std::string(bar30_data.data());
+    interprocess().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
+      auto s = std::string(data.data());
       auto fields = split(s, ",");
+      if (fields.size() < 10) {
+        glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s << std::endl;
+        return;
+      }
 
-      auto date_string = fields[0];
-      double p_mbar = std::stod(fields[1]);
-      double t_celsius = std::stod(fields[2]);
+      int index = 0;
+      
+      auto date_string = fields[index++];
 
-      glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << p_mbar << ", t_celsius: " << t_celsius << std::endl;
+      jaiabot::protobuf::IMUData output;
 
+      output.mutable_euler_angles()->set_alpha(std::stod(fields[index++]));
+      output.mutable_euler_angles()->set_beta(std::stod(fields[index++]));
+      output.mutable_euler_angles()->set_gamma(std::stod(fields[index++]));
 
-      // protobuf::Bar30Data data;
-      // data.set_p_mbar(p_mbar);
-      // data.set_t_celsius(t_celsius);
+      output.mutable_linear_acceleration()->set_x(std::stod(fields[index++]));
+      output.mutable_linear_acceleration()->set_y(std::stod(fields[index++]));
+      output.mutable_linear_acceleration()->set_z(std::stod(fields[index++]));
 
-      // interprocess().publish<groups::bar30>(data);
+      output.mutable_gravity()->set_x(std::stod(fields[index++]));
+      output.mutable_gravity()->set_y(std::stod(fields[index++]));
+      output.mutable_gravity()->set_z(std::stod(fields[index++]));
+
+      interprocess().publish<imu>(output);
+
     });
 
 }
 
-void jaiabot::apps::Bar30Publisher::loop()
+void jaiabot::apps::AdaFruitBNO055Publisher::loop()
 {
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
-    interthread().publish<bar30_udp_out>(io_data);
+    interthread().publish<imu_udp_out>(io_data);
 }

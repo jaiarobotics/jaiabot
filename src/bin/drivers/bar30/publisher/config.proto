@@ -25,7 +25,6 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "jaiabot/messages/feather.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 
 package jaiabot.config;
@@ -37,5 +36,5 @@ message Bar30Publisher
 
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    required goby.middleware.protobuf.UDPPointToPointConfig bar30_udp_config = 3;
+    required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 }
