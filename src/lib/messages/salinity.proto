@@ -2,7 +2,7 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
-message Salinity
+message SalinityData
 {
     required double conductivity = 1;
     required double total_dissolved_solids = 2;
