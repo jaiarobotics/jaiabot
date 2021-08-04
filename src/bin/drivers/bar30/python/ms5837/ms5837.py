@@ -1,7 +1,8 @@
 try:
     import smbus
 except:
-    pass
+    print('Could not import smbus')
+    exit(1)
     
 from time import sleep
 
