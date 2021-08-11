@@ -39,7 +39,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     vehicle_stack_ = new Wt::WStackedWidget(vehicle_box);
     vehicle_stack_->hide();
 
-    const auto update_freq = 10.0;
+    const auto update_freq = cfg_.control_freq();
     timer_.setInterval(1.0 / update_freq * 1.0e3);
     timer_.timeout().connect(this, &LiaisonJaiabot::loop);
 
