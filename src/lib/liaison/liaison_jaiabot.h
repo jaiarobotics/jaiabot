@@ -58,6 +58,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Wt::WSlider* stbd_elevator_slider;
             Wt::WContainerWidget* fins_text_box;
             Wt::WText* fins_text{0};
+            Wt::WGroupBox* ack_box;
+            Wt::WText* ack_text{0};
+
+            protobuf::ControlAck latest_ack;
 
             // must be static, not sure why (segfault in JSignal otherwise)
             static void motor_slider_moved(int value, Wt::WText* text)
