@@ -104,12 +104,29 @@ void jaiabot::LiaisonJaiabot::loop()
 
         this->post_to_comms(
             [=]() { goby_thread()->interprocess().publish<groups::control_command>(cmd_msg); });
+
+        auto& ack = it->second.low_level_control.latest_ack;
+        if (ack.IsInitialized())
+        {
+            auto time_since_ack =
+                goby::time::SystemClock::now<goby::time::MicroTime>() - ack.time_with_units();
+
+            it->second.low_level_control.ack_text->setText(
+                std::string("Time since ack: ") +
+                std::to_string(goby::time::SITime(time_since_ack).value()) +
+                std::string("s<br/><pre>") + ack.DebugString() + "</pre>");
+        }
     }
 }
 
 void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::ControlAck& ack)
 {
     glog.is_debug1() && glog << ack.ShortDebugString() << std::endl;
+    auto it = vehicle_data_.find(ack.vehicle());
+    if (it != vehicle_data_.end())
+    {
+        it->second.low_level_control.latest_ack = ack;
+    }
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,
@@ -136,7 +153,10 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
       fins_text(
           new WText(fins_text_from_value(port_elevator_slider->value(),
                                          stbd_elevator_slider->value(), rudder_slider->value()),
-                    fins_box))
+                    fins_box)),
+      ack_box(new WGroupBox("Ack", controls_box)),
+      ack_text(new WText("No acks received", ack_box))
+
 {
     motor_slider->setMinimum(cfg.motor_bounds().min());
     motor_slider->setMaximum(cfg.motor_bounds().max());
