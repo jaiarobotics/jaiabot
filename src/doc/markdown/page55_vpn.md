@@ -13,9 +13,14 @@ We're using the private subnet 172.20.11.0/24:
 - Server: 172.20.11.1
 - jaiabot0: 172.20.11.10
 - jaiabot1: 172.20.11.11
+- jaiabot2: 172.20.11.12
+- jaiabot3: 172.20.11.13
 - tsaubergine dev computer: 172.20.11.240
-- edsanville dev computer: 172.20.11.245
-- jason-jaia dev computer: 172.20.11.250
+- edsanville dev computer:  172.20.11.245
+- edsanville iMac :         172.20.11.246
+- edsnaville Mac mini:      172.20.11.247
+- jason-jaia dev computer:  172.20.11.250
+- jason-jaia desktop:       172.20.11.251
 
 ### Server
 
@@ -134,3 +139,26 @@ On the client (jaiabot, dev machines, etc.) side, we need to configure:
 - (optional) - have the client connect on boot:
 
       sudo systemctl enable wg-quick@wg_jaia
+
+
+### Client - MacOS (Optional)
+
+MacOS has a GUI wireguard that requires a slightly different approach summarized below
+- Open manage wireguard tunnels
+- click plus
+- add empty tunnel
+- type in a name
+- paste the contents of the .conf above except for the interface private key part
+- replace the xxx with your IP address
+- click save
+
+### Making Your Life Easier (Optional)
+
+Add the following to your /etc/hosts file
+```
+172.20.11.1 vpn
+172.20.11.10 jaiabot0
+172.20.11.11 jaiabot1
+172.20.11.12 jaiabot2
+172.20.11.13 jaiabot3
+```
