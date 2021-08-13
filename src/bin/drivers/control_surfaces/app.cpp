@@ -1,0 +1,120 @@
+// Copyright 2021:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//   Ed Sanville <edsanville@gmail.com>
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+#include <goby/middleware/marshalling/protobuf.h>
+// this space intentionally left blank
+#include <goby/zeromq/application/multi_thread.h>
+
+#include "config.pb.h"
+#include "jaiabot/groups.h"
+#include "jaiabot/lora/serial.h"
+#include "jaiabot/messages/low_control.pb.h"
+
+using goby::glog;
+namespace si = boost::units::si;
+namespace config = jaiabot::config;
+namespace groups = jaiabot::groups;
+namespace zeromq = goby::zeromq;
+namespace middleware = goby::middleware;
+
+constexpr goby::middleware::Group serial_in{"arduino::serial_in"};
+constexpr goby::middleware::Group serial_out{"arduino::serial_out"};
+
+namespace jaiabot
+{
+namespace apps
+{
+class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::ControlSurfacesDriver>
+{
+  public:
+    ControlSurfacesDriver();
+
+  private:
+    void loop() override;
+};
+
+} // namespace apps
+} // namespace jaiabot
+
+int main(int argc, char* argv[])
+{
+    return goby::run<jaiabot::apps::ControlSurfacesDriver>(
+        goby::middleware::ProtobufConfigurator<config::ControlSurfacesDriver>(argc, argv));
+}
+
+// Main thread
+
+jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
+    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(0 * si::hertz)
+{
+    glog.add_group("main", goby::util::Colors::yellow);
+
+    using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
+    launch_thread<SerialThread>(cfg().serial());
+
+    interprocess().subscribe<groups::control_command>(
+        [this](const jaiabot::protobuf::ControlCommand& pb_msg) {
+            glog.is_verbose() && glog << group("main")
+                                        << "Received: " << pb_msg.ShortDebugString()
+                                        << std::endl;
+
+            jaiabot::protobuf::LoRaMessage output_message;
+            output_message.set_
+
+            auto io = lora::serialize(pb_msg);
+            interthread().publish<serial_out>(io);
+        });
+
+    // interthread().subscribe<serial_in>([this](
+    //                                         const goby::middleware::protobuf::IOData& io) {
+    //     auto pb_msg = lora::parse<jaiabot::protobuf::ControlAck>(io);
+    //     glog.is_verbose() && glog << group("main")
+    //                                 << "Received: " << pb_msg.ShortDebugString() << std::endl;
+
+    //     interprocess().publish<groups::control_ack>(pb_msg);
+    // });
+
+}
+
+void jaiabot::apps::ControlSurfacesDriver::loop() {}
+
+/*
+            // command from Liaison -> XBee
+            interprocess().subscribe<groups::control_command>(
+                [this](const jaiabot::protobuf::ControlCommand& pb_msg) {
+                    glog.is_verbose() && glog << group("main")
+                                              << "Sending: " << pb_msg.ShortDebugString()
+                                              << std::endl;
+                    auto io = lora::serialize(pb_msg);
+                    interthread().publish<serial_out>(io);
+                });
+
+            // ack from Xbee -> Liaison
+            interthread().subscribe<serial_in>([this](
+                                                   const goby::middleware::protobuf::IOData& io) {
+                auto pb_msg = lora::parse<jaiabot::protobuf::ControlAck>(io);
+                glog.is_verbose() && glog << group("main")
+                                          << "Received: " << pb_msg.ShortDebugString() << std::endl;
+
+                interprocess().publish<groups::control_ack>(pb_msg);
+            });
+*/
