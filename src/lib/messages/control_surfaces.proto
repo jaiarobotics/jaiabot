@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message ControlSurfaces
+{
+    required sint32 motor = 1;
+    required sint32 port_elevator = 2;
+    required sint32 stbd_elevator = 3;
+    required sint32 rudder = 4;
+}
+
+message ControlSurfacesAck
+{
+    required sint32 code = 1;
+}
+

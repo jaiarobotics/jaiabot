@@ -2,18 +2,12 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-//#define JAIABOT_DEBUG
-
-#ifdef JAIABOT_DEBUG
-#define DEBUG_MESSAGE(s) debug_message(s)
-#else
-#define DEBUG_MESSAGE(s)
-#endif
-
 #ifdef UENUM
 #undef UENUM
 #endif
-#include "jaiabot/messages/nanopb/feather.pb.h"
+#include "jaiabot/messages/nanopb/control_surfaces.pb.h"
+
+#define DEBUG_MESSAGE(x) (x)
 
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
@@ -22,26 +16,28 @@ constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
 using serial_size_type = uint16_t;
+uint8_t this_address = 0;
 
 constexpr int BITS_IN_BYTE = 8;
 
 
-static_assert(jaiabot_protobuf_LoRaMessage_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "LoRaMessage is too large, must fit in SIZE_BYTES word");
+static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
 bool data_to_receive = false;
 
-jaiabot_protobuf_LoRaMessage msg = jaiabot_protobuf_LoRaMessage_init_default;
+jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
+jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
 
-void send_serial_msg()
+void send_ack()
 {
   bool status = true;
-  uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
+  uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfacesAck_size] = {0};
   serial_size_type message_length = 0;
   {
     {
       pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
-      status = pb_encode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
+      status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
       message_length = stream.bytes_written;
     }
   }
@@ -54,6 +50,7 @@ void send_serial_msg()
   }
   delay(10);
 }
+
 
 void setup()
 {
@@ -88,28 +85,22 @@ void loop()
         size << BITS_IN_BYTE;
         size |= prefix[SERIAL_MAGIC_BYTES + 1];
 
-        if (size <= jaiabot_protobuf_LoRaMessage_size)
+        if (size <= jaiabot_protobuf_ControlSurfaces_size)
         {
-          uint8_t pb_binary_data[jaiabot_protobuf_LoRaMessage_size] = {0};
+          uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfaces_size] = {0};
           if (Serial.readBytes(pb_binary_data, size) == size)
           {
             pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
-            bool status = pb_decode(&stream, jaiabot_protobuf_LoRaMessage_fields, &msg);
+            bool status = pb_decode(&stream, jaiabot_protobuf_ControlSurfaces_fields, &command);
             if (!status)
             {
-              DEBUG_MESSAGE("Decoding LoRaMessage protobuf failed:");
+              DEBUG_MESSAGE("Decoding ControlSurfaces protobuf failed:");
               DEBUG_MESSAGE(PB_GET_ERROR(&stream));
             }
-            switch (msg.type)
-            {
-              default:
-                break;
-              case jaiabot_protobuf_LoRaMessage_MessageType_LORA_DATA:
-                data_to_send = true;
-                break;
-              case jaiabot_protobuf_LoRaMessage_MessageType_SET_PARAMETERS:
-                break;
-            }
+            DEBUG_MESSAGE("Received ControlSurfaces");
+
+            ack.code = 111;
+            send_ack();
           }
           else
           {
@@ -137,4 +128,5 @@ void loop()
 
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
-PB_BIND(jaiabot_protobuf_LoRaMessage, jaiabot_protobuf_LoRaMessage, 2)
+PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
+PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)

@@ -72,26 +72,25 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     launch_thread<SerialThread>(cfg().serial());
 
     interprocess().subscribe<groups::control_command>(
-        [this](const jaiabot::protobuf::ControlCommand& pb_msg) {
+        [this](const jaiabot::protobuf::ControlCommand& control_command) {
             glog.is_verbose() && glog << group("main")
-                                        << "Received: " << pb_msg.ShortDebugString()
+                                        << "Sending: " << control_command.ShortDebugString()
                                         << std::endl;
 
-            jaiabot::protobuf::LoRaMessage output_message;
-            output_message.set_
-
-            auto io = lora::serialize(pb_msg);
-            interthread().publish<serial_out>(io);
+            auto raw_output = lora::serialize(control_command.command());
+            interthread().publish<serial_out>(raw_output);
         });
 
-    // interthread().subscribe<serial_in>([this](
-    //                                         const goby::middleware::protobuf::IOData& io) {
-    //     auto pb_msg = lora::parse<jaiabot::protobuf::ControlAck>(io);
-    //     glog.is_verbose() && glog << group("main")
-    //                                 << "Received: " << pb_msg.ShortDebugString() << std::endl;
+    interthread().subscribe<serial_in>([this](
+                                            const goby::middleware::protobuf::IOData& io) {
 
-    //     interprocess().publish<groups::control_ack>(pb_msg);
-    // });
+        auto control_ack = lora::parse<jaiabot::protobuf::ControlSurfacesAck>(io);
+
+        glog.is_verbose() && glog << group("main")
+                                    << control_ack.ShortDebugString() << std::endl;
+
+//        interprocess().publish<groups::control_ack>(pb_msg);
+    });
 
 }
 

@@ -2,16 +2,6 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
-
-message ControlSurfaces
-{
-    required sint32 motor = 1;
-    required sint32 port_elevator = 2;
-    required sint32 stbd_elevator = 3;
-    required sint32 rudder = 4;
-}
-
-
 message LoRaMessage
 {
     required int32 src = 1;
@@ -68,6 +58,16 @@ message LoRaMessage
 
     // +5-+23 dBm
     optional int32 tx_power = 21 [default = 13];
+
+    message ControlSurfaces
+    {
+        required sint32 motor = 1;
+        required sint32 port_elevator = 2;
+        required sint32 stbd_elevator = 3;
+        required sint32 rudder = 4;
+    }
+
+
 
     optional ControlSurfaces control = 30;
 }
