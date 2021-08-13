@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+import "jaiabot/messages/feather.proto";
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message ControlCommand
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required uint32 id = 1;
+    required uint32 vehicle = 2;
+    required uint64 time = 3 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+    required ControlSurfaces command = 4;
+}
+
+message ControlAck
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required uint32 id = 1;
+    required uint32 vehicle = 2;
+    required uint64 time = 3 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+    required uint64 command_time = 4 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+}
