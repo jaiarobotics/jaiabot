@@ -37,6 +37,9 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 constexpr goby::middleware::Group bar30{"bar30"};
 constexpr goby::middleware::Group salinity{"salinity"};
 
+constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
+constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
+
 } // namespace groups
 } // namespace jaiabot
 

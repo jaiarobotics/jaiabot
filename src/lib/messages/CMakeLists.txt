@@ -5,6 +5,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/pt.proto
   jaiabot/messages/imu.proto
   jaiabot/messages/salinity.proto
+  jaiabot/messages/low_control.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
