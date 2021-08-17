@@ -1,3 +1,10 @@
 #!/bin/bash
-arduino-cli compile -b adafruit:avr:feather32u4
-arduino-cli upload -v -p /dev/ttyACM0 -b adafruit:avr:feather32u4
+
+#BOARD=adafruit:avr:feather32u4
+#PORT=/dev/ttyACM0
+
+BOARD=arduino:avr:leonardo
+PORT=/dev/ttyACM0
+
+arduino-cli compile -b ${BOARD}
+arduino-cli upload -v -p ${PORT} -b ${BOARD}
