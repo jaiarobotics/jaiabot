@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <Servo.h>
 
 #ifdef UENUM
 #undef UENUM
@@ -20,6 +21,12 @@ uint8_t this_address = 0;
 
 constexpr int BITS_IN_BYTE = 8;
 
+Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
+
+constexpr int STBD_ELEVATOR_PIN = 5;
+constexpr int PORT_ELEVATOR_PIN = 10;
+constexpr int RUDDER_PIN = 11;
+constexpr int MOTOR_PIN = 12;
 
 static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
@@ -62,6 +69,10 @@ void setup()
 
   delay(100);
 
+  motor_servo.attach(MOTOR_PIN);
+  rudder_servo.attach(RUDDER_PIN);
+  stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
+  port_elevator_servo.attach(PORT_ELEVATOR_PIN);
 }
 
 
@@ -98,6 +109,11 @@ void loop()
               DEBUG_MESSAGE(PB_GET_ERROR(&stream));
             }
             DEBUG_MESSAGE("Received ControlSurfaces");
+
+            motor_servo.write(command.motor * 180 / 100);
+            rudder_servo.write(       (command.rudder +        100) * 180 / 200);
+            stbd_elevator_servo.write((command.stbd_elevator + 100) * 180 / 200);
+            port_elevator_servo.write((command.port_elevator + 100) * 180 / 200);
 
             ack.code = 111;
             send_ack();
