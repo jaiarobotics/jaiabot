@@ -132,7 +132,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             return "Port Elevator (G-/T+ or S-/W+ for both): " +
                    std::to_string(port_elevator_value) +
                    "<br/>Starboard Elevator (H-/Y+ or S-/W+ for both): " +
-                   std::to_string(stbd_elevator_value) +
+                   std::to_string(     stbd_elevator_value) +
                    "<br/>Rudder (A-/D+): " + std::to_string(rudder_value);
         }
     };
