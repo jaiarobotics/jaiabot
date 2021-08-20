@@ -48,18 +48,30 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
 
             Wt::WGroupBox* controls_box;
-            Wt::WGroupBox* motor_box;
-            Wt::WGroupBox* fins_box;
-            Wt::WSlider* motor_slider;
-            Wt::WContainerWidget* motor_text_box;
-            Wt::WText* motor_text{0};
-            Wt::WSlider* port_elevator_slider;
-            Wt::WSlider* rudder_slider;
-            Wt::WSlider* stbd_elevator_slider;
-            Wt::WContainerWidget* fins_text_box;
-            Wt::WText* fins_text{0};
-            Wt::WGroupBox* ack_box;
-            Wt::WText* ack_text{0};
+                Wt::WGroupBox* motor_box;
+                    Wt::WText* motor_left_text{0};
+                    Wt::WSlider* motor_slider;
+                    Wt::WText* motor_right_text{0};
+                    Wt::WContainerWidget* motor_text_box;
+                        Wt::WText* motor_text{0};
+                Wt::WGroupBox* fins_box;
+                    Wt::WContainerWidget* fins_slider_box;
+                        Wt::WContainerWidget* port_box;
+                            Wt::WText* port_elevator_top_text{0};
+                            Wt::WSlider* port_elevator_slider;
+                            Wt::WText* port_elevator_bottom_text{0};
+                        Wt::WGroupBox* rudder_box;
+                            Wt::WText* rudder_left_text{0};
+                            Wt::WSlider* rudder_slider;
+                            Wt::WText* rudder_right_text{0};
+                        Wt::WGroupBox* stbd_box;
+                            Wt::WText* stbd_elevator_top_text{0};
+                            Wt::WSlider* stbd_elevator_slider;
+                            Wt::WText* stbd_elevator_bottom_text{0};
+                    Wt::WContainerWidget* fins_text_box;
+                        Wt::WText* fins_text{0};    
+                Wt::WGroupBox* ack_box;
+                    Wt::WText* ack_text{0};
 
             protobuf::ControlAck latest_ack;
 
@@ -132,7 +144,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             return "Port Elevator (G-/T+ or S-/W+ for both): " +
                    std::to_string(port_elevator_value) +
                    "<br/>Starboard Elevator (H-/Y+ or S-/W+ for both): " +
-                   std::to_string(     stbd_elevator_value) +
+                   std::to_string(stbd_elevator_value) +
                    "<br/>Rudder (A-/D+): " + std::to_string(rudder_value);
         }
     };
