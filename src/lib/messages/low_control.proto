@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/control_surfaces.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
 
@@ -31,4 +32,6 @@ message ControlAck
     required uint64 command_time = 4 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
+
+    required GeographicCoordinate location = 5;
 }

@@ -23,6 +23,10 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/multi_thread.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/util/constants.h>
+#include <goby/util/geodesy.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -49,6 +53,9 @@ class ControlSurfacesTest : public zeromq::MultiThreadApplication<config::Contro
     ControlSurfacesTest();
 
   private:
+    std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
+    goby::middleware::protobuf::gpsd::TimePositionVelocity latest_gps_tpv_;
+
     void loop() override;
 };
 
@@ -71,13 +78,32 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial());
 
+    // Subscribe to gps
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            glog.is_verbose() && glog << group("main") << "Received from gpsd: " << tpv.ShortDebugString() << std::endl;
+
+            if (!geodesy_)
+            {
+                // if valid fix, use this for the Geodesy datum
+                if (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                    tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D)
+                {
+                    geodesy_.reset(new goby::util::UTMGeodesy(
+                        {tpv.location().lat_with_units(), tpv.location().lon_with_units()}));
+                }
+            }
+            latest_gps_tpv_ = tpv;
+        });
+
+
     switch (cfg().mode())
     {
         case config::ControlSurfacesTest::BOX:
             // command from Liaison -> XBee
             interprocess().subscribe<groups::control_command>(
                 [this](const jaiabot::protobuf::ControlCommand& pb_msg) {
-                    glog.is_verbose() && glog << group("main")
+                    glog.is_debug1() && glog << group("main")
                                               << "Sending: " << pb_msg.ShortDebugString()
                                               << std::endl;
                     auto io = lora::serialize(pb_msg);
@@ -96,6 +122,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 
             break;
         case config::ControlSurfacesTest::BOT:
+
             // command from Xbee -> jaiabot_lora_test
             interthread().subscribe<serial_in>([this](
                                                    const goby::middleware::protobuf::IOData& io) {
@@ -110,6 +137,20 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
                 ack.set_vehicle(pb_msg.vehicle());
                 ack.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
                 ack.set_command_time(pb_msg.time());
+
+                // Add location
+//                if (latest_gps_tpv_.has_location())
+//                {
+                    ack.mutable_location()->set_lat_with_units(
+                        latest_gps_tpv_.location().lat_with_units());
+                    ack.mutable_location()->set_lon_with_units(
+                        latest_gps_tpv_.location().lon_with_units());
+//                }
+//                else
+//                {
+//                    ack.mutable_location()->set_lat(goby::util::NaN<double>);
+//                    ack.mutable_location()->set_lon(goby::util::NaN<double>);
+//                }
 
                 glog.is_verbose() && glog << group("main") << "Sending: " << ack.ShortDebugString()
                                           << std::endl;
