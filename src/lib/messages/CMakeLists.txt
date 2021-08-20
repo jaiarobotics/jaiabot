@@ -1,5 +1,6 @@
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/example.proto
+  jaiabot/messages/geographic_coordinate.proto
   jaiabot/messages/low_control.proto
   jaiabot/messages/control_surfaces.proto
   jaiabot/messages/feather.proto
