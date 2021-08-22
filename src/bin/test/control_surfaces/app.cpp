@@ -27,6 +27,7 @@
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/util/constants.h>
 #include <goby/util/geodesy.h>
+#include <boost/units/io.hpp>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -34,6 +35,7 @@
 #include "jaiabot/messages/low_control.pb.h"
 
 using goby::glog;
+using namespace std;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
@@ -74,6 +76,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     : zeromq::MultiThreadApplication<config::ControlSurfacesTest>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
+    glog.add_group("debug", goby::util::Colors::red);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial());
@@ -81,7 +84,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     // Subscribe to gps
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            glog.is_verbose() && glog << group("main") << "Received from gpsd: " << tpv.ShortDebugString() << std::endl;
+            glog.is_debug1() && glog << group("main") << "Received from gpsd: " << tpv.ShortDebugString() << std::endl;
 
             if (!geodesy_)
             {
@@ -91,6 +94,11 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
                 {
                     geodesy_.reset(new goby::util::UTMGeodesy(
                         {tpv.location().lat_with_units(), tpv.location().lon_with_units()}));
+
+                    glog.is_debug1() && glog << group("debug") << "Geodesy defined!" << endl;
+                }
+                else {
+                    glog.is_warn() && glog << group("debug") << "TPV not in valid mode, so no geodesy defined!  Mode = " << tpv.mode() << endl;
                 }
             }
             latest_gps_tpv_ = tpv;
@@ -114,9 +122,39 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
             interthread().subscribe<serial_in>([this](
                                                    const goby::middleware::protobuf::IOData& io) {
                 auto pb_msg = lora::parse<jaiabot::protobuf::ControlAck>(io);
-                glog.is_verbose() && glog << group("main")
-                                          << "Received: " << pb_msg.ShortDebugString() << std::endl;
 
+                glog.is_debug1() && glog << group("debug") << "has_location() = " << pb_msg.has_location() << endl;
+                glog.is_debug1() && glog << group("debug") << "  lat = " << pb_msg.location().lat_with_units() << endl;
+                glog.is_debug1() && glog << group("debug") << "  lon = " << pb_msg.location().lon_with_units() << endl;
+
+                if (geodesy_ &&
+                    latest_gps_tpv_.has_location() &&
+                    pb_msg.has_location())
+                {
+                    auto our_xy = geodesy_->convert({latest_gps_tpv_.location().lat_with_units(),
+                                                     latest_gps_tpv_.location().lon_with_units()});
+                    auto their_xy = geodesy_->convert({pb_msg.location().lat_with_units(),
+                                                       pb_msg.location().lon_with_units()});
+                    auto dx = our_xy.x - their_xy.x;
+                    auto dy = our_xy.y - their_xy.y;
+                    auto range = boost::units::sqrt(dx * dx + dy * dy);
+                    glog.is_debug1() && glog << group("debug") << "Calculated range = " << range << endl;
+                    pb_msg.set_range_with_units(range);
+                }
+
+                if (!geodesy_) {
+                    glog.is_warn() && glog << group("debug") << "No geodesy defined yet!" << endl;
+                }
+
+                if (!latest_gps_tpv_.has_location()) {
+                    glog.is_warn() && glog << group("debug") << "Box has no GPS lock!" << endl;
+                }
+
+                if (!pb_msg.has_location()) {
+                    glog.is_warn() && glog << group("debug") << "Bot has no GPS lock!" << endl;
+                }
+
+                glog.is_warn() && glog << group("debug") << "BOX publishing ControlAck" << endl;
                 interprocess().publish<groups::control_ack>(pb_msg);
             });
 
@@ -127,7 +165,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
             interthread().subscribe<serial_in>([this](
                                                    const goby::middleware::protobuf::IOData& io) {
                 auto pb_msg = lora::parse<jaiabot::protobuf::ControlCommand>(io);
-                glog.is_verbose() && glog << group("main")
+                glog.is_debug1() && glog << group("main")
                                           << "Received: " << pb_msg.ShortDebugString() << std::endl;
 
                 interprocess().publish<groups::control_command>(pb_msg);
@@ -152,7 +190,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 //                    ack.mutable_location()->set_lon(goby::util::NaN<double>);
 //                }
 
-                glog.is_verbose() && glog << group("main") << "Sending: " << ack.ShortDebugString()
+                glog.is_debug1() && glog << group("main") << "Sending: " << ack.ShortDebugString()
                                           << std::endl;
                 auto io_ack = lora::serialize(ack);
                 interthread().publish<serial_out>(io_ack);

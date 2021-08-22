@@ -34,4 +34,7 @@ message ControlAck
     ];
 
     required GeographicCoordinate location = 5;
+    optional double range = 6
+        [(dccl.field) = { units { base_dimensions: "L" } }];
+
 }
