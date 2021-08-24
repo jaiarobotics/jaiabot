@@ -2,6 +2,16 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
+
+message ControlSurfaces
+{
+    required sint32 motor = 1;
+    required sint32 port_elevator = 2;
+    required sint32 stbd_elevator = 3;
+    required sint32 rudder = 4;
+}
+
+
 message LoRaMessage
 {
     required int32 src = 1;
@@ -15,7 +25,10 @@ message LoRaMessage
         PARAMETERS_REJECTED = 4;  // feather -> control
         FEATHER_READY = 5;        // feather -> control
         TRANSMIT_RESULT = 6;      // feather -> control
-        DEBUG_MESSAGE = 100;      // feather -> control
+
+        LOW_CONTROL = 50;  // control -> feather
+
+        DEBUG_MESSAGE = 100;  // feather -> control
     }
     required MessageType type = 4 [default = LORA_DATA];
     optional int32 id = 5;
@@ -50,9 +63,11 @@ message LoRaMessage
         Bw125Cr48Sf4096 = 4;
         Bw125Cr45Sf2048 = 5;
     }
-    
+
     optional ModemConfigChoice modem_config = 20 [default = Bw125Cr45Sf128];
 
-    // +5-+23 dBm 
+    // +5-+23 dBm
     optional int32 tx_power = 21 [default = 13];
+
+    optional ControlSurfaces control = 30;
 }

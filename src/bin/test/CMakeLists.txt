@@ -1,1 +1,2 @@
 add_subdirectory(loratest)
+add_subdirectory(control_surfaces)

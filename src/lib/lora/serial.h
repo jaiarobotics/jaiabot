@@ -78,6 +78,33 @@ class SerialThreadLoRaFeather
     char* buffer_write_ptr_{buffer_.data()};
     std::uint16_t message_size_{0};
 };
+
+template <typename ProtobufMessage>
+ProtobufMessage parse(const goby::middleware::protobuf::IOData& io)
+{
+    auto& data = io.data();
+    ProtobufMessage pb_msg;
+    constexpr auto prefix_size = jaiabot::lora::SERIAL_MAGIC_BYTES + jaiabot::lora::SIZE_BYTES;
+    pb_msg.ParseFromArray(&data[0] + prefix_size, data.size() - prefix_size);
+    return pb_msg;
+}
+
+template <typename ProtobufMessage>
+std::shared_ptr<goby::middleware::protobuf::IOData> serialize(const ProtobufMessage& pb_msg)
+{
+    auto io = std::make_shared<goby::middleware::protobuf::IOData>();
+
+    std::string pb_encoded = pb_msg.SerializeAsString();
+
+    std::uint16_t size = pb_encoded.size();
+    std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
+                            static_cast<char>(size & 0xFF)};
+
+    io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
+
+    return io;
+}
+
 } // namespace lora
 } // namespace jaiabot
 
