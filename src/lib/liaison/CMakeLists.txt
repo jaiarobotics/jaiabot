@@ -4,3 +4,7 @@ add_library(jaiabot_liaison SHARED jaiabot_liaison_load.cpp liaison_jaiabot.cpp 
 target_link_libraries(jaiabot_liaison goby goby_zeromq ${Boost_LIBRARIES} jaiabot_messages)
 
 configure_file(goby_liaison_jaiabot.in ${project_BIN_DIR}/goby_liaison_jaiabot @ONLY)
+
+if(export_goby_interfaces)
+  generate_interfaces(jaiabot_liaison)
+endif()
