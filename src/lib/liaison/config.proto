@@ -16,6 +16,9 @@ message JaiabotConfig
         optional uint32 n_ticks = 3 [default = 10];
         optional uint32 step = 4 [default = 1];
         optional sint32 center = 5 [default = 0];
+
+        optional string min_label = 6 [default = '-'];
+        optional string max_label = 7 [default = '+'];
     }
     required LowLevelControlBounds motor_bounds = 10;
     required LowLevelControlBounds elevator_bounds = 11;

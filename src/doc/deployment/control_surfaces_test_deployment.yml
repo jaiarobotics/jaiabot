@@ -1,0 +1,13 @@
+deployment: cst_deployment
+platforms:
+  - name: BOX
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_control_surfaces_test_interface.yml
+      - jaiabot_liaison_interface.yml
+  - name: BOT
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_control_surfaces_test_interface.yml
+      - jaiabot_control_surfaces_driver_interface.yml
+      - jaiabot_liaison_interface.yml
