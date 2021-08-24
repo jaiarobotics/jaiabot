@@ -76,9 +76,9 @@ On a server (e.g. cloud machine), we configure:
       sudo wg
       sudo ip a show wg_jaia
 
-- Enable IP forwarding so that machines on the VPN can see each other "through" the server:
+- Enable IP forwarding so that machines on the VPN can see each other "through" the server by editing `/etc/sysctl.conf` and then reboot (or `sysctl -p`):
 
-      sysctl -w net.ipv4.ip_forward=1
+      net.ipv4.ip_forward = 1
 
 ### Client
 
