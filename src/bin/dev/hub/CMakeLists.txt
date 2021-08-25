@@ -1,4 +1,4 @@
-set(APP dev_hub)
+set(APP jaiabot_dev_hub)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 

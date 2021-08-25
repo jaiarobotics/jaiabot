@@ -1,10 +1,10 @@
-deployment: lora_test_deployment
+deployment: loratest_deployment
 platforms:
-  - name: box
+  - name: hub
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
-      - jaiabot_lora_test_interface.yml
+      - jaiabot_loratest_interface.yml
   - name: bot
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
-      - jaiabot_lora_test_interface.yml
+      - jaiabot_loratest_interface.yml
