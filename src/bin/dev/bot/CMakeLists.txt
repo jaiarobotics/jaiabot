@@ -1,4 +1,4 @@
-set(APP jaiabot_control_surfaces_test_box)
+set(APP dev_bot)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 

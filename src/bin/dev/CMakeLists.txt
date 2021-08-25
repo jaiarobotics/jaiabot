@@ -1,2 +1,2 @@
-add_subdirectory(control_surfaces_test_bot)
-add_subdirectory(control_surfaces_test_box)
+add_subdirectory(bot)
+add_subdirectory(hub)
