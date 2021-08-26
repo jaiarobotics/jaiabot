@@ -1,2 +1,5 @@
 #!/bin/bash
-arduino-cli compile -b adafruit:avr:feather32u4
+
+BOARD=arduino:avr:leonardo
+
+arduino-cli compile -b ${BOARD}
