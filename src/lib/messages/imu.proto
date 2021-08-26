@@ -1,0 +1,22 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message IMUData
+{
+    message EulerAngles {
+        required double alpha = 1;
+        required double beta = 2;
+        required double gamma = 3;
+    }
+    required EulerAngles euler_angles = 1;
+
+    message Acceleration {
+        required double x = 1;
+        required double y = 2;
+        required double z = 3;
+    }
+
+    required Acceleration linear_acceleration = 2;
+    required Acceleration gravity = 3;
+}

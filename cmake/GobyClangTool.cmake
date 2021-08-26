@@ -25,7 +25,7 @@ function(GOBY_EXPORT_INTERFACE TARGET YML_OUT_DIR YML)
   add_custom_command(
     OUTPUT "${YML_OUT_DIR}/${TARGET}_interface.yml"
     COMMAND goby_clang_tool
-    ARGS -gen -target ${TARGET} -outdir ${YML_OUT_DIR} -p ${CMAKE_BINARY_DIR} ${ABS_TARGET_SOURCES}
+    ARGS -gen -target ${TARGET} -outdir ${YML_OUT_DIR} -p ${CMAKE_BINARY_DIR} ${ABS_TARGET_SOURCES} --extra-arg=-Wno-return-type-c-linkage
     COMMENT "Running goby_clang_tool on ${TARGET}"
     DEPENDS ${ABS_TARGET_SOURCES} ${TARGET}
     VERBATIM)

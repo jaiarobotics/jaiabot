@@ -1,7 +1,8 @@
 syntax = "proto2";
 
-import "jaiabot/messages/feather.proto";
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/control_surfaces.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
 
@@ -31,4 +32,9 @@ message ControlAck
     required uint64 command_time = 4 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
+
+    required GeographicCoordinate location = 5;
+    optional double range = 6
+        [(dccl.field) = { units { base_dimensions: "L" } }];
+
 }

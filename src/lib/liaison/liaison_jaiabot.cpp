@@ -141,21 +141,25 @@ jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_st
 jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* vehicle_div,
                                                          const protobuf::JaiabotConfig& cfg)
     : controls_box(new WGroupBox("Low Level Controls ('R' resets to center values)", vehicle_div)),
-      motor_box(new WGroupBox("Motor", controls_box)),
-      fins_box(new WGroupBox("Fins", controls_box)),
-      motor_slider(new WSlider(Horizontal, motor_box)),
-      motor_text_box(new WContainerWidget(motor_box)),
-      motor_text(new WText(motor_text_from_value(motor_slider->value()), motor_text_box)),
-      port_elevator_slider(new WSlider(Vertical, fins_box)),
-      rudder_slider(new WSlider(Horizontal, fins_box)),
-      stbd_elevator_slider(new WSlider(Vertical, fins_box)),
-      fins_text_box(new WContainerWidget(fins_box)),
-      fins_text(
-          new WText(fins_text_from_value(port_elevator_slider->value(),
-                                         stbd_elevator_slider->value(), rudder_slider->value()),
-                    fins_box)),
-      ack_box(new WGroupBox("Ack", controls_box)),
-      ack_text(new WText("No acks received", ack_box))
+        motor_box(new WGroupBox("Motor", controls_box)),
+            motor_left_text(new WText(cfg.motor_bounds().min_label(), motor_box)),
+            motor_slider(new WSlider(Horizontal, motor_box)),
+            motor_right_text(new WText(cfg.motor_bounds().max_label(), motor_box)),
+            motor_text_box(new WContainerWidget(motor_box)),
+                motor_text(new WText(motor_text_from_value(motor_slider->value()), motor_text_box)),
+        fins_box(new WGroupBox("Fins", controls_box)),
+            port_elevator_slider(new WSlider(Vertical, fins_box)),
+            rudder_left_text(new WText(cfg.rudder_bounds().min_label(), fins_box)),
+            rudder_slider(new WSlider(Horizontal, fins_box)),
+            rudder_right_text(new WText(cfg.rudder_bounds().max_label(), fins_box)),         
+            stbd_elevator_slider(new WSlider(Vertical, fins_box)),            
+            fins_text_box(new WContainerWidget(fins_box)),
+                fins_text(
+                    new WText(fins_text_from_value(port_elevator_slider->value(),
+                                                    stbd_elevator_slider->value(), rudder_slider->value()),
+                                fins_box)),
+        ack_box(new WGroupBox("Ack", controls_box)),
+            ack_text(new WText("No acks received", ack_box))
 
 {
     motor_slider->setMinimum(cfg.motor_bounds().min());

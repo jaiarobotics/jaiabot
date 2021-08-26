@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message SalinityData
+{
+    required double conductivity = 1;
+    required double total_dissolved_solids = 2;
+    required double salinity = 3;
+    required double specific_gravity = 4;
+}

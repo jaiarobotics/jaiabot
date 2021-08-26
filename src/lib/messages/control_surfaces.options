@@ -1,0 +1,4 @@
+# See https://jpa.kapsi.fi/nanopb/docs/reference.html#proto-file-options
+
+# 251 = RadioHead max packet size for LoRa
+*.ControlSurfaces.data   max_size:251
