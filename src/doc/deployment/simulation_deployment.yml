@@ -1,0 +1,11 @@
+deployment: trail_deployment
+platforms:
+  - name: topside
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_opencpn_interface_interface.yml
+  - name: auv
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_ivp_frontseat_moos_gateway_plugin_interface.yml
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_simulator_interface.yml
+      - jaiabot_fusion_interface.yml
