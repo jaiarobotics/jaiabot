@@ -120,7 +120,49 @@ Examples:
 This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built.
 
 
+## Cross-compiling locally using Docker
+
+For rapid turnaround development where it is infeasible to wait for the CI/CD packages to complete, we can cross-compile for the `jaiabot` code for the ARM64 target (Raspberry Pi) using a Docker container that holds all the appropriate dependencies:
+
+### Build the container
+
+To create the docker container initially (should only need to be done initially and whenever there are updates to the dependencies):
+```
+cd jaiabot/.docker/focal/arm64
+docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
+# optionally, push to docker hub
+docker push gobysoft/jaiabot-ubuntu-arm64:20.04.1
+```
+
+### Cross-compile in the container
+
+Then to cross-compile using this container:
+
+```
+cd jaiabot
+# clear out the build directory assuming it exists with a native build (might need sudo if you've build using the container last)
+rm -rf build
+# run the docker container interactively
+docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1 
+# update any dependencies since the container was created (not required if you've recently built the container)
+apt update && apt upgrade -y
+# actually build the code
+./scripts/arm64_build.sh
+```
+
+Or simply use the all-in-one-script:
+
+```
+./scripts/docker_arm64_build.sh
+```
 
 
+### Copy the binaries to the Raspberry Pi
 
+If you rsync the contents of `jaiabot` to the Raspberry Pi at `/home/ubuntu/jaiabot` you should be able to run them successfully.
 
+(This assumes that `/home/ubuntu/jaiabot/build` exists on the Raspberry Pi, if not, `mkdir` it first):
+```
+cd jaiabot
+rsync -aP build/bin build/lib ubuntu@172.20.11.10:/home/ubuntu/jaiabot/build
+```
