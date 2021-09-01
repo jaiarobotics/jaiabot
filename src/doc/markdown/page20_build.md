@@ -159,7 +159,7 @@ Or simply use the all-in-one-script:
 
 ### Copy the binaries to the Raspberry Pi
 
-If you rsync the contents of `jaiabot` to the Raspberry Pi at `/home/ubuntu/jaiabot` you should be able to run them successfully.
+If you rsync the contents of `jaiabot/build/bin` and `jaiabot/build/lib` to the Raspberry Pi at `/home/ubuntu/jaiabot` you should be able to run them successfully.
 
 (This assumes that `/home/ubuntu/jaiabot/build` exists on the Raspberry Pi, if not, `mkdir` it first):
 ```
