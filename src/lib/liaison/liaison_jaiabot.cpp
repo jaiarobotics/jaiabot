@@ -21,23 +21,37 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     : goby::zeromq::LiaisonContainerWithComms<LiaisonJaiabot, CommsThread>(cfg),
       cfg_(cfg.GetExtension(protobuf::jaiabot_config))
 {
-    WPanel* vehicle_panel = new Wt::WPanel(this);
-    vehicle_panel->setTitle("Bot");
-    vehicle_panel->setCollapsible(true);
-    vehicle_panel->setCollapsed(cfg_.minimize_vehicle());
+    WPanel* hub_vehicle_panel = new Wt::WPanel(this);
+    hub_vehicle_panel->setTitle("Hub");
+    hub_vehicle_panel->setCollapsible(true);
+    hub_vehicle_panel->setCollapsed(cfg_.minimize_hub_panel());
 
     wApp->globalKeyWentDown().connect(boost::bind(&LiaisonJaiabot::key_press, this, _1));
     this->keyWentDown().connect(boost::bind(&LiaisonJaiabot::key_press, this, _1));
 
-    WContainerWidget* vehicle_box = new Wt::WContainerWidget();
-    vehicle_panel->setCentralWidget(vehicle_box);
-    new WLabel("Bot: ", vehicle_box);
-    vehicle_combo_ = new WComboBox(vehicle_box);
+    WContainerWidget* hub_vehicle_box = new Wt::WContainerWidget();
+    hub_vehicle_panel->setCentralWidget(hub_vehicle_box);
+    new WLabel("Bot: ", hub_vehicle_box);
+    vehicle_combo_ = new WComboBox(hub_vehicle_box);
     vehicle_combo_->addItem("(Choose a vehicle)");
     vehicle_combo_->sactivated().connect(this, &LiaisonJaiabot::vehicle_select);
 
-    vehicle_stack_ = new Wt::WStackedWidget(vehicle_box);
+    vehicle_stack_ = new Wt::WStackedWidget(hub_vehicle_box);
     vehicle_stack_->hide();
+
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+    {
+        WPanel* bot_panel = new Wt::WPanel(this);
+        bot_panel->setTitle("Bot");
+        bot_panel->setCollapsible(true);
+        bot_panel->setCollapsed(cfg_.minimize_bot_panel());
+
+        WContainerWidget* bot_box = new Wt::WContainerWidget();
+        bot_panel->setCentralWidget(bot_box);
+
+        bot_info_box_ = new WGroupBox("Current Vehicle Information", bot_box);
+        bot_info_text_ = new WText(bot_info_box_);
+    }
 
     const auto update_freq = cfg_.control_freq();
     timer_.setInterval(1.0 / update_freq * 1.0e3);
@@ -129,6 +143,13 @@ void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::ControlAck& ack)
     }
 }
 
+void jaiabot::LiaisonJaiabot::post_node_status(
+    const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_info_text_->setText("<pre>" + node_status.DebugString() + "</pre>");
+}
+
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,
                                                   const protobuf::JaiabotConfig& cfg)
     : vehicle_div(new Wt::WContainerWidget), low_level_control(vehicle_div, cfg)
@@ -141,25 +162,25 @@ jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_st
 jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* vehicle_div,
                                                          const protobuf::JaiabotConfig& cfg)
     : controls_box(new WGroupBox("Low Level Controls ('R' resets to center values)", vehicle_div)),
-        motor_box(new WGroupBox("Motor", controls_box)),
-            motor_left_text(new WText(cfg.motor_bounds().min_label(), motor_box)),
-            motor_slider(new WSlider(Horizontal, motor_box)),
-            motor_right_text(new WText(cfg.motor_bounds().max_label(), motor_box)),
-            motor_text_box(new WContainerWidget(motor_box)),
-                motor_text(new WText(motor_text_from_value(motor_slider->value()), motor_text_box)),
-        fins_box(new WGroupBox("Fins", controls_box)),
-            port_elevator_slider(new WSlider(Vertical, fins_box)),
-            rudder_left_text(new WText(cfg.rudder_bounds().min_label(), fins_box)),
-            rudder_slider(new WSlider(Horizontal, fins_box)),
-            rudder_right_text(new WText(cfg.rudder_bounds().max_label(), fins_box)),         
-            stbd_elevator_slider(new WSlider(Vertical, fins_box)),            
-            fins_text_box(new WContainerWidget(fins_box)),
-                fins_text(
-                    new WText(fins_text_from_value(port_elevator_slider->value(),
-                                                    stbd_elevator_slider->value(), rudder_slider->value()),
-                                fins_box)),
-        ack_box(new WGroupBox("Ack", controls_box)),
-            ack_text(new WText("No acks received", ack_box))
+      motor_box(new WGroupBox("Motor", controls_box)),
+      motor_left_text(new WText(cfg.motor_bounds().min_label(), motor_box)),
+      motor_slider(new WSlider(Horizontal, motor_box)),
+      motor_right_text(new WText(cfg.motor_bounds().max_label(), motor_box)),
+      motor_text_box(new WContainerWidget(motor_box)),
+      motor_text(new WText(motor_text_from_value(motor_slider->value()), motor_text_box)),
+      fins_box(new WGroupBox("Fins", controls_box)),
+      port_elevator_slider(new WSlider(Vertical, fins_box)),
+      rudder_left_text(new WText(cfg.rudder_bounds().min_label(), fins_box)),
+      rudder_slider(new WSlider(Horizontal, fins_box)),
+      rudder_right_text(new WText(cfg.rudder_bounds().max_label(), fins_box)),
+      stbd_elevator_slider(new WSlider(Vertical, fins_box)),
+      fins_text_box(new WContainerWidget(fins_box)),
+      fins_text(
+          new WText(fins_text_from_value(port_elevator_slider->value(),
+                                         stbd_elevator_slider->value(), rudder_slider->value()),
+                    fins_box)),
+      ack_box(new WGroupBox("Ack", controls_box)),
+      ack_text(new WText("No acks received", ack_box))
 
 {
     motor_slider->setMinimum(cfg.motor_bounds().min());
