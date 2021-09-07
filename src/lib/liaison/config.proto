@@ -6,8 +6,9 @@ package jaiabot.protobuf;
 
 message JaiabotConfig
 {
-    optional bool minimize_vehicle = 1 [default = false];
-    repeated int32 load_vehicle = 2;
+    optional bool minimize_bot_panel = 1 [default = false];
+    optional bool minimize_hub_panel = 2 [default = false];
+    repeated int32 load_vehicle = 3;
 
     message LowLevelControlBounds
     {
@@ -20,12 +21,19 @@ message JaiabotConfig
         optional string min_label = 6 [default = '-'];
         optional string max_label = 7 [default = '+'];
     }
-    required LowLevelControlBounds motor_bounds = 10;
-    required LowLevelControlBounds elevator_bounds = 11;
-    required LowLevelControlBounds rudder_bounds = 12;
+    optional LowLevelControlBounds motor_bounds = 10;
+    optional LowLevelControlBounds elevator_bounds = 11;
+    optional LowLevelControlBounds rudder_bounds = 12;
 
     optional double control_freq = 20 [default = 2];
 
+    enum Mode
+    {
+        HUB = 1;
+        BOT = 2;
+    }
+    optional Mode mode = 30 [default = HUB];
+    
 }
 
 extend goby.apps.zeromq.protobuf.LiaisonConfig

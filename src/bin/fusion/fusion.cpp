@@ -51,6 +51,9 @@ class Fusion : public ApplicationBase
         latest_status_.mutable_local_fix()->set_z_with_units(
             -latest_status_.global_fix().depth_with_units());
 
+        // set empty pose field so NodeStatus gets generated even without pitch, heading, or roll data
+        latest_status_.mutable_pose();
+        
         interprocess().subscribe<goby::middleware::groups::gpsd::att>(
             [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
                 glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()

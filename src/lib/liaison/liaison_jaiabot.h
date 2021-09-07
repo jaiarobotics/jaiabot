@@ -6,6 +6,8 @@
 #include <boost/thread/mutex.hpp>
 
 #include "goby/zeromq/liaison/liaison_container.h"
+#include <goby/middleware/frontseat/groups.h>
+#include <goby/middleware/protobuf/frontseat_data.pb.h>
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/low_control.pb.h"
@@ -23,6 +25,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                    Wt::WContainerWidget* parent = 0);
 
     void post_control_ack(const protobuf::ControlAck& ack);
+    void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
 
   private:
     void loop();
@@ -48,22 +51,24 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
 
             Wt::WGroupBox* controls_box;
-                Wt::WGroupBox* motor_box;
-                    Wt::WText* motor_left_text{0};
-                    Wt::WSlider* motor_slider;
-                    Wt::WText* motor_right_text{0};
-                    Wt::WContainerWidget* motor_text_box;
-                        Wt::WText* motor_text{0};
-                Wt::WGroupBox* fins_box;                   
-                    Wt::WSlider* port_elevator_slider;
-                    Wt::WText* rudder_left_text{0};
-                    Wt::WSlider* rudder_slider;
-                    Wt::WText* rudder_right_text{0};                    
-                    Wt::WSlider* stbd_elevator_slider; 
-                    Wt::WContainerWidget* fins_text_box;
-                        Wt::WText* fins_text{0};    
-                Wt::WGroupBox* ack_box;
-                    Wt::WText* ack_text{0};
+            Wt::WGroupBox* motor_box;
+            Wt::WText* motor_left_text{0};
+            Wt::WSlider* motor_slider;
+            Wt::WText* motor_right_text{0};
+            Wt::WContainerWidget* motor_text_box;
+            Wt::WText* motor_text{0};
+            Wt::WGroupBox* fins_box;
+            Wt::WSlider* port_elevator_slider;
+            Wt::WText* rudder_left_text{0};
+            Wt::WSlider* rudder_slider;
+            Wt::WText* rudder_right_text{0};
+            Wt::WSlider* stbd_elevator_slider;
+            Wt::WContainerWidget* fins_text_box;
+            Wt::WText* fins_text{0};
+            Wt::WGroupBox* ack_box;
+            Wt::WText* ack_text{0};
+            Wt::WGroupBox* data_box;
+            Wt::WText* data_text{0};
 
             protobuf::ControlAck latest_ack;
 
@@ -144,6 +149,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     // vehicle id to Data
     std::map<int, VehicleData> vehicle_data_;
 
+    // convenient info shown on vehicle's liaison
+    Wt::WGroupBox* bot_info_box_;
+    Wt::WText* bot_info_text_;
+
     // currently shown vehicle id
     int current_vehicle_{-1};
 
@@ -162,6 +171,12 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<groups::control_ack>([this](const protobuf::ControlAck& ack) {
             tab_->post_to_wt([=]() { tab_->post_control_ack(ack); });
         });
+
+        // post the NodeStatus message in its own box
+        interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
+            [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+                tab_->post_to_wt([=]() { tab_->post_node_status(node_status); });
+            });
 
     } // namespace jaiabot
     ~CommsThread() {}
