@@ -27,4 +27,4 @@ fi
 echo "rsync build/bin and build/lib"
 rsync -aP arm64_build/bin arm64_build/lib ubuntu@$1:/home/ubuntu/jaiabot/build
 echo "rsync ../jaiabot-configuration"
-rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/jaiabot-configuration
+rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
