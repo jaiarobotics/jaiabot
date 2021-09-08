@@ -2,8 +2,8 @@
 
 script_dir=$(dirname $0)
 
-mkdir -p ${script_dir}/../build
-cd ${script_dir}/../build
+mkdir -p ${script_dir}/../arm64_build
+cd ${script_dir}/../arm64_build
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
