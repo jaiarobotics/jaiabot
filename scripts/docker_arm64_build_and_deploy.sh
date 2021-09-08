@@ -25,4 +25,4 @@ if [ $NOW -ge $ONE_WEEK_LATER ];
 fi  
 
 echo "Time to rsync"
-rsync -aP build/bin build/lib ubuntu@$1:/home/ubuntu/jaiabot/build
+rsync -aP arm64_build/bin arm64_build/lib ubuntu@$1:/home/ubuntu/jaiabot/build
