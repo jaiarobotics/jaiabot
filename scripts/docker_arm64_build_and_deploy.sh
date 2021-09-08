@@ -24,5 +24,7 @@ if [ $NOW -ge $ONE_WEEK_LATER ];
         sudo docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "./scripts/arm64_build.sh"
 fi  
 
-echo "Time to rsync"
+echo "rsync build/bin and build/lib"
 rsync -aP arm64_build/bin arm64_build/lib ubuntu@$1:/home/ubuntu/jaiabot/build
+echo "rsync ../jaiabot-configuration"
+rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/jaiabot-configuration
