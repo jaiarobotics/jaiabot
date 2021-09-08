@@ -7,12 +7,17 @@
 
 #include "goby/zeromq/liaison/liaison_container.h"
 #include <goby/middleware/frontseat/groups.h>
+#include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
 
 #include "config.pb.h"
+#include "jaiabot/messages/feather.pb.h"
+#include "jaiabot/messages/pt.pb.h"
 
 namespace jaiabot
 {
@@ -26,6 +31,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
     void post_control_ack(const protobuf::ControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
+    void post_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv);
+    void post_att(const goby::middleware::protobuf::gpsd::Attitude& att);
+    void post_pt(const jaiabot::protobuf::PTData& pt);
+    void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
 
   private:
     void loop();
@@ -150,8 +159,16 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     std::map<int, VehicleData> vehicle_data_;
 
     // convenient info shown on vehicle's liaison
-    Wt::WGroupBox* bot_info_box_;
-    Wt::WText* bot_info_text_;
+    Wt::WGroupBox* bot_node_status_box_;
+    Wt::WText* bot_node_status_text_;
+    Wt::WGroupBox* bot_tpv_box_;
+    Wt::WText* bot_tpv_text_;
+    Wt::WGroupBox* bot_att_box_;
+    Wt::WText* bot_att_text_;
+    Wt::WGroupBox* bot_pt_box_;
+    Wt::WText* bot_pt_text_;
+    Wt::WGroupBox* bot_salinity_box_;
+    Wt::WText* bot_salinity_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -176,6 +193,29 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
             [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
                 tab_->post_to_wt([=]() { tab_->post_node_status(node_status); });
+            });
+
+        // post the tpv in its own box
+        interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+            [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+                tab_->post_to_wt([=]() { tab_->post_tpv(tpv); });
+            });
+
+        // post the att in its own box
+        interprocess().subscribe<goby::middleware::groups::gpsd::att>(
+            [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
+                tab_->post_to_wt([=]() { tab_->post_att(att); });
+            });
+
+        // post the pt data in its own box
+        interprocess().subscribe<groups::pt>([this](const jaiabot::protobuf::PTData& pt) {
+            tab_->post_to_wt([=]() { tab_->post_pt(pt); });
+        });
+
+        // post the salinity data in its own box
+        interprocess().subscribe<groups::salinity>(
+            [this](const jaiabot::protobuf::SalinityData& salinity) {
+                tab_->post_to_wt([=]() { tab_->post_salinity(salinity); });
             });
 
     } // namespace jaiabot

@@ -49,8 +49,16 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
         WContainerWidget* bot_box = new Wt::WContainerWidget();
         bot_panel->setCentralWidget(bot_box);
 
-        bot_info_box_ = new WGroupBox("Current Vehicle Information", bot_box);
-        bot_info_text_ = new WText(bot_info_box_);
+        bot_node_status_box_ = new WGroupBox("Node Status from Fusion", bot_box);
+        bot_node_status_text_ = new WText(bot_node_status_box_);
+        bot_pt_box_ = new WGroupBox("Pressure & Temperature", bot_box);
+        bot_pt_text_ = new WText(bot_pt_box_);
+        bot_salinity_box_ = new WGroupBox("Salinity", bot_box);
+        bot_salinity_text_ = new WText(bot_salinity_box_);
+        bot_att_box_ = new WGroupBox("Attitude", bot_box);
+        bot_att_text_ = new WText(bot_att_box_);
+        bot_tpv_box_ = new WGroupBox("Time Position Velocity", bot_box);
+        bot_tpv_text_ = new WText(bot_tpv_box_);
     }
 
     const auto update_freq = cfg_.control_freq();
@@ -147,7 +155,32 @@ void jaiabot::LiaisonJaiabot::post_node_status(
     const goby::middleware::frontseat::protobuf::NodeStatus& node_status)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
-        bot_info_text_->setText("<pre>" + node_status.DebugString() + "</pre>");
+        bot_node_status_text_->setText("<pre>" + node_status.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_tpv(
+    const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_tpv_text_->setText("<pre>" + tpv.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_att(const goby::middleware::protobuf::gpsd::Attitude& att)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_att_text_->setText("<pre>" + att.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PTData& pt)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_pt_text_->setText("<pre>" + pt.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_salinity(const jaiabot::protobuf::SalinityData& salinity)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_salinity_text_->setText("<pre>" + salinity.DebugString() + "</pre>");
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,
