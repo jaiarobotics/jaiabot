@@ -41,8 +41,6 @@ namespace groups = jaiabot::groups;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-constexpr goby::middleware::Group pt{"pt"};
-
 namespace jaiabot
 {
 namespace apps
@@ -118,7 +116,7 @@ jaiabot::apps::Bar30Publisher::Bar30Publisher()
       data.set_p_mbar(p_mbar);
       data.set_t_celsius(t_celsius);
 
-      interprocess().publish<pt>(data);
+      interprocess().publish<groups::pt>(data);
     });
 
 }

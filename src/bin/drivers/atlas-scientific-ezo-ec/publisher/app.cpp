@@ -118,7 +118,7 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
       output.set_salinity(std::stod(fields[index++]));
       output.set_specific_gravity(std::stod(fields[index++]));
 
-      interprocess().publish<jaiabot::groups::salinity>(output);
+      interprocess().publish<groups::salinity>(output);
 
     });
 

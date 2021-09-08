@@ -34,8 +34,8 @@ constexpr goby::middleware::Group example{"jaiabot::example"};
 constexpr goby::middleware::Group lora_rx{"jaiabot::lora_rx"};
 constexpr goby::middleware::Group lora_tx{"jaiabot::lora_tx"};
 constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
-constexpr goby::middleware::Group bar30{"bar30"};
-constexpr goby::middleware::Group salinity{"salinity"};
+constexpr goby::middleware::Group pt{"jaiabot::pt"};
+constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
 constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};

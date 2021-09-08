@@ -1,4 +1,5 @@
 build/*
+arm64_build/*
 *~
 cmake_install.cmake
 Makefile
