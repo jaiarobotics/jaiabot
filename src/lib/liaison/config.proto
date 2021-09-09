@@ -24,6 +24,7 @@ message JaiabotConfig
     optional LowLevelControlBounds motor_bounds = 10;
     optional LowLevelControlBounds elevator_bounds = 11;
     optional LowLevelControlBounds rudder_bounds = 12;
+    optional LowLevelControlBounds timeout_bounds = 13;
 
     optional double control_freq = 20 [default = 2];
 
