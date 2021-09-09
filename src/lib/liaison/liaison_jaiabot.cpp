@@ -119,6 +119,7 @@ void jaiabot::LiaisonJaiabot::loop()
         cmd_msg.set_id(id++);
         cmd_msg.set_vehicle(current_vehicle_);
         cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        cmd.set_timeout(it->second.low_level_control.timeout_slider->value());
         cmd.set_motor(it->second.low_level_control.motor_slider->value());
         cmd.set_port_elevator(it->second.low_level_control.port_elevator_slider->value());
         cmd.set_stbd_elevator(it->second.low_level_control.stbd_elevator_slider->value());
@@ -203,6 +204,10 @@ jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_st
 jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* vehicle_div,
                                                          const protobuf::JaiabotConfig& cfg)
     : controls_box(new WGroupBox("Low Level Controls ('R' resets to center values)", vehicle_div)),
+      timeout_box(new WGroupBox("Timeout", controls_box)),
+      timeout_slider(new WSlider(Horizontal, timeout_box)),
+      timeout_text_box(new WContainerWidget(timeout_box)),
+      timeout_text(new WText(timeout_text_from_value(timeout_slider->value()), timeout_text_box)),
       motor_box(new WGroupBox("Motor", controls_box)),
       motor_left_text(new WText(cfg.motor_bounds().min_label(), motor_box)),
       motor_slider(new WSlider(Horizontal, motor_box)),
@@ -224,6 +229,16 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
       ack_text(new WText("No acks received", ack_box))
 
 {
+    timeout_slider->setMinimum(cfg.timeout_bounds().min());
+    timeout_slider->setMaximum(cfg.timeout_bounds().max());
+    timeout_slider->setTickInterval((cfg.timeout_bounds().max() - cfg.timeout_bounds().min()) /
+                                    cfg.timeout_bounds().n_ticks());
+    timeout_slider->setTickPosition(Wt::WSlider::TicksBelow);
+    timeout_slider->sliderMoved().connect(boost::bind(
+        &LiaisonJaiabot::VehicleData::Controls::timeout_slider_moved, _1, timeout_text));
+    // timeout_slider->setValue(cfg.timeout_bounds().max());
+    timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
+
     motor_slider->setMinimum(cfg.motor_bounds().min());
     motor_slider->setMaximum(cfg.motor_bounds().max());
     motor_slider->setTickInterval((cfg.motor_bounds().max() - cfg.motor_bounds().min()) /
@@ -318,8 +333,19 @@ void jaiabot::LiaisonJaiabot::key_press(WKeyEvent key)
                 control.set_motor_value(control.motor_slider->value() - cfg_.motor_bounds().step());
 
                 break;
+            case Key_C: // timeout +
+                control.set_timeout_value(control.timeout_slider->value() +
+                                          cfg_.timeout_bounds().step());
+
+                break;
+            case Key_Z: // timeout -
+                control.set_timeout_value(control.timeout_slider->value() -
+                                          cfg_.timeout_bounds().step());
+
+                break;
             case Key_R:     // reset all
             case Key_Space: // reset all
+                control.set_timeout_value(cfg_.timeout_bounds().center());
                 control.set_motor_value(cfg_.motor_bounds().center());
                 control.set_rudder_value(cfg_.rudder_bounds().center());
                 control.set_port_elevator_value(cfg_.elevator_bounds().center());

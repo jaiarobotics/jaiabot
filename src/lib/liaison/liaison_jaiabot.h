@@ -62,6 +62,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
 
             Wt::WGroupBox* controls_box;
+            Wt::WGroupBox* timeout_box;
+            Wt::WSlider* timeout_slider;
+            Wt::WContainerWidget* timeout_text_box;
+            Wt::WText* timeout_text{0};
             Wt::WGroupBox* motor_box;
             Wt::WText* motor_left_text{0};
             Wt::WSlider* motor_slider;
@@ -84,6 +88,11 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             protobuf::ControlAck latest_ack;
 
             // must be static, not sure why (segfault in JSignal otherwise)
+            static void timeout_slider_moved(int value, Wt::WText* text)
+            {
+                text->setText(timeout_text_from_value(value));
+            }
+
             static void motor_slider_moved(int value, Wt::WText* text)
             {
                 text->setText(motor_text_from_value(value));
@@ -136,11 +145,22 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                 motor_slider->setValue(value);
                 motor_text->setText(motor_text_from_value(motor_slider->value()));
             }
+
+            void set_timeout_value(int value)
+            {
+                timeout_slider->setValue(value);
+                timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
+            }
         };
 
         Controls low_level_control;
 
         int index_in_stack{0};
+
+        static std::string timeout_text_from_value(int value)
+        {
+            return "Timeout (Z-/C+): " + std::to_string(value);
+        }
 
         static std::string motor_text_from_value(int value)
         {
