@@ -12,6 +12,7 @@
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
@@ -35,6 +36,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_att(const goby::middleware::protobuf::gpsd::Attitude& att);
     void post_pt(const jaiabot::protobuf::PTData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
+    void post_imu(const jaiabot::protobuf::IMUData& imu);
 
   private:
     void loop();
@@ -169,6 +171,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_pt_text_;
     Wt::WGroupBox* bot_salinity_box_;
     Wt::WText* bot_salinity_text_;
+    Wt::WGroupBox* bot_imu_box_;
+    Wt::WText* bot_imu_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -217,6 +221,11 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             [this](const jaiabot::protobuf::SalinityData& salinity) {
                 tab_->post_to_wt([=]() { tab_->post_salinity(salinity); });
             });
+
+        // post the imu data in its own box
+        interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu) {
+            tab_->post_to_wt([=]() { tab_->post_imu(imu); });
+        });
 
     } // namespace jaiabot
     ~CommsThread() {}
