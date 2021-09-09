@@ -41,8 +41,6 @@ namespace groups = jaiabot::groups;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-constexpr goby::middleware::Group imu{"imu"};
-
 namespace jaiabot
 {
 namespace apps
@@ -127,7 +125,7 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_gravity()->set_y(std::stod(fields[index++]));
       output.mutable_gravity()->set_z(std::stod(fields[index++]));
 
-      interprocess().publish<imu>(output);
+      interprocess().publish<groups::imu>(output);
 
     });
 

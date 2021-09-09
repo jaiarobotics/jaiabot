@@ -55,6 +55,8 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
         bot_pt_text_ = new WText(bot_pt_box_);
         bot_salinity_box_ = new WGroupBox("Salinity", bot_box);
         bot_salinity_text_ = new WText(bot_salinity_box_);
+        bot_imu_box_ = new WGroupBox("IMU", bot_box);
+        bot_imu_text_ = new WText(bot_imu_box_);
         bot_att_box_ = new WGroupBox("Attitude", bot_box);
         bot_att_text_ = new WText(bot_att_box_);
         bot_tpv_box_ = new WGroupBox("Time Position Velocity", bot_box);
@@ -181,6 +183,12 @@ void jaiabot::LiaisonJaiabot::post_salinity(const jaiabot::protobuf::SalinityDat
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
         bot_salinity_text_->setText("<pre>" + salinity.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_imu(const jaiabot::protobuf::IMUData& imu)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_imu_text_->setText("<pre>" + imu.DebugString() + "</pre>");
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,
