@@ -28,6 +28,12 @@ constexpr int PORT_ELEVATOR_PIN = 10;
 constexpr int RUDDER_PIN = 11;
 constexpr int MOTOR_PIN = 12;
 
+// The timeout
+unsigned long t_last_command = 0;
+int32_t command_timeout = -1; 
+void handle_timeout();
+void halt_all();
+
 static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
@@ -35,6 +41,8 @@ bool data_to_receive = false;
 
 jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
 jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
+
+
 
 void send_ack()
 {
@@ -79,11 +87,17 @@ void loop()
 {
 
   constexpr int prefix_size = SERIAL_MAGIC_BYTES + SIZE_BYTES;
-  while (Serial.available() >= prefix_size)
-  {
+
+  handle_timeout();
+
+  while (Serial.available() >= prefix_size) {
+    handle_timeout();
+    
     // read bytes until the next magic word start (hopefully)
-    while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0])
+    while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
+      handle_timeout();
       Serial.read();
+    }
 
     uint8_t prefix[prefix_size] = {0};
     if (Serial.readBytes(prefix, prefix_size) == prefix_size)
@@ -114,6 +128,10 @@ void loop()
             stbd_elevator_servo.writeMicroseconds(1500 + command.stbd_elevator * 475 / 100);
             port_elevator_servo.writeMicroseconds(1500 + command.port_elevator * 475 / 100);
 
+            // Set the timeout vars
+            t_last_command = millis();
+            command_timeout = command.timeout * 1000;
+
             ack.code = 111;
             send_ack();
           }
@@ -139,6 +157,22 @@ void loop()
     }
   }
 
+}
+
+void handle_timeout() {
+  if (command_timeout < 0) return;
+  
+  unsigned long now = millis();
+  if (now - t_last_command > command_timeout) {
+    halt_all();
+  }
+}
+
+void halt_all() {
+  motor_servo.writeMicroseconds (1500 + 0 * 400 / 100);
+  rudder_servo.writeMicroseconds(1500 + 0 * 475 / 100);
+  stbd_elevator_servo.writeMicroseconds(1500 + 0 * 475 / 100);
+  port_elevator_servo.writeMicroseconds(1500 + 0 * 475 / 100);
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
