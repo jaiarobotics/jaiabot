@@ -9,6 +9,7 @@ if [ -z "$1" ]
 fi
 
 cd ${script_dir}/..
+mkdir -p ${script_dir}/../arm64_build
 
 LAST_BUILD_DATE=$(date -r arm64_build +%s)
 ONE_WEEK_LATER=$(expr "$LAST_BUILD_DATE" + 604800)
