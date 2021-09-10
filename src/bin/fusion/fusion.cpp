@@ -95,6 +95,7 @@ class Fusion : public ApplicationBase
                 else
                     latest_status_.set_time_with_units(
                         goby::time::SystemClock::now<goby::time::MicroTime>());
+
                 if (latest_status_.IsInitialized())
                     interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                         latest_status_);
