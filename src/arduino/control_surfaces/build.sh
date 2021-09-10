@@ -2,4 +2,4 @@
 
 BOARD=arduino:avr:leonardo
 
-arduino-cli compile -b ${BOARD}
+arduino-cli compile --libraries ../libraries -b ${BOARD}

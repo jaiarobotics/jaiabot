@@ -6,5 +6,5 @@
 BOARD=arduino:avr:leonardo
 PORT=/dev/ttyACM0
 
-arduino-cli compile -b ${BOARD}
+arduino-cli compile --libraries ../libraries -b ${BOARD}
 arduino-cli upload -v -p ${PORT} -b ${BOARD}
