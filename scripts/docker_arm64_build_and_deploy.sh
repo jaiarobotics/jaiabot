@@ -1,12 +1,8 @@
 #!/bin/bash
 
-script_dir=$(dirname $0)
+set -e
 
-if [ -z "$1" ]
-    then
-        echo "Enter a host to deploy to"
-        exit
-fi
+script_dir=$(dirname $0)
 
 cd ${script_dir}/..
 mkdir -p ${script_dir}/../arm64_build
@@ -19,13 +15,24 @@ NOW=$(date +%s)
 if [ $NOW -ge $ONE_WEEK_LATER ];
     then
         echo "****It's been a while since we updated packages in the container, so let's take care of that now."
-        sudo docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "apt update && apt upgrade -y && ./scripts/arm64_build.sh"
+        docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "apt update && apt upgrade -y && ./scripts/arm64_build.sh"
     else
         echo "****Up to date - let's get straight to compiling, shall we?"
-        sudo docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "./scripts/arm64_build.sh"
+        docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "./scripts/arm64_build.sh"
 fi  
 
-echo "rsync build/bin and build/lib"
-rsync -aP arm64_build/bin arm64_build/lib ubuntu@$1:/home/ubuntu/jaiabot/build
-echo "rsync ../jaiabot-configuration"
-rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+if [ -z "$1" ]
+    then
+        echo "Not Deploying as you didn't specify any targets"
+    else
+        for var in "$@"
+	    do
+    		echo "rsync build/bin and build/lib"
+		rsync -aP arm64_build/bin arm64_build/lib ubuntu@"$var":/home/ubuntu/jaiabot/build
+    		echo "rsync python scripts"
+    		rsync -aP src/python ubuntu@"$var":/home/ubuntu/jaiabot/src
+    		echo "rsync ../jaiabot-configuration"
+		rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+	    done
+fi
+

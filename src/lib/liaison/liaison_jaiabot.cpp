@@ -51,6 +51,8 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         bot_node_status_box_ = new WGroupBox("Node Status from Fusion", bot_box);
         bot_node_status_text_ = new WText(bot_node_status_box_);
+        bot_control_command_box_ = new WGroupBox("Control Command", bot_box);
+        bot_control_command_text_ = new WText(bot_control_command_box_);
         bot_pt_box_ = new WGroupBox("Pressure & Temperature", bot_box);
         bot_pt_text_ = new WText(bot_pt_box_);
         bot_salinity_box_ = new WGroupBox("Salinity", bot_box);
@@ -190,6 +192,13 @@ void jaiabot::LiaisonJaiabot::post_imu(const jaiabot::protobuf::IMUData& imu)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
         bot_imu_text_->setText("<pre>" + imu.DebugString() + "</pre>");
+}
+
+void jaiabot::LiaisonJaiabot::post_control_command(
+    const jaiabot::protobuf::ControlCommand& control_command)
+{
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+        bot_control_command_text_->setText("<pre>" + control_command.DebugString() + "</pre>");
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,
