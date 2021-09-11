@@ -37,6 +37,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_pt(const jaiabot::protobuf::PTData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
+    void post_control_command(const jaiabot::protobuf::ControlCommand& control_command);
 
   private:
     void loop();
@@ -193,6 +194,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WGroupBox* bot_imu_box_;
     Wt::WText* bot_imu_text_;
+    Wt::WGroupBox* bot_control_command_box_;
+    Wt::WText* bot_control_command_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -246,6 +249,12 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu) {
             tab_->post_to_wt([=]() { tab_->post_imu(imu); });
         });
+
+        // post the control surfaces data in its own box
+        interprocess().subscribe<groups::control_command>(
+            [this](const jaiabot::protobuf::ControlCommand& control_command) {
+                tab_->post_to_wt([=]() { tab_->post_control_command(control_command); });
+            });
 
     } // namespace jaiabot
     ~CommsThread() {}
