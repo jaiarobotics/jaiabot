@@ -21,8 +21,16 @@ args = parser.parse_args()
 # Setup the sensor
 if not args.simulator:
     i2c = board.I2C()
-    sensor = adafruit_bno055.BNO055_I2C(i2c)
-    sensor.mode = adafruit_bno055.NDOF_MODE
+    success = False
+    while not success:
+        try:
+            sensor = adafruit_bno055.BNO055_I2C(i2c)
+        except RuntimeError as e:
+            print(e.__str__)
+            sleep(2)
+        else:
+            sensor.mode = adafruit_bno055.NDOF_MODE
+            success = True  
 
 
 def getRealData():
@@ -60,11 +68,14 @@ while True:
     euler = data['euler']
     linear_acceleration = data['linear_acceleration']
     gravity = data['gravity']
-    line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f\n' % \
-        (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-         euler[0], euler[1], euler[2], 
-         linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
-         gravity[0], gravity[1], gravity[2])
+    try:
+        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f\n' % \
+            (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
+            euler[0], euler[1], euler[2], 
+            linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
+            gravity[0], gravity[1], gravity[2])
+    except TypeError as e:
+        print(e.__str__)
 
     sock.sendto(line.encode('utf8'), addr)
 
