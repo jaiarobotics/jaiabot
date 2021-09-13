@@ -8,6 +8,7 @@ chmod a+x install_arduino-cli.sh
 export BINDIR=${HOME}/bin
 mkdir -p ${BINDIR}
 ./install_arduino-cli.sh
+rm install_arduino-cli.sh
 
 # Soft link the libraries
 mkdir -p ~/Arduino/libraries
