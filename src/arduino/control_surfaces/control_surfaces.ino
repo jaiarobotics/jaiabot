@@ -24,9 +24,9 @@ constexpr int BITS_IN_BYTE = 8;
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
 constexpr int STBD_ELEVATOR_PIN = 5;
-constexpr int PORT_ELEVATOR_PIN = 10;
+constexpr int PORT_ELEVATOR_PIN = 12;
 constexpr int RUDDER_PIN = 11;
-constexpr int MOTOR_PIN = 12;
+constexpr int MOTOR_PIN = 6;
 
 // The timeout
 unsigned long t_last_command = 0;
