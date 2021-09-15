@@ -245,7 +245,7 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
     timeout_slider->setTickPosition(Wt::WSlider::TicksBelow);
     timeout_slider->sliderMoved().connect(boost::bind(
         &LiaisonJaiabot::VehicleData::Controls::timeout_slider_moved, _1, timeout_text));
-    // timeout_slider->setValue(cfg.timeout_bounds().max());
+
     timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
 
     motor_slider->setMinimum(cfg.motor_bounds().min());
