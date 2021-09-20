@@ -42,6 +42,8 @@ constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 
+constexpr goby::middleware::Group helm{"jaiabot::helm"};
+
 } // namespace groups
 } // namespace jaiabot
 
