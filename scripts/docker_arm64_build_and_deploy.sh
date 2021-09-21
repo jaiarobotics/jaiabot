@@ -30,7 +30,7 @@ if [ -z "$1" ]
 	    do
     		echo "rsync build/bin and build/lib"
 		rsync -aP arm64_build/bin arm64_build/lib arm64_build/include ubuntu@"$var":/home/ubuntu/jaiabot/build
-    		echo "rsync python  and arduino scripts"
+    		echo "rsync python and arduino scripts"
     		rsync -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
     		echo "rsync ../jaiabot-configuration"
 		rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/

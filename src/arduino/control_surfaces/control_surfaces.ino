@@ -123,10 +123,10 @@ void loop()
             }
             DEBUG_MESSAGE("Received ControlSurfaces");
 
-            motor_servo.writeMicroseconds (1500 + command.motor  * 400 / 100);
-            rudder_servo.writeMicroseconds(1500 + command.rudder * 475 / 100);
-            stbd_elevator_servo.writeMicroseconds(1500 + command.stbd_elevator * 475 / 100);
-            port_elevator_servo.writeMicroseconds(1500 + command.port_elevator * 475 / 100);
+            motor_servo.writeMicroseconds (1500 - command.motor  * 400 / 100);
+            rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
+            stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
+            port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
 
             // Set the timeout vars
             t_last_command = millis();
