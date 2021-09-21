@@ -29,6 +29,9 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
     wApp->globalKeyWentDown().connect(boost::bind(&LiaisonJaiabot::key_press, this, _1));
     this->keyWentDown().connect(boost::bind(&LiaisonJaiabot::key_press, this, _1));
 
+    wApp->globalKeyWentUp().connect(boost::bind(&LiaisonJaiabot::key_release, this, _1));
+    this->keyWentUp().connect(boost::bind(&LiaisonJaiabot::key_release, this, _1));
+
     WContainerWidget* hub_vehicle_box = new Wt::WContainerWidget();
     hub_vehicle_panel->setCentralWidget(hub_vehicle_box);
     new WLabel("Bot: ", hub_vehicle_box);
@@ -59,8 +62,6 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
         bot_salinity_text_ = new WText(bot_salinity_box_);
         bot_imu_box_ = new WGroupBox("IMU", bot_box);
         bot_imu_text_ = new WText(bot_imu_box_);
-        bot_att_box_ = new WGroupBox("Attitude", bot_box);
-        bot_att_text_ = new WText(bot_att_box_);
         bot_tpv_box_ = new WGroupBox("Time Position Velocity", bot_box);
         bot_tpv_text_ = new WText(bot_tpv_box_);
     }
@@ -170,12 +171,6 @@ void jaiabot::LiaisonJaiabot::post_tpv(
         bot_tpv_text_->setText("<pre>" + tpv.DebugString() + "</pre>");
 }
 
-void jaiabot::LiaisonJaiabot::post_att(const goby::middleware::protobuf::gpsd::Attitude& att)
-{
-    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
-        bot_att_text_->setText("<pre>" + att.DebugString() + "</pre>");
-}
-
 void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PTData& pt)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
@@ -212,11 +207,17 @@ jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_st
 
 jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* vehicle_div,
                                                          const protobuf::JaiabotConfig& cfg)
-    : controls_box(new WGroupBox("Low Level Controls ('R' resets to center values)", vehicle_div)),
+    : controls_box(new WGroupBox(
+          "Low Level Controls ('C' clears values to defaults (except timeout))", vehicle_div)),
       timeout_box(new WGroupBox("Timeout", controls_box)),
       timeout_slider(new WSlider(Horizontal, timeout_box)),
       timeout_text_box(new WContainerWidget(timeout_box)),
       timeout_text(new WText(timeout_text_from_value(timeout_slider->value()), timeout_text_box)),
+      dive_box(new WGroupBox("Dive", controls_box)),
+      dive_slider(new WSlider(Horizontal, dive_box)),
+      dive_text_box(new WContainerWidget(dive_box)),
+      dive_text(new WText(dive_text_from_value(dive_slider->value()), dive_text_box)),
+      dive_button(new WPushButton("Dive", dive_box)),
       motor_box(new WGroupBox("Motor", controls_box)),
       motor_left_text(new WText(cfg.motor_bounds().min_label(), motor_box)),
       motor_slider(new WSlider(Horizontal, motor_box)),
@@ -248,10 +249,22 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
 
     timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
 
-    motor_slider->setMinimum(cfg.motor_bounds().min());
+    dive_slider->setMinimum(cfg.motor_bounds().min());
+    dive_slider->setMaximum(0);
+    dive_slider->setTickInterval((0 - cfg.motor_bounds().min()) / cfg.motor_bounds().n_ticks());
+    dive_slider->setTickPosition(Wt::WSlider::TicksBelow);
+    dive_slider->sliderMoved().connect(
+        boost::bind(&LiaisonJaiabot::VehicleData::Controls::dive_slider_moved, _1, dive_text));
+    dive_slider->setValue(0);
+
+    dive_text->setText(dive_text_from_value(dive_slider->value()));
+
+    dive_button->clicked().connect(boost::bind(
+        &LiaisonJaiabot::VehicleData::Controls::dive_button_clicked, _1, dive_text, dive_slider));
+
+    motor_slider->setMinimum(0);
     motor_slider->setMaximum(cfg.motor_bounds().max());
-    motor_slider->setTickInterval((cfg.motor_bounds().max() - cfg.motor_bounds().min()) /
-                                  cfg.motor_bounds().n_ticks());
+    motor_slider->setTickInterval((cfg.motor_bounds().max() - 0) / cfg.motor_bounds().n_ticks());
     motor_slider->setTickPosition(Wt::WSlider::TicksBelow);
     motor_slider->sliderMoved().connect(
         boost::bind(&LiaisonJaiabot::VehicleData::Controls::motor_slider_moved, _1, motor_text));
@@ -296,69 +309,106 @@ void jaiabot::LiaisonJaiabot::key_press(WKeyEvent key)
         switch (key.key())
         {
             default: break;
-            case Key_T: // port elevator +
+            case Key_Q: // port elevator +
                 control.set_port_elevator_value(control.port_elevator_slider->value() +
                                                 cfg_.elevator_bounds().step());
                 break;
-            case Key_G: // port elevator -
+            case Key_A: // port elevator -
                 control.set_port_elevator_value(control.port_elevator_slider->value() -
                                                 cfg_.elevator_bounds().step());
                 break;
-            case Key_Y: // stbd elevator +
+            case Key_T: // stbd elevator +
                 control.set_stbd_elevator_value(control.stbd_elevator_slider->value() +
                                                 cfg_.elevator_bounds().step());
                 break;
-            case Key_H: // stbd elevator -
+            case Key_G: // stbd elevator -
                 control.set_stbd_elevator_value(control.stbd_elevator_slider->value() -
                                                 cfg_.elevator_bounds().step());
                 break;
 
-            case Key_W: // elevator +
+            case Key_E: // elevator +
                 control.set_port_elevator_value(control.port_elevator_slider->value() +
                                                 cfg_.elevator_bounds().step());
-                control.set_stbd_elevator_value(control.port_elevator_slider->value());
+                control.set_stbd_elevator_value(control.port_elevator_slider->value() +
+                                                cfg_.elevator_bounds().step());
 
                 break;
-            case Key_S: // elevator -
+            case Key_D: // elevator -
                 control.set_port_elevator_value(control.port_elevator_slider->value() -
                                                 cfg_.elevator_bounds().step());
-                control.set_stbd_elevator_value(control.port_elevator_slider->value());
+                control.set_stbd_elevator_value(control.port_elevator_slider->value() -
+                                                cfg_.elevator_bounds().step());
                 break;
-            case Key_D: // rudder +
+            case Key_F: // rudder +
                 control.set_rudder_value(control.rudder_slider->value() +
                                          cfg_.rudder_bounds().step());
 
                 break;
-            case Key_A: // rudder -
+            case Key_S: // rudder -
                 control.set_rudder_value(control.rudder_slider->value() -
                                          cfg_.rudder_bounds().step());
 
                 break;
-            case Key_E: // motor +
-                control.set_motor_value(control.motor_slider->value() + cfg_.motor_bounds().step());
+            case Key_R: // motor +
+                if (motor_go_)
+                {
+                    control.set_motor_value(control.motor_slider->value() +
+                                            cfg_.motor_bounds().step());
+                }
+                break;
+            case Key_W: // motor -
+                if (motor_go_)
+                {
+                    control.set_motor_value(control.motor_slider->value() -
+                                            cfg_.motor_bounds().step());
+                }
+                break;
+            case Key_U: // dive +
+                control.set_dive_value(control.dive_slider->value() + cfg_.motor_bounds().step());
 
                 break;
-            case Key_Q: // motor -
-                control.set_motor_value(control.motor_slider->value() - cfg_.motor_bounds().step());
+            case Key_Y: // dive -
+                control.set_dive_value(control.dive_slider->value() - cfg_.motor_bounds().step());
 
                 break;
-            case Key_C: // timeout +
+            case Key_V: // timeout +
                 control.set_timeout_value(control.timeout_slider->value() +
                                           cfg_.timeout_bounds().step());
 
                 break;
-            case Key_Z: // timeout -
+            case Key_X: // timeout -
                 control.set_timeout_value(control.timeout_slider->value() -
                                           cfg_.timeout_bounds().step());
 
                 break;
-            case Key_R:     // reset all
-            case Key_Space: // reset all
-                control.set_timeout_value(cfg_.timeout_bounds().center());
+            case Key_C: // reset all except timeout
+                // control.set_timeout_value(cfg_.timeout_bounds().center());
                 control.set_motor_value(cfg_.motor_bounds().center());
                 control.set_rudder_value(cfg_.rudder_bounds().center());
                 control.set_port_elevator_value(cfg_.elevator_bounds().center());
                 control.set_stbd_elevator_value(cfg_.elevator_bounds().center());
+                control.set_dive_value(0);
+                break;
+            case Key_Shift: // dead man switch
+                motor_go_ = true;
+                break;
+        }
+    }
+}
+
+void jaiabot::LiaisonJaiabot::key_release(WKeyEvent key)
+{
+    glog.is_debug1() && glog << "Key released: " << key.key() << std::endl;
+    auto it = vehicle_data_.find(current_vehicle_);
+    if (it != vehicle_data_.end())
+    {
+        auto& control = it->second.low_level_control;
+        switch (key.key())
+        {
+            default: break;
+            case Key_Shift: // dead man switch
+                control.set_motor_value(0);
+                motor_go_ = false;
                 break;
         }
     }

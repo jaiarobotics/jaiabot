@@ -2,6 +2,7 @@
 #define LIAISON_JAIABOT_H
 
 #include <Wt/WEvent>
+#include <Wt/WPushButton>
 #include <Wt/WSlider>
 #include <boost/thread/mutex.hpp>
 
@@ -33,7 +34,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_control_ack(const protobuf::ControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
     void post_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv);
-    void post_att(const goby::middleware::protobuf::gpsd::Attitude& att);
     void post_pt(const jaiabot::protobuf::PTData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
@@ -47,6 +47,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void vehicle_select(Wt::WString msg);
     void check_add_vehicle(int vehicle_id);
     void key_press(Wt::WKeyEvent key);
+    void key_release(Wt::WKeyEvent key);
 
   private:
     Wt::WComboBox* vehicle_combo_;
@@ -67,6 +68,11 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Wt::WSlider* timeout_slider;
             Wt::WContainerWidget* timeout_text_box;
             Wt::WText* timeout_text{0};
+            Wt::WGroupBox* dive_box;
+            Wt::WSlider* dive_slider;
+            Wt::WContainerWidget* dive_text_box;
+            Wt::WText* dive_text{0};
+            Wt::WPushButton* dive_button{0};
             Wt::WGroupBox* motor_box;
             Wt::WText* motor_left_text{0};
             Wt::WSlider* motor_slider;
@@ -92,6 +98,16 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             static void timeout_slider_moved(int value, Wt::WText* text)
             {
                 text->setText(timeout_text_from_value(value));
+            }
+
+            static void dive_slider_moved(int value, Wt::WText* text)
+            {
+                text->setText(dive_text_from_value(value));
+            }
+
+            static void dive_button_clicked(Wt::WMouseEvent, Wt::WText* text, Wt::WSlider* dive)
+            {
+                text->setText(dive_text_from_value(dive->value()));
             }
 
             static void motor_slider_moved(int value, Wt::WText* text)
@@ -152,6 +168,12 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                 timeout_slider->setValue(value);
                 timeout_text->setText(timeout_text_from_value(timeout_slider->value()));
             }
+
+            void set_dive_value(int value)
+            {
+                dive_slider->setValue(value);
+                dive_text->setText(dive_text_from_value(dive_slider->value()));
+            }
         };
 
         Controls low_level_control;
@@ -160,21 +182,26 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
         static std::string timeout_text_from_value(int value)
         {
-            return "Timeout (Z-/C+): " + std::to_string(value);
+            return "Timeout (X-/V+): " + std::to_string(value);
+        }
+
+        static std::string dive_text_from_value(int value)
+        {
+            return "Dive (Y-/U+): " + std::to_string(value);
         }
 
         static std::string motor_text_from_value(int value)
         {
-            return "Motor (Q-/E+): " + std::to_string(value);
+            return "Motor (W-/R+): " + std::to_string(value);
         }
         static std::string fins_text_from_value(int port_elevator_value, int stbd_elevator_value,
                                                 int rudder_value)
         {
-            return "Port Elevator (G-/T+ or S-/W+ for both): " +
+            return "Port Elevator (A-/Q+ or D-/E+ for both): " +
                    std::to_string(port_elevator_value) +
-                   "<br/>Starboard Elevator (H-/Y+ or S-/W+ for both): " +
+                   "<br/>Starboard Elevator (G-/T+ or D-/E+ for both): " +
                    std::to_string(stbd_elevator_value) +
-                   "<br/>Rudder (A-/D+): " + std::to_string(rudder_value);
+                   "<br/>Rudder (S-/F+): " + std::to_string(rudder_value);
         }
     };
 
@@ -186,8 +213,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_node_status_text_;
     Wt::WGroupBox* bot_tpv_box_;
     Wt::WText* bot_tpv_text_;
-    Wt::WGroupBox* bot_att_box_;
-    Wt::WText* bot_att_text_;
     Wt::WGroupBox* bot_pt_box_;
     Wt::WText* bot_pt_text_;
     Wt::WGroupBox* bot_salinity_box_;
@@ -199,6 +224,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
     // currently shown vehicle id
     int current_vehicle_{-1};
+
+    bool motor_go_{false};
 
     Wt::WTimer timer_;
     friend class CommsThread;
@@ -226,12 +253,6 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
             [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
                 tab_->post_to_wt([=]() { tab_->post_tpv(tpv); });
-            });
-
-        // post the att in its own box
-        interprocess().subscribe<goby::middleware::groups::gpsd::att>(
-            [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
-                tab_->post_to_wt([=]() { tab_->post_att(att); });
             });
 
         // post the pt data in its own box
