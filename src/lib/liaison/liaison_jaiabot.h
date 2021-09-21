@@ -69,10 +69,12 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Wt::WContainerWidget* timeout_text_box;
             Wt::WText* timeout_text{0};
             Wt::WGroupBox* dive_box;
+            Wt::WContainerWidget* dive_button_box;
+            Wt::WPushButton* dive_button{0};
+            Wt::WContainerWidget* dive_slider_box;
             Wt::WSlider* dive_slider;
             Wt::WContainerWidget* dive_text_box;
             Wt::WText* dive_text{0};
-            Wt::WPushButton* dive_button{0};
             Wt::WGroupBox* motor_box;
             Wt::WText* motor_left_text{0};
             Wt::WSlider* motor_slider;
@@ -107,7 +109,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
             static void dive_button_clicked(Wt::WMouseEvent, Wt::WText* text, Wt::WSlider* dive)
             {
-                text->setText(dive_text_from_value(dive->value()));
+                text->setText("aardvark");
             }
 
             static void motor_slider_moved(int value, Wt::WText* text)
