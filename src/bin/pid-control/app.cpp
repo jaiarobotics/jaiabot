@@ -86,9 +86,32 @@ jaiabot::apps::PIDControl::PIDControl()
     // Subscribe to Helm messages
     interprocess().subscribe<groups::helm>(
         [this](const jaiabot::protobuf::Helm& helm) {
-            glog.is_debug1() && glog << "Received helm command: " << helm.ShortDebugString() << std::endl;
+        glog.is_debug1() && glog << "Received helm command: " << helm.ShortDebugString() << std::endl;
 
-            course = helm.course();
+        course = helm.course();
+
+        bool gains_changed = false;
+
+        if (helm.has_course_kp()) {
+            kp = helm.course_kp();
+            gains_changed = true;
+        }
+
+        if (helm.has_course_ki()) {
+            ki = helm.course_ki();
+            gains_changed = true;
+        }
+
+        if (helm.has_course_kd()) {
+            kd = helm.course_kd();
+            gains_changed = true;
+        }
+
+        if (gains_changed) {
+            delete course_pid;
+            course_pid = new Pid(&track, &rudder, &course, kp, ki, kd);
+            course_pid->set_auto();
+        }
         });
 
     // Subscribe to get actual vehicle track
@@ -113,7 +136,7 @@ void jaiabot::apps::PIDControl::loop() {
         course_pid->compute();
     }
 
-    glog.is_warn() && glog << group("main") << "course = " << course << ", track = " << track << ", value = " << rudder << std::endl;
+    glog.is_debug1() && glog << group("main") << "course = " << course << ", track = " << track << ", value = " << rudder << std::endl;
 
     // Publish the ControlCommand
 
