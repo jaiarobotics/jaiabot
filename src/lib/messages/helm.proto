@@ -5,4 +5,7 @@ package jaiabot.protobuf;
 message Helm
 {
     required float course = 1;
+    optional float course_kp = 2;
+    optional float course_ki = 3;
+    optional float course_kd = 4;
 }
