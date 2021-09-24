@@ -5,6 +5,7 @@
 #include <Wt/WPushButton>
 #include <Wt/WSlider>
 #include <boost/thread/mutex.hpp>
+#include <chrono>
 
 #include "goby/zeromq/liaison/liaison_container.h"
 #include <goby/middleware/frontseat/groups.h>
@@ -107,10 +108,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                 text->setText(dive_text_from_value(value));
             }
 
-            static void dive_button_clicked(Wt::WMouseEvent, Wt::WText* text, Wt::WSlider* dive)
-            {
-                text->setText("aardvark");
-            }
+            static void dive_button_clicked(Wt::WMouseEvent) { dive_start_ = true; }
 
             static void motor_slider_moved(int value, Wt::WText* text)
             {
@@ -228,6 +226,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     int current_vehicle_{-1};
 
     bool motor_go_{false};
+    static bool dive_start_;
+    static std::chrono::system_clock::time_point dive_expire_;
 
     Wt::WTimer timer_;
     friend class CommsThread;
