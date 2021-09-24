@@ -5,16 +5,18 @@
 #include <Wt/WPanel>
 #include <Wt/WSlider>
 #include <Wt/WStackedWidget>
+#include <chrono>
 
 #include "liaison_jaiabot.h"
-
-const std::string STRIPE_ODD_CLASS = "odd";
-const std::string STRIPE_EVEN_CLASS = "even";
 
 using namespace goby::util::logger;
 using goby::glog;
 
 using namespace Wt;
+using namespace std::chrono;
+
+bool jaiabot::LiaisonJaiabot::dive_start_ = false;
+system_clock::time_point jaiabot::LiaisonJaiabot::dive_expire_ = system_clock::now();
 
 jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                                         Wt::WContainerWidget* parent)
@@ -119,14 +121,32 @@ void jaiabot::LiaisonJaiabot::loop()
 
         static std::atomic<int> id(0);
 
+        if (dive_start_)
+        {
+            dive_expire_ =
+                system_clock::now() + seconds(it->second.low_level_control.timeout_slider->value());
+            dive_start_ = false;
+        }
+
         cmd_msg.set_id(id++);
         cmd_msg.set_vehicle(current_vehicle_);
         cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         cmd.set_timeout(it->second.low_level_control.timeout_slider->value());
-        cmd.set_motor(it->second.low_level_control.motor_slider->value());
         cmd.set_port_elevator(it->second.low_level_control.port_elevator_slider->value());
         cmd.set_stbd_elevator(it->second.low_level_control.stbd_elevator_slider->value());
         cmd.set_rudder(it->second.low_level_control.rudder_slider->value());
+        if (system_clock::now() < dive_expire_)
+        {
+            cmd.set_motor(it->second.low_level_control.dive_slider->value());
+        }
+        else if (motor_go_)
+        {
+            cmd.set_motor(it->second.low_level_control.motor_slider->value());
+        }
+        else
+        {
+            cmd.set_motor(0);
+        }
 
         glog.is_debug1() && glog << cmd_msg.ShortDebugString() << std::endl;
 
@@ -261,8 +281,8 @@ jaiabot::LiaisonJaiabot::VehicleData::Controls::Controls(Wt::WContainerWidget* v
 
     dive_text->setText(dive_text_from_value(dive_slider->value()));
 
-    dive_button->clicked().connect(boost::bind(
-        &LiaisonJaiabot::VehicleData::Controls::dive_button_clicked, _1, dive_text, dive_slider));
+    dive_button->clicked().connect(
+        boost::bind(&LiaisonJaiabot::VehicleData::Controls::dive_button_clicked, _1));
 
     motor_slider->setMinimum(0);
     motor_slider->setMaximum(cfg.motor_bounds().max());
