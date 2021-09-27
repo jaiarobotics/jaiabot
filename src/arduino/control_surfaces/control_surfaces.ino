@@ -43,6 +43,12 @@ jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init
 jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
 
 
+enum AckCode {
+  STARTUP = 0,
+  ACK = 1,
+  TIMEOUT = 2,
+};
+
 
 void send_ack()
 {
@@ -80,6 +86,11 @@ void setup()
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
+
+  // Send startup code
+  ack.code = STARTUP;
+  send_ack();
+
 }
 
 
@@ -132,7 +143,7 @@ void loop()
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
-            ack.code = 111;
+            ack.code = ACK;
             send_ack();
           }
           else
@@ -165,6 +176,9 @@ void handle_timeout() {
   unsigned long now = millis();
   if (now - t_last_command > command_timeout) {
     halt_all();
+
+    ack.code = TIMEOUT;
+    send_ack();
   }
 }
 
