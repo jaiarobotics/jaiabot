@@ -1,6 +1,5 @@
 add_subdirectory(lib)
 add_subdirectory(bin)
-add_subdirectory(arduino)
 
 if(build_doc)
   find_package(Doxygen REQUIRED dot)
