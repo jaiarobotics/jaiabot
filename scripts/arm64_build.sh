@@ -3,9 +3,10 @@
 NPROC=$((`nproc` - 2))
 
 script_dir=$(dirname $0)
+build_dir=${script_dir}/../build
 
-mkdir -p ${script_dir}/../arm64_build
-cd ${script_dir}/../arm64_build
+mkdir -p ${build_dir}
+cd ${build_dir}
 
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++

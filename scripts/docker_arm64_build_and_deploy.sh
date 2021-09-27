@@ -2,12 +2,13 @@
 
 set -e
 
-script_dir=$(dirname $0)
+script_dir=`pwd`
+build_dir=${script_dir}/../build
 
 cd ${script_dir}/..
-mkdir -p arm64_build
+mkdir -p ${build_dir}
 
-LAST_BUILD_DATE=$(date -r arm64_build +%s)
+LAST_BUILD_DATE=$(date -r ${build_dir} +%s)
 ONE_WEEK_LATER=$(expr "$LAST_BUILD_DATE" + 604800)
 
 NOW=$(date +%s)
@@ -29,7 +30,8 @@ if [ -z "$1" ]
         for var in "$@"
 	    do
     		echo "rsync build/bin and build/lib"
-		rsync -aP arm64_build/bin arm64_build/lib arm64_build/include ubuntu@"$var":/home/ubuntu/jaiabot/build
+                echo ${build_dir}
+		rsync -aP ${build_dir}/bin ${build_dir}/lib ${build_dir}/include ubuntu@"$var":/home/ubuntu/jaiabot/build
     		echo "rsync python  and arduino scripts"
     		rsync -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
     		echo "rsync ../jaiabot-configuration"
