@@ -1,13 +1,33 @@
 syntax = "proto2";
 
+import "dccl/option_extensions.proto";
+
 package jaiabot.protobuf;
 
 message IMUData
 {
     message EulerAngles {
-        required double alpha = 1;
-        required double beta = 2;
-        required double gamma = 3;
+        required double alpha = 1 
+            [(dccl.field) = {units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+                }}
+            ];
+            
+        required double beta = 2
+            [(dccl.field) = {units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+                }}
+            ];
+
+        required double gamma = 3
+            [(dccl.field) = {units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+                }}
+            ];
+
     }
     required EulerAngles euler_angles = 1;
 
