@@ -34,6 +34,10 @@ int32_t command_timeout = -1;
 void handle_timeout();
 void halt_all();
 
+// Motor ramp-up
+float motor = 0.0;
+const float MOTOR_DAMP = 0.2;
+
 static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
@@ -134,10 +138,12 @@ void loop()
             }
             DEBUG_MESSAGE("Received ControlSurfaces");
 
-            motor_servo.writeMicroseconds (1500 - command.motor  * 400 / 100);
-            rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
-            stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
-            port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
+            motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+
+            motor_servo.writeMicroseconds (1500 + motor  * 400 / 100);
+            rudder_servo.writeMicroseconds(1500 + command.rudder * 475 / 100);
+            stbd_elevator_servo.writeMicroseconds(1500 + command.stbd_elevator * 475 / 100);
+            port_elevator_servo.writeMicroseconds(1500 + command.port_elevator * 475 / 100);
 
             // Set the timeout vars
             t_last_command = millis();
