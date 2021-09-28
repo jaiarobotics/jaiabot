@@ -5,8 +5,9 @@ set -e
 # Install the arduino-cli
 curl -fsSL -o install_arduino-cli.sh https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh
 chmod a+x install_arduino-cli.sh
-export BINDIR=${HOME}/bin
+export BINDIR=${DIR}/bin
 mkdir -p ${BINDIR}
+export PATH=${HOME}/bin:${PATH}
 ./install_arduino-cli.sh
 rm install_arduino-cli.sh
 
@@ -23,7 +24,6 @@ then
 else
   echo '# arduino path addition' >> ${HOME}/.bashrc
   echo 'PATH=${HOME}/bin:${PATH}' >> ${HOME}/.bashrc
-  export PATH=${HOME}/bin:${PATH}
 fi
 
 #Install the required packages and architectures
