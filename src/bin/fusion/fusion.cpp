@@ -31,7 +31,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/example.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -53,20 +53,41 @@ class Fusion : public ApplicationBase
 
         // set empty pose field so NodeStatus gets generated even without pitch, heading, or roll data
         latest_status_.mutable_pose();
-        
-        interprocess().subscribe<goby::middleware::groups::gpsd::att>(
-            [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
-                glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
+
+        // Get pose data from the IMU
+        interprocess().subscribe<jaiabot::groups::imu>(
+            [this](const jaiabot::protobuf::IMUData& imuData) {
+                glog.is_debug1() && glog << "Received Attitude update from IMU: " << imuData.ShortDebugString()
                                          << std::endl;
-                if (att.has_pitch())
-                    latest_status_.mutable_pose()->set_pitch_with_units(att.pitch_with_units());
 
-                if (att.has_heading())
-                    latest_status_.mutable_pose()->set_heading_with_units(att.heading_with_units());
+            if (imuData.has_euler_angles()) {
+                auto euler_angles = imuData.euler_angles();
 
-                if (att.has_roll())
-                    latest_status_.mutable_pose()->set_roll_with_units(att.heading_with_units());
-            });
+                if (euler_angles.has_alpha())
+                    latest_status_.mutable_pose()->set_heading_with_units(euler_angles.alpha_with_units());
+
+                if (euler_angles.has_beta())
+                    latest_status_.mutable_pose()->set_pitch_with_units(euler_angles.beta_with_units());
+
+                if (euler_angles.has_alpha())
+                    latest_status_.mutable_pose()->set_roll_with_units(euler_angles.gamma_with_units());
+
+            }
+        });
+
+//        interprocess().subscribe<goby::middleware::groups::gpsd::att>(
+//            [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
+//                glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
+//                                         << std::endl;
+//                if (att.has_pitch())
+//                    latest_status_.mutable_pose()->set_pitch_with_units(att.pitch_with_units());
+//
+//                if (att.has_heading())
+//                    latest_status_.mutable_pose()->set_heading_with_units(att.heading_with_units());
+//
+//                if (att.has_roll())
+//                    latest_status_.mutable_pose()->set_roll_with_units(att.heading_with_units());
+//            });
         interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
             [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
                 glog.is_debug1() && glog << "Received TimePositionVelocity update: "
