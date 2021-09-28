@@ -66,7 +66,7 @@ if [ $1 == 'bot' ]
 then
   echo "===Setting up Arduino"
   cd /home/ubuntu/jaiabot/src/arduino
-  sudo -u ubuntu ./setup.sh
+  sudo -u -E ubuntu ./setup.sh
 fi
 
 echo "===Updating path in .bashrc"
@@ -75,7 +75,7 @@ then
   echo "---entry already exists"
 else
   echo "---making entry"
-  echo "PATH=\${HOME}/jaiabot/build/bin:\${PATH}" >> home/ubuntu/.bashrc
+  echo "PATH=\${HOME}/jaiabot/build/bin:\${PATH}" >> /home/ubuntu/.bashrc
 fi
 
-echo "===Made it to the end! You need to reboot now."
+echo "===Made it to the end! You need to reboot."
