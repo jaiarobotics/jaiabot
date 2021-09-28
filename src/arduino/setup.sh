@@ -5,7 +5,7 @@ set -e
 # Install the arduino-cli
 curl -fsSL -o install_arduino-cli.sh https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh
 chmod a+x install_arduino-cli.sh
-export BINDIR=${DIR}/bin
+export BINDIR=${HOME}/bin
 mkdir -p ${BINDIR}
 export PATH=${HOME}/bin:${PATH}
 ./install_arduino-cli.sh
