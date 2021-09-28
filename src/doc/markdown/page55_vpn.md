@@ -11,11 +11,12 @@ We use a VPN to securely connect to the JaiaBots for development and testing.
 We're using the private subnet 172.20.11.0/24:
 
 - Server: 172.20.11.1
-- jaiabot0: 172.20.11.10
-- jaiabot0: 172.20.11.11
-- jaiabot1: 172.20.11.12
-- jaiahub1: 172.20.11.13
+- jaiahub0: 172.20.11.10
+- jaiahub1: 172.20.11.11
+- jaiabot0: 172.20.11.100
+- jaiabot2: 172.20.11.102
 - JaiaBook1: 172.20.11.230
+- JaiaTab1: 172.20.11.231
 - tsaubergine dev laptop: 172.20.11.240
 - tsaubergine dev desktop: 172.20.11.241
 - edsanville dev computer:  172.20.11.245
@@ -101,28 +102,30 @@ On the client (jaiabot, dev machines, etc.) side, we need to configure:
       [Interface]
       # from /etc/wireguard/privatekey on client
       PrivateKey = ...
-    
+        
       # this client's VPN IP address
       Address = 172.20.11.XXX
-    
+        
       [Peer]
       # Server public key (from /etc/wireguard/publickey on server)
       PublicKey =  quIp0ErbKXgzbws0juC0YaI2FLmLHVpo8j4ChgTmjXI=
       # Allowed private IPs
       AllowedIPs = 172.20.11.0/24
-    
+        
       # Server IP and port
       Endpoint = vpn.jaia.tech:51820
-    
+        
       # Keep connection alive (required for behind NAT routers)
       PersistentKeepalive = 25
+
+  
 
 - Add the client information to the **server's** `/etc/wireguard/wg_jaia.conf`:
 
       [Peer]
       # client VPN public key (from /etc/wireguard/publickey on client)
       PublicKey = ...
-    
+        
       # client VPN IP address
       AllowedIPs = 172.20.11.XXX/32
 
@@ -159,8 +162,8 @@ MacOS has a GUI wireguard that requires a slightly different approach summarized
 Add the following to your /etc/hosts file
 ```
 172.20.11.1 vpn
-172.20.11.10 jaiabot0
-172.20.11.11 jaiahub0
-172.20.11.12 jaiabot1
-172.20.11.13 jaiahub1
+172.20.11.10 jaiahub0
+172.20.11.11 jaiahub1
+172.20.11.100 jaiabot0
+172.20.11.102 jaiahub2
 ```
