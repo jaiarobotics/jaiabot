@@ -35,8 +35,12 @@ fstab_entry="/swapfile swap swap defaults 0 0"
 grep "$fstab_entry" /etc/fstab || echo "$fstab_entry" >> /etc/fstab
 
 echo "===Installing runtime apt packages"
+# add packages.gobysoft.org to your apt sources
+echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+# install the public key for packages.gobysoft.org
+apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 apt update
-apt install -y gpsd gpsd-clients python3-pip
+apt install -y gpsd gpsd-clients python3-pip goby3-apps
 
 echo "===Setting up gpsd"
 cp gpsd /etc/default/
@@ -66,7 +70,7 @@ if [ $1 == 'bot' ]
 then
   echo "===Setting up Arduino"
   cd /home/ubuntu/jaiabot/src/arduino
-  sudo -u -E ubuntu ./setup.sh
+  sudo -u ubuntu ./setup.sh
 fi
 
 echo "===Updating path in .bashrc"
