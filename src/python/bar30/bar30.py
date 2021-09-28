@@ -17,26 +17,25 @@ print(args)
 # Setup the Bar30
 if not args.simulator:
     sensor = ms5837.MS5837_30BA() # Default I2C bus is 1 (Raspberry Pi 3)
+    sensor.is_initialized = False
 
-    if not sensor.init():
-            print("Sensor could not be initialized")
-            exit(1)
-
-    if not sensor.read():
-        print("Sensor read failed!")
-        exit(1)
-
+class SensorReadError(Exception):
+    pass
 
 def getRealPT():
     try:
+        if not sensor.is_initialized:
+            if sensor.init():
+                sensor.is_initialized = True
+            else:
+                raise SensorReadError
+
         if sensor.read():
             return (sensor.pressure(), sensor.temperature())
         else:
-            print("Sensor read failed!")
-            exit(1)
+            raise SensorReadError
     except OSError as error:
-        # Temporary read errors come through as OSError exceptions
-        print("Error: ", error)
+        raise SensorReadError
 
 
 def getFakePT():
@@ -56,7 +55,11 @@ while True:
     if args.simulator:
         p_mbar, t_celsius = getFakePT()
     else:
-        p_mbar, t_celsius = getRealPT()
+        try:
+            p_mbar, t_celsius = getRealPT()
+        except SensorReadError:
+            print('Sensor read error!')
+            continue
 
     now = datetime.utcnow()
     line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
