@@ -149,10 +149,10 @@ sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 ```
 
-### Build the container
+### Build the image
 
-To create the docker container initially (should only need to be done initially and whenever there are updates to the dependencies):
-```
+To create the docker image initially (should only need to be done initially and whenever there are updates to the dependencies):
+```bash
 cd jaiabot/.docker/focal/arm64
 docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
 # optionally, push to docker hub
@@ -161,15 +161,15 @@ docker push gobysoft/jaiabot-ubuntu-arm64:20.04.1
 
 ### Cross-compile in the container
 
-Then to cross-compile using this container:
+Then to cross-compile using this image:
 
-```
+```bash
 cd jaiabot
 # clear out the build directory assuming it exists with a native build (might need sudo if you've build using the container last)
 rm -rf build
 # run the docker container interactively
 docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1 
-# update any dependencies since the container was created (not required if you've recently built the container)
+# update any dependencies since the image was created (not required if you've recently built the image)
 apt update && apt upgrade -y
 # actually build the code
 ./scripts/arm64_build.sh

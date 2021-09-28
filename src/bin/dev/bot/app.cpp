@@ -134,10 +134,14 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 //                    ack.mutable_location()->set_lon(goby::util::NaN<double>);
 //                }
 
-        glog.is_debug1() && glog << group("main") << "Sending: " << ack.ShortDebugString()
-                                  << std::endl;
-        auto io_ack = lora::serialize(ack);
-        interthread().publish<serial_out>(io_ack);
+            // Add speed
+            ack.set_speed(latest_gps_tpv_.speed());
+            ack.set_eps(latest_gps_tpv_.eps());
+
+            glog.is_debug1() && glog << group("main") << "Sending: " << ack.ShortDebugString()
+                                     << std::endl;
+            auto io_ack = lora::serialize(ack);
+            interthread().publish<serial_out>(io_ack);
     });
 
 }
