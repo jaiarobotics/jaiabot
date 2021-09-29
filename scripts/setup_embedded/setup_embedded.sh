@@ -40,7 +40,7 @@ echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | s
 # install the public key for packages.gobysoft.org
 apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 apt update
-apt install -y gpsd gpsd-clients python3-pip goby3-apps
+apt install -y gpsd gpsd-clients python3-pip goby3-apps goby3-gui
 
 echo "===Setting up gpsd"
 cp gpsd /etc/default/
