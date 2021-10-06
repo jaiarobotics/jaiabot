@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.1 FATAL_ERROR)
-project(jaiabot CXX)
+project(jaiabot CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
@@ -77,10 +77,24 @@ endif()
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
+  )
+file(GLOB_RECURSE PROTO_FILES RELATIVE ${project_SRC_DIR}/lib/messages
   src/lib/messages/*.proto
   )
+file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
+  src/lib/messages/*.options
+  )
+
 foreach(I ${INCLUDE_FILES})
   configure_file(${project_SRC_DIR}/lib/${I} ${project_INC_DIR}/jaiabot/${I} @ONLY)
+endforeach()
+foreach(I ${PROTO_FILES})
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
+endforeach()
+
+foreach(I ${NANOPB_OPTIONS_FILES})
+  configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/nanopb/${I} @ONLY)
 endforeach()
 
 
@@ -129,9 +143,12 @@ add_subdirectory(src)
 
 
 if(export_goby_interfaces)
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces.pdf "--no-disconnected")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces.svg "--no-disconnected")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/sim_deployment.yml ${YML_OUT_DIR} sim_interfaces_inc_unused.pdf "")
+  #generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.pdf "--no-disconnected")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.pdf "")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/loratest_deployment.yml ${YML_OUT_DIR} loratest_interfaces.svg "")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment.svg "--no-disconnected")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment_inc_unused.pdf "")
 endif()
 
 

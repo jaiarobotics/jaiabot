@@ -1,0 +1,13 @@
+deployment: dev_deployment
+platforms:
+  - name: HUB
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_dev_hub_interface.yml
+      - jaiabot_liaison_interface.yml
+  - name: BOT
+    interfaces:
+      - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_dev_bot_interface.yml
+      - jaiabot_control_surfaces_driver_interface.yml
+      - jaiabot_liaison_interface.yml

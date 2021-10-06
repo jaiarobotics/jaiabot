@@ -1,6 +1,6 @@
-# Jaiabot Repositories
+# JaiaBot Repositories
 
-The source code for the Jaiabot is split between two Git repositories:
+The source code for the JaiaBot is split between two Git repositories:
 
 - `jaiabot`: Source code (C++ primarily) that is built into compiled code (binaries and libraries).
 - `jaiabot-configuration`: Runtime configuration using Python as a preprocessor that is used as inputs to the compiled code.
