@@ -2,8 +2,11 @@ BOARD=arduino:avr:leonardo
 PORT=/dev/ttyACM0
 BUILD_DIR=${PWD}/build/
 
-deploy: ${BUILD_DIR}/control_surfaces.ino.elf
+deploy: deployed.yes
+
+deployed.yes: ${BUILD_DIR}/control_surfaces.ino.elf
 	arduino-cli upload -v -p ${PORT} -b ${BOARD}
+	touch deployed.yes
 
 compile: ${BUILD_DIR}/control_surfaces.ino.elf
 
