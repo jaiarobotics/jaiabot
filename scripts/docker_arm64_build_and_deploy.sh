@@ -36,6 +36,8 @@ if [ -z "$1" ]
     		rsync --delete -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
     		echo "rsync ../jaiabot-configuration"
 		rsync --delete -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+    		echo "rsync scripts"
+		rsync --delete -aP scripts ubuntu@$1:/home/ubuntu/jaiabot
 	    done
 fi
 
