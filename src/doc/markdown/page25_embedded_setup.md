@@ -27,41 +27,10 @@ Installation steps:
   ./setup_embedded.sh
   ```
 
-  
-
-  
-
-- Edit config.txt (in the system-boot partition of the sd card) to enable USB and UARTs:
-
-      [pi4]
-      ...
-      dtoverlay=dwc2,dr_mode=host
-      dtoverlay=uart3,txd3_pin=7,rxd3_pin=29
-      dtoverlay=uart5,txd5_pin=32,rxd5_pin=33
-
-- Change `/etc/hostname`.
-
-- Install apt packages:
-
-      sudo apt update
-      # (optional)
-      sudo apt install emacs-nox
-
 - After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` by changing the appropriate line to:
 
       PasswordAuthentication no
-
-- Set up a swapfile for compiling on the device
-
-      sudo fallocate -l 2G /swapfile
-      sudo chmod 600 /swapfile
-      sudo mkswap /swapfile
-      sudo swapon /swapfile
   
-- Append the following line to /etc/fstab to make the above changes permanent
-
-      /swapfile swap swap defaults 0 0
-
 - Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
 
 - Install jaiabot code via instructions on the [CI/CD](page20_build.md) page from either the release or continuous repository.
