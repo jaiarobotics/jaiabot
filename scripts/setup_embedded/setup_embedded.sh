@@ -59,9 +59,9 @@ pip install smbus adafruit-circuitpython-busdevice adafruit-circuitpython-regist
 echo "===Placing run script in the home dir"
 if [ $1 == 'bot' ]
 then
-  ln -sf run.sh_bot /home/ubuntu/run.sh
+  ln -sf ${PWD}/run.sh_bot /home/ubuntu/run.sh
 else
-  ln -sf run.sh_hub /home/ubuntu/run.sh
+  ln -sf ${PWD}/run.sh_hub /home/ubuntu/run.sh
 fi
 chmod +x /home/ubuntu/run.sh
 chown ubuntu:ubuntu /home/ubuntu/run.sh
