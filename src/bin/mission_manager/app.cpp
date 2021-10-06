@@ -56,14 +56,10 @@ class MissionManager : public zeromq::MultiThreadApplication<config::MissionMana
         machine_.reset();
     }
 
-    template <typename State>
-    friend void statechart::publish_entry(State& state, const std::string& name);
-    template <typename State>
-    friend void statechart::publish_exit(State& state, const std::string& name);
+    template <typename Derived> friend class statechart::AppMethodsAccess;
 
   private:
     std::unique_ptr<statechart::MissionManagerStateMachine> machine_;
-    std::string current_state_;
 };
 
 } // namespace apps
@@ -80,12 +76,14 @@ int main(int argc, char* argv[])
 jaiabot::apps::MissionManager::MissionManager()
     : zeromq::MultiThreadApplication<config::MissionManager>(1 * si::hertz)
 {
-    interthread().subscribe<groups::state_entry>([this](const std::string& state_name) {
-        glog.is_verbose() && glog << group("main") << "Entered: " << state_name << std::endl;
-        current_state_ = state_name;
-    });
+    interthread().subscribe<groups::state_change>(
+        [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
+            const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
 
-    interthread().subscribe<groups::state_exit>([](const std::string& state_name) {
-        glog.is_verbose() && glog << group("main") << "Exited: " << state_name << std::endl;
-    });
+            if (state_pair.first)
+                glog.is_verbose() && glog << group("main") << "Entered: " << state_name
+                                          << std::endl;
+            else
+                glog.is_verbose() && glog << group("main") << "Exited: " << state_name << std::endl;
+        });
 }

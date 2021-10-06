@@ -11,13 +11,13 @@
 #include <goby/util/linebasedcomms/nmea_sentence.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/mission.pb.h"
 
 namespace jaiabot
 {
 namespace groups
 {
-constexpr goby::middleware::Group state_entry{"state_entry"};
-constexpr goby::middleware::Group state_exit{"state_exit"};
+constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
 } // namespace groups
 
 namespace apps
@@ -29,124 +29,147 @@ namespace statechart
 {
 struct MissionManagerStateMachine;
 
+// events
+#define STATECHART_EVENT(EVENT)                    \
+    struct EVENT : boost::statechart::event<EVENT> \
+    {                                              \
+    };
+
+// events
+STATECHART_EVENT(EvTurnOn)
+#undef STATECHART_EVENT
+
+// provides access to parent App's methods (e.g. interthread() and interprocess()) from within the states' structs
+template <typename Derived> class AppMethodsAccess
+{
+  protected:
+    goby::zeromq::InterProcessPortal<goby::middleware::InterThreadTransporter>& interprocess()
+    {
+        return app().interprocess();
+    }
+
+    goby::middleware::InterThreadTransporter& interthread() { return app().interthread(); }
+
+    const apps::MissionManager& app() const
+    {
+        return static_cast<const Derived*>(this)->outermost_context().app();
+    }
+
+    MissionManagerStateMachine& machine()
+    {
+        return static_cast<Derived*>(this)->outermost_context();
+    }
+    apps::MissionManager& app() { return machine().app(); }
+};
+
+// RAII publication of state changes
+template <typename Derived, jaiabot::protobuf::MissionState state>
+struct Notify : public AppMethodsAccess<Derived>
+{
+    Notify()
+    {
+        this->machine().set_state(state);
+
+        goby::middleware::protobuf::TransporterConfig pub_cfg;
+        // required since we're publishing in and subscribing to the group within the same thread
+        pub_cfg.set_echo(true);
+        this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
+                                                                   {pub_cfg});
+    }
+    ~Notify()
+    {
+        goby::middleware::protobuf::TransporterConfig pub_cfg;
+        pub_cfg.set_echo(true);
+        this->interthread().template publish<groups::state_change>(std::make_pair(false, state),
+                                                                   {pub_cfg});
+    }
+};
+
+struct PreDeployment;
+namespace predeployment
+{
+struct Off;
+struct SelfTest;
+struct Failed;
+struct Configuring;
+struct Ready;
+} // namespace predeployment
+
+struct Underway;
+namespace underway
+{
 struct Launch;
 namespace launch
 {
 struct StationKeep;
 }
-
-struct Underway;
-namespace underway
+struct Waypoints;
+namespace waypoints
 {
-struct HelmControl;
-struct Profile;
-} // namespace underway
-
-struct Recover;
-namespace recover
+struct Transit;
+struct Dive;
+} // namespace waypoints
+struct Recovery;
+namespace recovery
 {
+struct Transit;
 struct StationKeep;
 struct Stopped;
-} // namespace recover
+} // namespace recovery
+struct Abort;
 
-// events
-struct EvCommenceMission : boost::statechart::event<EvCommenceMission>
+} // namespace underway
+
+struct PostDeployment;
+namespace postdeployment
 {
-};
+struct Recovered;
+struct DataProcessing;
+struct DataOffload;
+struct Shutdown;
 
-template <typename State> void publish_entry(State& state, const std::string& name)
-{
-    auto& interthread = state.outermost_context().app.interthread();
-
-    goby::middleware::protobuf::TransporterConfig pub_cfg;
-    // required since we're publishing in and subscribing to the group within the same thread
-    pub_cfg.set_echo(true);
-    interthread.template publish<groups::state_entry>(name, {pub_cfg});
-}
-
-template <typename State> void publish_exit(State& state, const std::string& name)
-{
-    auto& interthread = state.outermost_context().app.interthread();
-    goby::middleware::protobuf::TransporterConfig pub_cfg;
-    pub_cfg.set_echo(true);
-    interthread.template publish<groups::state_exit>(name, {pub_cfg});
-}
+} // namespace postdeployment
 
 struct MissionManagerStateMachine
-    : boost::statechart::state_machine<MissionManagerStateMachine, Launch>
+    : boost::statechart::state_machine<MissionManagerStateMachine, PreDeployment>
 {
-    MissionManagerStateMachine(apps::MissionManager& a) : app(a) {}
-    apps::MissionManager& app;
+    MissionManagerStateMachine(apps::MissionManager& a) : app_(a) {}
+
+    void set_state(jaiabot::protobuf::MissionState state) { state_ = state; }
+    jaiabot::protobuf::MissionState state() { return state_; }
+    apps::MissionManager& app() { return app_; }
+
+  private:
+    apps::MissionManager& app_;
+    jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__OFF};
 };
 
-struct Launch : boost::statechart::state<Launch,                     // (CRTP)
-                                         MissionManagerStateMachine, // Parent state (or machine)
-                                         launch::StationKeep         // Child substate
-                                         >
+struct PreDeployment
+    : boost::statechart::state<PreDeployment,              // (CRTP)
+                               MissionManagerStateMachine, // Parent state (or machine)
+                               predeployment::Off          // Child substate
+                               >
 {
     using StateBase =
-        boost::statechart::state<Launch, MissionManagerStateMachine, launch::StationKeep>;
+        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Off>;
 
     // entry action
-    Launch(typename StateBase::my_context c) : StateBase(c) { publish_entry(*this, "Launch"); }
-
+    PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
     // exit action
-    ~Launch() { publish_exit(*this, "Launch"); }
-
-    // can have multiple reactions in a list
-    typedef boost::mpl::list<boost::statechart::transition<EvCommenceMission, Underway>> reactions;
+    ~PreDeployment() {}
 };
 
-namespace launch
+namespace predeployment
 {
-struct StationKeep : boost::statechart::state<StationKeep, // (CRTP)
-                                              Launch       // Parent state (or machine)
-                                              >
+struct Off : boost::statechart::state<Off, PreDeployment>,
+             Notify<Off, protobuf::PRE_DEPLOYMENT__OFF>
 {
-    using StateBase = boost::statechart::state<StationKeep, Launch>;
-
-    // entry action
-    StationKeep(typename StateBase::my_context c) : StateBase(c)
-    {
-        publish_entry(*this, "StationKeep");
-    }
-
-    // exit action
-    ~StationKeep() { publish_exit(*this, "StationKeep"); }
-};
-} // namespace launch
-
-struct Underway
-    : boost::statechart::state<Underway, MissionManagerStateMachine, underway::HelmControl>
-{
-    using StateBase =
-        boost::statechart::state<Underway, MissionManagerStateMachine, underway::HelmControl>;
-
-    // entry action
-    Underway(typename StateBase::my_context c) : StateBase(c) { publish_entry(*this, "Underway"); }
-
-    // exit action
-    ~Underway() { publish_exit(*this, "Underway"); }
+    using StateBase = boost::statechart::state<Off, PreDeployment>;
+    Off(typename StateBase::my_context c) : StateBase(c) {}
+    ~Off() {}
 };
 
-namespace underway
-{
-struct HelmControl : boost::statechart::state<HelmControl, // (CRTP)
-                                              Underway     // Parent state (or machine)
-                                              >
-{
-    using StateBase = boost::statechart::state<HelmControl, Underway>;
-
-    // entry action
-    HelmControl(typename StateBase::my_context c) : StateBase(c)
-    {
-        publish_entry(*this, "HelmControl");
-    }
-
-    // exit action
-    ~HelmControl() { publish_exit(*this, "HelmControl"); }
-};
-} // namespace underway
+} // namespace predeployment
 
 } // namespace statechart
 } // namespace jaiabot
