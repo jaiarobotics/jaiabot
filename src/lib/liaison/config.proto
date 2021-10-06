@@ -1,0 +1,43 @@
+syntax = "proto2";
+
+import "goby/zeromq/protobuf/liaison_config.proto";
+
+package jaiabot.protobuf;
+
+message JaiabotConfig
+{
+    optional bool minimize_bot_panel = 1 [default = false];
+    optional bool minimize_hub_panel = 2 [default = false];
+    repeated int32 load_vehicle = 3;
+
+    message LowLevelControlBounds
+    {
+        required sint32 min = 1;
+        required sint32 max = 2;
+        optional uint32 n_ticks = 3 [default = 10];
+        optional uint32 step = 4 [default = 1];
+        optional sint32 center = 5 [default = 0];
+
+        optional string min_label = 6 [default = '-'];
+        optional string max_label = 7 [default = '+'];
+    }
+    optional LowLevelControlBounds motor_bounds = 10;
+    optional LowLevelControlBounds elevator_bounds = 11;
+    optional LowLevelControlBounds rudder_bounds = 12;
+    optional LowLevelControlBounds timeout_bounds = 13;
+
+    optional double control_freq = 20 [default = 2];
+
+    enum Mode
+    {
+        HUB = 1;
+        BOT = 2;
+    }
+    optional Mode mode = 30 [default = HUB];
+    
+}
+
+extend goby.apps.zeromq.protobuf.LiaisonConfig
+{
+    optional JaiabotConfig jaiabot_config = 1300;
+}

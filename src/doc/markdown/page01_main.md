@@ -1,4 +1,4 @@
-# Jaiabot
+# JaiaBot
 
 ## Table of Contents
 
@@ -6,8 +6,12 @@
     - [Simulator](page11_simulator.md)
 - [Git Repositories](page19_repository.md)
 - [Building and CI/CD](page20_build.md)
+    - [Embedded Hardware](page25_embedded_setup.md)
 - [Configuration](page30_configuration.md)
 - [Logging](page40_logging.md)
+- [Communications](page50_communications.md)
+    - [VPN](page55_vpn.md)
+
 
 ## Documentation Information
 
