@@ -31,11 +31,11 @@ if [ -z "$1" ]
 	    do
     		echo "rsync build/bin and build/lib"
                 echo ${build_dir}
-		rsync -aP ${build_dir}/bin ${build_dir}/lib ${build_dir}/include ubuntu@"$var":/home/ubuntu/jaiabot/build
+		rsync --delete -aP ${build_dir}/bin ${build_dir}/lib ${build_dir}/include ubuntu@"$var":/home/ubuntu/jaiabot/build
     		echo "rsync python  and arduino scripts"
-    		rsync -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
+    		rsync --delete -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
     		echo "rsync ../jaiabot-configuration"
-		rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+		rsync --delete -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
 	    done
 fi
 
