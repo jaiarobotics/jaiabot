@@ -181,6 +181,7 @@ void handle_timeout() {
   
   unsigned long now = millis();
   if (now - t_last_command > command_timeout) {
+    command_timeout = -1;
     halt_all();
 
     ack.code = TIMEOUT;
