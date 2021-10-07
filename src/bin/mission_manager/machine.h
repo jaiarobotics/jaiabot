@@ -37,6 +37,27 @@ struct MissionManagerStateMachine;
 
 // events
 STATECHART_EVENT(EvTurnOn)
+STATECHART_EVENT(EvSelfTestSuccessful)
+STATECHART_EVENT(EvSelfTestFails)
+STATECHART_EVENT(EvMissionFeasible)
+STATECHART_EVENT(EvMissionInfeasible)
+STATECHART_EVENT(EvDeployed)
+STATECHART_EVENT(EvPerformTask)
+STATECHART_EVENT(EvTaskComplete)
+STATECHART_EVENT(EvNewMission)
+STATECHART_EVENT(EvReturnToHome)
+STATECHART_EVENT(EvRecoveryPointReached)
+STATECHART_EVENT(EvStopped)
+STATECHART_EVENT(EvAbort)
+STATECHART_EVENT(EvRecovered)
+STATECHART_EVENT(EvBeginDataProcessing)
+STATECHART_EVENT(EvDataProcessingComplete)
+STATECHART_EVENT(EvDataOffloadComplete)
+STATECHART_EVENT(EvShutdown)
+STATECHART_EVENT(EvRedeploy)
+STATECHART_EVENT(EvDepthTargetReached)
+STATECHART_EVENT(EvHoldComplete)
+STATECHART_EVENT(EvSurfacingTimeout)
 #undef STATECHART_EVENT
 
 // provides access to parent App's methods (e.g. interthread() and interprocess()) from within the states' structs
@@ -227,7 +248,6 @@ struct Underway : boost::statechart::state<Underway, MissionManagerStateMachine,
 
 namespace underway
 {
-
 struct Movement : boost::statechart::state<Movement, Underway, movement::Transit>
 {
     using StateBase = boost::statechart::state<Movement, Underway, movement::Transit>;
