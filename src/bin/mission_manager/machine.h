@@ -2,6 +2,7 @@
 #define JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_H
 
 #include <boost/mpl/list.hpp>
+#include <boost/statechart/deep_history.hpp>
 #include <boost/statechart/event.hpp>
 #include <boost/statechart/state.hpp>
 #include <boost/statechart/state_machine.hpp>
@@ -56,6 +57,7 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvRedeploy)
 STATECHART_EVENT(EvDepthTargetReached)
+STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 #undef STATECHART_EVENT
@@ -119,6 +121,7 @@ struct Ready;
 struct Underway;
 namespace underway
 {
+struct Replan;
 struct Movement;
 namespace movement
 {
@@ -190,6 +193,9 @@ struct PreDeployment
     PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
     // exit action
     ~PreDeployment() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
 
 namespace predeployment
@@ -200,6 +206,8 @@ struct Off : boost::statechart::state<Off, PreDeployment>,
     using StateBase = boost::statechart::state<Off, PreDeployment>;
     Off(typename StateBase::my_context c) : StateBase(c) {}
     ~Off() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvTurnOn, SelfTest>>;
 };
 
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
@@ -208,6 +216,10 @@ struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
     using StateBase = boost::statechart::state<SelfTest, PreDeployment>;
     SelfTest(typename StateBase::my_context c) : StateBase(c) {}
     ~SelfTest() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvSelfTestFails, Failed>,
+                         boost::statechart::transition<EvSelfTestSuccessful, WaitForMissionPlan>>;
 };
 
 struct Failed : boost::statechart::state<Failed, PreDeployment>,
@@ -225,6 +237,12 @@ struct WaitForMissionPlan
     using StateBase = boost::statechart::state<WaitForMissionPlan, PreDeployment>;
     WaitForMissionPlan(typename StateBase::my_context c) : StateBase(c) {}
     ~WaitForMissionPlan() {}
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvMissionFeasible, Ready>,
+        boost::statechart::transition<EvMissionInfeasible,
+                                      WaitForMissionPlan> // maybe change to in_state_reaction?
+        >;
 };
 
 struct Ready : boost::statechart::state<Ready, PreDeployment>,
@@ -233,6 +251,8 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
     using StateBase = boost::statechart::state<Ready, PreDeployment>;
     Ready(typename StateBase::my_context c) : StateBase(c) {}
     ~Ready() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvDeployed, Underway>>;
 };
 
 } // namespace predeployment
@@ -244,16 +264,41 @@ struct Underway : boost::statechart::state<Underway, MissionManagerStateMachine,
 
     Underway(typename StateBase::my_context c) : StateBase(c) {}
     ~Underway() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvNewMission, underway::Replan>,
+                         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
+                         boost::statechart::transition<EvAbort, underway::Abort>,
+                         boost::statechart::transition<EvStopped, underway::recovery::Stopped>>;
 };
 
 namespace underway
 {
-struct Movement : boost::statechart::state<Movement, Underway, movement::Transit>
+struct Replan : boost::statechart::state<Replan, Underway>,
+                Notify<Replan, protobuf::UNDERWAY__REPLAN>
 {
-    using StateBase = boost::statechart::state<Movement, Underway, movement::Transit>;
+    using StateBase = boost::statechart::state<Replan, Underway>;
+    Replan(typename StateBase::my_context c) : StateBase(c) {}
+    ~Replan() {}
 
-    Movement(typename StateBase::my_context c) : StateBase(c) {}
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvMissionInfeasible, Replan>, // maybe in_state_reaction
+        boost::statechart::transition<EvMissionFeasible, Movement>>;
+};
+
+struct Movement : boost::statechart::state<Movement, Underway, movement::Transit,
+                                           boost::statechart::has_deep_history>
+{
+    using StateBase = boost::statechart::state<Movement, Underway, movement::Transit,
+                                               boost::statechart::has_deep_history>;
+
+    Movement(typename StateBase::my_context c) : StateBase(c)
+    {
+        // TODO add conditional on mission type for child state.
+    }
     ~Movement() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvPerformTask, Task>>;
 };
 
 namespace movement
@@ -280,8 +325,15 @@ struct Task : boost::statechart::state<Task, Underway, task::StationKeep>
 {
     using StateBase = boost::statechart::state<Task, Underway, task::StationKeep>;
 
-    Task(typename StateBase::my_context c) : StateBase(c) {}
+    Task(typename StateBase::my_context c) : StateBase(c)
+    {
+        // TODO add conditional on task type for child state.
+    }
     ~Task() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<
+        EvTaskComplete, boost::statechart::deep_history<movement::Transit // default
+                                                        >>>;
 };
 
 namespace task
@@ -316,6 +368,8 @@ struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
     using StateBase = boost::statechart::state<PoweredDescent, Dive>;
     PoweredDescent(typename StateBase::my_context c) : StateBase(c) {}
     ~PoweredDescent() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvDepthTargetReached, Hold>>;
 };
 
 struct Hold : boost::statechart::state<Hold, Dive>,
@@ -324,6 +378,10 @@ struct Hold : boost::statechart::state<Hold, Dive>,
     using StateBase = boost::statechart::state<Hold, Dive>;
     Hold(typename StateBase::my_context c) : StateBase(c) {}
     ~Hold() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvHoldComplete, PoweredDescent>,
+                         boost::statechart::transition<EvDiveComplete, PoweredAscent>>;
 };
 
 struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
@@ -332,6 +390,9 @@ struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
     UnpoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
     ~UnpoweredAscent() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>>;
 };
 
 struct PoweredAscent : boost::statechart::state<PoweredAscent, Dive>,
@@ -361,6 +422,9 @@ struct Transit : boost::statechart::state<Transit, Recovery>,
     using StateBase = boost::statechart::state<Transit, Recovery>;
     Transit(typename StateBase::my_context c) : StateBase(c) {}
     ~Transit() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvRecoveryPointReached, StationKeep>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
@@ -369,6 +433,8 @@ struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
     using StateBase = boost::statechart::state<StationKeep, Recovery>;
     StationKeep(typename StateBase::my_context c) : StateBase(c) {}
     ~StationKeep() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvStopped, Stopped>>;
 };
 
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
@@ -409,6 +475,9 @@ struct Recovered : boost::statechart::state<Recovered, PostDeployment>,
     using StateBase = boost::statechart::state<Recovered, PostDeployment>;
     Recovered(typename StateBase::my_context c) : StateBase(c) {}
     ~Recovered() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvBeginDataProcessing, DataProcessing>>;
 };
 
 struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>,
@@ -417,6 +486,9 @@ struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>
     using StateBase = boost::statechart::state<DataProcessing, PostDeployment>;
     DataProcessing(typename StateBase::my_context c) : StateBase(c) {}
     ~DataProcessing() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvDataProcessingComplete, DataOffload>>;
 };
 
 struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
@@ -425,6 +497,18 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     using StateBase = boost::statechart::state<DataOffload, PostDeployment>;
     DataOffload(typename StateBase::my_context c) : StateBase(c) {}
     ~DataOffload() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>>;
+};
+
+struct Idle : boost::statechart::state<Idle, PostDeployment>,
+              Notify<Idle, protobuf::POST_DEPLOYMENT__IDLE>
+{
+    using StateBase = boost::statechart::state<Idle, PostDeployment>;
+    Idle(typename StateBase::my_context c) : StateBase(c) {}
+    ~Idle() {}
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>>;
 };
 
 struct ShuttingDown : boost::statechart::state<ShuttingDown, PostDeployment>,
