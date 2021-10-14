@@ -56,6 +56,8 @@ class MissionManager : public zeromq::MultiThreadApplication<config::MissionMana
         machine_.reset();
     }
 
+    void loop() override;
+
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
   private:
@@ -72,7 +74,6 @@ int main(int argc, char* argv[])
 }
 
 // Main thread
-
 jaiabot::apps::MissionManager::MissionManager()
     : zeromq::MultiThreadApplication<config::MissionManager>(1 * si::hertz)
 {
@@ -86,4 +87,11 @@ jaiabot::apps::MissionManager::MissionManager()
             else
                 glog.is_verbose() && glog << group("main") << "Exited: " << state_name << std::endl;
         });
+}
+
+void jaiabot::apps::MissionManager::loop()
+{
+    protobuf::MissionReport report;
+    report.set_state(machine_->state());
+    interprocess().publish<jaiabot::groups::mission_report>(report);
 }

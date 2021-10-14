@@ -1,5 +1,8 @@
 syntax = "proto2";
 
+import "jaiabot/messages/geographic_coordinate.proto";
+import "dccl/option_extensions.proto";
+
 package jaiabot.protobuf;
 
 enum MissionState
@@ -10,7 +13,6 @@ enum MissionState
     PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4;
     PRE_DEPLOYMENT__READY = 5;
 
-    
     UNDERWAY__REPLAN = 100;
 
     UNDERWAY__MOVEMENT__TRANSIT = 110;
@@ -22,17 +24,97 @@ enum MissionState
     UNDERWAY__TASK__DIVE__HOLD = 123;
     UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 124;
     UNDERWAY__TASK__DIVE__POWERED_ASCENT = 125;
-    
+
     UNDERWAY__RECOVERY__TRANSIT = 130;
     UNDERWAY__RECOVERY__STATION_KEEP = 131;
     UNDERWAY__RECOVERY__STOPPED = 132;
 
     UNDERWAY__ABORT = 140;
 
-    
     POST_DEPLOYMENT__RECOVERED = 200;
     POST_DEPLOYMENT__DATA_PROCESSING = 201;
     POST_DEPLOYMENT__DATA_OFFLOAD = 202;
     POST_DEPLOYMENT__IDLE = 203;
     POST_DEPLOYMENT__SHUTTING_DOWN = 204;
+}
+
+message MissionReport
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required MissionState state = 10;
+}
+
+message MissionPlan
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    enum MovementType
+    {
+        TRANSIT = 1;
+        REMOTE_CONTROL = 2;
+    }
+    optional MovementType movement = 1 [default = TRANSIT];
+
+    message Goal
+    {
+        optional string name = 1 [(dccl.field).omit = true];
+        required GeographicCoordinate location = 2;
+        message Task
+        {
+            enum TaskType
+            {
+                DIVE = 1;
+                STATION_KEEP = 2;
+                SURFACE_DRIFT = 3;
+            }
+            required TaskType type = 1;
+
+            message DiveParameters
+            {
+                optional double max_depth = 1 [
+                    default = inf,
+                    (dccl.field) = { min: 0 max: 100 precision: 0 }
+                ];
+                optional double depth_interval = 2 [
+                    default = inf,
+                    (dccl.field) = { min: 0 max: 50 precision: 1 }
+                ];
+                optional double hold_time = 3 [
+                    default = 0,
+                    (dccl.field) = {
+                        min: 0
+                        max: 3600
+                        precision: 0
+                        units { base_dimensions: "T" }
+                    }
+                ];
+            }
+
+            // for type == DIVE
+            optional DiveParameters dive = 2;
+
+            message DriftParameters
+            {
+                optional int32 drift_time = 3 [
+                    default = 0,
+                    (dccl.field) = {
+                        min: 0
+                        max: 3600
+                        precision: -1
+                        units { base_dimensions: "T" }
+                    }
+                ];
+            }
+
+            // for type == SURFACE_DRIFT
+            optional DriftParameters surface_drift = 3;
+        }
+        optional Task task = 3;
+    }
+    repeated Goal goal = 2 [(dccl.field).max_repeat = 20];
 }
