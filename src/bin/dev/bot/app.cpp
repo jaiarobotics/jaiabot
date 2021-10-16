@@ -79,7 +79,7 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     glog.add_group("debug", goby::util::Colors::red);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
-    launch_thread<SerialThread>(cfg().serial());
+    launch_thread<SerialThread>(cfg().serial_radio());
 
     // Subscribe to gps
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
