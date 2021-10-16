@@ -138,7 +138,12 @@ void loop()
             }
             DEBUG_MESSAGE("Received ControlSurfaces");
 
-            motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+            if (command.motor == 0) {
+              motor = command.motor;
+            }
+            else {
+              motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+            }
 
             motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
             rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
