@@ -159,4 +159,7 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_pose();
 }
 
-void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
+void jaiabot::apps::Fusion::init_bot_status()
+{
+    latest_bot_status_.set_bot_id(cfg().bot_id());
+}

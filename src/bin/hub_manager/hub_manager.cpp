@@ -46,9 +46,6 @@ class HubManager : public ApplicationBase
 
   private:
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
-
-  private:
-    goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -61,7 +58,7 @@ int main(int argc, char* argv[])
 
 jaiabot::apps::HubManager::HubManager()
 {
-    for (auto id : cfg().managed_bot_id())
+    for (auto id : cfg().managed_bot_modem_id())
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg;
         goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
@@ -82,6 +79,29 @@ jaiabot::apps::HubManager::HubManager()
 
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
-    glog.is_verbose() && glog << group("bot_nav")
-                              << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("bot_nav")
+                             << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+
+    goby::middleware::frontseat::protobuf::NodeStatus node_status;
+
+    node_status.set_name("BOT" + std::to_string(dccl_nav.bot_id()));
+
+    node_status.set_time_with_units(dccl_nav.time_with_units());
+
+    if (dccl_nav.attitude().has_heading())
+        node_status.mutable_pose()->set_heading_with_units(
+            dccl_nav.attitude().heading_with_units());
+
+    if (dccl_nav.has_location())
+    {
+        node_status.mutable_global_fix()->set_lat_with_units(dccl_nav.location().lat_with_units());
+        node_status.mutable_global_fix()->set_lon_with_units(dccl_nav.location().lon_with_units());
+    }
+
+    if (dccl_nav.has_speed())
+        node_status.mutable_speed()->set_over_ground_with_units(
+            dccl_nav.speed().over_ground_with_units());
+
+    // publish for opencpn interface
+    interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
 }
