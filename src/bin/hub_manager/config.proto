@@ -34,5 +34,5 @@ message HubManager
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
     
-    repeated int32 managed_bot_id = 10;
+    repeated int32 managed_bot_modem_id = 10;
 }
