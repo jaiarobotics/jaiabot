@@ -73,13 +73,16 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
     interprocess().subscribe<groups::control_command>(
         [this](const jaiabot::protobuf::ControlCommand& control_command) {
+
+        if (control_command.has_command()) {
             glog.is_verbose() && glog << group("main")
                                         << "Sending: " << control_command.ShortDebugString()
                                         << std::endl;
 
             auto raw_output = lora::serialize(control_command.command());
             interthread().publish<serial_out>(raw_output);
-        });
+        }
+    });
 
     interthread().subscribe<serial_in>([this](
                                             const goby::middleware::protobuf::IOData& io) {
