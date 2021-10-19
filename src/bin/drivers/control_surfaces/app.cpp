@@ -27,7 +27,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
-#include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/control_command.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -73,18 +73,21 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
     interprocess().subscribe<groups::control_command>(
         [this](const jaiabot::protobuf::ControlCommand& control_command) {
+
+        if (control_command.has_low_level_control()) {
             glog.is_verbose() && glog << group("main")
                                         << "Sending: " << control_command.ShortDebugString()
                                         << std::endl;
 
-            auto raw_output = lora::serialize(control_command.command());
+            auto raw_output = lora::serialize(control_command.low_level_control());
             interthread().publish<serial_out>(raw_output);
-        });
+        }
+    });
 
     interthread().subscribe<serial_in>([this](
                                             const goby::middleware::protobuf::IOData& io) {
 
-        auto control_ack = lora::parse<jaiabot::protobuf::ControlSurfacesAck>(io);
+        auto control_ack = lora::parse<jaiabot::protobuf::LowLevelAck>(io);
 
         glog.is_verbose() && glog << group("main")
                                     << control_ack.ShortDebugString() << std::endl;

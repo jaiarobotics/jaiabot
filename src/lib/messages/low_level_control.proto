@@ -2,7 +2,7 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
-message ControlSurfaces
+message LowLevelControl
 {
     required sint32 motor = 1;
     required sint32 port_elevator = 2;
@@ -11,7 +11,7 @@ message ControlSurfaces
     required sint32 timeout = 5;
 }
 
-message ControlSurfacesAck
+message LowLevelAck
 {
     required sint32 code = 1;
 }
