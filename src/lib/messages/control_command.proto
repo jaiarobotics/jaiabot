@@ -6,6 +6,14 @@ import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
 
+message Helm
+{
+    required float course = 1;
+    optional float course_kp = 2;
+    optional float course_ki = 3;
+    optional float course_kd = 4;
+}
+
 message ControlCommand
 {
     option (dccl.msg) = {
@@ -16,7 +24,11 @@ message ControlCommand
     required uint64 time = 3 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
-    required ControlSurfaces command = 4;
+
+    optional ControlSurfaces command = 4;
+
+    optional Helm helm = 5;
+
 }
 
 message ControlAck

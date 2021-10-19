@@ -1,14 +1,13 @@
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/example.proto
   jaiabot/messages/geographic_coordinate.proto
-  jaiabot/messages/low_control.proto
+  jaiabot/messages/control_command.proto
   jaiabot/messages/control_surfaces.proto
   jaiabot/messages/feather.proto
   jaiabot/messages/lora_test.proto
   jaiabot/messages/pt.proto
   jaiabot/messages/imu.proto
   jaiabot/messages/salinity.proto
-  jaiabot/messages/helm.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
