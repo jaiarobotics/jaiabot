@@ -1,10 +1,18 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
-import "jaiabot/messages/control_surfaces.proto";
+import "jaiabot/messages/low_level_control.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
+
+message Helm
+{
+    required float course = 1;
+    optional float course_kp = 2;
+    optional float course_ki = 3;
+    optional float course_kd = 4;
+}
 
 message ControlCommand
 {
@@ -16,7 +24,10 @@ message ControlCommand
     required uint64 time = 3 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
-    required ControlSurfaces command = 4;
+
+    optional LowLevelControl low_level_control = 4;
+
+    optional Helm helm = 5;
 }
 
 message ControlAck
