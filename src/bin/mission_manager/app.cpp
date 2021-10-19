@@ -26,7 +26,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/example.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "machine.h"
 
 using goby::glog;
@@ -38,6 +38,26 @@ namespace jaiabot
 {
 namespace apps
 {
+namespace groups
+{
+std::unique_ptr<goby::middleware::DynamicGroup> hub_command_this_bot;
+}
+
+class MissionManagerConfigurator
+    : public goby::middleware::ProtobufConfigurator<config::MissionManager>
+{
+  public:
+    MissionManagerConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<config::MissionManager>(argc, argv)
+    {
+        const auto& cfg = mutable_cfg();
+
+        // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
+        groups::hub_command_this_bot.reset(
+            new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
+    }
+};
+
 class MissionManager : public zeromq::MultiThreadApplication<config::MissionManager>
 {
   public:
@@ -58,6 +78,8 @@ class MissionManager : public zeromq::MultiThreadApplication<config::MissionMana
 
     void loop() override;
 
+    void handle_command(const protobuf::Command& command);
+
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
   private:
@@ -70,14 +92,14 @@ class MissionManager : public zeromq::MultiThreadApplication<config::MissionMana
 int main(int argc, char* argv[])
 {
     return goby::run<jaiabot::apps::MissionManager>(
-        goby::middleware::ProtobufConfigurator<jaiabot::config::MissionManager>(argc, argv));
+        jaiabot::apps::MissionManagerConfigurator(argc, argv));
 }
 
 // Main thread
 jaiabot::apps::MissionManager::MissionManager()
     : zeromq::MultiThreadApplication<config::MissionManager>(1 * si::hertz)
 {
-    interthread().subscribe<groups::state_change>(
+    interthread().subscribe<jaiabot::groups::state_change>(
         [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
 
@@ -87,6 +109,29 @@ jaiabot::apps::MissionManager::MissionManager()
             else
                 glog.is_verbose() && glog << group("main") << "Exited: " << state_name << std::endl;
         });
+
+    // subscribe for commands
+    {
+        auto on_command_subscribed =
+            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
+
+        // use vehicle ID as group for command
+        auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
+            return goby::middleware::Group(command.bot_id());
+        };
+
+        goby::middleware::Subscriber<protobuf::Command> command_subscriber{
+            cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
+
+        intervehicle().subscribe_dynamic<protobuf::Command>(
+            [this](const protobuf::Command& command) { handle_command(command); },
+            *groups::hub_command_this_bot, command_subscriber);
+    }
 }
 
 void jaiabot::apps::MissionManager::loop()
@@ -94,4 +139,9 @@ void jaiabot::apps::MissionManager::loop()
     protobuf::MissionReport report;
     report.set_state(machine_->state());
     interprocess().publish<jaiabot::groups::mission_report>(report);
+}
+
+void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
+{
+    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 }

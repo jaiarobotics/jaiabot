@@ -24,6 +24,7 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/transporter_config.proto";
 
 package jaiabot.config;
 
@@ -35,4 +36,5 @@ message HubManager
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
     
     repeated int32 managed_bot_modem_id = 10;
+    required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
 }
