@@ -51,7 +51,7 @@ message BotStatus
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 
-    required GeographicCoordinate location = 10;
+    optional GeographicCoordinate location = 10;
 
     optional double depth = 11
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -83,11 +83,11 @@ message BotStatus
             units { derived_dimensions: "plane_angle" system: "angle::degree" }
         }];
     }
-    required Attitude attitude = 20;
+    optional Attitude attitude = 20;
 
     message Speed
     {
-        required double over_ground = 1 [(dccl.field) = {
+        optional double over_ground = 1 [(dccl.field) = {
             min: -5
             max: 10
             precision: 1
@@ -100,7 +100,7 @@ message BotStatus
             units { derived_dimensions: "velocity" }
         }];
     }
-    required Speed speed = 30;
+    optional Speed speed = 30;
 
-    required MissionState mission_state = 40;
+    optional MissionState mission_state = 40;
 }
