@@ -24,14 +24,15 @@
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/navigation/navigation.h>
+#include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/moos/middleware/moos_plugin_translator.h>
-#include <goby/moos/protobuf/desired_course.pb.h>
 #include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/example.pb.h"
+#include "jaiabot/messages/high_control.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -53,21 +54,35 @@ class SimulatorTranslation : public goby::moos::Translator
     SimulatorTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
+        interprocess().subscribe<goby::middleware::groups::datum_update>(
+            [this](const goby::middleware::protobuf::DatumUpdate& datum_update) {
+                geodesy_.reset(new goby::util::UTMGeodesy({datum_update.datum().lat_with_units(),
+                                                           datum_update.datum().lon_with_units()}));
+            });
+
         namespace degree = boost::units::degree;
         using boost::units::quantity;
 
         std::vector<std::string> nav_buffer_params(
-            {"LAT", "LONG", "DEPTH", "SPEED", "ROLL", "PITCH", "HEADING", "HEADING_OVER_GROUND"});
+            {"X", "Y", "DEPTH", "SPEED", "ROLL", "PITCH", "HEADING", "HEADING_OVER_GROUND"});
         for (const auto& var : nav_buffer_params) moos().add_buffer("NAV_" + var);
         moos().add_trigger("NAV_SPEED", [this](const CMOOSMsg& msg) {
+            if (!geodesy_)
+                return;
+
             auto& moos_buffer = moos().buffer();
 
             goby::util::gps::RMC rmc;
             goby::util::gps::HDT hdt;
 
             rmc.status = goby::util::gps::RMC::DataValid;
-            rmc.latitude = moos_buffer["NAV_LAT"].GetDouble() * degree::degree;
-            rmc.longitude = moos_buffer["NAV_LONG"].GetDouble() * degree::degree;
+            auto x = moos_buffer["NAV_X"].GetDouble() * boost::units::si::meters;
+            auto y = moos_buffer["NAV_Y"].GetDouble() * boost::units::si::meters;
+
+            auto latlon = geodesy_->convert({x, y});
+
+            rmc.latitude = latlon.lat;
+            rmc.longitude = latlon.lon;
 
             rmc.speed_over_ground =
                 quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
@@ -89,28 +104,55 @@ class SimulatorTranslation : public goby::moos::Translator
             }
         });
 
-        goby()
-            .interprocess()
-            .subscribe<goby::middleware::frontseat::groups::desired_course,
-                       goby::middleware::frontseat::protobuf::DesiredCourse,
-                       goby::middleware::MarshallingScheme::PROTOBUF>(
-                [this](
-                    const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints) {
-                    glog.is_debug1() && glog << "Received desired course: "
-                                             << desired_setpoints.ShortDebugString() << std::endl;
+        goby().interprocess().subscribe<groups::desired_setpoints>(
+            [this](const protobuf::DesiredSetpoints& desired_setpoints) {
+                moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
 
-                    moos().comms().Notify("DESIRED_HEADING", desired_setpoints.heading());
-                    moos().comms().Notify("DESIRED_SPEED", desired_setpoints.speed());
-                    moos().comms().Notify("DESIRED_DEPTH", desired_setpoints.depth());
-
-                    static bool override_posted = false;
-                    if (!override_posted)
+                switch (desired_setpoints.type())
+                {
+                    case protobuf::SETPOINT_IVP_HELM:
                     {
-                        moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-                        override_posted = true;
+                        glog.is_debug1() &&
+                            glog << "Received desired course: "
+                                 << desired_setpoints.helm_course().ShortDebugString() << std::endl;
+
+                        moos().comms().Notify("DESIRED_HEADING",
+                                              desired_setpoints.helm_course().heading());
+                        moos().comms().Notify("DESIRED_SPEED",
+                                              desired_setpoints.helm_course().speed());
+                        moos().comms().Notify("DESIRED_DEPTH",
+                                              desired_setpoints.helm_course().depth());
                     }
-                });
+
+                    break;
+
+                    case protobuf::SETPOINT_STOP:
+                        moos().comms().Notify("DESIRED_HEADING", 0.0);
+                        moos().comms().Notify("DESIRED_SPEED", 0.0);
+                        moos().comms().Notify("DESIRED_DEPTH", 0.0);
+                        break;
+
+                    case protobuf::SETPOINT_REMOTE_CONTROL:
+                        // unimplemented
+                        break;
+
+                    case protobuf::SETPOINT_DIVE:
+                        // unimplemented
+                        break;
+
+                    case protobuf::SETPOINT_POWERED_ASCENT:
+                        moos().comms().Notify("DESIRED_HEADING", 0.0);
+
+                        // some high value for the simulator. real controller will presumably set some fixed RPM
+                        moos().comms().Notify("DESIRED_SPEED", 5.0);
+                        moos().comms().Notify("DESIRED_DEPTH", 0.0);
+                        break;
+                }
+            });
     }
+
+  private:
+    std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>

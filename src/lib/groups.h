@@ -31,19 +31,27 @@ namespace groups
 {
 constexpr goby::middleware::Group example{"jaiabot::example"};
 
+// lora
 constexpr goby::middleware::Group lora_rx{"jaiabot::lora_rx"};
 constexpr goby::middleware::Group lora_tx{"jaiabot::lora_tx"};
 constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 
+// sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pt{"jaiabot::pt"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
+// low control
 constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 
+// high control
+constexpr goby::middleware::Group desired_setpoints{"jaiabot::desired_setpoints"};
+
+// mission manager
 constexpr goby::middleware::Group mission_report{"jaiabot::mission_report"};
 
+// DCCL (intervehicle)
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
                                              goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
