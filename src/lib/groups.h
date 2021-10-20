@@ -39,7 +39,7 @@ constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pt{"jaiabot::pt"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
-constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
+constexpr goby::middleware::Group vehicle_command{"jaiabot::vehicle_command"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 
 } // namespace groups

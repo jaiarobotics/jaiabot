@@ -26,7 +26,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/control_command.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
@@ -82,42 +82,46 @@ jaiabot::apps::PIDControl::PIDControl()
     course_pid = new Pid(&track, &rudder, &course, kp, ki, kd);
     course_pid->set_auto();
 
-    // Subscribe to Helm messages
-    interprocess().subscribe<groups::control_command>(
-        [this](const jaiabot::protobuf::ControlCommand& cmd) {
+    // Subscribe to Helm_command messages
+    interprocess().subscribe<groups::vehicle_command>(
+        [this](const jaiabot::protobuf::VehicleCommand& cmd) {
+            if (cmd.has_helm_command())
+            {
+                auto helm_command = cmd.helm_command();
 
-        if (cmd.has_helm()) {
-            auto helm = cmd.helm();
+                glog.is_debug1() && glog << "Received helm_command command: "
+                                         << helm_command.ShortDebugString() << std::endl;
 
-            glog.is_debug1() && glog << "Received helm command: " << helm.ShortDebugString() << std::endl;
+                course = helm_command.course();
 
-            course = helm.course();
+                bool gains_changed = false;
 
-            bool gains_changed = false;
+                if (helm_command.has_course_kp())
+                {
+                    kp = helm_command.course_kp();
+                    gains_changed = true;
+                }
 
-            if (helm.has_course_kp()) {
-                kp = helm.course_kp();
-                gains_changed = true;
+                if (helm_command.has_course_ki())
+                {
+                    ki = helm_command.course_ki();
+                    gains_changed = true;
+                }
+
+                if (helm_command.has_course_kd())
+                {
+                    kd = helm_command.course_kd();
+                    gains_changed = true;
+                }
+
+                if (gains_changed)
+                {
+                    delete course_pid;
+                    course_pid = new Pid(&track, &rudder, &course, kp, ki, kd);
+                    course_pid->set_auto();
+                }
             }
-
-            if (helm.has_course_ki()) {
-                ki = helm.course_ki();
-                gains_changed = true;
-            }
-
-            if (helm.has_course_kd()) {
-                kd = helm.course_kd();
-                gains_changed = true;
-            }
-
-            if (gains_changed) {
-                delete course_pid;
-                course_pid = new Pid(&track, &rudder, &course, kp, ki, kd);
-                course_pid->set_auto();
-            }
-        }
-
-    });
+        });
 
     // Subscribe to get actual vehicle track
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
@@ -152,11 +156,11 @@ void jaiabot::apps::PIDControl::loop() {
 
     glog.is_debug1() && glog << group("main") << "course = " << course << ", track = " << track << ", value = " << rudder << std::endl;
 
-    // Publish the ControlCommand
+    // Publish the VehicleCommand
 
-    jaiabot::protobuf::ControlCommand cmd_msg;
+    jaiabot::protobuf::VehicleCommand cmd_msg;
 
-    auto& cmd = *cmd_msg.mutable_low_level_control();
+    auto& cmd = *cmd_msg.mutable_low_level_command();
 
     static std::atomic<int> id(0);
 
@@ -169,6 +173,5 @@ void jaiabot::apps::PIDControl::loop() {
     cmd.set_rudder(rudder);
     cmd.set_motor(0);
 
-    interprocess().publish<groups::control_command>(cmd_msg);
-
+    interprocess().publish<groups::vehicle_command>(cmd_msg);
 }
