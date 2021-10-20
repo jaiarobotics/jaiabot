@@ -107,10 +107,14 @@ jaiabot::apps::Fusion::Fusion()
                 latest_bot_status_.mutable_location()->set_lat_with_units(lat);
                 latest_bot_status_.mutable_location()->set_lon_with_units(lon);
 
-                auto xy = geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
-                                             latest_node_status_.global_fix().lon_with_units()});
-                latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
-                latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                if (has_geodesy())
+                {
+                    auto xy =
+                        geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
+                                           latest_node_status_.global_fix().lon_with_units()});
+                    latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+                    latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                }
             }
 
             if (tpv.has_speed())
@@ -159,7 +163,4 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_pose();
 }
 
-void jaiabot::apps::Fusion::init_bot_status()
-{
-    latest_bot_status_.set_bot_id(cfg().bot_id());
-}
+void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }

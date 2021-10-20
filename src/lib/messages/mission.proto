@@ -117,4 +117,13 @@ message MissionPlan
         optional Task task = 3;
     }
     repeated Goal goal = 2 [(dccl.field).max_repeat = 20];
+
+    enum MissionStart
+    {
+        START_IMMEDIATELY = 1;
+        // START_IN_WATER_DETECT = 2;
+        // START_AFTER_DELAY = 3;
+    }
+    required MissionStart start = 3;
+    
 }
