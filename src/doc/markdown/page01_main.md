@@ -11,7 +11,7 @@
 - [Logging](page40_logging.md)
 - [Communications](page50_communications.md)
     - [VPN](page55_vpn.md)
-
+- [Mission Management](page60_mission_management.md)
 
 ## Documentation Information
 

@@ -33,4 +33,6 @@ message Fusion
     optional goby.middleware.protobuf.AppConfig app = 1;
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    required int32 bot_id = 10;
 }
