@@ -102,5 +102,6 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
             dccl_nav.speed().over_ground_with_units());
 
     // publish for opencpn interface
-    interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+    if(node_status.IsInitialized())
+       interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
 }
