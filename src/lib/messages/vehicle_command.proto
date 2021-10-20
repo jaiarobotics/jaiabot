@@ -19,31 +19,31 @@ message VehicleCommand
 
     enum CommandType
     {
-        LowLevelControl = 1;
+        LowLevel = 1;
         Helm = 2;
         Dive = 3;
     }
-    required CommandType = 4;
+    required CommandType command_type = 4;
 
-    optional LowLevelControl low_level_control = 5;
+    optional LowLevelControl low_level_command = 5;
 
-    message Helm
+    message HelmCommand
     {
         required float course = 1;
         optional float course_kp = 2;
         optional float course_ki = 3;
         optional float course_kd = 4;
     }
-    optional Helm helm = 6;
+    optional HelmCommand helm_command = 6;
 
-    message Dive
+    message DiveCommand
     {
         required float depth = 1;
         optional float speed = 2;
         optional int32 interval_count = 3;
         optional float interval_duration = 4;
     }
-    optional Dive dive = 7;
+    optional DiveCommand dive_command = 7;
 }
 
 message ControlAck

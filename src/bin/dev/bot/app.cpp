@@ -32,7 +32,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
-#include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -106,13 +106,12 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 
 
     // command from Xbee -> jaiabot_lora_test
-    interthread().subscribe<serial_in>([this](
-                                           const goby::middleware::protobuf::IOData& io) {
-        auto pb_msg = lora::parse<jaiabot::protobuf::ControlCommand>(io);
+    interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
+        auto pb_msg = lora::parse<jaiabot::protobuf::VehicleCommand>(io);
         glog.is_debug1() && glog << group("main")
                                   << "Received: " << pb_msg.ShortDebugString() << std::endl;
 
-        interprocess().publish<groups::control_command>(pb_msg);
+        interprocess().publish<groups::vehicle_command>(pb_msg);
 
         protobuf::ControlAck ack;
         ack.set_id(pb_msg.id());
@@ -121,29 +120,26 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
         ack.set_command_time(pb_msg.time());
 
         // Add location
-//                if (latest_gps_tpv_.has_location())
-//                {
-            ack.mutable_location()->set_lat_with_units(
-                latest_gps_tpv_.location().lat_with_units());
-            ack.mutable_location()->set_lon_with_units(
-                latest_gps_tpv_.location().lon_with_units());
-//                }
-//                else
-//                {
-//                    ack.mutable_location()->set_lat(goby::util::NaN<double>);
-//                    ack.mutable_location()->set_lon(goby::util::NaN<double>);
-//                }
+        //                if (latest_gps_tpv_.has_location())
+        //                {
+        ack.mutable_location()->set_lat_with_units(latest_gps_tpv_.location().lat_with_units());
+        ack.mutable_location()->set_lon_with_units(latest_gps_tpv_.location().lon_with_units());
+        //                }
+        //                else
+        //                {
+        //                    ack.mutable_location()->set_lat(goby::util::NaN<double>);
+        //                    ack.mutable_location()->set_lon(goby::util::NaN<double>);
+        //                }
 
-            // Add speed
-            ack.set_speed(latest_gps_tpv_.speed());
-            ack.set_eps(latest_gps_tpv_.eps());
+        // Add speed
+        ack.set_speed(latest_gps_tpv_.speed());
+        ack.set_eps(latest_gps_tpv_.eps());
 
-            glog.is_debug1() && glog << group("main") << "Sending: " << ack.ShortDebugString()
-                                     << std::endl;
-            auto io_ack = lora::serialize(ack);
-            interthread().publish<serial_out>(io_ack);
+        glog.is_debug1() && glog << group("main") << "Sending: " << ack.ShortDebugString()
+                                 << std::endl;
+        auto io_ack = lora::serialize(ack);
+        interthread().publish<serial_out>(io_ack);
     });
-
 }
 
 void jaiabot::apps::ControlSurfacesTest::loop() {}

@@ -1,9 +1,17 @@
 #ifndef LIAISON_JAIABOT_H
 #define LIAISON_JAIABOT_H
 
+#include <Wt/WButtonGroup>
+#include <Wt/WComboBox>
+#include <Wt/WContainerWidget>
 #include <Wt/WEvent>
+#include <Wt/WGroupBox>
+#include <Wt/WLabel>
+#include <Wt/WPanel>
 #include <Wt/WPushButton>
+#include <Wt/WRadioButton>
 #include <Wt/WSlider>
+#include <Wt/WStackedWidget>
 #include <boost/thread/mutex.hpp>
 #include <chrono>
 
@@ -15,12 +23,11 @@
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/pt.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 #include "config.pb.h"
-#include "jaiabot/messages/feather.pb.h"
-#include "jaiabot/messages/pt.pb.h"
 
 namespace jaiabot
 {
@@ -38,7 +45,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_pt(const jaiabot::protobuf::PTData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
-    void post_control_command(const jaiabot::protobuf::ControlCommand& control_command);
+    void post_vehicle_command(const jaiabot::protobuf::VehicleCommand& vehicle_command);
 
   private:
     void loop();
@@ -58,49 +65,111 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     {
         VehicleData(Wt::WStackedWidget*, const protobuf::JaiabotConfig&);
 
-        Wt::WContainerWidget* vehicle_div;
+        Wt::WContainerWidget* vehicle_cont;
 
         struct Controls
         {
-            Controls(Wt::WContainerWidget* vehicle_div, const protobuf::JaiabotConfig& cfg);
+            Controls(Wt::WContainerWidget* vehicle_cont, const protobuf::JaiabotConfig& cfg);
 
-            Wt::WGroupBox* controls_box;
+            // Button Group
+            Wt::WGroupBox* button_box;
+            Wt::WButtonGroup* button_group;
+            Wt::WRadioButton* button_low_level;
+            Wt::WRadioButton* button_pid;
+            Wt::WRadioButton* button_dive;
+            // Low Level
+            Wt::WGroupBox* low_level_box;
+            // --Timeout, Thrust, and Dive
+            Wt::WContainerWidget* timeout_dive_thrust_cont;
+            // --==Timeout
             Wt::WGroupBox* timeout_box;
             Wt::WSlider* timeout_slider;
-            Wt::WContainerWidget* timeout_text_box;
+            Wt::WContainerWidget* timeout_text_cont;
             Wt::WText* timeout_text{0};
+            // --==Thrust
+            Wt::WGroupBox* thrust_box;
+            Wt::WText* thrust_left_text{0};
+            Wt::WSlider* thrust_slider;
+            Wt::WText* thrust_right_text{0};
+            Wt::WContainerWidget* thrust_text_cont;
+            Wt::WText* thrust_text{0};
+            // --==Dive
             Wt::WGroupBox* dive_box;
-            Wt::WContainerWidget* dive_button_box;
+            Wt::WContainerWidget* dive_button_cont;
             Wt::WPushButton* dive_button{0};
-            Wt::WContainerWidget* dive_slider_box;
+            Wt::WContainerWidget* dive_slider_cont;
             Wt::WSlider* dive_slider;
-            Wt::WContainerWidget* dive_text_box;
+            Wt::WContainerWidget* dive_text_cont;
             Wt::WText* dive_text{0};
-            Wt::WGroupBox* motor_box;
-            Wt::WText* motor_left_text{0};
-            Wt::WSlider* motor_slider;
-            Wt::WText* motor_right_text{0};
-            Wt::WContainerWidget* motor_text_box;
-            Wt::WText* motor_text{0};
+            // --Fins
             Wt::WGroupBox* fins_box;
             Wt::WSlider* port_elevator_slider;
             Wt::WText* rudder_left_text{0};
             Wt::WSlider* rudder_slider;
             Wt::WText* rudder_right_text{0};
             Wt::WSlider* stbd_elevator_slider;
-            Wt::WContainerWidget* fins_text_box;
+            Wt::WContainerWidget* fins_text_cont;
             Wt::WText* fins_text{0};
+            // --Ack
             Wt::WGroupBox* ack_box;
             Wt::WText* ack_text{0};
             Wt::WGroupBox* data_box;
             Wt::WText* data_text{0};
+            // PID Controls
+            Wt::WGroupBox* pid_box;
+            // --PID Course
+            Wt::WGroupBox* pid_course_box;
+            Wt::WSlider* pid_course_slider;
+            Wt::WSlider* pid_course_kp_slider;
+            Wt::WSlider* pid_course_ki_slider;
+            Wt::WSlider* pid_course_kd_slider;
+            Wt::WContainerWidget* pid_course_text_cont;
+            Wt::WText* pid_course_text{0};
 
             protobuf::ControlAck latest_ack;
+
+            enum CommandMode
+            {
+                low_level_command,
+                pid_command,
+                dive_command
+            };
+            // I made this a pointer so I could connect it to a slot.
+            CommandMode* command_mode;
 
             // must be static, not sure why (segfault in JSignal otherwise)
             static void timeout_slider_moved(int value, Wt::WText* text)
             {
                 text->setText(timeout_text_from_value(value));
+            }
+
+            static void button_changed(Wt::WRadioButton* button, Wt::WButtonGroup* button_group,
+                                       Wt::WGroupBox* low_level_box, Wt::WGroupBox* pid_box,
+                                       CommandMode* command_mode, Wt::WText* text)
+            {
+                text->setText("So stupid, so dumb.");
+                switch (button_group->checkedId())
+                {
+                    case 0:
+                        text->setText("Zero");
+                        low_level_box->show();
+                        pid_box->hide();
+                        *command_mode = low_level_command;
+                        break;
+                    case 1:
+                        text->setText("One");
+                        low_level_box->hide();
+                        pid_box->show();
+                        *command_mode = pid_command;
+                        break;
+                    case 2:
+                        // Stub for Dive mode
+                        break;
+                    default:
+                        text->setText("FUBAR");
+                        low_level_box->hide();
+                        pid_box->hide();
+                }
             }
 
             static void dive_slider_moved(int value, Wt::WText* text)
@@ -110,9 +179,9 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
             static void dive_button_clicked(Wt::WMouseEvent) { dive_start_ = true; }
 
-            static void motor_slider_moved(int value, Wt::WText* text)
+            static void thrust_slider_moved(int value, Wt::WText* text)
             {
-                text->setText(motor_text_from_value(value));
+                text->setText(thrust_text_from_value(value));
             }
 
             static void port_elevator_slider_moved(int value, Wt::WText* text,
@@ -131,6 +200,11 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             {
                 text->setText(
                     fins_text_from_value(port_elevator->value(), stbd_elevator->value(), value));
+            }
+
+            static void pid_course_slider_moved(int value, Wt::WText* text)
+            {
+                text->setText(pid_course_text_from_value(value));
             }
 
             void set_port_elevator_value(int value)
@@ -157,10 +231,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                                                         rudder_slider->value()));
             }
 
-            void set_motor_value(int value)
+            void set_thrust_value(int value)
             {
-                motor_slider->setValue(value);
-                motor_text->setText(motor_text_from_value(motor_slider->value()));
+                thrust_slider->setValue(value);
+                thrust_text->setText(thrust_text_from_value(thrust_slider->value()));
             }
 
             void set_timeout_value(int value)
@@ -174,9 +248,15 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                 dive_slider->setValue(value);
                 dive_text->setText(dive_text_from_value(dive_slider->value()));
             }
+
+            void set_pid_course_value(int value)
+            {
+                pid_course_slider->setValue(value);
+                pid_course_text->setText(pid_course_text_from_value(pid_course_slider->value()));
+            }
         };
 
-        Controls low_level_control;
+        Controls controls;
 
         int index_in_stack{0};
 
@@ -190,9 +270,9 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             return "Dive (Y-/U+): " + std::to_string(value);
         }
 
-        static std::string motor_text_from_value(int value)
+        static std::string thrust_text_from_value(int value)
         {
-            return "Motor (W-/R+): " + std::to_string(value);
+            return "Thrust (W-/R+): " + std::to_string(value);
         }
         static std::string fins_text_from_value(int port_elevator_value, int stbd_elevator_value,
                                                 int rudder_value)
@@ -203,24 +283,38 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
                    std::to_string(stbd_elevator_value) +
                    "<br/>Rudder (S-/F+): " + std::to_string(rudder_value);
         }
+
+        static std::string pid_course_text_from_value(int value)
+        {
+            return "PID Rudder Course (O-/P+): " + std::to_string(value);
+        }
     };
 
     // vehicle id to Data
     std::map<int, VehicleData> vehicle_data_;
 
-    // convenient info shown on vehicle's liaison
+    // Top-most container
+    Wt::WContainerWidget* bot_top_cont_;
+    // --Vehicle Command
+    Wt::WGroupBox* bot_vehicle_command_box_;
+    Wt::WText* bot_vehicle_command_text_;
+    // --Node Status
     Wt::WGroupBox* bot_node_status_box_;
     Wt::WText* bot_node_status_text_;
-    Wt::WGroupBox* bot_tpv_box_;
-    Wt::WText* bot_tpv_text_;
-    Wt::WGroupBox* bot_pt_box_;
-    Wt::WText* bot_pt_text_;
-    Wt::WGroupBox* bot_salinity_box_;
-    Wt::WText* bot_salinity_text_;
+    // --IMU
     Wt::WGroupBox* bot_imu_box_;
     Wt::WText* bot_imu_text_;
-    Wt::WGroupBox* bot_control_command_box_;
-    Wt::WText* bot_control_command_text_;
+    // --Sensors
+    Wt::WGroupBox* bot_sensor_box_;
+    // --==Pressure & Temperature
+    Wt::WGroupBox* bot_pt_box_;
+    Wt::WText* bot_pt_text_;
+    // --==Salinity
+    Wt::WGroupBox* bot_salinity_box_;
+    Wt::WText* bot_salinity_text_;
+    // --TPV
+    Wt::WGroupBox* bot_tpv_box_;
+    Wt::WText* bot_tpv_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -274,9 +368,9 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         });
 
         // post the control surfaces data in its own box
-        interprocess().subscribe<groups::control_command>(
-            [this](const jaiabot::protobuf::ControlCommand& control_command) {
-                tab_->post_to_wt([=]() { tab_->post_control_command(control_command); });
+        interprocess().subscribe<groups::vehicle_command>(
+            [this](const jaiabot::protobuf::VehicleCommand& vehicle_command) {
+                tab_->post_to_wt([=]() { tab_->post_vehicle_command(vehicle_command); });
             });
 
     } // namespace jaiabot

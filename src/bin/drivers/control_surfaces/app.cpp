@@ -27,7 +27,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
-#include "jaiabot/messages/control_command.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -71,18 +71,18 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
-    interprocess().subscribe<groups::control_command>(
-        [this](const jaiabot::protobuf::ControlCommand& control_command) {
+    interprocess().subscribe<groups::vehicle_command>(
+        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command) {
+            if (vehicle_command.has_low_level_command())
+            {
+                glog.is_verbose() && glog << group("main")
+                                          << "Sending: " << vehicle_command.ShortDebugString()
+                                          << std::endl;
 
-        if (control_command.has_low_level_control()) {
-            glog.is_verbose() && glog << group("main")
-                                        << "Sending: " << control_command.ShortDebugString()
-                                        << std::endl;
-
-            auto raw_output = lora::serialize(control_command.low_level_control());
-            interthread().publish<serial_out>(raw_output);
-        }
-    });
+                auto raw_output = lora::serialize(vehicle_command.low_level_command());
+                interthread().publish<serial_out>(raw_output);
+            }
+        });
 
     interthread().subscribe<serial_in>([this](
                                             const goby::middleware::protobuf::IOData& io) {
