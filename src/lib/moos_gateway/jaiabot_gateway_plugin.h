@@ -22,9 +22,18 @@ class IvPHelmTranslation : public goby::moos::Translator
 
         goby().interprocess().subscribe<jaiabot::groups::mission_report>(
             [this](const protobuf::MissionReport& report) {
-                moos().comms().Notify("JAIA_MISSION_STATE",
+                moos().comms().Notify("JAIABOT_MISSION_STATE",
                                       jaiabot::protobuf::MissionState_Name(report.state()));
             });
+
+        moos().add_trigger("JAIABOT_TRANSIT_COMPLETE", [this](const CMOOSMsg& msg) {
+            if (msg.GetString() == "true")
+            {
+                protobuf::IvPBehaviorReport report;
+                report.mutable_transit()->set_waypoint_reached(true);
+                goby().interprocess().publish<jaiabot::groups::mission_ivp_behavior_report>(report);
+            }
+        });
     }
 
   private:

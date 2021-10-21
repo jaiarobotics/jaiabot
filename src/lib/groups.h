@@ -51,6 +51,7 @@ constexpr goby::middleware::Group desired_setpoints{"jaiabot::desired_setpoints"
 // mission manager
 constexpr goby::middleware::Group mission_report{"jaiabot::mission_report"};
 constexpr goby::middleware::Group mission_ivp_behavior_update{"jaiabot::mission_ivp_behavior_update"};
+constexpr goby::middleware::Group mission_ivp_behavior_report{"jaiabot::mission_ivp_behavior_report"};
 
 // DCCL (intervehicle)
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",

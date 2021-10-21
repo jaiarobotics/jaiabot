@@ -23,4 +23,8 @@ message MissionManager
         default = 2,
         (dccl.field).units = { base_dimensions: "LT^-1" }
     ];  // meters/second
+    optional double stationkeep_outer_speed = 21 [
+        default = 1,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
 }

@@ -5,6 +5,7 @@
 #include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/deep_history.hpp>
 #include <boost/statechart/event.hpp>
+#include <boost/statechart/in_state_reaction.hpp>
 #include <boost/statechart/state.hpp>
 #include <boost/statechart/state_machine.hpp>
 #include <boost/statechart/transition.hpp>
@@ -52,11 +53,11 @@ struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
 
 STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
+STATECHART_EVENT(EvWaypointReached)
 STATECHART_EVENT(EvPerformTask)
 STATECHART_EVENT(EvTaskComplete)
 STATECHART_EVENT(EvNewMission)
 STATECHART_EVENT(EvReturnToHome)
-STATECHART_EVENT(EvRecoveryPointReached)
 STATECHART_EVENT(EvStop)
 STATECHART_EVENT(EvAbort)
 STATECHART_EVENT(EvRecovered)
@@ -318,16 +319,29 @@ struct Underway
 
     int goal_index() { return goal_index_; }
 
-    protobuf::MissionPlan::Goal current_goal()
+    boost::optional<protobuf::MissionPlan::Goal> current_goal()
     {
-        return this->machine().mission_plan().goal(goal_index());
+        if (mission_complete_)
+            return boost::none;
+        else
+            return boost::optional<protobuf::MissionPlan::Goal>(
+                this->machine().mission_plan().goal(goal_index()));
+    }
+
+    protobuf::MissionPlan::Goal final_goal()
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        return mission_plan.goal(mission_plan.goal_size() - 1);
     }
 
     boost::optional<protobuf::MissionPlan::Goal::Task> current_task()
     {
+        if (mission_complete_)
+            return boost::none;
+
         const auto& plan = this->machine().mission_plan();
-        if (plan.goal(goal_index()).has_task())
-            return boost::optional<protobuf::MissionPlan::Goal::Task>();
+        if (!plan.goal(goal_index()).has_task())
+            return boost::none;
         else
             return boost::optional<protobuf::MissionPlan::Goal::Task>(
                 plan.goal(goal_index()).task());
@@ -338,11 +352,19 @@ struct Underway
         ++goal_index_;
         // all goals completed
         if (goal_index_ >= this->machine().mission_plan().goal_size())
+        {
+            goby::glog.is_verbose() && goby::glog << group("movement")
+                                                  << "All goals complete, mission is complete."
+                                                  << std::endl;
+
             post_event(EvReturnToHome());
+            mission_complete_ = true;
+        }
     }
 
   private:
     int goal_index_{0};
+    bool mission_complete_{false};
 };
 
 namespace underway
@@ -407,7 +429,7 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
             case protobuf::MissionPlan::REMOTE_CONTROL: return transit<RemoteControl>();
         }
 
-        // should never reach here bust if does, abort the mission
+        // should never reach here but if does, abort the mission
         return transit<underway::Abort>();
     }
 
@@ -422,6 +444,11 @@ struct Transit : boost::statechart::state<Transit, Movement>,
     using StateBase = boost::statechart::state<Transit, Movement>;
     Transit(typename StateBase::my_context c);
     ~Transit() {}
+
+    void waypoint_reached(const EvWaypointReached&) { post_event(EvPerformTask()); }
+
+    using reactions = boost::statechart::in_state_reaction<EvWaypointReached, Transit,
+                                                           &Transit::waypoint_reached>;
 };
 
 struct RemoteControl : boost::statechart::state<RemoteControl, Movement>,
@@ -586,11 +613,11 @@ struct Transit : boost::statechart::state<Transit, Recovery>,
                         >
 {
     using StateBase = boost::statechart::state<Transit, Recovery>;
-    Transit(typename StateBase::my_context c) : StateBase(c) {}
+    Transit(typename StateBase::my_context c);
     ~Transit() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvRecoveryPointReached, StationKeep>>;
+        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
@@ -599,8 +626,8 @@ struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
                             >
 {
     using StateBase = boost::statechart::state<StationKeep, Recovery>;
-    StationKeep(typename StateBase::my_context c) : StateBase(c) {}
-    ~StationKeep() {}
+    StationKeep(typename StateBase::my_context c);
+    ~StationKeep();
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvStop, Stopped>>;
 };
