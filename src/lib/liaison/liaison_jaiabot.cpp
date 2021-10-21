@@ -136,6 +136,8 @@ void jaiabot::LiaisonJaiabot::loop()
         {
             case VehicleData::Controls::low_level_command:
                 std::cout << "low level" << std::endl;
+                vehicle_command.set_command_type(
+                    jaiabot::protobuf::VehicleCommand_CommandType_LowLevel);
 
                 low_level_command.set_timeout(controls.timeout_slider->value());
                 low_level_command.set_port_elevator(controls.port_elevator_slider->value());
@@ -155,10 +157,16 @@ void jaiabot::LiaisonJaiabot::loop()
                 }
                 break;
 
-            case VehicleData::Controls::pid_command: std::cout << "pid" << std::endl; break;
+            case VehicleData::Controls::pid_command:
+                std::cout << "pid" << std::endl;
+                vehicle_command.set_command_type(
+                    jaiabot::protobuf::VehicleCommand_CommandType_Helm);
+                break;
             case VehicleData::Controls::dive_command:
                 // Not implemented yet
                 std::cout << "dive" << std::endl;
+                vehicle_command.set_command_type(
+                    jaiabot::protobuf::VehicleCommand_CommandType_Dive);
                 break;
             default: std::cout << "default" << std::endl; break;
         }

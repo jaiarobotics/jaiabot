@@ -167,6 +167,7 @@ void jaiabot::apps::PIDControl::loop() {
     cmd_msg.set_id(id++);
     cmd_msg.set_vehicle(1); // Set this to correct value?
     cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    cmd_msg.set_command_type(jaiabot::protobuf::VehicleCommand_CommandType_LowLevel);
     cmd.set_timeout(2);
     cmd.set_port_elevator(0);
     cmd.set_stbd_elevator(0);
