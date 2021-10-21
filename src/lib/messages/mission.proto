@@ -125,5 +125,24 @@ message MissionPlan
         // START_AFTER_DELAY = 3;
     }
     required MissionStart start = 3;
-    
+}
+
+message IvPBehaviorUpdate
+{
+    message TransitUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+        required double x = 1 [(dccl.field).units = { base_dimensions: "L" }]; // meters
+        required double y = 2 [(dccl.field).units = { base_dimensions: "L" }]; // meters
+        required double speed = 3
+            [(dccl.field).units = { base_dimensions: "LT^-1" }]; // meters/second
+    }
+
+    oneof behavior
+    {
+        TransitUpdate transit = 1;
+    }
 }

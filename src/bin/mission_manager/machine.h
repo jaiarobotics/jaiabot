@@ -16,6 +16,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "machine_common.h"
 
 namespace jaiabot
 {
@@ -69,29 +70,6 @@ STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 #undef STATECHART_EVENT
-
-// provides access to parent App's methods (e.g. interthread() and interprocess()) from within the states' structs
-template <typename Derived> class AppMethodsAccess
-{
-  protected:
-    goby::zeromq::InterProcessPortal<goby::middleware::InterThreadTransporter>& interprocess()
-    {
-        return app().interprocess();
-    }
-
-    goby::middleware::InterThreadTransporter& interthread() { return app().interthread(); }
-
-    const apps::MissionManager& app() const
-    {
-        return static_cast<const Derived*>(this)->outermost_context().app();
-    }
-
-    MissionManagerStateMachine& machine()
-    {
-        return static_cast<Derived*>(this)->outermost_context();
-    }
-    apps::MissionManager& app() { return machine().app(); }
-};
 
 // RAII publication of state changes
 template <typename Derived, jaiabot::protobuf::MissionState state,
@@ -198,6 +176,7 @@ struct MissionManagerStateMachine
     jaiabot::protobuf::SetpointType setpoint_type() { return setpoint_type_; }
 
     apps::MissionManager& app() { return app_; }
+    const apps::MissionManager& app() const { return app_; }
 
     void set_mission_plan(const jaiabot::protobuf::MissionPlan& plan)
     {
@@ -339,6 +318,11 @@ struct Underway
 
     int goal_index() { return goal_index_; }
 
+    protobuf::MissionPlan::Goal current_goal()
+    {
+        return this->machine().mission_plan().goal(goal_index());
+    }
+
     boost::optional<protobuf::MissionPlan::Goal::Task> current_task()
     {
         const auto& plan = this->machine().mission_plan();
@@ -436,7 +420,7 @@ struct Transit : boost::statechart::state<Transit, Movement>,
                         >
 {
     using StateBase = boost::statechart::state<Transit, Movement>;
-    Transit(typename StateBase::my_context c) : StateBase(c) {}
+    Transit(typename StateBase::my_context c);
     ~Transit() {}
 };
 

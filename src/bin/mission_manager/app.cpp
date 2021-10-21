@@ -20,16 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <goby/middleware/marshalling/protobuf.h>
-// this space intentionally left blank
-#include <goby/middleware/frontseat/groups.h>
-#include <goby/middleware/protobuf/frontseat_data.pb.h>
-#include <goby/zeromq/application/multi_thread.h>
-
-#include "config.pb.h"
-#include "jaiabot/groups.h"
-#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "machine.h"
+#include "mission_manager.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -59,42 +51,6 @@ class MissionManagerConfigurator
             new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
     }
 };
-
-class MissionManager : public zeromq::MultiThreadApplication<config::MissionManager>
-{
-  public:
-    MissionManager();
-
-  private:
-    void initialize() override
-    {
-        machine_.reset(new statechart::MissionManagerStateMachine(*this));
-        machine_->initiate();
-
-        machine_->process_event(statechart::EvTurnOn());
-
-        // TODO: remove placeholder when actual subscriptions are added
-        handle_self_test_results(true);
-    }
-
-    void finalize() override
-    {
-        machine_->terminate();
-        machine_.reset();
-    }
-
-    void loop() override;
-
-    void handle_command(const protobuf::Command& command);
-
-    void handle_self_test_results(bool result); // TODO: replace with Protobuf message
-
-    template <typename Derived> friend class statechart::AppMethodsAccess;
-
-  private:
-    std::unique_ptr<statechart::MissionManagerStateMachine> machine_;
-};
-
 } // namespace apps
 } // namespace jaiabot
 
@@ -105,6 +61,23 @@ int main(int argc, char* argv[])
 }
 
 // Main thread
+void jaiabot::apps::MissionManager::initialize()
+{
+    machine_.reset(new statechart::MissionManagerStateMachine(*this));
+    machine_->initiate();
+
+    machine_->process_event(statechart::EvTurnOn());
+
+    // TODO: remove placeholder when actual subscriptions are added
+    handle_self_test_results(true);
+}
+
+void jaiabot::apps::MissionManager::finalize()
+{
+    machine_->terminate();
+    machine_.reset();
+}
+
 jaiabot::apps::MissionManager::MissionManager()
     : zeromq::MultiThreadApplication<config::MissionManager>(1 * si::hertz)
 {
@@ -186,7 +159,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
             if (mission_is_feasible)
             {
-                // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if the event is handled
+                // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
                 machine_->process_event(statechart::EvMissionFeasible(command.plan()));
             }
             else
