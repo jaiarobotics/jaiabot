@@ -131,6 +131,20 @@ jaiabot::apps::MissionManager::MissionManager()
                 interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
             }
         });
+
+    // subscribe for reports from the pHelmIvP behaviors
+    interprocess().subscribe<jaiabot::groups::mission_ivp_behavior_report>(
+        [this](const protobuf::IvPBehaviorReport& report) {
+            switch (report.behavior_case())
+            {
+                case protobuf::IvPBehaviorReport::kTransit:
+                    if (report.transit().waypoint_reached())
+                        machine_->process_event(statechart::EvWaypointReached());
+                    break;
+
+                case protobuf::IvPBehaviorReport::BEHAVIOR_NOT_SET: break;
+            }
+        });
 }
 
 void jaiabot::apps::MissionManager::loop()

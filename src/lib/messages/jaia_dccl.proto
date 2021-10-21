@@ -10,7 +10,7 @@ message Command
 {
     option (dccl.msg) = {
         id: 80
-        max_bytes: 256
+        max_bytes: 250
         codec_version: 3
         unit_system: "si"
     };
