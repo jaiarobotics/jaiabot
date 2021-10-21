@@ -4,6 +4,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.p
 
 add_executable(${APP}
   app.cpp
+  machine.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}
