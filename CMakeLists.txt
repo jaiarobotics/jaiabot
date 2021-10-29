@@ -143,10 +143,9 @@ add_subdirectory(src)
 
 
 if(export_goby_interfaces)
-  #generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.pdf "--no-disconnected")
-  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*Notify.*'")
+  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/loratest_deployment.yml ${YML_OUT_DIR} loratest_interfaces.svg "${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
