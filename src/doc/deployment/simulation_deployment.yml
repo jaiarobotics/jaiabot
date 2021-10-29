@@ -4,7 +4,8 @@ platforms:
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_opencpn_interface_interface.yml
       - jaiabot_hub_manager_interface.yml
-      - jaiabot_liaison_interface.yml
+      - application: goby_liaison
+        file: jaiabot_liaison_interface.yml
   - name: bot
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml

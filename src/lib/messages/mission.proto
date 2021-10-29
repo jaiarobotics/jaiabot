@@ -56,10 +56,11 @@ message MissionPlan
     enum MissionStart
     {
         START_IMMEDIATELY = 1;
-        // START_IN_WATER_DETECT = 2;
-        // START_AFTER_DELAY = 3;
+        START_ON_COMMAND = 2;
+        // START_IN_WATER_DETECT = 3;
+        // START_AFTER_DELAY = 4;
     }
-    optional MissionStart start = 1 [default = START_IMMEDIATELY];
+    optional MissionStart start = 1 [default = START_ON_COMMAND];
 
     enum MovementType
     {

@@ -98,6 +98,6 @@ macro(generate_interfaces_figure INTERFACE_YML YML_OUT_DIR OUTPUT_IMAGE PARAMETE
   get_filename_component(INTERFACE_YML_NAME_WE ${INTERFACE_YML} NAME_WE)
   set(CONFIGURED_INTERFACE_YML ${YML_OUT_DIR}/figures/${INTERFACE_YML_NAME_WE}.yml)
   configure_file(${INTERFACE_YML} ${CONFIGURED_INTERFACE_YML} @ONLY)
-  goby_visualize_interfaces(TARGET_OUT ${YML_OUT_DIR} ${CONFIGURED_INTERFACE_YML} ${YML_OUT_DIR}/figures/${OUTPUT_IMAGE} "${PARAMETERS}" ${project_goby_interfaces})
+  goby_visualize_interfaces(TARGET_OUT ${YML_OUT_DIR} ${CONFIGURED_INTERFACE_YML} ${CMAKE_BINARY_DIR}/src/doc/figures/${OUTPUT_IMAGE} "${PARAMETERS}" ${project_goby_interfaces})
   set(project_goby_interfaces_figures "${project_goby_interfaces_figures};${TARGET_OUT}" CACHE INTERNAL "Goby Interface Figures")
 endmacro()
