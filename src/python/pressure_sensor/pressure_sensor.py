@@ -10,13 +10,22 @@ import ms5837
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish T & P')
 parser.add_argument('--simulator', action='store_true')
+parser.add_argument('--device', metavar='device', type=str, default='bar30', help='device type (bar30 or bar02)')
 args = parser.parse_args()
+
+if args.device != 'bar02':
+    args.device = 'bar30'
 
 print(args)
 
+
+
 # Setup the Bar30
 if not args.simulator:
-    sensor = ms5837.MS5837_30BA() # Default I2C bus is 1 (Raspberry Pi 3)
+    if args.device == 'bar02':
+        sensor = ms5837.MS5837_02BA() # Default I2C bus is 1 (Raspberry Pi 3)
+    else:
+        sensor = ms5837.MS5837_30BA() # Default I2C bus is 1 (Raspberry Pi 3)
 
     if not sensor.init():
             print("Sensor could not be initialized")
