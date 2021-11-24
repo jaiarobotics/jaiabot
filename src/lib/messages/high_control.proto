@@ -1,0 +1,40 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "goby/middleware/protobuf/frontseat_data.proto";
+
+package jaiabot.protobuf;
+
+enum SetpointType
+{
+    SETPOINT_STOP = 0;
+    SETPOINT_IVP_HELM = 1;
+    SETPOINT_REMOTE_CONTROL = 2;
+    SETPOINT_DIVE = 3;
+    SETPOINT_POWERED_ASCENT = 4;
+}
+
+message RemoteControl
+{
+    // contents?
+}
+
+message DesiredSetpoints
+{
+    option (dccl.msg).unit_system = "si";
+
+    required SetpointType type = 1;
+
+    oneof setpoint_data
+    {
+        // pHelmIvP control, i.e. SETPOINT_IVP_HELM
+        goby.middleware.frontseat.protobuf.DesiredCourse helm_course = 10;
+
+        // remote control, i.e. SETPOINT_REMOTE_CONTROL
+        RemoteControl remote_control = 11;
+
+        // inverse dive control to target depth, i.e. SETPOINT_DIVE
+        double dive_depth = 12
+            [(dccl.field).units = { derived_dimensions: "length" }];
+    };
+}

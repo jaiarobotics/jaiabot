@@ -2,17 +2,22 @@
 #define JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_H
 
 #include <boost/mpl/list.hpp>
+#include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/deep_history.hpp>
 #include <boost/statechart/event.hpp>
+#include <boost/statechart/in_state_reaction.hpp>
 #include <boost/statechart/state.hpp>
 #include <boost/statechart/state_machine.hpp>
 #include <boost/statechart/transition.hpp>
 
+#include "goby/middleware/navigation/navigation.h"
 #include <goby/util/debug_logger.h>
 #include <goby/util/linebasedcomms/nmea_sentence.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "machine_common.h"
 
 namespace jaiabot
 {
@@ -40,15 +45,20 @@ struct MissionManagerStateMachine;
 STATECHART_EVENT(EvTurnOn)
 STATECHART_EVENT(EvSelfTestSuccessful)
 STATECHART_EVENT(EvSelfTestFails)
-STATECHART_EVENT(EvMissionFeasible)
+struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
+{
+    EvMissionFeasible(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
+    jaiabot::protobuf::MissionPlan plan;
+};
+
 STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
+STATECHART_EVENT(EvWaypointReached)
 STATECHART_EVENT(EvPerformTask)
 STATECHART_EVENT(EvTaskComplete)
 STATECHART_EVENT(EvNewMission)
 STATECHART_EVENT(EvReturnToHome)
-STATECHART_EVENT(EvRecoveryPointReached)
-STATECHART_EVENT(EvStopped)
+STATECHART_EVENT(EvStop)
 STATECHART_EVENT(EvAbort)
 STATECHART_EVENT(EvRecovered)
 STATECHART_EVENT(EvBeginDataProcessing)
@@ -62,36 +72,15 @@ STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 #undef STATECHART_EVENT
 
-// provides access to parent App's methods (e.g. interthread() and interprocess()) from within the states' structs
-template <typename Derived> class AppMethodsAccess
-{
-  protected:
-    goby::zeromq::InterProcessPortal<goby::middleware::InterThreadTransporter>& interprocess()
-    {
-        return app().interprocess();
-    }
-
-    goby::middleware::InterThreadTransporter& interthread() { return app().interthread(); }
-
-    const apps::MissionManager& app() const
-    {
-        return static_cast<const Derived*>(this)->outermost_context().app();
-    }
-
-    MissionManagerStateMachine& machine()
-    {
-        return static_cast<Derived*>(this)->outermost_context();
-    }
-    apps::MissionManager& app() { return machine().app(); }
-};
-
 // RAII publication of state changes
-template <typename Derived, jaiabot::protobuf::MissionState state>
+template <typename Derived, jaiabot::protobuf::MissionState state,
+          jaiabot::protobuf::SetpointType setpoint_type = protobuf::SETPOINT_STOP>
 struct Notify : public AppMethodsAccess<Derived>
 {
     Notify()
     {
         this->machine().set_state(state);
+        this->machine().set_setpoint_type(setpoint_type);
 
         goby::middleware::protobuf::TransporterConfig pub_cfg;
         // required since we're publishing in and subscribing to the group within the same thread
@@ -125,6 +114,10 @@ struct Replan;
 struct Movement;
 namespace movement
 {
+// dummy state whose role is to dynmically transit to the correct substate
+// based on the current mission
+struct MovementSelection;
+
 struct Transit;
 struct RemoteControl;
 } // namespace movement
@@ -132,6 +125,8 @@ struct RemoteControl;
 struct Task;
 namespace task
 {
+struct TaskSelection;
+
 struct StationKeep;
 struct SurfaceDrift;
 struct Dive;
@@ -167,17 +162,56 @@ struct ShuttingDown;
 } // namespace postdeployment
 
 struct MissionManagerStateMachine
-    : boost::statechart::state_machine<MissionManagerStateMachine, PreDeployment>
+    : boost::statechart::state_machine<MissionManagerStateMachine, PreDeployment>,
+      AppMethodsAccess<MissionManagerStateMachine>
 {
     MissionManagerStateMachine(apps::MissionManager& a) : app_(a) {}
 
     void set_state(jaiabot::protobuf::MissionState state) { state_ = state; }
     jaiabot::protobuf::MissionState state() { return state_; }
+
+    void set_setpoint_type(jaiabot::protobuf::SetpointType setpoint_type)
+    {
+        setpoint_type_ = setpoint_type;
+    }
+    jaiabot::protobuf::SetpointType setpoint_type() { return setpoint_type_; }
+
     apps::MissionManager& app() { return app_; }
+    const apps::MissionManager& app() const { return app_; }
+
+    void set_mission_plan(const jaiabot::protobuf::MissionPlan& plan)
+    {
+        plan_ = plan;
+        auto lat_origin = plan.goal(0).location().lat_with_units();
+        auto lon_origin = plan.goal(0).location().lon_with_units();
+
+        // set the local datum origin to the first goal
+        goby::middleware::protobuf::DatumUpdate update;
+        update.mutable_datum()->set_lat_with_units(lat_origin);
+        update.mutable_datum()->set_lon_with_units(lon_origin);
+        this->interprocess().template publish<goby::middleware::groups::datum_update>(update);
+        geodesy_.reset(new goby::util::UTMGeodesy({lat_origin, lon_origin}));
+
+        goby::glog.is_debug1() && goby::glog << "Set new mission plan. Updated datum to: "
+                                             << update.ShortDebugString() << std::endl;
+    }
+    const jaiabot::protobuf::MissionPlan& mission_plan() { return plan_; }
+
+    bool has_geodesy() { return geodesy_ ? true : false; }
+    goby::util::UTMGeodesy& geodesy()
+    {
+        if (has_geodesy())
+            return *geodesy_;
+        else
+            throw(goby::Exception("Uninitialized geodesy"));
+    }
 
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__OFF};
+    jaiabot::protobuf::MissionPlan plan_;
+    jaiabot::protobuf::SetpointType setpoint_type_{jaiabot::protobuf::SETPOINT_STOP};
+    std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
 };
 
 struct PreDeployment
@@ -249,7 +283,17 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
                Notify<Ready, protobuf::PRE_DEPLOYMENT__READY>
 {
     using StateBase = boost::statechart::state<Ready, PreDeployment>;
-    Ready(typename StateBase::my_context c) : StateBase(c) {}
+    Ready(typename StateBase::my_context c) : StateBase(c)
+    {
+        auto mission_feasible_event = dynamic_cast<const EvMissionFeasible*>(triggering_event());
+        if (mission_feasible_event)
+        {
+            const auto plan = mission_feasible_event->plan;
+            this->machine().set_mission_plan(plan);
+            if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
+                post_event(EvDeployed());
+        }
+    }
     ~Ready() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvDeployed, Underway>>;
@@ -257,7 +301,9 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
 
 } // namespace predeployment
 
-struct Underway : boost::statechart::state<Underway, MissionManagerStateMachine, underway::Movement>
+struct Underway
+    : boost::statechart::state<Underway, MissionManagerStateMachine, underway::Movement>,
+      AppMethodsAccess<Underway>
 {
     using StateBase =
         boost::statechart::state<Underway, MissionManagerStateMachine, underway::Movement>;
@@ -269,13 +315,64 @@ struct Underway : boost::statechart::state<Underway, MissionManagerStateMachine,
         boost::mpl::list<boost::statechart::transition<EvNewMission, underway::Replan>,
                          boost::statechart::transition<EvReturnToHome, underway::Recovery>,
                          boost::statechart::transition<EvAbort, underway::Abort>,
-                         boost::statechart::transition<EvStopped, underway::recovery::Stopped>>;
+                         boost::statechart::transition<EvStop, underway::recovery::Stopped>>;
+
+    int goal_index() { return goal_index_; }
+
+    boost::optional<protobuf::MissionPlan::Goal> current_goal()
+    {
+        if (mission_complete_)
+            return boost::none;
+        else
+            return boost::optional<protobuf::MissionPlan::Goal>(
+                this->machine().mission_plan().goal(goal_index()));
+    }
+
+    protobuf::MissionPlan::Goal final_goal()
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        return mission_plan.goal(mission_plan.goal_size() - 1);
+    }
+
+    boost::optional<protobuf::MissionPlan::Goal::Task> current_task()
+    {
+        if (mission_complete_)
+            return boost::none;
+
+        const auto& plan = this->machine().mission_plan();
+        if (!plan.goal(goal_index()).has_task())
+            return boost::none;
+        else
+            return boost::optional<protobuf::MissionPlan::Goal::Task>(
+                plan.goal(goal_index()).task());
+    }
+
+    void increment_goal_index()
+    {
+        ++goal_index_;
+        // all goals completed
+        if (goal_index_ >= this->machine().mission_plan().goal_size())
+        {
+            goby::glog.is_verbose() && goby::glog << group("movement")
+                                                  << "All goals complete, mission is complete."
+                                                  << std::endl;
+
+            post_event(EvReturnToHome());
+            mission_complete_ = true;
+        }
+    }
+
+  private:
+    int goal_index_{0};
+    bool mission_complete_{false};
 };
 
 namespace underway
 {
 struct Replan : boost::statechart::state<Replan, Underway>,
-                Notify<Replan, protobuf::UNDERWAY__REPLAN>
+                Notify<Replan, protobuf::UNDERWAY__REPLAN,
+                       protobuf::SETPOINT_IVP_HELM // stationkeep
+                       >
 {
     using StateBase = boost::statechart::state<Replan, Underway>;
     Replan(typename StateBase::my_context c) : StateBase(c) {}
@@ -286,15 +383,21 @@ struct Replan : boost::statechart::state<Replan, Underway>,
         boost::statechart::transition<EvMissionFeasible, Movement>>;
 };
 
-struct Movement : boost::statechart::state<Movement, Underway, movement::Transit,
-                                           boost::statechart::has_deep_history>
+struct Movement : boost::statechart::state<Movement, Underway, movement::MovementSelection,
+                                           boost::statechart::has_deep_history>,
+                  AppMethodsAccess<Movement>
 {
-    using StateBase = boost::statechart::state<Movement, Underway, movement::Transit,
+    using StateBase = boost::statechart::state<Movement, Underway, movement::MovementSelection,
                                                boost::statechart::has_deep_history>;
 
     Movement(typename StateBase::my_context c) : StateBase(c)
     {
-        // TODO add conditional on mission type for child state.
+        // replan case - update mission from event
+        auto mission_feasible_event = dynamic_cast<const EvMissionFeasible*>(triggering_event());
+        if (mission_feasible_event)
+        {
+            this->machine().set_mission_plan(mission_feasible_event->plan);
+        }
     }
     ~Movement() {}
 
@@ -303,16 +406,54 @@ struct Movement : boost::statechart::state<Movement, Underway, movement::Transit
 
 namespace movement
 {
+// dummy state that should immediately transit to the correct Movement child state based on the current mission movement value
+struct MovementSelection : boost::statechart::state<MovementSelection, Movement>,
+                           AppMethodsAccess<MovementSelection>
+{
+    struct EvMovementSelect : boost::statechart::event<EvMovementSelect>
+    {
+    };
+
+    using StateBase = boost::statechart::state<MovementSelection, Movement>;
+    MovementSelection(typename StateBase::my_context c) : StateBase(c)
+    {
+        post_event(EvMovementSelect());
+    }
+    ~MovementSelection() {}
+
+    boost::statechart::result react(const EvMovementSelect&)
+    {
+        switch (this->machine().mission_plan().movement())
+        {
+            case protobuf::MissionPlan::TRANSIT: return transit<Transit>();
+            case protobuf::MissionPlan::REMOTE_CONTROL: return transit<RemoteControl>();
+        }
+
+        // should never reach here but if does, abort the mission
+        return transit<underway::Abort>();
+    }
+
+    using reactions = boost::statechart::custom_reaction<EvMovementSelect>;
+};
+
 struct Transit : boost::statechart::state<Transit, Movement>,
-                 Notify<Transit, protobuf::UNDERWAY__MOVEMENT__TRANSIT>
+                 Notify<Transit, protobuf::UNDERWAY__MOVEMENT__TRANSIT,
+                        protobuf::SETPOINT_IVP_HELM // waypoint
+                        >
 {
     using StateBase = boost::statechart::state<Transit, Movement>;
-    Transit(typename StateBase::my_context c) : StateBase(c) {}
+    Transit(typename StateBase::my_context c);
     ~Transit() {}
+
+    void waypoint_reached(const EvWaypointReached&) { post_event(EvPerformTask()); }
+
+    using reactions = boost::statechart::in_state_reaction<EvWaypointReached, Transit,
+                                                           &Transit::waypoint_reached>;
 };
 
 struct RemoteControl : boost::statechart::state<RemoteControl, Movement>,
-                       Notify<RemoteControl, protobuf::UNDERWAY__MOVEMENT__REMOTE_CONTROL>
+                       Notify<RemoteControl, protobuf::UNDERWAY__MOVEMENT__REMOTE_CONTROL,
+                              protobuf::SETPOINT_REMOTE_CONTROL>
 {
     using StateBase = boost::statechart::state<RemoteControl, Movement>;
     RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
@@ -321,15 +462,16 @@ struct RemoteControl : boost::statechart::state<RemoteControl, Movement>,
 
 } // namespace movement
 
-struct Task : boost::statechart::state<Task, Underway, task::StationKeep>
+struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>
 {
-    using StateBase = boost::statechart::state<Task, Underway, task::StationKeep>;
+    using StateBase = boost::statechart::state<Task, Underway, task::TaskSelection>;
 
-    Task(typename StateBase::my_context c) : StateBase(c)
+    Task(typename StateBase::my_context c) : StateBase(c) {}
+    ~Task()
     {
-        // TODO add conditional on task type for child state.
+        // upon completing the task, increment the goal index
+        context<Underway>().increment_goal_index();
     }
-    ~Task() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<
         EvTaskComplete, boost::statechart::deep_history<movement::Transit // default
@@ -338,15 +480,61 @@ struct Task : boost::statechart::state<Task, Underway, task::StationKeep>
 
 namespace task
 {
+// similar to MovementSelection but for Tasks
+struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
+                       AppMethodsAccess<TaskSelection>
+{
+    struct EvTaskSelect : boost::statechart::event<EvTaskSelect>
+    {
+    };
+
+    using StateBase = boost::statechart::state<TaskSelection, Task>;
+    TaskSelection(typename StateBase::my_context c) : StateBase(c) { post_event(EvTaskSelect()); }
+    ~TaskSelection() {}
+
+    boost::statechart::result react(const EvTaskSelect&)
+    {
+        boost::optional<protobuf::MissionPlan::Goal::Task> current_task =
+            context<Underway>().current_task();
+
+        if (current_task)
+        {
+            goby::glog.is_verbose() && goby::glog << group("task") << "Starting task: "
+                                                  << current_task.get().ShortDebugString()
+                                                  << std::endl;
+
+            switch (current_task->type())
+            {
+                case protobuf::MissionPlan::Goal::Task::DIVE: return transit<Dive>();
+                case protobuf::MissionPlan::Goal::Task::STATION_KEEP: return transit<StationKeep>();
+                case protobuf::MissionPlan::Goal::Task::SURFACE_DRIFT:
+                    return transit<SurfaceDrift>();
+            }
+        }
+
+        // no task or invalid task, so consider it complete
+        goby::glog.is_verbose() && goby::glog << group("task")
+                                              << "No task for this goal. Proceeding to next goal"
+                                              << std::endl;
+        post_event(EvTaskComplete());
+        return discard_event();
+    }
+
+    using reactions = boost::statechart::custom_reaction<EvTaskSelect>;
+};
+
 struct StationKeep : boost::statechart::state<StationKeep, Task>,
-                     Notify<StationKeep, protobuf::UNDERWAY__TASK__STATION_KEEP>
+                     Notify<StationKeep, protobuf::UNDERWAY__TASK__STATION_KEEP,
+                            protobuf::SETPOINT_IVP_HELM // stationkeep
+                            >
 {
     using StateBase = boost::statechart::state<StationKeep, Task>;
     StationKeep(typename StateBase::my_context c) : StateBase(c) {}
     ~StationKeep() {}
 };
-struct SurfaceDrift : boost::statechart::state<SurfaceDrift, Task>,
-                      Notify<SurfaceDrift, protobuf::UNDERWAY__TASK__SURFACE_DRIFT>
+struct SurfaceDrift
+    : boost::statechart::state<SurfaceDrift, Task>,
+      Notify<SurfaceDrift, protobuf::UNDERWAY__TASK__SURFACE_DRIFT, protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, Task>;
     SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
@@ -363,7 +551,8 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>
 namespace dive
 {
 struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
-                        Notify<PoweredDescent, protobuf::UNDERWAY__TASK__DIVE__POWERED_DESCENT>
+                        Notify<PoweredDescent, protobuf::UNDERWAY__TASK__DIVE__POWERED_DESCENT,
+                               protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<PoweredDescent, Dive>;
     PoweredDescent(typename StateBase::my_context c) : StateBase(c) {}
@@ -373,7 +562,7 @@ struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
 };
 
 struct Hold : boost::statechart::state<Hold, Dive>,
-              Notify<Hold, protobuf::UNDERWAY__TASK__DIVE__HOLD>
+              Notify<Hold, protobuf::UNDERWAY__TASK__DIVE__HOLD, protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<Hold, Dive>;
     Hold(typename StateBase::my_context c) : StateBase(c) {}
@@ -385,7 +574,8 @@ struct Hold : boost::statechart::state<Hold, Dive>,
 };
 
 struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
-                         Notify<UnpoweredAscent, protobuf::UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT>
+                         Notify<UnpoweredAscent, protobuf::UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT,
+                                protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
     UnpoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
@@ -396,7 +586,8 @@ struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
 };
 
 struct PoweredAscent : boost::statechart::state<PoweredAscent, Dive>,
-                       Notify<PoweredAscent, protobuf::UNDERWAY__TASK__DIVE__POWERED_ASCENT>
+                       Notify<PoweredAscent, protobuf::UNDERWAY__TASK__DIVE__POWERED_ASCENT,
+                              protobuf::SETPOINT_POWERED_ASCENT>
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
     PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
@@ -417,24 +608,28 @@ struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit
 namespace recovery
 {
 struct Transit : boost::statechart::state<Transit, Recovery>,
-                 Notify<Transit, protobuf::UNDERWAY__RECOVERY__TRANSIT>
+                 Notify<Transit, protobuf::UNDERWAY__RECOVERY__TRANSIT,
+                        protobuf::SETPOINT_IVP_HELM // waypoint
+                        >
 {
     using StateBase = boost::statechart::state<Transit, Recovery>;
-    Transit(typename StateBase::my_context c) : StateBase(c) {}
+    Transit(typename StateBase::my_context c);
     ~Transit() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvRecoveryPointReached, StationKeep>>;
+        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
-                     Notify<StationKeep, protobuf::UNDERWAY__RECOVERY__STATION_KEEP>
+                     Notify<StationKeep, protobuf::UNDERWAY__RECOVERY__STATION_KEEP,
+                            protobuf::SETPOINT_IVP_HELM // stationkeep
+                            >
 {
     using StateBase = boost::statechart::state<StationKeep, Recovery>;
-    StationKeep(typename StateBase::my_context c) : StateBase(c) {}
-    ~StationKeep() {}
+    StationKeep(typename StateBase::my_context c);
+    ~StationKeep();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvStopped, Stopped>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvStop, Stopped>>;
 };
 
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
