@@ -4,14 +4,27 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
+import "dccl/option_extensions.proto";
 
 package jaiabot.config;
 
 message MissionManager
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
+
+    optional double transit_speed = 20 [
+        default = 2,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
+    optional double stationkeep_outer_speed = 21 [
+        default = 1,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
 }
