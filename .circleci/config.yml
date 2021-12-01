@@ -20,20 +20,12 @@ environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=2 nocheck"
   
-environment-template-bionic: &environment-template-bionic
-  DISTRO_RELEASE_CODENAME: "bionic"
-  DISTRO_RELEASE_VERSION: "ubuntu18.04"
-
 environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
   DISTRO_RELEASE_VERSION: "ubuntu20.04"
 
   
 ## Pre-declare Docker containers
-docker-base-bionic: &docker-base-bionic
-  - image: gobysoft/goby3-ubuntu-build-base:18.04.1
-docker-arm64-bionic: &docker-arm64-bionic
-  - image: gobysoft/goby3-ubuntu-build-arm64:18.04.1
 
 docker-base-focal: &docker-base-focal
   - image: gobysoft/goby3-ubuntu-build-base:20.04.1
@@ -147,10 +139,10 @@ job-template-deb-amd64: &job-template-deb-amd64
 job-template-deb-cross: &job-template-deb-cross
   <<: *job-template-deb-amd64
 
-# Base upload off Bionic build
+# Base upload off Focal build
 job-template-upload: &job-template-upload
   <<: *job-template-amd64
-  docker: *docker-base-bionic
+  docker: *docker-base-focal
 
   
 # which branches to run the Debian build and upload on
@@ -174,22 +166,11 @@ workflows:
   version: 2
   commit:
     jobs:
-      - amd64-bionic-build:
-          <<: *filter-template-non-master
       - amd64-focal-build:
           <<: *filter-template-non-master
       
       - get-orig-source:
           <<: *filter-template-master-only
-
-      - amd64-bionic-deb-build:
-          <<: *filter-template-master-only
-          requires:
-            - get-orig-source
-      - arm64-bionic-deb-build:
-          <<: *filter-template-master-only
-          requires:
-            - amd64-bionic-deb-build
 
       - amd64-focal-deb-build:
           <<: *filter-template-master-only
@@ -206,7 +187,6 @@ workflows:
       - continuous-upload:
           requires:
             - arm64-focal-deb-build
-            - arm64-bionic-deb-build
 
       # only do the release upload on tagged builds
       - release-upload:
@@ -217,16 +197,15 @@ workflows:
               ignore: /.*/
           requires:
             - arm64-focal-deb-build
-            - arm64-bionic-deb-build            
           
 jobs:
 
   get-orig-source:
     <<: *job-template-deb-amd64
-    docker: *docker-base-bionic
+    docker: *docker-base-focal
     environment:
       <<: *environment-template-common
-      <<: *environment-template-bionic
+      <<: *environment-template-focal
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -255,13 +234,6 @@ jobs:
             - '*.tar.xz'
             - 'changelog'
 
-  amd64-bionic-build:
-    <<: *job-template-amd64
-    docker: *docker-base-bionic
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-bionic
-
   amd64-focal-build:
     <<: *job-template-amd64
     docker: *docker-base-focal
@@ -269,20 +241,6 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-focal
       
-  amd64-bionic-deb-build:
-    <<: *job-template-deb-amd64
-    docker: *docker-base-bionic
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-bionic
-      <<: *environment-template-amd64
-  arm64-bionic-deb-build: 
-    <<: *job-template-deb-cross
-    docker: *docker-arm64-bionic
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-bionic
-      <<: *environment-template-arm64
   amd64-focal-deb-build:
     <<: *job-template-deb-amd64
     docker: *docker-base-focal
@@ -301,7 +259,7 @@ jobs:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-bionic
+      <<: *environment-template-focal
       <<: *environment-template-amd64
       UPLOAD_DESTINATION: "gobysoft-continuous"
     steps: &steps-upload
@@ -330,7 +288,7 @@ jobs:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-bionic
+      <<: *environment-template-focal
       <<: *environment-template-amd64
       UPLOAD_DESTINATION: "gobysoft-release"
     steps: *steps-upload
