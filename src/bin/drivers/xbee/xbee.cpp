@@ -64,7 +64,7 @@ const SerialNumber XBeeDevice::broadcast_serial_number = native_to_big((SerialNu
 
 XBeeDevice::XBeeDevice()
 {
-    io = new io_context();
+    io = new io_service();
     port = new serial_port(*io);
 }
 
