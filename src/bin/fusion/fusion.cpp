@@ -50,6 +50,15 @@ class Fusion : public ApplicationBase
     void init_node_status();
     void init_bot_status();
 
+    void loop()
+    {
+        auto time = goby::time::SystemClock::now<goby::time::MicroTime>();
+        latest_bot_status_.set_time_with_units(time);
+
+        if (latest_bot_status_.IsInitialized())
+            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+    }
+
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
@@ -63,7 +72,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Fusion>(argc, argv));
 }
 
-jaiabot::apps::Fusion::Fusion()
+jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
 {
     init_node_status();
     init_bot_status();
@@ -107,10 +116,14 @@ jaiabot::apps::Fusion::Fusion()
                 latest_bot_status_.mutable_location()->set_lat_with_units(lat);
                 latest_bot_status_.mutable_location()->set_lon_with_units(lon);
 
-                auto xy = geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
-                                             latest_node_status_.global_fix().lon_with_units()});
-                latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
-                latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                if (has_geodesy())
+                {
+                    auto xy =
+                        geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
+                                           latest_node_status_.global_fix().lon_with_units()});
+                    latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+                    latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                }
             }
 
             if (tpv.has_speed())
@@ -125,21 +138,16 @@ jaiabot::apps::Fusion::Fusion()
             {
                 auto time = tpv.time_with_units();
                 latest_node_status_.set_time_with_units(time);
-                latest_bot_status_.set_time_with_units(time);
             }
             else
             {
                 auto time = goby::time::SystemClock::now<goby::time::MicroTime>();
                 latest_node_status_.set_time_with_units(time);
-                latest_bot_status_.set_time_with_units(time);
             }
 
             if (latest_node_status_.IsInitialized())
                 interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                     latest_node_status_);
-
-            if (latest_bot_status_.IsInitialized())
-                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
@@ -159,7 +167,4 @@ void jaiabot::apps::Fusion::init_node_status()
     latest_node_status_.mutable_pose();
 }
 
-void jaiabot::apps::Fusion::init_bot_status()
-{
-    latest_bot_status_.set_bot_id(cfg().bot_id());
-}
+void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
