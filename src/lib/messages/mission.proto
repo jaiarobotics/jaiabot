@@ -53,12 +53,21 @@ message MissionPlan
         unit_system: "si"
     };
 
+    enum MissionStart
+    {
+        START_IMMEDIATELY = 1;
+        START_ON_COMMAND = 2;
+        // START_IN_WATER_DETECT = 3;
+        // START_AFTER_DELAY = 4;
+    }
+    optional MissionStart start = 1 [default = START_ON_COMMAND];
+
     enum MovementType
     {
         TRANSIT = 1;
         REMOTE_CONTROL = 2;
     }
-    optional MovementType movement = 1 [default = TRANSIT];
+    optional MovementType movement = 2 [default = TRANSIT];
 
     message Goal
     {
@@ -116,5 +125,70 @@ message MissionPlan
         }
         optional Task task = 3;
     }
-    repeated Goal goal = 2 [(dccl.field).max_repeat = 20];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 15];
+
+    message Recovery
+    {
+        optional bool recover_at_final_goal = 1 [default = true];
+        optional GeographicCoordinate location = 2;
+    }
+    required Recovery recovery = 4;
+}
+
+message IvPBehaviorUpdate
+{
+    message TransitUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+        required double x = 1
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        required double y = 2
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        required double speed = 3 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+    }
+
+    message StationkeepUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional double x = 2
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double y = 3
+            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+        optional double outer_speed = 4 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+        optional double transit_speed = 5 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+    }
+
+    oneof behavior
+    {
+        TransitUpdate transit = 1;
+        StationkeepUpdate stationkeep = 2;
+    }
+}
+
+message IvPBehaviorReport
+{
+    message TransitReport
+    {
+        optional bool waypoint_reached = 1 [default = false];
+    }
+
+    oneof behavior
+    {
+        TransitReport transit = 1;
+    }
 }

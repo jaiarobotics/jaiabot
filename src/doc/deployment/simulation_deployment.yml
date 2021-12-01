@@ -1,11 +1,19 @@
-deployment: trail_deployment
+deployment: sim_deployment
 platforms:
-  - name: topside
+  - name: hub
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_opencpn_interface_interface.yml
-  - name: auv
+      - jaiabot_hub_manager_interface.yml
+      - application: goby_liaison
+        file: jaiabot_liaison_interface.yml
+  - name: bot
     interfaces:
-      - @GOBY_INTERFACES_DIR@/goby_ivp_frontseat_moos_gateway_plugin_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
       - jaiabot_simulator_interface.yml
       - jaiabot_fusion_interface.yml
+      - jaiabot_mission_manager_interface.yml
+      - application: goby_moos_gateway
+        file: jaiabot_moos_gateway_plugin_interface.yml
+      - application: goby_moos_gateway
+        file: @GOBY_INTERFACES_DIR@/goby_ivp_frontseat_moos_gateway_plugin_interface.yml
+
