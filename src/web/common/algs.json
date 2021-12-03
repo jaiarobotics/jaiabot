@@ -1,0 +1,248 @@
+[
+  {
+    "visible": true,
+    "selectionID": 1,
+    "helpText": "",
+    "name": "Thermo",
+    "parameters": [
+      {
+        "defaultValue": 1.0,
+        "otherField": 4,
+        "maxValue": 999.0,
+        "numDecimals": 0,
+        "stepSize": 1.0,
+        "helpText": "ID of bot to follow.",
+        "paramName": "LeaderID",
+        "paramID": 0,
+        "minValue": 1.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 1,
+        "minValue": 0.0
+      }
+    ]
+  },
+  {
+    "visible": true,
+    "selectionID": 2,
+    "helpText": "",
+    "name": "ThermoB",
+    "parameters": [
+      {
+        "defaultValue": 1.0,
+        "otherField": 4,
+        "maxValue": 999.0,
+        "numDecimals": 0,
+        "stepSize": 1.0,
+        "helpText": "ID of bot to follow.",
+        "paramName": "LeaderID",
+        "paramID": 0,
+        "minValue": 1.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 1,
+        "minValue": 0.0
+      }
+    ]
+  },
+  {
+    "visible": true,
+    "selectionID": 3,
+    "helpText": "",
+    "name": "LineDirect",
+    "parameters": [
+      {
+        "defaultValue": 33.431379,
+        "otherField": 1,
+        "maxValue": 90.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lat",
+        "paramID": 0,
+        "minValue": -90.0
+      },
+      {
+        "defaultValue": -118.506053,
+        "otherField": 2,
+        "maxValue": 180.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lon",
+        "paramID": 1,
+        "minValue": -180.0
+      },
+      {
+        "defaultValue": 90.0,
+        "otherField": 3,
+        "maxValue": 360.0,
+        "numDecimals": 2,
+        "stepSize": 5.0,
+        "helpText": "",
+        "paramName": "Origin Bearing",
+        "paramID": 2,
+        "minValue": 0.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 3,
+        "minValue": 0.0
+      }
+    ]
+  },
+  {
+    "visible": true,
+    "selectionID": 4,
+    "helpText": "",
+    "name": "FormationCircle",
+    "parameters": [
+      {
+        "defaultValue": 1.0,
+        "otherField": 4,
+        "maxValue": 999.0,
+        "numDecimals": 0,
+        "stepSize": 1.0,
+        "helpText": "ID of bot to follow.",
+        "paramName": "LeaderID",
+        "paramID": 0,
+        "minValue": 1.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 1,
+        "minValue": 0.0
+      }
+    ]
+  },
+  {
+    "visible": true,
+    "selectionID": 5,
+    "helpText": "",
+    "name": "Formation Line",
+    "parameters": [
+      {
+        "defaultValue": 33.431379,
+        "otherField": 1,
+        "maxValue": 90.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lat",
+        "paramID": 0,
+        "minValue": -90.0
+      },
+      {
+        "defaultValue": -118.506053,
+        "otherField": 2,
+        "maxValue": 180.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lon",
+        "paramID": 1,
+        "minValue": -180.0
+      },
+      {
+        "defaultValue": 90.0,
+        "otherField": 3,
+        "maxValue": 360.0,
+        "numDecimals": 2,
+        "stepSize": 5.0,
+        "helpText": "",
+        "paramName": "Origin Bearing",
+        "paramID": 2,
+        "minValue": 0.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 3,
+        "minValue": 0.0
+      }
+    ]
+  },
+  {
+    "visible": true,
+    "selectionID": 6,
+    "helpText": "",
+    "name": "Geo Circle",
+    "parameters": [
+      {
+        "defaultValue": 33.431379,
+        "otherField": 1,
+        "maxValue": 90.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lat",
+        "paramID": 0,
+        "minValue": -90.0
+      },
+      {
+        "defaultValue": -118.506053,
+        "otherField": 2,
+        "maxValue": 180.0,
+        "numDecimals": 7,
+        "stepSize": 0.0,
+        "helpText": "",
+        "paramName": "Origin Lon",
+        "paramID": 1,
+        "minValue": -180.0
+      },
+      {
+        "defaultValue": 90.0,
+        "otherField": 3,
+        "maxValue": 360.0,
+        "numDecimals": 2,
+        "stepSize": 5.0,
+        "helpText": "",
+        "paramName": "Origin Bearing",
+        "paramID": 2,
+        "minValue": 0.0
+      },
+      {
+        "defaultValue": 10.0,
+        "otherField": 0,
+        "maxValue": 6502.5,
+        "numDecimals": 1,
+        "stepSize": 0.10000000149011612,
+        "helpText": "Desired bot separation in meters.",
+        "paramName": "Dsep",
+        "paramID": 3,
+        "minValue": 0.0
+      }
+    ]
+  }
+]
