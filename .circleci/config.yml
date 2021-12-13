@@ -179,13 +179,14 @@ workflows:
       - arm64-focal-deb-build:
           <<: *filter-template-master-only
           requires:
-            - amd64-focal-deb-build
+            - get-orig-source
 
 
             
       # always do the continuous upload if we did the deb builds
       - continuous-upload:
           requires:
+            - amd64-focal-deb-build
             - arm64-focal-deb-build
 
       # only do the release upload on tagged builds
@@ -196,6 +197,7 @@ workflows:
             branches:
               ignore: /.*/
           requires:
+            - amd64-focal-deb-build
             - arm64-focal-deb-build
           
 jobs:
