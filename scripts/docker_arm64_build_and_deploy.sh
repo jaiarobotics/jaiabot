@@ -33,7 +33,7 @@ if [ -z "$1" ]
     		echo "rsync python and arduino scripts"
     		rsync -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
     		echo "rsync ../jaiabot-configuration"
-		rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+		rsync -aP ../jaiabot-configuration ubuntu@"$var":/home/ubuntu/
 	    done
 fi
 
