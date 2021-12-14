@@ -1,0 +1,19 @@
+#!/usr/bin/env -S goby_launch -L -P
+
+# Shared
+socat pty,link=/tmp/ttyxbee0,raw,echo=0 pty,link=/tmp/ttyxbee1,raw,echo=0
+
+# Hub
+gobyd <(../../gen/hub.py gobyd)
+goby_gps <(../../gen/hub.py goby_gps)
+goby_logger <(../../gen/hub.py goby_logger)
+jaiabot_dev_hub -vvvv --mode BOX --serial 'port: "/tmp/ttyxbee0" baud: 9600' --interprocess 'platform: "hub"'
+goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
+
+# Bot
+gobyd <(../../gen/bot.py gobyd)
+goby_gps <(../../gen/bot.py goby_gps)
+goby_logger <(../../gen/bot.py goby_logger)
+jaiabot_dev_bot -vvvv --mode BOT --serial 'port: "/tmp/ttyxbee1" baud: 9600' --interprocess 'platform: "bot0"'
+jaiabot_control_surfaces_driver -vvvv --serial 'port: "/dev/ttyACM0" baud: 9600' --interprocess 'platform: "bot0"'
+goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)

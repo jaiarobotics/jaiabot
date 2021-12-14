@@ -1,0 +1,15 @@
+link {
+    modem_id: $modem_id
+    subnet_mask: $subnet_mask
+    driver { 
+        # returned by goby_driver_name() function in shared library listed in GOBY_MODEMDRIVER_PLUGINS
+        driver_name: "xbee_driver"
+        serial_port: "/dev/ttyUSB0"
+        serial_baud: 9600
+        modem_id: $modem_id
+    }
+    mac { 
+        type: MAC_FIXED_DECENTRALIZED 
+        slot { src: $modem_id type: DATA slot_seconds: 1 }
+    }
+}

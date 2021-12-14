@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+udp_config {
+    bind_port: 40000
+}
+

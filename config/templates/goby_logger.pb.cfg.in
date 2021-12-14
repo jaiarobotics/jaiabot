@@ -1,0 +1,5 @@
+$app_block
+$interprocess_block
+
+log_dir: "$goby_logger_dir"
+load_shared_library: "libjaiabot_messages.so.1"
