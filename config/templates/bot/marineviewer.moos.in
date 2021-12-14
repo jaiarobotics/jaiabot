@@ -1,0 +1,72 @@
+ServerHost   = localhost
+ServerPort   = $moos_port
+Community    = $moos_community
+MOOSTimeWarp = $warp // must match app { simulation { time { warp_factor }} }
+
+// only needed by pMarineViewer
+LatOrigin = 41.5
+LongOrigin = -70
+
+//------------------------------------------
+// pMarineViewer config block
+
+ProcessConfig = pMarineViewer
+{
+  AppTick    = 4
+  CommsTick  = 4
+
+  set_pan_x            = -90
+  set_pan_y            = -280
+  zoom                 = 0.65
+  vehicle_shape_scale  = 1.5
+  hash_delta           = 50
+  hash_shade           = 0.22
+  hash_viewable        = true
+
+  trails_point_size   = 1
+
+	//op_vertex = x=-83, y=-47,    lwidth=1,lcolor=yellow,looped=true,group=moa
+  //op_vertex = x=-46.4, y=-129.2, lwidth=1,lcolor=yellow,looped=true,group=moa
+  //op_vertex = x=94.6, y=-62.2,   lwidth=1,lcolor=yellow,looped=true,group=moa
+  //op_vertex = x=58,   y=20,    lwidth=1,lcolor=yellow,looped=true,group=moa
+
+	// vcolor = alpha=dodgerblue
+
+  // Appcast configuration
+  appcast_height       = 75
+  appcast_width        = 30
+  appcast_viewable     = true
+  appcast_color_scheme = indigo
+  nodes_font_size      = medium
+  procs_font_size      = medium
+  appcast_font_size    = small
+  
+  // datum_viewable = true
+  // datum_size     = 18
+  // gui_size = small
+
+  // left_context[survey-point] = DEPLOY=true
+  // left_context[survey-point] = MOOS_MANUAL_OVERRIDE=false
+  // left_context[survey-point] = RETURN=false
+
+  right_context[return] = DEPLOY=true
+  right_context[return] = MOOS_MANUAL_OVERRIDE=false
+  right_context[return] = RETURN=false
+
+  scope  = RETURN
+  scope  = WPT_STAT
+  scope  = VIEW_SEGLIST
+  scope  = VIEW_POINT
+  scope  = VIEW_POLYGON
+  scope  = MVIEWER_LCLICK
+  scope  = MVIEWER_RCLICK
+
+  button_one = DEPLOY # DEPLOY=true
+  button_one = MOOS_MANUAL_OVERRIDE=false # RETURN=false
+  button_two = RETURN # RETURN=true
+
+  action  = MENU_KEY=deploy # DEPLOY = true # RETURN = false
+  action+ = MENU_KEY=deploy # MOOS_MANUAL_OVERRIDE=false
+  action  = RETURN=true
+  action  = UPDATES_RETURN=speed=1.4
+}

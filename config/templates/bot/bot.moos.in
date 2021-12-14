@@ -1,0 +1,47 @@
+ServerHost   = localhost
+ServerPort   = $moos_port
+Community    = $moos_community
+MOOSTimeWarp = $warp // must match app { simulation { time { warp_factor }} }
+
+//------------------------------------------
+// uProcessWatch
+
+ProcessConfig = uProcessWatch
+{
+  AppTick   = 4
+  CommsTick = 4
+
+  watch_all = true
+	nowatch   = uPokeDB*
+	nowatch   = uXMS*
+}
+
+//------------------------------------------
+// pHelmIvP config block
+
+ProcessConfig = pHelmIvP
+{
+  AppTick    = 1
+  CommsTick  = 4
+
+  bhv_dir_not_found_ok = true
+
+  behaviors  = $bhv_file
+  domain     = course:0:359:360
+  domain     = speed:0:4:41
+  domain     = depth:0:200:201
+}
+
+//------------------------------------------
+// pNodeReporter config block
+
+ProcessConfig = pNodeReporter
+{
+  AppTick        = 10
+  CommsTick	 = 10
+  
+  platform_type   = bot
+  platform_color  = yellow
+  platform_length = 2
+}
+

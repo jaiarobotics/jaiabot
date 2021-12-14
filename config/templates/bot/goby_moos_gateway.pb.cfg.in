@@ -1,0 +1,9 @@
+$app_block
+$interprocess_block
+
+moos { 
+  server: "localhost" 
+  port: $moos_port
+}
+
+poll_frequency: 10

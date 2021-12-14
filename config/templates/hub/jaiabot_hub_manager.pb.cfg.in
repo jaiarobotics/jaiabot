@@ -1,0 +1,19 @@
+$app_block
+$interprocess_block
+
+$managed_bot_ids
+
+status_sub_cfg {
+    intervehicle {
+        # publisher_id added in code for each configured managed_bot_modem_id
+        # buffer configuration for BotStatus messages
+        buffer {
+            ack_required: false
+            blackout_time: 5
+            max_queue: 1 
+            newest_first: true 
+            ttl: 600
+            value_base: 10
+        }
+    }
+}
