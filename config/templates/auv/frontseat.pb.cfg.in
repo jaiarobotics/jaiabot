@@ -1,0 +1,32 @@
+$app_block
+$interprocess_block
+
+frontseat_cfg { 
+  require_helm: true 
+  helm_running_timeout: 10
+  frontseat_connected_timeout: 10
+  status_period: 5
+  exit_on_error: false
+  type: AUV
+  [goby.middleware.frontseat.protobuf.basic_simulator_config] {  
+    tcp_address: "127.0.0.1" 
+    tcp_port: $sim_port 
+    start { 
+      lat: $sim_start_lat # deg
+      lon: $sim_start_lon # deg
+      duration: 0 # 0 == no timeout, otherwise timeout in seconds
+      control_freq: 1 # Hz
+      vehicle {
+          accel: 1.0 # m/s^2         
+          hdg_rate:  80 # deg/s
+          z_rate: 2 # m/s
+      }
+    }
+  }
+}
+[goby.moos.protobuf.moos_helm] {  #  (optional)
+  server: "127.0.0.1" 
+  port: $moos_port
+  use_binary_protobuf: false
+  moos_parser_technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+}

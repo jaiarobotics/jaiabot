@@ -1,0 +1,4 @@
+$app_block
+$interprocess_block
+
+expected_name: ["goby_frontseat_interface", "goby_liaison", "goby3_course_usv_manager", "goby_liaison"]
