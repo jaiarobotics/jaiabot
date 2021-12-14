@@ -1,0 +1,8 @@
+#!/usr/bin/env -S goby_launch -L -P
+
+gobyd <(../../gen/topside.py gobyd)
+goby_gps <(../../gen/topside.py goby_gps)
+goby_logger <(../../gen/topside.py goby_logger)
+
+jaiabot_dev_hub -vvvv --mode BOX --serial 'port: "/dev/ttyUSB0" baud: 9600' --interprocess 'platform: "topside"' --app 'glog_config { file_log { file_dir: "/home/ubuntu/jaia-logs/topside" verbosity: DEBUG1 }}'
+goby_liaison_jaiabot <(../../gen/topside.py goby_liaison)
