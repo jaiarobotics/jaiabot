@@ -69,7 +69,7 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     glog.add_group("main", goby::util::Colors::yellow);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
-    launch_thread<SerialThread>(cfg().serial());
+    launch_thread<SerialThread>(cfg().serial_arduino());
 
     interprocess().subscribe<groups::control_command>(
         [this](const jaiabot::protobuf::ControlCommand& control_command) {

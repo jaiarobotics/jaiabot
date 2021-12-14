@@ -86,4 +86,6 @@ elif common.app == 'jaiabot_hub_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common, managed_bot_ids=all_bot_ids))
 else:
-    sys.exit('App: {} not defined'.format(common.app))
+    print(config.template_substitute(templates_dir + f'/hub/{common.app}.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common))

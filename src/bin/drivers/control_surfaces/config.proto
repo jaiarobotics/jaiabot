@@ -35,5 +35,5 @@ message ControlSurfacesDriver
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    required goby.middleware.protobuf.SerialConfig serial = 11;
+    required goby.middleware.protobuf.SerialConfig serial_arduino = 11;
 }
