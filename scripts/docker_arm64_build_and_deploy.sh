@@ -5,9 +5,9 @@ set -e
 script_dir=$(dirname $0)
 
 cd ${script_dir}/..
-mkdir -p arm64_build
+mkdir -p build
 
-LAST_BUILD_DATE=$(date -r arm64_build +%s)
+LAST_BUILD_DATE=$(date -r build +%s)
 ONE_WEEK_LATER=$(expr "$LAST_BUILD_DATE" + 604800)
 
 NOW=$(date +%s)
@@ -28,12 +28,8 @@ if [ -z "$1" ]
     else
         for var in "$@"
 	    do
-    		echo "rsync build/bin and build/lib"
-		rsync -aP arm64_build/bin arm64_build/lib arm64_build/include ubuntu@"$var":/home/ubuntu/jaiabot/build
-    		echo "rsync python  and arduino scripts"
-    		rsync -aP src/python src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/src
-    		echo "rsync ../jaiabot-configuration"
-		rsync -aP ../jaiabot-configuration ubuntu@$1:/home/ubuntu/
+    		echo "rsync build and config directories"
+		    rsync -aP --exclude={build/src,build/CMakeFiles,src/web/dist,src/web/node_modules} src build config ubuntu@"$var":/home/ubuntu/jaiabot/
 	    done
 fi
 

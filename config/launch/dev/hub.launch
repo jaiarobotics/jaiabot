@@ -4,5 +4,5 @@ gobyd <(../../gen/hub.py gobyd)
 goby_gps <(../../gen/hub.py goby_gps)
 goby_logger <(../../gen/hub.py goby_logger)
 
-jaiabot_dev_hub -vvvv --mode BOX --serial 'port: "/dev/ttyUSB0" baud: 9600' --interprocess 'platform: "hub"' --app 'glog_config { file_log { file_dir: "/home/ubuntu/jaia-logs/hub" verbosity: DEBUG1 }}'
+jaiabot_dev_hub <(../../gen/hub.py jaiabot_dev_hub)
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)

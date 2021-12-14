@@ -35,12 +35,5 @@ message ControlSurfacesTest
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    enum Mode
-    {
-        BOT = 1;
-        BOX = 2;
-    }
-
-    required Mode mode = 10;
-    required goby.middleware.protobuf.SerialConfig serial = 11;
+    required goby.middleware.protobuf.SerialConfig serial_radio = 11;
 }
