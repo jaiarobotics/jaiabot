@@ -1,0 +1,4 @@
+interprocess { 
+  platform: "$platform"
+}
+

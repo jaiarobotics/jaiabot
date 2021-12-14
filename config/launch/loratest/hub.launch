@@ -1,0 +1,6 @@
+#!/usr/bin/env -S goby_launch -L -P
+
+gobyd <(../../gen/topside.py gobyd)
+goby_gps <(../../gen/topside.py goby_gps)
+goby_logger <(../../gen/topside.py goby_logger)
+jaiabot_loratest --src 1 --dest 2 -vvv -n --serial 'port: "/dev/ttyACM0" baud: 115200' --transmit --interprocess 'platform: "topside"' --modem_config Bw500Cr45Sf128 --tx_power 13
