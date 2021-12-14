@@ -1,0 +1,7 @@
+simulation {  
+    time {
+        use_sim_time: true 
+        warp_factor: $warp # must match MOOSTimeWarp
+        reference_microtime: 0 # must be zero to act the same as MOOSTimeWarp
+    }
+}
