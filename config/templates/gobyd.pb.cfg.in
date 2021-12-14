@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+intervehicle {
+    $link_block
+    $persist_subscriptions
+}

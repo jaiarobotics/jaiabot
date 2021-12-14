@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+ais_serial {
+    port: "/tmp/pty_jaiahub"
+    baud: 115200
+}
