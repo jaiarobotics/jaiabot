@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+ais_server {
+    bind_port: 54000
+    set_reuseaddr: true
+}
