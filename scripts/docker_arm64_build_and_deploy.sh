@@ -29,7 +29,7 @@ if [ -z "$1" ]
         for var in "$@"
 	    do
     		echo "rsync build and config directories"
-		    rsync -aP --exclude={build/src,build/CMakeFiles,src/web/dist,src/web/node_modules} src build config ubuntu@"$var":/home/ubuntu/jaiabot/
+		    rsync -aP --exclude={build/src,build/CMakeFiles,src/web/dist,src/web/node_modules} src build config scripts ubuntu@"$var":/home/ubuntu/jaiabot/
 	    done
 fi
 

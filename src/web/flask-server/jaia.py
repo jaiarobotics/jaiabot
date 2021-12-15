@@ -10,13 +10,13 @@ class Interface:
     def __init__(self, goby_host=('optiplex', 3001)):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.sendto(b"Hi", self.goby_host)
 
         threading.Thread(target=lambda: self.loop()).start()
 
     def loop(self):
         while True:
             sleep(1)
+            self.sock.sendto(b"Hi", self.goby_host)
 
             # Get data from the socket
             while True:

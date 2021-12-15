@@ -155,6 +155,10 @@ void jaiabot::apps::WebPortal::loop()
 }
 
 void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
+    if (dest.addr() == "") {
+        return;
+    }
+
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     // udp_src { addr: "172.20.11.247" port: 40000 }
     io_data->mutable_udp_dest()->set_addr(dest.addr());
