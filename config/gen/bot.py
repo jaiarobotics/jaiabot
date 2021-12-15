@@ -41,7 +41,7 @@ app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='bot'+str(bot_index))
 
-link_wifi_block = config.template_substitute(templates_dir+'/_link_wifi.pb.cfg.in',
+link_wifi_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(vehicle_id),
                                              local_port=common.udp.wifi_udp_port(vehicle_id),
