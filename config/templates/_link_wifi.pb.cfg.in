@@ -10,6 +10,12 @@ link {
             $remotes
             max_frame_size: 1400
         }
+#    driver { 
+#        # returned by goby_driver_name() function in shared library listed in GOBY_MODEMDRIVER_PLUGINS
+#        driver_name: "xbee_driver"
+#        serial_port: "/dev/ttyUSB0"
+#        serial_baud: 9600
+#        modem_id: $modem_id
     }
     mac { 
         type: MAC_FIXED_DECENTRALIZED 
