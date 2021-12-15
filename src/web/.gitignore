@@ -1,0 +1,7 @@
+node_modules
+package-lock.json
+.vscode
+*.log
+dist
+common/version.js
+__pycache__
