@@ -1,0 +1,7 @@
+#! /bin/bash
+cd ~/jaiabot/src/arduino/control_surfaces
+make .
+
+cd ~/jaiabot-configuration/launch/dev
+./bot.launch
+
