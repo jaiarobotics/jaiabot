@@ -40,7 +40,7 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
                                                  platform='hub')
 
 
-link_wifi_block = config.template_substitute(templates_dir+'/_link_wifi.pb.cfg.in',
+link_wifi_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(vehicle_id),
                                              local_port=common.udp.wifi_udp_port(vehicle_id),
