@@ -1,0 +1,9 @@
+#!/usr/bin/env -S goby_launch -L -P
+
+gobyd <(gen/auv.py gobyd)
+goby_logger <(gen/auv.py goby_logger)
+
+#bar30-driver <(gen/auv.py bar30-driver)
+#adafruit-BNO055-driver <(gen/auv.py adafruit-BNO055-driver)
+atlas-scientific-ezo-ec-driver <(gen/auv.py atlas-scientific-ezo-ec-driver)
+salinity-subscriber <(gen/auv.py salinity-subscriber) -vvvv

@@ -16,7 +16,7 @@ goby_logger <(../../gen/bot.py goby_logger)
 [kill=SIGTERM] ../../gen/moos_gen.sh
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
 [kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_index}.moos
-[kill=SIGTERM] pMarineViewer /tmp/jaiabot_pmv_${jaia_bot_index}.moos
+#[kill=SIGTERM] pMarineViewer /tmp/jaiabot_pmv_${jaia_bot_index}.moos
 [kill=SIGTERM] uProcessWatch /tmp/jaiabot_${jaia_bot_index}.moos
 [kill=SIGTERM] pNodeReporter /tmp/jaiabot_${jaia_bot_index}.moos
 

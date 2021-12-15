@@ -32,9 +32,12 @@ message ControlAck
     required uint64 command_time = 4 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
-
     required GeographicCoordinate location = 5;
+
     optional double range = 6
         [(dccl.field) = { units { base_dimensions: "L" } }];
-
+    optional double speed = 7
+        [(dccl.field) = { units { derived_dimensions: "length/time" } }];
+    optional double eps = 12
+        [(dccl.field) = { units { derived_dimensions: "length/time" } }];
 }
