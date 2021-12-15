@@ -52,6 +52,21 @@ namespace apps
 constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
 constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
 
+REST::BotStatus convert(const BotStatus& input_status) {
+    REST::BotStatus bot_status;
+    bot_status.set_bot_id(input_status.bot_id());
+    bot_status.set_time(NOW);
+
+    bot_status.mutable_location()->set_lat(input_status.location().lat());
+    bot_status.mutable_location()->set_lon(input_status.location().lon());
+
+    bot_status.set_depth(input_status.depth());
+
+    bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
+
+    return bot_status;
+}
+
 class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 {
   public:
@@ -63,6 +78,8 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     std::vector<REST::BotStatus> bot_statuses;
 
     void loop() override;
+
+    void send(const REST::BotStatus& bot_status);
 };
 
 } // namespace apps
@@ -77,7 +94,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(1 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(0 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -112,10 +129,15 @@ jaiabot::apps::WebPortal::WebPortal()
         bot_statuses.push_back(bot_status);
     }
 
-//    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-//        glog.is_warn() && glog << group("main")
+    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
+//        glog.is_debug1() && glog << group("main")
 //                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
-//    });
+
+        auto bot_status = convert(dccl_nav);
+
+        send(bot_status);
+    });
+
 }
 
 void jaiabot::apps::WebPortal::loop()
@@ -127,20 +149,24 @@ void jaiabot::apps::WebPortal::loop()
     if (dest.port() != 0) {
 
         for (auto bot_status: bot_statuses) {
-            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-            // udp_src { addr: "172.20.11.247" port: 40000 }
-            io_data->mutable_udp_dest()->set_addr(dest.addr());
-            io_data->mutable_udp_dest()->set_port(dest.port());
-
-            // Serialize for the UDP packet
-            string data;
-            bot_status.SerializeToString(&data);
-            io_data->set_data(data);
-
-            // Send it
-            interthread().publish<web_portal_udp_out>(io_data);
-
-            glog.is_warn() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+            send(bot_status);
         }
     }
+}
+
+void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
+    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    // udp_src { addr: "172.20.11.247" port: 40000 }
+    io_data->mutable_udp_dest()->set_addr(dest.addr());
+    io_data->mutable_udp_dest()->set_port(dest.port());
+
+    // Serialize for the UDP packet
+    string data;
+    bot_status.SerializeToString(&data);
+    io_data->set_data(data);
+
+    // Send it
+    interthread().publish<web_portal_udp_out>(io_data);
+
+//    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }
