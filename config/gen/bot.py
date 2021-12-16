@@ -6,6 +6,7 @@
 import sys
 import os
 from common import config
+from common import is_simulation, is_runtime
 import common, common.vehicle, common.comms, common.sim, common.udp
 
 try:
@@ -41,15 +42,20 @@ app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='bot'+str(bot_index))
 
-link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+if is_runtime():
+    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.xbee_modem_id(vehicle_id),
+                                             mac_slots=common.comms.xbee_mac_slots(vehicle_id))
+
+if is_simulation():
+    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(vehicle_id),
                                              local_port=common.udp.wifi_udp_port(vehicle_id),
                                              remotes=common.comms.wifi_remotes(vehicle_id, number_of_bots),
                                              mac_slots=common.comms.wifi_mac_slots(vehicle_id))
-                                        
-link_block=link_block
-
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
 
