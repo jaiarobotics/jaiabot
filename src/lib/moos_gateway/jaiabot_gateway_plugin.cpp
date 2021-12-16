@@ -24,6 +24,9 @@ extern "C"
 void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
     const protobuf::IvPBehaviorUpdate& update)
 {
+    // we don't want the Helm in Park ever
+    moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
+    
     switch (update.behavior_case())
     {
         case protobuf::IvPBehaviorUpdate::kTransit:
