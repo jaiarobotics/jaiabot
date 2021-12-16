@@ -39,7 +39,11 @@ if not args.simulator:
 
 
 def getRealData():
-    return [float(x) for x in device.query('R').response.split(',')]
+    try:
+        return [float(x) for x in device.query('R').response.split(',')]
+    except Exception as e:
+        print('ERROR: ', e)
+
 
 def getFakeData():
     return [0, 0, 0, 0]
