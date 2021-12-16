@@ -1,4 +1,4 @@
-#!/usr/bin/env -S goby_launch -L -P
+#!/usr/bin/env -S goby_launch -L -P -d 1000
 
 [kill=SIGTERM] gpsd $(../../gen/bot.py gpsd)
 
