@@ -22,12 +22,20 @@ args = parser.parse_args()
 
 # Setup the device
 if not args.simulator:
-    device = AtlasI2C()
-    device.set_i2c_address(args.address)
-    assert(device.query('O,EC,1').error_code == 1)
-    assert(device.query('O,TDS,1').error_code == 1)
-    assert(device.query('O,S,1').error_code == 1)
-    assert(device.query('O,SG,1').error_code == 1)
+    while True:
+        try:
+            print('Initializing Atlas Scientific device')
+            device = AtlasI2C()
+            device.set_i2c_address(args.address)
+            assert(device.query('O,EC,1').error_code == 1)
+            assert(device.query('O,TDS,1').error_code == 1)
+            assert(device.query('O,S,1').error_code == 1)
+            assert(device.query('O,SG,1').error_code == 1)
+            print('Done initializing')
+            break
+        except Exception as e:
+            print('ERROR: ', e)
+            sleep(5)
 
 
 def getRealData():
