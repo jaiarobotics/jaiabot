@@ -11,3 +11,9 @@ gps_udp_config {
     remote_address: "127.0.0.1"
     remote_port: $gpsd_simulator_udp_port
 }
+
+pressure_udp_config { 
+    bind_port: 0
+    remote_address: "127.0.0.1"
+    remote_port: $pressure_udp_port
+}

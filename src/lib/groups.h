@@ -38,7 +38,7 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
-constexpr goby::middleware::Group pt{"jaiabot::pt"};
+constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
 // low control
