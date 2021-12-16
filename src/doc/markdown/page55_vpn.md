@@ -166,5 +166,5 @@ Add the following to your /etc/hosts file
 172.20.11.10 jaiahub0
 172.20.11.11 jaiahub1
 172.20.11.100 jaiabot0
-172.20.11.102 jaiahub2
+172.20.11.102 jaiabot2
 ```
