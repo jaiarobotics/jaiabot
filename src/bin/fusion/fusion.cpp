@@ -26,12 +26,14 @@
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/seawater.h>
 
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -150,6 +152,17 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
                     latest_node_status_);
         });
 
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+            auto depth = goby::util::seawater::depth(
+                pt.pressure_with_units(), latest_node_status_.global_fix().lat_with_units());
+
+            latest_node_status_.mutable_global_fix()->set_depth_with_units(depth);
+            latest_node_status_.mutable_local_fix()->set_z_with_units(
+                -latest_node_status_.global_fix().depth_with_units());
+            latest_bot_status_.set_depth_with_units(depth);
+        });
+
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
@@ -158,11 +171,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
 
 void jaiabot::apps::Fusion::init_node_status()
 {
-    // TODO: placeholder, replace with data from pressure sensor
-    latest_node_status_.mutable_global_fix()->set_depth(0);
-    latest_node_status_.mutable_local_fix()->set_z_with_units(
-        -latest_node_status_.global_fix().depth_with_units());
-
     // set empty pose field so NodeStatus gets generated even without pitch, heading, or roll data
     latest_node_status_.mutable_pose();
 }

@@ -191,7 +191,7 @@ void jaiabot::LiaisonJaiabot::post_tpv(
         bot_tpv_text_->setText("<pre>" + tpv.DebugString() + "</pre>");
 }
 
-void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PTData& pt)
+void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PressureTemperatureData& pt)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
         bot_pt_text_->setText("<pre>" + pt.DebugString() + "</pre>");

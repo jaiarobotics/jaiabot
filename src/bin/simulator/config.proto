@@ -39,4 +39,5 @@ message Simulator
     required goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
+    optional goby.middleware.protobuf.UDPPointToPointConfig pressure_udp_config = 21;
 }

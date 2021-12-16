@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message PressureTemperatureData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double pressure = 1
+        [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double temperature = 2 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+}

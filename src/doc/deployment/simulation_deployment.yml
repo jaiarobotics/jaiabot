@@ -12,8 +12,11 @@ platforms:
       - jaiabot_simulator_interface.yml
       - jaiabot_fusion_interface.yml
       - jaiabot_mission_manager_interface.yml
+      - jaiabot_bar30-driver_interface.yml
       - application: goby_moos_gateway
         file: jaiabot_moos_gateway_plugin_interface.yml
       - application: goby_moos_gateway
         file: @GOBY_INTERFACES_DIR@/goby_ivp_frontseat_moos_gateway_plugin_interface.yml
+      - application: goby_liaison
+        file: jaiabot_liaison_interface.yml
 
