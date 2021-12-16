@@ -1,5 +1,5 @@
 #! /bin/bash
 
-cd jaiabot-configuration/launch/dev
+cd jaiabot/config/launch/dev
 ./hub.launch
 

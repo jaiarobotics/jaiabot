@@ -156,6 +156,7 @@ MacOS has a GUI wireguard that requires a slightly different approach summarized
 - paste the contents of the .conf above except for the interface private key part
 - replace the xxx with your IP address
 - click save
+- follow the steps above to add your public key to the server
 
 ### Making Your Life Easier (Optional)
 
