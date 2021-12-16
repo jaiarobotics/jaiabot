@@ -19,13 +19,12 @@ def wifi_ip_addr(vehicle_id):
         raise Exception("not implemented")
     
 def wifi_remotes(this_vehicle_id, number_vehicles):
-    first_vehicle_id=0
     remotes=''
-    for vehicle_id in list(range(first_vehicle_id, number_vehicles+first_vehicle_id+1)):
-        if this_vehicle_id != vehicle_id:
-            remotes+='remote { modem_id: ' + str(base_modem_id(vehicle_id)) + ' ip: "' + wifi_ip_addr(vehicle_id)  + '" port: ' + str(udp.wifi_udp_port(vehicle_id)) + ' } \n'
+        first_vehicle_id=0
+        for vehicle_id in list(range(first_vehicle_id, number_vehicles+first_vehicle_id+1)):
+            if this_vehicle_id != vehicle_id:
+                remotes+='remote { modem_id: ' + str(base_modem_id(vehicle_id)) + ' ip: "' + wifi_ip_addr(vehicle_id)  + '" port: ' + str(udp.wifi_udp_port(vehicle_id)) + ' } \n'
     return remotes
-
 
 # first id is hub id
 hub_vehicle_id=0
