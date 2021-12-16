@@ -2,6 +2,6 @@
 cd ~/jaiabot/src/arduino/control_surfaces
 make .
 
-cd ~/jaiabot-configuration/launch/dev
+cd ~/jaiabot/config/launch/dev
 ./bot.launch
 
