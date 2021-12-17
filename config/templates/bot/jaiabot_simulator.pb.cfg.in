@@ -17,3 +17,6 @@ pressure_udp_config {
     remote_address: "127.0.0.1"
     remote_port: $pressure_udp_port
 }
+
+# m/s
+vertical_dive_rate: 0.5 

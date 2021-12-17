@@ -2,11 +2,12 @@
 #include "mission_manager.h"
 
 using goby::glog;
+namespace si = boost::units::si;
+using boost::units::quantity;
 
 jaiabot::protobuf::IvPBehaviorUpdate
 create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
-                      boost::units::quantity<boost::units::si::velocity> speed,
-                      const goby::util::UTMGeodesy& geodesy)
+                      quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::TransitUpdate& transit = *update.mutable_transit();
@@ -25,8 +26,7 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
 
 jaiabot::protobuf::IvPBehaviorUpdate
 create_stationkeep_update(const jaiabot::protobuf::GeographicCoordinate& location,
-                          boost::units::quantity<boost::units::si::velocity> transit_speed,
-                          boost::units::quantity<boost::units::si::velocity> outer_speed,
+                          quantity<si::velocity> transit_speed, quantity<si::velocity> outer_speed,
                           const goby::util::UTMGeodesy& geodesy)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -113,4 +113,125 @@ jaiabot::statechart::underway::recovery::StationKeep::~StationKeep()
 
     stationkeep.set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+// Task::Dive
+jaiabot::statechart::underway::task::Dive::Dive(typename StateBase::my_context c) : StateBase(c)
+{
+    // we currently start at the surface
+    quantity<si::length> depth = 0 * si::meters + current_dive().depth_interval_with_units();
+    quantity<si::length> max_depth = current_dive().max_depth_with_units();
+
+    // subtracting eps ensures we don't double up on the max_depth
+    // when the interval divides evenly into max depth
+    while (depth < max_depth - cfg().dive_depth_eps_with_units())
+    {
+        dive_depths_.push_back(depth);
+        depth += current_dive().depth_interval_with_units();
+    }
+    // always add max_depth at the end
+    dive_depths_.push_back(max_depth);
+}
+
+// Task::Dive::PoweredDescent
+jaiabot::statechart::underway::task::dive::PoweredDescent::PoweredDescent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    loop(EvLoop());
+}
+
+void jaiabot::statechart::underway::task::dive::PoweredDescent::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+}
+
+void jaiabot::statechart::underway::task::dive::PoweredDescent::depth(const EvVehicleDepth& ev)
+{
+    if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
+        cfg().dive_depth_eps_with_units())
+        post_event(EvDepthTargetReached());
+}
+
+// Task::Dive::Hold
+jaiabot::statechart::underway::task::dive::Hold::Hold(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point hold_start = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+
+    int hold_seconds =
+        context<Dive>().current_dive().hold_time_with_units<goby::time::SITime>().value();
+
+    goby::time::SteadyClock::duration hold_duration = std::chrono::seconds(hold_seconds);
+    hold_stop_ = hold_start + hold_duration;
+}
+
+void jaiabot::statechart::underway::task::dive::Hold::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
+    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+
+    if (now >= hold_stop_)
+    {
+        context<Dive>().pop_goal_depth();
+        if (context<Dive>().dive_complete())
+            post_event(EvDiveComplete());
+        else
+            post_event(EvHoldComplete());
+    }
+}
+
+// Task::Dive::UnpoweredAscent
+jaiabot::statechart::underway::task::dive::UnpoweredAscent::UnpoweredAscent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int timeout_seconds = cfg().surfacing_timeout_with_units<goby::time::SITime>().value();
+    goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
+    timeout_stop_ = timeout_start + timeout_duration;
+}
+
+void jaiabot::statechart::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= timeout_stop_)
+    {
+        post_event(EvSurfacingTimeout());
+    }
+}
+
+void jaiabot::statechart::underway::task::dive::UnpoweredAscent::depth(const EvVehicleDepth& ev)
+{
+    if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
+        post_event(EvTaskComplete());
+}
+
+// Task::Dive::PoweredAscent
+void jaiabot::statechart::underway::task::dive::PoweredAscent::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+}
+
+void jaiabot::statechart::underway::task::dive::PoweredAscent::depth(const EvVehicleDepth& ev)
+{
+    if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
+        post_event(EvTaskComplete());
 }

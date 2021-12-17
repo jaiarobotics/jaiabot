@@ -20,3 +20,8 @@ command_sub_cfg {
         }
     }
 }
+
+transit_speed: 2  #  (optional) (default=2)
+stationkeep_outer_speed: 1  #  (optional) (default=1)
+dive_depth_eps: 0.1  #  (optional) (default=0.1)
+surfacing_timeout: 60  #  (optional) (default=600)

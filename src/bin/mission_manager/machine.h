@@ -70,6 +70,14 @@ STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
+
+STATECHART_EVENT(EvLoop)
+struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
+{
+    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d) : depth(d) {}
+    boost::units::quantity<boost::units::si::length> depth;
+};
+
 #undef STATECHART_EVENT
 
 // RAII publication of state changes
@@ -541,12 +549,24 @@ struct SurfaceDrift
     ~SurfaceDrift() {}
 };
 
-struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>
+struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
 {
     using StateBase = boost::statechart::state<Dive, Task, dive::PoweredDescent>;
 
-    Dive(typename StateBase::my_context c) : StateBase(c) {}
+    Dive(typename StateBase::my_context c);
     ~Dive() {}
+
+    const protobuf::MissionPlan::Goal::Task::DiveParameters& current_dive()
+    {
+        return context<Underway>().current_task()->dive();
+    }
+
+    bool dive_complete() { return dive_depths_.empty(); }
+    boost::units::quantity<boost::units::si::length> goal_depth() { return dive_depths_.front(); }
+    void pop_goal_depth() { dive_depths_.pop_front(); }
+
+  private:
+    std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
 };
 namespace dive
 {
@@ -555,22 +575,34 @@ struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
                                protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<PoweredDescent, Dive>;
-    PoweredDescent(typename StateBase::my_context c) : StateBase(c) {}
+    PoweredDescent(typename StateBase::my_context c);
     ~PoweredDescent() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvDepthTargetReached, Hold>>;
+    void loop(const EvLoop&);
+    void depth(const EvVehicleDepth& ev);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvDepthTargetReached, Hold>,
+        boost::statechart::in_state_reaction<EvLoop, PoweredDescent, &PoweredDescent::loop>,
+        boost::statechart::in_state_reaction<EvVehicleDepth, PoweredDescent,
+                                             &PoweredDescent::depth>>;
 };
 
 struct Hold : boost::statechart::state<Hold, Dive>,
               Notify<Hold, protobuf::UNDERWAY__TASK__DIVE__HOLD, protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<Hold, Dive>;
-    Hold(typename StateBase::my_context c) : StateBase(c) {}
+    Hold(typename StateBase::my_context c);
     ~Hold() {}
+
+    void loop(const EvLoop&);
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvHoldComplete, PoweredDescent>,
-                         boost::statechart::transition<EvDiveComplete, PoweredAscent>>;
+                         boost::statechart::in_state_reaction<EvLoop, Hold, &Hold::loop>,
+                         boost::statechart::transition<EvDiveComplete, UnpoweredAscent>>;
+
+    goby::time::SteadyClock::time_point hold_stop_;
 };
 
 struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
@@ -578,11 +610,19 @@ struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
                                 protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
-    UnpoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
+    UnpoweredAscent(typename StateBase::my_context c);
     ~UnpoweredAscent() {}
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>>;
+    void loop(const EvLoop&);
+    void depth(const EvVehicleDepth& ev);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
+        boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
+        boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
+                                             &UnpoweredAscent::depth>>;
+
+    goby::time::SteadyClock::time_point timeout_stop_;
 };
 
 struct PoweredAscent : boost::statechart::state<PoweredAscent, Dive>,
@@ -592,6 +632,13 @@ struct PoweredAscent : boost::statechart::state<PoweredAscent, Dive>,
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
     PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
     ~PoweredAscent() {}
+
+    void loop(const EvLoop&);
+    void depth(const EvVehicleDepth& ev);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, PoweredAscent, &PoweredAscent::loop>,
+        boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>>;
 };
 
 } // namespace dive

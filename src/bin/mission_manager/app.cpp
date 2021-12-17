@@ -145,6 +145,13 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IvPBehaviorReport::BEHAVIOR_NOT_SET: break;
             }
         });
+
+    // subscribe for vehicle depth (from NodeStatus)
+    interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+            machine_->process_event(
+                statechart::EvVehicleDepth(node_status.global_fix().depth_with_units()));
+        });
 }
 
 void jaiabot::apps::MissionManager::loop()
@@ -152,6 +159,8 @@ void jaiabot::apps::MissionManager::loop()
     protobuf::MissionReport report;
     report.set_state(machine_->state());
     interprocess().publish<jaiabot::groups::mission_report>(report);
+
+    machine_->process_event(statechart::EvLoop());
 }
 
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
