@@ -6,7 +6,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/control_surfaces.proto
   jaiabot/messages/feather.proto
   jaiabot/messages/lora_test.proto
-  jaiabot/messages/pt.proto
+  jaiabot/messages/pressure_temperature.proto
   jaiabot/messages/imu.proto
   jaiabot/messages/salinity.proto
   jaiabot/messages/mission.proto

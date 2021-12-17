@@ -25,14 +25,18 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <boost/units/absolute.hpp>
+#include <boost/units/io.hpp>
+#include <boost/units/systems/temperature/celsius.hpp>
 #include <dccl/codec.h>
-#include <goby/util/constants.h>
-#include <goby/zeromq/application/multi_thread.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/util/constants.h>
+#include <goby/util/seawater/units.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/pt.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -73,23 +77,23 @@ int main(int argc, char* argv[])
 
 double loop_freq = 1;
 
-
 // for string delimiter
-std::vector<std::string> split (std::string s, std::string delimiter) {
+std::vector<std::string> split(std::string s, std::string delimiter)
+{
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     std::string token;
     std::vector<std::string> res;
 
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos)
+    {
+        token = s.substr(pos_start, pos_end - pos_start);
         pos_start = pos_end + delim_len;
-        res.push_back (token);
+        res.push_back(token);
     }
 
-    res.push_back (s.substr (pos_start));
+    res.push_back(s.substr(pos_start));
     return res;
 }
-
 
 jaiabot::apps::Bar30Publisher::Bar30Publisher()
     : zeromq::MultiThreadApplication<config::Bar30Publisher>(loop_freq * si::hertz)
@@ -100,25 +104,29 @@ jaiabot::apps::Bar30Publisher::Bar30Publisher()
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<bar30_udp_in, bar30_udp_out>;
     launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interprocess().subscribe<bar30_udp_in>([this](const goby::middleware::protobuf::IOData& bar30_data) {
+    interprocess().subscribe<bar30_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& bar30_data) {
+            auto s = std::string(bar30_data.data());
+            auto fields = split(s, ",");
 
+            using goby::util::seawater::bar;
+            namespace celsius = boost::units::celsius;
+            using boost::units::absolute;
 
-      auto s = std::string(bar30_data.data());
-      auto fields = split(s, ",");
+            auto date_string = fields[0];
+            auto p_mbar = std::stod(fields[1]) * si::milli * bar;
+            auto t_celsius = std::stod(fields[2]) * absolute<celsius::temperature>();
 
-      auto date_string = fields[0];
-      double p_mbar = std::stod(fields[1]);
-      double t_celsius = std::stod(fields[2]);
+            glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << p_mbar
+                                      << ", t_celsius: " << t_celsius << std::endl;
 
-      glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << p_mbar << ", t_celsius: " << t_celsius << std::endl;
+            protobuf::PressureTemperatureData data;
 
-      protobuf::PTData data;
-      data.set_p_mbar(p_mbar);
-      data.set_t_celsius(t_celsius);
+            data.set_pressure_with_units(p_mbar);
+            data.set_temperature_with_units(t_celsius);
 
-      interprocess().publish<groups::pt>(data);
-    });
-
+            interprocess().publish<groups::pressure_temperature>(data);
+        });
 }
 
 void jaiabot::apps::Bar30Publisher::loop()
