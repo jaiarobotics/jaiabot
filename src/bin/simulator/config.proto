@@ -22,6 +22,8 @@
 
 syntax = "proto2";
 
+import "dccl/option_extensions.proto";
+
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
@@ -31,6 +33,10 @@ package jaiabot.config;
 
 message Simulator
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
     // required parameters for connecting to 'gobyd'
@@ -39,5 +45,9 @@ message Simulator
     required goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
-    optional goby.middleware.protobuf.UDPPointToPointConfig pressure_udp_config = 21;
+    optional goby.middleware.protobuf.UDPPointToPointConfig
+        pressure_udp_config = 21;
+
+    optional double vertical_dive_rate = 30
+        [(dccl.field) = { units { derived_dimensions: "velocity" } }];    
 }

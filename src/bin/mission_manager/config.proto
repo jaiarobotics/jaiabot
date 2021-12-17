@@ -27,4 +27,12 @@ message MissionManager
         default = 1,
         (dccl.field).units = { base_dimensions: "LT^-1" }
     ];  // meters/second
+
+    // acceptable eps when dive depth is considered reached (in meters)
+    optional double dive_depth_eps = 30
+        [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
+
+    // surfacing timeout in seconds before switching to powered ascent
+    optional double surfacing_timeout = 31
+        [default = 600, (dccl.field).units = { base_dimensions: "T" }];
 }

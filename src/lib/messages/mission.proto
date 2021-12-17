@@ -87,11 +87,21 @@ message MissionPlan
             {
                 optional double max_depth = 1 [
                     default = inf,
-                    (dccl.field) = { min: 0 max: 100 precision: 0 }
+                    (dccl.field) = {
+                        min: 0
+                        max: 100
+                        precision: 0
+                        units { base_dimensions: "L" }
+                    }
                 ];
                 optional double depth_interval = 2 [
                     default = inf,
-                    (dccl.field) = { min: 0 max: 50 precision: 1 }
+                    (dccl.field) = {
+                        min: 0
+                        max: 50
+                        precision: 1
+                        units { base_dimensions: "L" }
+                    }
                 ];
                 optional double hold_time = 3 [
                     default = 0,
