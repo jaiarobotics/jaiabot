@@ -5,6 +5,7 @@
 #include <Wt/WPushButton>
 #include <Wt/WSlider>
 #include <boost/thread/mutex.hpp>
+#include <boost/units/io.hpp>
 #include <chrono>
 
 #include "goby/zeromq/liaison/liaison_container.h"
@@ -20,7 +21,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
-#include "jaiabot/messages/pt.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 
 namespace jaiabot
 {
@@ -35,7 +36,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_control_ack(const protobuf::ControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
     void post_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv);
-    void post_pt(const jaiabot::protobuf::PTData& pt);
+    void post_pt(const jaiabot::protobuf::PressureTemperatureData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
     void post_control_command(const jaiabot::protobuf::ControlCommand& control_command);
@@ -258,9 +259,10 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
             });
 
         // post the pt data in its own box
-        interprocess().subscribe<groups::pt>([this](const jaiabot::protobuf::PTData& pt) {
-            tab_->post_to_wt([=]() { tab_->post_pt(pt); });
-        });
+        interprocess().subscribe<groups::pressure_temperature>(
+            [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+                tab_->post_to_wt([=]() { tab_->post_pt(pt); });
+            });
 
         // post the salinity data in its own box
         interprocess().subscribe<groups::salinity>(

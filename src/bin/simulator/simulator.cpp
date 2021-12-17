@@ -28,6 +28,7 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/moos/middleware/moos_plugin_translator.h>
 #include <goby/util/linebasedcomms/gps_sentence.h>
+#include <goby/util/seawater.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -45,8 +46,11 @@ namespace jaiabot
 {
 namespace apps
 {
-constexpr goby::middleware::Group udp_in{"udp_in"};
-constexpr goby::middleware::Group udp_out{"udp_out"};
+constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
+constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
+
+constexpr goby::middleware::Group pressure_udp_in{"pressure_udp_in"};
+constexpr goby::middleware::Group pressure_udp_out{"pressure_udp_out"};
 
 class SimulatorTranslation : public goby::moos::Translator
 {
@@ -61,6 +65,7 @@ class SimulatorTranslation : public goby::moos::Translator
             });
 
         namespace degree = boost::units::degree;
+        namespace si = boost::units::si;
         using boost::units::quantity;
 
         std::vector<std::string> nav_buffer_params(
@@ -94,13 +99,33 @@ class SimulatorTranslation : public goby::moos::Translator
             {
                 auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
                 io_data->set_data(rmc.serialize().message_cr_nl());
-                interthread().publish<udp_out>(io_data);
+                interthread().publish<gps_udp_out>(io_data);
             }
 
             {
                 auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
                 io_data->set_data(hdt.serialize().message_cr_nl());
-                interthread().publish<udp_out>(io_data);
+                interthread().publish<gps_udp_out>(io_data);
+            }
+
+            // publish pressure as UDP message for bar30 driver
+            {
+                std::stringstream ss;
+                auto pressure = goby::util::seawater::pressure(
+                    moos_buffer["NAV_DEPTH"].GetDouble() * boost::units::si::meters, latlon.lat);
+
+                // omit in sim
+                double temp = 0.0;
+                std::string time = "";
+
+                using goby::util::seawater::bar;
+
+                // date_string, p_mbar, t_celsius
+                ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
+                   << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temp;
+                auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+                io_data->set_data(ss.str());
+                interthread().publish<pressure_udp_out>(io_data);
             }
         });
 
@@ -175,8 +200,12 @@ jaiabot::apps::Simulator::Simulator()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<udp_in, udp_out>;
+    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
     launch_thread<GPSUDPThread>(cfg().gps_udp_config());
+
+    using PressureUDPThread =
+        goby::middleware::io::UDPPointToPointThread<pressure_udp_in, pressure_udp_out>;
+    launch_thread<PressureUDPThread>(cfg().pressure_udp_config());
 
     goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
     *sim_cfg.mutable_app() = cfg().app();

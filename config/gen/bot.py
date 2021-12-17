@@ -6,6 +6,7 @@
 import sys
 import os
 from common import config
+from common import is_simulation, is_runtime
 import common, common.vehicle, common.comms, common.sim, common.udp
 
 try:
@@ -30,7 +31,7 @@ verbosities = \
   'goby_logger':                              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_frontseat_interface_basic_simulator': { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_simulator':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'jaiabot_bar30_publisher':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
+  'jaiabot_bar30-driver':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_fusion':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_gps':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }}
@@ -41,15 +42,20 @@ app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='bot'+str(bot_index))
 
-link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+if is_runtime():
+    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.xbee_modem_id(vehicle_id),
+                                             mac_slots=common.comms.xbee_mac_slots(vehicle_id))
+
+if is_simulation():
+    link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(vehicle_id),
                                              local_port=common.udp.wifi_udp_port(vehicle_id),
                                              remotes=common.comms.wifi_remotes(vehicle_id, number_of_bots),
                                              mac_slots=common.comms.wifi_mac_slots(vehicle_id))
-                                        
-link_block=link_block
-
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
 
@@ -81,11 +87,14 @@ elif common.app == 'jaiabot_simulator':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      moos_port=common.vehicle.moos_simulator_port(vehicle_id),
-                                     gpsd_simulator_udp_port=common.vehicle.gpsd_simulator_udp_port(vehicle_id)))
+                                     gpsd_simulator_udp_port=common.vehicle.gpsd_simulator_udp_port(vehicle_id),
+                                     pressure_udp_port=common.udp.bar30_cpp_udp_port(vehicle_id)))
 elif common.app == 'jaiabot_bar30-driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_bar30-driver.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     bind_port=common.udp.bar30_cpp_udp_port(vehicle_id),
+                                     remote_port=common.udp.bar30_py_udp_port(vehicle_id)))
 elif common.app == 'jaiabot_adafruit-BNO055-driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit-BNO055-driver.pb.cfg.in',
                                      app_block=app_common,
