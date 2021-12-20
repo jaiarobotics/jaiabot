@@ -9,7 +9,7 @@ import argparse
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("hostname", type=str, help="goby hostname to send and receive protobuf messages")
-parser.add_argument("port", type=int, help="goby port to send and receive protobuf messages")
+parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 args = parser.parse_args()
 
 jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port))
