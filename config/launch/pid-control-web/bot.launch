@@ -1,0 +1,10 @@
+#!/usr/bin/env -S goby_launch -L -P -d 1000
+
+# start the Goby processes
+gobyd <(../../gen/bot.py gobyd) -vvv -n
+jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
+jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
+goby_gps <(../../gen/bot.py goby_gps)
+goby_logger <(../../gen/bot.py goby_logger)
+
+[env=jaia_bot_index=0] bot_pid_control <(../../gen/bot.py bot_pid_control) -vv

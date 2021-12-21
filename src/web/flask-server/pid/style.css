@@ -1,0 +1,120 @@
+/* Sliders */
+
+.columnGroup {
+  width: 25%;
+  float: left;
+  margin: 10pt;
+}
+
+.columnContainer {
+  width: 40%;
+  display: inline-block;
+  vertical-align: top;
+  margin: 10pt;
+}
+
+.sliderRange {
+  display: flex;
+}
+
+.minValueLabel {
+  text-align: left;
+  flex: 1;
+  margin: auto;
+}
+
+.maxValueLabel {
+  text-align: right;
+  flex: 1;
+  margin: auto;
+}
+
+.sliderValueLabel {
+  text-align: center;
+  width: 100%;
+}
+
+.sliderTitle {
+  text-align: center;
+  width: 100%;
+}
+
+/* The slider itself */
+.slider {
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 25px; /* Specified height */
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+  transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #04AA6D; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #04AA6D; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+/* Misc */
+
+.title {
+  text-align: center;
+}
+
+.radioButtonContainer {
+  margin:auto;
+  display:float;
+  width:20pt
+}
+
+.vpad {
+  margin-top: 30pt;
+  margin-bottom: 30pt;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+div.gain {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+input.gain {
+  width: 100%
+}
+
+.submitButton {
+  display: block;
+  width: 100pt;
+  border: 3px solid green;
+  padding: 10px;
+}
+
+.bordered {
+  border: 3px solid green;
+  padding: 10px;
+}
+
+.colored {
+  background-color: red
+}

@@ -1,7 +1,14 @@
 import socket
 import threading
-import rest_interface_pb2
+import pid_control_pb2
 from time import sleep
+
+
+def floatFrom(obj):
+    try:
+        return float(obj)
+    except:
+        return None
 
 
 class Interface:
@@ -16,7 +23,8 @@ class Interface:
     def loop(self):
         while True:
             sleep(1)
-            self.sock.sendto(b"Hi", self.goby_host)
+            command = pid_control_pb2.Command()
+            self.sock.sendto(command.SerializeToString(), self.goby_host)
 
             # Get data from the socket
             while True:
@@ -24,7 +32,7 @@ class Interface:
                 if len(data) == 0:
                     break
 
-                botStatus = rest_interface_pb2.BotStatus()
+                botStatus = pid_control_pb2.BotStatus()
                 byteCount = botStatus.ParseFromString(data)
 
                 self.bots[botStatus.bot_id] = botStatus
@@ -80,3 +88,15 @@ class Interface:
             'code': 0
         }
 
+    def send_command(self, command):
+        pbCommand = pid_control_pb2.Command()
+
+        # Heading
+        pbCommand.heading.target = floatFrom(command['heading']['target'])
+        pbCommand.heading.Kp = floatFrom(command['heading']['Kp'])
+        pbCommand.heading.Ki = floatFrom(command['heading']['Ki'])
+        pbCommand.heading.Kd = floatFrom(command['heading']['Kd'])
+
+        print(pbCommand)
+
+        self.sock.sendto(pbCommand.SerializeToString(), self.goby_host)

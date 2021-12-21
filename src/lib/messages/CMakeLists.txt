@@ -11,7 +11,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/salinity.proto
   jaiabot/messages/mission.proto
   jaiabot/messages/jaia_dccl.proto
-  jaiabot/messages/rest_interface.proto
+  jaiabot/messages/pid_control.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})

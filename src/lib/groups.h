@@ -59,6 +59,10 @@ constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
                                               goby::middleware::Group::broadcast_group};
 
+// pid-control-web
+constexpr goby::middleware::Group pid_control{"jaiabot::pid_control",
+                                              goby::middleware::Group::broadcast_group};
+
 } // namespace groups
 } // namespace jaiabot
 
