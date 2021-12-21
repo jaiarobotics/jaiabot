@@ -1,4 +1,4 @@
 #!/bin/bash
 
-protoc -I. --python_out=. rest_interface.proto
+protoc -I/usr/local/include/ -I. --python_out=. pid_control.proto
 

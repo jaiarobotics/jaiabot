@@ -28,7 +28,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/rest_interface.pb.h"
+#include "jaiabot/messages/pid_control.pb.h"
 
 #include <vector>
 
@@ -101,10 +101,20 @@ jaiabot::apps::WebPortal::WebPortal()
     using UDPThread = goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
-    glog.is_verbose() && glog << group("main") << "Subscribing to UDP" << std::endl;
+    glog.is_debug1() && glog << group("main") << "Web Portal Started" << std::endl;
+    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << std::endl;
 
+    ///////////// INPUT from REST API
     interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-      glog.is_warn() && glog << group("main") << "Received data: " << io_data.ShortDebugString() << std::endl;
+        auto command = REST::Command();
+
+        glog.is_debug1() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
+
+        if (command.ParseFromString(io_data.data())) {
+            glog.is_debug1() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
+
+            intervehicle().publish<jaiabot::groups::pid_control>(command);
+        }
 
         dest.set_addr(io_data.udp_src().addr());
         dest.set_port(io_data.udp_src().port());
@@ -130,8 +140,8 @@ jaiabot::apps::WebPortal::WebPortal()
     }
 
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-//        glog.is_debug1() && glog << group("main")
-//                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+        glog.is_debug2() && glog << group("main")
+                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
         auto bot_status = convert(dccl_nav);
 
@@ -142,10 +152,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
 void jaiabot::apps::WebPortal::loop()
 {
-    // called at frequency passed to MultiThreadApplication base class
     glog.is_verbose() && glog << group("main") << "Loop!" << std::endl;
 
-    // Just send an empty packet
     if (dest.port() != 0) {
 
         for (auto bot_status: bot_statuses) {

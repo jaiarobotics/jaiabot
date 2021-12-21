@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <link rel="stylesheet" href="style.css">
+
+  </head>
+
+  <body>
+
+    <h1>Engineering Control Page</h1>
+
+    <div>
+    
+      <div class="columnGroup bordered">
+        <div class="title">
+          Rudder or Heading
+        </div>
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input style="" type="radio" id="rudder" name="rudder_heading" value="">
+          </div>
+
+          <div class="vpad">
+            <div class="sliderTitle">
+              Rudder
+            </div>
+            <div class="sliderValueLabel" id="rudderValue">
+              50
+            </div>
+            <input type="range" min="-100" max="100" value="0" class="slider" id="rudderSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                -100
+              </div>
+              <div class="maxValueLabel">
+                100
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input type="radio" id="heading" name="rudder_heading" value="">
+          </div>
+          
+          <div class="vpad">
+            <div class="sliderTitle">
+              Heading
+            </div>
+            <div class="sliderValueLabel" id="headingValue">
+              50
+            </div>
+            <input type="range" min="0" max="360" value="0" class="slider" id="headingSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                0
+              </div>
+              <div class="maxValueLabel">
+                360
+              </div>
+            </div>
+          </div>
+          
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kp</label>
+            <input class="gain" type="text" id="heading_Kp" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <div class="gain">Ki</div>
+            <input class="gain" type="text" id="heading_Ki" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kd</label>
+            <input class="gain" type="text" id="heading_Kd" name="fname" value="1">
+          </div>
+          
+          <button class="submitButton vpad" type="button" id="heading_submit">Submit</button>
+        </div>
+      </div>
+
+    </div>
+
+  </body>
+
+    <script src="script.js"></script>
+
+</html>

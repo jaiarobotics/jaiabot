@@ -148,4 +148,5 @@ elif common.app == 'frontseat_sim':
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index))
