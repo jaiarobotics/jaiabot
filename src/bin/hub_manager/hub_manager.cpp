@@ -76,7 +76,7 @@ jaiabot::apps::HubManager::HubManager()
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
     glog.is_warn() && glog << group("bot_nav")
-                             << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+                           << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
@@ -85,7 +85,10 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
 
     node_status.set_name("BOT" + std::to_string(dccl_nav.bot_id()));
 
-    node_status.set_time_with_units(dccl_nav.time_with_units());
+    // rewarp the time if needed
+    node_status.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
+        goby::time::SystemClock::warp(goby::time::convert<std::chrono::system_clock::time_point>(
+            dccl_nav.time_with_units()))));
 
     if (dccl_nav.attitude().has_heading())
         node_status.mutable_pose()->set_heading_with_units(
@@ -101,7 +104,10 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         node_status.mutable_speed()->set_over_ground_with_units(
             dccl_nav.speed().over_ground_with_units());
 
+    if (dccl_nav.has_depth())
+        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.depth_with_units());
+
     // publish for opencpn interface
-    if(node_status.IsInitialized())
-       interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+    if (node_status.IsInitialized())
+        interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
 }
