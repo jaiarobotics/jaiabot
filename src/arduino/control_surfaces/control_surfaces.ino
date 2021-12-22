@@ -6,7 +6,7 @@
 #ifdef UENUM
 #undef UENUM
 #endif
-#include "jaiabot/messages/nanopb/control_surfaces.pb.h"
+#include "jaiabot/messages/nanopb/low_level_control.pb.h"
 
 #define DEBUG_MESSAGE(x) (x)
 
@@ -34,25 +34,35 @@ int32_t command_timeout = -1;
 void handle_timeout();
 void halt_all();
 
-static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
+// Motor ramp-up
+float motor = 0.0;
+const float MOTOR_DAMP = 0.2;
+
+static_assert(jaiabot_protobuf_LowLevelControl_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "LowLevelControl is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
 bool data_to_receive = false;
 
-jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
-jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
+jaiabot_protobuf_LowLevelControl command = jaiabot_protobuf_LowLevelControl_init_default;
+jaiabot_protobuf_LowLevelAck ack = jaiabot_protobuf_LowLevelAck_init_default;
 
+
+enum AckCode {
+  STARTUP = 0,
+  ACK = 1,
+  TIMEOUT = 2,
+};
 
 
 void send_ack()
 {
   bool status = true;
-  uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfacesAck_size] = {0};
+  uint8_t pb_binary_data[jaiabot_protobuf_LowLevelAck_size] = {0};
   serial_size_type message_length = 0;
   {
     {
       pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
-      status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
+      status = pb_encode(&stream, jaiabot_protobuf_LowLevelAck_fields, &ack);
       message_length = stream.bytes_written;
     }
   }
@@ -80,6 +90,11 @@ void setup()
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
+
+  // Send startup code
+  ack.code = STARTUP;
+  send_ack();
+
 }
 
 
@@ -109,21 +124,28 @@ void loop()
         size << BITS_IN_BYTE;
         size |= prefix[SERIAL_MAGIC_BYTES + 1];
 
-        if (size <= jaiabot_protobuf_ControlSurfaces_size)
+        if (size <= jaiabot_protobuf_LowLevelControl_size)
         {
-          uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfaces_size] = {0};
+          uint8_t pb_binary_data[jaiabot_protobuf_LowLevelControl_size] = {0};
           if (Serial.readBytes(pb_binary_data, size) == size)
           {
             pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
-            bool status = pb_decode(&stream, jaiabot_protobuf_ControlSurfaces_fields, &command);
+            bool status = pb_decode(&stream, jaiabot_protobuf_LowLevelControl_fields, &command);
             if (!status)
             {
-              DEBUG_MESSAGE("Decoding ControlSurfaces protobuf failed:");
+              DEBUG_MESSAGE("Decoding LowLevelControl protobuf failed:");
               DEBUG_MESSAGE(PB_GET_ERROR(&stream));
             }
-            DEBUG_MESSAGE("Received ControlSurfaces");
+            DEBUG_MESSAGE("Received LowLevelControl");
 
-            motor_servo.writeMicroseconds (1500 - command.motor  * 400 / 100);
+            if (command.motor == 0) {
+              motor = command.motor;
+            }
+            else {
+              motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+            }
+
+            motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
             rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
             stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
             port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
@@ -132,7 +154,7 @@ void loop()
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
-            ack.code = 111;
+            ack.code = ACK;
             send_ack();
           }
           else
@@ -164,7 +186,11 @@ void handle_timeout() {
   
   unsigned long now = millis();
   if (now - t_last_command > command_timeout) {
+    command_timeout = -1;
     halt_all();
+
+    ack.code = TIMEOUT;
+    send_ack();
   }
 }
 
@@ -177,5 +203,5 @@ void halt_all() {
 
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
-PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
-PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)
+PB_BIND(jaiabot_protobuf_LowLevelControl, jaiabot_protobuf_LowLevelControl, 2)
+PB_BIND(jaiabot_protobuf_LowLevelAck, jaiabot_protobuf_LowLevelAck, 2)

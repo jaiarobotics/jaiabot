@@ -9,6 +9,8 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/pid_control.pb.h"
 
+#include "PID/PID.h"
+
 using jaiabot::protobuf::rest::Command;
 
 namespace jaiabot
@@ -21,8 +23,15 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     BotPidControl();
 
   private:
-    void initialize() override;
-    void finalize() override;
+    float kp = 1, ki = 1, kd = 1;
+
+    // Course targeting
+    float target_heading = 0.0;
+    float actual_heading = 0.0;
+    float rudder = 0.0;
+    bool rudder_is_using_pid = false;
+    Pid *course_pid;
+
     void loop() override;
 
     void handle_command(const Command& command);

@@ -16,5 +16,6 @@ RUN apt-get update && \
             libnanopb-dev:arm64 \
             nanopb:amd64 \
             python3-protobuf:amd64 \
+            wget:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*

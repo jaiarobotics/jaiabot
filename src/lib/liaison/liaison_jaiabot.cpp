@@ -56,8 +56,8 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         bot_node_status_box_ = new WGroupBox("Node Status from Fusion", bot_box);
         bot_node_status_text_ = new WText(bot_node_status_box_);
-        bot_control_command_box_ = new WGroupBox("Control Command", bot_box);
-        bot_control_command_text_ = new WText(bot_control_command_box_);
+        bot_vehicle_command_box_ = new WGroupBox("Control Command", bot_box);
+        bot_vehicle_command_text_ = new WText(bot_vehicle_command_box_);
         bot_pt_box_ = new WGroupBox("Pressure & Temperature", bot_box);
         bot_pt_text_ = new WText(bot_pt_box_);
         bot_salinity_box_ = new WGroupBox("Salinity", bot_box);
@@ -115,9 +115,9 @@ void jaiabot::LiaisonJaiabot::loop()
     auto it = vehicle_data_.find(current_vehicle_);
     if (it != vehicle_data_.end())
     {
-        jaiabot::protobuf::ControlCommand cmd_msg;
+        jaiabot::protobuf::VehicleCommand cmd_msg;
 
-        auto& cmd = *cmd_msg.mutable_command();
+        auto& cmd = *cmd_msg.mutable_control_surfaces();
 
         static std::atomic<int> id(0);
 
@@ -151,7 +151,7 @@ void jaiabot::LiaisonJaiabot::loop()
         glog.is_debug1() && glog << cmd_msg.ShortDebugString() << std::endl;
 
         this->post_to_comms(
-            [=]() { goby_thread()->interprocess().publish<groups::control_command>(cmd_msg); });
+            [=]() { goby_thread()->interprocess().publish<groups::vehicle_command>(cmd_msg); });
 
         auto& ack = it->second.low_level_control.latest_ack;
         if (ack.IsInitialized())
@@ -209,11 +209,11 @@ void jaiabot::LiaisonJaiabot::post_imu(const jaiabot::protobuf::IMUData& imu)
         bot_imu_text_->setText("<pre>" + imu.DebugString() + "</pre>");
 }
 
-void jaiabot::LiaisonJaiabot::post_control_command(
-    const jaiabot::protobuf::ControlCommand& control_command)
+void jaiabot::LiaisonJaiabot::post_vehicle_command(
+    const jaiabot::protobuf::VehicleCommand& vehicle_command)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
-        bot_control_command_text_->setText("<pre>" + control_command.DebugString() + "</pre>");
+        bot_vehicle_command_text_->setText("<pre>" + vehicle_command.DebugString() + "</pre>");
 }
 
 jaiabot::LiaisonJaiabot::VehicleData::VehicleData(Wt::WStackedWidget* vehicle_stack,

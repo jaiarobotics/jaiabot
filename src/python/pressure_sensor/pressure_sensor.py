@@ -19,37 +19,60 @@ if args.device != 'bar02':
 print(args)
 
 
+class SensorError(Exception):
+    pass
+
+
+class Sensor:
+
+    def __init__(self):
+        self.is_setup = False
+
+    def setup(self):
+        if not self.is_setup:
+            if args.device == 'bar02':
+                self.sensor = ms5837.MS5837_02BA()  # Default I2C bus is 1 (Raspberry Pi 3)
+            else:
+                self.sensor = ms5837.MS5837_30BA()  # Default I2C bus is 1 (Raspberry Pi 3)
+
+            if self.sensor.init():
+                self.is_setup = True
+            else:
+                raise SensorError()
+
+
+    def read(self):
+        if not self.is_setup:
+            self.setup()
+
+        try:
+            if self.sensor.read():
+                return (self.sensor.pressure(), self.sensor.temperature())
+            else:
+                print('Sensor read fail')
+                self.is_setup = False
+        except OSError as e:
+            self.is_setup = False
+            raise e
+
+
+class SensorSimulator:
+
+    def __init__(self):
+        pass
+
+    def setup(self):
+        pass
+
+    def read(self):
+        return (random.uniform(1300, 1400), random.uniform(20, 25))
+
 
 # Setup the Bar30
-if not args.simulator:
-    if args.device == 'bar02':
-        sensor = ms5837.MS5837_02BA() # Default I2C bus is 1 (Raspberry Pi 3)
-    else:
-        sensor = ms5837.MS5837_30BA() # Default I2C bus is 1 (Raspberry Pi 3)
-
-    if not sensor.init():
-            print("Sensor could not be initialized")
-            exit(1)
-
-    if not sensor.read():
-        print("Sensor read failed!")
-        exit(1)
-
-
-def getRealPT():
-    try:
-        if sensor.read():
-            return (sensor.pressure(), sensor.temperature())
-        else:
-            print("Sensor read failed!")
-            exit(1)
-    except OSError as error:
-        # Temporary read errors come through as OSError exceptions
-        print("Error: ", error)
-
-
-def getFakePT():
-    return (random.uniform(1300, 1400), random.uniform(20, 25))
+if args.simulator:
+    sensor = SensorSimulator()
+else:
+    sensor = Sensor()
 
 
 # Create socket
@@ -62,12 +85,14 @@ while True:
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
     # Respond to anyone who sends us a packet
-    if args.simulator:
-        p_mbar, t_celsius = getFakePT()
-    else:
-        p_mbar, t_celsius = getRealPT()
+    try:
+        p_mbar, t_celsius = sensor.read()
+    except Exception as e:
+        print(e)
+        continue
 
     now = datetime.utcnow()
     line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
 
+    print('Send: ', line)
     sock.sendto(line.encode('utf8'), addr)

@@ -14,6 +14,7 @@ jaiabot_atlas-scientific-ezo-ec-driver <(../../gen/bot.py jaiabot_atlas-scientif
 jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
 jaiabot_adafruit-BNO055-driver <(../../gen/bot.py jaiabot_adafruit-BNO055-driver)
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
+jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control) -vvv
 
 # liaison on the bot allows you to log into it directly should you desire
 goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
