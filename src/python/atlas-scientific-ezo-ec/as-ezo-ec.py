@@ -20,33 +20,57 @@ parser.add_argument('port', metavar='port', type=int, help='port to publish sali
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
+
+class SensorError(Exception):
+    pass
+
+
+class Sensor:
+
+    def __init__(self):
+        self.is_setup = False
+
+    def setup(self):
+        if not self.is_setup:
+            self.device = AtlasI2C()
+            self.device.set_i2c_address(args.address)
+            if self.device.query('O,EC,1').error_code  == 1 and \
+               self.device.query('O,TDS,1').error_code == 1 and \
+               self.device.query('O,S,1').error_code   == 1 and \
+               self.device.query('O,SG,1').error_code  == 1:
+                self.is_setup = True
+            else:
+                raise SensorError()
+
+    def read(self):
+        if not self.is_setup:
+            self.setup()
+
+        response = self.device.query('R')
+        if response.error_code != 1:
+            raise SensorError(f'response code = {response.error_code}')
+
+        data = [float(x) for x in response.response.split(',')]
+
+        return data
+
+
+class SensorSimulator:
+
+    def __init__(self):
+        pass
+
+    def setup(self):
+        pass
+
+    def read(self):
+        return [0, 0, 0, 0]
+
 # Setup the device
-if not args.simulator:
-    while True:
-        try:
-            print('Initializing Atlas Scientific device')
-            device = AtlasI2C()
-            device.set_i2c_address(args.address)
-            assert(device.query('O,EC,1').error_code == 1)
-            assert(device.query('O,TDS,1').error_code == 1)
-            assert(device.query('O,S,1').error_code == 1)
-            assert(device.query('O,SG,1').error_code == 1)
-            print('Done initializing')
-            break
-        except Exception as e:
-            print('ERROR: ', e)
-            sleep(5)
-
-
-def getRealData():
-    try:
-        return [float(x) for x in device.query('R').response.split(',')]
-    except Exception as e:
-        print('ERROR: ', e)
-
-
-def getFakeData():
-    return [0, 0, 0, 0]
+if args.simulator:
+    sensor = SensorSimulator()
+else:
+    sensor = Sensor()
 
 
 # Create socket
@@ -60,12 +84,14 @@ while True:
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
     # Respond to anyone who sends us a packet
-    if args.simulator:
-        data = getFakeData()
-    else:
-        data = getRealData()
+    try:
+        data = sensor.read()
+    except Exception as e:
+        print(e)
+        continue
 
     now = datetime.utcnow()
     line = '%s,%9.2f,%9.2f,%9.2f,%9.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), data[0], data[1], data[2], data[3])
 
     sock.sendto(line.encode('utf8'), addr)
+    print(f'Sent: {line}')

@@ -1,6 +1,7 @@
 build/*
 arm64_build/*
 .vscode/*
+*~
 cmake_install.cmake
 Makefile
 CMakeFiles

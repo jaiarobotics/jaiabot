@@ -22,6 +22,10 @@
 
 #include "app.h"
 
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
+#include "jaiabot/messages/vehicle_command.pb.h"
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
@@ -59,19 +63,13 @@ int main(int argc, char* argv[])
         jaiabot::apps::BotPidControlConfigurator(argc, argv));
 }
 
-// Main thread
-void jaiabot::apps::BotPidControl::initialize()
-{
-}
-
-void jaiabot::apps::BotPidControl::finalize()
-{
-}
-
 jaiabot::apps::BotPidControl::BotPidControl()
     : zeromq::MultiThreadApplication<config::BotPidControl>(1 * si::hertz)
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
+
+    course_pid = new Pid(&actual_heading, &rudder, &target_heading, kp, ki, kd);
+    course_pid->set_auto();
 
     // subscribe for commands
     {
@@ -90,13 +88,102 @@ jaiabot::apps::BotPidControl::BotPidControl()
             [this](const Command& command) { handle_command(command); }, command_subscriber);
     }
 
+    // Subscribe to get actual vehicle track
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+        if (tpv.has_track()) {
+            actual_heading = tpv.track();
+            glog.is_debug1() && glog << "Actual heading: " << actual_heading << std::endl;
+        }
+        });
+
 }
 
 void jaiabot::apps::BotPidControl::loop()
 {
+
+    if (rudder_is_using_pid) {
+        // Make sure track is within 180 degrees of the course
+        if (actual_heading > target_heading + 180.0) {
+            actual_heading -= 360.0;
+        }
+        if (actual_heading < target_heading - 180.0) {
+            actual_heading += 360.0;
+        }
+
+        // Compute new rudder value
+        if (course_pid->need_compute()) {
+            course_pid->compute();
+        }
+
+        glog.is_debug1() && glog << group("main") << "target_heading = " << target_heading << ", actual_heading = " << actual_heading << ", rudder = " << rudder << std::endl;
+    }
+
+    // Publish the VehicleCommand
+
+    jaiabot::protobuf::VehicleCommand cmd_msg;
+
+    auto& cmd = *cmd_msg.mutable_control_surfaces();
+
+    static std::atomic<int> id(0);
+
+    cmd_msg.set_id(id++);
+    cmd_msg.set_vehicle(1); // Set this to correct value?
+    cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    cmd_msg.set_command_type(jaiabot::protobuf::VehicleCommand_CommandType_LowLevel);
+    cmd.set_timeout(2);
+    cmd.set_port_elevator(0);
+    cmd.set_stbd_elevator(0);
+    cmd.set_rudder(rudder);
+    cmd.set_motor(0);
+
+    interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
+
 }
 
 void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    if (command.has_rudder()) {
+        rudder = command.rudder();
+        rudder_is_using_pid = false;
+    }
+    else if (command.has_heading()) {
+        auto heading = command.heading();
+        rudder_is_using_pid = true;
+
+        if (heading.has_target()) {
+            target_heading = heading.target();
+        }
+
+        bool gains_changed = false;
+
+        if (heading.has_kp())
+        {
+            kp = heading.kp();
+            gains_changed = true;
+        }
+
+        if (heading.has_ki())
+        {
+            ki = heading.ki();
+            gains_changed = true;
+        }
+
+        if (heading.has_kd())
+        {
+            kd = heading.kd();
+            gains_changed = true;
+        }
+
+        if (gains_changed)
+        {
+            delete course_pid;
+            course_pid = new Pid(&actual_heading, &rudder, &target_heading, kp, ki, kd);
+            course_pid->set_auto();
+        }
+
+    }
+
 }

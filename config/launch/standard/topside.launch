@@ -1,0 +1,5 @@
+#!/usr/bin/env -S goby_launch -P
+
+gobyd <(../../gen/topside.py gobyd)
+goby_liaison_jaiabot <(../../gen/topside.py goby_liaison)
+goby_opencpn_interface <(../../gen/topside.py goby_opencpn_interface)
