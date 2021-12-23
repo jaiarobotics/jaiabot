@@ -26,7 +26,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
 {
     // we don't want the Helm in Park ever
     moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-    
+
     switch (update.behavior_case())
     {
         case protobuf::IvPBehaviorUpdate::kTransit:
@@ -49,9 +49,13 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
             std::stringstream update_ss;
             if (update.stationkeep().active())
             {
-                update_ss << "station_pt=" << update.stationkeep().x() << ","
-                          << update.stationkeep().y()
-                          << "#outer_speed=" << update.stationkeep().outer_speed()
+                if (update.stationkeep().center_activate())
+                    update_ss << "center_activate=true";
+                else
+                    update_ss << "center_activate=false#station_pt=" << update.stationkeep().x()
+                              << "," << update.stationkeep().y();
+
+                update_ss << "#outer_speed=" << update.stationkeep().outer_speed()
                           << "#transit_speed=" << update.stationkeep().transit_speed();
                 moos().comms().Notify("JAIABOT_STATIONKEEP_UPDATES", update_ss.str());
             }

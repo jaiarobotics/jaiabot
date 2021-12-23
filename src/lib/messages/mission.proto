@@ -47,6 +47,71 @@ message MissionReport
     required MissionState state = 10;
 }
 
+message MissionTask
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    enum TaskType
+    {
+        DIVE = 1;
+        STATION_KEEP = 2;
+        SURFACE_DRIFT = 3;
+    }
+    required TaskType type = 1;
+
+    message DiveParameters
+    {
+        optional double max_depth = 1 [
+            default = inf,
+            (dccl.field) = {
+                min: 0
+                max: 100
+                precision: 0
+                units { base_dimensions: "L" }
+            }
+        ];
+        optional double depth_interval = 2 [
+            default = inf,
+            (dccl.field) = {
+                min: 0
+                max: 50
+                precision: 1
+                units { base_dimensions: "L" }
+            }
+        ];
+        optional double hold_time = 3 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: 0
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == DIVE
+    optional DiveParameters dive = 2;
+
+    message DriftParameters
+    {
+        optional int32 drift_time = 3 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: -1
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == SURFACE_DRIFT
+    optional DriftParameters surface_drift = 3;
+}
+
 message MissionPlan
 {
     option (dccl.msg) = {
@@ -73,69 +138,9 @@ message MissionPlan
     {
         optional string name = 1 [(dccl.field).omit = true];
         required GeographicCoordinate location = 2;
-        message Task
-        {
-            enum TaskType
-            {
-                DIVE = 1;
-                STATION_KEEP = 2;
-                SURFACE_DRIFT = 3;
-            }
-            required TaskType type = 1;
-
-            message DiveParameters
-            {
-                optional double max_depth = 1 [
-                    default = inf,
-                    (dccl.field) = {
-                        min: 0
-                        max: 100
-                        precision: 0
-                        units { base_dimensions: "L" }
-                    }
-                ];
-                optional double depth_interval = 2 [
-                    default = inf,
-                    (dccl.field) = {
-                        min: 0
-                        max: 50
-                        precision: 1
-                        units { base_dimensions: "L" }
-                    }
-                ];
-                optional double hold_time = 3 [
-                    default = 0,
-                    (dccl.field) = {
-                        min: 0
-                        max: 3600
-                        precision: 0
-                        units { base_dimensions: "T" }
-                    }
-                ];
-            }
-
-            // for type == DIVE
-            optional DiveParameters dive = 2;
-
-            message DriftParameters
-            {
-                optional int32 drift_time = 3 [
-                    default = 0,
-                    (dccl.field) = {
-                        min: 0
-                        max: 3600
-                        precision: -1
-                        units { base_dimensions: "T" }
-                    }
-                ];
-            }
-
-            // for type == SURFACE_DRIFT
-            optional DriftParameters surface_drift = 3;
-        }
-        optional Task task = 3;
+        optional MissionTask task = 3;
     }
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 15];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
 
     message Recovery
     {
@@ -181,6 +186,7 @@ message IvPBehaviorUpdate
         optional double transit_speed = 5 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
+        optional bool center_activate = 6 [default = false];
     }
 
     oneof behavior

@@ -24,10 +24,9 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate
-create_stationkeep_update(const jaiabot::protobuf::GeographicCoordinate& location,
-                          quantity<si::velocity> transit_speed, quantity<si::velocity> outer_speed,
-                          const goby::util::UTMGeodesy& geodesy)
+jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
+    const jaiabot::protobuf::GeographicCoordinate& location, quantity<si::velocity> transit_speed,
+    quantity<si::velocity> outer_speed, const goby::util::UTMGeodesy& geodesy)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
@@ -41,6 +40,27 @@ create_stationkeep_update(const jaiabot::protobuf::GeographicCoordinate& locatio
     stationkeep.set_y_with_units(xy.y);
     stationkeep.set_transit_speed_with_units(transit_speed);
     stationkeep.set_outer_speed_with_units(outer_speed);
+    stationkeep.set_center_activate(false);
+
+    glog.is_verbose() && glog << group("movement")
+                              << "Sending update to pHelmIvP: " << update.ShortDebugString()
+                              << std::endl;
+    return update;
+}
+
+jaiabot::protobuf::IvPBehaviorUpdate
+create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
+                                          quantity<si::velocity> outer_speed)
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
+        *update.mutable_stationkeep();
+
+    stationkeep.set_active(true);
+
+    stationkeep.set_transit_speed_with_units(transit_speed);
+    stationkeep.set_outer_speed_with_units(outer_speed);
+    stationkeep.set_center_activate(true);
 
     glog.is_verbose() && glog << group("movement")
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
@@ -52,8 +72,10 @@ create_stationkeep_update(const jaiabot::protobuf::GeographicCoordinate& locatio
 jaiabot::statechart::underway::movement::Transit::Transit(typename StateBase::my_context c)
     : StateBase(c)
 {
-    boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
+    // each time we enter transit, we want to go to the next goal (which may not exist - in which case the mission is over)
+    context<Underway>().increment_goal_index();
 
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
     if (goal)
     {
         auto update = create_transit_update(
@@ -92,13 +114,13 @@ jaiabot::statechart::underway::recovery::StationKeep::StationKeep(typename State
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<Underway>().final_goal();
-        update = create_stationkeep_update(
+        update = create_location_stationkeep_update(
             final_goal.location(), this->cfg().transit_speed_with_units(),
             this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
     }
     else
     {
-        update = create_stationkeep_update(
+        update = create_location_stationkeep_update(
             recovery.location(), this->cfg().transit_speed_with_units(),
             this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
     }
@@ -241,9 +263,19 @@ jaiabot::statechart::underway::task::StationKeep::StationKeep(typename StateBase
     : StateBase(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
-    jaiabot::protobuf::IvPBehaviorUpdate update = create_stationkeep_update(
-        goal->location(), this->cfg().transit_speed_with_units(),
-        this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+
+    // if we have a defined location in the goal
+    if (goal)
+        update = create_location_stationkeep_update(
+            goal->location(), this->cfg().transit_speed_with_units(),
+            this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+    else // just use our current position
+        update = create_center_activate_stationkeep_update(
+            this->cfg().transit_speed_with_units(),
+            this->cfg().stationkeep_outer_speed_with_units());
+
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
