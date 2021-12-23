@@ -21,6 +21,8 @@ if [ $NOW -ge $ONE_WEEK_LATER ];
         docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "./scripts/arm64_build.sh"
 fi  
 
+# Send the files to target machine
+
 if [ -z "$1" ]
     then
         echo "             -----------"
