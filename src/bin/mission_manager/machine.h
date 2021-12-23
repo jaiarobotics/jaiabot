@@ -537,16 +537,24 @@ struct StationKeep : boost::statechart::state<StationKeep, Task>,
                             >
 {
     using StateBase = boost::statechart::state<StationKeep, Task>;
-    StationKeep(typename StateBase::my_context c) : StateBase(c) {}
-    ~StationKeep() {}
+    StationKeep(typename StateBase::my_context c);
+    ~StationKeep();
 };
 struct SurfaceDrift
     : boost::statechart::state<SurfaceDrift, Task>,
       Notify<SurfaceDrift, protobuf::UNDERWAY__TASK__SURFACE_DRIFT, protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, Task>;
-    SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
+    SurfaceDrift(typename StateBase::my_context c);
     ~SurfaceDrift() {}
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, SurfaceDrift, &SurfaceDrift::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point drift_time_stop_;
 };
 
 struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
@@ -602,6 +610,7 @@ struct Hold : boost::statechart::state<Hold, Dive>,
                          boost::statechart::in_state_reaction<EvLoop, Hold, &Hold::loop>,
                          boost::statechart::transition<EvDiveComplete, UnpoweredAscent>>;
 
+  private:
     goby::time::SteadyClock::time_point hold_stop_;
 };
 
@@ -622,6 +631,7 @@ struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
         boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
                                              &UnpoweredAscent::depth>>;
 
+  private:
     goby::time::SteadyClock::time_point timeout_stop_;
 };
 
