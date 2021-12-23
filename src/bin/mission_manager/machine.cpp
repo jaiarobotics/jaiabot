@@ -235,3 +235,43 @@ void jaiabot::statechart::underway::task::dive::PoweredAscent::depth(const EvVeh
     if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
         post_event(EvTaskComplete());
 }
+
+// Task::StationKeep
+jaiabot::statechart::underway::task::StationKeep::StationKeep(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
+    jaiabot::protobuf::IvPBehaviorUpdate update = create_stationkeep_update(
+        goal->location(), this->cfg().transit_speed_with_units(),
+        this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+jaiabot::statechart::underway::task::StationKeep::~StationKeep()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_stationkeep()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+// Task::SurfaceDrift
+jaiabot::statechart::underway::task::SurfaceDrift::SurfaceDrift(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point drift_time_start = goby::time::SteadyClock::now();
+    int drift_time_seconds = context<Underway>().current_task()->surface_drift().drift_time();
+    goby::time::SteadyClock::duration drift_time_duration =
+        std::chrono::seconds(drift_time_seconds);
+    drift_time_stop_ = drift_time_start + drift_time_duration;
+}
+
+void jaiabot::statechart::underway::task::SurfaceDrift::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= drift_time_stop_)
+        post_event(EvTaskComplete());
+
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+}
