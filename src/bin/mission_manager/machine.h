@@ -329,7 +329,7 @@ struct Underway
 
     boost::optional<protobuf::MissionPlan::Goal> current_goal()
     {
-        if (mission_complete_)
+        if (goal_index() < 0 || goal_index() >= this->machine().mission_plan().goal_size())
             return boost::none;
         else
             return boost::optional<protobuf::MissionPlan::Goal>(
@@ -342,7 +342,7 @@ struct Underway
         return mission_plan.goal(mission_plan.goal_size() - 1);
     }
 
-    boost::optional<protobuf::MissionPlan::Goal::Task> current_task()
+    boost::optional<protobuf::MissionTask> current_task()
     {
         if (mission_complete_)
             return boost::none;
@@ -351,8 +351,7 @@ struct Underway
         if (!plan.goal(goal_index()).has_task())
             return boost::none;
         else
-            return boost::optional<protobuf::MissionPlan::Goal::Task>(
-                plan.goal(goal_index()).task());
+            return boost::optional<protobuf::MissionTask>(plan.goal(goal_index()).task());
     }
 
     void increment_goal_index()
@@ -371,7 +370,8 @@ struct Underway
     }
 
   private:
-    int goal_index_{0};
+    // start at -1 since every entry to Transit increments the index, which means the first entry sets this to 0
+    int goal_index_{-1};
     bool mission_complete_{false};
 };
 
@@ -475,11 +475,7 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>
     using StateBase = boost::statechart::state<Task, Underway, task::TaskSelection>;
 
     Task(typename StateBase::my_context c) : StateBase(c) {}
-    ~Task()
-    {
-        // upon completing the task, increment the goal index
-        context<Underway>().increment_goal_index();
-    }
+    ~Task() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<
         EvTaskComplete, boost::statechart::deep_history<movement::Transit // default
@@ -502,8 +498,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
 
     boost::statechart::result react(const EvTaskSelect&)
     {
-        boost::optional<protobuf::MissionPlan::Goal::Task> current_task =
-            context<Underway>().current_task();
+        boost::optional<protobuf::MissionTask> current_task = context<Underway>().current_task();
 
         if (current_task)
         {
@@ -513,10 +508,9 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
 
             switch (current_task->type())
             {
-                case protobuf::MissionPlan::Goal::Task::DIVE: return transit<Dive>();
-                case protobuf::MissionPlan::Goal::Task::STATION_KEEP: return transit<StationKeep>();
-                case protobuf::MissionPlan::Goal::Task::SURFACE_DRIFT:
-                    return transit<SurfaceDrift>();
+                case protobuf::MissionTask::DIVE: return transit<Dive>();
+                case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
+                case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
             }
         }
 
@@ -564,7 +558,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
     Dive(typename StateBase::my_context c);
     ~Dive() {}
 
-    const protobuf::MissionPlan::Goal::Task::DiveParameters& current_dive()
+    const protobuf::MissionTask::DiveParameters& current_dive()
     {
         return context<Underway>().current_task()->dive();
     }

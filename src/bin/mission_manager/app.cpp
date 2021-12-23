@@ -177,8 +177,24 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             bool mission_is_feasible = true;
 
             // must have at least one goal
-            if (command.plan().goal_size() == 0)
+            if (command.plan().movement() == protobuf::MissionPlan::TRANSIT &&
+                command.plan().goal_size() == 0)
+            {
+                glog.is_warn() &&
+                    glog << "Infeasible mission: Must have at least one goal in a TRANSIT mission"
+                         << std::endl;
                 mission_is_feasible = false;
+            }
+
+            // cannot recover at final goal if there isn't one
+            if (command.plan().recovery().recover_at_final_goal() &&
+                command.plan().goal_size() == 0)
+            {
+                glog.is_warn() && glog << "Infeasible mission: Must have at least one goal to have "
+                                          "recover_at_final_goal: true"
+                                       << std::endl;
+                mission_is_feasible = false;
+            }
 
             if (mission_is_feasible)
             {
