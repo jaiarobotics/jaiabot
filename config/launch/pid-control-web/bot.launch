@@ -6,6 +6,6 @@ jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
 jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
-[env=jaia_bot_index=0] jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver)
+jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver)
 
-[env=jaia_bot_index=0] bot_pid_control <(../../gen/bot.py bot_pid_control) -vv
+bot_pid_control <(../../gen/bot.py bot_pid_control) -vv

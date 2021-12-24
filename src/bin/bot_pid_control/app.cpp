@@ -68,7 +68,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
 
-    course_pid = new Pid(&actual_heading, &rudder, &target_heading, kp, ki, kd);
+    speed_pid = new Pid(&actual_speed, &throttle, &target_speed, speed_kp, speed_ki, speed_kd);
+    speed_pid->set_limits(-100.0, 100.0);
+    speed_pid->set_auto();
+
+    course_pid = new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
+    course_pid->set_limits(-100.0, 100.0);
     course_pid->set_auto();
 
     // subscribe for commands
@@ -92,8 +97,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
         if (tpv.has_track()) {
+            actual_speed = tpv.speed();
             actual_heading = tpv.track();
-            glog.is_debug1() && glog << "Actual heading: " << actual_heading << std::endl;
+            glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << std::endl;
         }
         });
 
@@ -102,6 +108,17 @@ jaiabot::apps::BotPidControl::BotPidControl()
 void jaiabot::apps::BotPidControl::loop()
 {
 
+    // Speed PID
+    if (throttle_is_using_pid) {
+        // Compute new throttle value
+        if (speed_pid->need_compute()) {
+            speed_pid->compute();
+        }
+
+        glog.is_debug1() && glog << group("main") << "target_speed = " << target_speed << ", actual_speed = " << actual_speed << ", throttle = " << throttle << std::endl;
+    }
+
+    // Heading PID
     if (rudder_is_using_pid) {
         // Make sure track is within 180 degrees of the course
         if (actual_heading > target_heading + 180.0) {
@@ -135,7 +152,7 @@ void jaiabot::apps::BotPidControl::loop()
     cmd.set_port_elevator(0);
     cmd.set_stbd_elevator(0);
     cmd.set_rudder(rudder);
-    cmd.set_motor(0);
+    cmd.set_motor(throttle);
 
     interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
 
@@ -145,10 +162,56 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
+    // Throttle
+    if (command.has_throttle()) {
+        throttle = command.throttle();
+        throttle_is_using_pid = false;
+    }
+    // Heading
+    else if (command.has_speed()) {
+        auto speed = command.speed();
+        throttle_is_using_pid = true;
+
+        if (speed.has_target()) {
+            target_speed = speed.target();
+        }
+
+        bool speed_gains_changed = false;
+
+        if (speed.has_kp())
+        {
+            speed_kp = speed.kp();
+            speed_gains_changed = true;
+        }
+
+        if (speed.has_ki())
+        {
+            speed_ki = speed.ki();
+            speed_gains_changed = true;
+        }
+
+        if (speed.has_kd())
+        {
+            speed_kd = speed.kd();
+            speed_gains_changed = true;
+        }
+
+        if (speed_gains_changed)
+        {
+            delete speed_pid;
+            speed_pid = new Pid(&actual_speed, &throttle, &target_speed, speed_kp, speed_ki, speed_kd);
+            speed_pid->set_limits(-100.0, 100.0);
+            speed_pid->set_auto();
+        }
+
+    }
+
+    // Rudder
     if (command.has_rudder()) {
         rudder = command.rudder();
         rudder_is_using_pid = false;
     }
+    // Heading
     else if (command.has_heading()) {
         auto heading = command.heading();
         rudder_is_using_pid = true;
@@ -161,26 +224,27 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 
         if (heading.has_kp())
         {
-            kp = heading.kp();
+            heading_kp = heading.kp();
             gains_changed = true;
         }
 
         if (heading.has_ki())
         {
-            ki = heading.ki();
+            heading_ki = heading.ki();
             gains_changed = true;
         }
 
         if (heading.has_kd())
         {
-            kd = heading.kd();
+            heading_kd = heading.kd();
             gains_changed = true;
         }
 
         if (gains_changed)
         {
             delete course_pid;
-            course_pid = new Pid(&actual_heading, &rudder, &target_heading, kp, ki, kd);
+            course_pid = new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
+            course_pid->set_limits(-100.0, 100.0);
             course_pid->set_auto();
         }
 

@@ -35,7 +35,7 @@ void handle_timeout();
 void halt_all();
 
 // Motor ramp-up
-float motor = 0.0;
+float motor = 0.0; // motor should range from -100.0 to +100.0
 const float MOTOR_DAMP = 0.2;
 
 static_assert(jaiabot_protobuf_LowLevelControl_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "LowLevelControl is too large, must fit in SIZE_BYTES word");

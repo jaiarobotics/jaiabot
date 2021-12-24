@@ -23,7 +23,14 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     BotPidControl();
 
   private:
-    float kp = 1, ki = 1, kd = 1;
+
+    // Speed targeting
+    float target_speed = 0.0;
+    float actual_speed = 0.0;
+    float throttle = 0.0;
+    bool throttle_is_using_pid = false;
+    Pid *speed_pid;
+    float speed_kp = 1, speed_ki = 1, speed_kd = 1;
 
     // Course targeting
     float target_heading = 0.0;
@@ -31,6 +38,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float rudder = 0.0;
     bool rudder_is_using_pid = false;
     Pid *course_pid;
+    float heading_kp = 1, heading_ki = 1, heading_kd = 1;
 
     void loop() override;
 
