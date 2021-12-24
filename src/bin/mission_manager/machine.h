@@ -86,7 +86,7 @@ struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
     boost::units::quantity<boost::units::si::length> depth;
 };
 
-STATECHART_EVENT(EvResumeAutonomy)
+STATECHART_EVENT(EvResumeMovement)
 struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
 {
     EvRCSetpoint(const protobuf::RemoteControl& setpoint) : rc_setpoint(setpoint) {}
@@ -431,7 +431,7 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
 namespace underway
 {
 struct Replan : boost::statechart::state<Replan, Underway>,
-                Notify<Replan, protobuf::UNDERWAY__REPLAN,
+                Notify<Replan, protobuf::IN_MISSION__UNDERWAY__REPLAN,
                        protobuf::SETPOINT_IVP_HELM // stationkeep
                        >
 {
@@ -498,7 +498,7 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
 };
 
 struct Transit : boost::statechart::state<Transit, Movement>,
-                 Notify<Transit, protobuf::UNDERWAY__MOVEMENT__TRANSIT,
+                 Notify<Transit, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
                         protobuf::SETPOINT_IVP_HELM // waypoint
                         >
 {
@@ -522,24 +522,26 @@ struct RemoteControl : boost::statechart::state<RemoteControl, Movement, remotec
     RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
     ~RemoteControl() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeAutonomy, Movement>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeMovement, Movement>>;
 };
 
 namespace remotecontrol
 {
-struct StationKeep : boost::statechart::state<StationKeep, RemoteControl>,
-                     Notify<StationKeep, protobuf::UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP,
-                            protobuf::SETPOINT_IVP_HELM // stationkeep
-                            >
+struct StationKeep
+    : boost::statechart::state<StationKeep, RemoteControl>,
+      Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP,
+             protobuf::SETPOINT_IVP_HELM // stationkeep
+             >
 {
     using StateBase = boost::statechart::state<StationKeep, RemoteControl>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 };
 
-struct Setpoint : boost::statechart::state<Setpoint, RemoteControl>,
-                  Notify<Setpoint, protobuf::UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT,
-                         protobuf::SETPOINT_REMOTE_CONTROL>
+struct Setpoint
+    : boost::statechart::state<Setpoint, RemoteControl>,
+      Notify<Setpoint, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT,
+             protobuf::SETPOINT_REMOTE_CONTROL>
 {
     using StateBase = boost::statechart::state<Setpoint, RemoteControl>;
     Setpoint(typename StateBase::my_context c);
@@ -647,7 +649,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Task>,
-                     Notify<StationKeep, protobuf::UNDERWAY__TASK__STATION_KEEP,
+                     Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP,
                             protobuf::SETPOINT_IVP_HELM // stationkeep
                             >
 {
@@ -656,9 +658,9 @@ struct StationKeep : boost::statechart::state<StationKeep, Task>,
     ~StationKeep();
 };
 
-struct SurfaceDrift
-    : boost::statechart::state<SurfaceDrift, Task>,
-      Notify<SurfaceDrift, protobuf::UNDERWAY__TASK__SURFACE_DRIFT, protobuf::SETPOINT_STOP>
+struct SurfaceDrift : boost::statechart::state<SurfaceDrift, Task>,
+                      Notify<SurfaceDrift, protobuf::IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT,
+                             protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, Task>;
     SurfaceDrift(typename StateBase::my_context c);
@@ -694,9 +696,10 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
 };
 namespace dive
 {
-struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
-                        Notify<PoweredDescent, protobuf::UNDERWAY__TASK__DIVE__POWERED_DESCENT,
-                               protobuf::SETPOINT_DIVE>
+struct PoweredDescent
+    : boost::statechart::state<PoweredDescent, Dive>,
+      Notify<PoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT,
+             protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<PoweredDescent, Dive>;
     PoweredDescent(typename StateBase::my_context c);
@@ -712,8 +715,9 @@ struct PoweredDescent : boost::statechart::state<PoweredDescent, Dive>,
                                              &PoweredDescent::depth>>;
 };
 
-struct Hold : boost::statechart::state<Hold, Dive>,
-              Notify<Hold, protobuf::UNDERWAY__TASK__DIVE__HOLD, protobuf::SETPOINT_DIVE>
+struct Hold
+    : boost::statechart::state<Hold, Dive>,
+      Notify<Hold, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__HOLD, protobuf::SETPOINT_DIVE>
 {
     using StateBase = boost::statechart::state<Hold, Dive>;
     Hold(typename StateBase::my_context c);
@@ -730,9 +734,10 @@ struct Hold : boost::statechart::state<Hold, Dive>,
     goby::time::SteadyClock::time_point hold_stop_;
 };
 
-struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
-                         Notify<UnpoweredAscent, protobuf::UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT,
-                                protobuf::SETPOINT_STOP>
+struct UnpoweredAscent
+    : boost::statechart::state<UnpoweredAscent, Dive>,
+      Notify<UnpoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT,
+             protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
     UnpoweredAscent(typename StateBase::my_context c);
@@ -751,9 +756,10 @@ struct UnpoweredAscent : boost::statechart::state<UnpoweredAscent, Dive>,
     goby::time::SteadyClock::time_point timeout_stop_;
 };
 
-struct PoweredAscent : boost::statechart::state<PoweredAscent, Dive>,
-                       Notify<PoweredAscent, protobuf::UNDERWAY__TASK__DIVE__POWERED_ASCENT,
-                              protobuf::SETPOINT_POWERED_ASCENT>
+struct PoweredAscent
+    : boost::statechart::state<PoweredAscent, Dive>,
+      Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT,
+             protobuf::SETPOINT_POWERED_ASCENT>
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
     PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
@@ -785,7 +791,7 @@ struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit
 namespace recovery
 {
 struct Transit : boost::statechart::state<Transit, Recovery>,
-                 Notify<Transit, protobuf::UNDERWAY__RECOVERY__TRANSIT,
+                 Notify<Transit, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
                         protobuf::SETPOINT_IVP_HELM // waypoint
                         >
 {
@@ -798,7 +804,7 @@ struct Transit : boost::statechart::state<Transit, Recovery>,
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
-                     Notify<StationKeep, protobuf::UNDERWAY__RECOVERY__STATION_KEEP,
+                     Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP,
                             protobuf::SETPOINT_IVP_HELM // stationkeep
                             >
 {
@@ -810,7 +816,7 @@ struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
 };
 
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
-                 Notify<Stopped, protobuf::UNDERWAY__RECOVERY__STOPPED>
+                 Notify<Stopped, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STOPPED>
 {
     using StateBase = boost::statechart::state<Stopped, Recovery>;
     Stopped(typename StateBase::my_context c) : StateBase(c) {}
@@ -818,7 +824,8 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
 };
 } // namespace recovery
 
-struct Abort : boost::statechart::state<Abort, Underway>, Notify<Abort, protobuf::UNDERWAY__ABORT>
+struct Abort : boost::statechart::state<Abort, Underway>,
+               Notify<Abort, protobuf::IN_MISSION__UNDERWAY__ABORT>
 {
     using StateBase = boost::statechart::state<Abort, Underway>;
     Abort(typename StateBase::my_context c) : StateBase(c)
