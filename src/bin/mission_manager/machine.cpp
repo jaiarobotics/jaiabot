@@ -70,19 +70,25 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
 }
 
 // Movement::Transit
-jaiabot::statechart::underway::movement::Transit::Transit(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::movement::Transit::Transit(
+    typename StateBase::my_context c)
     : StateBase(c)
 {
-    boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     if (goal)
     {
         auto update = create_transit_update(
             goal->location(), this->cfg().transit_speed_with_units(), this->machine().geodesy());
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
+    else
+    {
+        // if we have no goal, recover
+        post_event(EvReturnToHome());
+    }
 }
 
-jaiabot::statechart::underway::movement::Transit::~Transit()
+jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_transit()->set_active(false);
@@ -90,14 +96,15 @@ jaiabot::statechart::underway::movement::Transit::~Transit()
 }
 
 // Recovery::Transit
-jaiabot::statechart::underway::recovery::Transit::Transit(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
+    typename StateBase::my_context c)
     : StateBase(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
     if (recovery.recover_at_final_goal())
     {
-        auto final_goal = context<Underway>().final_goal();
+        auto final_goal = context<InMission>().final_goal();
         update =
             create_transit_update(final_goal.location(), this->cfg().transit_speed_with_units(),
                                   this->machine().geodesy());
@@ -110,7 +117,7 @@ jaiabot::statechart::underway::recovery::Transit::Transit(typename StateBase::my
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
-jaiabot::statechart::underway::recovery::Transit::~Transit()
+jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_transit()->set_active(false);
@@ -118,14 +125,15 @@ jaiabot::statechart::underway::recovery::Transit::~Transit()
 }
 
 // Recovery::StationKeep
-jaiabot::statechart::underway::recovery::StationKeep::StationKeep(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
+    typename StateBase::my_context c)
     : StateBase(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
     if (recovery.recover_at_final_goal())
     {
-        auto final_goal = context<Underway>().final_goal();
+        auto final_goal = context<InMission>().final_goal();
         update = create_location_stationkeep_update(
             final_goal.location(), this->cfg().transit_speed_with_units(),
             this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
@@ -139,7 +147,7 @@ jaiabot::statechart::underway::recovery::StationKeep::StationKeep(typename State
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
-jaiabot::statechart::underway::recovery::StationKeep::~StationKeep()
+jaiabot::statechart::inmission::underway::recovery::StationKeep::~StationKeep()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
@@ -150,7 +158,8 @@ jaiabot::statechart::underway::recovery::StationKeep::~StationKeep()
 }
 
 // Task::Dive
-jaiabot::statechart::underway::task::Dive::Dive(typename StateBase::my_context c) : StateBase(c)
+jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::my_context c)
+    : StateBase(c)
 {
     // we currently start at the surface
     quantity<si::length> depth = 0 * si::meters + current_dive().depth_interval_with_units();
@@ -168,14 +177,14 @@ jaiabot::statechart::underway::task::Dive::Dive(typename StateBase::my_context c
 }
 
 // Task::Dive::PoweredDescent
-jaiabot::statechart::underway::task::dive::PoweredDescent::PoweredDescent(
+jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDescent(
     typename StateBase::my_context c)
     : StateBase(c)
 {
     loop(EvLoop());
 }
 
-void jaiabot::statechart::underway::task::dive::PoweredDescent::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
@@ -183,7 +192,8 @@ void jaiabot::statechart::underway::task::dive::PoweredDescent::loop(const EvLoo
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
-void jaiabot::statechart::underway::task::dive::PoweredDescent::depth(const EvVehicleDepth& ev)
+void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(
+    const EvVehicleDepth& ev)
 {
     if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
         cfg().dive_depth_eps_with_units())
@@ -191,7 +201,7 @@ void jaiabot::statechart::underway::task::dive::PoweredDescent::depth(const EvVe
 }
 
 // Task::Dive::Hold
-jaiabot::statechart::underway::task::dive::Hold::Hold(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::task::dive::Hold::Hold(typename StateBase::my_context c)
     : StateBase(c)
 {
     goby::time::SteadyClock::time_point hold_start = goby::time::SteadyClock::now();
@@ -205,7 +215,7 @@ jaiabot::statechart::underway::task::dive::Hold::Hold(typename StateBase::my_con
     hold_stop_ = hold_start + hold_duration;
 }
 
-void jaiabot::statechart::underway::task::dive::Hold::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
@@ -225,7 +235,7 @@ void jaiabot::statechart::underway::task::dive::Hold::loop(const EvLoop&)
 }
 
 // Task::Dive::UnpoweredAscent
-jaiabot::statechart::underway::task::dive::UnpoweredAscent::UnpoweredAscent(
+jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::UnpoweredAscent(
     typename StateBase::my_context c)
     : StateBase(c)
 {
@@ -237,7 +247,7 @@ jaiabot::statechart::underway::task::dive::UnpoweredAscent::UnpoweredAscent(
     timeout_stop_ = timeout_start + timeout_duration;
 }
 
-void jaiabot::statechart::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
@@ -250,31 +260,34 @@ void jaiabot::statechart::underway::task::dive::UnpoweredAscent::loop(const EvLo
     }
 }
 
-void jaiabot::statechart::underway::task::dive::UnpoweredAscent::depth(const EvVehicleDepth& ev)
+void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth(
+    const EvVehicleDepth& ev)
 {
     if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
         post_event(EvTaskComplete());
 }
 
 // Task::Dive::PoweredAscent
-void jaiabot::statechart::underway::task::dive::PoweredAscent::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
-void jaiabot::statechart::underway::task::dive::PoweredAscent::depth(const EvVehicleDepth& ev)
+void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
+    const EvVehicleDepth& ev)
 {
     if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
         post_event(EvTaskComplete());
 }
 
 // Task::StationKeep
-jaiabot::statechart::underway::task::StationKeep::StationKeep(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
+    typename StateBase::my_context c)
     : StateBase(c)
 {
-    boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
     jaiabot::protobuf::IvPBehaviorUpdate update;
 
@@ -291,7 +304,7 @@ jaiabot::statechart::underway::task::StationKeep::StationKeep(typename StateBase
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
-jaiabot::statechart::underway::task::StationKeep::~StationKeep()
+jaiabot::statechart::inmission::underway::task::StationKeep::~StationKeep()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
@@ -299,7 +312,8 @@ jaiabot::statechart::underway::task::StationKeep::~StationKeep()
 }
 
 // Task::SurfaceDrift
-jaiabot::statechart::underway::task::SurfaceDrift::SurfaceDrift(typename StateBase::my_context c)
+jaiabot::statechart::inmission::underway::task::SurfaceDrift::SurfaceDrift(
+    typename StateBase::my_context c)
     : StateBase(c)
 {
     goby::time::SteadyClock::time_point drift_time_start = goby::time::SteadyClock::now();
@@ -313,7 +327,7 @@ jaiabot::statechart::underway::task::SurfaceDrift::SurfaceDrift(typename StateBa
     drift_time_stop_ = drift_time_start + drift_time_duration;
 }
 
-void jaiabot::statechart::underway::task::SurfaceDrift::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::SurfaceDrift::loop(const EvLoop&)
 {
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
     if (now >= drift_time_stop_)
@@ -325,7 +339,7 @@ void jaiabot::statechart::underway::task::SurfaceDrift::loop(const EvLoop&)
 }
 
 // Movement::RemoteControl::StationKeep
-jaiabot::statechart::underway::movement::remotecontrol::StationKeep::StationKeep(
+jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::StationKeep(
     typename StateBase::my_context c)
     : StateBase(c)
 {
@@ -334,7 +348,7 @@ jaiabot::statechart::underway::movement::remotecontrol::StationKeep::StationKeep
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
-jaiabot::statechart::underway::movement::remotecontrol::StationKeep::~StationKeep()
+jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::~StationKeep()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
@@ -342,7 +356,7 @@ jaiabot::statechart::underway::movement::remotecontrol::StationKeep::~StationKee
 }
 
 // Movement::RemoteControl::Setpoint
-jaiabot::statechart::underway::movement::remotecontrol::Setpoint::Setpoint(
+jaiabot::statechart::inmission::underway::movement::remotecontrol::Setpoint::Setpoint(
     typename StateBase::my_context c)
     : StateBase(c)
 {
@@ -358,7 +372,8 @@ jaiabot::statechart::underway::movement::remotecontrol::Setpoint::Setpoint(
     setpoint_stop_ = setpoint_start + setpoint_duration;
 }
 
-void jaiabot::statechart::underway::movement::remotecontrol::Setpoint::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::movement::remotecontrol::Setpoint::loop(
+    const EvLoop&)
 {
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
     if (now >= setpoint_stop_)

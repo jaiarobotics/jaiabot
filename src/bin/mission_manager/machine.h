@@ -86,7 +86,7 @@ struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
     boost::units::quantity<boost::units::si::length> depth;
 };
 
-STATECHART_EVENT(EvResumeTransit)
+STATECHART_EVENT(EvResumeAutonomy)
 struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
 {
     EvRCSetpoint(const protobuf::RemoteControl& setpoint) : rc_setpoint(setpoint) {}
@@ -131,6 +131,9 @@ struct WaitForMissionPlan;
 struct Ready;
 } // namespace predeployment
 
+struct InMission;
+namespace inmission
+{
 struct Underway;
 namespace underway
 {
@@ -179,6 +182,7 @@ struct Stopped;
 struct Abort;
 
 } // namespace underway
+} // namespace inmission
 
 struct PostDeployment;
 namespace postdeployment
@@ -332,30 +336,23 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
     }
     ~Ready() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvDeployed, Underway>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvDeployed, InMission>>;
 };
 
 } // namespace predeployment
 
-struct Underway
-    : boost::statechart::state<Underway, MissionManagerStateMachine, underway::Movement>,
-      AppMethodsAccess<Underway>
+struct InMission
+    : boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>,
+      AppMethodsAccess<InMission>
 {
     using StateBase =
-        boost::statechart::state<Underway, MissionManagerStateMachine, underway::Movement>;
+        boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>;
 
-    Underway(typename StateBase::my_context c) : StateBase(c)
+    InMission(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug1() && goby::glog << "Underway" << std::endl;
+        goby::glog.is_debug1() && goby::glog << "InMission" << std::endl;
     }
-    ~Underway() { goby::glog.is_debug1() && goby::glog << "~Underway" << std::endl; }
-
-    // all these reactions will leave Underway so they will reset the autonomous goal index
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvNewMission, underway::Replan>,
-                         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
-                         boost::statechart::transition<EvAbort, underway::Abort>,
-                         boost::statechart::transition<EvStop, underway::recovery::Stopped>>;
+    ~InMission() { goby::glog.is_debug1() && goby::glog << "~InMission" << std::endl; }
 
     int goal_index() { return goal_index_; }
 
@@ -397,13 +394,38 @@ struct Underway
                                                   << std::endl;
 
             post_event(EvReturnToHome());
-            mission_complete_ = true;
+            set_mission_complete();
         }
     }
+
+    void set_mission_complete() { mission_complete_ = true; }
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>>;
 
   private:
     int goal_index_{0};
     bool mission_complete_{false};
+};
+
+namespace inmission
+{
+struct Underway : boost::statechart::state<Underway, InMission, underway::Movement>,
+                  AppMethodsAccess<Underway>
+{
+    using StateBase = boost::statechart::state<Underway, InMission, underway::Movement>;
+
+    Underway(typename StateBase::my_context c) : StateBase(c)
+    {
+        goby::glog.is_debug1() && goby::glog << "Underway" << std::endl;
+    }
+    ~Underway() { goby::glog.is_debug1() && goby::glog << "~Underway" << std::endl; }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvReturnToHome, underway::Recovery>,
+        boost::statechart::transition<EvAbort, underway::Abort>,
+        boost::statechart::transition<EvStop, underway::recovery::Stopped>,
+        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>>;
 };
 
 namespace underway
@@ -440,9 +462,7 @@ struct Movement : boost::statechart::state<Movement, Underway, movement::Movemen
     }
     ~Movement() {}
 
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvPerformTask, Task>,
-        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvPerformTask, Task>>;
 };
 
 namespace movement
@@ -502,7 +522,7 @@ struct RemoteControl : boost::statechart::state<RemoteControl, Movement, remotec
     RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
     ~RemoteControl() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeTransit, Transit>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeAutonomy, Movement>>;
 };
 
 namespace remotecontrol
@@ -557,7 +577,7 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>
     {
         if (!has_manual_task_)
             // each time we complete a autonomous task - we should increment the goal index
-            context<Underway>().increment_goal_index();
+            context<InMission>().increment_goal_index();
     }
 
     // see if we have a manual task or a planned task available and return it
@@ -566,14 +586,13 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>
         if (has_manual_task_)
             return boost::optional<protobuf::MissionTask>(manual_task_);
         else
-            return context<Underway>().current_planned_task();
+            return context<InMission>().current_planned_task();
     }
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvTaskComplete,
                                       boost::statechart::deep_history<movement::Transit // default
-                                                                      >>,
-        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>>;
+                                                                      >>>;
 
   private:
     protobuf::MissionTask manual_task_;
@@ -755,10 +774,12 @@ struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit
 {
     using StateBase = boost::statechart::state<Recovery, Underway, recovery::Transit>;
 
-    Recovery(typename StateBase::my_context c) : StateBase(c) {}
+    Recovery(typename StateBase::my_context c) : StateBase(c)
+    {
+        // once we go into recovery (for any reason), the mission is considered complete
+        context<InMission>().set_mission_complete();
+    }
     ~Recovery() {}
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>>;
 };
 
 namespace recovery
@@ -800,11 +821,16 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
 struct Abort : boost::statechart::state<Abort, Underway>, Notify<Abort, protobuf::UNDERWAY__ABORT>
 {
     using StateBase = boost::statechart::state<Abort, Underway>;
-    Abort(typename StateBase::my_context c) : StateBase(c) {}
+    Abort(typename StateBase::my_context c) : StateBase(c)
+    {
+        // once we go into abort, the mission is considered complete
+        context<InMission>().set_mission_complete();
+    }
     ~Abort() {}
 };
 
 } // namespace underway
+} // namespace inmission
 
 struct PostDeployment : boost::statechart::state<PostDeployment, MissionManagerStateMachine,
                                                  postdeployment::Recovered>
