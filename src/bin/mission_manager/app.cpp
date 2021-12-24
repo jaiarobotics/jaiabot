@@ -248,8 +248,8 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvPerformTask(command.rc_task()));
             break;
 
-        case protobuf::Command::REMOTE_CONTROL_RESUME_AUTONOMY:
-            machine_->process_event(statechart::EvResumeAutonomy());
+        case protobuf::Command::REMOTE_CONTROL_RESUME_MOVEMENT:
+            machine_->process_event(statechart::EvResumeMovement());
     }
 }
 

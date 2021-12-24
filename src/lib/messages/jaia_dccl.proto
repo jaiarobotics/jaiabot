@@ -36,7 +36,7 @@ message Command
         // during remote control mission
         REMOTE_CONTROL_SETPOINT = 20;
         REMOTE_CONTROL_TASK = 21;
-        REMOTE_CONTROL_RESUME_AUTONOMY = 22;
+        REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
         // post mission
         REDEPLOY = 30;
