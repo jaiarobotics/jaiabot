@@ -14,6 +14,7 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
 
     auto xy = geodesy.convert({location.lat_with_units(), location.lon_with_units()});
 
+    transit.set_active(true);
     transit.set_x_with_units(xy.x);
     transit.set_y_with_units(xy.y);
     transit.set_speed_with_units(speed);
@@ -72,9 +73,6 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
 jaiabot::statechart::underway::movement::Transit::Transit(typename StateBase::my_context c)
     : StateBase(c)
 {
-    // each time we enter transit, we want to go to the next goal (which may not exist - in which case the mission is over)
-    context<Underway>().increment_goal_index();
-
     boost::optional<protobuf::MissionPlan::Goal> goal = context<Underway>().current_goal();
     if (goal)
     {
@@ -82,6 +80,13 @@ jaiabot::statechart::underway::movement::Transit::Transit(typename StateBase::my
             goal->location(), this->cfg().transit_speed_with_units(), this->machine().geodesy());
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
+}
+
+jaiabot::statechart::underway::movement::Transit::~Transit()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_transit()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
 // Recovery::Transit
@@ -102,6 +107,13 @@ jaiabot::statechart::underway::recovery::Transit::Transit(typename StateBase::my
         update = create_transit_update(recovery.location(), this->cfg().transit_speed_with_units(),
                                        this->machine().geodesy());
     }
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+jaiabot::statechart::underway::recovery::Transit::~Transit()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_transit()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
@@ -291,7 +303,11 @@ jaiabot::statechart::underway::task::SurfaceDrift::SurfaceDrift(typename StateBa
     : StateBase(c)
 {
     goby::time::SteadyClock::time_point drift_time_start = goby::time::SteadyClock::now();
-    int drift_time_seconds = context<Underway>().current_task()->surface_drift().drift_time();
+    int drift_time_seconds = context<Task>()
+                                 .current_task()
+                                 ->surface_drift()
+                                 .drift_time_with_units<goby::time::SITime>()
+                                 .value();
     goby::time::SteadyClock::duration drift_time_duration =
         std::chrono::seconds(drift_time_seconds);
     drift_time_stop_ = drift_time_start + drift_time_duration;
@@ -305,5 +321,51 @@ void jaiabot::statechart::underway::task::SurfaceDrift::loop(const EvLoop&)
 
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+}
+
+// Movement::RemoteControl::StationKeep
+jaiabot::statechart::underway::movement::remotecontrol::StationKeep::StationKeep(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
+        this->cfg().transit_speed_with_units(), this->cfg().stationkeep_outer_speed_with_units());
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+jaiabot::statechart::underway::movement::remotecontrol::StationKeep::~StationKeep()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    update.mutable_stationkeep()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+// Movement::RemoteControl::Setpoint
+jaiabot::statechart::underway::movement::remotecontrol::Setpoint::Setpoint(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    auto rc_setpoint_event = dynamic_cast<const EvRCSetpoint*>(triggering_event());
+    if (rc_setpoint_event)
+    {
+        rc_setpoint_ = rc_setpoint_event->rc_setpoint;
+    }
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = rc_setpoint_.duration_with_units<goby::time::SITime>().value();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+void jaiabot::statechart::underway::movement::remotecontrol::Setpoint::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvRCSetpointComplete());
+
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_REMOTE_CONTROL);
+    *setpoint_msg.mutable_remote_control() = rc_setpoint_;
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }

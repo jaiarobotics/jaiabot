@@ -31,15 +31,19 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
     {
         case protobuf::IvPBehaviorUpdate::kTransit:
         {
-            std::stringstream update_ss;
-            update_ss << "point=" << update.transit().x() << "," << update.transit().y()
-                      << "#speed=" << update.transit().speed();
-            moos().comms().Notify("JAIABOT_TRANSIT_UPDATES", update_ss.str());
+            if (update.transit().active())
+            {
+                std::stringstream update_ss;
+                update_ss << "point=" << update.transit().x() << "," << update.transit().y()
+                          << "#speed=" << update.transit().speed();
+                moos().comms().Notify("JAIABOT_TRANSIT_UPDATES", update_ss.str());
+            }
 
             // order matters!
             //   post after JAIABOT_TRANSIT_UPDATES to ensure new waypoint
             //   is loaded before the behavior becomes active
-            moos().comms().Notify("JAIABOT_WAYPOINT_ACTIVE", "true");
+            moos().comms().Notify("JAIABOT_WAYPOINT_ACTIVE",
+                                  update.transit().active() ? "true" : "false");
 
             break;
         }
