@@ -84,6 +84,14 @@ message Command {
         }];
   }
 
+  optional double throttle = 3 [(dccl.field) = {
+            min: -100
+            max: 100
+            precision: 0
+        }];
+        
+  optional PIDControl speed = 4;
+
   optional double rudder = 1 [(dccl.field) = {
             min: -100
             max: 100
@@ -93,4 +101,3 @@ message Command {
   optional PIDControl heading = 2;
 
 }
-

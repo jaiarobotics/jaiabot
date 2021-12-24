@@ -14,11 +14,81 @@
     
       <div class="columnGroup bordered">
         <div class="title">
+          Throttle or Speed
+        </div>
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input style="" type="radio" id="throttleRadioButton" name="throttle_speed" value="" checked>
+          </div>
+
+          <div class="vpad">
+            <div class="sliderTitle">
+              Throttle
+            </div>
+            <div class="sliderValueLabel" id="throttleValue">
+              50
+            </div>
+            <input type="range" min="0" max="100" value="0" class="slider" id="throttleSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                0
+              </div>
+              <div class="maxValueLabel">
+                100
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input type="radio" id="speedRadioButton" name="throttle_speed" value="">
+          </div>
+          
+          <div class="vpad">
+            <div class="sliderTitle">
+              Speed
+            </div>
+            <div class="sliderValueLabel" id="speedValue">
+              50
+            </div>
+            <input type="range" min="0" max="15" value="0" class="slider" id="speedSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                0
+              </div>
+              <div class="maxValueLabel">
+                15
+              </div>
+            </div>
+          </div>
+          
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kp</label>
+            <input class="gain" type="text" id="speed_Kp" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <div class="gain">Ki</div>
+            <input class="gain" type="text" id="speed_Ki" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kd</label>
+            <input class="gain" type="text" id="speed_Kd" name="fname" value="1">
+          </div>
+          
+          <button class="submitButton vpad" type="button" id="speed_submit">Submit</button>
+        </div>
+      </div>
+
+      <div class="columnGroup bordered">
+        <div class="title">
           Rudder or Heading
         </div>
         <div class="columnContainer">
           <div class="radioButtonContainer">
-            <input style="" type="radio" id="rudder" name="rudder_heading" value="">
+            <input style="" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
           </div>
 
           <div class="vpad">
@@ -42,7 +112,7 @@
 
         <div class="columnContainer">
           <div class="radioButtonContainer">
-            <input type="radio" id="heading" name="rudder_heading" value="">
+            <input type="radio" id="headingRadioButton" name="rudder_heading" value="">
           </div>
           
           <div class="vpad">

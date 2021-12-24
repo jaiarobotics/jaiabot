@@ -9,3 +9,4 @@ export GOBY_MODEMDRIVER_PLUGINS=libxbee.so
 export jaia_max_number_vehicles=128
 export jaia_mode=runtime
 export jaia_n_bots=1
+export jaia_bot_index=0
