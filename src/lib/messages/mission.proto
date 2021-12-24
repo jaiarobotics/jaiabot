@@ -16,7 +16,8 @@ enum MissionState
     UNDERWAY__REPLAN = 100;
 
     UNDERWAY__MOVEMENT__TRANSIT = 110;
-    UNDERWAY__MOVEMENT__REMOTE_CONTROL = 111;
+    UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 111;
+    UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 112;
 
     UNDERWAY__TASK__STATION_KEEP = 120;
     UNDERWAY__TASK__SURFACE_DRIFT = 121;
@@ -158,11 +159,13 @@ message IvPBehaviorUpdate
         option (dccl.msg) = {
             unit_system: "si"
         };
-        required double x = 1
+        required bool active = 1;
+
+        optional double x = 2
             [(dccl.field).units = { base_dimensions: "L" }];  // meters
-        required double y = 2
+        optional double y = 3
             [(dccl.field).units = { base_dimensions: "L" }];  // meters
-        required double speed = 3 [
+        optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
     }

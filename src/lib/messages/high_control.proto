@@ -9,7 +9,7 @@ enum SetpointType
 {
     SETPOINT_STOP = 0;      // no actuator movement - drift
     SETPOINT_IVP_HELM = 1;  // IvPHelm setpoints (helm_course)
-    SETPOINT_REMOTE_CONTROL = 2;
+    SETPOINT_REMOTE_CONTROL = 2; // fixed heading, speed, etc. for a given duration
     SETPOINT_DIVE = 3;            // Inverse drive control (dive_depth)
     SETPOINT_POWERED_ASCENT = 4;  // Power ascent to surface
 }
