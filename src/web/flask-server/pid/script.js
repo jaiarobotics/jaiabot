@@ -5,75 +5,56 @@ function el(id) {
   return document.getElementById(id)
 }
 
+function setupOther(id) {
+  el(id).onclick = function() {
+    commandChanged = true
+  }
+}
+
+function setupSlider(name) {
+  let slider = el(name + "Slider")
+  let value = el(name + "Value")
+  value.innerHTML = slider.value
+  
+  slider.oninput = function() {
+    value.innerHTML = slider.value
+    commandChanged = true
+  }
+}
+
 ////////// Throttle //////////////
 
-var throttleSlider = el("throttleSlider")
-var throttleValue = el("throttleValue")
-var throttleRadioButton = el("throttleRadioButton")
-throttleValue.innerHTML = throttleSlider.value // Display the default slider value
-
-throttleRadioButton.onclick = function() {
-  commandChanged = true
-}
-
-throttleSlider.oninput = function() {
-  throttleValue.innerHTML = throttleSlider.value
-  commandChanged = true
-}
+setupOther("throttleRadioButton")
+setupSlider("throttle")
 
 ////////// Speed //////////////
 
-var speedSlider = document.getElementById("speedSlider")
-var speedValue = document.getElementById("speedValue")
-speedValue.innerHTML = speedSlider.value // Display the default slider value
-
-speedSlider.oninput = function() {
-  speedValue.innerHTML = speedSlider.value
-  commandChanged = true
-}
-
-el("speed_submit").onclick = function() {
-  commandChanged = true
-}
-
-el("speedRadioButton").onclick = function() {
-  commandChanged = true
-}
+setupSlider("speed")
+setupOther("speed_submit")
+setupOther("speedRadioButton")
 
 ////////// Rudder //////////////
 
-var rudderSlider = el("rudderSlider")
-var rudderValue = el("rudderValue")
-var rudderRadioButton = el("rudderRadioButton")
-rudderValue.innerHTML = rudderSlider.value // Display the default slider value
-
-rudderRadioButton.onclick = function() {
-  commandChanged = true
-}
-
-rudderSlider.oninput = function() {
-  rudderValue.innerHTML = rudderSlider.value
-  commandChanged = true
-}
+setupSlider("rudder")
+setupOther("rudderRadioButton")
 
 ////////// Heading //////////////
 
-var headingSlider = document.getElementById("headingSlider")
-var headingValue = document.getElementById("headingValue")
-headingValue.innerHTML = headingSlider.value // Display the default slider value
+setupSlider("heading")
+setupOther("heading_submit")
+setupOther("headingRadioButton")
 
-headingSlider.oninput = function() {
-  headingValue.innerHTML = headingSlider.value
-  commandChanged = true
-}
+////////// Elevators //////////////
 
-el("heading_submit").onclick = function() {
-  commandChanged = true
-}
+setupSlider("portElevator")
+setupSlider("stbdElevator")
+setupOther("elevatorsRadioButton")
 
-el("headingRadioButton").onclick = function() {
-  commandChanged = true
-}
+////////// Heading //////////////
+
+setupSlider("roll")
+setupOther("roll_submit")
+setupOther("rollRadioButton")
 
 ////////// Command Sender //////////////
 
@@ -124,6 +105,28 @@ const interval = setInterval(function() {
         Kp: el("heading_Kp").value,
         Ki: el("heading_Ki").value,
         Kd: el("heading_Kd").value
+      }
+      
+    }
+    
+    // Elevators
+    
+    if (el("elevatorsRadioButton").checked) {
+    
+      command.portElevator = el("portElevatorSlider").value
+      command.stbdElevator = el("stbdElevatorSlider").value
+    
+    }
+  
+    // Roll
+  
+    if (el("rollRadioButton").checked) {
+  
+      command.roll = {
+        target: el("rollSlider").value,
+        Kp: el("roll_Kp").value,
+        Ki: el("roll_Ki").value,
+        Kd: el("roll_Kd").value
       }
       
     }

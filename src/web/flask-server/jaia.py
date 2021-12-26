@@ -89,6 +89,8 @@ class Interface:
         }
 
     def send_command(self, command):
+        print(command)
+
         pbCommand = pid_control_pb2.Command()
 
 
