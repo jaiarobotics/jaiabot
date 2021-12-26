@@ -1,5 +1,13 @@
 /* Sliders */
 
+h2 {
+  font-family: Sans-Serif;
+}
+
+div {
+  font-family: Sans-Serif;
+}
+
 .columnGroup {
   width: 25%;
   float: left;

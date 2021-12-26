@@ -8,7 +8,7 @@
 
   <body>
 
-    <h1>Engineering Control Page</h1>
+    <h2>Engineering Control Page</h2>
 
     <div>
     
@@ -149,6 +149,94 @@
           </div>
           
           <button class="submitButton vpad" type="button" id="heading_submit">Submit</button>
+        </div>
+      </div>
+
+      <div class="columnGroup bordered">
+        <div class="title">
+          Elevators or Roll
+        </div>
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input style="" type="radio" id="elevatorsRadioButton" name="elevators_roll" value="" checked>
+          </div>
+
+          <div class="vpad">
+            <div class="sliderTitle">
+              Port Elevator
+            </div>
+            <div class="sliderValueLabel" id="portElevatorValue">
+              50
+            </div>
+            <input type="range" min="-100" max="100" value="0" class="slider" id="portElevatorSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                -100
+              </div>
+              <div class="maxValueLabel">
+                100
+              </div>
+            </div>
+          </div>
+
+          <div class="vpad">
+            <div class="sliderTitle">
+              Stbd Elevator
+            </div>
+            <div class="sliderValueLabel" id="stbdElevatorValue">
+              50
+            </div>
+            <input type="range" min="-100" max="100" value="0" class="slider" id="stbdElevatorSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                -100
+              </div>
+              <div class="maxValueLabel">
+                100
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columnContainer">
+          <div class="radioButtonContainer">
+            <input type="radio" id="rollRadioButton" name="elevators_roll" value="">
+          </div>
+          
+          <div class="vpad">
+            <div class="sliderTitle">
+              Roll
+            </div>
+            <div class="sliderValueLabel" id="rollValue">
+              0
+            </div>
+            <input type="range" min="-180" max="180" value="0" class="slider" id="rollSlider">
+            <div class="sliderRange">
+              <div class="minValueLabel">
+                -180
+              </div>
+              <div class="maxValueLabel">
+                180
+              </div>
+            </div>
+          </div>
+          
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kp</label>
+            <input class="gain" type="text" id="roll_Kp" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <div class="gain">Ki</div>
+            <input class="gain" type="text" id="roll_Ki" name="fname" value="1">
+          </div>
+
+          <div class="gain vpad">
+            <label class="gain" for="fname">Kd</label>
+            <input class="gain" type="text" id="roll_Kd" name="fname" value="1">
+          </div>
+          
+          <button class="submitButton vpad" type="button" id="roll_submit">Submit</button>
         </div>
       </div>
 
