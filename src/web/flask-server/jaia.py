@@ -24,18 +24,25 @@ class Interface:
         while True:
             sleep(1)
             command = pid_control_pb2.Command()
+            command.throttle = 0
             self.sock.sendto(command.SerializeToString(), self.goby_host)
+            print('Sent: ', command)
 
             # Get data from the socket
             while True:
-                data = self.sock.recv(1024)
+                data = self.sock.recv(256)
                 if len(data) == 0:
                     break
 
                 botStatus = pid_control_pb2.BotStatus()
                 byteCount = botStatus.ParseFromString(data)
 
-                self.bots[botStatus.bot_id] = botStatus
+                print(botStatus)
+
+                try:
+                    self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                except KeyError:
+                    self.bots[botStatus.bot_id] = botStatus
 
     def get_status(self):
         bots = []
@@ -51,6 +58,7 @@ class Interface:
                     "velocity": bot.speed.over_ground,
                     "time": {
                         "time": 42,
+                        "time_to_ack": bot.time_to_ack,
                     },
                     "sensorData": [
                         {

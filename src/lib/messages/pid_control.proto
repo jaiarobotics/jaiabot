@@ -28,7 +28,17 @@ message BotStatus
     };
 
     required uint32 bot_id = 1;
-    required uint64 time = 2;
+
+    required uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    optional uint64 time_to_ack = 3 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
     optional GeographicCoordinate location = 10;
     optional double depth = 11;
 
@@ -59,45 +69,65 @@ message Command {
         unit_system: "si"
     };
 
+    optional uint64 time = 5 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
 
-  message PIDControl {
-    optional double target = 1  [(dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units { derived_dimensions: "plane_angle" system: "angle::degree" }
-        }];
-    optional double Kp = 2  [(dccl.field) = {
-            min: 0
-            max: 100
-            precision: 2
-        }];
-    optional double Ki = 3  [(dccl.field) = {
-            min: 0
-            max: 100
-            precision: 2
-        }]; 
-    optional double Kd = 4  [(dccl.field) = {
-            min: 0
-            max: 100
-            precision: 2
-        }];
-  }
+    message PIDControl {
+        optional double target = 1  [(dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units { derived_dimensions: "plane_angle" system: "angle::degree" }
+            }];
+        optional double Kp = 2  [(dccl.field) = {
+                min: 0
+                max: 100
+                precision: 2
+            }];
+        optional double Ki = 3  [(dccl.field) = {
+                min: 0
+                max: 100
+                precision: 2
+            }]; 
+        optional double Kd = 4  [(dccl.field) = {
+                min: 0
+                max: 100
+                precision: 2
+            }];
+    }
 
-  optional double throttle = 3 [(dccl.field) = {
+    optional double throttle = 3 [(dccl.field) = {
             min: -100
             max: 100
             precision: 0
         }];
         
-  optional PIDControl speed = 4;
+    optional PIDControl speed = 4;
 
-  optional double rudder = 1 [(dccl.field) = {
+    optional double rudder = 1 [(dccl.field) = {
             min: -100
             max: 100
             precision: 0
         }];
 
-  optional PIDControl heading = 2;
+    optional PIDControl heading = 2;
 
+}
+
+message CommandAck {
+    option (dccl.msg) = {
+        id: 93
+        max_bytes: 250
+        codec_version: 3
+        unit_system: "si"
+    };
+    
+    required uint32 bot_id = 2  [(dccl.field) = { min: 0 max: 255 }];
+
+    required uint64 time = 1 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
 }
