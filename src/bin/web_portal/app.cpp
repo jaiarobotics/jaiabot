@@ -32,7 +32,7 @@
 
 #include <vector>
 
-#define NOW (1000000000)
+#define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 using string = std::string;
 using goby::glog;
 namespace si = boost::units::si;
@@ -55,7 +55,7 @@ constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
 REST::BotStatus convert(const BotStatus& input_status) {
     REST::BotStatus bot_status;
     bot_status.set_bot_id(input_status.bot_id());
-    bot_status.set_time(NOW);
+    bot_status.set_time_with_units(NOW);
 
     bot_status.mutable_location()->set_lat(input_status.location().lat());
     bot_status.mutable_location()->set_lon(input_status.location().lon());
@@ -108,10 +108,13 @@ jaiabot::apps::WebPortal::WebPortal()
     interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
         auto command = REST::Command();
 
-        glog.is_debug1() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
+        glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
 
         if (command.ParseFromString(io_data.data())) {
             glog.is_debug1() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
+
+            auto t = NOW;
+            command.set_time_with_units(t);
 
             intervehicle().publish<jaiabot::groups::pid_control>(command);
         }
@@ -123,24 +126,8 @@ jaiabot::apps::WebPortal::WebPortal()
     dest.set_addr("");
     dest.set_port(0);
 
-    // Set a default bot_status
-    for (int i = 0; i < 16; i++) {
-        REST::BotStatus bot_status;
-        bot_status.set_bot_id(i);
-        bot_status.set_time(NOW);
-
-        bot_status.mutable_location()->set_lat(43 + rand() * 1.0 / RAND_MAX);
-        bot_status.mutable_location()->set_lon(-72 + rand() * 1.0 / RAND_MAX);
-
-        bot_status.set_depth(5);
-
-        bot_status.mutable_attitude()->set_heading(rand() * 360.0 / RAND_MAX);
-
-        bot_statuses.push_back(bot_status);
-    }
-
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-        glog.is_debug2() && glog << group("main")
+        glog.is_debug1() && glog << group("main")
                                  << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
         auto bot_status = convert(dccl_nav);
@@ -148,18 +135,37 @@ jaiabot::apps::WebPortal::WebPortal()
         send(bot_status);
     });
 
+
+    // subscribe for acks
+    {
+        auto on_command_subscribed =
+            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
+
+        goby::middleware::Subscriber<REST::CommandAck> subscriber{
+            cfg().sub_config(), on_command_subscribed};
+
+        intervehicle().subscribe<jaiabot::groups::bot_status, REST::CommandAck>([this](const REST::CommandAck& command_ack) {
+            glog.is_debug1() && glog << group("main")
+                                    << "Received CommandAck: " << command_ack.ShortDebugString() << std::endl;
+
+            auto bot_status = REST::BotStatus();
+            bot_status.set_bot_id(command_ack.bot_id());
+            bot_status.set_time_with_units(NOW);
+            bot_status.set_time_to_ack_with_units(NOW - command_ack.time_with_units());
+
+            send(bot_status);
+        }, subscriber);
+    }
+
 }
 
 void jaiabot::apps::WebPortal::loop()
 {
-    glog.is_verbose() && glog << group("main") << "Loop!" << std::endl;
-
-    if (dest.port() != 0) {
-
-        for (auto bot_status: bot_statuses) {
-            send(bot_status);
-        }
-    }
 }
 
 void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
@@ -180,5 +186,5 @@ void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-//    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }

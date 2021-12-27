@@ -26,6 +26,8 @@
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include "jaiabot/messages/vehicle_command.pb.h"
 
+#define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
@@ -249,5 +251,15 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
         }
 
     }
+
+    glog.is_debug1() && glog << "Going to send ack" << std::endl;
+
+    auto ack = CommandAck();
+    ack.set_bot_id(cfg().bot_id());
+    ack.set_time_with_units(command.time_with_units());
+
+    glog.is_debug1() && glog << "Sending ack: " << ack.ShortDebugString() << std::endl;
+
+    intervehicle().publish<jaiabot::groups::bot_status>(ack);
 
 }

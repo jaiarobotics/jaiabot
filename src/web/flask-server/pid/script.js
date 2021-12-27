@@ -138,5 +138,27 @@ const interval = setInterval(function() {
     
     commandChanged = false
   }
+  
+  // Get vehicle status
+  
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/jaia/getStatus", true);
+  xhr.onload = function (e) {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        el("status").innerHTML = xhr.responseText
+        console.log(xhr.responseText);
+      } else {
+        console.error(xhr.statusText);
+        el("status").innerHTML = xhr.statusText
+      }
+    }
+  };
+  xhr.onerror = function (e) {
+    console.error(xhr.statusText);
+    el("status").innerHTML = xhr.statusText
+  };
+  xhr.send(null);
+  
 }, 2000);
 

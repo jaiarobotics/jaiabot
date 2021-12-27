@@ -2,7 +2,7 @@
 
 # start the Goby processes
 gobyd <(../../gen/bot.py gobyd) -vvv -n
-jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
+jaiabot_fusion <(../../gen/bot.py jaiabot_fusion) -vv
 jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
