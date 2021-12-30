@@ -10,7 +10,7 @@
 
     <h2>Engineering Control Page</h2>
 
-    <div>
+    <div class="horizontal">
     
       <div class="columnGroup bordered">
         <div class="title">
@@ -242,10 +242,16 @@
 
     </div>
     
-    <div id="status"></div>
+    <div id="status" class="status">
+    <table class="status">
+    <tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>
+    <tr><td id="bot_id"></td><td id="latitude" /><td id="longitude" /><td id="distance"></td><td id="speed"></td><td id="heading"></td><td id="time_to_ack"></td>
+    </table>
+    </div>
 
   </body>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="script.js"></script>
 
 </html>
