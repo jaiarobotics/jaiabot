@@ -56,6 +56,17 @@ setupSlider("roll")
 setupOther("roll_submit")
 setupOther("rollRadioButton")
 
+////////// Browser location ////////////
+
+// Get our location
+
+my_location = { "lat": 0.0, "lon": 0.0 }
+
+navigator.geolocation.getCurrentPosition(function(position) {
+  my_location.lat = position.coords.latitude
+  my_location.lon = position.coords.longitude
+})
+
 ////////// Command Sender //////////////
 
 const interval = setInterval(function() {
@@ -146,7 +157,7 @@ const interval = setInterval(function() {
   xhr.onload = function (e) {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
-        el("status").innerHTML = xhr.responseText
+        updateStatus(JSON.parse(xhr.responseText))
         console.log(xhr.responseText);
       } else {
         console.error(xhr.statusText);
@@ -160,5 +171,50 @@ const interval = setInterval(function() {
   };
   xhr.send(null);
   
-}, 2000);
+}, 1000);
+
+
+// Updates the status element with a status response object
+function updateStatus(status) {
+  console.log(status)
+  bots = status["bots"]
+  if (bots.length > 0) {
+    bot = bots[0]
+    el("bot_id").innerHTML = bot["botID"]
+    
+    bot_location = bot["location"]
+      el("latitude").innerHTML = bot_location["lat"]
+      el("longitude").innerHTML = bot_location["lon"]
+      
+    el("distance").innerHTML = latlon_distance(bot_location, my_location)  
+      
+    el("speed").innerHTML = bot["velocity"]
+    el("heading").innerHTML = bot["heading"]
+    el("time_to_ack").innerHTML = bot["time"]["time_to_ack"] / 1e6
+  }
+}
+
+
+// Calculate xyz position of lat/lon point
+function xyz(pt) {
+  deg = 3.14159265358 / 180.0
+  r_e = 6.3781e6
+  return [ r_e * Math.cos(pt.lon * deg) * Math.sin(pt.lat * deg), 
+           r_e * Math.sin(pt.lon * deg) * Math.sin(pt.lat * deg),
+           r_e * Math.cos(pt.lat * deg)]
+}
+
+
+// Calculate Euclidean distance
+function distance(x, y) {
+  return Math.sqrt((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2)
+}
+
+
+// Calculate distance between two lat/lon points
+function latlon_distance(pt1, pt2) {
+  xyz1 = xyz(pt1)
+  xyz2 = xyz(pt2)
+  return distance(xyz1, xyz2)
+}
 

@@ -61,6 +61,7 @@ REST::BotStatus convert(const BotStatus& input_status) {
     bot_status.mutable_location()->set_lon(input_status.location().lon());
 
     bot_status.set_depth(input_status.depth());
+    bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
 
     bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
 

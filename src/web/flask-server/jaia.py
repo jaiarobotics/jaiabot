@@ -2,6 +2,11 @@ import socket
 import threading
 import pid_control_pb2
 from time import sleep
+import datetime
+
+
+def now():
+    return int(datetime.datetime.now().timestamp() * 1e6)
 
 
 def floatFrom(obj):
@@ -17,32 +22,36 @@ class Interface:
     def __init__(self, goby_host=('optiplex', 40000)):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(5)
 
         threading.Thread(target=lambda: self.loop()).start()
 
     def loop(self):
         while True:
-            sleep(1)
-            command = pid_control_pb2.Command()
-            command.throttle = 0
-            self.sock.sendto(command.SerializeToString(), self.goby_host)
-            print('Sent: ', command)
-
-            # Get data from the socket
-            while True:
+            try:
                 data = self.sock.recv(256)
-                if len(data) == 0:
-                    break
+            except socket.timeout:
+                self.ping_server()
+                continue
 
-                botStatus = pid_control_pb2.BotStatus()
-                byteCount = botStatus.ParseFromString(data)
+            if len(data) == 0:
+                continue
 
-                print(botStatus)
+            botStatus = pid_control_pb2.BotStatus()
+            byteCount = botStatus.ParseFromString(data)
 
-                try:
-                    self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                except KeyError:
-                    self.bots[botStatus.bot_id] = botStatus
+            print(botStatus)
+
+            try:
+                self.bots[botStatus.bot_id].MergeFrom(botStatus)
+            except KeyError:
+                self.bots[botStatus.bot_id] = botStatus
+
+    def ping_server(self):
+        command = pid_control_pb2.Command()
+        command.time = now()
+        self.sock.sendto(command.SerializeToString(), self.goby_host)
+        print('Pinged server')
 
     def get_status(self):
         bots = []
