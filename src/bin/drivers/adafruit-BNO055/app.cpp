@@ -35,6 +35,7 @@
 #include "jaiabot/messages/imu.pb.h"
 
 using goby::glog;
+using namespace std;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
@@ -124,6 +125,8 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_gravity()->set_x(std::stod(fields[index++]));
       output.mutable_gravity()->set_y(std::stod(fields[index++]));
       output.mutable_gravity()->set_z(std::stod(fields[index++]));
+
+      glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
 
       interprocess().publish<groups::imu>(output);
 
