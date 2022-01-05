@@ -24,6 +24,8 @@
 
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/middleware/protobuf/frontseat_data.pb.h>
+#include <goby/middleware/frontseat/groups.h>
 #include "jaiabot/messages/vehicle_command.pb.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
@@ -95,15 +97,22 @@ jaiabot::apps::BotPidControl::BotPidControl()
             [this](const Command& command) { handle_command(command); }, command_subscriber);
     }
 
-    // Subscribe to get actual vehicle track
-    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-        if (tpv.has_track()) {
-            actual_speed = tpv.speed();
-            actual_heading = tpv.track();
-            glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << std::endl;
+    // Subscribe to get vehicle yaw (for testing)
+    interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
+    [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+        glog.is_debug1() && glog << "Received node status: " << node_status.ShortDebugString()
+                                    << std::endl;
+
+        auto euler_angles = node_status.pose();
+
+        if (euler_angles.has_heading()) {
+            actual_heading = euler_angles.heading();
         }
-        });
+
+        actual_speed = node_status.speed().over_ground();
+
+        glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << std::endl;
+    });
 
 }
 

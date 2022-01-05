@@ -2,7 +2,14 @@
 
 # start the Goby processes
 gobyd <(../../gen/bot.py gobyd) -vvv -n
+
+# IMU sensor
+~/jaiabot/src/python/adafruit-BNO055/imu.py 20000
+jaiabot_adafruit-BNO055-driver <(../../gen/bot.py jaiabot_adafruit-BNO055-driver) -vv
+
+# Sensor fusion
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion) -vv
+
 jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
