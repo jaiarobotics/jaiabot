@@ -180,9 +180,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
                 latest_node_status_.set_time_with_units(time);
             }
 
-            if (latest_node_status_.IsInitialized())
+            if (latest_node_status_.IsInitialized()) {
                 interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                     latest_node_status_);
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(

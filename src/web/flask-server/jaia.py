@@ -19,39 +19,43 @@ def floatFrom(obj):
 class Interface:
     bots = {}
 
+    pbCommand = pid_control_pb2.Command()
+
     def __init__(self, goby_host=('optiplex', 40000)):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(5)
+        self.sock.settimeout(1)
 
         threading.Thread(target=lambda: self.loop()).start()
 
     def loop(self):
         while True:
+
+            # Get bot statuses
             try:
                 data = self.sock.recv(256)
+                if len(data) > 0:
+                    botStatus = pid_control_pb2.BotStatus()
+                    byteCount = botStatus.ParseFromString(data)
+
+                    print(botStatus)
+
+                    try:
+                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                    except KeyError:
+                        self.bots[botStatus.bot_id] = botStatus
+
             except socket.timeout:
-                self.ping_server()
-                continue
+                pass
 
-            if len(data) == 0:
-                continue
+            # Send our command
+            self.transmit_command()
+            sleep(1)
 
-            botStatus = pid_control_pb2.BotStatus()
-            byteCount = botStatus.ParseFromString(data)
-
-            print(botStatus)
-
-            try:
-                self.bots[botStatus.bot_id].MergeFrom(botStatus)
-            except KeyError:
-                self.bots[botStatus.bot_id] = botStatus
-
-    def ping_server(self):
-        command = pid_control_pb2.Command()
-        command.time = now()
-        self.sock.sendto(command.SerializeToString(), self.goby_host)
-        print('Pinged server')
+    def transmit_command(self):
+        self.pbCommand.time = now()
+        print('Sending: ', self.pbCommand)
+        self.sock.sendto(self.pbCommand.SerializeToString(), self.goby_host)
 
     def get_status(self):
         bots = []
@@ -106,46 +110,42 @@ class Interface:
         }
 
     def send_command(self, command):
-        print(command)
-
-        pbCommand = pid_control_pb2.Command()
+        self.pbCommand = pid_control_pb2.Command()
 
         # Timeout
         try:
-            pbCommand.timeout = int(command['timeout'])
+            self.pbCommand.timeout = int(command['timeout'])
         except KeyError:
             pass
 
         # Throttle
         try:
-            pbCommand.throttle = floatFrom(command['throttle'])
+            self.pbCommand.throttle = floatFrom(command['throttle'])
         except KeyError:
             pass
 
         # Speed
         try:
-            pbCommand.speed.target = floatFrom(command['speed']['target'])
-            pbCommand.speed.Kp = floatFrom(command['speed']['Kp'])
-            pbCommand.speed.Ki = floatFrom(command['speed']['Ki'])
-            pbCommand.speed.Kd = floatFrom(command['speed']['Kd'])
+            self.pbCommand.speed.target = floatFrom(command['speed']['target'])
+            self.pbCommand.speed.Kp = floatFrom(command['speed']['Kp'])
+            self.pbCommand.speed.Ki = floatFrom(command['speed']['Ki'])
+            self.pbCommand.speed.Kd = floatFrom(command['speed']['Kd'])
         except KeyError:
             pass
 
         # Rudder
         try:
-            pbCommand.rudder = floatFrom(command['rudder'])
+            self.pbCommand.rudder = floatFrom(command['rudder'])
         except KeyError:
             pass
 
         # Heading
         try:
-            pbCommand.heading.target = floatFrom(command['heading']['target'])
-            pbCommand.heading.Kp = floatFrom(command['heading']['Kp'])
-            pbCommand.heading.Ki = floatFrom(command['heading']['Ki'])
-            pbCommand.heading.Kd = floatFrom(command['heading']['Kd'])
+            self.pbCommand.heading.target = floatFrom(command['heading']['target'])
+            self.pbCommand.heading.Kp = floatFrom(command['heading']['Kp'])
+            self.pbCommand.heading.Ki = floatFrom(command['heading']['Ki'])
+            self.pbCommand.heading.Kd = floatFrom(command['heading']['Kd'])
         except KeyError:
             pass
 
-        print(pbCommand)
-
-        self.sock.sendto(pbCommand.SerializeToString(), self.goby_host)
+        self.transmit_command()

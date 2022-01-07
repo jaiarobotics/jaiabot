@@ -6,7 +6,7 @@
 #ifdef UENUM
 #undef UENUM
 #endif
-#include "jaiabot/messages/nanopb/low_level_control.pb.h"
+#include "jaiabot/messages/nanopb/control_surfaces.pb.h"
 
 #define DEBUG_MESSAGE(x) (x)
 
@@ -38,13 +38,13 @@ void halt_all();
 float motor = 0.0; // motor should range from -100.0 to +100.0
 const float MOTOR_DAMP = 0.2;
 
-static_assert(jaiabot_protobuf_LowLevelControl_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "LowLevelControl is too large, must fit in SIZE_BYTES word");
+static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
 bool data_to_receive = false;
 
-jaiabot_protobuf_LowLevelControl command = jaiabot_protobuf_LowLevelControl_init_default;
-jaiabot_protobuf_LowLevelAck ack = jaiabot_protobuf_LowLevelAck_init_default;
+jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
+jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
 
 
 enum AckCode {
@@ -57,12 +57,12 @@ enum AckCode {
 void send_ack()
 {
   bool status = true;
-  uint8_t pb_binary_data[jaiabot_protobuf_LowLevelAck_size] = {0};
+  uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfacesAck_size] = {0};
   serial_size_type message_length = 0;
   {
     {
       pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
-      status = pb_encode(&stream, jaiabot_protobuf_LowLevelAck_fields, &ack);
+      status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
       message_length = stream.bytes_written;
     }
   }
@@ -124,19 +124,19 @@ void loop()
         size << BITS_IN_BYTE;
         size |= prefix[SERIAL_MAGIC_BYTES + 1];
 
-        if (size <= jaiabot_protobuf_LowLevelControl_size)
+        if (size <= jaiabot_protobuf_ControlSurfaces_size)
         {
-          uint8_t pb_binary_data[jaiabot_protobuf_LowLevelControl_size] = {0};
+          uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfaces_size] = {0};
           if (Serial.readBytes(pb_binary_data, size) == size)
           {
             pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
-            bool status = pb_decode(&stream, jaiabot_protobuf_LowLevelControl_fields, &command);
+            bool status = pb_decode(&stream, jaiabot_protobuf_ControlSurfaces_fields, &command);
             if (!status)
             {
-              DEBUG_MESSAGE("Decoding LowLevelControl protobuf failed:");
+              DEBUG_MESSAGE("Decoding ControlSurfaces protobuf failed:");
               DEBUG_MESSAGE(PB_GET_ERROR(&stream));
             }
-            DEBUG_MESSAGE("Received LowLevelControl");
+            DEBUG_MESSAGE("Received ControlSurfaces");
 
             if (command.motor == 0) {
               motor = command.motor;
@@ -203,5 +203,5 @@ void halt_all() {
 
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
-PB_BIND(jaiabot_protobuf_LowLevelControl, jaiabot_protobuf_LowLevelControl, 2)
-PB_BIND(jaiabot_protobuf_LowLevelAck, jaiabot_protobuf_LowLevelAck, 2)
+PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
+PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)

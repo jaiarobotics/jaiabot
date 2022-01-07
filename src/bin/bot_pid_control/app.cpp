@@ -27,6 +27,7 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/frontseat/groups.h>
 #include "jaiabot/messages/vehicle_command.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -68,7 +69,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(1 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
 
@@ -98,18 +99,25 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
 
     // Subscribe to get vehicle yaw (for testing)
-    interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
-    [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
-        glog.is_debug1() && glog << "Received node status: " << node_status.ShortDebugString()
+    interprocess().subscribe<jaiabot::groups::bot_status>([this](const jaiabot::protobuf::BotStatus& bot_status) {
+        glog.is_debug2() && glog << "Received bot status: " << bot_status.ShortDebugString()
                                     << std::endl;
 
-        auto euler_angles = node_status.pose();
+        if (bot_status.has_attitude()) {
+            auto attitude = bot_status.attitude();
 
-        if (euler_angles.has_heading()) {
-            actual_heading = euler_angles.heading();
+            if (attitude.has_heading()) {
+                actual_heading = attitude.heading();
+            }
         }
 
-        actual_speed = node_status.speed().over_ground();
+        if (bot_status.has_speed()) {
+            auto speed = bot_status.speed();
+
+            if (speed.has_over_ground()) {
+                actual_speed = speed.over_ground();
+            }
+        }
 
         glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << std::endl;
     });
@@ -173,7 +181,7 @@ void jaiabot::apps::BotPidControl::loop()
 
 void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
-    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
     // Timeout
     if (command.has_timeout()) {
@@ -268,13 +276,13 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 
     }
 
-    glog.is_debug1() && glog << "Going to send ack" << std::endl;
+    glog.is_debug2() && glog << "Going to send ack" << std::endl;
 
     auto ack = CommandAck();
     ack.set_bot_id(cfg().bot_id());
     ack.set_time_with_units(command.time_with_units());
 
-    glog.is_debug1() && glog << "Sending ack: " << ack.ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << "Sending ack: " << ack.ShortDebugString() << std::endl;
 
     intervehicle().publish<jaiabot::groups::bot_status>(ack);
 
