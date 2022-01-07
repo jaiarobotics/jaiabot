@@ -110,6 +110,11 @@ class Interface:
 
         pbCommand = pid_control_pb2.Command()
 
+        # Timeout
+        try:
+            pbCommand.timeout = int(command['timeout'])
+        except KeyError:
+            pass
 
         # Throttle
         try:
