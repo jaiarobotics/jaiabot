@@ -87,7 +87,7 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     interthread().subscribe<serial_in>([this](
                                             const goby::middleware::protobuf::IOData& io) {
 
-        auto control_ack = lora::parse<jaiabot::protobuf::ControlAck>(io);
+        auto control_ack = lora::parse<jaiabot::protobuf::ControlSurfacesAck>(io);
 
         glog.is_verbose() && glog << group("main")
                                     << control_ack.ShortDebugString() << std::endl;
