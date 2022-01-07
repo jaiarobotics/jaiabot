@@ -151,7 +151,6 @@ void jaiabot::apps::BotPidControl::loop()
 
     jaiabot::protobuf::VehicleCommand cmd_msg;
 
-    auto& cmd = *cmd_msg.mutable_control_surfaces();
 
     static std::atomic<int> id(0);
 
@@ -159,12 +158,15 @@ void jaiabot::apps::BotPidControl::loop()
     cmd_msg.set_vehicle(1); // Set this to correct value?
     cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     cmd_msg.set_command_type(jaiabot::protobuf::VehicleCommand_CommandType_LowLevel);
-    cmd.set_timeout(2);
-    cmd.set_port_elevator(0);
-    cmd.set_stbd_elevator(0);
-    cmd.set_rudder(rudder);
-    cmd.set_motor(throttle);
 
+    auto& control_surfaces = *cmd_msg.mutable_control_surfaces();
+    control_surfaces.set_timeout(timeout);
+    control_surfaces.set_port_elevator(0);
+    control_surfaces.set_stbd_elevator(0);
+    control_surfaces.set_rudder(rudder);
+    control_surfaces.set_motor(throttle);
+
+    glog.is_debug1() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString() << std::endl;
     interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
 
 }
@@ -172,6 +174,11 @@ void jaiabot::apps::BotPidControl::loop()
 void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    // Timeout
+    if (command.has_timeout()) {
+        timeout = command.timeout();
+    }
 
     // Throttle
     if (command.has_throttle()) {

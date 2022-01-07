@@ -25,6 +25,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
   private:
 
+    // Timeout
+    int timeout = 5;
+
     // Speed targeting
     float target_speed = 0.0;
     float actual_speed = 0.0;

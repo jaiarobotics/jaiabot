@@ -77,8 +77,10 @@ const interval = setInterval(function() {
     console.log(el("throttleRadioButton"))
     console.log(el("speedRadioButton"))
     
-    // Throttle
+    // Timeout
+    command.timeout = el("timeout").value
     
+    // Throttle
     if (el("throttleRadioButton").checked) {
     
       command.throttle = el("throttleSlider").value
@@ -86,7 +88,6 @@ const interval = setInterval(function() {
     }
   
     // Speed
-  
     if (el("speedRadioButton").checked) {
   
       command.speed = {
@@ -98,9 +99,7 @@ const interval = setInterval(function() {
       
     }
     
-    
     // Rudder
-    
     if (el("rudderRadioButton").checked) {
     
       command.rudder = el("rudderSlider").value
@@ -108,7 +107,6 @@ const interval = setInterval(function() {
     }
   
     // Heading
-  
     if (el("headingRadioButton").checked) {
   
       command.heading = {
@@ -121,7 +119,6 @@ const interval = setInterval(function() {
     }
     
     // Elevators
-    
     if (el("elevatorsRadioButton").checked) {
     
       command.portElevator = el("portElevatorSlider").value
@@ -130,7 +127,6 @@ const interval = setInterval(function() {
     }
   
     // Roll
-  
     if (el("rollRadioButton").checked) {
   
       command.roll = {

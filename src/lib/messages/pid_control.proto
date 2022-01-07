@@ -98,6 +98,12 @@ message Command {
             }];
     }
 
+    optional uint32 timeout = 6 [(dccl.field) = {
+        min: 0
+        max: 100
+        precision: 0
+    }];
+
     optional double throttle = 3 [(dccl.field) = {
             min: -100
             max: 100
