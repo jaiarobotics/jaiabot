@@ -28,7 +28,6 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/rest_interface.pb.h"
 
 #include <vector>
 
@@ -42,30 +41,17 @@ namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 using UDPEndPoint = goby::middleware::protobuf::UDPEndPoint;
 using BotStatus = jaiabot::protobuf::BotStatus;
-namespace REST = jaiabot::protobuf::rest;
 
 namespace jaiabot
 {
 namespace apps
 {
 
-constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
-constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
+constexpr goby::middleware::Group bot_status_udp_in{"bot_status_udp_in"};
+constexpr goby::middleware::Group bot_status_udp_out{"bot_status_udp_out"};
 
-REST::BotStatus convert(const BotStatus& input_status) {
-    REST::BotStatus bot_status;
-    bot_status.set_bot_id(input_status.bot_id());
-    bot_status.set_time(NOW);
-
-    bot_status.mutable_location()->set_lat(input_status.location().lat());
-    bot_status.mutable_location()->set_lon(input_status.location().lon());
-
-    bot_status.set_depth(input_status.depth());
-
-    bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
-
-    return bot_status;
-}
+constexpr goby::middleware::Group command_udp_in{"command_udp_in"};
+constexpr goby::middleware::Group command_udp_out{"command_udp_out"};
 
 class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 {
@@ -75,11 +61,12 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
   private:
     UDPEndPoint dest;
 
-    std::vector<REST::BotStatus> bot_statuses;
+    std::vector<BotStatus> bot_statuses;
 
     void loop() override;
 
-    void send(const REST::BotStatus& bot_status);
+    void send(const BotStatus& bot_status);
+    void send_command_to_bot(const jaiabot::protobuf::Command& command);
 };
 
 } // namespace apps
@@ -98,16 +85,25 @@ jaiabot::apps::WebPortal::WebPortal()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using UDPThread = goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
-    launch_thread<UDPThread>(cfg().udp_config());
+    using BotStatusThread = goby::middleware::io::UDPOneToManyThread<bot_status_udp_in, bot_status_udp_out>;
+    using CommandThread = goby::middleware::io::UDPOneToManyThread<command_udp_in, command_udp_out>;
+
+    launch_thread<BotStatusThread>(cfg().bot_status_udp_config());
+    launch_thread<CommandThread>(cfg().command_udp_config());
 
     glog.is_verbose() && glog << group("main") << "Subscribing to UDP" << std::endl;
 
-    interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-      glog.is_warn() && glog << group("main") << "Received data: " << io_data.ShortDebugString() << std::endl;
+    interthread().subscribe<bot_status_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
+      glog.is_debug2() && glog << group("main") << "Received data: " << io_data.ShortDebugString() << std::endl;
 
         dest.set_addr(io_data.udp_src().addr());
         dest.set_port(io_data.udp_src().port());
+    });
+
+    interthread().subscribe<command_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
+        jaiabot::protobuf::Command command;
+        command.ParseFromString(io_data.data());
+        send_command_to_bot(command);
     });
 
     dest.set_addr("");
@@ -115,7 +111,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Set a default bot_status
     for (int i = 0; i < 16; i++) {
-        REST::BotStatus bot_status;
+        BotStatus bot_status;
         bot_status.set_bot_id(i);
         bot_status.set_time(NOW);
 
@@ -129,12 +125,9 @@ jaiabot::apps::WebPortal::WebPortal()
         bot_statuses.push_back(bot_status);
     }
 
-    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-//        glog.is_debug1() && glog << group("main")
-//                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
-
-        auto bot_status = convert(dccl_nav);
-
+    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& bot_status) {
+       glog.is_debug2() && glog << group("main")
+                                << "Received bot_status: " << bot_status.ShortDebugString() << std::endl;
         send(bot_status);
     });
 
@@ -154,7 +147,7 @@ void jaiabot::apps::WebPortal::loop()
     }
 }
 
-void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
+void jaiabot::apps::WebPortal::send(const BotStatus& bot_status) {
     if (dest.addr() == "") {
         return;
     }
@@ -170,7 +163,12 @@ void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
     io_data->set_data(data);
 
     // Send it
-    interthread().publish<web_portal_udp_out>(io_data);
+    interthread().publish<bot_status_udp_out>(io_data);
 
-//    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+   glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+}
+
+void jaiabot::apps::WebPortal::send_command_to_bot(const jaiabot::protobuf::Command& command) {
+    glog.is_debug1() && glog << group("main") << "Sending command: " << command.ShortDebugString() << std::endl;
+    intervehicle().publish_dynamic(command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()));
 }

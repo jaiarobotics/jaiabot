@@ -1,7 +1,11 @@
 $app_block
 $interprocess_block
 
-udp_config {
-    bind_port: 40000
+bot_status_udp_config {
+    bind_port: 54065
+}
+
+command_udp_config {
+    bind_port: 50083
 }
 
