@@ -35,5 +35,6 @@ message WebPortal
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    required goby.middleware.protobuf.UDPOneToManyConfig udp_config = 3;
+    required goby.middleware.protobuf.UDPOneToManyConfig command_udp_config = 3;
+    required goby.middleware.protobuf.UDPOneToManyConfig bot_status_udp_config = 4;
 }
