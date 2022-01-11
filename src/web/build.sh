@@ -29,7 +29,7 @@ which npm &> /dev/null || {
 	echo "NPM not installed! Installing..."; 
 	add_node_repo_to_host
 	sudo apt-get update
-	sudo apt-get -y install nodejs 
+	sudo apt-get -y install nodejs npm
 	which npm &> /dev/null || { 
 		echo "NPM did not install successfully. Node version (should be 10.x):"
 		node --version

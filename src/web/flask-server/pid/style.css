@@ -139,3 +139,7 @@ input.gain {
 .colored {
   background-color: red
 }
+
+#deadMansSwitch {
+  display: inline;
+}
