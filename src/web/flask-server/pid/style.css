@@ -1,16 +1,12 @@
 /* Sliders */
 
-h2 {
-  font-family: Sans-Serif;
-}
-
-div {
+* {
   font-family: Sans-Serif;
 }
 
 div.status {
   position: absolute;
-  width: 100%;
+  width: 80%;
   height: 100px;
 }
 

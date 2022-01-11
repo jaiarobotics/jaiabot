@@ -1,5 +1,3 @@
-var commandChanged = false
-
 // Gets an element with this id
 function el(id) {
   return document.getElementById(id)
@@ -7,7 +5,7 @@ function el(id) {
 
 function setupOther(id) {
   el(id).onclick = function() {
-    commandChanged = true
+    sendCommand()
   }
 }
 
@@ -18,9 +16,128 @@ function setupSlider(name) {
   
   slider.oninput = function() {
     value.innerHTML = slider.value
-    commandChanged = true
+    sendCommand()
   }
 }
+
+function changeSlider(name, amount) {
+  let slider = el(name + "Slider")
+  let value = el(name + "Value")
+  slider.value = Number(slider.value) + amount
+  value.innerHTML = slider.value
+}
+
+function setSlider(name, v) {
+  let slider = el(name + "Slider")
+  let value = el(name + "Value")
+  slider.value = v
+  value.innerHTML = slider.value
+}
+
+////////// Dead man's switch / throttle lock ////////
+
+class DeadMansSwitch {
+  static #on = false
+
+  static setOn(_on) {
+    DeadMansSwitch.on = _on
+    el("throttleTitle").textContent = _on ? "🟢" : "❌"
+  }
+}
+
+window.onblur = function() {
+  DeadMansSwitch.setOn(false)
+}
+
+////////// Setup hotkeys /////////
+
+activeKey = null
+
+function keyDown(e) {
+  if (e.code == 'ShiftLeft' || e.code == 'ShiftRight') {
+    DeadMansSwitch.setOn(true)
+    return
+  }
+
+  activeKey = e.code
+}
+
+function keyUp(e) {
+  if (e.code == 'ShiftLeft' || e.code == 'ShiftRight') {
+    DeadMansSwitch.setOn(false)
+    return
+  }
+
+  if (e.code == activeKey) {
+    activeKey = null
+  }
+}
+
+document.addEventListener('keydown', keyDown);
+document.addEventListener('keyup', keyUp)
+
+setInterval(function() {
+  
+  switch (activeKey) {
+    case 'KeyC':
+      setSlider('throttle', 0)
+      setSlider('speed', 0)
+      setSlider('rudder', 0)
+      setSlider('heading', 0)
+      setSlider('portElevator', 0)
+      setSlider('stbdElevator', 0)
+      setSlider('roll', 0)
+    break
+    case 'KeyW':
+      section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
+      changeSlider(section, -1)
+      break
+    case 'KeyR':
+      section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
+      changeSlider(section, 1)
+      break
+    case 'KeyS':
+      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
+      changeSlider(section, -1)
+      break
+    case 'KeyF':
+      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
+      changeSlider(section, 1)
+      break
+    case 'KeyA':
+      changeSlider('portElevator', -1)
+      break
+    case 'KeyQ':
+      changeSlider('portElevator', 1)
+      break
+    case 'KeyG':
+      changeSlider('stbdElevator', -1)
+      break
+    case 'KeyT':
+      changeSlider('stbdElevator', 1)
+      break
+    case 'KeyD':
+      if (el('elevatorsRadioButton').checked) {
+        changeSlider('portElevator', -1)
+        changeSlider('stbdElevator', -1)
+      }
+      else {
+        changeSlider('roll', -1)
+      }
+      break
+    case 'KeyE':
+      if (el('elevatorsRadioButton').checked) {
+        changeSlider('portElevator', 1)
+        changeSlider('stbdElevator', 1)
+      }
+      else {
+        changeSlider('roll', 1)
+      }
+      break
+      
+  }
+
+}, 25)
 
 ////////// Throttle //////////////
 
@@ -69,17 +186,14 @@ navigator.geolocation.getCurrentPosition(function(position) {
 
 ////////// Command Sender //////////////
 
-const interval = setInterval(function() {
-  if (commandChanged) {
+function sendCommand() {
+  command = {}
   
-    command = {}
-    
-    console.log(el("throttleRadioButton"))
-    console.log(el("speedRadioButton"))
-    
-    // Timeout
-    command.timeout = el("timeout").value
-    
+  // Timeout
+  command.timeout = el("timeout").value
+  
+  if (DeadMansSwitch.on) {
+
     // Throttle
     if (el("throttleRadioButton").checked) {
     
@@ -98,54 +212,57 @@ const interval = setInterval(function() {
       }
       
     }
-    
-    // Rudder
-    if (el("rudderRadioButton").checked) {
-    
-      command.rudder = el("rudderSlider").value
-    
-    }
   
-    // Heading
-    if (el("headingRadioButton").checked) {
-  
-      command.heading = {
-        target: el("headingSlider").value,
-        Kp: el("heading_Kp").value,
-        Ki: el("heading_Ki").value,
-        Kd: el("heading_Kd").value
-      }
-      
-    }
-    
-    // Elevators
-    if (el("elevatorsRadioButton").checked) {
-    
-      command.portElevator = el("portElevatorSlider").value
-      command.stbdElevator = el("stbdElevatorSlider").value
-    
-    }
-  
-    // Roll
-    if (el("rollRadioButton").checked) {
-  
-      command.roll = {
-        target: el("rollSlider").value,
-        Kp: el("roll_Kp").value,
-        Ki: el("roll_Ki").value,
-        Kd: el("roll_Kd").value
-      }
-      
-    }
-    
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/jaia/command", true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify(command));
-    
-    commandChanged = false
+  }
+  else {
+    // Man is dead!  Send zero throttle...
+    command.throttle = 0
   }
   
+  // Rudder
+  if (el("rudderRadioButton").checked) {
+  
+    command.rudder = el("rudderSlider").value
+  
+  }
+
+  // Heading
+  if (el("headingRadioButton").checked) {
+
+    command.heading = {
+      target: el("headingSlider").value,
+      Kp: el("heading_Kp").value,
+      Ki: el("heading_Ki").value,
+      Kd: el("heading_Kd").value
+    }
+    
+  }
+  
+  // Elevators
+  if (el("elevatorsRadioButton").checked) {
+  
+    command.portElevator = el("portElevatorSlider").value
+    command.stbdElevator = el("stbdElevatorSlider").value
+  
+  }
+
+  // Roll
+  if (el("rollRadioButton").checked) {
+
+    command.roll = {
+      target: el("rollSlider").value,
+      Kp: el("roll_Kp").value,
+      Ki: el("roll_Ki").value,
+      Kd: el("roll_Kd").value
+    }
+    
+  }
+  
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/jaia/command", true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(JSON.stringify(command));
+    
   // Get vehicle status
   
   var xhr = new XMLHttpRequest();
@@ -154,7 +271,6 @@ const interval = setInterval(function() {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
         updateStatus(JSON.parse(xhr.responseText))
-        console.log(xhr.responseText);
       } else {
         console.error(xhr.statusText);
         el("status").innerHTML = xhr.statusText
@@ -166,13 +282,13 @@ const interval = setInterval(function() {
     el("status").innerHTML = xhr.statusText
   };
   xhr.send(null);
-  
-}, 1000);
+}
+
+const interval = setInterval(sendCommand, 1000);
 
 
 // Updates the status element with a status response object
 function updateStatus(status) {
-  console.log(status)
   bots = status["bots"]
   if (bots.length > 0) {
     bot = bots[0]
