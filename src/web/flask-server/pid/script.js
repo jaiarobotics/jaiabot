@@ -41,7 +41,15 @@ class DeadMansSwitch {
 
   static setOn(_on) {
     DeadMansSwitch.on = _on
-    el("throttleTitle").textContent = _on ? "🟢" : "❌"
+    el("deadMansSwitch").textContent = _on ? "🟢" : "❌"
+
+    el('throttleSlider').disabled = !_on
+    el('speedSlider').disabled = !_on
+
+    if (!_on) {
+      setSlider('throttle', 0)
+      setSlider('speed', 0)
+    }
   }
 }
 
@@ -51,15 +59,14 @@ window.onblur = function() {
 
 ////////// Setup hotkeys /////////
 
-activeKey = null
-
 function keyDown(e) {
   if (e.code == 'ShiftLeft' || e.code == 'ShiftRight') {
     DeadMansSwitch.setOn(true)
     return
   }
-
-  activeKey = e.code
+  else {
+    handleKey(e.code)
+  }
 }
 
 function keyUp(e) {
@@ -67,18 +74,15 @@ function keyUp(e) {
     DeadMansSwitch.setOn(false)
     return
   }
-
-  if (e.code == activeKey) {
-    activeKey = null
-  }
 }
 
 document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp)
 
-setInterval(function() {
-  
-  switch (activeKey) {
+function handleKey(key) {
+  let dx = 10
+
+  switch (key) {
     case 'KeyC':
       setSlider('throttle', 0)
       setSlider('speed', 0)
@@ -88,56 +92,59 @@ setInterval(function() {
       setSlider('stbdElevator', 0)
       setSlider('roll', 0)
     break
-    case 'KeyW':
-      section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
-      changeSlider(section, -1)
-      break
-    case 'KeyR':
-      section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
-      changeSlider(section, 1)
-      break
     case 'KeyS':
-      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
-      changeSlider(section, -1)
+      if (DeadMansSwitch.on) {
+        section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
+        changeSlider(section, -dx)
+      }
       break
-    case 'KeyF':
-      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
-      changeSlider(section, 1)
+    case 'KeyW':
+      if (DeadMansSwitch.on) {
+        section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
+        changeSlider(section, dx)
+      }
       break
     case 'KeyA':
-      changeSlider('portElevator', -1)
-      break
-    case 'KeyQ':
-      changeSlider('portElevator', 1)
-      break
-    case 'KeyG':
-      changeSlider('stbdElevator', -1)
-      break
-    case 'KeyT':
-      changeSlider('stbdElevator', 1)
+      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
+      changeSlider(section, -dx)
       break
     case 'KeyD':
+      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
+      changeSlider(section, dx)
+      break
+    case 'KeyF':
+      changeSlider('portElevator', -dx)
+      break
+    case 'KeyR':
+      changeSlider('portElevator', dx)
+      break
+    case 'KeyG':
+      changeSlider('stbdElevator', -dx)
+      break
+    case 'KeyT':
+      changeSlider('stbdElevator', dx)
+      break
+    case 'KeyQ':
       if (el('elevatorsRadioButton').checked) {
-        changeSlider('portElevator', -1)
-        changeSlider('stbdElevator', -1)
+        changeSlider('portElevator', -dx)
+        changeSlider('stbdElevator', dx)
       }
       else {
-        changeSlider('roll', -1)
+        changeSlider('roll', -dx)
       }
       break
     case 'KeyE':
       if (el('elevatorsRadioButton').checked) {
-        changeSlider('portElevator', 1)
-        changeSlider('stbdElevator', 1)
+        changeSlider('portElevator', dx)
+        changeSlider('stbdElevator', -dx)
       }
       else {
-        changeSlider('roll', 1)
+        changeSlider('roll', dx)
       }
       break
       
   }
-
-}, 25)
+}
 
 ////////// Throttle //////////////
 
