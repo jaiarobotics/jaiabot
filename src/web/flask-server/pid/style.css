@@ -189,3 +189,9 @@ div.sliderName {
 div.sliderValue {
   display: inline-block;
 }
+
+button.sliderCenter {
+  display: inline-block;
+  width: 50pt;
+  margin-left: 20pt;
+}
