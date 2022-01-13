@@ -24,6 +24,8 @@
 // this space intentionally left blank
 #include <goby/zeromq/application/multi_thread.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -136,6 +138,26 @@ jaiabot::apps::WebPortal::WebPortal()
         send(bot_status);
     });
 
+    // Subscribe to hub GPS updates
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            glog.is_debug1() && glog << "Received TimePositionVelocity update: "
+                                     << tpv.ShortDebugString() << std::endl;
+
+            if (tpv.has_location())
+            {
+                // Send "bot" status of bot_id == 255 for the hub
+                auto bot_status = REST::BotStatus();
+                bot_status.set_bot_id(255);
+                bot_status.set_time_with_units(NOW);
+                bot_status.set_time_to_ack(0);
+                bot_status.mutable_location()->set_lat(tpv.location().lat());
+                bot_status.mutable_location()->set_lon(tpv.location().lon());
+                bot_status.mutable_speed()->set_over_ground(tpv.speed());
+
+                send(bot_status);
+            }
+        });
 
     // subscribe for acks
     {

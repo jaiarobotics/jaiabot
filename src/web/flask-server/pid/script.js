@@ -383,24 +383,54 @@ function sendCommand() {
 
 const interval = setInterval(sendCommand, 1000);
 
+var hub_location = null
 
 // Updates the status element with a status response object
 function updateStatus(status) {
   bots = status["bots"]
-  if (bots.length > 0) {
-    bot = bots[0]
-    el("bot_id").innerHTML = bot["botID"]
-    
+  table = el("statusTable")
+  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>"
+  
+  console.log(hub_location)
+
+  for (bot of bots) {
+    if (bot["botID"] == 255) {
+      var hub = bot
+      hub_location = hub.location
+    }
+
+    innerHTML += "<tr>"
+    innerHTML += "<td>" + bot.botID + "</td>"
+
     bot_location = bot["location"]
-      el("latitude").innerHTML = bot_location["lat"]
-      el("longitude").innerHTML = bot_location["lon"]
+    innerHTML += "<td>" + bot_location.lat.toFixed(6) + "</td>"
+    innerHTML += "<td>" + bot_location.lon.toFixed(6) + "</td>"
+
+    if (hub_location) {
+      d = latlon_distance(bot_location, hub_location)
+      innerHTML += "<td>" + d.toFixed(1) + "</td>"
+    }
+    else {
+      innerHTML += "<td>?</td>"
+    }
+
+    innerHTML += "<td>" + bot.velocity.toFixed(1) + "</td>"
+    innerHTML += "<td>" + bot.heading.toFixed(1) + "</td>"
+    innerHTML += "<td>" + (bot.time.time_to_ack / 1e6).toFixed(2) + "</td>"
+    innerHTML += "</tr>"
+
+    //   el("latitude").innerHTML = bot_location["lat"]
+    //   el("longitude").innerHTML = bot_location["lon"]
       
-    el("distance").innerHTML = latlon_distance(bot_location, my_location)  
+    // el("distance").innerHTML = latlon_distance(bot_location, my_location)  
       
-    el("speed").innerHTML = bot["velocity"]
-    el("heading").innerHTML = bot["heading"]
-    el("time_to_ack").innerHTML = bot["time"]["time_to_ack"] / 1e6
+    // el("speed").innerHTML = bot["velocity"]
+    // el("heading").innerHTML = bot["heading"]
+    // el("time_to_ack").innerHTML = bot["time"]["time_to_ack"] / 1e6
   }
+
+  table.innerHTML = innerHTML
+
 }
 
 
