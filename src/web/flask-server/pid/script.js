@@ -3,8 +3,50 @@ function el(id) {
   return document.getElementById(id)
 }
 
+function selectSection(selectedSection, unselectedSection) {
+  el(selectedSection + "Section").classList.remove("unselected")
+  el(selectedSection + "Section").classList.add("selected")
+
+  el(unselectedSection + "Section").classList.add("unselected")
+  el(unselectedSection + "Section").classList.remove("selected")
+}
+
+function resetSliders() {
+    // Reset unused sliders
+    if (el("throttleRadioButton").checked) {
+      setSlider("speed", 0)
+      selectSection("throttle", "speed")
+    }
+    else {
+      setSlider("throttle", 0)
+      selectSection("speed", "throttle")
+    }
+
+    if (el("rudderRadioButton").checked) {
+      selectSection("rudder", "heading")
+      setSlider("heading", 0)
+    }
+    else {
+      selectSection("heading", "rudder")
+      setSlider("rudder", rudderCenter)
+    }
+
+    if (el("elevatorsRadioButton").checked) {
+      selectSection("elevators", "roll")
+      setSlider("roll", 0)
+    }
+    else {
+      selectSection("roll", "elevators")
+      setSlider("portElevator", portCenter)
+      setSlider("stbdElevator", stbdCenter)
+    }
+}
+
+resetSliders()
+
 function setupOther(id) {
   el(id).onclick = function() {
+    resetSliders()
     sendCommand()
   }
 }
@@ -56,6 +98,8 @@ class DeadMansSwitch {
 window.onblur = function() {
   DeadMansSwitch.setOn(false)
 }
+
+DeadMansSwitch.setOn(false)
 
 ////////// Setup hotkeys /////////
 
