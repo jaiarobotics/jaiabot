@@ -210,7 +210,6 @@ div.hotkey {
 
 div.row {
   background-color:#efefef;
-  padding: 10pt;
   margin-top: 10pt;
   margin-bottom: 10pt;
   border-radius: 5pt;
@@ -220,6 +219,16 @@ div.row {
 
 div.section {
   flex: none;
+  background-color: rgb(236, 252, 255);
+  padding: 10pt;
   margin: 0;
 }
 
+div.selected {
+  background-color: rgb(236, 252, 255);
+}
+
+div.unselected {
+  background-color: transparent;
+  opacity: 0.5;
+}
