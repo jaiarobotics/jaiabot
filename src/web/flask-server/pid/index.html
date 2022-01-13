@@ -10,14 +10,27 @@
 
     <h2>Engineering Control Page</h2>
 
-    <label class="timeout" for="timeout">Timeout (s)</label>
-    <input class="timeout" type="text" id="timeout" name="timeout" value="5">
-    <div id="deadMansSwitch">❌ </div>
+    <div class="row">
+      <div>
+        <label class="timeout" for="timeout">Timeout (s)</label>
+        <input class="timeout" type="text" id="timeout" name="timeout" value="5">
+      </div>
+    <div>
+      Dead Man's Switch<div id="deadMansSwitch">❌</div>
+    </div>
+    </div>
+
+    <div class="hotkeyContainer">
+      <div class="hotkey">Throttle/Speed: S⬇️ W⬆️</div>
+      <div class="hotkey">Rudder/Heading: A⬅️ D➡️</div>
+      <div class="hotkey">Roll: Q⬅️ E➡️</div>
+    </div>
 
 <!-- Throttle and Speed -->
 
-    <div style="margin-top:20pt">
-      <div class="bordered" style="display:inline-block; width: 300pt">
+    <div class="row">
+
+      <div class="section">
         <input class="mode" type="radio" id="throttleRadioButton" name="throttle_speed" value="" checked>
 
         <div style="display: inline-block;">
@@ -32,7 +45,7 @@
         </div>
       </div>
 
-      <div class="bordered" style="display:inline-block">
+      <div class="section">
         <input class="mode" type="radio" id="speedRadioButton" name="throttle_speed" value="">
 
         <div style="display: inline-block;">
@@ -58,8 +71,8 @@
 
 <!-- Rudder and Heading -->
 
-    <div style="margin-top:20pt">
-      <div class="bordered" style="display:inline-block; width: 300pt">
+    <div class="row">
+      <div class="section" style="display:inline-block; width: 300pt">
         <input class="mode" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
 
         <div style="display: inline-block;">
@@ -74,7 +87,7 @@
         </div>
       </div>
 
-      <div class="bordered" style="display:inline-block">
+      <div class="section" style="display:inline-block">
         <input class="mode" type="radio" id="headingRadioButton" name="rudder_heading" value="">
 
         <div style="display: inline-block;">
@@ -100,8 +113,8 @@
 
 <!-- Elevators and Roll -->
 
-    <div style="margin-top:20pt">
-      <div class="bordered" style="display:inline-block; width: 575pt">
+    <div class="row">
+      <div class="section" style="display:inline-block; width: 575pt">
         <input class="mode" type="radio" id="elevatorsRadioButton" name="elevators_roll" value="" checked>
 
         <div style="display: inline-block;">
@@ -127,7 +140,7 @@
         </div>
       </div>
 
-      <div class="bordered" style="display:inline-block">
+      <div class="section" style="display:inline-block">
         <input class="mode" type="radio" id="rollRadioButton" name="elevators_roll" value="">
 
         <div style="display: inline-block;">
@@ -151,8 +164,7 @@
       </div>
     </div>
 
-
-    <div id="status" class="status">
+    <div id="status" class="row">
       <table class="status">
         <tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>
         <tr><td id="bot_id"></td><td id="latitude" /><td id="longitude" /><td id="distance"></td><td id="speed"></td><td id="heading"></td><td id="time_to_ack"></td>
