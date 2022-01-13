@@ -8,6 +8,7 @@ div.status {
   position: absolute;
   width: 80%;
   height: 100px;
+  margin-top: 20pt;
 }
 
 table.status {
@@ -63,14 +64,16 @@ th {
 /* The slider itself */
 .slider {
   -webkit-appearance: none;  /* Override default CSS styles */
+  display:inline-block;
   appearance: none;
-  width: 100%; /* Full-width */
-  height: 25px; /* Specified height */
+  width: 160pt; /* Full-width */
+  height: 20pt; /* Specified height */
   background: #d3d3d3; /* Grey background */
   outline: none; /* Remove outline */
   opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
   -webkit-transition: .2s; /* 0.2 seconds transition on hover */
   transition: opacity .2s;
+  padding-bottom: -10pt;
 }
 
 /* Mouse-over effects */
@@ -82,8 +85,8 @@ th {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none; /* Override default look */
   appearance: none;
-  width: 25px; /* Set a specific slider handle width */
-  height: 25px; /* Slider handle height */
+  width: 25pt; /* Set a specific slider handle width */
+  height: 25pt; /* Slider handle height */
   background: #04AA6D; /* Green background */
   cursor: pointer; /* Cursor on hover */
 }
@@ -120,10 +123,6 @@ div.gain {
   text-align: center;
 }
 
-input.gain {
-  width: 100%
-}
-
 .submitButton {
   display: block;
   width: 100pt;
@@ -142,4 +141,51 @@ input.gain {
 
 #deadMansSwitch {
   display: inline;
+}
+
+div.horizontal {
+  display: block;
+}
+
+div.value {
+  display: inline;
+  margin: 10pt;
+}
+
+div.mode {
+  display: inline-block;
+  width: 100pt;
+  margin-left: 20pt;
+}
+
+div.gainLabel {
+  display: inline-block;
+}
+
+input.gain {
+  display: inline-block;
+  width: 50pt;
+}
+
+button.submit {
+  display: inline-block;
+  width: 100pt;
+}
+
+input.mode {
+  vertical-align: top;
+}
+
+div.sliderTop {
+  margin-bottom: 20pt;
+}
+
+div.sliderName {
+  display: inline-block;
+  text-align: right;
+  margin-right: 9%;
+}
+
+div.sliderValue {
+  display: inline-block;
 }
