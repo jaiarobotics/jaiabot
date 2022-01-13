@@ -86,10 +86,10 @@ function handleKey(key) {
     case 'KeyC':
       setSlider('throttle', 0)
       setSlider('speed', 0)
-      setSlider('rudder', 0)
+      setSlider('rudder', rudderCenter)
       setSlider('heading', 0)
-      setSlider('portElevator', 0)
-      setSlider('stbdElevator', 0)
+      setSlider('portElevator', portCenter)
+      setSlider('stbdElevator', stbdCenter)
       setSlider('roll', 0)
     break
     case 'KeyS':
@@ -144,6 +144,52 @@ function handleKey(key) {
       break
       
   }
+}
+
+////////// Setup Centers /////////
+
+function getCookie(cname) {
+  let name = cname + "=";
+  let decodedCookie = decodeURIComponent(document.cookie);
+  let ca = decodedCookie.split(';');
+  for(let i = 0; i <ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+rudderCenter = getCookie("rudderCenter") || 0.0
+el("rudderSlider").value = rudderCenter
+
+portCenter   = getCookie("portCenter") || 0.0
+el("portElevatorSlider").value = portCenter
+
+stbdCenter   = getCookie("stbdCenter") || 0.0
+el("stbdElevatorSlider").value = stbdCenter
+
+function setCookie(cname, cvalue) {
+  document.cookie = cname + "=" + cvalue + ";";
+}
+
+el("rudderCenter").onclick = function(e) {
+  rudderCenter = Number(el("rudderSlider").value)
+  setCookie("rudderCenter", rudderCenter)
+}
+
+el("portCenter").onclick = function(e) {
+  portCenter = Number(el("portElevatorSlider").value)
+  setCookie("portCenter", portCenter)
+}
+
+el("stbdCenter").onclick = function(e) {
+  stbdCenter = Number(el("stbdElevatorSlider").value)
+  setCookie("stbdCenter", stbdCenter)
 }
 
 ////////// Throttle //////////////
