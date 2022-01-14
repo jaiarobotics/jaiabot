@@ -370,13 +370,13 @@ function sendCommand() {
         updateStatus(JSON.parse(xhr.responseText))
       } else {
         console.error(xhr.statusText);
-        el("status").innerHTML = xhr.statusText
+        el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
       }
     }
   };
   xhr.onerror = function (e) {
     console.error(xhr.statusText);
-    el("status").innerHTML = xhr.statusText
+    el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
   };
   xhr.send(null);
 }
