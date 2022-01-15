@@ -30,49 +30,22 @@
 
     <div class="row">
 
-      <div class="section" id="throttleSection">
+      <div class="left-section" id="throttleSection">
         <input class="mode" type="radio" id="throttleRadioButton" name="throttle_speed" value="" checked>
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Throttle:</div><div class="sliderValue" id="throttleValue">50</div>
-          </div>
-          <div>
-            <div class="value">0</div>
-            <input type="range" min="0" max="100" value="0" class="slider-vertical" id="throttleSlider">
-            <div class="value">100</div>
-          </div>
-        </div>
+        <div id="throttleContainer"></div>
       </div>
 
       <div class="section" id="speedSection">
         <input class="mode" type="radio" id="speedRadioButton" name="throttle_speed" value="">
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Speed:</div><div class="sliderValue" id="speedValue">50</div>
-          </div>
-          <div>
-            <div class="value">0</div>
-            <input type="range" min="0" max="15" value="0" class="slider-vertical" id="speedSlider">
-            <div class="value">15</div>
-          </div>
-        </div>
-
-        <div class="gainLabel">Kp</div>
-        <input class="gain" type="text" id="speed_Kp" name="fname" value="1">
-        <div class="gainLabel">Ki</div>
-        <input class="gain" type="text" id="speed_Ki" name="fname" value="1">
-        <div class="gainLabel">Kd</div>
-        <input class="gain" type="text" id="speed_Kd" name="fname" value="1">
-        <button class="submit" type="button" id="speed_submit">Submit</button>
+        <div id="speedContainer"></div>
+        <div id="speedGains"></div>
       </div>
     </div>
 
 <!-- Rudder and Heading -->
 
     <div class="row">
-      <div class="section" id="rudderSection">
+      <div class="left-section" id="rudderSection">
         <input class="mode" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
 
         <div style="display: inline-block;">
@@ -101,43 +74,19 @@
           </div>
         </div>
 
-        <div class="gainLabel">Kp</div>
-        <input class="gain" type="text" id="heading_Kp" name="fname" value="1">
-        <div class="gainLabel">Ki</div>
-        <input class="gain" type="text" id="heading_Ki" name="fname" value="1">
-        <div class="gainLabel">Kd</div>
-        <input class="gain" type="text" id="heading_Kd" name="fname" value="1">
-        <button class="submit" type="button" id="heading_submit">Submit</button>
+        <div id="headingGains"></div>
       </div>
     </div>
 
 <!-- Elevators and Roll -->
 
     <div class="row">
-      <div class="section" id="elevatorsSection">
+      <div class="left-section" id="elevatorsSection">
         <input class="mode" type="radio" id="elevatorsRadioButton" name="elevators_roll" value="" checked>
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Port Elevator:</div><div class="sliderValue" id="portElevatorValue">0</div><button class="sliderCenter" id="portCenter">🎯</button>
-          </div>
-          <div>
-            <div class="value">-100</div>
-            <input type="range" min="-100" max="100" value="0" class="slider-vertical" id="portElevatorSlider">
-            <div class="value">100</div>
-          </div>
-        </div>
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Stbd Elevator:</div><div class="sliderValue" id="stbdElevatorValue">0</div><button class="sliderCenter" id="stbdCenter">🎯</button>
-          </div>
-          <div>
-            <div class="value">-100</div>
-            <input type="range" min="-100" max="100" value="0" class="slider-vertical" background="#D6B656" id="stbdElevatorSlider">
-            <div class="value">100</div>
-          </div>
-        </div>
+        <button class="sliderCenter" id="portCenter">🎯</button>
+        <div id="portElevatorContainer"></div>
+        <button class="sliderCenter" id="stbdCenter">🎯</button>
+        <div id="stbdElevatorContainer"></div>
       </div>
 
       <div class="section" id="rollSection">
@@ -154,13 +103,7 @@
           </div>
         </div>
 
-        <div class="gainLabel">Kp</div>
-        <input class="gain" type="text" id="roll_Kp" name="fname" value="1">
-        <div class="gainLabel">Ki</div>
-        <input class="gain" type="text" id="roll_Ki" name="fname" value="1">
-        <div class="gainLabel">Kd</div>
-        <input class="gain" type="text" id="roll_Kd" name="fname" value="1">
-        <button class="submit" type="button" id="roll_submit">Submit</button>
+        <div id="rollGains"></div>
       </div>
     </div>
 

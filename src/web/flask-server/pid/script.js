@@ -3,6 +3,73 @@ function el(id) {
   return document.getElementById(id)
 }
 
+////////// Slider class //////////
+
+class VerticalSlider {
+  constructor(name, minValue, maxValue, label) {
+    this.name = name
+    this.minValue = minValue
+    this.maxValue = maxValue
+
+    let parentElement = el(name + "Container")
+    parentElement.innerHTML = `
+      <div style="display: flex; flex-direction: row; align-items: center;">
+        <div style="display: flex; flex-direction: column; width:80pt; align-items: center;">
+          <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value"></div>
+        </div>
+
+        <div class="verticalSliderContainer">
+          <div class="value">` + maxValue + `</div>
+          <div class="verticalSliderInnerContainer">
+            <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical" id="` + name + `Slider">
+          </div>
+          <div class="value">` + minValue + `</div>
+        </div>
+      </div>
+    `
+  }
+}
+
+////////
+
+throttleSlider = new VerticalSlider("throttle", 0, 100, "Throttle")
+speedSlider = new VerticalSlider("speed", 0, 15, "Speed")
+portElevatorSlider = new VerticalSlider("portElevator", -100, 100, "Port Elevator")
+stbdElevatorSlider = new VerticalSlider("stbdElevator", -100, 100, "Stbd Elevator")
+
+/////////// PIDGains form class //////////
+
+class PIDGains {
+  constructor(name) {
+    this.name = name
+
+    let parentElement = el(name + "Gains")
+    parentElement.innerHTML = `
+      <div class="gains">
+        <div class="gainRow">
+          <div class="gainLabel">Kp</div>
+          <input class="gain" type="text" id="` + name + `_Kp" name="fname" value="1"><br/>
+        </div>
+        <div class="gainRow">
+          <div class="gainLabel">Ki</div>
+          <input class="gain" type="text" id="` + name + `_Ki" name="fname" value="1"><br/>
+        </div>
+        <div class="gainRow">
+          <div class="gainLabel">Kd</div>
+          <input class="gain" type="text" id="` + name + `_Kd" name="fname" value="1"><br/>
+        </div>
+        <button class="submit" type="button" id="` + name + `_submit">Submit</button>
+      </div>
+    `
+  }
+}
+
+speedGains = new PIDGains('speed')
+headingGains = new PIDGains('heading')
+rollGains = new PIDGains('roll')
+
+////////
+
 function selectSection(selectedSection, unselectedSection) {
   el(selectedSection + "Section").classList.remove("unselected")
   el(selectedSection + "Section").classList.add("selected")
@@ -54,6 +121,7 @@ function setupOther(id) {
 function setupSlider(name) {
   let slider = el(name + "Slider")
   let value = el(name + "Value")
+  console.log(value)
   value.innerHTML = slider.value
   
   slider.oninput = function() {

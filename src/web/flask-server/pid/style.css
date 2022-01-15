@@ -45,13 +45,24 @@
   width: 100%;
 }
 
+div.verticalSliderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+div.verticalSliderInnerContainer {
+  width: 10pt; /* Full-width */
+  height: 80pt; /* Specified height */
+}
+
 /* The sliders themselves */
 .slider {
   -webkit-appearance: none;  /* Override default CSS styles */
   display:inline-block;
   appearance: none;
-  width: 160pt; /* Full-width */
-  height: 20pt; /* Specified height */
+  width: 120pt; /* Full-width */
+  height: 10pt; /* Specified height */
   border-radius: 10pt;
   background: #d3d3d3; /* Grey background */
   outline: none; /* Remove outline */
@@ -61,28 +72,15 @@
   padding-bottom: -10pt;
 }
 
-.slider-vertical {
-  -webkit-appearance: none;  /* Override default CSS styles */
-  display:inline-block;
-  appearance: none;
-  orient: vertical;
-  width: 20pt; /* Full-width */
-  height: 100pt; /* Specified height */
-  border-radius: 10pt;
-  background: #d3d3d3; /* Grey background */
-  outline: none; /* Remove outline */
-  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
-  transition: opacity .2s;
-  padding-bottom: -10pt;
+input.vertical {
+  width: 80pt;
+  height: 10pt;
+  transform-origin: 37pt 39pt;
+  transform: rotate(-90deg);
 }
 
 /* Mouse-over effects */
 .slider:hover {
-  opacity: 1; /* Fully shown on mouse-over */
-}
-
-.slider-vertical:hover {
   opacity: 1; /* Fully shown on mouse-over */
 }
 
@@ -98,25 +96,7 @@
   cursor: pointer; /* Cursor on hover */
 }
 
-.slider-vertical::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Override default look */
-  appearance: none;
-  width: 24pt; /* Set a specific slider handle width */
-  height: 24pt; /* Slider handle height */
-  border-radius: 12pt;
-  background: #B85450;
-  cursor: pointer; /* Cursor on hover */
-}
-
 .slider::-moz-range-thumb {
-  width: 24px; /* Set a specific slider handle width */
-  height: 24px; /* Slider handle height */
-  border-radius: 12pt;
-  background: darkcyan;
-  cursor: pointer; /* Cursor on hover */
-}
-
-.slider-vertical::-moz-range-thumb {
   width: 24px; /* Set a specific slider handle width */
   height: 24px; /* Slider handle height */
   border-radius: 12pt;
@@ -175,8 +155,10 @@ div.horizontal {
 }
 
 div.value {
-  display: inline;
-  margin: 10pt;
+  display: inline-block;
+  margin: 5pt;
+  width: 40pt;
+  text-align: center;
 }
 
 div.mode {
@@ -186,7 +168,7 @@ div.mode {
 }
 
 div.gainLabel {
-  display: inline-block;
+  width: 40pt;
 }
 
 input.gain {
@@ -209,12 +191,13 @@ div.sliderTop {
 
 div.sliderName {
   display: inline-block;
-  text-align: right;
-  margin-right: 9%;
+  text-align: center;
 }
 
 div.sliderValue {
   display: inline-block;
+  width: 40pt;
+  text-align: center;
 }
 
 button.sliderCenter {
@@ -256,11 +239,24 @@ div.row {
   justify-content: space-between;
 }
 
-div.section {
+div.left-section {
+  display: flex;
+  align-items: center;
   flex: none;
   background-color: rgb(236, 252, 255);
   padding: 10pt;
   margin: 0;
+  width: 30%;
+}
+
+div.section {
+  display: flex;
+  align-items: center;
+  flex: none;
+  background-color: rgb(236, 252, 255);
+  padding: 10pt;
+  margin: 0;
+  width: 65%;
 }
 
 div.selected {
@@ -270,4 +266,19 @@ div.selected {
 div.unselected {
   background-color: transparent;
   opacity: 0.5;
+}
+
+div.gains {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  height: 100pt;
+  margin: 10pt;
+}
+
+div.gainRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
