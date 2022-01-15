@@ -5,37 +5,64 @@ function el(id) {
 
 ////////// Slider class //////////
 
-class VerticalSlider {
-  constructor(name, minValue, maxValue, label) {
+vertical = 'vertical'
+horizontal = 'horizontal'
+
+class Slider {
+  constructor(orientation, name, minValue, maxValue, label) {
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
+    this.orientation = orientation
 
     let parentElement = el(name + "Container")
-    parentElement.innerHTML = `
-      <div style="display: flex; flex-direction: row; align-items: center;">
-        <div style="display: flex; flex-direction: column; width:80pt; align-items: center;">
-          <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value"></div>
-        </div>
 
-        <div class="verticalSliderContainer">
-          <div class="value">` + maxValue + `</div>
-          <div class="verticalSliderInnerContainer">
-            <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical" id="` + name + `Slider">
+    if (orientation == vertical) {
+      parentElement.innerHTML = `
+        <div style="display: flex; flex-direction: row; align-items: center;">
+          <div style="display: flex; flex-direction: column; width:80pt; align-items: center;">
+            <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value"></div>
           </div>
-          <div class="value">` + minValue + `</div>
+
+          <div class="verticalSliderContainer">
+            <div class="value">` + maxValue + `</div>
+            <div class="verticalSliderInnerContainer">
+              <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical" id="` + name + `Slider">
+            </div>
+            <div class="value">` + minValue + `</div>
+          </div>
+        </div>
+      `
+    }
+    else {
+      parentElement.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <button class="sliderCenter" id="` + name + `Center">🎯</button>
+        <div class="sliderTop">
+          <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value">0</div>
+        </div>
+        <div>
+          <div class="value">-100</div>
+          <input type="range" min="-100" max="100" value="0" class="slider" id="` + name + `Slider">
+          <div class="value">100</div>
         </div>
       </div>
-    `
+      `
+    }
   }
 }
 
 ////////
 
-throttleSlider = new VerticalSlider("throttle", 0, 100, "Throttle")
-speedSlider = new VerticalSlider("speed", 0, 15, "Speed")
-portElevatorSlider = new VerticalSlider("portElevator", -100, 100, "Port Elevator")
-stbdElevatorSlider = new VerticalSlider("stbdElevator", -100, 100, "Stbd Elevator")
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle")
+speedSlider = new Slider(vertical, "speed", 0, 15, "Speed")
+
+rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder")
+headingSlider = new Slider(horizontal, "heading", -180, 180, "Heading")
+
+portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator")
+stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator")
+rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll")
 
 /////////// PIDGains form class //////////
 

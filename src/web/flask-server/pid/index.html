@@ -8,7 +8,7 @@
 
   <body>
 
-    <h2>Engineering Control Page</h2>
+    <image src="/favicon.png" style="display: inline-block;"></image><h2 style="display: inline-block; vertical-align: text-bottom; margin: 10pt">Engineering</h2>
 
     <div class="row">
       <div>
@@ -47,33 +47,12 @@
     <div class="row">
       <div class="left-section" id="rudderSection">
         <input class="mode" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Rudder:</div><div class="sliderValue" id="rudderValue">0</div><button class="sliderCenter" id="rudderCenter">🎯</button>
-          </div>
-          <div>
-            <div class="value">-100</div>
-            <input type="range" min="-100" max="100" value="0" class="slider" id="rudderSlider">
-            <div class="value">100</div>
-          </div>
-        </div>
+        <div id="rudderContainer"></div>
       </div>
 
       <div class="section" id="headingSection">
         <input class="mode" type="radio" id="headingRadioButton" name="rudder_heading" value="">
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Heading:</div><div class="sliderValue" id="headingValue">50</div>
-          </div>
-          <div>
-            <div class="value">0</div>
-            <input type="range" min="0" max="360" value="0" class="slider" id="headingSlider">
-            <div class="value">360</div>
-          </div>
-        </div>
-
+        <div id="headingContainer"></div>
         <div id="headingGains"></div>
       </div>
     </div>
@@ -91,18 +70,7 @@
 
       <div class="section" id="rollSection">
         <input class="mode" type="radio" id="rollRadioButton" name="elevators_roll" value="">
-
-        <div style="display: inline-block;">
-          <div class="sliderTop">
-            <div class="sliderName">Roll:</div><div class="sliderValue" id="rollValue">50</div>
-          </div>
-          <div>
-            <div class="value">0</div>
-            <input type="range" min="0" max="360" value="0" class="slider" id="rollSlider">
-            <div class="value">360</div>
-          </div>
-        </div>
-
+        <div id="rollContainer"></div>
         <div id="rollGains"></div>
       </div>
     </div>
