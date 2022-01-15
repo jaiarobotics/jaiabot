@@ -15,9 +15,13 @@
         <label class="timeout" for="timeout">Timeout (s)</label>
         <input class="timeout" type="text" id="timeout" name="timeout" value="5">
       </div>
-    <div>
-      Dead Man's Switch<div id="deadMansSwitch">❌</div>
-    </div>
+      <div id="diveContainer">
+        <div id="diveSliderContainer" style="display: inline-block"></div>
+        <button id="diveButton" onclick="diveButtonOnClick()">🤿 Dive</button>
+      </div>
+      <div>
+        Dead Man's Switch<div id="deadMansSwitch">❌</div>
+      </div>
     </div>
 
     <div class="hotkeyContainer">
@@ -32,12 +36,12 @@
 
       <div class="left-section" id="throttleSection">
         <input class="mode" type="radio" id="throttleRadioButton" name="throttle_speed" value="" checked>
-        <div id="throttleContainer"></div>
+        <div id="throttleSliderContainer"></div>
       </div>
 
       <div class="section" id="speedSection">
         <input class="mode" type="radio" id="speedRadioButton" name="throttle_speed" value="">
-        <div id="speedContainer"></div>
+        <div id="speedSliderContainer"></div>
         <div id="speedGains"></div>
       </div>
     </div>
@@ -47,12 +51,12 @@
     <div class="row">
       <div class="left-section" id="rudderSection">
         <input class="mode" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
-        <div id="rudderContainer"></div>
+        <div id="rudderSliderContainer"></div>
       </div>
 
       <div class="section" id="headingSection">
         <input class="mode" type="radio" id="headingRadioButton" name="rudder_heading" value="">
-        <div id="headingContainer"></div>
+        <div id="headingSliderContainer"></div>
         <div id="headingGains"></div>
       </div>
     </div>
@@ -63,14 +67,14 @@
       <div class="left-section" id="elevatorsSection">
         <input class="mode" type="radio" id="elevatorsRadioButton" name="elevators_roll" value="" checked>
         <button class="sliderCenter" id="portCenter">🎯</button>
-        <div id="portElevatorContainer"></div>
+        <div id="portElevatorSliderContainer"></div>
         <button class="sliderCenter" id="stbdCenter">🎯</button>
-        <div id="stbdElevatorContainer"></div>
+        <div id="stbdElevatorSliderContainer"></div>
       </div>
 
       <div class="section" id="rollSection">
         <input class="mode" type="radio" id="rollRadioButton" name="elevators_roll" value="">
-        <div id="rollContainer"></div>
+        <div id="rollSliderContainer"></div>
         <div id="rollGains"></div>
       </div>
     </div>

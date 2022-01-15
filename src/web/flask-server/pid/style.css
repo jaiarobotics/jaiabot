@@ -49,7 +49,7 @@ div {
   width: 100%;
 }
 
-div.verticalSliderContainer {
+div.verticalSliderOuterContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
