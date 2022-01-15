@@ -3,6 +3,9 @@ function el(id) {
   return document.getElementById(id)
 }
 
+// Clamp number between two values with the following line:
+const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
 ////////// Slider class //////////
 
 vertical = 'vertical'
@@ -13,6 +16,7 @@ class Slider {
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
+    this.stepSize = (maxValue - minValue) / 10
     this.orientation = orientation
 
     let parentElement = el(name + "SliderContainer")
@@ -61,9 +65,17 @@ class Slider {
   }
 
   set value(v) {
-    console.log(this.name)
+    v = clamp(v, this.minValue, this.maxValue)
     this.sliderElement.value = v
     this.valueElement.innerHTML = v
+  }
+
+  decrement() {
+    this.value -= this.stepSize
+  }
+
+  increment() {
+    this.value += this.stepSize
   }
 }
 
@@ -246,8 +258,6 @@ document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp)
 
 function handleKey(key) {
-  let dx = 10
-
   switch (key) {
     case 'KeyZ':
       throttleSlider.value = 0
@@ -270,51 +280,51 @@ function handleKey(key) {
     case 'KeyS':
       if (DeadMansSwitch.on) {
         slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
-        slider.value -= dx
+        slider.decrement()
       }
       break
     case 'KeyW':
       if (DeadMansSwitch.on) {
         slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
-        slider.value += dx
+        slider.increment()
       }
       break
     case 'KeyA':
       slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
-      slider.value -= dx
+      slider.decrement()
       break
     case 'KeyD':
       slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
-      slider.value += dx
+      slider.increment()
       break
     case 'KeyF':
-      portElevatorSlider.value -= dx
+      portElevatorSlider.decrement()
       break
     case 'KeyR':
-      portElevatorSlider.value += dx
+      portElevatorSlider.increment()
       break
     case 'KeyG':
-      stbdElevatorSlider.value -= dx
+      stbdElevatorSlider.decrement()
       break
     case 'KeyT':
-      stbdElevatorSlider.value += dx
+      stbdElevatorSlider.increment()
       break
     case 'KeyQ':
       if (el('elevatorsRadioButton').checked) {
-        portElevatorSlider.value -= dx
-        stbdElevatorSlider.value += dx
+        portElevatorSlider.decrement()
+        stbdElevatorSlider.increment()
       }
       else {
-        rollSlider.value -= dx
+        rollSlider.decrement()
       }
       break
     case 'KeyE':
       if (el('elevatorsRadioButton').checked) {
-        portElevatorSlider.value += dx
-        stbdElevatorSlider.value -= dx
+        portElevatorSlider.increment()
+        stbdElevatorSlider.decrement()
       }
       else {
-        rollSlider.value += dx
+        rollSlider.increment()
       }
       break
       
