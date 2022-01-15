@@ -51,11 +51,19 @@ class Slider {
       </div>
       `
     }
+
+    this.sliderElement = el(this.name + 'Slider')
+    this.valueElement = el(this.name + 'Value')
   }
 
   get value() {
-    let valueElement = el(this.name + 'Slider')
-    return valueElement.value
+    return Number(this.sliderElement.value)
+  }
+
+  set value(v) {
+    console.log(this.name)
+    this.sliderElement.value = v
+    this.valueElement.innerHTML = v
   }
 }
 
@@ -142,31 +150,31 @@ function selectSection(selectedSection, unselectedSection) {
 function resetSliders() {
     // Reset unused sliders
     if (el("throttleRadioButton").checked) {
-      setSlider("speed", 0)
+      speedSlider.value = 0
       selectSection("throttle", "speed")
     }
     else {
-      setSlider("throttle", 0)
+      throttleSlider.value = 0
       selectSection("speed", "throttle")
     }
 
     if (el("rudderRadioButton").checked) {
+      headingSlider.value = 0
       selectSection("rudder", "heading")
-      setSlider("heading", 0)
     }
     else {
+      rudderSlider.value = rudderCenter
       selectSection("heading", "rudder")
-      setSlider("rudder", rudderCenter)
     }
 
     if (el("elevatorsRadioButton").checked) {
       selectSection("elevators", "roll")
-      setSlider("roll", 0)
+      rollSlider.value = 0
     }
     else {
       selectSection("roll", "elevators")
-      setSlider("portElevator", portCenter)
-      setSlider("stbdElevator", stbdCenter)
+      portElevatorSlider.value = portCenter
+      stbdElevatorSlider.value = stbdCenter
     }
 }
 
@@ -190,20 +198,6 @@ function setupSlider(name) {
   }
 }
 
-function changeSlider(name, amount) {
-  let slider = el(name + "Slider")
-  let value = el(name + "Value")
-  slider.value = Number(slider.value) + amount
-  value.innerHTML = slider.value
-}
-
-function setSlider(name, v) {
-  let slider = el(name + "Slider")
-  let value = el(name + "Value")
-  slider.value = v
-  value.innerHTML = slider.value
-}
-
 ////////// Dead man's switch / throttle lock ////////
 
 class DeadMansSwitch {
@@ -217,8 +211,8 @@ class DeadMansSwitch {
     el('speedSlider').disabled = !_on
 
     if (!_on) {
-      setSlider('throttle', 0)
-      setSlider('speed', 0)
+      throttleSlider.value = 0
+      speedSlider.value = 0
     }
   }
 }
@@ -255,63 +249,72 @@ function handleKey(key) {
   let dx = 10
 
   switch (key) {
+    case 'KeyZ':
+      throttleSlider.value = 0
+      speedSlider.value = 0
+      rudderSlider.value = 0
+      headingSlider.value = 0
+      portElevatorSlider.value = 0
+      stbdElevatorSlider.value = 0
+      rollSlider.value = 0
+      break
     case 'KeyC':
-      setSlider('throttle', 0)
-      setSlider('speed', 0)
-      setSlider('rudder', rudderCenter)
-      setSlider('heading', 0)
-      setSlider('portElevator', portCenter)
-      setSlider('stbdElevator', stbdCenter)
-      setSlider('roll', 0)
-    break
+      throttleSlider.value = 0
+      speedSlider.value = 0
+      rudderSlider.value = rudderCenter
+      headingSlider.value = 0
+      portElevatorSlider.value = portCenter
+      stbdElevatorSlider.value = stbdCenter
+      rollSlider.value = 0
+      break
     case 'KeyS':
       if (DeadMansSwitch.on) {
-        section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
-        changeSlider(section, -dx)
+        slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
+        slider.value -= dx
       }
       break
     case 'KeyW':
       if (DeadMansSwitch.on) {
-        section = el('throttleRadioButton').checked ? 'throttle' : 'speed'
-        changeSlider(section, dx)
+        slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
+        slider.value += dx
       }
       break
     case 'KeyA':
-      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
-      changeSlider(section, -dx)
+      slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
+      slider.value -= dx
       break
     case 'KeyD':
-      section = el('rudderRadioButton').checked ? 'rudder' : 'heading'
-      changeSlider(section, dx)
+      slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
+      slider.value += dx
       break
     case 'KeyF':
-      changeSlider('portElevator', -dx)
+      portElevatorSlider.value -= dx
       break
     case 'KeyR':
-      changeSlider('portElevator', dx)
+      portElevatorSlider.value += dx
       break
     case 'KeyG':
-      changeSlider('stbdElevator', -dx)
+      stbdElevatorSlider.value -= dx
       break
     case 'KeyT':
-      changeSlider('stbdElevator', dx)
+      stbdElevatorSlider.value += dx
       break
     case 'KeyQ':
       if (el('elevatorsRadioButton').checked) {
-        changeSlider('portElevator', -dx)
-        changeSlider('stbdElevator', dx)
+        portElevatorSlider.value -= dx
+        stbdElevatorSlider.value += dx
       }
       else {
-        changeSlider('roll', -dx)
+        rollSlider.value -= dx
       }
       break
     case 'KeyE':
       if (el('elevatorsRadioButton').checked) {
-        changeSlider('portElevator', dx)
-        changeSlider('stbdElevator', -dx)
+        portElevatorSlider.value += dx
+        stbdElevatorSlider.value -= dx
       }
       else {
-        changeSlider('roll', dx)
+        rollSlider.value += dx
       }
       break
       
