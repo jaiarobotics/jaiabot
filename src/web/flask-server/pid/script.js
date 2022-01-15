@@ -9,22 +9,24 @@ vertical = 'vertical'
 horizontal = 'horizontal'
 
 class Slider {
-  constructor(orientation, name, minValue, maxValue, label) {
+  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton) {
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
     this.orientation = orientation
 
-    let parentElement = el(name + "Container")
+    let parentElement = el(name + "SliderContainer")
 
     if (orientation == vertical) {
+      let centerButtonHTML = showCenterButton ? `<button class="sliderCenter" id="` + name + `Center">🎯</button>` : ``
+      let valueHTML = showValue ? `<div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value"></div>` : ``
+
       parentElement.innerHTML = `
         <div style="display: flex; flex-direction: row; align-items: center;">
-          <div style="display: flex; flex-direction: column; width:80pt; align-items: center;">
-            <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value"></div>
-          </div>
+          <div style="display: flex; flex-direction: column; width:80pt; align-items: center;">` + valueHTML + centerButtonHTML + 
+          `</div>
 
-          <div class="verticalSliderContainer">
+          <div class="verticalSliderOuterContainer">
             <div class="value">` + maxValue + `</div>
             <div class="verticalSliderInnerContainer">
               <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical" id="` + name + `Slider">
@@ -35,34 +37,41 @@ class Slider {
       `
     }
     else {
+      let centerButtonHTML = showCenterButton ? `<button class="sliderCenter" id="` + name + `Center">🎯</button>` : ``
+      let valueHTML = showValue ? `<div class="sliderTop"><div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value">0</div></div>` : ``
+
       parentElement.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center;">
-        <button class="sliderCenter" id="` + name + `Center">🎯</button>
-        <div class="sliderTop">
-          <div class="sliderName">` + label + `</div><div class="sliderValue" id="` + name + `Value">0</div>
-        </div>
+      <div style="display: flex; flex-direction: column; align-items: center;">`
+        + centerButtonHTML + valueHTML + `
         <div>
-          <div class="value">-100</div>
-          <input type="range" min="-100" max="100" value="0" class="slider" id="` + name + `Slider">
-          <div class="value">100</div>
+          <div class="value">` + minValue + `</div>
+          <input type="range" min="` + minValue + `" max="`+ maxValue + `" value="0" class="slider" id="` + name + `Slider">
+          <div class="value">` + maxValue + `</div>
         </div>
       </div>
       `
     }
   }
+
+  get value() {
+    let valueElement = el(this.name + 'Slider')
+    return valueElement.value
+  }
 }
 
 ////////
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle")
-speedSlider = new Slider(vertical, "speed", 0, 15, "Speed")
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false)
+speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false)
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder")
-headingSlider = new Slider(horizontal, "heading", -180, 180, "Heading")
+rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true)
+headingSlider = new Slider(horizontal, "heading", -180, 180, "Heading", true, false)
 
-portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator")
-stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator")
-rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll")
+portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true)
+stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true)
+rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false)
+
+diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false)
 
 /////////// PIDGains form class //////////
 
@@ -95,7 +104,32 @@ speedGains = new PIDGains('speed')
 headingGains = new PIDGains('heading')
 rollGains = new PIDGains('roll')
 
-////////
+//////// Dive Button 
+
+function diveButtonOnClick() {
+  sendDiveCommand(diveSlider.value)
+}
+
+function sendCommand(command) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/jaia/command", true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(JSON.stringify(command));
+}
+
+function sendDiveCommand(diveThrottle) {
+  command = {}
+  
+  // Timeout
+  command.timeout = el("timeout").value
+  command.throttle = -diveThrottle
+
+  blockSendingUntil = Date.now() + command.timeout * 1000
+
+  sendCommand(command)
+}
+
+///////
 
 function selectSection(selectedSection, unselectedSection) {
   el(selectedSection + "Section").classList.remove("unselected")
@@ -141,19 +175,18 @@ resetSliders()
 function setupOther(id) {
   el(id).onclick = function() {
     resetSliders()
-    sendCommand()
+    sendVisibleCommand()
   }
 }
 
 function setupSlider(name) {
   let slider = el(name + "Slider")
   let value = el(name + "Value")
-  console.log(value)
   value.innerHTML = slider.value
   
   slider.oninput = function() {
     value.innerHTML = slider.value
-    sendCommand()
+    sendVisibleCommand()
   }
 }
 
@@ -365,20 +398,16 @@ setupSlider("roll")
 setupOther("roll_submit")
 setupOther("rollRadioButton")
 
-////////// Browser location ////////////
-
-// Get our location
-
-my_location = { "lat": 0.0, "lon": 0.0 }
-
-navigator.geolocation.getCurrentPosition(function(position) {
-  my_location.lat = position.coords.latitude
-  my_location.lon = position.coords.longitude
-})
-
 ////////// Command Sender //////////////
 
-function sendCommand() {
+blockSendingUntil = 0
+
+function sendVisibleCommand() {
+  let now = Date.now()
+  if (now < blockSendingUntil) {
+    return
+  }
+
   command = {}
   
   // Timeout
@@ -450,10 +479,7 @@ function sendCommand() {
     
   }
   
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/jaia/command", true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify(command));
+  sendCommand(command)
     
   // Get vehicle status
   
@@ -476,7 +502,7 @@ function sendCommand() {
   xhr.send(null);
 }
 
-const interval = setInterval(sendCommand, 1000);
+const interval = setInterval(sendVisibleCommand, 1000);
 
 var hub_location = null
 
@@ -514,14 +540,6 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot.time.time_to_ack / 1e6).toFixed(2) + "</td>"
     innerHTML += "</tr>"
 
-    //   el("latitude").innerHTML = bot_location["lat"]
-    //   el("longitude").innerHTML = bot_location["lon"]
-      
-    // el("distance").innerHTML = latlon_distance(bot_location, my_location)  
-      
-    // el("speed").innerHTML = bot["velocity"]
-    // el("heading").innerHTML = bot["heading"]
-    // el("time_to_ack").innerHTML = bot["time"]["time_to_ack"] / 1e6
   }
 
   table.innerHTML = innerHTML
