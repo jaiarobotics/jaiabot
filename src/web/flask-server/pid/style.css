@@ -4,6 +4,10 @@
   font-family: Sans-Serif;
 }
 
+div {
+  font-size: 12pt;
+}
+
 .columnGroup {
   position: static;
   display: inline-block;
@@ -88,8 +92,8 @@ input.vertical {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none; /* Override default look */
   appearance: none;
-  width: 24pt; /* Set a specific slider handle width */
-  height: 24pt; /* Slider handle height */
+  width: 18pt; /* Set a specific slider handle width */
+  height: 18pt; /* Slider handle height */
   border-radius: 12pt;
   /* background: darkcyan; */
   background: #82B366;
@@ -97,8 +101,8 @@ input.vertical {
 }
 
 .slider::-moz-range-thumb {
-  width: 24px; /* Set a specific slider handle width */
-  height: 24px; /* Slider handle height */
+  width: 12px; /* Set a specific slider handle width */
+  height: 12px; /* Slider handle height */
   border-radius: 12pt;
   background: darkcyan;
   cursor: pointer; /* Cursor on hover */
@@ -197,13 +201,15 @@ div.sliderName {
 div.sliderValue {
   display: inline-block;
   width: 40pt;
+  padding: 0pt 10pt 0pt 10pt;
+
   text-align: center;
 }
 
 button.sliderCenter {
   display: inline-block;
   width: 50pt;
-  margin-left: 20pt;
+  margin: 10pt;
 }
 
 div.status {
@@ -246,7 +252,7 @@ div.left-section {
   background-color: rgb(236, 252, 255);
   padding: 10pt;
   margin: 0;
-  width: 30%;
+  width: 40%;
 }
 
 div.section {
@@ -256,7 +262,7 @@ div.section {
   background-color: rgb(236, 252, 255);
   padding: 10pt;
   margin: 0;
-  width: 65%;
+  width: 40%;
 }
 
 div.selected {
