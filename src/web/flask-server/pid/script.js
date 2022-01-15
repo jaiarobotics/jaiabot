@@ -354,12 +354,12 @@ el("rudderCenter").onclick = function(e) {
   setCookie("rudderCenter", rudderCenter)
 }
 
-el("portCenter").onclick = function(e) {
+el("portElevatorCenter").onclick = function(e) {
   portCenter = Number(el("portElevatorSlider").value)
   setCookie("portCenter", portCenter)
 }
 
-el("stbdCenter").onclick = function(e) {
+el("stbdElevatorCenter").onclick = function(e) {
   stbdCenter = Number(el("stbdElevatorSlider").value)
   setCookie("stbdCenter", stbdCenter)
 }
