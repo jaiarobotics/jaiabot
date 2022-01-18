@@ -144,4 +144,24 @@ class Interface:
         except KeyError:
             pass
 
+        # Elevators
+        try:
+            cmd.portElevator = floatFrom(command['portElevator'])
+        except KeyError:
+            pass
+
+        try:
+            cmd.stbdElevator = floatFrom(command['stbdElevator'])
+        except KeyError:
+            pass
+
+        # Roll
+        try:
+            cmd.roll.target = floatFrom(command['roll']['target'])
+            cmd.roll.Kp = floatFrom(command['roll']['Kp'])
+            cmd.roll.Ki = floatFrom(command['roll']['Ki'])
+            cmd.roll.Kd = floatFrom(command['roll']['Kd'])
+        except KeyError:
+            pass
+
         self.transmit_command(cmd)

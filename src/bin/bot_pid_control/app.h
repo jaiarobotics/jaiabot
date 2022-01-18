@@ -44,6 +44,15 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     Pid *course_pid;
     float heading_kp = 1, heading_ki = 1, heading_kd = 1;
 
+    // Roll targeting
+    float target_roll = 0.0;
+    float actual_roll = 0.0;
+    float elevator_delta = 0.0;
+    float port_elevator, stbd_elevator;
+    bool elevator_is_using_pid = false;
+    Pid *roll_pid;
+    float roll_kp = 1, roll_ki = 1, roll_kd = 1;
+
     void loop() override;
 
     void handle_command(const Command& command);

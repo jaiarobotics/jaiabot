@@ -81,6 +81,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     course_pid->set_limits(-100.0, 100.0);
     course_pid->set_auto();
 
+    roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
+    roll_pid->set_limits(-100.0, 100.0);
+    roll_pid->set_auto();
+
     // subscribe for commands
     {
         auto on_command_subscribed =
@@ -108,6 +112,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
             if (attitude.has_heading()) {
                 actual_heading = attitude.heading();
+            }
+
+            if (attitude.has_roll()) {
+                actual_roll = attitude.roll();
             }
         }
 
@@ -155,6 +163,27 @@ void jaiabot::apps::BotPidControl::loop()
         glog.is_debug1() && glog << group("main") << "target_heading = " << target_heading << ", actual_heading = " << actual_heading << ", rudder = " << rudder << std::endl;
     }
 
+    // Roll PID
+    if (elevator_is_using_pid) {
+        // Make sure track is within 180 degrees of the course
+        if (actual_roll > target_roll + 180.0) {
+            actual_roll -= 360.0;
+        }
+        if (actual_roll < target_roll - 180.0) {
+            actual_roll += 360.0;
+        }
+
+        // Compute new rudder value
+        if (roll_pid->need_compute()) {
+            roll_pid->compute();
+        }
+
+        glog.is_debug1() && glog << group("main") << "target_roll = " << target_roll << ", actual_roll = " << actual_roll << ", elevator_delta = " << elevator_delta << std::endl;
+
+        port_elevator = -elevator_delta;
+        stbd_elevator = elevator_delta;
+    }
+
     // Publish the VehicleCommand
 
     jaiabot::protobuf::VehicleCommand cmd_msg;
@@ -169,8 +198,8 @@ void jaiabot::apps::BotPidControl::loop()
 
     auto& control_surfaces = *cmd_msg.mutable_control_surfaces();
     control_surfaces.set_timeout(timeout);
-    control_surfaces.set_port_elevator(0);
-    control_surfaces.set_stbd_elevator(0);
+    control_surfaces.set_port_elevator(port_elevator);
+    control_surfaces.set_stbd_elevator(stbd_elevator);
     control_surfaces.set_rudder(rudder);
     control_surfaces.set_motor(throttle);
 
@@ -272,6 +301,55 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
             course_pid = new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
             course_pid->set_limits(-100.0, 100.0);
             course_pid->set_auto();
+        }
+
+    }
+
+    // Elevators
+    if (command.has_port_elevator()) {
+        port_elevator = command.port_elevator();
+        elevator_is_using_pid = false;
+    }
+    if (command.has_stbd_elevator()) {
+        stbd_elevator = command.stbd_elevator();
+        elevator_is_using_pid = false;
+    }
+
+    // Roll
+    else if (command.has_roll()) {
+        auto roll = command.roll();
+        elevator_is_using_pid = true;
+
+        if (roll.has_target()) {
+            target_roll = roll.target();
+        }
+
+        bool gains_changed = false;
+
+        if (roll.has_kp())
+        {
+            roll_kp = roll.kp();
+            gains_changed = true;
+        }
+
+        if (roll.has_ki())
+        {
+            roll_ki = roll.ki();
+            gains_changed = true;
+        }
+
+        if (roll.has_kd())
+        {
+            roll_kd = roll.kd();
+            gains_changed = true;
+        }
+
+        if (gains_changed)
+        {
+            delete roll_pid;
+            roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
+            roll_pid->set_limits(-100.0, 100.0);
+            roll_pid->set_auto();
         }
 
     }
