@@ -319,7 +319,7 @@ function sendCommand(command) {
 }
 
 function sendDiveCommand(diveThrottle) {
-  command = {}
+  let command = getVisibleCommand()
   
   // Timeout
   command.timeout = el("timeout").value
@@ -562,14 +562,9 @@ setupOther("roll_submit")
 
 blockSendingUntil = 0
 
-function sendVisibleCommand() {
-  let now = Date.now()
-  if (now < blockSendingUntil) {
-    return
-  }
+function getVisibleCommand() {
+  let command = {}
 
-  command = {}
-  
   // Timeout
   command.timeout = el("timeout").value
   
@@ -579,8 +574,10 @@ function sendVisibleCommand() {
     switch(throttleTabbedSections.activeIndex) {
       case 0:
         command.throttle = el("throttleSlider").value
+        delete command.speed
         break
       case 1:
+        delete command.throttle
         command.speed = {
           target: el("speedSlider").value,
           Kp: el("speed_Kp").value,
@@ -593,14 +590,17 @@ function sendVisibleCommand() {
   else {
     // Man is dead!  Send zero throttle...
     command.throttle = 0
+    delete command.speed
   }
   
   // Rudder
   switch (rudderTabbedSections.activeIndex) {
     case 0:
       command.rudder = el("rudderSlider").value
+      delete command.heading
       break
     case 1:
+      delete command.rudder
       command.heading = {
         target: headingSlider.value,
         Kp: el("heading_Kp").value,
@@ -615,8 +615,11 @@ function sendVisibleCommand() {
     case 0:
       command.portElevator = el("portElevatorSlider").value
       command.stbdElevator = el("stbdElevatorSlider").value
+      delete command.roll
       break
     case 1:
+      delete command.portElevator
+      delete command.stbdElevator
       command.roll = {
         target: el("rollSlider").value,
         Kp: el("roll_Kp").value,
@@ -625,7 +628,17 @@ function sendVisibleCommand() {
       }
       break
   }
-  
+
+  return command
+}
+
+function sendVisibleCommand() {
+  let now = Date.now()
+  if (now < blockSendingUntil) {
+    return
+  }
+
+  let command = getVisibleCommand()
   sendCommand(command)
     
   // Get vehicle status
