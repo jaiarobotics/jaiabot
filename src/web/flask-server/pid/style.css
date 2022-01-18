@@ -117,11 +117,11 @@ input.vertical {
 }
 
 .slider.throttle::-webkit-slider-thumb {
-  background: red
+  background: #B85450
 }
 
 .slider.throttle::-moz-range-thumb {
-  background: red;
+  background: #B85450;
 }
 
 /* Misc */
