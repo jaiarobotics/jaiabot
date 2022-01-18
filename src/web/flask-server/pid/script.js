@@ -39,6 +39,10 @@ class AngleSlider {
         self.angle = Math.PI - Math.atan2(e.layerX - self.centerX, e.layerY - self.centerY)
         self.valueTextElement.innerHTML = self.value.toFixed(0)
         self.draw()
+
+        if (self.onValueChanged) {
+          self.onValueChanged(self.angle)
+        }
       }
     }
 
@@ -73,6 +77,10 @@ class AngleSlider {
     this.angle = d * DEG
     this.valueTextElement.innerHTML = (this.angle / DEG).toFixed(0)
     this.draw()
+
+    if (this.onValueChanged) {
+      this.onValueChanged(this.angle)
+    }
   }
 
   draw() {
@@ -197,7 +205,15 @@ throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, fals
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
 rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true)
-headingSlider = new AngleSlider('test', 'testValue', 0, 360, 10, 'KeyA', 'KeyD')
+headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD')
+headingSlider.onValueChanged = function(angle) {
+  angle_deg = angle / DEG
+  sector = Math.floor((angle_deg + 22.5) / 45) % 8
+  dirs = [ "N", "NE", "E", "SE", "S", "SW", "W", "NW" ]
+
+  cardinal = el("headingDirectionField")
+  cardinal.innerHTML = dirs[sector]
+}
 
 portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator")
 stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator")
