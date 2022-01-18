@@ -199,6 +199,59 @@ class Slider {
   }
 }
 
+/////////// TabbedSections class
+
+class TabbedSection {
+  constructor(buttonId, sectionId) {
+    this.button = el(buttonId)
+    this.section = el(sectionId)
+  }
+}
+
+class TabbedSections {
+  constructor(tabbedSections, activeIndex) {
+    this.tabbedSections = tabbedSections
+    this.activeIndex = Number(activeIndex) || Number(0)
+    let self = this
+
+    // Add event listeners to all the buttons
+    for (let i in self.tabbedSections) {
+      let tabbedSection = tabbedSections[i]
+
+      tabbedSection.button.onclick = function(e) {
+        for (let j in self.tabbedSections) {
+          let otherTabbedSection = self.tabbedSections[j]
+
+          if (i == j) {
+            otherTabbedSection.section.classList.remove("hidden")
+          }
+          else {
+            otherTabbedSection.section.classList.add("hidden")
+          }
+        }
+        self.activeIndex = Number(i)
+      }
+    }
+
+    this.tabbedSections[this.activeIndex].button.onclick()
+  }
+
+  set activeIndex(v) {
+    this._activeIndex = v
+  }
+
+  get activeIndex() {
+    return this._activeIndex
+  }
+}
+
+
+/////////// Throttle and Speed Section //////////
+
+throttleTabbedSections = new TabbedSections([new TabbedSection("throttleManualButton", "throttleSection"), new TabbedSection("throttlePIDButton", "speedSection")], 0)
+rudderTabbedSections = new TabbedSections([new TabbedSection("rudderManualButton", "rudderSection"), new TabbedSection("rudderPIDButton", "headingSection")], 0)
+elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManualButton", "elevatorsSection"), new TabbedSection("elevatorsPIDButton", "rollSection")], 0)
+
 ////////
 
 throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle")
@@ -287,39 +340,6 @@ function selectSection(selectedSection, unselectedSection) {
   el(unselectedSection + "Section").classList.remove("selected")
 }
 
-function resetSliders() {
-    // Reset unused sliders
-    if (el("throttleRadioButton").checked) {
-      speedSlider.value = 0
-      selectSection("throttle", "speed")
-    }
-    else {
-      throttleSlider.value = 0
-      selectSection("speed", "throttle")
-    }
-
-    if (el("rudderRadioButton").checked) {
-      headingSlider.userInteractionEnabled = false
-      selectSection("rudder", "heading")
-    }
-    else {
-      headingSlider.userInteractionEnabled = true
-      rudderSlider.value = rudderCenter
-      selectSection("heading", "rudder")
-    }
-
-    if (el("elevatorsRadioButton").checked) {
-      selectSection("elevators", "roll")
-      rollSlider.value = 0
-    }
-    else {
-      selectSection("roll", "elevators")
-      portElevatorSlider.value = portCenter
-      stbdElevatorSlider.value = stbdCenter
-    }
-}
-
-resetSliders()
 
 function setupOther(id) {
   el(id).onclick = function() {
@@ -408,23 +428,23 @@ function handleKey(key) {
       break
     case 'KeyS':
       if (DeadMansSwitch.on) {
-        slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
+        let slider = throttleTabbedSections.activeIndex == 0 ? throttleSlider : speedSlider
         slider.decrement()
       }
       break
     case 'KeyW':
       if (DeadMansSwitch.on) {
-        slider = el('throttleRadioButton').checked ? throttleSlider : speedSlider
+        let slider = throttleTabbedSections.activeIndex == 0 ? throttleSlider : speedSlider
         slider.increment()
       }
       break
     case 'KeyA':
-      if (el('rudderRadioButton').checked) {
+      if (rudderTabbedSections.activeIndex == 0) {
         rudderSlider.decrement()
       }
       break
     case 'KeyD':
-      if (el('rudderRadioButton').checked) {
+      if (rudderTabbedSections.activeIndex == 0) {
         rudderSlider.increment()
       }
       break
@@ -441,24 +461,27 @@ function handleKey(key) {
       stbdElevatorSlider.increment()
       break
     case 'KeyQ':
-      if (el('elevatorsRadioButton').checked) {
-        portElevatorSlider.decrement()
-        stbdElevatorSlider.increment()
-      }
-      else {
-        rollSlider.decrement()
+      switch (elevatorsTabbedSections.activeIndex) {
+        case 0:
+          portElevatorSlider.decrement()
+          stbdElevatorSlider.increment()
+          break
+        case 1:
+          rollSlider.decrement()
+          break
       }
       break
     case 'KeyE':
-      if (el('elevatorsRadioButton').checked) {
-        portElevatorSlider.increment()
-        stbdElevatorSlider.decrement()
-      }
-      else {
-        rollSlider.increment()
+      switch (elevatorsTabbedSections.activeIndex) {
+        case 0:
+          portElevatorSlider.increment()
+          stbdElevatorSlider.decrement()
+          break
+        case 1:
+          rollSlider.increment()
+          break
       }
       break
-      
   }
 }
 
@@ -510,36 +533,30 @@ el("stbdElevatorCenter").onclick = function(e) {
 
 ////////// Throttle //////////////
 
-setupOther("throttleRadioButton")
 setupSlider("throttle")
 
 ////////// Speed //////////////
 
 setupSlider("speed")
 setupOther("speed_submit")
-setupOther("speedRadioButton")
 
 ////////// Rudder //////////////
 
 setupSlider("rudder")
-setupOther("rudderRadioButton")
 
 ////////// Heading //////////////
 
 setupOther("heading_submit")
-setupOther("headingRadioButton")
 
 ////////// Elevators //////////////
 
 setupSlider("portElevator")
 setupSlider("stbdElevator")
-setupOther("elevatorsRadioButton")
 
 ////////// Heading //////////////
 
 setupSlider("roll")
 setupOther("roll_submit")
-setupOther("rollRadioButton")
 
 ////////// Command Sender //////////////
 
@@ -559,24 +576,19 @@ function sendVisibleCommand() {
   if (DeadMansSwitch.on) {
 
     // Throttle
-    if (el("throttleRadioButton").checked) {
-    
-      command.throttle = el("throttleSlider").value
-    
+    switch(throttleTabbedSections.activeIndex) {
+      case 0:
+        command.throttle = el("throttleSlider").value
+        break
+      case 1:
+        command.speed = {
+          target: el("speedSlider").value,
+          Kp: el("speed_Kp").value,
+          Ki: el("speed_Ki").value,
+          Kd: el("speed_Kd").value
+        }
+        break
     }
-  
-    // Speed
-    if (el("speedRadioButton").checked) {
-  
-      command.speed = {
-        target: el("speedSlider").value,
-        Kp: el("speed_Kp").value,
-        Ki: el("speed_Ki").value,
-        Kd: el("speed_Kd").value
-      }
-      
-    }
-  
   }
   else {
     // Man is dead!  Send zero throttle...
@@ -584,42 +596,34 @@ function sendVisibleCommand() {
   }
   
   // Rudder
-  if (el("rudderRadioButton").checked) {
-  
-    command.rudder = el("rudderSlider").value
-  
-  }
-
-  // Heading
-  if (el("headingRadioButton").checked) {
-
-    command.heading = {
-      target: headingSlider.value,
-      Kp: el("heading_Kp").value,
-      Ki: el("heading_Ki").value,
-      Kd: el("heading_Kd").value
-    }
-    
+  switch (rudderTabbedSections.activeIndex) {
+    case 0:
+      command.rudder = el("rudderSlider").value
+      break
+    case 1:
+      command.heading = {
+        target: headingSlider.value,
+        Kp: el("heading_Kp").value,
+        Ki: el("heading_Ki").value,
+        Kd: el("heading_Kd").value
+      }
+      break
   }
   
   // Elevators
-  if (el("elevatorsRadioButton").checked) {
-  
-    command.portElevator = el("portElevatorSlider").value
-    command.stbdElevator = el("stbdElevatorSlider").value
-  
-  }
-
-  // Roll
-  if (el("rollRadioButton").checked) {
-
-    command.roll = {
-      target: el("rollSlider").value,
-      Kp: el("roll_Kp").value,
-      Ki: el("roll_Ki").value,
-      Kd: el("roll_Kd").value
-    }
-    
+  switch (elevatorsTabbedSections.activeIndex) {
+    case 0:
+      command.portElevator = el("portElevatorSlider").value
+      command.stbdElevator = el("stbdElevatorSlider").value
+      break
+    case 1:
+      command.roll = {
+        target: el("rollSlider").value,
+        Kp: el("roll_Kp").value,
+        Ki: el("roll_Ki").value,
+        Kd: el("roll_Kd").value
+      }
+      break
   }
   
   sendCommand(command)
@@ -655,8 +659,6 @@ function updateStatus(status) {
   table = el("statusTable")
   innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>"
   
-  console.log(hub_location)
-
   for (bot of bots) {
     if (bot["botID"] == 255) {
       var hub = bot
