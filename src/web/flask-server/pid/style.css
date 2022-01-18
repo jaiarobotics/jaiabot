@@ -259,6 +259,7 @@ div.row {
   border-radius: 5pt;
   display: flex;
   justify-content: space-between;
+  align-items: stretch;
 }
 
 div.left-section {
@@ -273,9 +274,8 @@ div.left-section {
 
 div.section {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex: none;
-  background-color: rgb(236, 252, 255);
   padding: 10pt;
   margin: 0;
   width: 40%;
@@ -317,4 +317,31 @@ div.sliderAndGainsContainer {
   width: 90%;
   flex-direction: row;
   justify-content: space-between;
+}
+
+div.manualOrPidButtonContainer {
+  display: flex;
+  height: 150pt;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+input.manualOrPidButton {
+  width: 75pt;
+  height: 40%;
+  border-style: none;
+  margin: 10pt;
+}
+
+.manual {
+  background-color: rgb(236, 252, 255);
+}
+
+.pid {
+  background-color: seashell;
+}
+
+div.hidden {
+  display: none;
 }
