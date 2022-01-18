@@ -289,11 +289,11 @@ class PIDGains {
         </div>
         <div class="gainRow">
           <div class="gainLabel">Ki</div>
-          <input class="gain" type="text" id="` + name + `_Ki" name="fname" value="1"><br/>
+          <input class="gain" type="text" id="` + name + `_Ki" name="fname" value="0"><br/>
         </div>
         <div class="gainRow">
           <div class="gainLabel">Kd</div>
-          <input class="gain" type="text" id="` + name + `_Kd" name="fname" value="1"><br/>
+          <input class="gain" type="text" id="` + name + `_Kd" name="fname" value="0"><br/>
         </div>
         <button class="submit" type="button" id="` + name + `_submit">Submit</button>
       </div>
