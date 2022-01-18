@@ -30,66 +30,78 @@
 <!-- Throttle and Speed -->
 
     <div class="row">
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="throttleManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="throttlePIDButton" value="PID">
+      </div>
 
-      <div class="left-section" id="throttleSection">
-        <input class="mode" type="radio" id="throttleRadioButton" name="throttle_speed" value="" checked>
+      <div class="left-section manual" id="throttleSection">
         <div class="slidersContainer">
           <div id="throttleSliderContainer"></div>
         </div>
       </div>
 
-      <div id="deadMansSwitch">❌</div>
-
-      <div class="section" id="speedSection">
-        <input class="mode" type="radio" id="speedRadioButton" name="throttle_speed" value="">
+      <div class="section pid" id="speedSection">
         <div class="sliderAndGainsContainer">
           <div id="speedSliderContainer"></div>
           <div id="speedGains"></div>
         </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; justify-content: center; width: 100pt">
+        <div id="deadMansSwitch">❌</div>
       </div>
     </div>
 
 <!-- Rudder and Heading -->
 
     <div class="row">
-      <div class="left-section" id="rudderSection">
-        <input class="mode" type="radio" id="rudderRadioButton" name="rudder_heading" value="" checked>
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="rudderManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="rudderPIDButton" value="PID">
+      </div>
+
+      <div class="left-section manual" id="rudderSection">
         <div class="slidersContainer">
           <div id="rudderSliderContainer"></div>
         </div>
       </div>
 
-      <div class="section" id="headingSection">
-        <input class="mode" type="radio" id="headingRadioButton" name="rudder_heading" value="">
+      <div class="section pid" id="headingSection">
         <div class="sliderAndGainsContainer">
-          <div>
-            <div class="sliderTop"><div class="sliderName">Heading</div><div class="sliderValue" id="headingValue">0</div><div class="sliderValue" id="headingDirectionField"></div></div>
-            <canvas id="headingWidget" width="150" height="150"></canvas>
-          </div>
+          <div class="sliderName">Heading</div><div class="sliderValue" id="headingValue">0</div><div class="sliderValue" id="headingDirectionField"></div>
+          <canvas id="headingWidget" width="150" height="150"></canvas>
 
           <div id="headingGains"></div>
         </div>
       </div>
+
+      <div style="width: 100pt"></div>
     </div>
 
 <!-- Elevators and Roll -->
 
     <div class="row">
-      <div class="left-section" id="elevatorsSection">
-        <input class="mode" type="radio" id="elevatorsRadioButton" name="elevators_roll" value="" checked>
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="elevatorsManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="elevatorsPIDButton" value="PID">
+      </div>
+
+      <div class="left-section manual" id="elevatorsSection">
         <div class="slidersContainer">
           <div id="portElevatorSliderContainer"></div>
           <div id="stbdElevatorSliderContainer"></div>
         </div>
       </div>
 
-      <div class="section" id="rollSection">
-        <input class="mode" type="radio" id="rollRadioButton" name="elevators_roll" value="">
+      <div class="section pid" id="rollSection">
         <div class="sliderAndGainsContainer">
           <div id="rollSliderContainer"></div>
           <div id="rollGains"></div>
         </div>
       </div>
+
+      <div style="width: 100pt"></div>
     </div>
 
     <div id="status" class="row">
