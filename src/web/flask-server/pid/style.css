@@ -108,6 +108,22 @@ input.vertical {
   cursor: pointer; /* Cursor on hover */
 }
 
+.slider.elevator::-webkit-slider-thumb {
+  background: #d6b656
+}
+
+.slider.elevator::-moz-range-thumb {
+  background: #d6b656;
+}
+
+.slider.throttle::-webkit-slider-thumb {
+  background: red
+}
+
+.slider.throttle::-moz-range-thumb {
+  background: red;
+}
+
 /* Misc */
 
 .title {

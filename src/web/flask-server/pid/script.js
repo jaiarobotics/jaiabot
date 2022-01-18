@@ -12,7 +12,7 @@ vertical = 'vertical'
 horizontal = 'horizontal'
 
 class Slider {
-  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton) {
+  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="") {
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
@@ -33,7 +33,7 @@ class Slider {
           <div class="verticalSliderOuterContainer">
             <div class="value">` + maxValue + `</div>
             <div class="verticalSliderInnerContainer">
-              <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical" id="` + name + `Slider">
+              <input type="range" min="` + minValue + `" max="` + maxValue + `" value="0" class="slider vertical ` + sliderClasses + `" id="` + name + `Slider">
             </div>
             <div class="value">` + minValue + `</div>
           </div>
@@ -49,7 +49,7 @@ class Slider {
         + centerButtonHTML + valueHTML + `
         <div>
           <div class="value">` + minValue + `</div>
-          <input type="range" min="` + minValue + `" max="`+ maxValue + `" value="0" class="slider" id="` + name + `Slider">
+          <input type="range" min="` + minValue + `" max="`+ maxValue + `" value="0" class="slider ` + sliderClasses + `" id="` + name + `Slider">
           <div class="value">` + maxValue + `</div>
         </div>
       </div>
@@ -81,15 +81,15 @@ class Slider {
 
 ////////
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false)
-speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false)
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle")
+speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
 rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true)
 headingSlider = new Slider(horizontal, "heading", -180, 180, "Heading", true, false)
 
-portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true)
-stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true)
-rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false)
+portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator")
+stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator")
+rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator")
 
 diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false)
 
