@@ -120,6 +120,22 @@ message Command {
 
     optional PIDControl heading = 2;
 
+    optional double port_elevator = 7 [(dccl.field) = {
+            min: -100
+            max: 100
+            precision: 0
+        }];
+
+    optional double stbd_elevator = 8 [(dccl.field) = {
+            min: -100
+            max: 100
+            precision: 0
+        }];
+
+    optional PIDControl roll = 9;
+
+    optional PIDControl pitch = 10;
+
 }
 
 message CommandAck {
