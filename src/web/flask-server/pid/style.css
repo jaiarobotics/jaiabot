@@ -166,8 +166,8 @@ div.gain {
 }
 
 #deadMansSwitch {
-  display: inline;
-  padding: 5pt
+  padding: 5pt;
+  font-size: 72pt;
 }
 
 div.horizontal {
@@ -304,3 +304,4 @@ div.gainRow {
   flex-direction: row;
   justify-content: space-between;
 }
+
