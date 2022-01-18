@@ -6,6 +6,118 @@ function el(id) {
 // Clamp number between two values with the following line:
 const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
+///////// AngleSlider
+
+const DEG = Math.PI / 180.0 
+
+function wrap(v, minV, maxV) {
+  return minV + v - Math.floor((v - minV) / (maxV - minV)) * (maxV - minV)
+}
+
+class AngleSlider {
+  constructor(id, valueTextId, minValue, maxValue, delta, leftKey, rightKey) {
+    this.angle = 0
+    this.minValue = minValue
+    this.maxValue = maxValue
+    this.delta = delta
+    this.canvas = el(id)
+    this.valueTextElement = el(valueTextId)
+    this.centerX = this.canvas.width / 2
+    this.centerY = this.canvas.height / 2
+    this.arrowSize = this.canvas.height / 3.0
+    this.userInteractionEnabled = true
+    this.draw()
+
+    let self = this
+
+    function onclick(e) {
+      if (!self.userInteractionEnabled) {
+        return
+      }
+
+      if (e.buttons > 0) {
+        self.angle = Math.PI - Math.atan2(e.layerX - self.centerX, e.layerY - self.centerY)
+        self.valueTextElement.innerHTML = self.value.toFixed(0)
+        self.draw()
+      }
+    }
+
+    this.canvas.onclick = onclick
+    this.canvas.onmousemove = onclick
+
+    // Hotkeys
+    self.leftKey = leftKey
+    self.rightKey = rightKey
+
+    document.addEventListener('keydown', function(e) {
+      if (!self.userInteractionEnabled) {
+        return
+      }
+
+      switch(e.code) {
+        case self.leftKey:
+          self.value -= self.delta
+          break
+        case self.rightKey:
+          self.value += self.delta
+      }
+    });
+  }
+
+  get value() {
+    return this.angle / DEG
+  }
+
+  set value(degrees) {
+    let d = wrap(degrees, this.minValue, this.maxValue)
+    this.angle = d * DEG
+    this.valueTextElement.innerHTML = (this.angle / DEG).toFixed(0)
+    this.draw()
+  }
+
+  draw() {
+    let ctx = this.canvas.getContext('2d')
+    ctx.save()
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+    let centerX = this.canvas.width / 2.0
+    let centerY = this.canvas.height / 2.0
+    ctx.translate(centerX, centerY)
+    ctx.rotate(this.angle)
+  
+    let width = 12
+
+    // Arrow shaft
+    let startX = 0
+    let startY = this.arrowSize
+    let endX = 0
+    let endY = -this.arrowSize
+  
+    ctx.beginPath()
+    ctx.moveTo(startX, startY)
+    ctx.lineTo(endX, endY)
+    ctx.strokeStyle = "#d3d3d3"
+    ctx.lineWidth = width
+    ctx.lineCap = 'round'
+    ctx.stroke()
+
+    // Arrowhead
+    ctx.beginPath()
+    ctx.moveTo(endX - width, endY + 2 * width)
+    ctx.lineTo(endX + width, endY + 2 * width)
+    ctx.lineTo(endX, endY)
+    ctx.closePath()
+    ctx.fillStyle = "#82B366"
+    ctx.strokeStyle = "#82B366"
+    ctx.lineJoin = 'round'
+    ctx.fill()
+    ctx.stroke()
+  
+    ctx.restore()
+  }
+}
+
+
 ////////// Slider class //////////
 
 vertical = 'vertical'
@@ -85,7 +197,7 @@ throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, fals
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
 rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true)
-headingSlider = new Slider(horizontal, "heading", -180, 180, "Heading", true, false)
+headingSlider = new AngleSlider('test', 'testValue', 0, 360, 10, 'KeyA', 'KeyD')
 
 portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator")
 stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator")
@@ -171,10 +283,11 @@ function resetSliders() {
     }
 
     if (el("rudderRadioButton").checked) {
-      headingSlider.value = 0
+      headingSlider.userInteractionEnabled = false
       selectSection("rudder", "heading")
     }
     else {
+      headingSlider.userInteractionEnabled = true
       rudderSlider.value = rudderCenter
       selectSection("heading", "rudder")
     }
@@ -290,12 +403,14 @@ function handleKey(key) {
       }
       break
     case 'KeyA':
-      slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
-      slider.decrement()
+      if (el('rudderRadioButton').checked) {
+        rudderSlider.decrement()
+      }
       break
     case 'KeyD':
-      slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
-      slider.increment()
+      if (el('rudderRadioButton').checked) {
+        rudderSlider.increment()
+      }
       break
     case 'CapsLock':
       portElevatorSlider.decrement()
@@ -395,7 +510,6 @@ setupOther("rudderRadioButton")
 
 ////////// Heading //////////////
 
-setupSlider("heading")
 setupOther("heading_submit")
 setupOther("headingRadioButton")
 
@@ -464,7 +578,7 @@ function sendVisibleCommand() {
   if (el("headingRadioButton").checked) {
 
     command.heading = {
-      target: el("headingSlider").value,
+      target: headingSlider.value,
       Kp: el("heading_Kp").value,
       Ki: el("heading_Ki").value,
       Kd: el("heading_Kd").value
