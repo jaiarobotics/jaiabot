@@ -305,3 +305,16 @@ div.gainRow {
   justify-content: space-between;
 }
 
+div.slidersContainer {
+  display: flex;
+  width: 90%;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+div.sliderAndGainsContainer {
+  display: flex;
+  width: 90%;
+  flex-direction: row;
+  justify-content: space-between;
+}

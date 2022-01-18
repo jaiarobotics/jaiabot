@@ -297,10 +297,10 @@ function handleKey(key) {
       slider = el('rudderRadioButton').checked ? rudderSlider : headingSlider
       slider.increment()
       break
-    case 'KeyF':
+    case 'CapsLock':
       portElevatorSlider.decrement()
       break
-    case 'KeyR':
+    case 'Tab':
       portElevatorSlider.increment()
       break
     case 'KeyG':
