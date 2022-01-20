@@ -210,7 +210,7 @@ void jaiabot::apps::BotPidControl::loop()
 
 void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
-    glog.is_debug2() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
     // Timeout
     if (command.has_timeout()) {

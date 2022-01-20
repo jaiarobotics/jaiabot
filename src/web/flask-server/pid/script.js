@@ -448,16 +448,24 @@ function handleKey(key) {
         rudderSlider.increment()
       }
       break
-    case 'CapsLock':
+    case 'KeyJ':
       portElevatorSlider.decrement()
       break
-    case 'Tab':
+    case 'KeyU':
       portElevatorSlider.increment()
       break
-    case 'KeyG':
+    case 'KeyI':
+      portElevatorSlider.increment()
+      stbdElevatorSlider.increment()
+      break
+    case 'KeyK':
+      portElevatorSlider.decrement()
       stbdElevatorSlider.decrement()
       break
-    case 'KeyT':
+    case 'KeyL':
+      stbdElevatorSlider.decrement()
+      break
+    case 'KeyO':
       stbdElevatorSlider.increment()
       break
     case 'KeyQ':
