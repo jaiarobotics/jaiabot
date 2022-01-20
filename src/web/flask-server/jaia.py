@@ -146,12 +146,12 @@ class Interface:
 
         # Elevators
         try:
-            cmd.portElevator = floatFrom(command['portElevator'])
+            cmd.port_elevator = floatFrom(command['portElevator'])
         except KeyError:
             pass
 
         try:
-            cmd.stbdElevator = floatFrom(command['stbdElevator'])
+            cmd.stbd_elevator = floatFrom(command['stbdElevator'])
         except KeyError:
             pass
 
