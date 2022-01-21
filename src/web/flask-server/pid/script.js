@@ -3,8 +3,18 @@ function el(id) {
   return document.getElementById(id)
 }
 
+// Returns if this element is currently visible
+function elementIsVisible(element) {
+  return element.clientWidth !== 0 && element.clientHeight !== 0
+}
+
 // Clamp number between two values with the following line:
 const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
+// Setup a pressed key map
+var pressedKeys = {}
+window.addEventListener('keydown', function(e) { pressedKeys[e.code] = true  })
+window.addEventListener('keyup',   function(e) { pressedKeys[e.code] = false })
 
 ///////// AngleSlider
 
@@ -15,11 +25,12 @@ function wrap(v, minV, maxV) {
 }
 
 class AngleSlider {
-  constructor(id, valueTextId, minValue, maxValue, delta, leftKey, rightKey) {
+  constructor(id, valueTextId, minValue, maxValue, stepSize, leftKey, rightKey, fineStepSize=null) {
     this.angle = 0
     this.minValue = minValue
     this.maxValue = maxValue
-    this.delta = delta
+    this.stepSize = stepSize
+    this.fineStepSize = fineStepSize || stepSize / 10
     this.canvas = el(id)
     this.valueTextElement = el(valueTextId)
     this.centerX = this.canvas.width / 2
@@ -58,12 +69,14 @@ class AngleSlider {
         return
       }
 
+      let delta = pressedKeys['ShiftLeft'] ? self.fineStepSize : self.stepSize
+
       switch(e.code) {
         case self.leftKey:
-          self.value -= self.delta
+          self.value -= delta
           break
         case self.rightKey:
-          self.value += self.delta
+          self.value += delta
       }
     });
   }
@@ -132,12 +145,14 @@ vertical = 'vertical'
 horizontal = 'horizontal'
 
 class Slider {
-  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="") {
+  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="", stepSize=null, decrementKey="", incrementKey="", fineStepSize=null) {
+    let self = this
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
-    this.stepSize = (maxValue - minValue) / 10
     this.orientation = orientation
+    this.stepSize = stepSize || (maxValue - minValue) / 10
+    this.fineStepSize = fineStepSize || this.stepSize / 10
 
     let parentElement = el(name + "SliderContainer")
 
@@ -178,7 +193,37 @@ class Slider {
 
     this.sliderElement = el(this.name + 'Slider')
     this.valueElement = el(this.name + 'Value')
-    console.log(this.valueElement)
+
+    if (decrementKey !== "") {
+      document.addEventListener('keydown', function (e) {
+        if (elementIsVisible(self.sliderElement)) {
+          if (e.code == decrementKey) {
+            if (pressedKeys["ShiftLeft"]) {
+              self.value -= self.fineStepSize
+            }
+            else {
+              self.value -= self.stepSize
+            }
+          }
+        }
+      })
+    }
+
+    if (incrementKey !== "") {
+      document.addEventListener('keydown', function (e) {
+        if (elementIsVisible(self.sliderElement)) {
+          if (e.code == incrementKey) {
+            if (pressedKeys["ShiftLeft"]) {
+              self.value += self.fineStepSize
+            }
+            else {
+              self.value += self.stepSize
+            }
+          }
+        }
+      })
+    }
+
   }
 
   get value() {
@@ -255,10 +300,10 @@ elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManual
 
 ////////
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle")
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10)
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true)
+rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
 headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD')
 headingSlider.onValueChanged = function(angle) {
   angle_deg = angle / DEG
@@ -269,10 +314,10 @@ headingSlider.onValueChanged = function(angle) {
   cardinal.innerHTML = dirs[sector]
 }
 
-portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator")
-stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator")
-rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator")
-pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator")
+portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, 'KeyJ', 'KeyU')
+stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, 'KeyL', 'KeyO')
+rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, 'KeyQ', 'KeyE')
+pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, 'KeyK', 'KeyI')
 
 diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false, "dive")
 timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout")
@@ -392,7 +437,7 @@ DeadMansSwitch.setOn(false)
 ////////// Setup hotkeys /////////
 
 function keyDown(e) {
-  if (e.code == 'ShiftLeft' || e.code == 'ShiftRight') {
+  if (e.code == 'Space') {
     DeadMansSwitch.setOn(true)
     return
   }
@@ -402,7 +447,7 @@ function keyDown(e) {
 }
 
 function keyUp(e) {
-  if (e.code == 'ShiftLeft' || e.code == 'ShiftRight') {
+  if (e.code == 'Space') {
     DeadMansSwitch.setOn(false)
     return
   }
@@ -412,6 +457,8 @@ document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp)
 
 function handleKey(key) {
+  let elevatorsDelta = pressedKeys["ShiftLeft"] ? portElevatorSlider.fineStepSize : portElevatorSlider.stepSize
+
   switch (key) {
     case 'KeyZ':
       throttleSlider.value = 0
@@ -443,68 +490,35 @@ function handleKey(key) {
         slider.increment()
       }
       break
-    case 'KeyA':
-      if (rudderTabbedSections.activeIndex == 0) {
-        rudderSlider.decrement()
-      }
-      break
-    case 'KeyD':
-      if (rudderTabbedSections.activeIndex == 0) {
-        rudderSlider.increment()
-      }
-      break
-    case 'KeyJ':
-      portElevatorSlider.decrement()
-      break
-    case 'KeyU':
-      portElevatorSlider.increment()
-      break
     case 'KeyI':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.increment()
-          stbdElevatorSlider.increment()
-          break
-        case 1:
-          pitchSlider.increment()
+          portElevatorSlider.value += elevatorsDelta
+          stbdElevatorSlider.value += elevatorsDelta
           break
       }
       break
     case 'KeyK':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.decrement()
-          stbdElevatorSlider.decrement()
-          break
-        case 1:
-          pitchSlider.decrement()
+          portElevatorSlider.value -= elevatorsDelta
+          stbdElevatorSlider.value -= elevatorsDelta
           break
       }
-    case 'KeyL':
-      stbdElevatorSlider.decrement()
-      break
-    case 'KeyO':
-      stbdElevatorSlider.increment()
       break
     case 'KeyQ':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.decrement()
-          stbdElevatorSlider.increment()
-          break
-        case 1:
-          rollSlider.decrement()
+          portElevatorSlider.value -= elevatorsDelta
+          stbdElevatorSlider.value += elevatorsDelta
           break
       }
       break
     case 'KeyE':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.increment()
-          stbdElevatorSlider.decrement()
-          break
-        case 1:
-          rollSlider.increment()
+          portElevatorSlider.value += elevatorsDelta
+          stbdElevatorSlider.value -= elevatorsDelta
           break
       }
       break
