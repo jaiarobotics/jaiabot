@@ -6,9 +6,17 @@
 
   </head>
 
-  <body>
+  <body id="body">
 
-    <image src="/favicon.png" style="display: inline-block;"></image><h2 style="display: inline-block; vertical-align: text-bottom; margin: 10pt">Engineering</h2>
+    <div class="row" style="background-color: white;">
+      <div>
+        <image src="/favicon.png" style="display: inline-block;"></image>
+        <h2 style="display: inline-block; vertical-align: text-bottom; margin: 10pt">Engineering</h2>
+      </div>
+      <div>
+        <button id="helpButton" onclick="helpButtonOnClick()">⌨️</button>
+      </div>
+    </div>
 
     <div class="row">
       <div>
@@ -19,12 +27,6 @@
         <div id="diveSliderContainer" style="display: inline-block"></div>
         <button id="diveButton" onclick="diveButtonOnClick()">🤿 Dive</button>
       </div>
-    </div>
-
-    <div class="hotkeyContainer">
-      <div class="hotkey">Throttle/Speed: S ⬇️ W ⬆️</div>
-      <div class="hotkey">Rudder/Heading: A ⬅️ D ➡️</div>
-      <div class="hotkey">Roll: Q ⬅️ E ➡️</div>
     </div>
 
 <!-- Throttle and Speed -->
@@ -108,6 +110,8 @@
       <table class="status" id="statusTable">
       </table>
     </div>
+
+    <div class="helpPane hidden" id="helpPane"><button onclick="helpButtonOnClick()" class="close">✖️</button></button><image src="helpPane.png"></div>
 
   </body>
 
