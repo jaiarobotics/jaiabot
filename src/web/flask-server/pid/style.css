@@ -132,6 +132,14 @@ input.vertical {
   background: #6C8EBF;
 }
 
+.slider.timeout::-webkit-slider-thumb {
+  background: darkgray
+}
+
+.slider.timeout::-moz-range-thumb {
+  background: darkgray;
+}
+
 /* Misc */
 
 .title {

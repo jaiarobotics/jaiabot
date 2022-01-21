@@ -178,6 +178,7 @@ class Slider {
 
     this.sliderElement = el(this.name + 'Slider')
     this.valueElement = el(this.name + 'Value')
+    console.log(this.valueElement)
   }
 
   get value() {
@@ -274,6 +275,8 @@ rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "ele
 pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator")
 
 diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false, "dive")
+timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout")
+timeoutSlider.value = 5
 
 /////////// PIDGains form class //////////
 
@@ -324,7 +327,7 @@ function sendDiveCommand(diveThrottle) {
   let command = getVisibleCommand()
   
   // Timeout
-  command.timeout = el("timeout").value
+  command.timeout = timeoutSlider.value
   command.throttle = -diveThrottle
 
   blockSendingUntil = Date.now() + command.timeout * 1000
@@ -554,6 +557,11 @@ el("stbdElevatorCenter").onclick = function(e) {
   setCookie("stbdCenter", stbdCenter)
 }
 
+////////// Timeout ///////////////
+
+setupSlider("timeout")
+
+
 ////////// Throttle //////////////
 
 setupSlider("throttle")
@@ -592,7 +600,7 @@ function getVisibleCommand() {
   let command = {}
 
   // Timeout
-  command.timeout = el("timeout").value
+  command.timeout = timeoutSlider.value
   
   if (DeadMansSwitch.on) {
 
