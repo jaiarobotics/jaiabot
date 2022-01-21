@@ -342,6 +342,40 @@ input.manualOrPidButton {
   background-color: seashell;
 }
 
+button#helpButton {
+  font-size: 28pt;
+}
+
+div.fullViewport {
+  position:fixed;
+  left: 0pt;
+  top: 0pt;
+  width:100%;
+  height:100%;
+}
+
+div.helpPane {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: fixed;
+  size: auto;
+  border: 5px solid #ccc;
+  background-color: whitesmoke;
+}
+
 div.hidden {
   display: none;
+}
+
+button.close {
+  border: 1pt solid darkgray;
+  font-size: 14pt;
+  margin: 10pt;
+  border-radius: 50%;
+  background-color: lightgray;
+}
+
+button:hover {
+  background-color: azure;
 }

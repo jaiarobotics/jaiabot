@@ -736,3 +736,20 @@ function latlon_distance(pt1, pt2) {
   return distance(xyz1, xyz2)
 }
 
+function helpButtonOnClick(e) {
+  let pane = el('helpPane')
+  let classList = pane.classList
+  if (classList.contains('hidden')) {
+    classList.remove('hidden')
+
+    // Put it in the center of the display
+    style = window.getComputedStyle(pane, null)
+    x = (document.body.clientWidth  - parseInt(style.width, 10)) / 2.0
+    y = (document.body.clientHeight - parseInt(style.height, 10)) / 2.0
+    pane.style.left = x + 'px'
+    pane.style.top = y + 'px'
+  }
+  else {
+    classList.add('hidden')
+  }
+}
