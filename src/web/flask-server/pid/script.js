@@ -271,8 +271,9 @@ headingSlider.onValueChanged = function(angle) {
 portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator")
 stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator")
 rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator")
+pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator")
 
-diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false)
+diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false, "dive")
 
 /////////// PIDGains form class //////////
 
@@ -304,6 +305,7 @@ class PIDGains {
 speedGains = new PIDGains('speed')
 headingGains = new PIDGains('heading')
 rollGains = new PIDGains('roll')
+pitchGains = new PIDGains('pitch')
 
 //////// Dive Button 
 
@@ -455,13 +457,26 @@ function handleKey(key) {
       portElevatorSlider.increment()
       break
     case 'KeyI':
-      portElevatorSlider.increment()
-      stbdElevatorSlider.increment()
+      switch (elevatorsTabbedSections.activeIndex) {
+        case 0:
+          portElevatorSlider.increment()
+          stbdElevatorSlider.increment()
+          break
+        case 1:
+          pitchSlider.increment()
+          break
+      }
       break
     case 'KeyK':
-      portElevatorSlider.decrement()
-      stbdElevatorSlider.decrement()
-      break
+      switch (elevatorsTabbedSections.activeIndex) {
+        case 0:
+          portElevatorSlider.decrement()
+          stbdElevatorSlider.decrement()
+          break
+        case 1:
+          pitchSlider.decrement()
+          break
+      }
     case 'KeyL':
       stbdElevatorSlider.decrement()
       break
@@ -566,6 +581,9 @@ setupSlider("stbdElevator")
 setupSlider("roll")
 setupOther("roll_submit")
 
+setupSlider("pitch")
+setupOther("pitch_submit")
+
 ////////// Command Sender //////////////
 
 blockSendingUntil = 0
@@ -633,6 +651,12 @@ function getVisibleCommand() {
         Kp: el("roll_Kp").value,
         Ki: el("roll_Ki").value,
         Kd: el("roll_Kd").value
+      }
+      command.pitch = {
+        target: el("pitchSlider").value,
+        Kp: el("pitch_Kp").value,
+        Ki: el("pitch_Ki").value,
+        Kd: el("pitch_Kd").value
       }
       break
   }

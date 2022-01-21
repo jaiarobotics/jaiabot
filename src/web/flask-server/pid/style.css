@@ -124,6 +124,14 @@ input.vertical {
   background: #B85450;
 }
 
+.slider.dive::-webkit-slider-thumb {
+  background: #6C8EBF
+}
+
+.slider.dive::-moz-range-thumb {
+  background: #6C8EBF;
+}
+
 /* Misc */
 
 .title {
@@ -278,7 +286,7 @@ div.section {
   flex: none;
   padding: 10pt;
   margin: 0;
-  width: 40%;
+  min-width: 40%;
 }
 
 div.selected {

@@ -85,6 +85,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     roll_pid->set_limits(-100.0, 100.0);
     roll_pid->set_auto();
 
+    pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, pitch_kp, pitch_ki, pitch_kd);
+    pitch_pid->set_limits(-100.0, 100.0);
+    pitch_pid->set_auto();
+
     // subscribe for commands
     {
         auto on_command_subscribed =
@@ -116,6 +120,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
             if (attitude.has_roll()) {
                 actual_roll = attitude.roll();
+            }
+
+            if (attitude.has_pitch()) {
+                actual_pitch = attitude.pitch();
             }
         }
 
@@ -163,9 +171,8 @@ void jaiabot::apps::BotPidControl::loop()
         glog.is_debug1() && glog << group("main") << "target_heading = " << target_heading << ", actual_heading = " << actual_heading << ", rudder = " << rudder << std::endl;
     }
 
-    // Roll PID
+    // Roll/Pitch PID
     if (elevator_is_using_pid) {
-        // Make sure track is within 180 degrees of the course
         if (actual_roll > target_roll + 180.0) {
             actual_roll -= 360.0;
         }
@@ -173,15 +180,26 @@ void jaiabot::apps::BotPidControl::loop()
             actual_roll += 360.0;
         }
 
-        // Compute new rudder value
         if (roll_pid->need_compute()) {
             roll_pid->compute();
         }
 
-        glog.is_debug1() && glog << group("main") << "target_roll = " << target_roll << ", actual_roll = " << actual_roll << ", elevator_delta = " << elevator_delta << std::endl;
+        if (actual_pitch > target_pitch + 180.0) {
+            actual_pitch -= 360.0;
+        }
+        if (actual_pitch < target_pitch - 180.0) {
+            actual_pitch += 360.0;
+        }
 
-        port_elevator = -elevator_delta;
-        stbd_elevator = elevator_delta;
+        if (pitch_pid->need_compute()) {
+            pitch_pid->compute();
+        }
+
+        glog.is_debug1() && glog << group("main") << "target_pitch = " << target_pitch << ", actual_pitch = " << actual_pitch << ", elevator_middle = " << elevator_middle << std::endl;
+        glog.is_debug1() && glog << group("main") << "target_roll  = " << target_roll <<  ", actual_roll  = " << actual_roll <<  ", elevator_delta  = " << elevator_delta << std::endl;
+
+        port_elevator = elevator_middle - elevator_delta;
+        stbd_elevator = elevator_middle + elevator_delta;
     }
 
     // Publish the VehicleCommand
@@ -350,6 +368,45 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
             roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
             roll_pid->set_limits(-100.0, 100.0);
             roll_pid->set_auto();
+        }
+
+    }
+
+    // Pitch
+    else if (command.has_pitch()) {
+        auto pitch = command.pitch();
+        elevator_is_using_pid = true;
+
+        if (pitch.has_target()) {
+            target_pitch = pitch.target();
+        }
+
+        bool gains_changed = false;
+
+        if (pitch.has_kp())
+        {
+            pitch_kp = pitch.kp();
+            gains_changed = true;
+        }
+
+        if (pitch.has_ki())
+        {
+            pitch_ki = pitch.ki();
+            gains_changed = true;
+        }
+
+        if (pitch.has_kd())
+        {
+            pitch_kd = pitch.kd();
+            gains_changed = true;
+        }
+
+        if (gains_changed)
+        {
+            delete pitch_pid;
+            pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, pitch_kp, pitch_ki, pitch_kd);
+            pitch_pid->set_limits(-100.0, 100.0);
+            pitch_pid->set_auto();
         }
 
     }

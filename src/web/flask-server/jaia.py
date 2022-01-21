@@ -3,7 +3,7 @@ import threading
 import pid_control_pb2
 from time import sleep
 import datetime
-
+import google.protobuf.json_format
 
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
@@ -50,8 +50,9 @@ class Interface:
 
     def transmit_command(self, cmd):
         cmd.time = now()
-        print('Sending: ', cmd)
-        self.sock.sendto(cmd.SerializeToString(), self.goby_host)
+        data = cmd.SerializeToString()
+        self.sock.sendto(data, self.goby_host)
+        print(f'Sending {len(data)} bytes')
 
     def get_status(self):
         bots = []
@@ -106,62 +107,7 @@ class Interface:
         }
 
     def send_command(self, command):
-        cmd = pid_control_pb2.Command()
-
-        # Timeout
-        try:
-            cmd.timeout = int(command['timeout'])
-        except KeyError:
-            pass
-
-        # Throttle
-        try:
-            cmd.throttle = floatFrom(command['throttle'])
-        except KeyError:
-            pass
-
-        # Speed
-        try:
-            cmd.speed.target = floatFrom(command['speed']['target'])
-            cmd.speed.Kp = floatFrom(command['speed']['Kp'])
-            cmd.speed.Ki = floatFrom(command['speed']['Ki'])
-            cmd.speed.Kd = floatFrom(command['speed']['Kd'])
-        except KeyError:
-            pass
-
-        # Rudder
-        try:
-            cmd.rudder = floatFrom(command['rudder'])
-        except KeyError:
-            pass
-
-        # Heading
-        try:
-            cmd.heading.target = floatFrom(command['heading']['target'])
-            cmd.heading.Kp = floatFrom(command['heading']['Kp'])
-            cmd.heading.Ki = floatFrom(command['heading']['Ki'])
-            cmd.heading.Kd = floatFrom(command['heading']['Kd'])
-        except KeyError:
-            pass
-
-        # Elevators
-        try:
-            cmd.port_elevator = floatFrom(command['portElevator'])
-        except KeyError:
-            pass
-
-        try:
-            cmd.stbd_elevator = floatFrom(command['stbdElevator'])
-        except KeyError:
-            pass
-
-        # Roll
-        try:
-            cmd.roll.target = floatFrom(command['roll']['target'])
-            cmd.roll.Kp = floatFrom(command['roll']['Kp'])
-            cmd.roll.Ki = floatFrom(command['roll']['Ki'])
-            cmd.roll.Kd = floatFrom(command['roll']['Kd'])
-        except KeyError:
-            pass
-
+        # print('COMMAND: ', command)
+        cmd = google.protobuf.json_format.ParseDict(command, pid_control_pb2.Command())
+        # print(cmd)
         self.transmit_command(cmd)

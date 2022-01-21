@@ -76,7 +76,7 @@ message Command {
 
     message PIDControl {
         optional double target = 1  [(dccl.field) = {
-                min: 0
+                min: -360
                 max: 360
                 precision: 0
                 units { derived_dimensions: "plane_angle" system: "angle::degree" }

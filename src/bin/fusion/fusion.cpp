@@ -123,14 +123,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
 
-            if (euler_angles.has_beta())
+            if (euler_angles.has_gamma())
             {
                 auto pitch = euler_angles.gamma_with_units();
                 latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
                 latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
             }
 
-            if (euler_angles.has_gamma())
+            if (euler_angles.has_beta())
             {
                 auto roll = euler_angles.beta_with_units();
                 latest_node_status_.mutable_pose()->set_roll_with_units(roll);
