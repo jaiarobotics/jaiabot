@@ -107,7 +107,7 @@ class Interface:
         }
 
     def send_command(self, command):
-        # print('COMMAND: ', command)
+        print('COMMAND: ', command)
         cmd = google.protobuf.json_format.ParseDict(command, pid_control_pb2.Command())
         # print(cmd)
         self.transmit_command(cmd)
