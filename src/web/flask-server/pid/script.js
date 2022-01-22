@@ -493,32 +493,36 @@ function handleKey(key) {
     case 'KeyI':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.value += elevatorsDelta
-          stbdElevatorSlider.value += elevatorsDelta
+          let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
+          portElevatorSlider.value += delta
+          stbdElevatorSlider.value += delta
           break
       }
       break
     case 'KeyK':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.value -= elevatorsDelta
-          stbdElevatorSlider.value -= elevatorsDelta
+          let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
+          portElevatorSlider.value -= delta
+          stbdElevatorSlider.value -= delta
           break
       }
       break
     case 'KeyQ':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.value -= elevatorsDelta
-          stbdElevatorSlider.value += elevatorsDelta
+          let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
+          portElevatorSlider.value -= delta
+          stbdElevatorSlider.value += delta
           break
       }
       break
     case 'KeyE':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
-          portElevatorSlider.value += elevatorsDelta
-          stbdElevatorSlider.value -= elevatorsDelta
+          let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
+          portElevatorSlider.value += delta
+          stbdElevatorSlider.value -= delta
           break
       }
       break
