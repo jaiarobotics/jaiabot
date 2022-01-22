@@ -8,7 +8,7 @@ import argparse
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("hostname", type=str, help="goby hostname to send and receive protobuf messages")
+parser.add_argument("-s", dest='hostname', type=str, default='localhost', help="goby hostname to send and receive protobuf messages")
 args = parser.parse_args()
 
 jaia_interface = jaia.Interface(hostname=args.hostname)
@@ -36,6 +36,10 @@ def JSONResponse(obj):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
+@app.route('/jaia/command', methods=['POST'])
+def sendCommand():
+    jaia_interface.post_command(request.json)
+    return JSONResponse({"status": "ok"})
 
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
