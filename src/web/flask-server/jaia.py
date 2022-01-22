@@ -4,6 +4,7 @@ import jaiabot.messages.jaia_dccl_pb2
 from time import sleep
 import datetime
 from math import *
+import google.protobuf.json_format
 
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
@@ -11,7 +12,7 @@ def now():
 class Interface:
     bots = {}
 
-    def __init__(self, hostname='optiplex'):
+    def __init__(self, hostname='localhost'):
         # Each remote port corresponds to a type of Goby message to be sent across:
         self.bot_status_host = (hostname, 54065) # Request for bot status updates
         self.command_host = (hostname, 50083)    # jaiabot.protobuf.Command messages
@@ -20,7 +21,21 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
-        self.send_command()
+        # goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(0, 10) ]
+
+        # cmd = {
+        #     'botId': 0, 
+        #     'time': str(now()),
+        #     'type': 'MISSION_PLAN', 
+        #     'plan': {
+        #         'start': 'START_IMMEDIATELY', 
+        #         'movement': 'TRANSIT', 
+        #         'goal': goals, 
+        #         'recovery': {'recoverAtFinalGoal': True}
+        #         }
+        #     }
+
+        # self.send_command(cmd)
 
     def loop(self):
         while True:
@@ -37,24 +52,9 @@ class Interface:
             except socket.timeout:
                 pass
 
-    def send_command(self):
-        command = jaiabot.messages.jaia_dccl_pb2.Command()
-        command.bot_id = 0
-        command.time = now()
-        command.type = jaiabot.messages.jaia_dccl_pb2.Command.CommandType.MISSION_PLAN
-
-        command.plan.start = jaiabot.messages.mission_pb2.MissionPlan.MissionStart.START_IMMEDIATELY
-        command.plan.movement = jaiabot.messages.mission_pb2.MissionPlan.MovementType.TRANSIT
-
-        for i in range(0, 10):
-            goal = command.plan.goal.add()
-            goal.location.lat = 0.01 * sin(i / 10 * 2 * pi)
-            goal.location.lon = 0.01 * cos(i / 10 * 2 * pi)
-
-        command.plan.recovery.recover_at_final_goal = True
-
-        print('Sending: ', command)
-
+    def post_command(self, command_dict):
+        command = google.protobuf.json_format.ParseDict(command_dict, jaiabot.messages.jaia_dccl_pb2.Command())
+        print(command)
         self.sock.sendto(command.SerializeToString(), self.command_host)
 
     def get_status(self):

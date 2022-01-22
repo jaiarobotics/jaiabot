@@ -157,6 +157,10 @@ module.exports = class JaiaAPI {
     return this.sendStandardCommand(0, null);
   }
 
+  postCommand(command) {
+    return this.post('command', command)
+  }
+
   sendManualControl(heading, speed, altitude) {
     return this.post('setManualControl', {
       altitude: parseInt(altitude, 10),

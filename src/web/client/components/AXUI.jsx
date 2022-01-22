@@ -2278,7 +2278,20 @@ export default class AXUI extends React.Component {
   }
 
   sendStop() {
-    this.sna.sendStop();
+
+    console.log('STOP')
+    this.sna.postCommand({
+      'botId': 0, 
+      'time': '1642891753471247', 
+      'type': 'MISSION_PLAN', 
+      'plan': {
+        'start': 'START_IMMEDIATELY', 
+        'movement': 'TRANSIT', 
+        'goal': [{'location': {'lat': 0.0, 'lon': 0.01}}, {'location': {'lat': 0.0058778525229247315, 'lon': 0.008090169943749474}}, {'location': {'lat': 0.009510565162951536, 'lon': 0.0030901699437494747}}, {'location': {'lat': 0.009510565162951536, 'lon': -0.0030901699437494734}}, {'location': {'lat': 0.005877852522924732, 'lon': -0.008090169943749474}}, {'location': {'lat': 1.2246467991473532e-18, 'lon': -0.01}}, {'location': {'lat': -0.005877852522924731, 'lon': -0.008090169943749474}}, {'location': {'lat': -0.009510565162951536, 'lon': -0.0030901699437494755}}, {'location': {'lat': -0.009510565162951536, 'lon': 0.0030901699437494725}}, {'location': {'lat': -0.005877852522924732, 'lon': 0.008090169943749474}}], 
+        'recovery': {'recoverAtFinalGoal': true}
+      }
+    })
+
     const { controlRecipient } = this.state;
     if (controlRecipient) {
       this.sendThrottle(0);
