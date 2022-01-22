@@ -39,9 +39,12 @@ def JSONResponse(obj):
 
 
 @app.route('/jaia/getStatus', methods=['GET'])
+def getABStatus():
+    return JSONResponse(jaia_interface.get_ab_status())
+
+@app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
-
 
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():

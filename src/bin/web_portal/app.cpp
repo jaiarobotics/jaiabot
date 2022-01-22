@@ -59,8 +59,10 @@ REST::BotStatus convert(const BotStatus& input_status) {
     bot_status.set_bot_id(input_status.bot_id());
     bot_status.set_time_with_units(NOW);
 
-    bot_status.mutable_location()->set_lat(input_status.location().lat());
-    bot_status.mutable_location()->set_lon(input_status.location().lon());
+    if (input_status.has_location()) {
+        bot_status.mutable_location()->set_lat(input_status.location().lat());
+        bot_status.mutable_location()->set_lon(input_status.location().lon());
+    }
 
     bot_status.set_depth(input_status.depth());
     bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
@@ -78,7 +80,7 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
   private:
     UDPEndPoint dest;
 
-    std::vector<REST::BotStatus> bot_statuses;
+    REST::BotStatus hub_status;
 
     void loop() override;
 
@@ -97,7 +99,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -129,6 +131,7 @@ jaiabot::apps::WebPortal::WebPortal()
     dest.set_addr("");
     dest.set_port(0);
 
+    // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
         glog.is_debug1() && glog << group("main")
                                  << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
@@ -139,6 +142,8 @@ jaiabot::apps::WebPortal::WebPortal()
     });
 
     // Subscribe to hub GPS updates
+    hub_status.set_bot_id(255);
+
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
@@ -147,15 +152,10 @@ jaiabot::apps::WebPortal::WebPortal()
             if (tpv.has_location())
             {
                 // Send "bot" status of bot_id == 255 for the hub
-                auto bot_status = REST::BotStatus();
-                bot_status.set_bot_id(255);
-                bot_status.set_time_with_units(NOW);
-                bot_status.set_time_to_ack(0);
-                bot_status.mutable_location()->set_lat(tpv.location().lat());
-                bot_status.mutable_location()->set_lon(tpv.location().lon());
-                bot_status.mutable_speed()->set_over_ground(tpv.speed());
-
-                send(bot_status);
+                hub_status.set_time_to_ack(0);
+                hub_status.mutable_location()->set_lat(tpv.location().lat());
+                hub_status.mutable_location()->set_lon(tpv.location().lon());
+                hub_status.mutable_speed()->set_over_ground(tpv.speed());
             }
         });
 
@@ -189,6 +189,9 @@ jaiabot::apps::WebPortal::WebPortal()
 
 void jaiabot::apps::WebPortal::loop()
 {
+    // Send hub status
+    hub_status.set_time_with_units(NOW);
+    send(hub_status);
 }
 
 void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {

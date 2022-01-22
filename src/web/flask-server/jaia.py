@@ -36,8 +36,6 @@ class Interface:
                     botStatus = pid_control_pb2.BotStatus()
                     byteCount = botStatus.ParseFromString(data)
 
-                    print(botStatus)
-
                     try:
                         self.bots[botStatus.bot_id].MergeFrom(botStatus)
                     except KeyError:
@@ -52,9 +50,8 @@ class Interface:
         cmd.time = now()
         data = cmd.SerializeToString()
         self.sock.sendto(data, self.goby_host)
-        print(f'Sending {len(data)} bytes')
 
-    def get_status(self):
+    def get_ab_status(self):
         bots = []
 
         for bot in self.bots.values():
@@ -92,6 +89,14 @@ class Interface:
             "bots": bots
         }
 
+    def get_status(self):
+        bots = [google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()]
+
+        return {
+            'bots': bots,
+            'message': None
+        }
+
     def get_mission_status(self):
         return {
             'missionStatus': {
@@ -107,7 +112,6 @@ class Interface:
         }
 
     def send_command(self, command):
-        print('COMMAND: ', command)
         cmd = google.protobuf.json_format.ParseDict(command, pid_control_pb2.Command())
         # print(cmd)
         self.transmit_command(cmd)

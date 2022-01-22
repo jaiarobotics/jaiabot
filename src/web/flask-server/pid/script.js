@@ -702,7 +702,7 @@ function sendVisibleCommand() {
   // Get vehicle status
   
   var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/jaia/getStatus", true);
+  xhr.open("GET", "/jaia/status", true);
   xhr.onload = function (e) {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
@@ -731,29 +731,26 @@ function updateStatus(status) {
   innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>"
   
   for (bot of bots) {
-    if (bot["botID"] == 255) {
+    if (bot.botId == 255) {
       var hub = bot
       hub_location = hub.location
     }
 
     innerHTML += "<tr>"
-    innerHTML += "<td>" + bot.botID + "</td>"
+    innerHTML += "<td>" + bot.botId + "</td>"
 
-    bot_location = bot["location"]
-    innerHTML += "<td>" + bot_location.lat.toFixed(6) + "</td>"
-    innerHTML += "<td>" + bot_location.lon.toFixed(6) + "</td>"
+    let bot_location = bot?.location || null
+    innerHTML += "<td>" + (bot?.location?.lat?.toFixed(6) || "❌") + "</td>"
+    innerHTML += "<td>" + (bot?.location?.lon?.toFixed(6) || "❌") + "</td>"
 
-    if (hub_location) {
-      d = latlon_distance(bot_location, hub_location)
-      innerHTML += "<td>" + d.toFixed(1) + "</td>"
-    }
-    else {
-      innerHTML += "<td>?</td>"
-    }
+    d = latlon_distance(bot_location, hub_location)
+    innerHTML += "<td>" + d?.toFixed(1) || "?" + "</td>"
 
-    innerHTML += "<td>" + bot.velocity.toFixed(1) + "</td>"
-    innerHTML += "<td>" + bot.heading.toFixed(1) + "</td>"
-    innerHTML += "<td>" + (bot.time.time_to_ack / 1e6).toFixed(2) + "</td>"
+    innerHTML += "<td>" + (bot?.speed?.overGround?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot?.heading?.toFixed(1) || "?") + "</td>"
+    
+    let timeToAck = bot?.timeToAck ? (bot.timeToAck / 1e6).toFixed(2) : "?"
+    innerHTML += "<td>" + timeToAck + "</td>"
     innerHTML += "</tr>"
 
   }
@@ -781,6 +778,10 @@ function distance(x, y) {
 
 // Calculate distance between two lat/lon points
 function latlon_distance(pt1, pt2) {
+  if (!pt1 || !pt2) {
+    return undefined
+  }
+
   xyz1 = xyz(pt1)
   xyz2 = xyz(pt2)
   return distance(xyz1, xyz2)
