@@ -73,9 +73,14 @@ jaiabot::apps::BotPidControl::BotPidControl()
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
 
-    speed_pid = new Pid(&actual_speed, &throttle, &target_speed, speed_kp, speed_ki, speed_kd);
-    speed_pid->set_limits(-100.0, 100.0);
-    speed_pid->set_auto();
+    throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1.0, 0.0, 0.0);
+    throttle_speed_pid->set_limits(-100.0, 100.0);
+    throttle_speed_pid->set_auto();
+
+    throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 1.0, 0.0, 0.0);
+    throttle_depth_pid->set_direction(E_PID_REVERSE);
+    throttle_depth_pid->set_limits(-100.0, 100.0);
+    throttle_depth_pid->set_auto();
 
     course_pid = new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
     course_pid->set_limits(-100.0, 100.0);
@@ -135,7 +140,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
             }
         }
 
-        glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << std::endl;
+        if (bot_status.has_depth()) {
+            actual_depth = bot_status.depth();
+        }
+
+        glog.is_debug2() && glog << "Actual speed: " << actual_speed << " heading: " << actual_heading << " depth: " << actual_depth << std::endl;
     });
 
 }
@@ -144,13 +153,25 @@ void jaiabot::apps::BotPidControl::loop()
 {
 
     // Speed PID
-    if (throttle_is_using_pid) {
-        // Compute new throttle value
-        if (speed_pid->need_compute()) {
-            speed_pid->compute();
-        }
+    switch (throttleMode) {
+        case MANUAL:
+            break;
+        case PID_SPEED:
+            // Compute new throttle value
+            if (throttle_speed_pid->need_compute()) {
+                throttle_speed_pid->compute();
+            }
 
-        glog.is_debug1() && glog << group("main") << "target_speed = " << target_speed << ", actual_speed = " << actual_speed << ", throttle = " << throttle << std::endl;
+            glog.is_debug1() && glog << group("main") << "target_speed = " << target_speed << ", actual_speed = " << actual_speed << ", throttle = " << throttle << std::endl;
+            break;
+        case PID_DEPTH:
+            // Compute new throttle value
+            if (throttle_depth_pid->need_compute()) {
+                throttle_depth_pid->compute();
+            }
+
+            glog.is_debug1() && glog << group("main") << "target_depth = " << target_depth << ", actual_depth = " << actual_depth << ", throttle = " << throttle << std::endl;
+            break;
     }
 
     // Heading PID
@@ -237,46 +258,34 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 
     // Throttle
     if (command.has_throttle()) {
+        throttleMode = MANUAL;
         throttle = command.throttle();
-        throttle_is_using_pid = false;
     }
     // Heading
     else if (command.has_speed()) {
+        throttleMode = PID_SPEED;
         auto speed = command.speed();
-        throttle_is_using_pid = true;
 
         if (speed.has_target()) {
             target_speed = speed.target();
         }
 
-        bool speed_gains_changed = false;
+        if (speed.has_kp()) {
+            throttle_speed_pid->tune(speed.kp(), speed.ki(), speed.kd());
+        }
+    }
+    // Depth PID for dive
+    else if (command.has_depth()) {
+        throttleMode = PID_DEPTH;
+        auto depth = command.depth();
 
-        if (speed.has_kp())
-        {
-            speed_kp = speed.kp();
-            speed_gains_changed = true;
+        if (depth.has_target()) {
+            target_depth = depth.target();
         }
 
-        if (speed.has_ki())
-        {
-            speed_ki = speed.ki();
-            speed_gains_changed = true;
+        if (depth.has_kp()) {
+            throttle_depth_pid->tune(depth.kp(), depth.ki(), depth.kd());
         }
-
-        if (speed.has_kd())
-        {
-            speed_kd = speed.kd();
-            speed_gains_changed = true;
-        }
-
-        if (speed_gains_changed)
-        {
-            delete speed_pid;
-            speed_pid = new Pid(&actual_speed, &throttle, &target_speed, speed_kp, speed_ki, speed_kd);
-            speed_pid->set_limits(-100.0, 100.0);
-            speed_pid->set_auto();
-        }
-
     }
 
     // Rudder

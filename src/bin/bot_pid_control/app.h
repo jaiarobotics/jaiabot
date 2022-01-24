@@ -28,13 +28,22 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     // Timeout
     int timeout = 5;
 
-    // Speed targeting
-    float target_speed = 0.0;
+    // Throttle
+    enum ThrottleMode {
+      MANUAL, PID_SPEED, PID_DEPTH
+    };
+
+    ThrottleMode throttleMode = MANUAL;
+
+    float throttle;
+
     float actual_speed = 0.0;
-    float throttle = 0.0;
-    bool throttle_is_using_pid = false;
-    Pid *speed_pid;
-    float speed_kp = 1, speed_ki = 1, speed_kd = 1;
+    float target_speed = 0.0;
+    Pid *throttle_speed_pid;
+
+    float actual_depth = 0.0;
+    float target_depth = 0.0;
+    Pid *throttle_depth_pid;
 
     // Course targeting
     float target_heading = 0.0;
