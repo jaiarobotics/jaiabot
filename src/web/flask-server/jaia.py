@@ -14,8 +14,8 @@ class Interface:
 
     def __init__(self, hostname='localhost'):
         # Each remote port corresponds to a type of Goby message to be sent across:
-        self.bot_status_host = (hostname, 54065) # Request for bot status updates
-        self.command_host = (hostname, 50083)    # jaiabot.protobuf.Command messages
+        self.bot_status_host = (hostname, 54065) # Incoming bot status updates
+        self.command_host = (hostname, 50083)    # Outgoing jaiabot.protobuf.Command messages
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(1)
 
@@ -107,4 +107,3 @@ class Interface:
         return {
             'code': 0
         }
-
