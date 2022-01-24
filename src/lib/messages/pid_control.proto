@@ -136,6 +136,8 @@ message Command {
 
     optional PIDControl pitch = 10;
 
+    optional PIDControl depth = 11;
+
 }
 
 message CommandAck {

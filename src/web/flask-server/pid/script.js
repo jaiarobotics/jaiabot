@@ -1,6 +1,10 @@
 // Gets an element with this id
 function el(id) {
-  return document.getElementById(id)
+  element = document.getElementById(id)
+  if (!element) {
+    console.warn("WARNING: Cannot locate element with id = ", id)
+  }
+  return element
 }
 
 // Returns if this element is currently visible
@@ -194,6 +198,10 @@ class Slider {
     this.sliderElement = el(this.name + 'Slider')
     this.valueElement = el(this.name + 'Value')
 
+    this.sliderElement.oninput = function() {
+      self.valueElement.innerHTML = self.sliderElement.value
+    }
+
     if (decrementKey !== "") {
       document.addEventListener('keydown', function (e) {
         if (elementIsVisible(self.sliderElement)) {
@@ -223,6 +231,8 @@ class Slider {
         }
       })
     }
+
+    this.valueElement.innerHTML = this.sliderElement.value
 
   }
 
@@ -294,11 +304,15 @@ class TabbedSections {
 
 /////////// Throttle and Speed Section //////////
 
+diveTabbedSections = new TabbedSections([new TabbedSection("diveManualButton", "diveManualSection"), new TabbedSection("divePIDButton", "divePIDSection")], 0)
 throttleTabbedSections = new TabbedSections([new TabbedSection("throttleManualButton", "throttleSection"), new TabbedSection("throttlePIDButton", "speedSection")], 0)
 rudderTabbedSections = new TabbedSections([new TabbedSection("rudderManualButton", "rudderSection"), new TabbedSection("rudderPIDButton", "headingSection")], 0)
 elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManualButton", "elevatorsSection"), new TabbedSection("elevatorsPIDButton", "rollSection")], 0)
 
 ////////
+
+diveManualSlider = new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false, "dive")
+divePIDSlider = new Slider(vertical, "divePID", 0, 100, "Dive Depth", true, false, "dive")
 
 throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10)
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
@@ -319,7 +333,6 @@ stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Eleva
 rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, 'KeyQ', 'KeyE')
 pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, 'KeyK', 'KeyI')
 
-diveSlider = new Slider(horizontal, "dive", 0, 100, "Dive", false, false, "dive")
 timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout")
 timeoutSlider.value = 5
 
@@ -347,9 +360,27 @@ class PIDGains {
         <button class="submit" type="button" id="` + name + `_submit">Submit</button>
       </div>
     `
+
+    this.KpElement = el(name + '_Kp')
+    this.KiElement = el(name + '_Ki')
+    this.KdElement = el(name + '_Kd')
   }
+
+  get Kp() {
+    return this.KpElement.value
+  }
+
+  get Ki() {
+    return this.KiElement.value
+  }
+
+  get Kd() {
+    return this.KdElement.value
+  }
+
 }
 
+diveGains = new PIDGains('divePID')
 speedGains = new PIDGains('speed')
 headingGains = new PIDGains('heading')
 rollGains = new PIDGains('roll')
@@ -358,7 +389,27 @@ pitchGains = new PIDGains('pitch')
 //////// Dive Button 
 
 function diveButtonOnClick() {
-  sendDiveCommand(diveSlider.value)
+  var command = getVisibleCommand()
+  command.timeout = timeoutSlider.value
+
+  // Stop sending commands until
+  blockSendingUntil = Date.now() + command.timeout * 1000
+
+  switch (diveTabbedSections.activeIndex) {
+    case 0: // Manual
+      command.throttle = -diveManualSlider.value
+      break
+    case 1: // PID
+      command.depth = {
+        target: divePIDSlider.value,
+        Kp: diveGains.Kp,
+        Ki: diveGains.Ki,
+        Kd: diveGains.Kd
+      }
+      break
+  }
+
+  sendCommand(command)
 }
 
 function sendCommand(command) {
@@ -366,18 +417,6 @@ function sendCommand(command) {
   xhr.open("POST", "/jaia/command", true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.send(JSON.stringify(command));
-}
-
-function sendDiveCommand(diveThrottle) {
-  let command = getVisibleCommand()
-  
-  // Timeout
-  command.timeout = timeoutSlider.value
-  command.throttle = -diveThrottle
-
-  blockSendingUntil = Date.now() + command.timeout * 1000
-
-  sendCommand(command)
 }
 
 ///////
@@ -394,17 +433,6 @@ function selectSection(selectedSection, unselectedSection) {
 function setupOther(id) {
   el(id).onclick = function() {
     resetSliders()
-    sendVisibleCommand()
-  }
-}
-
-function setupSlider(name) {
-  let slider = el(name + "Slider")
-  let value = el(name + "Value")
-  value.innerHTML = slider.value
-  
-  slider.oninput = function() {
-    value.innerHTML = slider.value
     sendVisibleCommand()
   }
 }
@@ -575,39 +603,17 @@ el("stbdElevatorCenter").onclick = function(e) {
   setCookie("stbdCenter", stbdCenter)
 }
 
-////////// Timeout ///////////////
-
-setupSlider("timeout")
-
-
-////////// Throttle //////////////
-
-setupSlider("throttle")
-
 ////////// Speed //////////////
 
-setupSlider("speed")
 setupOther("speed_submit")
-
-////////// Rudder //////////////
-
-setupSlider("rudder")
 
 ////////// Heading //////////////
 
 setupOther("heading_submit")
 
-////////// Elevators //////////////
-
-setupSlider("portElevator")
-setupSlider("stbdElevator")
-
 ////////// Heading //////////////
 
-setupSlider("roll")
 setupOther("roll_submit")
-
-setupSlider("pitch")
 setupOther("pitch_submit")
 
 ////////// Command Sender //////////////
