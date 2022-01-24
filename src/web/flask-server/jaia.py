@@ -48,6 +48,8 @@ class Interface:
 
     def transmit_command(self, cmd):
         cmd.time = now()
+        print('=== SENDING ===')
+        print(cmd)
         data = cmd.SerializeToString()
         self.sock.sendto(data, self.goby_host)
 
@@ -112,6 +114,6 @@ class Interface:
         }
 
     def send_command(self, command):
+        print(command)
         cmd = google.protobuf.json_format.ParseDict(command, pid_control_pb2.Command())
-        # print(cmd)
         self.transmit_command(cmd)
