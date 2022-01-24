@@ -400,6 +400,7 @@ function diveButtonOnClick() {
       command.throttle = -diveManualSlider.value
       break
     case 1: // PID
+      delete command.throttle
       command.depth = {
         target: divePIDSlider.value,
         Kp: diveGains.Kp,
