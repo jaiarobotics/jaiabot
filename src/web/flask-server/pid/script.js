@@ -317,7 +317,7 @@ divePIDSlider = new Slider(vertical, "divePID", 0, 100, "Dive Depth", true, fals
 throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10)
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
+rudderSlider = new Slider(horizontal, "rudder", -100, 80, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
 headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD')
 headingSlider.onValueChanged = function(angle) {
   angle_deg = angle / DEG
