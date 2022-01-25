@@ -223,6 +223,16 @@ void jaiabot::apps::BotPidControl::loop()
         stbd_elevator = elevator_middle + elevator_delta;
     }
 
+    // Implement a timeout
+
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+    if (lastCommandReceived.value() != 0 &&
+        (now - lastCommandReceived).value() > timeout * 1e6) {
+        glog.is_warn() && glog << "Timing out after " << timeout << " seconds." << std::endl;
+        lastCommandReceived = 0;
+        throttle = 0.0;
+    }
+
     // Publish the VehicleCommand
 
     jaiabot::protobuf::VehicleCommand cmd_msg;
@@ -250,6 +260,8 @@ void jaiabot::apps::BotPidControl::loop()
 void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     // Timeout
     if (command.has_timeout()) {

@@ -27,6 +27,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     // Timeout
     int timeout = 5;
+    goby::time::MicroTime lastCommandReceived;
 
     // Throttle
     enum ThrottleMode {
