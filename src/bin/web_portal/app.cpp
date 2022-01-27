@@ -31,6 +31,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/pid_control.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
 
 #include <vector>
 
@@ -68,6 +69,18 @@ REST::BotStatus convert(const BotStatus& input_status) {
     bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
 
     bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
+
+    if (input_status.has_salinity()) {
+        bot_status.set_salinity(input_status.salinity());
+    }
+
+    if (input_status.has_temperature()) {
+        bot_status.set_temperature(input_status.temperature());
+    }
+
+    if (input_status.has_control_surfaces_ack_time()) {
+        bot_status.set_control_surfaces_ack_time(input_status.control_surfaces_ack_time());
+    }
 
     return bot_status;
 }
