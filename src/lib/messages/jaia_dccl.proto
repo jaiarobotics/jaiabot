@@ -109,11 +109,6 @@ message BotStatus
 
     optional MissionState mission_state = 40;
 
-    optional uint64 control_surfaces_ack_time = 50 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-
     optional double salinity = 51 [(dccl.field) = {
             min: 0
             max: 100

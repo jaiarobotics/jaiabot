@@ -34,11 +34,6 @@ message BotStatus
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 
-    optional uint64 time_to_ack = 3 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-
     optional GeographicCoordinate location = 10;
     optional double depth = 11;
 
@@ -59,11 +54,6 @@ message BotStatus
     optional Speed speed = 30;
 
     optional double salinity = 31;
-
-    optional uint64 control_surfaces_ack_time = 32 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
 
     optional double temperature = 33;
 
@@ -147,20 +137,4 @@ message Command {
 
     optional PIDControl depth = 11;
 
-}
-
-message CommandAck {
-    option (dccl.msg) = {
-        id: 93
-        max_bytes: 250
-        codec_version: 3
-        unit_system: "si"
-    };
-    
-    required uint32 bot_id = 2  [(dccl.field) = { min: 0 max: 255 }];
-
-    required uint64 time = 1 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
 }
