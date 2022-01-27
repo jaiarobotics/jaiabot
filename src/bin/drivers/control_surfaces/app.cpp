@@ -29,6 +29,8 @@
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/vehicle_command.pb.h"
 
+#define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
@@ -50,6 +52,8 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
   private:
     void loop() override;
+
+    int64_t lastAckTime;
 };
 
 } // namespace apps
@@ -92,8 +96,10 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
         glog.is_verbose() && glog << group("main")
                                     << control_ack.ShortDebugString() << std::endl;
 
+        interprocess().publish<groups::control_surfaces_ack>(control_ack);    
     });
 
 }
 
-void jaiabot::apps::ControlSurfacesDriver::loop() {}
+void jaiabot::apps::ControlSurfacesDriver::loop() {
+}

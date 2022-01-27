@@ -317,7 +317,7 @@ divePIDSlider = new Slider(vertical, "divePID", 0, 100, "Dive Depth", true, fals
 throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10)
 speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 100, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
+rudderSlider = new Slider(horizontal, "rudder", -100, 80, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
 headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD')
 headingSlider.onValueChanged = function(angle) {
   angle_deg = angle / DEG
@@ -735,7 +735,7 @@ var hub_location = null
 function updateStatus(status) {
   bots = status["bots"]
   table = el("statusTable")
-  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Time to ACK</th>"
+  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Depth</th><th>Salinity</th><th>Temperature</th><th>Time to ACK</th>"
   
   for (bot of bots) {
     if (bot.botId == 255) {
@@ -756,6 +756,12 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot?.speed?.overGround?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot?.heading?.toFixed(1) || "?") + "</td>"
     
+    innerHTML += "<td>" + (bot?.depth?.toFixed(1) || "?") + "</td>"
+
+    innerHTML += "<td>" + (bot?.salinity?.toFixed(1) || "?") + "</td>"
+
+    innerHTML += "<td>" + (bot?.temperature?.toFixed(1) || "?") + "</td>"
+
     let timeToAck = bot?.timeToAck ? (bot.timeToAck / 1e6).toFixed(2) : "?"
     innerHTML += "<td>" + timeToAck + "</td>"
     innerHTML += "</tr>"

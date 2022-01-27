@@ -35,6 +35,10 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/control_surfaces.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
+
+#define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 using goby::glog;
 using namespace std;
@@ -195,12 +199,29 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
             latest_node_status_.mutable_local_fix()->set_z_with_units(
                 -latest_node_status_.global_fix().depth_with_units());
             latest_bot_status_.set_depth_with_units(depth);
+
+            if (pt.has_temperature()) {
+                latest_bot_status_.set_temperature_with_units(pt.temperature_with_units());
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
         });
+
+    interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
+        [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
+            glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
+            latest_bot_status_.set_control_surfaces_ack_time_with_units(NOW);
+        });
+
+    interprocess().subscribe<jaiabot::groups::salinity>(
+        [this](const jaiabot::protobuf::SalinityData& salinityData) {
+            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
+            latest_bot_status_.set_salinity(salinityData.salinity());
+        });
+
 }
 
 void jaiabot::apps::Fusion::init_node_status()

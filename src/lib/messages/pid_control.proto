@@ -58,6 +58,15 @@ message BotStatus
     }
     optional Speed speed = 30;
 
+    optional double salinity = 31;
+
+    optional uint64 control_surfaces_ack_time = 32 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    optional double temperature = 33;
+
 //     optional MissionState mission_state = 40;
 }
 

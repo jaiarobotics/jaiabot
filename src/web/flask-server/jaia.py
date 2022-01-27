@@ -38,6 +38,7 @@ class Interface:
 
                     try:
                         self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                        print('Received BotStatus:\n', botStatus)
                     except KeyError:
                         self.bots[botStatus.bot_id] = botStatus
 
