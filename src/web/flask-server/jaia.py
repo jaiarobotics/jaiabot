@@ -45,8 +45,6 @@ class Interface:
             except socket.timeout:
                 pass
 
-            sleep(1)
-
     def transmit_command(self, cmd):
         cmd.time = now()
         print('=== SENDING ===')

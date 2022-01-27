@@ -78,10 +78,6 @@ REST::BotStatus convert(const BotStatus& input_status) {
         bot_status.set_temperature(input_status.temperature());
     }
 
-    if (input_status.has_control_surfaces_ack_time()) {
-        bot_status.set_control_surfaces_ack_time(input_status.control_surfaces_ack_time());
-    }
-
     return bot_status;
 }
 
@@ -112,7 +108,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(1 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(0.5 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -129,7 +125,7 @@ jaiabot::apps::WebPortal::WebPortal()
         glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
 
         if (command.ParseFromString(io_data.data())) {
-            glog.is_debug1() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
 
             auto t = NOW;
             command.set_time_with_units(t);
@@ -146,7 +142,7 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-        glog.is_debug1() && glog << group("main")
+        glog.is_debug2() && glog << group("main")
                                  << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
         auto bot_status = convert(dccl_nav);
@@ -159,45 +155,17 @@ jaiabot::apps::WebPortal::WebPortal()
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            glog.is_debug1() && glog << "Received TimePositionVelocity update: "
+            glog.is_debug2() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
             if (tpv.has_location())
             {
                 // Send "bot" status of bot_id == 255 for the hub
-                hub_status.set_time_to_ack(0);
                 hub_status.mutable_location()->set_lat(tpv.location().lat());
                 hub_status.mutable_location()->set_lon(tpv.location().lon());
                 hub_status.mutable_speed()->set_over_ground(tpv.speed());
             }
         });
-
-    // subscribe for acks
-    {
-        auto on_command_subscribed =
-            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
-
-        goby::middleware::Subscriber<REST::CommandAck> subscriber{
-            cfg().sub_config(), on_command_subscribed};
-
-        intervehicle().subscribe<jaiabot::groups::bot_status, REST::CommandAck>([this](const REST::CommandAck& command_ack) {
-            glog.is_debug1() && glog << group("main")
-                                    << "Received CommandAck: " << command_ack.ShortDebugString() << std::endl;
-
-            auto bot_status = REST::BotStatus();
-            bot_status.set_bot_id(command_ack.bot_id());
-            bot_status.set_time_with_units(NOW);
-            bot_status.set_time_to_ack_with_units(NOW - command_ack.time_with_units());
-
-            send(bot_status);
-        }, subscriber);
-    }
-
 }
 
 void jaiabot::apps::WebPortal::loop()
@@ -225,5 +193,5 @@ void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }

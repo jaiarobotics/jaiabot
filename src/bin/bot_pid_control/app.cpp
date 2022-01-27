@@ -162,7 +162,7 @@ void jaiabot::apps::BotPidControl::loop()
                 throttle_speed_pid->compute();
             }
 
-            glog.is_debug1() && glog << group("main") << "target_speed = " << target_speed << ", actual_speed = " << actual_speed << ", throttle = " << throttle << std::endl;
+            glog.is_debug2() && glog << group("main") << "target_speed = " << target_speed << ", actual_speed = " << actual_speed << ", throttle = " << throttle << std::endl;
             break;
         case PID_DEPTH:
             // Compute new throttle value
@@ -170,7 +170,7 @@ void jaiabot::apps::BotPidControl::loop()
                 throttle_depth_pid->compute();
             }
 
-            glog.is_debug1() && glog << group("main") << "target_depth = " << target_depth << ", actual_depth = " << actual_depth << ", throttle = " << throttle << std::endl;
+            glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth << ", actual_depth = " << actual_depth << ", throttle = " << throttle << std::endl;
             break;
     }
 
@@ -189,7 +189,7 @@ void jaiabot::apps::BotPidControl::loop()
             course_pid->compute();
         }
 
-        glog.is_debug1() && glog << group("main") << "target_heading = " << target_heading << ", actual_heading = " << actual_heading << ", rudder = " << rudder << std::endl;
+        glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading << ", actual_heading = " << actual_heading << ", rudder = " << rudder << std::endl;
     }
 
     // Roll/Pitch PID
@@ -216,8 +216,8 @@ void jaiabot::apps::BotPidControl::loop()
             pitch_pid->compute();
         }
 
-        glog.is_debug1() && glog << group("main") << "target_pitch = " << target_pitch << ", actual_pitch = " << actual_pitch << ", elevator_middle = " << elevator_middle << std::endl;
-        glog.is_debug1() && glog << group("main") << "target_roll  = " << target_roll <<  ", actual_roll  = " << actual_roll <<  ", elevator_delta  = " << elevator_delta << std::endl;
+        glog.is_debug2() && glog << group("main") << "target_pitch = " << target_pitch << ", actual_pitch = " << actual_pitch << ", elevator_middle = " << elevator_middle << std::endl;
+        glog.is_debug2() && glog << group("main") << "target_roll  = " << target_roll <<  ", actual_roll  = " << actual_roll <<  ", elevator_delta  = " << elevator_delta << std::endl;
 
         port_elevator = elevator_middle - elevator_delta;
         stbd_elevator = elevator_middle + elevator_delta;
@@ -252,7 +252,7 @@ void jaiabot::apps::BotPidControl::loop()
     control_surfaces.set_rudder(rudder);
     control_surfaces.set_motor(throttle);
 
-    glog.is_debug1() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString() << std::endl;
     interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
 
 }
@@ -431,15 +431,5 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
         }
 
     }
-
-    glog.is_debug2() && glog << "Going to send ack" << std::endl;
-
-    auto ack = CommandAck();
-    ack.set_bot_id(cfg().bot_id());
-    ack.set_time_with_units(command.time_with_units());
-
-    glog.is_debug2() && glog << "Sending ack: " << ack.ShortDebugString() << std::endl;
-
-    intervehicle().publish<jaiabot::groups::bot_status>(ack);
 
 }

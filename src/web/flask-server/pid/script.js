@@ -735,8 +735,10 @@ var hub_location = null
 function updateStatus(status) {
   bots = status["bots"]
   table = el("statusTable")
-  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance</th><th>Speed</th><th>Heading</th><th>Depth</th><th>Salinity</th><th>Temperature</th><th>Time to ACK</th>"
+  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance (m)</th><th>Speed</th><th>Heading (°)</th><th>Depth (m)</th><th>Salinity</th><th>Temperature (℃)</th><th>Age (s)</th>"
   
+  let now_us = Date.now() * 1000
+
   for (bot of bots) {
     if (bot.botId == 255) {
       var hub = bot
@@ -762,8 +764,7 @@ function updateStatus(status) {
 
     innerHTML += "<td>" + (bot?.temperature?.toFixed(1) || "?") + "</td>"
 
-    let timeToAck = bot?.timeToAck ? (bot.timeToAck / 1e6).toFixed(2) : "?"
-    innerHTML += "<td>" + timeToAck + "</td>"
+    innerHTML += "<td>" + ((now_us - bot.time) / 1e6).toFixed(1) + "</td>"
     innerHTML += "</tr>"
 
   }

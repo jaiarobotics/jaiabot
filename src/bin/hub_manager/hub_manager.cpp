@@ -75,8 +75,8 @@ jaiabot::apps::HubManager::HubManager()
 
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
-    glog.is_warn() && glog << group("bot_nav")
-                             << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("bot_nav")
+                             << "Received BotStatus: " << dccl_nav.ShortDebugString() << std::endl;
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);

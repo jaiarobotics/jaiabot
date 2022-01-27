@@ -12,7 +12,6 @@
 #include "PID/PID.h"
 
 using jaiabot::protobuf::rest::Command;
-using jaiabot::protobuf::rest::CommandAck;
 
 namespace jaiabot
 {

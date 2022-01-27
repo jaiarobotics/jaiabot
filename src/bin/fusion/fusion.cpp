@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Fusion>(argc, argv));
 }
 
-jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
+jaiabot::apps::Fusion::Fusion() : ApplicationBase(0.5 * si::hertz)
 {
     init_node_status();
     init_bot_status();
@@ -213,7 +213,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
     interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
         [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
             glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
-            latest_bot_status_.set_control_surfaces_ack_time_with_units(NOW);
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
