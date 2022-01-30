@@ -212,7 +212,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(0.5 * si::hertz)
 
     interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
         [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
-            glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
+            // glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(

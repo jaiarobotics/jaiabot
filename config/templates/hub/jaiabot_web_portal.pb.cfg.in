@@ -9,12 +9,11 @@ udp_config {
 sub_config {
     intervehicle
     {
-        # hub modem id
         publisher_id: 2
 
         # buffer configuration for the Command messages
         buffer {
-            ack_required: true
+            ack_required: false
             blackout_time: 0
             max_queue: 1
             newest_first: true
