@@ -9,7 +9,7 @@ status_sub_cfg {
         # buffer configuration for BotStatus messages
         buffer {
             ack_required: false
-            blackout_time: 5
+            blackout_time: 1
             max_queue: 1 
             newest_first: true 
             ttl: 600

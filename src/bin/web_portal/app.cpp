@@ -193,5 +193,5 @@ void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }
