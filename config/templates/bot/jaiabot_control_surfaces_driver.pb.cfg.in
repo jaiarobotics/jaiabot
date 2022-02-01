@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 serial_arduino {
-    port: "/dev/ttyACM0"
+    port: "/dev/arduino"
     baud: 9600
 }
 

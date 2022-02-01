@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 serial_radio {
-    port: "/dev/ttyUSB0"
+    port: "/dev/xbee"
     baud: 9600
 }
 
