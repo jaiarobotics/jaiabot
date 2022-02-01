@@ -8,7 +8,7 @@ gobyd <(../../gen/bot.py gobyd) -vvv -n
 jaiabot_adafruit-BNO055-driver <(../../gen/bot.py jaiabot_adafruit-BNO055-driver)
 
 # Pressure sensor
-~/jaiabot/src/python/pressure_sensor/pressure_sensor.py 20001
+~/jaiabot/src/python/pressure_sensor/pressure_sensor.py --device bar02 20001
 jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
 
 # Salinity sensor
