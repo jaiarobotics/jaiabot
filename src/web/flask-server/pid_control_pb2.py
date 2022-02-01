@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11pid_control.proto\x12\x15jaiabot.protobuf.rest\x1a\x1c\x64\x63\x63l/option_extensions.proto\"A\n\x14GeographicCoordinate\x12\x0b\n\x03lat\x18\x01 \x02(\x01\x12\x0b\n\x03lon\x18\x02 \x02(\x01:\x0f\xa2?\x0c\x08Z\x10\xfa\x01(\x03\xf2\x01\x02si\"\xc6\x04\n\tBotStatus\x12\x0e\n\x06\x62ot_id\x18\x01 \x02(\r\x12-\n\x04time\x18\x02 \x02(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12\x34\n\x0btime_to_ack\x18\x03 \x01(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12=\n\x08location\x18\n \x01(\x0b\x32+.jaiabot.protobuf.rest.GeographicCoordinate\x12\r\n\x05\x64\x65pth\x18\x0b \x01(\x01\x12;\n\x08\x61ttitude\x18\x14 \x01(\x0b\x32).jaiabot.protobuf.rest.BotStatus.Attitude\x12\x35\n\x05speed\x18\x1e \x01(\x0b\x32&.jaiabot.protobuf.rest.BotStatus.Speed\x12\x10\n\x08salinity\x18\x1f \x01(\x01\x12\x42\n\x19\x63ontrol_surfaces_ack_time\x18  \x01(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12\x13\n\x0btemperature\x18! \x01(\x01\x1aT\n\x08\x41ttitude\x12\x0c\n\x04roll\x18\x01 \x01(\x01\x12\r\n\x05pitch\x18\x02 \x01(\x01\x12\x0f\n\x07heading\x18\x03 \x01(\x01\x12\x1a\n\x12\x63ourse_over_ground\x18\x04 \x01(\x01\x1a\x30\n\x05Speed\x12\x13\n\x0bover_ground\x18\x01 \x01(\x01\x12\x12\n\nover_water\x18\x02 \x01(\x01:\x0f\xa2?\x0c\x08[\x10\xfa\x01(\x03\xf2\x01\x02si\"\x90\x06\n\x07\x43ommand\x12-\n\x04time\x18\x05 \x01(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12(\n\x07timeout\x18\x06 \x01(\rB\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12)\n\x08throttle\x18\x03 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12\x38\n\x05speed\x18\x04 \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\'\n\x06rudder\x18\x01 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12:\n\x07heading\x18\x02 \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12.\n\rport_elevator\x18\x07 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12.\n\rstbd_elevator\x18\x08 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12\x37\n\x04roll\x18\t \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\x38\n\x05pitch\x18\n \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\x38\n\x05\x64\x65pth\x18\x0b \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x1a\xc3\x01\n\nPIDControl\x12\x46\n\x06target\x18\x01 \x01(\x01\x42\x36\xa2?3 \x00)\x00\x00\x00\x00\x00\x80v\xc0\x31\x00\x00\x00\x00\x00\x80v@\xf2\x01\x1c\x12\x0bplane_angle\x1a\rangle::degree\x12#\n\x02Kp\x18\x02 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12#\n\x02Ki\x18\x03 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12#\n\x02Kd\x18\x04 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@:\x0f\xa2?\x0c\x08\\\x10\xfa\x01(\x03\xf2\x01\x02si\"s\n\nCommandAck\x12%\n\x06\x62ot_id\x18\x02 \x02(\rB\x15\xa2?\x12)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\xe0o@\x12-\n\x04time\x18\x01 \x02(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro:\x0f\xa2?\x0c\x08]\x10\xfa\x01(\x03\xf2\x01\x02si'
+  serialized_pb=b'\n\x11pid_control.proto\x12\x15jaiabot.protobuf.rest\x1a\x1c\x64\x63\x63l/option_extensions.proto\"A\n\x14GeographicCoordinate\x12\x0b\n\x03lat\x18\x01 \x02(\x01\x12\x0b\n\x03lon\x18\x02 \x02(\x01:\x0f\xa2?\x0c\x08Z\x10\xfa\x01(\x03\xf2\x01\x02si\"\xcc\x03\n\tBotStatus\x12\x0e\n\x06\x62ot_id\x18\x01 \x02(\r\x12-\n\x04time\x18\x02 \x02(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12=\n\x08location\x18\n \x01(\x0b\x32+.jaiabot.protobuf.rest.GeographicCoordinate\x12\r\n\x05\x64\x65pth\x18\x0b \x01(\x01\x12;\n\x08\x61ttitude\x18\x14 \x01(\x0b\x32).jaiabot.protobuf.rest.BotStatus.Attitude\x12\x35\n\x05speed\x18\x1e \x01(\x0b\x32&.jaiabot.protobuf.rest.BotStatus.Speed\x12\x10\n\x08salinity\x18\x1f \x01(\x01\x12\x13\n\x0btemperature\x18! \x01(\x01\x1aT\n\x08\x41ttitude\x12\x0c\n\x04roll\x18\x01 \x01(\x01\x12\r\n\x05pitch\x18\x02 \x01(\x01\x12\x0f\n\x07heading\x18\x03 \x01(\x01\x12\x1a\n\x12\x63ourse_over_ground\x18\x04 \x01(\x01\x1a\x30\n\x05Speed\x12\x13\n\x0bover_ground\x18\x01 \x01(\x01\x12\x12\n\nover_water\x18\x02 \x01(\x01:\x0f\xa2?\x0c\x08[\x10\xfa\x01(\x03\xf2\x01\x02si\"\x90\x06\n\x07\x43ommand\x12-\n\x04time\x18\x05 \x01(\x04\x42\x1f\xa2?\x1c\n\ndccl.time2\xf2\x01\r\x12\x04time2\x05micro\x12(\n\x07timeout\x18\x06 \x01(\rB\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12)\n\x08throttle\x18\x03 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12\x38\n\x05speed\x18\x04 \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\'\n\x06rudder\x18\x01 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12:\n\x07heading\x18\x02 \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12.\n\rport_elevator\x18\x07 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12.\n\rstbd_elevator\x18\x08 \x01(\x01\x42\x17\xa2?\x14 \x00)\x00\x00\x00\x00\x00\x00Y\xc0\x31\x00\x00\x00\x00\x00\x00Y@\x12\x37\n\x04roll\x18\t \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\x38\n\x05pitch\x18\n \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x12\x38\n\x05\x64\x65pth\x18\x0b \x01(\x0b\x32).jaiabot.protobuf.rest.Command.PIDControl\x1a\xc3\x01\n\nPIDControl\x12\x46\n\x06target\x18\x01 \x01(\x01\x42\x36\xa2?3 \x00)\x00\x00\x00\x00\x00\x80v\xc0\x31\x00\x00\x00\x00\x00\x80v@\xf2\x01\x1c\x12\x0bplane_angle\x1a\rangle::degree\x12#\n\x02Kp\x18\x02 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12#\n\x02Ki\x18\x03 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@\x12#\n\x02Kd\x18\x04 \x01(\x01\x42\x17\xa2?\x14 \x02)\x00\x00\x00\x00\x00\x00\x00\x00\x31\x00\x00\x00\x00\x00\x00Y@:\x0f\xa2?\x0c\x08\\\x10\xfa\x01(\x03\xf2\x01\x02si'
   ,
   dependencies=[dccl_dot_option__extensions__pb2.DESCRIPTOR,])
 
@@ -114,8 +114,8 @@ _BOTSTATUS_ATTITUDE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=573,
-  serialized_end=657,
+  serialized_start=451,
+  serialized_end=535,
 )
 
 _BOTSTATUS_SPEED = _descriptor.Descriptor(
@@ -152,8 +152,8 @@ _BOTSTATUS_SPEED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=659,
-  serialized_end=707,
+  serialized_start=537,
+  serialized_end=585,
 )
 
 _BOTSTATUS = _descriptor.Descriptor(
@@ -179,56 +179,42 @@ _BOTSTATUS = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=b'\242?\034\n\ndccl.time2\362\001\r\022\004time2\005micro', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='time_to_ack', full_name='jaiabot.protobuf.rest.BotStatus.time_to_ack', index=2,
-      number=3, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=b'\242?\034\n\ndccl.time2\362\001\r\022\004time2\005micro', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='location', full_name='jaiabot.protobuf.rest.BotStatus.location', index=3,
+      name='location', full_name='jaiabot.protobuf.rest.BotStatus.location', index=2,
       number=10, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='depth', full_name='jaiabot.protobuf.rest.BotStatus.depth', index=4,
+      name='depth', full_name='jaiabot.protobuf.rest.BotStatus.depth', index=3,
       number=11, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='attitude', full_name='jaiabot.protobuf.rest.BotStatus.attitude', index=5,
+      name='attitude', full_name='jaiabot.protobuf.rest.BotStatus.attitude', index=4,
       number=20, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='speed', full_name='jaiabot.protobuf.rest.BotStatus.speed', index=6,
+      name='speed', full_name='jaiabot.protobuf.rest.BotStatus.speed', index=5,
       number=30, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='salinity', full_name='jaiabot.protobuf.rest.BotStatus.salinity', index=7,
+      name='salinity', full_name='jaiabot.protobuf.rest.BotStatus.salinity', index=6,
       number=31, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='control_surfaces_ack_time', full_name='jaiabot.protobuf.rest.BotStatus.control_surfaces_ack_time', index=8,
-      number=32, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=b'\242?\034\n\ndccl.time2\362\001\r\022\004time2\005micro', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='temperature', full_name='jaiabot.protobuf.rest.BotStatus.temperature', index=9,
+      name='temperature', full_name='jaiabot.protobuf.rest.BotStatus.temperature', index=7,
       number=33, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
@@ -247,7 +233,7 @@ _BOTSTATUS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=142,
-  serialized_end=724,
+  serialized_end=602,
 )
 
 
@@ -299,8 +285,8 @@ _COMMAND_PIDCONTROL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1299,
-  serialized_end=1494,
+  serialized_start=1177,
+  serialized_end=1372,
 )
 
 _COMMAND = _descriptor.Descriptor(
@@ -400,47 +386,8 @@ _COMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=727,
-  serialized_end=1511,
-)
-
-
-_COMMANDACK = _descriptor.Descriptor(
-  name='CommandAck',
-  full_name='jaiabot.protobuf.rest.CommandAck',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='bot_id', full_name='jaiabot.protobuf.rest.CommandAck.bot_id', index=0,
-      number=2, type=13, cpp_type=3, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=b'\242?\022)\000\000\000\000\000\000\000\0001\000\000\000\000\000\340o@', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='time', full_name='jaiabot.protobuf.rest.CommandAck.time', index=1,
-      number=1, type=4, cpp_type=4, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=b'\242?\034\n\ndccl.time2\362\001\r\022\004time2\005micro', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=b'\242?\014\010]\020\372\001(\003\362\001\002si',
-  is_extendable=False,
-  syntax='proto2',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1513,
-  serialized_end=1628,
+  serialized_start=605,
+  serialized_end=1389,
 )
 
 _BOTSTATUS_ATTITUDE.containing_type = _BOTSTATUS
@@ -457,7 +404,6 @@ _COMMAND.fields_by_name['depth'].message_type = _COMMAND_PIDCONTROL
 DESCRIPTOR.message_types_by_name['GeographicCoordinate'] = _GEOGRAPHICCOORDINATE
 DESCRIPTOR.message_types_by_name['BotStatus'] = _BOTSTATUS
 DESCRIPTOR.message_types_by_name['Command'] = _COMMAND
-DESCRIPTOR.message_types_by_name['CommandAck'] = _COMMANDACK
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 GeographicCoordinate = _reflection.GeneratedProtocolMessageType('GeographicCoordinate', (_message.Message,), {
@@ -505,18 +451,9 @@ Command = _reflection.GeneratedProtocolMessageType('Command', (_message.Message,
 _sym_db.RegisterMessage(Command)
 _sym_db.RegisterMessage(Command.PIDControl)
 
-CommandAck = _reflection.GeneratedProtocolMessageType('CommandAck', (_message.Message,), {
-  'DESCRIPTOR' : _COMMANDACK,
-  '__module__' : 'pid_control_pb2'
-  # @@protoc_insertion_point(class_scope:jaiabot.protobuf.rest.CommandAck)
-  })
-_sym_db.RegisterMessage(CommandAck)
-
 
 _GEOGRAPHICCOORDINATE._options = None
 _BOTSTATUS.fields_by_name['time']._options = None
-_BOTSTATUS.fields_by_name['time_to_ack']._options = None
-_BOTSTATUS.fields_by_name['control_surfaces_ack_time']._options = None
 _BOTSTATUS._options = None
 _COMMAND_PIDCONTROL.fields_by_name['target']._options = None
 _COMMAND_PIDCONTROL.fields_by_name['Kp']._options = None
@@ -529,7 +466,4 @@ _COMMAND.fields_by_name['rudder']._options = None
 _COMMAND.fields_by_name['port_elevator']._options = None
 _COMMAND.fields_by_name['stbd_elevator']._options = None
 _COMMAND._options = None
-_COMMANDACK.fields_by_name['bot_id']._options = None
-_COMMANDACK.fields_by_name['time']._options = None
-_COMMANDACK._options = None
 # @@protoc_insertion_point(module_scope)

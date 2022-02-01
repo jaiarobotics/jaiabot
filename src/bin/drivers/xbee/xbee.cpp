@@ -2,6 +2,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
+#include "goby/util/debug_logger.h"
+
+using goby::glog;
 
 #define DEBUG 0
 
@@ -224,11 +227,14 @@ vector<NodeId> XBeeDevice::get_peers() {
 string XBeeDevice::read_frame() {
     byte start_delimiter;
     read(&start_delimiter, 1);
-    assert(start_delimiter == 0x7e);
+    if (start_delimiter != 0x7e) {
+        glog.is_debug1() && glog << "ERROR: Wrong start_delimiter for frame: " << start_delimiter << endl;
+    }
 
     uint16_t response_size;
     read(&response_size, 2);
     response_size = big_to_native(response_size);
+    glog.is_debug1() && glog << "Waiting for frame of size " << response_size << " bytes." << endl;
 
     auto response_buffer = new byte[response_size];
     read(response_buffer, response_size);
@@ -242,7 +248,7 @@ string XBeeDevice::read_frame() {
     read(&cs_correct, 1);
 
     if (cs != cs_correct) {
-        cout << "ERROR: Incorrect checksum in frame data" << cs << " != " << cs_correct << endl;
+        glog.is_debug1() && glog << "ERROR: Incorrect checksum in frame data" << cs << " != " << cs_correct << endl;
         return "";
     }
 
