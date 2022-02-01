@@ -15,5 +15,5 @@ gobyd <(../../gen/bot.py gobyd)
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_dev_bot -vvvv --mode BOT --serial 'port: "/tmp/ttyxbee1" baud: 9600' --interprocess 'platform: "bot0"'
-jaiabot_control_surfaces_driver -vvvv --serial 'port: "/dev/ttyACM0" baud: 9600' --interprocess 'platform: "bot0"'
+jaiabot_control_surfaces_driver -vvvv --serial 'port: "/dev/arduino" baud: 9600' --interprocess 'platform: "bot0"'
 goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)

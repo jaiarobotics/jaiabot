@@ -69,8 +69,8 @@ chown ubuntu:ubuntu /home/ubuntu/run.sh
 if [ $1 == 'bot' ]
 then
   echo "===Setting up Arduino"
-  cd /home/ubuntu/jaiabot/src/arduino
-  sudo -u ubuntu ./setup.sh
+  cd /home/ubuntu/jaiabot/scripts
+  sudo -u ubuntu ./setup_arduino_cli.sh
 fi
 
 echo "===Updating path in .bashrc"
