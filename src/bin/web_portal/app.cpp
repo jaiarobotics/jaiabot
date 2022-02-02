@@ -68,7 +68,10 @@ REST::BotStatus convert(const BotStatus& input_status) {
     bot_status.set_depth(input_status.depth());
     bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
 
-    bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
+    auto attitude = bot_status.mutable_attitude();
+    attitude->set_heading(input_status.attitude().heading());
+    attitude->set_roll(input_status.attitude().roll());
+    attitude->set_pitch(input_status.attitude().pitch());
 
     if (input_status.has_salinity()) {
         bot_status.set_salinity(input_status.salinity());
