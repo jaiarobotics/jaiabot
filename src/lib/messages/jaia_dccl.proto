@@ -51,6 +51,10 @@ message BotStatus
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
+    optional uint64 last_command_time = 53 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
 
     optional GeographicCoordinate location = 10;
 

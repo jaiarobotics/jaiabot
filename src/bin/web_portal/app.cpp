@@ -59,6 +59,7 @@ REST::BotStatus convert(const BotStatus& input_status) {
     REST::BotStatus bot_status;
     bot_status.set_bot_id(input_status.bot_id());
     bot_status.set_time_with_units(NOW);
+    bot_status.set_last_command_time_with_units(input_status.last_command_time_with_units());
 
     if (input_status.has_location()) {
         bot_status.mutable_location()->set_lat(input_status.location().lat());

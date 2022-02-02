@@ -261,6 +261,8 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
+    interprocess().publish<jaiabot::groups::bot_status>(command);
+
     lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     // Timeout

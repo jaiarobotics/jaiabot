@@ -37,11 +37,13 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/pid_control.pb.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 using goby::glog;
 using namespace std;
+using jaiabot::protobuf::rest::Command;
 
 namespace si = boost::units::si;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Fusion>;
@@ -219,6 +221,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(0.5 * si::hertz)
         [this](const jaiabot::protobuf::SalinityData& salinityData) {
             glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
             latest_bot_status_.set_salinity(salinityData.salinity());
+        });
+
+    // subscribe for commands, to set last_command_time
+    interprocess().subscribe<jaiabot::groups::bot_status>([this](const Command& command) {
+            glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std:: endl;
+
+            latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
 
 }
