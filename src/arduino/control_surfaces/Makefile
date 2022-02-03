@@ -1,5 +1,5 @@
 BOARD=arduino:avr:nano:cpu=atmega328old
-PORT=/dev/arduino
+PORT=/opt/jaiabot/dev/arduino
 DEPLOY_FILE=${HOME}/.arduino_deployed
 
 deploy: ${DEPLOY_FILE}
