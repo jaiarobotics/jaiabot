@@ -10,8 +10,8 @@ link {
     }
     mac { 
         type: MAC_FIXED_DECENTRALIZED 
-        slot { src: 1 type: DATA slot_seconds: 1 }
-        slot { src: 2 type: DATA slot_seconds: 1 }
+        slot { src: 1 type: DATA slot_seconds: 0.5 }
+        slot { src: 2 type: DATA slot_seconds: 0.5 }
     }
 
     # Buffer values for the forwarded subscription (message sent to set up the subscription itself)

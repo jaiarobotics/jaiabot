@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Fusion>(argc, argv));
 }
 
-jaiabot::apps::Fusion::Fusion() : ApplicationBase(0.5 * si::hertz)
+jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 {
     init_node_status();
     init_bot_status();
