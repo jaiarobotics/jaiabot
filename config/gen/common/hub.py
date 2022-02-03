@@ -5,7 +5,7 @@ def gpsd_device(vehicle_id):
     if is_simulation():
         return '/dev/null'
     else:
-        return '/dev/gps'
+        return '/opt/jaiabot/dev/gps'
 
 def gpsd_port(vehicle_id):
     default_gpsd_port=2947

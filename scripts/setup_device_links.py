@@ -2,9 +2,12 @@
 import glob
 import os
 
+devices_path = '/opt/jaiabot/dev/'
+os.system(f'sudo mkdir -p {devices_path}')
+
 device_dict = {
-    '/dev/arduino' : ['/dev/serial/by-id/usb-1a86_USB2.0-Serial-if00-port0'], 
-    '/dev/xbee': ['/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DN*-if00-port0',
+    devices_path + 'arduino' : ['/dev/serial/by-id/usb-1a86_USB2.0-Serial-if00-port0'], 
+    devices_path + 'xbee': ['/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DN*-if00-port0',
                   '/dev/serial/by-id/usb-SparkFun_XBee_Explorer_USB_SF3779M7-if00-port0']
             }
 # Set the arduino and xbee links
@@ -33,7 +36,8 @@ def set_gps_device():
     pi_model = get_pi_model()
     for key, value in pi_dict.items():
         if pi_model.startswith(key):
-            os.system(f'sudo ln -sf {value} /dev/gps')
-            print(f'Successfully linked {value} to /dev/gps')
+            target = devices_path + 'gps'
+            os.system(f'sudo ln -sf {value} {target}')
+            print(f'Successfully linked {value} to {target}')
 
 set_gps_device()
