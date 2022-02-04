@@ -97,6 +97,7 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 
 void goby::acomms::XBeeDriver::shutdown()
 {
+    glog.is_warn() && glog << "Shutting down modem" << endl;
     device_.shutdown();
 }
 
@@ -115,7 +116,7 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
 
     signal_data_request(&msg);
 
-    glog.is(DEBUG1) && glog << group(glog_out_group())
+    glog.is_debug1() && glog << group(glog_out_group())
                             << "After modification, initiating transmission with " << msg
                             << std::endl;
 
@@ -140,7 +141,7 @@ void goby::acomms::XBeeDriver::do_work() {
         protobuf::ModemTransmission msg;
         msg.ParseFromArray(&packet[0], packet.size());
 
-        glog.is(DEBUG1) && glog << group(glog_in_group()) << "Received " << packet.size()
+        glog.is_debug1() && glog << group(glog_in_group()) << "Received " << packet.size()
                                 << " bytes from " << msg.src() << std::endl;
 
         receive_message(msg);
@@ -172,7 +173,7 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
     std::string bytes;
     msg.SerializeToString(&bytes);
 
-    glog.is(DEBUG1) && glog << group(glog_out_group())
+    glog.is_debug1() && glog << group(glog_out_group())
                             << "Sending hex: " << goby::util::hex_encode(bytes) << std::endl;
 
     protobuf::ModemRaw raw_msg;
