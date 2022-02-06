@@ -127,8 +127,6 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
 
     broadcast_node_id();
 
-    network_discover();
-
     do_work();
 
     return;
@@ -384,7 +382,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         assert(response->command_status == 0);
         uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
         my_serial_number |= ((SerialNumber) lower_serial_number << 32);
-        glog.is_verbose() && glog << "My serial number: " << std::hex << my_serial_number << std::dec << endl;
+        glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
     }
 
     if (at_command == "CB") {
@@ -474,10 +472,14 @@ void XBeeDevice::process_frame_node_identification_indicator(const string& respo
     auto info = (const Info*) response_string.c_str();
     NodeId node_id = string((char *) &info->node_id_start);
     SerialNumber serial_number = *((SerialNumber *) &info->remote_serial_number);
-    glog.is_verbose() && glog << "Recieved node ID indicator, node_id=" << node_id << ", serial_number=" << std::hex << serial_number << std::dec << endl;
 
-    node_id_to_serial_number_map[node_id] = serial_number;
-    serial_number_to_node_id_map[serial_number] = node_id;
+    if (node_id_to_serial_number_map.find(node_id) == node_id_to_serial_number_map.end() ||
+        node_id_to_serial_number_map[node_id] != serial_number) {
+        node_id_to_serial_number_map[node_id] = serial_number;
+        serial_number_to_node_id_map[serial_number] = node_id;
+        broadcast_node_id();
+        glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec << " node_id= " << node_id << endl;
+    }
 
     flush_packets_for_node(node_id);
 }
