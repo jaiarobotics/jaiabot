@@ -7,19 +7,14 @@ script_dir=$(dirname $0)
 cd ${script_dir}/..
 mkdir -p build
 
-LAST_BUILD_DATE=$(date -r build +%s)
-ONE_WEEK_LATER=$(expr "$LAST_BUILD_DATE" + 604800)
+if [ "$(docker image ls build_system --format='true')" != "true" ];
+then
+    echo "🟢 Building the docker build_system image"
+    docker build -t build_system .docker/focal/arm64
+fi
 
-NOW=$(date +%s)
-
-if [ $NOW -ge $ONE_WEEK_LATER ];
-    then
-        echo "****It's been a while since we updated packages in the container, so let's take care of that now."
-        docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "apt update && apt upgrade -y && ./scripts/arm64_build.sh"
-    else
-        echo "****Up to date - let's get straight to compiling, shall we?"
-        docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 bash -c "./scripts/arm64_build.sh"
-fi  
+echo "🟢 Building jaiabot apps"
+docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t build_system bash -c "./scripts/arm64_build.sh"
 
 # Send the files to target machine
 
@@ -30,7 +25,7 @@ if [ -z "$1" ]
     else
         for var in "$@"
 	    do
-    		echo "rsync build and config directories"
+    		echo "🟢 Uploading to "$var
 		    rsync -aP --delete --force --exclude={build/src,build/CMakeFiles,src/web/dist,src/web/node_modules} src build config scripts ubuntu@"$var":/home/ubuntu/jaiabot/
 	    done
 fi
