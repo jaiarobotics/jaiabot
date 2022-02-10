@@ -73,6 +73,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
 
+    // Create our PID objects
     throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1.0, 0.0, 0.0);
     throttle_speed_pid->set_limits(-100.0, 100.0);
     throttle_speed_pid->set_auto();
@@ -119,8 +120,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
         if (bot_status.has_attitude()) {
             auto attitude = bot_status.attitude();
 
-            if (attitude.has_heading()) {
-                actual_heading = attitude.heading();
+            if (attitude.has_course_over_ground()) {
+                actual_heading = attitude.course_over_ground();
             }
 
             if (attitude.has_roll()) {
@@ -316,34 +317,10 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
             target_heading = heading.target();
         }
 
-        bool gains_changed = false;
-
         if (heading.has_kp())
         {
-            heading_kp = heading.kp();
-            gains_changed = true;
+            heading_pid->tune(heading.kp(), heading.ki(), heading.kd());
         }
-
-        if (heading.has_ki())
-        {
-            heading_ki = heading.ki();
-            gains_changed = true;
-        }
-
-        if (heading.has_kd())
-        {
-            heading_kd = heading.kd();
-            gains_changed = true;
-        }
-
-        if (gains_changed)
-        {
-            delete course_pid;
-            course_pid = new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
-            course_pid->set_limits(-100.0, 100.0);
-            course_pid->set_auto();
-        }
-
     }
 
     // Elevators
