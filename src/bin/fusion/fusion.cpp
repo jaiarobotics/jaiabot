@@ -174,6 +174,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.mutable_speed()->set_over_ground_with_units(speed);
             }
 
+            if (tpv.has_track()) 
+            {
+                auto track = tpv.track_with_units();
+                latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
+                latest_bot_status_.mutable_attitude()->set_course_over_ground_with_units(track);
+            }
+
             // publish the latest status message with each GPS update
             if (tpv.has_time())
             {
