@@ -124,7 +124,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (euler_angles.has_alpha())
             {
-                auto heading = euler_angles.alpha_with_units();
+                // This produces a heading that is off by 180 degrees, so we need to rotate it
+                auto heading = euler_angles.alpha_with_units() + 180 * boost::units::degree::plane_angle();
+                if (heading > 360 * boost::units::degree::plane_angle()) {
+                    heading -= (360 * boost::units::degree::plane_angle());
+                }
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
