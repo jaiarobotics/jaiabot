@@ -319,7 +319,7 @@ void jaiabot::apps::BotPidControl::handle_command(const Command& command)
 
         if (heading.has_kp())
         {
-            heading_pid->tune(heading.kp(), heading.ki(), heading.kd());
+            course_pid->tune(heading.kp(), heading.ki(), heading.kd());
         }
     }
 

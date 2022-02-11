@@ -759,7 +759,7 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot?.attitude?.heading?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot?.attitude?.pitch?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot?.attitude?.roll?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot?.attitude?.course_over_ground?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot?.attitude?.courseOverGround?.toFixed(1) || "?") + "</td>"
     
     innerHTML += "<td>" + (bot?.depth?.toFixed(1) || "?") + "</td>"
 
@@ -772,7 +772,7 @@ function updateStatus(status) {
     lastCommandTime = bot.lastCommandTime ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(1) : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
 
-    innerHTML += "</tr>"
+    innerHTML += "</tr>" 
 
   }
 
