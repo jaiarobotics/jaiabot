@@ -17,7 +17,7 @@ const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
 // Setup a pressed key map
 var pressedKeys = {}
-window.addEventListener('keydown', function(e) { pressedKeys[e.code] = true  })
+window.addEventListener('keydown', function(e) { pressedKeys[e.code] = true })
 window.addEventListener('keyup',   function(e) { pressedKeys[e.code] = false })
 
 ///////// AngleSlider
@@ -34,7 +34,7 @@ class AngleSlider {
     this.minValue = minValue
     this.maxValue = maxValue
     this.stepSize = stepSize
-    this.fineStepSize = fineStepSize || stepSize / 10
+    this.fineStepSize = fineStepSize || stepSize / 2
     this.canvas = el(id)
     this.valueTextElement = el(valueTextId)
     this.centerX = this.canvas.width / 2
@@ -149,14 +149,16 @@ vertical = 'vertical'
 horizontal = 'horizontal'
 
 class Slider {
-  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="", stepSize=null, decrementKey="", incrementKey="", fineStepSize=null) {
+  constructor(orientation, name, minValue, maxValue, label, showValue, showCenterButton, sliderClasses="", stepSize=null, decrementKeys=[], incrementKeys=[], fineStepSize=null) {
     let self = this
     this.name = name
     this.minValue = minValue
     this.maxValue = maxValue
     this.orientation = orientation
     this.stepSize = stepSize || (maxValue - minValue) / 10
-    this.fineStepSize = fineStepSize || this.stepSize / 10
+    this.fineStepSize = fineStepSize || this.stepSize / 2
+    this.decrementKeys = decrementKeys
+    this.incrementKeys = incrementKeys
 
     let parentElement = el(name + "SliderContainer")
 
@@ -202,31 +204,38 @@ class Slider {
       self.valueElement.innerHTML = self.sliderElement.value
     }
 
-    if (decrementKey !== "") {
+    if (decrementKeys.length > 0) {
       document.addEventListener('keydown', function (e) {
         if (elementIsVisible(self.sliderElement)) {
-          if (e.code == decrementKey) {
-            if (pressedKeys["ShiftLeft"]) {
-              self.value -= self.fineStepSize
+          for (let keyCode of self.decrementKeys) {
+            console.log(keyCode)
+            if (!pressedKeys[keyCode] && e.code != keyCode) {
+              return
             }
-            else {
-              self.value -= self.stepSize
-            }
+          }
+          if (pressedKeys["ShiftLeft"]) {
+            self.value -= self.fineStepSize
+          }
+          else {
+            self.value -= self.stepSize
           }
         }
       })
     }
 
-    if (incrementKey !== "") {
+    if (incrementKeys.length > 0) {
       document.addEventListener('keydown', function (e) {
         if (elementIsVisible(self.sliderElement)) {
-          if (e.code == incrementKey) {
-            if (pressedKeys["ShiftLeft"]) {
-              self.value += self.fineStepSize
+          for (let keyCode of self.incrementKeys) {
+            if (!pressedKeys[keyCode] && e.code != keyCode) {
+              return
             }
-            else {
-              self.value += self.stepSize
-            }
+          }
+          if (pressedKeys["ShiftLeft"]) {
+            self.value += self.fineStepSize
+          }
+          else {
+            self.value += self.stepSize
           }
         }
       })
@@ -311,14 +320,14 @@ elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManual
 
 ////////
 
-diveManualSlider = new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false, "dive")
-divePIDSlider = new Slider(vertical, "divePID", 0, 100, "Dive Depth", true, false, "dive")
+diveManualSlider = new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
+divePIDSlider =    new Slider(vertical, "divePID",    0, 100, "Dive Depth",    true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10)
-speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle")
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10, decrementKeys=["Space", "KeyS"], incrementKeys=["Space", "KeyW"], fineStepSize=5)
+speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle", 2, decrementKeys=["Space", "KeyS"], incrementKeys=["Space", "KeyW"], fineStepSize=1)
 
-rudderSlider = new Slider(horizontal, "rudder", -100, 75, "Rudder", true, true, "", 10, 'KeyA', 'KeyD')
-headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD')
+rudderSlider = new Slider(horizontal, "rudder", -100, 75, "Rudder", true, true, "", 10, ['KeyA'], ['KeyD'])
+headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD', fineStepSize=5)
 headingSlider.onValueChanged = function(angle) {
   angle_deg = angle / DEG
   sector = Math.floor((angle_deg + 22.5) / 45) % 8
@@ -328,12 +337,12 @@ headingSlider.onValueChanged = function(angle) {
   cardinal.innerHTML = dirs[sector]
 }
 
-portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, 'KeyJ', 'KeyU')
-stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, 'KeyL', 'KeyO')
-rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, 'KeyQ', 'KeyE')
-pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, 'KeyK', 'KeyI')
+portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU'])
+stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, ['KeyL'], ['KeyO'])
+rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, ['KeyQ'], ['KeyE'])
+pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, ['KeyK'], ['KeyI'])
 
-timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout")
+timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout", stepSize=2, decrementKeys=["KeyV"], incrementKeys=["KeyB"])
 timeoutSlider.value = 5
 
 /////////// PIDGains form class //////////
@@ -506,18 +515,6 @@ function handleKey(key) {
       portElevatorSlider.value = portCenter
       stbdElevatorSlider.value = stbdCenter
       rollSlider.value = 0
-      break
-    case 'KeyS':
-      if (DeadMansSwitch.on) {
-        let slider = throttleTabbedSections.activeIndex == 0 ? throttleSlider : speedSlider
-        slider.decrement()
-      }
-      break
-    case 'KeyW':
-      if (DeadMansSwitch.on) {
-        let slider = throttleTabbedSections.activeIndex == 0 ? throttleSlider : speedSlider
-        slider.increment()
-      }
       break
     case 'KeyI':
       switch (elevatorsTabbedSections.activeIndex) {
