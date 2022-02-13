@@ -13,6 +13,12 @@ target_link_libraries(${APP}
   goby
   goby_zeromq)
 
+target_link_libraries(xbee
+  goby
+)
+
+
+
 if(export_goby_interfaces)
   generate_interfaces(${APP})
 endif()
