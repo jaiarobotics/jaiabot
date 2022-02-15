@@ -1,3 +1,6 @@
+let FINE_CONTROL_KEY = "ShiftRight"
+let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
+
 // Gets an element with this id
 function el(id) {
   element = document.getElementById(id)
@@ -213,7 +216,7 @@ class Slider {
               return
             }
           }
-          if (pressedKeys["ShiftLeft"]) {
+          if (pressedKeys[FINE_CONTROL_KEY]) {
             self.value -= self.fineStepSize
           }
           else {
@@ -231,7 +234,7 @@ class Slider {
               return
             }
           }
-          if (pressedKeys["ShiftLeft"]) {
+          if (pressedKeys[FINE_CONTROL_KEY]) {
             self.value += self.fineStepSize
           }
           else {
@@ -323,8 +326,8 @@ elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManual
 diveManualSlider = new Slider(vertical, "diveManual", 0, 100, "Dive Throttle", true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
 divePIDSlider =    new Slider(vertical, "divePID",    0, 100, "Dive Depth",    true, false, "dive", stepSize=2, decrementKeys=["KeyG"], incrementKeys=["KeyT"])
 
-throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10, decrementKeys=["Space", "KeyS"], incrementKeys=["Space", "KeyW"], fineStepSize=5)
-speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle", 2, decrementKeys=["Space", "KeyS"], incrementKeys=["Space", "KeyW"], fineStepSize=1)
+throttleSlider = new Slider(vertical, "throttle", 0, 100, "Throttle", true, false, "throttle", 10, decrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyS"], incrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyW"], fineStepSize=5)
+speedSlider = new Slider(vertical, "speed", 0, 15, "Speed", true, false, "throttle", 2, decrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyS"], incrementKeys=[DEAD_MANS_SWITCH_KEY, "KeyW"], fineStepSize=1)
 
 rudderSlider = new Slider(horizontal, "rudder", -100, 75, "Rudder", true, true, "", 10, ['KeyA'], ['KeyD'])
 headingSlider = new AngleSlider('headingWidget', 'headingValue', 0, 360, 10, 'KeyA', 'KeyD', fineStepSize=5)
@@ -404,6 +407,8 @@ function diveButtonOnClick() {
   // Stop sending commands until
   blockSendingUntil = Date.now() + command.timeout * 1000
 
+  console.log('Dive button pressed!')
+
   switch (diveTabbedSections.activeIndex) {
     case 0: // Manual
       command.throttle = -diveManualSlider.value
@@ -475,7 +480,7 @@ DeadMansSwitch.setOn(false)
 ////////// Setup hotkeys /////////
 
 function keyDown(e) {
-  if (e.code == 'Space') {
+  if (e.code == DEAD_MANS_SWITCH_KEY) {
     DeadMansSwitch.setOn(true)
     return
   }
@@ -485,7 +490,7 @@ function keyDown(e) {
 }
 
 function keyUp(e) {
-  if (e.code == 'Space') {
+  if (e.code == DEAD_MANS_SWITCH_KEY) {
     DeadMansSwitch.setOn(false)
     return
   }
@@ -495,7 +500,7 @@ document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp)
 
 function handleKey(key) {
-  let elevatorsDelta = pressedKeys["ShiftLeft"] ? portElevatorSlider.fineStepSize : portElevatorSlider.stepSize
+  let elevatorsDelta = pressedKeys[FINE_CONTROL_KEY] ? portElevatorSlider.fineStepSize : portElevatorSlider.stepSize
 
   switch (key) {
     case 'KeyZ':
