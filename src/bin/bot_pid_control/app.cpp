@@ -232,6 +232,7 @@ void jaiabot::apps::BotPidControl::loop()
         glog.is_warn() && glog << "Timing out after " << timeout << " seconds." << std::endl;
         lastCommandReceived = 0;
         throttle = 0.0;
+        throttleMode = MANUAL;
     }
 
     // Publish the VehicleCommand
