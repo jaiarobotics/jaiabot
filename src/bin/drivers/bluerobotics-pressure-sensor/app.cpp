@@ -52,10 +52,10 @@ namespace apps
 constexpr goby::middleware::Group bar30_udp_in{"bar30_udp_in"};
 constexpr goby::middleware::Group bar30_udp_out{"bar30_udp_out"};
 
-class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publisher>
+class BlueRoboticsPressureSensorDriver : public zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>
 {
   public:
-    Bar30Publisher();
+    BlueRoboticsPressureSensorDriver();
 
   private:
     void loop() override;
@@ -69,8 +69,8 @@ class Bar30Publisher : public zeromq::MultiThreadApplication<config::Bar30Publis
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::Bar30Publisher>(
-        goby::middleware::ProtobufConfigurator<config::Bar30Publisher>(argc, argv));
+    return goby::run<jaiabot::apps::BlueRoboticsPressureSensorDriver>(
+        goby::middleware::ProtobufConfigurator<config::BlueRoboticsPressureSensorDriver>(argc, argv));
 }
 
 // Main thread
@@ -95,8 +95,8 @@ std::vector<std::string> split(std::string s, std::string delimiter)
     return res;
 }
 
-jaiabot::apps::Bar30Publisher::Bar30Publisher()
-    : zeromq::MultiThreadApplication<config::Bar30Publisher>(loop_freq * si::hertz)
+jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
@@ -129,7 +129,7 @@ jaiabot::apps::Bar30Publisher::Bar30Publisher()
         });
 }
 
-void jaiabot::apps::Bar30Publisher::loop()
+void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
 {
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();

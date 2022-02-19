@@ -29,7 +29,7 @@ import "goby/middleware/protobuf/udp_config.proto";
 
 package jaiabot.config;
 
-message Bar30Publisher
+message BlueRoboticsPressureSensorDriver
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;

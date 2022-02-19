@@ -31,7 +31,7 @@ verbosities = \
   'goby_logger':                              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_frontseat_interface_basic_simulator': { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_simulator':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'jaiabot_bar30-driver':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
+  'bluerobotics-pressure-sensor-driver':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_fusion':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_gps':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
@@ -91,8 +91,8 @@ elif common.app == 'jaiabot_simulator':
                                      moos_port=common.vehicle.moos_simulator_port(vehicle_id),
                                      gpsd_simulator_udp_port=common.vehicle.gpsd_simulator_udp_port(vehicle_id),
                                      pressure_udp_port=common.udp.bar30_cpp_udp_port(vehicle_id)))
-elif common.app == 'jaiabot_bar30-driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_bar30-driver.pb.cfg.in',
+elif common.app == 'bluerobotics-pressure-sensor-driver':
+    print(config.template_substitute(templates_dir+'/bot/bluerobotics-pressure-sensor-driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.bar30_cpp_udp_port(vehicle_id),
