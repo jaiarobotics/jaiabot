@@ -11,7 +11,7 @@ goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_dev_bot <(../../gen/bot.py jaiabot_dev_bot)
 jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver)
 jaiabot_atlas-scientific-ezo-ec-driver <(../../gen/bot.py jaiabot_atlas-scientific-ezo-ec-driver)
-jaiabot_bar30-driver <(../../gen/bot.py jaiabot_bar30-driver)
+bluerobotics-pressure-sensor-driver <(../../gen/bot.py bluerobotics-pressure-sensor-driver)
 jaiabot_adafruit-BNO055-driver <(../../gen/bot.py jaiabot_adafruit-BNO055-driver)
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control) -vvv

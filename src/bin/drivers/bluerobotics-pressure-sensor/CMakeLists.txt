@@ -1,4 +1,4 @@
-set(APP jaiabot_bar30-driver)
+set(APP bluerobotics-pressure-sensor-driver)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 
