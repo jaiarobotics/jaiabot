@@ -8,13 +8,9 @@ import socket
 import ms5837
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
-parser.add_argument('port', metavar='port', type=int, help='port to publish T & P')
+parser.add_argument('-p', '--port', metavar='port', default=20001, type=int, help='port to publish T & P')
 parser.add_argument('--simulator', action='store_true')
-parser.add_argument('--device', metavar='device', type=str, default='bar30', help='device type (bar30 or bar02)')
 args = parser.parse_args()
-
-if args.device != 'bar02':
-    args.device = 'bar30'
 
 print(args)
 
@@ -27,13 +23,36 @@ class Sensor:
 
     def __init__(self):
         self.is_setup = False
+        self.pressure_0 = None
 
     def setup(self):
         if not self.is_setup:
-            if args.device == 'bar02':
-                self.sensor = ms5837.MS5837_02BA()  # Default I2C bus is 1 (Raspberry Pi 3)
+
+            # Figure out which sensor we're dealing with
+            bar02 = ms5837.MS5837_02BA()
+            if not bar02.init():
+                raise SensorError()
+            if not bar02.read():
+                raise SensorError()
+            p_bar02 = bar02.pressure()
+            del(bar02)
+
+            bar30 = ms5837.MS5837_30BA()
+            if not bar30.init():
+                raise SensorError()
+            if not bar30.read():
+                raise SensorError()
+            p_bar30 = bar30.pressure()
+            del(bar30)
+
+            ATM = 1013.25
+
+            if abs(p_bar30 - ATM) < abs(p_bar02 - ATM):
+                print('Auto-detected bar30 sensor')
+                self.sensor = ms5837.MS5837_30BA()
             else:
-                self.sensor = ms5837.MS5837_30BA()  # Default I2C bus is 1 (Raspberry Pi 3)
+                print('Auto-detected bar02 sensor')
+                self.sensor = ms5837.MS5837_02BA()
 
             if self.sensor.init():
                 self.is_setup = True
@@ -47,7 +66,11 @@ class Sensor:
 
         try:
             if self.sensor.read():
-                return (self.sensor.pressure(), self.sensor.temperature())
+                if self.pressure_0 is None:
+                    self.pressure_0 = self.sensor.pressure()
+
+                return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
+                
             else:
                 print('Sensor read fail')
                 self.is_setup = False

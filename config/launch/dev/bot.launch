@@ -5,7 +5,7 @@ goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 
 ~/jaiabot/src/python/atlas-scientific-ezo-ec/as-ezo-ec.py 20002
-~/jaiabot/src/python/bar30/bar30.py 20001
+~/jaiabot/src/python/pressure_sensor/pressure_sensor.py
 ~/jaiabot/src/python/adafruit-BNO055/imu.py 20000
 
 jaiabot_dev_bot <(../../gen/bot.py jaiabot_dev_bot)
