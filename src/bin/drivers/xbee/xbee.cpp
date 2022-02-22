@@ -84,7 +84,7 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
     // Set the three configuration parameters, so we're on the same network as other XBee modems
     {
         stringstream cmd;
-        cmd << "ATCM=FFFFFFFFFFF7FFFF" << '\r';
+        cmd << "ATRE" << '\r';
         write(cmd.str());
         assert_ok();
     }
