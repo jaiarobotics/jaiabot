@@ -9,16 +9,37 @@
         integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
         crossorigin=""></script>
 
+    <script src="https://cdn.plot.ly/plotly-2.9.0.min.js"></script>
+
     <style>
-        #map { height: 100%; }        
+        #container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        #chart {
+            width: 58%;
+            height: 100%;
+        }
+        #map { 
+            width: 38%;
+            height: 100%; 
+        }
+        #mapInner {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 
-<div id="map"></div>
+<div id="container">
+<div id="chart">$charts_div</div>
+<div id="map"><div id="mapInner"></div></div>
+</div>
 
 <script>
 
-    var map = L.map('map').setView([$center_lat, $center_lon], $zoom)
+    var map = L.map('mapInner').setView([$center_lat, $center_lon], $zoom)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -27,6 +48,8 @@
     let path = $path
 
     var path_polyline = L.polyline(path, {color: 'red'}).addTo(map)
+
+    map.fitBounds(path_polyline.getBounds())
 
 </script>
 

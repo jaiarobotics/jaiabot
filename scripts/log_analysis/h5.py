@@ -60,6 +60,9 @@ class H5FileSet:
                     print(f'WARNING:  Cannot locate {dataset_name} in {h5_file}')
                     pass
 
+                # Sentinel nil value, to prevent connection of multiple series
+                all_data.append(None)
+
             series = Series(name, all_data)
             self.series[dataset_name] = series
             return series
