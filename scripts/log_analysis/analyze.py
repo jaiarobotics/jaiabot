@@ -43,14 +43,21 @@ def generate_map(h5_fileset):
     longitudes = h5_fileset[BotStatus_longitude].data
 
     # Divide the segments up on the map
+    points = []
     path = []
     path_section = []
     center_lat = None
     center_lon = None
-    
+
     for pt_index in range(0, len(latitudes)):
+        time = times[pt_index]
         latitude = latitudes[pt_index]
         longitude = longitudes[pt_index]
+
+        # Setup a sorted flat array for figuring out where to plot the location indicator icon when hovering in plotly
+        if time and latitude and longitude:
+            points.append([datetime.datetime.timestamp(time), latitude, longitude])
+
         if latitude and longitude:
             if center_lat is None:
                 center_lat = latitude
@@ -62,12 +69,15 @@ def generate_map(h5_fileset):
                 path.append(path_section)
                 path_section = []
 
+    points.sort(key=lambda pt: pt[0])
+
     coordinates = tuple(filter(lambda p: p[0] != 0.0, zip(latitudes, longitudes)))
 
     # No GPS fix
     if len(path) == 0:
         print('No GPS fix?')
         return {
+            'points': '[ ]',
             'path': '[ ]',
             'center_lat': 0,
             'center_lon': 0,
@@ -77,6 +87,7 @@ def generate_map(h5_fileset):
     path_string = json.dumps(path)
 
     return {
+        'points': points,
         'path': path_string,
         'center_lat': center_lat,
         'center_lon': center_lon,
@@ -102,7 +113,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
     # fig.add_trace(go.Scatter(x=bdr_file.data['time'], y=bdr_file.data['Amps'], mode='lines', name='Amps'))
     # fig.add_trace(go.Scatter(x=bdr_file.data['time'], y=bdr_file.data['RPM'], mode='lines', name='RPM'), secondary_y=True)
 
-    fig.update_layout(title='Jaiabot Data')
+    fig.update_layout(title='Jaiabot Data', hovermode="closest")
 
     for series_index, field in enumerate(fields):
         series_x = h5_fileset[field.x_datapath]
@@ -111,9 +122,6 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
         fig.append_trace(go.Scatter(x=series_x.data, y=series_y.data, mode='lines', name=series_y.name, connectgaps=False), series_index + 1, 1)
         fig.update_yaxes(title_text=yaxis_title, row=series_index + 1)
-
-    # fig.add_trace(go.Scatter(x=h5_fileset.get_series(BotStatus_time), y=h5_fileset.get_series(BotStatus_course_over_ground), mode='lines', name='BotStatus_course_over_ground'))
-    # fig.add_trace(go.Scatter(x=h5_fileset.get_series(BotStatus_time), y=h5_fileset.get_series(BotStatus_salinity), mode='lines', name='BotStatus_salinity'))
 
     substitution_dict['charts_div'] = fig.to_html(include_plotlyjs=False, full_html=False)
 

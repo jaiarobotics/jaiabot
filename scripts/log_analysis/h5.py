@@ -24,8 +24,10 @@ RestCommand_timeout = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/timeo
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
 
+
 def date_from_micros(micros):
-    return datetime.datetime.fromtimestamp(micros / 1e6)
+    date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()
+    return date
 
 
 class Series:

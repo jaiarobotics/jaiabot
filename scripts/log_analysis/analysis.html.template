@@ -45,11 +45,56 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map)
 
+    let points = $points
     let path = $path
 
     var path_polyline = L.polyline(path, {color: 'red'}).addTo(map)
 
     map.fitBounds(path_polyline.getBounds())
+
+    let plot = document.getElementsByClassName("plotly-graph-div")[0]
+
+    function point_at_time(t) {
+    
+        let start = 0, end = points.length - 1
+            
+        // Iterate while start not meets end
+        while (start <= end) {
+            // Find the mid index
+            let mid = Math.floor((start + end) / 2)
+
+            // If element is present at mid, return True
+            if (t >= points[mid][0] && t <= points[mid + 1][0]) return points[mid]
+    
+            // Else look in left or right half accordingly
+            else if (points[mid][0] < t)
+                start = mid + 1
+            else
+                end = mid - 1
+        }
+    
+        return null
+    }
+
+    let marker = L.marker([0, 0])
+    marker.addTo(map)
+    console.log(marker)
+
+    plot.on('plotly_hover', function(data){
+        let dateString = data.points[0].data.x[data.points[0].pointIndex]
+        let date_timestamp_ms = Date.parse(dateString)
+        let date_timestamp_s = date_timestamp_ms / 1000.0
+        let point = point_at_time(date_timestamp_s)
+
+        // Plot point on the map
+        if (point) {
+            marker.setLatLng(new L.LatLng(point[1], point[2]))
+        }
+    })
+
+    plot.on('plotly_unhover', function(data) {
+        marker.setLatLng(new L.LatLng(0, 0))
+    })
 
 </script>
 
