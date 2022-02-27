@@ -1,5 +1,5 @@
 #!/bin/bash
 
 ./build.sh
-cd flask-server
+cd server
 ./app.py
