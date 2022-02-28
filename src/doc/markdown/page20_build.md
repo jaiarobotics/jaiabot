@@ -27,15 +27,15 @@ This process is summarized by:
 
 ```
 # make a directory for the generated objects
-mkdir build
-cd build
+mkdir -p build/amd64
+cd build/amd64
 # configure the project
-cmake ..
+cmake ../..
 # build it (using make by default)
 cmake --build .
 ```
 
-This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively.
+This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively.
 
 Some examples:
 
@@ -165,8 +165,6 @@ Then to cross-compile using this image:
 
 ```bash
 cd jaiabot
-# clear out the build directory assuming it exists with a native build (might need sudo if you've build using the container last)
-rm -rf build
 # run the docker container interactively
 docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1 
 # update any dependencies since the image was created (not required if you've recently built the image)
