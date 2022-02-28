@@ -154,6 +154,25 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 }
 
+jaiabot::apps::MissionManager::~MissionManager()
+{
+    // unsubscribe for commands
+    {
+        auto on_command_unsubscribed =
+            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                         << std::endl;
+            };
+        goby::middleware::Subscriber<protobuf::Command> command_subscriber{cfg().command_sub_cfg(),
+                                                                           on_command_unsubscribed};
+
+        intervehicle().unsubscribe_dynamic<protobuf::Command>(*groups::hub_command_this_bot,
+                                                              command_subscriber);
+    }
+}
+
 void jaiabot::apps::MissionManager::loop()
 {
     protobuf::MissionReport report;
