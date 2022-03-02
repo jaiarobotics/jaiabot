@@ -7,16 +7,42 @@ package jaiabot.protobuf;
 
 enum SetpointType
 {
-    SETPOINT_STOP = 0; // no actuator movement - drift
-    SETPOINT_IVP_HELM = 1; // IvPHelm setpoints (helm_course)
-    SETPOINT_REMOTE_CONTROL = 2; 
-    SETPOINT_DIVE = 3; // Inverse drive control (dive_depth)
-    SETPOINT_POWERED_ASCENT = 4; // Power ascent to surface 
+    SETPOINT_STOP = 0;      // no actuator movement - drift
+    SETPOINT_IVP_HELM = 1;  // IvPHelm setpoints (helm_course)
+    SETPOINT_REMOTE_CONTROL = 2; // fixed heading, speed, etc. for a given duration
+    SETPOINT_DIVE = 3;            // Inverse drive control (dive_depth)
+    SETPOINT_POWERED_ASCENT = 4;  // Power ascent to surface
 }
 
 message RemoteControl
 {
-    // contents?
+    option (dccl.msg).unit_system = "si";
+
+    required int32 duration = 1 [(dccl.field) = {
+        min: 1,
+        max: 600
+        units { derived_dimensions: "time" }
+    }];
+
+    optional double heading = 10 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle", system: "angle::degree" }
+        }
+
+    ];
+    optional double speed = 11 [
+        default = 0,
+        (dccl.field) = {
+            min: 0,
+            max: 5,
+            precision: 1,
+            units { derived_dimensions: "length/time" }
+        }
+    ];
 }
 
 message DesiredSetpoints

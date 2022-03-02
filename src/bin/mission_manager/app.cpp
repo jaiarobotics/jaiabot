@@ -135,11 +135,18 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for reports from the pHelmIvP behaviors
     interprocess().subscribe<jaiabot::groups::mission_ivp_behavior_report>(
         [this](const protobuf::IvPBehaviorReport& report) {
+            glog.is_debug1() && glog << "IvPBehaviorReport: " << report.ShortDebugString()
+                                     << std::endl;
+
             switch (report.behavior_case())
             {
                 case protobuf::IvPBehaviorReport::kTransit:
                     if (report.transit().waypoint_reached())
+                    {
+                        glog.is_debug1() && glog << "Posting EvWaypointReached" << std::endl;
                         machine_->process_event(statechart::EvWaypointReached());
+                    }
+
                     break;
 
                 case protobuf::IvPBehaviorReport::BEHAVIOR_NOT_SET: break;
@@ -196,8 +203,34 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             bool mission_is_feasible = true;
 
             // must have at least one goal
-            if (command.plan().goal_size() == 0)
+            if (command.plan().movement() == protobuf::MissionPlan::TRANSIT &&
+                command.plan().goal_size() == 0)
+            {
+                glog.is_warn() && glog << "Infeasible mission: Must have at least one goal in "
+                                          "a TRANSIT mission"
+                                       << std::endl;
                 mission_is_feasible = false;
+            }
+
+            // cannot recover at final goal if there isn't one
+            if (command.plan().recovery().recover_at_final_goal() &&
+                command.plan().goal_size() == 0)
+            {
+                glog.is_warn() && glog << "Infeasible mission: Must have at least one goal to have "
+                                          "recover_at_final_goal: true"
+                                       << std::endl;
+                mission_is_feasible = false;
+            }
+
+            // must have a location if !recover_at_final_goal
+            if (!command.plan().recovery().recover_at_final_goal() &&
+                !command.plan().recovery().has_location())
+            {
+                glog.is_warn() && glog << "Infeasible mission: Must have recovery location if not "
+                                          "recovering at final goal"
+                                       << std::endl;
+                mission_is_feasible = false;
+            }
 
             if (mission_is_feasible)
             {
@@ -225,6 +258,17 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::STOP: machine_->process_event(statechart::EvStop()); break;
         case protobuf::Command::REDEPLOY: machine_->process_event(statechart::EvRedeploy()); break;
         case protobuf::Command::SHUTDOWN: machine_->process_event(statechart::EvShutdown()); break;
+
+        case protobuf::Command::REMOTE_CONTROL_SETPOINT:
+            machine_->process_event(statechart::EvRCSetpoint(command.rc()));
+            break;
+
+        case protobuf::Command::REMOTE_CONTROL_TASK:
+            machine_->process_event(statechart::EvPerformTask(command.rc_task()));
+            break;
+
+        case protobuf::Command::REMOTE_CONTROL_RESUME_MOVEMENT:
+            machine_->process_event(statechart::EvResumeMovement());
     }
 }
 
