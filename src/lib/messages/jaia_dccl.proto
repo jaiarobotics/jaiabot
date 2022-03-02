@@ -25,10 +25,11 @@ message Command
     {
         MISSION_PLAN = 1;
         START_MISSION = 2;
-        RETURN_TO_HOME = 3;
-        STOP = 4;
-        REDEPLOY = 5;
-        SHUTDOWN = 6;
+        NEXT_TASK = 3;
+        RETURN_TO_HOME = 4;
+        STOP = 5;
+        REDEPLOY = 6;
+        SHUTDOWN = 7;
     }
 
     required CommandType type = 10;
