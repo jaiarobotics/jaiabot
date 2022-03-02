@@ -37,8 +37,8 @@ ProcessConfig = uSimMarine
   
   prefix        = NAV
 
-  buoyancy_rate        = 0.025 // meters/sec                 
-  max_acceleration     = 0.5     // meters/sec^2               
+  buoyancy_rate        = 0.125 // meters/sec                 
+  max_acceleration     = 0.5     // meters/sec^2              
   max_deceleration     = 0.5   // meters/sec^2               
   max_depth_rate       = 0.5   // meters/sec                 
   max_depth_rate_speed = 2.0   // meters/sec
