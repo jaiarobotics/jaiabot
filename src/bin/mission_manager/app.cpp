@@ -215,6 +215,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvDeployed());
             break;
 
+        case protobuf::Command::NEXT_TASK:
+            machine_->process_event(statechart::EvTaskComplete());
+            break;
+
         case protobuf::Command::RETURN_TO_HOME:
             machine_->process_event(statechart::EvReturnToHome());
             break;
