@@ -54,8 +54,11 @@ class Fusion : public ApplicationBase
 
     void loop()
     {
-        auto time = goby::time::SystemClock::now<goby::time::MicroTime>();
-        latest_bot_status_.set_time_with_units(time);
+        // DCCL uses the real system clock to encode time, so "unwarp" the time first
+        auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
+            goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
+
+        latest_bot_status_.set_time_with_units(unwarped_time);
 
         if (latest_bot_status_.IsInitialized())
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
