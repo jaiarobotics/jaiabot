@@ -12,7 +12,12 @@ import common, common.hub, common.comms, common.sim, common.vehicle, common.udp
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
 except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 ./bot.launch"')
+    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
+
+try:
+    fleet_index=int(os.environ['jaia_fleet_index'])
+except:
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/hub'
 os.makedirs(log_file_dir, exist_ok=True)
@@ -38,7 +43,7 @@ verbosities = \
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
-                                                 platform='hub')
+                                                 platform='hub'+'_fleet' + str(fleet_index))
 
 
 if is_runtime():
