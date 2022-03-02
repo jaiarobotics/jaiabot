@@ -1,7 +1,7 @@
 $app_block
 $interprocess_block
 
-ais_serial {
-    port: "/tmp/pty_jaiahub"
-    baud: 115200
+ais_server {  
+  bind_port: 30100
+  set_reuseaddr: true
 }
