@@ -7,7 +7,7 @@ StartLimitIntervalSec=0
 Type=simple
 Restart=never
 User=root
-ExecStart=$dir/gps_i2c_pipe.py /opt/jaiabot/dev/gps
+ExecStart=$dir/gps_i2c_pipe.py /etc/jaiabot/dev/gps_i2c
 
 [Install]
 WantedBy=multi-user.target

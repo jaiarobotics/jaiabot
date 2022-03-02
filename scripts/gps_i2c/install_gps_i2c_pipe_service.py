@@ -8,3 +8,4 @@ service_string = string.Template(open('gps_i2c_pipe.service').read()).substitute
 open('/etc/systemd/system/gps_i2c_pipe.service', 'w').write(service_string)
 
 os.system('systemctl enable gps_i2c_pipe')
+os.system('systemctl restart gps_i2c_pipe')
