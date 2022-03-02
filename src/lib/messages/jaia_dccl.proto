@@ -3,6 +3,7 @@ syntax = "proto2";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/high_control.proto";
 
 package jaiabot.protobuf;
 
@@ -10,7 +11,7 @@ message Command
 {
     option (dccl.msg) = {
         id: 80
-        max_bytes: 250
+        max_bytes: 200
         codec_version: 3
         unit_system: "si"
     };
@@ -23,18 +24,35 @@ message Command
 
     enum CommandType
     {
+        // pre mission
         MISSION_PLAN = 1;
         START_MISSION = 2;
-        RETURN_TO_HOME = 3;
-        STOP = 4;
-        REDEPLOY = 5;
-        SHUTDOWN = 6;
+
+        // during any mission
+        NEXT_TASK = 10;
+        RETURN_TO_HOME = 11;
+        STOP = 12;
+
+        // during remote control mission
+        REMOTE_CONTROL_SETPOINT = 20;
+        REMOTE_CONTROL_TASK = 21;
+        REMOTE_CONTROL_RESUME_MOVEMENT = 22;
+
+        // post mission
+        REDEPLOY = 30;
+        SHUTDOWN = 31;
     }
 
     required CommandType type = 10;
 
     // required for type == MISSION_PLAN
     optional MissionPlan plan = 20;
+
+    // required for type == REMOTE_CONTROL_SETPOINT
+    optional RemoteControl rc = 30;
+
+    // required for type == REMOTE_CONTROL_TASK
+    optional MissionTask rc_task = 31;
 }
 
 message BotStatus

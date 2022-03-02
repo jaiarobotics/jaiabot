@@ -20,6 +20,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 {
   public:
     MissionManager();
+    ~MissionManager();
 
   private:
     void initialize() override;

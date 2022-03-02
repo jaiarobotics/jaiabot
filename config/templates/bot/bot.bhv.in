@@ -10,8 +10,7 @@ Behavior = BHV_Waypoint
   updates   = JAIABOT_TRANSIT_UPDATES
   
   endflag   = JAIABOT_TRANSIT_COMPLETE = true
-  endflag   = JAIABOT_WAYPOINT_ACTIVE = false
-  
+
   lead = 8
   lead_damper = 1
   lead_to_start = true

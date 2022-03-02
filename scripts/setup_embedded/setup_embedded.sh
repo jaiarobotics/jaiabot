@@ -79,7 +79,7 @@ then
   echo "---entry already exists"
 else
   echo "---making entry"
-  echo "PATH=\${HOME}/jaiabot/build/bin:\${PATH}" >> /home/ubuntu/.bashrc
+  echo "PATH=\${HOME}/jaiabot/build/arm64/bin:\${PATH}" >> /home/ubuntu/.bashrc
 fi
 
 echo "===Made it to the end! You need to reboot."

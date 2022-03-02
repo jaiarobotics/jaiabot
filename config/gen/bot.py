@@ -12,13 +12,18 @@ import common, common.vehicle, common.comms, common.sim, common.udp
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
 except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 ./bot.launch"')
+    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
-    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 ./bot.launch"')
+    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
+try:
+    fleet_index=int(os.environ['jaia_fleet_index'])
+except:
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
+    
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 debug_log_file_dir=log_file_dir 
 os.makedirs(log_file_dir, exist_ok=True)
@@ -34,7 +39,7 @@ verbosities = \
   'bluerobotics-pressure-sensor-driver':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_fusion':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_gps':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
+  'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }}
   'bot_pid_control': {'runtime': {'tty': 'DEBUG1', 'log': 'DEBUG2'},
                               'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
   }
@@ -42,7 +47,7 @@ verbosities = \
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
-                                                 platform='bot'+str(bot_index))
+                                                 platform='bot'+str(bot_index)+'_fleet' + str(fleet_index))
 
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
