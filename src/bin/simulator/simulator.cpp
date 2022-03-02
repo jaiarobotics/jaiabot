@@ -252,8 +252,17 @@ void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
             break;
 
         case protobuf::SETPOINT_REMOTE_CONTROL:
-            // unimplemented
-            break;
+        {
+            glog.is_debug1() && glog << "Received remote control: "
+                                     << desired_setpoints.remote_control().ShortDebugString()
+                                     << std::endl;
+
+            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
+            moos().comms().Notify("DESIRED_HEADING", desired_setpoints.remote_control().heading());
+            moos().comms().Notify("DESIRED_SPEED", desired_setpoints.remote_control().speed());
+            moos().comms().Notify("DESIRED_DEPTH", 0.0);
+        }
+        break;
 
         case protobuf::SETPOINT_DIVE:
             moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true");

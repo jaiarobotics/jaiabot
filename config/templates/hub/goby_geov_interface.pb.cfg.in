@@ -1,0 +1,9 @@
+$app_block
+$interprocess_block
+
+mysql_host: "127.0.0.1"
+mysql_user: "sea"
+mysql_password: "saline12"
+mysql_port: 3306
+mysql_core_db_name: "geov_core"
+simulation: true

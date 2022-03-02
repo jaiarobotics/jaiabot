@@ -5,7 +5,7 @@ set -e
 script_dir=$(dirname $0)
 
 cd ${script_dir}/..
-mkdir -p build
+mkdir -p build/arm64
 
 if [ "$(docker image ls build_system --format='true')" != "true" ];
 then
@@ -15,8 +15,6 @@ fi
 
 echo "🟢 Building jaiabot apps"
 docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t build_system bash -c "./scripts/arm64_build.sh"
-
-# Send the files to target machine
 
 if [ -z "$1" ]
     then
