@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 serial_radio {
-    port: "/opt/jaiabot/dev/xbee"
+    port: "/etc/jaiabot/dev/xbee"
     baud: 9600
 }
 
