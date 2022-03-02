@@ -43,6 +43,7 @@ class HubManager : public ApplicationBase
 {
   public:
     HubManager();
+    ~HubManager();
 
   private:
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
@@ -73,10 +74,26 @@ jaiabot::apps::HubManager::HubManager()
     }
 }
 
+jaiabot::apps::HubManager::~HubManager()
+{
+    for (auto id : cfg().managed_bot_modem_id())
+    {
+        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+            *subscriber_cfg.mutable_intervehicle();
+        intervehicle_cfg.add_publisher_id(id);
+
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> nav_subscriber(subscriber_cfg);
+
+        intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+            nav_subscriber);
+    }
+}
+
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
     glog.is_warn() && glog << group("bot_nav")
-                             << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+                           << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
@@ -102,6 +119,6 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
             dccl_nav.speed().over_ground_with_units());
 
     // publish for opencpn interface
-    if(node_status.IsInitialized())
-       interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+    if (node_status.IsInitialized())
+        interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
 }
