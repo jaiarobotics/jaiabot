@@ -20,25 +20,28 @@ The goal is to keep the state machine as simple as possible while still supporti
 	+ Failed: Vehicle has a fault that does not allow it to perform any mission.
 	+ WaitForMissionPlan: Vehicle waits for a mission plan from the operator
 	+ Ready: Vehicle is ready for deployment.
-- Underway: To be performed while the vehicle is in the water. (Use Cases: "Mission", "Recovery")
-	+ Movement: Vehicle is moving to the next Task.
-		* Transit: Vehicle is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
-		* RemoteControl: Vehicle is accepting RC commands from the UI. When RC commands aren't being received (for any reason), the vehicle is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current vehicle location.
-		* ...: Can be expanded in the future to allow other types of Movement states as needed
-	+ Task: Vehicle is performing a sampling, station keeping, or other discrete task.
-		* StationKeep: Vehicle is actively maintaining a position on the surface.
-		* SurfaceDrift: Vehicle is drifting (propulsor off).
-		* Dive: Vehicle performs a dive maneuver. 
-			- PoweredDescent: Vehicle is diving by powered reverse thrust.
-			- Hold: Vehicle is maintaining a specific depth.
-			- UnpoweredAscent: Vehicle thruster is off, waiting for vehicle to ascend.
-			- PoweredAscent: Vehicle is performing a powered ascent to the surface.
-		* ...: Can be expanded in the future for other types of Tasks.
-	+ Recovery: Vehicle is returning to a safe location for recovery.
-		* Transit: Vehicle is transiting to the recovery location.
-		* StationKeep: Vehicle is actively maintaining the recovery location position.
-		* Stopped: Control surfaces are stopped for a safe recovery.
-	+ Replan: Vehicle has received a new mission and is assessing feasibility.
+- InMission: Holds state variables for a given mission (what goal / task we are on)
+	- Underway: To be performed while the vehicle is in the water. (Use Cases: "Mission", "Recovery")
+		+ Movement: Vehicle is moving to the next Task.
+			* Transit: Vehicle is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
+			* RemoteControl: Vehicle is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the vehicle is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current vehicle location.
+				- Setpoint: Vehicle is performing a RC setpoint (heading, speed up to a given duration)
+				- StationKeep: Vehicle is stationkeeping waiting for the next Setpoint.
+			* ...: Can be expanded in the future to allow other types of Movement states as needed
+		+ Task: Vehicle is performing a sampling, station keeping, or other discrete task.
+			* StationKeep: Vehicle is actively maintaining a position on the surface.
+			* SurfaceDrift: Vehicle is drifting (propulsor off).
+			* Dive: Vehicle performs a dive maneuver. 
+				- PoweredDescent: Vehicle is diving by powered reverse thrust.
+				- Hold: Vehicle is maintaining a specific depth.
+				- UnpoweredAscent: Vehicle thruster is off, waiting for vehicle to ascend.
+				- PoweredAscent: Vehicle is performing a powered ascent to the surface.
+			* ...: Can be expanded in the future for other types of Tasks.
+		+ Recovery: Vehicle is returning to a safe location for recovery.
+			* Transit: Vehicle is transiting to the recovery location.
+			* StationKeep: Vehicle is actively maintaining the recovery location position.
+			* Stopped: Control surfaces are stopped for a safe recovery.
+		+ Replan: Vehicle has received a new mission and is assessing feasibility.
 - PostDeployment: To be performed after the vehicle is in the water. (Use Cases: "Post Mission")
 	+ Recovered: Vehicle has been recovered.
 	+ DataProcessing: First the goby_logger is stopped. Vehicle is doing automatic post mission conversions (e.g. .goby to HDF5, etc.). 
@@ -61,7 +64,8 @@ Events are what drives the changes in states. Some events are triggered by the o
 	+ START_ON_COMMAND: EvDeployed is posted when a Command is received of type = START_MISSION. 
 - EvWaypointReached: Triggered when the vehicle reaches the next waypoint. This is triggered via the pHelmIvP waypoint behavior publication (which is published as `jaiabot::groups::mission_ivp_behavior_report`).
 - EvPerformTask: Triggered in a variety of ways depending on the mission (movement) type:
-	- Transit: Triggered when EvWaypointReached is posted.
+	- Transit: Triggered when EvWaypointReached is posted. No data are passed so the next task in the mission is used.
+	- RemoteControl: Triggered via the operator UI using Command type: REMOTE_CONTROL_TASK. The desired manual task is passed a parameter to this event.
 - EvTaskComplete: Triggered when the task has been completed. This can be triggered in a variety of ways, depending on the task:
 	+ No task: Triggered immediately so that the vehicle returns to Movement.
 - EvNewMission: Triggered when the operator sends a new mission and the bot receives it.
@@ -70,23 +74,28 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvStopped: Triggered by a command from the operator or by the Abort state.
 - EvShutdown: Triggered by the operator.
 - EvRedeploy: Triggered by the operator to reset the vehicle back into the PreDeployment state.
-
-#### Unimplemented Events
-- EvSelfTestFails: The vehicle self test fails and the vehicle is unable to perform a mission. This is triggered by a yet-to-be-determined health monitoring application.
-- EvPerformTask: 
-	- RemoteControl: Triggered via the operator UI new task.
 - EvTaskComplete:
 	+ StationKeep: Not triggered. Rather, EvNewMission is triggered when the operator sends a new mission.
 	+ Dive: Triggered when the dive is completed and the vehicle is back on the surface.
-	+ SurfaceDrift: Triggered when the drift timer expires. (Or EvNewMission is triggered which starts the new mission).
+	+ SurfaceDrift: Triggered when the drift timer expires. (Or as always, EvNewMission is triggered which starts the new mission).
+- EvHoldComplete: Triggered when the depth target hold timeout expires.
+- EvDepthTargetReached: Triggered when the Dive behavior reaches a target depth.
+- EvSurfacingTimeout: Triggered when the vehicle has not surfaced after a set amount of time.
+- EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
+- EvVehicleDepth: Triggered whenever new depth information is received from the vehicle sensors (event contains the depth value as a parameter).
+- EvResumeMovement: Triggered by a command from the operator (type == REMOTE_CONTROL_RESUME_MOVEMENT) to put the vehicle out of RemoteControl and back into the mission's Movement state (which could still be RemoteControl).
+- EvRCSetpoint: Triggered by the operator providing a new remote control setpoint.
+- EvRCSetpointComplete: Triggered when the setpoint duration is exceeded.
+
+
+#### Unimplemented Events
+
+- EvSelfTestFails: The vehicle self test fails and the vehicle is unable to perform a mission. This is triggered by a yet-to-be-determined health monitoring application.
 - EvAbort: Abort triggered by yet-to-be-determined health monitoring process.
 - EvRecovered: Triggered when the vehicle detects it is out of the water.
 - EvBeginDataProcessing: Triggered by the operator? or automatically upon recovery?
 - EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
 - EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded.
-- EvDepthTargetReached: Triggered when the Dive behavior reaches a target depth.
-- EvHoldComplete: Triggered when the depth target hold timeout expires.
-- EvSurfacingTimeout: Triggered when the vehicle has not surfaced after a set amount of time.
 
 ### State data
 
@@ -141,5 +150,8 @@ Nominal progression (in all use cases):
 	+ Topside software (presumably `jaiabot_hub_manager`) generates a set of waypoints from the operation region and number of vehicles to create a mission plan so this is identical to the Waypoint mission as far as each vehicle is concerned.
 - Retasking Use case
 	+ This is handled by EvNewMission, which triggers the vehicle to Replan the mission and either begin execution (Movement) or stationkeep within Replan if the plan is infeasible (e.g. battery too low). The operator can then choose to send a feasible plan or recover.
-- Single Vehicle Remote Control Use Case (*unimplemented*)
-	+ This is handled using the Movement::RemoteControl state, toggling to the Task::* states via commands from the operator. When the operator isn't providing RC commands, the RemoteControl state will use setpoints from the pHelmIvP stationkeep behavior (until RC commands are received again).
+- Single Vehicle Remote Control Use Case
+	+ This is handled using the Movement::RemoteControl state, toggling to the Task::* states via commands from the operator. When the operator isn't providing RC setpoint commands, the RemoteControl state will use setpoints from the pHelmIvP stationkeep behavior (until RC setpoints commands are received again). Manual tasks can be sent by the operator as desired during this state.
+- Survey Mission to Single Vehicle Remote Control Use Case
+	+ This is handled by sending a standard mission plan containing waypoint goals (as Waypoint Mission or Optimized Survey Mission)
+	+ When the operator chooses, the RemoteControl setpoints can be sent which move the vehicle into the Movement::RemoteControl state. From here the operator can issue manual tasks as desired to perform. When the RC part of the mission is over, the operator can resume the original mission plan by sending REMOTE_CONTROL_RESUME_MOVEMENT.

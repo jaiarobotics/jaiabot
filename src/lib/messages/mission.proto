@@ -13,23 +13,24 @@ enum MissionState
     PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4;
     PRE_DEPLOYMENT__READY = 5;
 
-    UNDERWAY__REPLAN = 100;
+    IN_MISSION__UNDERWAY__REPLAN = 100;
 
-    UNDERWAY__MOVEMENT__TRANSIT = 110;
-    UNDERWAY__MOVEMENT__REMOTE_CONTROL = 111;
+    IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = 110;
+    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 111;
+    IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 112;
 
-    UNDERWAY__TASK__STATION_KEEP = 120;
-    UNDERWAY__TASK__SURFACE_DRIFT = 121;
-    UNDERWAY__TASK__DIVE__POWERED_DESCENT = 122;
-    UNDERWAY__TASK__DIVE__HOLD = 123;
-    UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 124;
-    UNDERWAY__TASK__DIVE__POWERED_ASCENT = 125;
+    IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
+    IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 122;
+    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 123;
+    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 124;
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 125;
 
-    UNDERWAY__RECOVERY__TRANSIT = 130;
-    UNDERWAY__RECOVERY__STATION_KEEP = 131;
-    UNDERWAY__RECOVERY__STOPPED = 132;
+    IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
+    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
+    IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 132;
 
-    UNDERWAY__ABORT = 140;
+    IN_MISSION__UNDERWAY__ABORT = 140;
 
     POST_DEPLOYMENT__RECOVERED = 200;
     POST_DEPLOYMENT__DATA_PROCESSING = 201;
@@ -45,6 +46,71 @@ message MissionReport
     };
 
     required MissionState state = 10;
+}
+
+message MissionTask
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    enum TaskType
+    {
+        DIVE = 1;
+        STATION_KEEP = 2;
+        SURFACE_DRIFT = 3;
+    }
+    required TaskType type = 1;
+
+    message DiveParameters
+    {
+        optional double max_depth = 1 [
+            default = inf,
+            (dccl.field) = {
+                min: 0
+                max: 100
+                precision: 0
+                units { base_dimensions: "L" }
+            }
+        ];
+        optional double depth_interval = 2 [
+            default = inf,
+            (dccl.field) = {
+                min: 0
+                max: 50
+                precision: 1
+                units { base_dimensions: "L" }
+            }
+        ];
+        optional double hold_time = 3 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: 0
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == DIVE
+    optional DiveParameters dive = 2;
+
+    message DriftParameters
+    {
+        optional int32 drift_time = 3 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: -1
+                units { base_dimensions: "T" }
+            }
+        ];
+    }
+
+    // for type == SURFACE_DRIFT
+    optional DriftParameters surface_drift = 3;
 }
 
 message MissionPlan
@@ -73,69 +139,9 @@ message MissionPlan
     {
         optional string name = 1 [(dccl.field).omit = true];
         required GeographicCoordinate location = 2;
-        message Task
-        {
-            enum TaskType
-            {
-                DIVE = 1;
-                STATION_KEEP = 2;
-                SURFACE_DRIFT = 3;
-            }
-            required TaskType type = 1;
-
-            message DiveParameters
-            {
-                optional double max_depth = 1 [
-                    default = inf,
-                    (dccl.field) = {
-                        min: 0
-                        max: 100
-                        precision: 0
-                        units { base_dimensions: "L" }
-                    }
-                ];
-                optional double depth_interval = 2 [
-                    default = inf,
-                    (dccl.field) = {
-                        min: 0
-                        max: 50
-                        precision: 1
-                        units { base_dimensions: "L" }
-                    }
-                ];
-                optional double hold_time = 3 [
-                    default = 0,
-                    (dccl.field) = {
-                        min: 0
-                        max: 3600
-                        precision: 0
-                        units { base_dimensions: "T" }
-                    }
-                ];
-            }
-
-            // for type == DIVE
-            optional DiveParameters dive = 2;
-
-            message DriftParameters
-            {
-                optional int32 drift_time = 3 [
-                    default = 0,
-                    (dccl.field) = {
-                        min: 0
-                        max: 3600
-                        precision: -1
-                        units { base_dimensions: "T" }
-                    }
-                ];
-            }
-
-            // for type == SURFACE_DRIFT
-            optional DriftParameters surface_drift = 3;
-        }
-        optional Task task = 3;
+        optional MissionTask task = 3;
     }
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 15];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
 
     message Recovery
     {
@@ -153,11 +159,13 @@ message IvPBehaviorUpdate
         option (dccl.msg) = {
             unit_system: "si"
         };
-        required double x = 1
+        required bool active = 1;
+
+        optional double x = 2
             [(dccl.field).units = { base_dimensions: "L" }];  // meters
-        required double y = 2
+        optional double y = 3
             [(dccl.field).units = { base_dimensions: "L" }];  // meters
-        required double speed = 3 [
+        optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
     }
@@ -181,6 +189,7 @@ message IvPBehaviorUpdate
         optional double transit_speed = 5 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
         ];  // meters/second
+        optional bool center_activate = 6 [default = false];
     }
 
     oneof behavior
