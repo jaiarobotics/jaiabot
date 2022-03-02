@@ -35,7 +35,7 @@ class Interface:
         #         }
         #     }
 
-        # self.send_command(cmd)
+        # self.post_command(cmd)
 
     def loop(self):
         while True:
@@ -48,12 +48,16 @@ class Interface:
                 if len(data) > 0:
                     botStatus = jaiabot.messages.jaia_dccl_pb2.BotStatus()
                     byteCount = botStatus.ParseFromString(data)
+                    print('🟢 BotStatus received')
+                    print(botStatus)
                     self.bots[botStatus.bot_id] = botStatus
             except socket.timeout:
                 pass
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, jaiabot.messages.jaia_dccl_pb2.Command())
+        command.time = now()
+        print('🟢 POSTING COMMAND:')
         print(command)
         self.sock.sendto(command.SerializeToString(), self.command_host)
 
