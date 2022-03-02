@@ -1,5 +1,7 @@
 #!/bin/bash
 
 ./build.sh
-cd server
-./app.py
+pushd server
+./app.py -s $1
+popd server
+
