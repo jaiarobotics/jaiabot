@@ -6,7 +6,7 @@ import sys
 try:
   device_name = sys.argv[1]
 except IndexError:
-  device_name = '/opt/jaiabot/dev/xbee'
+  device_name = '/etc/jaiabot/dev/xbee'
 
 s = serial.Serial(device_name, baudrate=9600)
 

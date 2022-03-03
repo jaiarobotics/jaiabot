@@ -24,7 +24,7 @@ if [ -z "$1" ]
         for var in "$@"
 	    do
     		echo "🟢 Uploading to "$var
-		    rsync -aP --delete --force --exclude={build/src,build/CMakeFiles,src/web/dist,src/web/node_modules} src build config scripts ubuntu@"$var":/home/ubuntu/jaiabot/
+		    rsync -aP --delete --force --relative ./build/bin ./build/lib ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 	    done
 fi
 
