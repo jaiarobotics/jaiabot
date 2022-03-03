@@ -477,7 +477,11 @@ void XBeeDevice::process_frame_node_identification_indicator(const string& respo
         node_id_to_serial_number_map[node_id] != serial_number) {
         node_id_to_serial_number_map[node_id] = serial_number;
         serial_number_to_node_id_map[serial_number] = node_id;
+
+
         broadcast_node_id();
+
+        
         glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec << " node_id= " << node_id << endl;
     }
 
