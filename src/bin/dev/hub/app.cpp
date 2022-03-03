@@ -32,7 +32,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
-#include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -106,8 +106,8 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 
 
     // command from Liaison -> XBee
-    interprocess().subscribe<groups::control_command>(
-        [this](const jaiabot::protobuf::ControlCommand& pb_msg) {
+    interprocess().subscribe<groups::vehicle_command>(
+        [this](const jaiabot::protobuf::VehicleCommand& pb_msg) {
             glog.is_debug1() && glog << group("main")
                                       << "Sending: " << pb_msg.ShortDebugString()
                                       << std::endl;

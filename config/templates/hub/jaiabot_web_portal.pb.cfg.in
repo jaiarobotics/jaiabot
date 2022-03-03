@@ -5,3 +5,21 @@ udp_config {
     bind_port: 40000
 }
 
+
+sub_config {
+    intervehicle
+    {
+        publisher_id: 2
+
+        # buffer configuration for the Command messages
+        buffer {
+            ack_required: false
+            blackout_time: 0
+            max_queue: 1
+            newest_first: true
+            ttl: 600
+            value_base: 1000
+        }
+    }
+}
+

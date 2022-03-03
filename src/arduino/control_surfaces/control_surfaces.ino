@@ -23,16 +23,20 @@ constexpr int BITS_IN_BYTE = 8;
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
-constexpr int STBD_ELEVATOR_PIN = 5;
-constexpr int PORT_ELEVATOR_PIN = 12;
-constexpr int RUDDER_PIN = 11;
-constexpr int MOTOR_PIN = 6;
+constexpr int STBD_ELEVATOR_PIN = 2;
+constexpr int RUDDER_PIN = 3;
+constexpr int PORT_ELEVATOR_PIN = 4;
+constexpr int MOTOR_PIN = 5;
 
 // The timeout
 unsigned long t_last_command = 0;
 int32_t command_timeout = -1; 
 void handle_timeout();
 void halt_all();
+
+// Motor ramp-up
+float motor = 0.0; // motor should range from -100.0 to +100.0
+const float MOTOR_DAMP = 0.2;
 
 static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
@@ -42,6 +46,12 @@ bool data_to_receive = false;
 jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
 jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
 
+
+enum AckCode {
+  STARTUP = 0,
+  ACK = 1,
+  TIMEOUT = 2,
+};
 
 
 void send_ack()
@@ -80,6 +90,11 @@ void setup()
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
+
+  // Send startup code
+  ack.code = STARTUP;
+  send_ack();
+
 }
 
 
@@ -123,7 +138,14 @@ void loop()
             }
             DEBUG_MESSAGE("Received ControlSurfaces");
 
-            motor_servo.writeMicroseconds (1500 - command.motor  * 400 / 100);
+            if (command.motor == 0) {
+              motor = command.motor;
+            }
+            else {
+              motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+            }
+
+            motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
             rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
             stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
             port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
@@ -132,7 +154,7 @@ void loop()
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
-            ack.code = 111;
+            ack.code = ACK;
             send_ack();
           }
           else
@@ -164,7 +186,11 @@ void handle_timeout() {
   
   unsigned long now = millis();
   if (now - t_last_command > command_timeout) {
+    command_timeout = -1;
     halt_all();
+
+    ack.code = TIMEOUT;
+    send_ack();
   }
 }
 

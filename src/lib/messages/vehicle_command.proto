@@ -1,0 +1,70 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/control_surfaces.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+
+package jaiabot.protobuf;
+
+message VehicleCommand
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required uint32 id = 1;
+    required uint32 vehicle = 2;
+    required uint64 time = 3 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    enum CommandType
+    {
+        LowLevel = 1;
+        Helm = 2;
+        Dive = 3;
+    }
+    required CommandType command_type = 4;
+
+    optional ControlSurfaces control_surfaces = 5;
+
+    message HelmCommand
+    {
+        required float course = 1;
+        optional float course_kp = 2;
+        optional float course_ki = 3;
+        optional float course_kd = 4;
+    }
+    optional HelmCommand helm_command = 6;
+
+    message DiveCommand
+    {
+        required float depth = 1;
+        optional float speed = 2;
+        optional int32 interval_count = 3;
+        optional float interval_duration = 4;
+    }
+    optional DiveCommand dive_command = 7;
+}
+
+message ControlAck
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required uint32 id = 1;
+    required uint32 vehicle = 2;
+    required uint64 time = 3 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+    required uint64 command_time = 4 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+    required GeographicCoordinate location = 5;
+
+    optional double range = 6
+        [(dccl.field) = { units { base_dimensions: "L" } }];
+    optional double speed = 7
+        [(dccl.field) = { units { derived_dimensions: "length/time" } }];
+    optional double eps = 12
+        [(dccl.field) = { units { derived_dimensions: "length/time" } }];
+}

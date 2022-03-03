@@ -1,0 +1,22 @@
+$app_block
+$interprocess_block
+
+bot_id: $bot_id
+
+command_sub_cfg {
+    intervehicle
+    {
+        # hub modem id
+        publisher_id: 1
+
+        # buffer configuration for the Command messages
+        buffer {
+            ack_required: false
+            blackout_time: 0
+            max_queue: 1
+            newest_first: true
+            ttl: 600
+            value_base: 1000
+        }
+    }
+}

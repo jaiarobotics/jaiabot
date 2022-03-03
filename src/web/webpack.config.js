@@ -113,10 +113,10 @@ module.exports = (env, argv) => [
       // new CleanWebpackPlugin([outputDirectory]),
       new HtmlWebpackPlugin({
         template: './public/index.html',
-        favicon: './public/favicon.ico'
+        favicon: './public/favicon.png'
       }),
       new CopyWebpackPlugin(
-        ['./public/favicon.png', './public/manifest.json', './public/AB_192_Icon.png', './public/AB_512_Icon.png'],
+        ['./public/favicon.png', './public/manifest.json'],
         {}
       ),
       new Dotenv({ path: `./${argv.mode}.env` }),

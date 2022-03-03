@@ -34,8 +34,17 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/control_surfaces.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/pid_control.pb.h"
+
+#define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 using goby::glog;
+using namespace std;
+using jaiabot::protobuf::rest::Command;
+
 namespace si = boost::units::si;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Fusion>;
 
@@ -60,8 +69,10 @@ class Fusion : public ApplicationBase
 
         latest_bot_status_.set_time_with_units(unwarped_time);
 
-        if (latest_bot_status_.IsInitialized())
+        if (latest_bot_status_.IsInitialized()) {
+            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): " << latest_bot_status_.ShortDebugString() << endl;
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+        }
     }
 
   private:
@@ -77,7 +88,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Fusion>(argc, argv));
 }
 
-jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
+jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 {
     init_node_status();
     init_bot_status();
@@ -103,6 +114,38 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
             if (att.has_roll())
             {
                 auto roll = att.heading_with_units();
+                latest_node_status_.mutable_pose()->set_roll_with_units(roll);
+                latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+            }
+        });
+    interprocess().subscribe<groups::imu>(
+        [this](const jaiabot::protobuf::IMUData& imu_data) {
+            glog.is_debug1() && glog << "Received Attitude update from IMU: " << imu_data.ShortDebugString()
+                                     << std::endl;
+
+            auto euler_angles = imu_data.euler_angles();
+
+            if (euler_angles.has_alpha())
+            {
+                // This produces a heading that is off by 180 degrees, so we need to rotate it
+                auto heading = euler_angles.alpha_with_units() + 180 * boost::units::degree::plane_angle();
+                if (heading > 360 * boost::units::degree::plane_angle()) {
+                    heading -= (360 * boost::units::degree::plane_angle());
+                }
+                latest_node_status_.mutable_pose()->set_heading_with_units(heading);
+                latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+            }
+
+            if (euler_angles.has_gamma())
+            {
+                auto pitch = euler_angles.gamma_with_units();
+                latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
+                latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+            }
+
+            if (euler_angles.has_beta())
+            {
+                auto roll = euler_angles.beta_with_units();
                 latest_node_status_.mutable_pose()->set_roll_with_units(roll);
                 latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
             }
@@ -138,6 +181,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
                 latest_bot_status_.mutable_speed()->set_over_ground_with_units(speed);
             }
 
+            if (tpv.has_track()) 
+            {
+                auto track = tpv.track_with_units();
+                latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
+                latest_bot_status_.mutable_attitude()->set_course_over_ground_with_units(track);
+            }
+
             // publish the latest status message with each GPS update
             if (tpv.has_time())
             {
@@ -150,9 +200,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
                 latest_node_status_.set_time_with_units(time);
             }
 
-            if (latest_node_status_.IsInitialized())
+            if (latest_node_status_.IsInitialized()) {
                 interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                     latest_node_status_);
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
@@ -164,12 +215,35 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(1.0 * si::hertz)
             latest_node_status_.mutable_local_fix()->set_z_with_units(
                 -latest_node_status_.global_fix().depth_with_units());
             latest_bot_status_.set_depth_with_units(depth);
+
+            if (pt.has_temperature()) {
+                latest_bot_status_.set_temperature_with_units(pt.temperature_with_units());
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
         });
+
+    interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
+        [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
+            // glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
+        });
+
+    interprocess().subscribe<jaiabot::groups::salinity>(
+        [this](const jaiabot::protobuf::SalinityData& salinityData) {
+            glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
+            latest_bot_status_.set_salinity(salinityData.salinity());
+        });
+
+    // subscribe for commands, to set last_command_time
+    interprocess().subscribe<jaiabot::groups::bot_status>([this](const Command& command) {
+            glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std:: endl;
+
+            latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
+        });
+
 }
 
 void jaiabot::apps::Fusion::init_node_status()

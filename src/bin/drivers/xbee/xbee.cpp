@@ -2,6 +2,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
+#include "goby/util/debug_logger.h"
+
+using goby::glog;
 
 #define DEBUG 0
 
@@ -9,6 +12,11 @@ using namespace boost::algorithm;
 using namespace std;
 using namespace boost::asio;
 using namespace boost::endian;
+
+// Node ID broadcast timeout
+
+const std::time_t node_id_broadcast_timeout = 10; // Don't broadcast our node_id within N seconds of a previous broadcast, to avoid back-and-forth loops
+std::time_t last_node_id_broadcast_time = 0;
 
 // Frame types
 
@@ -81,7 +89,7 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
     // Set the three configuration parameters, so we're on the same network as other XBee modems
     {
         stringstream cmd;
-        cmd << "ATCM=FFFFFFFFFFF7FFFF" << '\r';
+        cmd << "ATRE" << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -120,9 +128,9 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
 
     get_maximum_payload_size();
 
-    broadcast_node_id();
+    get_my_serial_number();
 
-    network_discover();
+    broadcast_node_id();
 
     do_work();
 
@@ -130,6 +138,36 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
 } // startup
 
 void XBeeDevice::shutdown() {
+    // Setup the modem
+    glog.is_verbose() && glog << "Shutting down xbee modem, returning to transparent mode" << endl;
+
+    enter_command_mode();
+
+    {
+        // Set to another value, so it doesn't interfere with active bots
+        stringstream cmd;
+        cmd << "ATID=0001" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        // Set the node_id to blank
+        stringstream cmd;
+        cmd << "ATNIunused\r";
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        // Set modem to transparent mode
+        stringstream cmd;
+        cmd << "ATAP=0\r";
+        write(cmd.str());
+        assert_ok();
+    }
+
+    exit_command_mode();    
     port->close();
 }
 
@@ -137,6 +175,16 @@ void XBeeDevice::get_maximum_payload_size() {
     // Send ND command
     string cmd = string("\x08") + *((char *) &frame_id) + string("NP");
     write(frame_data(cmd));
+    frame_id++;
+}
+
+void XBeeDevice::get_my_serial_number() {
+    string cmd = string("\x08") + *((char *) &frame_id) + string("SH");
+    write(frame_data(cmd));
+    frame_id++;
+
+    string cmd2 = string("\x08") + *((char *) &frame_id) + string("SL");
+    write(frame_data(cmd2));
     frame_id++;
 }
 
@@ -157,9 +205,8 @@ void XBeeDevice::network_discover() {
 void XBeeDevice::write(const string& raw) {
     // Write data
     port->write_some(buffer(raw.c_str(), raw.size()));
-#if DEBUG
-    cout << "Wrote: " << raw << endl << "  hex: " << hexadecimal(raw) << endl;
-#endif
+    glog.is_debug2() && glog << "Wrote: " << raw << endl;
+    glog.is_debug2() && glog << "  hex: " << hexadecimal(raw) << endl;
 }
 
 string XBeeDevice::read_until(const string& delimiter) {
@@ -182,7 +229,7 @@ size_t XBeeDevice::bytes_available() {
     {
         boost::system::error_code error = boost::system::error_code(errno,
          boost::asio::error::get_system_category());
-        cout << "ERROR: " << error.message() << endl;
+        glog.is_warn() && glog << "ERROR: " << error.message() << endl;
         return 0;
     }
     return size_t(n_bytes_available);
@@ -200,14 +247,16 @@ void XBeeDevice::assert_ok() {
     string input_line = read_until("\r");
     trim(input_line);
     if (input_line != "OK") {
-        cout << "Modem response: " << input_line << endl;
+        glog.is_warn() && glog << "ERROR, expecting OK, modem response: " << input_line << endl;
     }
     assert(input_line == "OK");
 }
 
 void XBeeDevice::exit_command_mode() {
     write("ATCN\r");
-    assert_ok();
+    sleep(1);
+    // Read until we get the OK, in case some binary data comes through and interferes
+    read_until("OK\r");
 }
 
 vector<NodeId> XBeeDevice::get_peers() {
@@ -224,11 +273,14 @@ vector<NodeId> XBeeDevice::get_peers() {
 string XBeeDevice::read_frame() {
     byte start_delimiter;
     read(&start_delimiter, 1);
-    assert(start_delimiter == 0x7e);
+    if (start_delimiter != 0x7e) {
+        glog.is_warn() && glog << "ERROR: Wrong start_delimiter for frame: " << start_delimiter << endl;
+    }
 
     uint16_t response_size;
     read(&response_size, 2);
     response_size = big_to_native(response_size);
+    glog.is_debug1() && glog << "Waiting for frame of size " << response_size << " bytes." << endl;
 
     auto response_buffer = new byte[response_size];
     read(response_buffer, response_size);
@@ -242,7 +294,7 @@ string XBeeDevice::read_frame() {
     read(&cs_correct, 1);
 
     if (cs != cs_correct) {
-        cout << "ERROR: Incorrect checksum in frame data" << cs << " != " << cs_correct << endl;
+        glog.is_warn() && glog << "ERROR: Incorrect checksum in frame data" << cs << " != " << cs_correct << endl;
         return "";
     }
 
@@ -260,27 +312,31 @@ void XBeeDevice::do_work() {
 
 void XBeeDevice::process_frame_if_available() {
     while(bytes_available() > 0) {
-        auto response_string = read_frame();
+        process_frame();
+    }
+}
 
-        byte frame_type = ((byte*) response_string.c_str())[0];
+void XBeeDevice::process_frame() {
+    auto response_string = read_frame();
 
-        switch (frame_type) {
-            case frame_type_extended_transmit_status:
-                process_frame_extended_transmit_status(response_string);
-                break;
-            case frame_type_at_command_response:
-                process_frame_at_command_response(response_string);
-                break;
-            case frame_type_receive_packet:
-                process_frame_receive_packet(response_string);
-                break;
-            case frame_type_node_identification_indicator:
-                process_frame_node_identification_indicator(response_string);
-                break;
-            default:
-                cout << "Unknown frame_type = " << (int) frame_type << endl;
-                break;
-        }
+    byte frame_type = ((byte*) response_string.c_str())[0];
+
+    switch (frame_type) {
+        case frame_type_extended_transmit_status:
+            process_frame_extended_transmit_status(response_string);
+            break;
+        case frame_type_at_command_response:
+            process_frame_at_command_response(response_string);
+            break;
+        case frame_type_receive_packet:
+            process_frame_receive_packet(response_string);
+            break;
+        case frame_type_node_identification_indicator:
+            process_frame_node_identification_indicator(response_string);
+            break;
+        default:
+            cout << "Unknown frame_type = " << (int) frame_type << endl;
+            break;
     }
 }
 
@@ -312,15 +368,26 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         SerialNumber serial_number = *((SerialNumber *) info->serial_number);
         NodeId node_id = string(&info->node_id_start);
 
-#if DEBUG
-        cout << "NodeInfo node_id=" << node_id << " serial_number=" << std::hex << serial_number << std::dec << endl;
-#endif
+        glog.is_verbose() && glog << "NodeInfo node_id=" << node_id << " serial_number=" << std::hex << serial_number << std::dec << endl;
 
         node_id_to_serial_number_map[node_id] = serial_number;
         serial_number_to_node_id_map[serial_number] = node_id;
         flush_packets_for_node(node_id);
 
         return;
+    }
+
+    if (at_command == "SH") {
+        assert(response->command_status == 0);
+        uint32_t upper_serial_number = *((uint32_t *)&response->command_data_start);
+        my_serial_number |= (SerialNumber)upper_serial_number;
+    }
+
+    if (at_command == "SL") {
+        assert(response->command_status == 0);
+        uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
+        my_serial_number |= ((SerialNumber) lower_serial_number << 32);
+        glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
     }
 
     if (at_command == "CB") {
@@ -330,9 +397,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "NP") {
         max_payload_size = big_to_native(*((uint16_t *) &response->command_data_start));
-#if DEBUG
-        cout << "Maximum payload: " << max_payload_size << " bytes" << endl;
-#endif
+        glog.is_verbose() && glog << "Maximum payload: " << max_payload_size << " bytes" << endl;
         return;
     }
 
@@ -348,7 +413,7 @@ void XBeeDevice::flush_packets_for_node(const NodeId& node_id) {
                 auto serial_number = node_id_to_serial_number_map.at(packet.dest);
                 send_packet(serial_number, (byte *) packet.data.c_str(), packet.data.size());
             } catch (exception& error) {
-                cout << "WARNING: No cached serial_number for node_id " << node_id << " still." << endl;
+                glog.is_warn() && glog << "WARNING: No cached serial_number for node_id " << node_id << " still." << endl;
                 return;
             }
             it = outbound_packet_queue.erase(it);
@@ -376,9 +441,7 @@ void XBeeDevice::process_frame_extended_transmit_status(const string& response_s
     assert(response->frame_type == 0x8b);
     assert(response_size == 7);
 
-#if DEBUG
-    cout << "Transmit status = " << (int) response->delivery_status << ", retry count = " << (int) response->transmit_retry_count << ", discovery_status = " << (int) response->discovery_status << endl;
-#endif
+    glog.is_debug2() && glog << "Transmit status = " << (int) response->delivery_status << ", retry count = " << (int) response->transmit_retry_count << ", discovery_status = " << (int) response->discovery_status << endl;
 }
 
 void XBeeDevice::process_frame_receive_packet(const string& response_string) {
@@ -397,9 +460,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
     auto packet = string((char *) &response->received_data_start, data_size);
     received_packets.push_back(packet);
 
-#if DEBUG
-    cout << "Received datagram data=" << hexadecimal(packet) << endl;
-#endif
+    glog.is_debug2() && glog << "Received datagram data=" << hexadecimal(packet) << endl;
 }
 
 void XBeeDevice::process_frame_node_identification_indicator(const string& response_string) {
@@ -416,12 +477,23 @@ void XBeeDevice::process_frame_node_identification_indicator(const string& respo
     auto info = (const Info*) response_string.c_str();
     NodeId node_id = string((char *) &info->node_id_start);
     SerialNumber serial_number = *((SerialNumber *) &info->remote_serial_number);
-#if DEBUG
-    cout << "Recieved node ID indicator, node_id=" << node_id << ", serial_number=" << std::hex << serial_number << std::dec << endl;
-#endif
 
-    node_id_to_serial_number_map[node_id] = serial_number;
-    serial_number_to_node_id_map[serial_number] = node_id;
+    // If we receive a node_id within timeout, then we should respond and tell them our node_id, because they're
+    //   new to this network.
+    std::time_t current_time = std::time(nullptr);
+
+    if (current_time - last_node_id_broadcast_time > node_id_broadcast_timeout) {
+        broadcast_node_id();
+        last_node_id_broadcast_time = std::time(nullptr);
+    }
+
+    if (node_id_to_serial_number_map.find(node_id) == node_id_to_serial_number_map.end() ||
+        node_id_to_serial_number_map[node_id] != serial_number) {
+        node_id_to_serial_number_map[node_id] = serial_number;
+        serial_number_to_node_id_map[serial_number] = node_id;
+        
+        glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec << " node_id= " << node_id << endl;
+    }
 
     flush_packets_for_node(node_id);
 }
@@ -436,10 +508,8 @@ vector<string> XBeeDevice::get_packets() {
 string api_transmit_request(const SerialNumber& dest, const byte frame_id, const byte* ptr, const size_t length) {
     auto data_string = string((const char *) ptr, length);
     auto serial_number_string = string((const char *)&dest, sizeof(SerialNumber));
-#if DEBUG
-    cout << "   TX REQ for data:" << hexadecimal(data_string) << endl;
-    cout << "   dest: " << hexadecimal(serial_number_string) << endl;
-#endif
+    glog.is_debug2() && glog << "   TX REQ for data:" << hexadecimal(data_string) << endl;
+    glog.is_debug2() && glog << "   dest: " << hexadecimal(serial_number_string) << endl;
     string s = string("\x10") + string((char *) &frame_id, 1) + serial_number_string + string("\xff\xfe\x00\x00", 4) + data_string;
     return s;
 }

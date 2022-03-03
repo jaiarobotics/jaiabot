@@ -8,7 +8,8 @@ RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 # Install jaiabot dependencies
 RUN apt-get update && \
     apt-get -y upgrade && \
-    apt-get -y install libgoby3-dev:arm64 \
+    apt-get -y install libgoby3:arm64 \
+            libgoby3-dev:arm64 \
             libgoby3-moos-dev:arm64 \
             libgoby3-moos:arm64 \
             libgoby3-gui-dev:arm64 \
@@ -16,5 +17,6 @@ RUN apt-get update && \
             libnanopb-dev:arm64 \
             nanopb:amd64 \
             python3-protobuf:amd64 \
+            wget:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*

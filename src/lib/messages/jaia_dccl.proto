@@ -69,6 +69,10 @@ message BotStatus
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
+    optional uint64 last_command_time = 53 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
 
     optional GeographicCoordinate location = 10;
 
@@ -126,4 +130,18 @@ message BotStatus
     optional Speed speed = 30;
 
     optional MissionState mission_state = 40;
+
+    optional double salinity = 51 [(dccl.field) = {
+            min: 0
+            max: 100
+            precision: 1
+        }];
+
+    optional double temperature = 52 [(dccl.field) = {
+        min: -50
+        max: 100
+        precision: 2
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+
 }

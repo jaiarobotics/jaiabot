@@ -78,6 +78,7 @@ class XBeeDevice
     boost::asio::io_service *io;
     boost::asio::serial_port *port;
     NodeId my_node_id;
+    SerialNumber my_serial_number;
     byte frame_id;
 
     // Map of node_id onto serial number
@@ -90,6 +91,7 @@ class XBeeDevice
     deque<Packet> outbound_packet_queue;
 
     // Called during startup
+    void get_my_serial_number();
     void get_maximum_payload_size();
     void broadcast_node_id();
     void network_discover();
@@ -113,6 +115,7 @@ class XBeeDevice
     SerialNumber get_serial_number(const NodeId& node_id);
 
     // Processing frames
+    void process_frame();
     void process_frame_if_available();
     void process_frame_extended_transmit_status(const string& response_string);
     void process_frame_at_command_response(const string& response_string);

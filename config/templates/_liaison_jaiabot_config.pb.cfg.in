@@ -1,8 +1,8 @@
 [jaiabot.protobuf.jaiabot_config] {
     mode: $mode
     load_vehicle: 0
-    motor_bounds { min: -100 max: 100 n_ticks: 10 step: 10 min_label: 'OFF' max_label: 'Full Throttle' }
+    motor_bounds { min: -100 max: 100 n_ticks: 10 step: 10 min_label: 'STOP' max_label: 'FULL_THROTTLE' }
     elevator_bounds { min: -100 max: 100 n_ticks: 10 step: 10 min_label: 'DN' max_label: 'UP' }
     rudder_bounds { min: -100 max: 100 n_ticks: 10 step: 10 min_label: 'PORT' max_label: 'STBD' }
-    timeout_bounds { min: 2 max: 120 n_ticks: 10 step: 1 }
+    timeout_bounds {min: 2 max: 120 n_ticks: 10 step: 5 }
 }

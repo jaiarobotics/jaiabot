@@ -41,4 +41,3 @@ def wifi_mac_slots(vehicle_id):
 def xbee_mac_slots(vehicle_id):
     slots = 'slot { src: ' + str(xbee_modem_id(vehicle_id)) + ' slot_seconds: 1 max_frame_bytes: 200 }\n'
     return slots
-
