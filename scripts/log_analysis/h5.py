@@ -24,8 +24,10 @@ RestCommand_timeout = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/timeo
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
 
+
 def date_from_micros(micros):
-    return datetime.datetime.fromtimestamp(micros / 1e6)
+    date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()
+    return date
 
 
 class Series:
@@ -59,6 +61,9 @@ class H5FileSet:
                 except KeyError:
                     print(f'WARNING:  Cannot locate {dataset_name} in {h5_file}')
                     pass
+
+                # Sentinel nil value, to prevent connection of multiple series
+                all_data.append(None)
 
             series = Series(name, all_data)
             self.series[dataset_name] = series
