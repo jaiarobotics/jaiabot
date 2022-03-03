@@ -18,35 +18,54 @@ parser.add_argument('port', metavar='port', type=int, help='port to publish orie
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
-# Setup the sensor
-if not args.simulator:
-    i2c = board.I2C()
-    success = False
-    while not success:
+
+class IMU:
+
+    def __init__(self):
+        self.is_setup = False
+
+    def setup(self):
+        if not self.is_setup:
+            self.i2c = board.I2C()
+            self.sensor = adafruit_bno055.BNO055_I2C(self.i2c)
+            self.sensor.mode = adafruit_bno055.NDOF_MODE
+            self.is_setup = True
+
+    def getData(self):
+        if not self.is_setup:
+            self.setup()
+
         try:
-            sensor = adafruit_bno055.BNO055_I2C(i2c)
-        except RuntimeError as e:
-            print(e.__str__)
-            sleep(2)
-        else:
-            sensor.mode = adafruit_bno055.NDOF_MODE
-            success = True  
+            return {
+                "euler": self.sensor.euler,
+                "linear_acceleration": self.sensor.linear_acceleration,
+                "gravity": self.sensor.gravity
+            }
+        except OSError as e:
+            self.is_setup = False
+            raise e
 
 
-def getRealData():
-    return {
-        "euler": sensor.euler,
-        "linear_acceleration": sensor.linear_acceleration,
-        "gravity": sensor.gravity
-    }
+class IMUSimulator:
+    def __init__(self):
+        pass
+
+    def setup(self):
+        pass
+
+    def getData(self):
+        return {
+            "euler": (0.0, 0.0, 0.0),
+            "linear_acceleration": (0.0, 0.0, 0.0),
+            "gravity": (0.0, 0.0, 9.8)
+        }
 
 
-def getFakeData():
-    return {
-        "euler": (0.0, 0.0, 0.0),
-        "linear_acceleration": (0.0, 0.0, 0.0),
-        "gravity": (0.0, 0.0, 9.8)
-    }
+# Setup the sensor
+if args.simulator:
+    imu = IMUSimulator()
+else:
+    imu = IMU()
 
 
 # Create socket
@@ -59,10 +78,11 @@ while True:
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
     # Respond to anyone who sends us a packet
-    if args.simulator:
-        data = getFakeData()
-    else:
-        data = getRealData()
+    try:
+        data = imu.getData()
+    except Exception as e:
+        print(e)
+        continue
 
     now = datetime.utcnow()
     euler = data['euler']
@@ -75,7 +95,8 @@ while True:
             linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
             gravity[0], gravity[1], gravity[2])
     except TypeError as e:
-        print(e.__str__)
+        print(e)
 
+    print('Sent: ', line)
     sock.sendto(line.encode('utf8'), addr)
 

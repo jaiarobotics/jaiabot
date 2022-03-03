@@ -8,9 +8,13 @@ import argparse
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("hostname", type=str, help="goby hostname to send and receive protobuf messages")
-parser.add_argument("port", type=int, help="goby port to send and receive protobuf messages")
+parser.add_argument("hostname", type=str, nargs="?", help="goby hostname to send and receive protobuf messages")
+parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 args = parser.parse_args()
+
+if args.hostname is None:
+    print('no ip specified, using localhost')
+    args.hostname = "localhost"
 
 jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port))
 
@@ -18,6 +22,7 @@ app = Flask(__name__)
 
 ####### Static files
 root = '../dist/client/'
+pid = 'pid/'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
@@ -34,9 +39,12 @@ def JSONResponse(obj):
 
 
 @app.route('/jaia/getStatus', methods=['GET'])
+def getABStatus():
+    return JSONResponse(jaia_interface.get_ab_status())
+
+@app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
-
 
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
@@ -46,6 +54,10 @@ def getMissionStatus():
 def setManualID():
     return JSONResponse(jaia_interface.set_manual_id())
 
+@app.route('/jaia/command', methods=['POST'])
+def postCommand():
+    jaia_interface.send_command(request.json)
+    return JSONResponse({"status": "ok"})
 
 ######## Map tiles
 
@@ -63,6 +75,17 @@ def getTilesIndex():
 @app.route('/missionfiles/list', methods=['GET'])
 def getMissionFilesList():
     return JSONResponse([])
+
+
+######## PID control
+
+@app.route('/pid/<path>', methods=['GET'])
+def pidStaticFile(path):
+    return send_from_directory(pid, path)
+
+@app.route('/pid/', methods=['GET'])
+def pidRoot():
+    return pidStaticFile('index.html')
 
 
 if __name__ == '__main__':

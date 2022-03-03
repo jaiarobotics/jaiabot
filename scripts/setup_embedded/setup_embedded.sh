@@ -40,7 +40,7 @@ echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | s
 # install the public key for packages.gobysoft.org
 apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 apt update
-apt install -y gpsd gpsd-clients python3-pip goby3-apps
+apt install -y gpsd gpsd-clients python3-pip goby3-apps goby3-gui
 
 echo "===Setting up gpsd"
 cp gpsd /etc/default/
@@ -59,9 +59,9 @@ pip install smbus adafruit-circuitpython-busdevice adafruit-circuitpython-regist
 echo "===Placing run script in the home dir"
 if [ $1 == 'bot' ]
 then
-  cp run.sh_bot /home/ubuntu/run.sh
+  ln -sf ${PWD}/run.sh_bot /home/ubuntu/run.sh
 else
-  cp run.sh_hub /home/ubuntu/run.sh
+  ln -sf ${PWD}/run.sh_hub /home/ubuntu/run.sh
 fi
 chmod +x /home/ubuntu/run.sh
 chown ubuntu:ubuntu /home/ubuntu/run.sh
@@ -69,8 +69,8 @@ chown ubuntu:ubuntu /home/ubuntu/run.sh
 if [ $1 == 'bot' ]
 then
   echo "===Setting up Arduino"
-  cd /home/ubuntu/jaiabot/src/arduino
-  sudo -u ubuntu ./setup.sh
+  cd /home/ubuntu/jaiabot/scripts
+  sudo -u ubuntu ./setup_arduino_cli.sh
 fi
 
 echo "===Updating path in .bashrc"

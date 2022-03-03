@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+
+    <link rel="stylesheet" href="style.css">
+
+  </head>
+
+  <body id="body">
+
+    <div class="row" style="background-color: white;">
+      <div>
+        <image src="/favicon.png" style="display: inline-block;"></image>
+        <h2 style="display: inline-block; vertical-align: text-bottom; margin: 10pt">Engineering</h2>
+      </div>
+      <div>
+        <button id="helpButton" onclick="helpButtonOnClick()">⌨️</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label class="timeout" for="timeout">Timeout: <div id="timeoutValue" class="sliderValue" style="width: 20pt; text-align: right;"></div>seconds</label>
+        <div id="timeoutSliderContainer" style="display: inline-block; margin-left: 20pt;"></div>
+      </div>
+    </div>
+
+<!-- Dive Panels     -->
+    
+<div class="row">
+  <div class="manualOrPidButtonContainer">
+    <input type="button" class="manualOrPidButton manual" id="diveManualButton" value="Manual">
+    <input type="button" class="manualOrPidButton pid" id="divePIDButton" value="PID">
+  </div>
+
+  <div class="left-section manual" id="diveManualSection">
+    <div class="slidersContainer">
+      <div id="diveManualSliderContainer"></div>
+    </div>
+  </div>
+
+  <div class="section pid" id="divePIDSection">
+    <div class="sliderAndGainsContainer">
+      <div id="divePIDSliderContainer"></div>
+      <div id="divePIDGains"></div>
+    </div>
+  </div>
+
+  <div style="width: 100pt">
+    <button id="diveButton" onclick="diveButtonOnClick()">🤿 Dive</button>
+  </div>
+</div>
+
+<!-- Throttle and Speed -->
+
+    <div class="row">
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="throttleManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="throttlePIDButton" value="PID">
+      </div>
+
+      <div class="left-section manual" id="throttleSection">
+        <div class="slidersContainer">
+          <div id="throttleSliderContainer"></div>
+        </div>
+      </div>
+
+      <div class="section pid" id="speedSection">
+        <div class="sliderAndGainsContainer">
+          <div id="speedSliderContainer"></div>
+          <div id="speedGains"></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; justify-content: center; width: 100pt">
+        <div id="deadMansSwitch">❌</div>
+      </div>
+    </div>
+
+<!-- Rudder and Heading -->
+
+    <div class="row">
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="rudderManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="rudderPIDButton" value="PID">
+      </div>
+
+      <div class="left-section manual" id="rudderSection">
+        <div class="slidersContainer">
+          <div id="rudderSliderContainer"></div>
+        </div>
+      </div>
+
+      <div class="section pid" id="headingSection">
+        <div class="sliderAndGainsContainer">
+          <div class="sliderName">Heading</div><div class="sliderValue" id="headingValue">0</div><div class="sliderValue" id="headingDirectionField"></div>
+          <canvas id="headingWidget" width="150" height="150"></canvas>
+
+          <div id="headingGains"></div>
+        </div>
+      </div>
+
+      <div style="width: 100pt"></div>
+    </div>
+
+<!-- Elevators and Roll -->
+
+    <div class="row">
+      <div class="manualOrPidButtonContainer">
+        <input type="button" class="manualOrPidButton manual" id="elevatorsManualButton" value="Manual">
+        <input type="button" class="manualOrPidButton pid" id="elevatorsPIDButton" value="PID">
+      </div>
+
+      <div class="left-section manual" id="elevatorsSection">
+        <div class="slidersContainer">
+          <div id="portElevatorSliderContainer"></div>
+          <div id="stbdElevatorSliderContainer"></div>
+        </div>
+      </div>
+
+      <div class="section pid" id="rollSection">
+        <div class="sliderAndGainsContainer">
+          <div id="rollSliderContainer"></div>
+          <div id="rollGains"></div>
+        </div>
+        <div class="sliderAndGainsContainer">
+          <div id="pitchSliderContainer"></div>
+          <div id="pitchGains"></div>
+        </div>
+      </div>
+
+      <div style="width: 100pt"></div>
+    </div>
+
+    <div id="status" class="row">
+      <table class="status" id="statusTable">
+      </table>
+    </div>
+
+    <div class="helpPane hidden" id="helpPane"><button onclick="helpButtonOnClick()" class="close">✖️</button></button><image src="helpPane.png"></div>
+
+  </body>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="script.js"></script>
+
+</html>

@@ -39,10 +39,11 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
-constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+constexpr goby::middleware::Group salinity{"jaiabot::salinity",
+                                            goby::middleware::Group::broadcast_group};
 
 // low control
-constexpr goby::middleware::Group control_command{"jaiabot::control_command"};
+constexpr goby::middleware::Group vehicle_command{"jaiabot::vehicle_command"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 
 // high control
@@ -58,6 +59,13 @@ constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
                                              goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
                                               goby::middleware::Group::broadcast_group};
+
+// pid-control-web
+constexpr goby::middleware::Group pid_control{"jaiabot::pid_control",
+                                              goby::middleware::Group::broadcast_group};
+
+// control surfaces
+constexpr goby::middleware::Group control_surfaces_ack{"jaiabot::control_surfaces_ack"};
 
 } // namespace groups
 } // namespace jaiabot

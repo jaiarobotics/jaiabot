@@ -4,14 +4,14 @@ link {
     driver { 
         # returned by goby_driver_name() function in shared library listed in GOBY_MODEMDRIVER_PLUGINS
         driver_name: "xbee_driver"
-        serial_port: "/dev/ttyUSB0"
+        serial_port: "/etc/jaiabot/dev/xbee"
         serial_baud: 9600
         modem_id: $modem_id
     }
     mac { 
         type: MAC_FIXED_DECENTRALIZED 
-        slot { src: 1 type: DATA slot_seconds: 1 }
-        slot { src: 2 type: DATA slot_seconds: 1 }
+        slot { src: 1 type: DATA slot_seconds: 0.5 }
+        slot { src: 2 type: DATA slot_seconds: 0.5 }
     }
 
     # Buffer values for the forwarded subscription (message sent to set up the subscription itself)

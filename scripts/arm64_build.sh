@@ -1,6 +1,7 @@
 #!/bin/bash
 
 script_dir=$(dirname $0)
+build_dir=${script_dir}/../build
 
 mkdir -p ${script_dir}/../build/arm64
 cd ${script_dir}/../build/arm64

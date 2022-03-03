@@ -24,15 +24,18 @@
 // this space intentionally left blank
 #include <goby/zeromq/application/multi_thread.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/rest_interface.pb.h"
+#include "jaiabot/messages/pid_control.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
 
 #include <vector>
 
-#define NOW (1000000000)
+#define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 using string = std::string;
 using goby::glog;
 namespace si = boost::units::si;
@@ -55,14 +58,30 @@ constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
 REST::BotStatus convert(const BotStatus& input_status) {
     REST::BotStatus bot_status;
     bot_status.set_bot_id(input_status.bot_id());
-    bot_status.set_time(NOW);
+    bot_status.set_time_with_units(NOW);
+    bot_status.set_last_command_time_with_units(input_status.last_command_time_with_units());
 
-    bot_status.mutable_location()->set_lat(input_status.location().lat());
-    bot_status.mutable_location()->set_lon(input_status.location().lon());
+    if (input_status.has_location()) {
+        bot_status.mutable_location()->set_lat(input_status.location().lat());
+        bot_status.mutable_location()->set_lon(input_status.location().lon());
+    }
 
     bot_status.set_depth(input_status.depth());
+    bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
 
-    bot_status.mutable_attitude()->set_heading(input_status.attitude().heading());
+    auto attitude = bot_status.mutable_attitude();
+    attitude->set_course_over_ground(input_status.attitude().course_over_ground());
+    attitude->set_heading(input_status.attitude().heading());
+    attitude->set_roll(input_status.attitude().roll());
+    attitude->set_pitch(input_status.attitude().pitch());
+
+    if (input_status.has_salinity()) {
+        bot_status.set_salinity(input_status.salinity());
+    }
+
+    if (input_status.has_temperature()) {
+        bot_status.set_temperature(input_status.temperature());
+    }
 
     return bot_status;
 }
@@ -75,7 +94,7 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
   private:
     UDPEndPoint dest;
 
-    std::vector<REST::BotStatus> bot_statuses;
+    REST::BotStatus hub_status;
 
     void loop() override;
 
@@ -94,17 +113,30 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(0.5 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
     using UDPThread = goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
-    glog.is_verbose() && glog << group("main") << "Subscribing to UDP" << std::endl;
+    glog.is_debug1() && glog << group("main") << "Web Portal Started" << std::endl;
+    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << std::endl;
 
+    ///////////// INPUT from REST API
     interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-      glog.is_warn() && glog << group("main") << "Received data: " << io_data.ShortDebugString() << std::endl;
+        auto command = REST::Command();
+
+        glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
+
+        if (command.ParseFromString(io_data.data())) {
+            glog.is_debug2() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
+
+            auto t = NOW;
+            command.set_time_with_units(t);
+
+            intervehicle().publish<jaiabot::groups::pid_control>(command);
+        }
 
         dest.set_addr(io_data.udp_src().addr());
         dest.set_port(io_data.udp_src().port());
@@ -113,45 +145,39 @@ jaiabot::apps::WebPortal::WebPortal()
     dest.set_addr("");
     dest.set_port(0);
 
-    // Set a default bot_status
-    for (int i = 0; i < 16; i++) {
-        REST::BotStatus bot_status;
-        bot_status.set_bot_id(i);
-        bot_status.set_time(NOW);
-
-        bot_status.mutable_location()->set_lat(43 + rand() * 1.0 / RAND_MAX);
-        bot_status.mutable_location()->set_lon(-72 + rand() * 1.0 / RAND_MAX);
-
-        bot_status.set_depth(5);
-
-        bot_status.mutable_attitude()->set_heading(rand() * 360.0 / RAND_MAX);
-
-        bot_statuses.push_back(bot_status);
-    }
-
+    // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-//        glog.is_debug1() && glog << group("main")
-//                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+        glog.is_debug2() && glog << group("main")
+                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
         auto bot_status = convert(dccl_nav);
 
         send(bot_status);
     });
 
+    // Subscribe to hub GPS updates
+    hub_status.set_bot_id(255);
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            glog.is_debug2() && glog << "Received TimePositionVelocity update: "
+                                     << tpv.ShortDebugString() << std::endl;
+
+            if (tpv.has_location())
+            {
+                // Send "bot" status of bot_id == 255 for the hub
+                hub_status.mutable_location()->set_lat(tpv.location().lat());
+                hub_status.mutable_location()->set_lon(tpv.location().lon());
+                hub_status.mutable_speed()->set_over_ground(tpv.speed());
+            }
+        });
 }
 
 void jaiabot::apps::WebPortal::loop()
 {
-    // called at frequency passed to MultiThreadApplication base class
-    glog.is_verbose() && glog << group("main") << "Loop!" << std::endl;
-
-    // Just send an empty packet
-    if (dest.port() != 0) {
-
-        for (auto bot_status: bot_statuses) {
-            send(bot_status);
-        }
-    }
+    // Send hub status
+    hub_status.set_time_with_units(NOW);
+    send(hub_status);
 }
 
 void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
@@ -172,5 +198,5 @@ void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-//    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }
