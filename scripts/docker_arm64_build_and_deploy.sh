@@ -24,7 +24,7 @@ if [ -z "$1" ]
         for var in "$@"
 	    do
     		echo "🟢 Uploading to "$var
-		    rsync -aP --delete --force --relative ./build/bin ./build/lib ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
+		    rsync -aP --delete --force --relative ./build/arm64/bin ./build/arm64/lib ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 	    done
 fi
 
