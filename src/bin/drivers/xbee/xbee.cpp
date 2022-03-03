@@ -13,6 +13,11 @@ using namespace std;
 using namespace boost::asio;
 using namespace boost::endian;
 
+// Node ID broadcast timeout
+
+const std::time_t node_id_broadcast_timeout = 10; // Don't broadcast our node_id within N seconds of a previous broadcast, to avoid back-and-forth loops
+std::time_t last_node_id_broadcast_time = 0;
+
 // Frame types
 
 const byte frame_type_at_command_response = 0x88;
@@ -473,14 +478,19 @@ void XBeeDevice::process_frame_node_identification_indicator(const string& respo
     NodeId node_id = string((char *) &info->node_id_start);
     SerialNumber serial_number = *((SerialNumber *) &info->remote_serial_number);
 
+    // If we receive a node_id within timeout, then we should respond and tell them our node_id, because they're
+    //   new to this network.
+    std::time_t current_time = std::time(nullptr);
+
+    if (current_time - last_node_id_broadcast_time > node_id_broadcast_timeout) {
+        broadcast_node_id();
+        last_node_id_broadcast_time = std::time(nullptr);
+    }
+
     if (node_id_to_serial_number_map.find(node_id) == node_id_to_serial_number_map.end() ||
         node_id_to_serial_number_map[node_id] != serial_number) {
         node_id_to_serial_number_map[node_id] = serial_number;
         serial_number_to_node_id_map[serial_number] = node_id;
-
-
-        broadcast_node_id();
-
         
         glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec << " node_id= " << node_id << endl;
     }
