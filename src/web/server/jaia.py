@@ -1,6 +1,10 @@
 import socket
 import threading
-import pid_control_pb2
+
+from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
+from jaiabot.messages.pid_control_pb2 import PIDCommand
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+
 from time import sleep
 import datetime
 import google.protobuf.json_format
@@ -29,27 +33,28 @@ class Interface:
     def loop(self):
         while True:
 
-            # Get bot statuses
+            # Get PortalToClientMessage
             try:
                 data = self.sock.recv(256)
                 if len(data) > 0:
-                    botStatus = pid_control_pb2.BotStatus()
-                    byteCount = botStatus.ParseFromString(data)
+                    msg = PortalToClientMessage()
+                    byteCount = msg.ParseFromString(data)
 
-                    try:
-                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                        print('Received BotStatus:\n', botStatus)
-                    except KeyError:
-                        self.bots[botStatus.bot_id] = botStatus
+                    print(f'Received PortalToClientMessage: {msg}')
+                    
+                    # try:
+                    #     self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                    #     print('Received BotStatus:\n', botStatus)
+                    # except KeyError:
+                    #     self.bots[botStatus.bot_id] = botStatus
 
             except socket.timeout:
                 pass
 
-    def transmit_command(self, cmd):
-        cmd.time = now()
+    def send_message_to_portal(self, msg):
         print('=== SENDING ===')
-        print(cmd)
-        data = cmd.SerializeToString()
+        print(msg)
+        data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
 
     def get_ab_status(self):
@@ -114,5 +119,9 @@ class Interface:
 
     def send_command(self, command):
         print(command)
-        cmd = google.protobuf.json_format.ParseDict(command, pid_control_pb2.Command())
-        self.transmit_command(cmd)
+        cmd = google.protobuf.json_format.ParseDict(command, PIDCommand())
+        cmd.time = now()
+
+        msg = ClientToPortalMessage()
+        msg.command.CopyFrom(cmd)
+        self.send_message_to_portal(msg)

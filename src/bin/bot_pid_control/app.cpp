@@ -105,11 +105,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                          << std::endl;
             };
 
-        goby::middleware::Subscriber<Command> command_subscriber{
+        goby::middleware::Subscriber<jaiabot::protobuf::PIDCommand> command_subscriber{
             cfg().command_sub_cfg(), on_command_subscribed};
 
-        intervehicle().subscribe<jaiabot::groups::pid_control, Command>(
-            [this](const Command& command) { handle_command(command); }, command_subscriber);
+        intervehicle().subscribe<jaiabot::groups::pid_control, jaiabot::protobuf::PIDCommand>(
+            [this](const jaiabot::protobuf::PIDCommand& command) { handle_command(command); }, command_subscriber);
     }
 
     // Subscribe to get vehicle yaw (for testing)
@@ -259,7 +259,7 @@ void jaiabot::apps::BotPidControl::loop()
 
 }
 
-void jaiabot::apps::BotPidControl::handle_command(const Command& command)
+void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCommand& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 

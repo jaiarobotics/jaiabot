@@ -2,70 +2,9 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 
-package jaiabot.protobuf.rest;
+package jaiabot.protobuf;
 
-message GeographicCoordinate
-{
-    option (dccl.msg) = {
-        id: 90
-        max_bytes: 250
-        codec_version: 3
-        unit_system: "si"
-    };
-
-// degrees
-    required double lat = 1;
-    required double lon = 2;
-}
-
-message BotStatus
-{
-    option (dccl.msg) = {
-        id: 91
-        max_bytes: 250
-        codec_version: 3
-        unit_system: "si"
-    };
-
-    required uint32 bot_id = 1;
-
-    required uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-
-    optional uint64 last_command_time = 34 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-
-    optional GeographicCoordinate location = 10;
-    optional double depth = 11;
-
-    message Attitude
-    {
-        optional double roll = 1;
-        optional double pitch = 2;
-        optional double heading = 3;
-        optional double course_over_ground = 4;
-    }
-    optional Attitude attitude = 20;
-
-    message Speed
-    {
-        optional double over_ground = 1;
-        optional double over_water = 2;
-    }
-    optional Speed speed = 30;
-
-    optional double salinity = 31;
-
-    optional double temperature = 33;
-
-//     optional MissionState mission_state = 40;
-}
-
-message Command {
+message PIDCommand {
     option (dccl.msg) = {
         id: 92
         max_bytes: 250
