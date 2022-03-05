@@ -30,7 +30,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/pid_control.pb.h"
+#include "jaiabot/messages/portal.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
 #include <vector>
@@ -44,8 +44,6 @@ namespace groups = jaiabot::groups;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 using UDPEndPoint = goby::middleware::protobuf::UDPEndPoint;
-using BotStatus = jaiabot::protobuf::BotStatus;
-namespace REST = jaiabot::protobuf::rest;
 
 namespace jaiabot
 {
@@ -55,37 +53,6 @@ namespace apps
 constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
 constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
 
-REST::BotStatus convert(const BotStatus& input_status) {
-    REST::BotStatus bot_status;
-    bot_status.set_bot_id(input_status.bot_id());
-    bot_status.set_time_with_units(NOW);
-    bot_status.set_last_command_time_with_units(input_status.last_command_time_with_units());
-
-    if (input_status.has_location()) {
-        bot_status.mutable_location()->set_lat(input_status.location().lat());
-        bot_status.mutable_location()->set_lon(input_status.location().lon());
-    }
-
-    bot_status.set_depth(input_status.depth());
-    bot_status.mutable_speed()->set_over_ground(input_status.speed().over_ground());
-
-    auto attitude = bot_status.mutable_attitude();
-    attitude->set_course_over_ground(input_status.attitude().course_over_ground());
-    attitude->set_heading(input_status.attitude().heading());
-    attitude->set_roll(input_status.attitude().roll());
-    attitude->set_pitch(input_status.attitude().pitch());
-
-    if (input_status.has_salinity()) {
-        bot_status.set_salinity(input_status.salinity());
-    }
-
-    if (input_status.has_temperature()) {
-        bot_status.set_temperature(input_status.temperature());
-    }
-
-    return bot_status;
-}
-
 class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 {
   public:
@@ -94,11 +61,12 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
   private:
     UDPEndPoint dest;
 
-    REST::BotStatus hub_status;
+    jaiabot::protobuf::BotStatus hub_status;
 
     void loop() override;
 
-    void send(const REST::BotStatus& bot_status);
+    void process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg);
+    void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
 };
 
 } // namespace apps
@@ -123,23 +91,20 @@ jaiabot::apps::WebPortal::WebPortal()
     glog.is_debug1() && glog << group("main") << "Web Portal Started" << std::endl;
     glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << std::endl;
 
-    ///////////// INPUT from REST API
+    ///////////// INPUT from Client
     interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-        auto command = REST::Command();
-
         glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
 
+        auto command = jaiabot::protobuf::ClientToPortalMessage();
         if (command.ParseFromString(io_data.data())) {
-            glog.is_debug2() && glog << group("main") << "Received command: " << command.ShortDebugString() << std::endl;
+            process_client_message(command);
 
-            auto t = NOW;
-            command.set_time_with_units(t);
-
-            intervehicle().publish<jaiabot::groups::pid_control>(command);
+            dest.set_addr(io_data.udp_src().addr());
+            dest.set_port(io_data.udp_src().port());
         }
-
-        dest.set_addr(io_data.udp_src().addr());
-        dest.set_port(io_data.udp_src().port());
+        else {
+            glog.is_warn() && glog << group("main") << "Could not parse incoming message from client: " << io_data.ShortDebugString() << std::endl;
+        }
     });
 
     dest.set_addr("");
@@ -150,9 +115,10 @@ jaiabot::apps::WebPortal::WebPortal()
         glog.is_debug2() && glog << group("main")
                                  << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
-        auto bot_status = convert(dccl_nav);
+        auto message = jaiabot::protobuf::PortalToClientMessage();
+        message.set_allocated_bot_status(new jaiabot::protobuf::BotStatus(dccl_nav));
 
-        send(bot_status);
+        send_message_to_client(message);
     });
 
     // Subscribe to hub GPS updates
@@ -173,30 +139,48 @@ jaiabot::apps::WebPortal::WebPortal()
         });
 }
 
+void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
+{
+    glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << std::endl;
+
+    if (msg.has_command()) {
+        auto command = msg.command();
+        auto t = NOW;
+        command.set_time_with_units(t);
+
+        intervehicle().publish<jaiabot::groups::pid_control>(command);
+    }
+}
+
 void jaiabot::apps::WebPortal::loop()
 {
     // Send hub status
     hub_status.set_time_with_units(NOW);
-    send(hub_status);
+
+    auto message = jaiabot::protobuf::PortalToClientMessage();
+    message.set_allocated_bot_status(new jaiabot::protobuf::BotStatus(hub_status));
+
+    send_message_to_client(message);
 }
 
-void jaiabot::apps::WebPortal::send(const REST::BotStatus& bot_status) {
+void jaiabot::apps::WebPortal::send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message) {
     if (dest.addr() == "") {
         return;
     }
 
+    glog.is_debug1() && glog << group("main") << "Sending message to client: " << message.ShortDebugString() << std::endl;
+
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    // udp_src { addr: "172.20.11.247" port: 40000 }
     io_data->mutable_udp_dest()->set_addr(dest.addr());
     io_data->mutable_udp_dest()->set_port(dest.port());
 
     // Serialize for the UDP packet
     string data;
-    bot_status.SerializeToString(&data);
+    message.SerializeToString(&data);
     io_data->set_data(data);
 
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-    glog.is_debug1() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
 }

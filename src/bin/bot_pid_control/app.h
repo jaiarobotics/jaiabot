@@ -11,8 +11,6 @@
 
 #include "PID/PID.h"
 
-using jaiabot::protobuf::rest::Command;
-
 namespace jaiabot
 {
 namespace apps
@@ -71,7 +69,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     void loop() override;
 
-    void handle_command(const Command& command);
+    void handle_command(const jaiabot::protobuf::PIDCommand& command);
 
   private:
 };

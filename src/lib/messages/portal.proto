@@ -1,0 +1,31 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/pid_control.proto";
+import "jaiabot/messages/jaia_dccl.proto";
+
+package jaiabot.protobuf;
+
+message ClientToPortalMessage
+{
+    option (dccl.msg) = {
+        id: 93
+        max_bytes: 250
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    optional PIDCommand command = 1;
+}
+
+message PortalToClientMessage
+{
+    option (dccl.msg) = {
+        id: 94
+        max_bytes: 250
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    optional BotStatus bot_status = 1; 
+}
