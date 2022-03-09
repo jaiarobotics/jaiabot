@@ -143,12 +143,19 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 {
     glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << std::endl;
 
+    if (msg.has_pid_command()) {
+        auto pid_command = msg.pid_command();
+        auto t = NOW;
+        pid_command.set_time_with_units(t);
+
+        glog.is_debug2() && glog << group("main") << "Sending pid_command: " << pid_command.ShortDebugString() << std::endl;
+        intervehicle().publish<jaiabot::groups::pid_control>(pid_command);
+    }
+
     if (msg.has_command()) {
         auto command = msg.command();
-        auto t = NOW;
-        command.set_time_with_units(t);
-
-        intervehicle().publish<jaiabot::groups::pid_control>(command);
+        glog.is_debug2() && glog << group("main") << "Sending command: " << command.ShortDebugString() << std::endl;
+        intervehicle().publish_dynamic(command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()));
     }
 }
 

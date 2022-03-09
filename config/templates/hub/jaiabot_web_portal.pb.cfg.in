@@ -5,7 +5,6 @@ udp_config {
     bind_port: 40000
 }
 
-
 sub_config {
     intervehicle
     {
