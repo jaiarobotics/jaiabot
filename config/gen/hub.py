@@ -39,7 +39,7 @@ verbosities = \
   'goby_gps':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_hub_manager':     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG2' }},
   'jaiabot_web_portal':     { 'runtime': { 'tty': 'DEBUG1', 'log': 'DEBUG1' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG2' }},
-}
+  }
 
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 

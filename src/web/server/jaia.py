@@ -3,11 +3,13 @@ import threading
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.pid_control_pb2 import PIDCommand
-from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
+
+import google.protobuf.json_format
 
 from time import sleep
 import datetime
-import google.protobuf.json_format
+from math import *
 
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
@@ -52,7 +54,7 @@ class Interface:
                 pass
 
     def send_message_to_portal(self, msg):
-        print('=== SENDING ===')
+        print('🟢 SENDING')
         print(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
@@ -95,6 +97,29 @@ class Interface:
             "bots": bots
         }
 
+        # goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(0, 10) ]
+
+        # cmd = {
+        #     'botId': 0, 
+        #     'time': str(now()),
+        #     'type': 'MISSION_PLAN', 
+        #     'plan': {
+        #         'start': 'START_IMMEDIATELY', 
+        #         'movement': 'TRANSIT', 
+        #         'goal': goals, 
+        #         'recovery': {'recoverAtFinalGoal': True}
+        #         }
+        #     }
+
+        # self.post_command(cmd)
+
+    def post_command(self, command_dict):
+        command = google.protobuf.json_format.ParseDict(command_dict, Command())
+        command.time = now()
+        msg = ClientToPortalMessage()
+        msg.command.CopyFrom(command)
+        self.send_message_to_portal(msg)
+
     def get_status(self):
         bots = [google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()]
 
@@ -117,11 +142,9 @@ class Interface:
             'code': 0
         }
 
-    def send_command(self, command):
-        print(command)
+    def post_pid_command(self, command):
         cmd = google.protobuf.json_format.ParseDict(command, PIDCommand())
         cmd.time = now()
-
         msg = ClientToPortalMessage()
-        msg.command.CopyFrom(cmd)
+        msg.pid_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)

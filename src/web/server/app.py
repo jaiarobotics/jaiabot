@@ -46,6 +46,11 @@ def getABStatus():
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
+@app.route('/jaia/command', methods=['POST'])
+def postCommand():
+    jaia_interface.post_command(request.json)
+    return JSONResponse({"status": "ok"})
+
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
     return JSONResponse(jaia_interface.get_mission_status())
@@ -54,9 +59,9 @@ def getMissionStatus():
 def setManualID():
     return JSONResponse(jaia_interface.set_manual_id())
 
-@app.route('/jaia/command', methods=['POST'])
-def postCommand():
-    jaia_interface.send_command(request.json)
+@app.route('/jaia/pid-command', methods=['POST'])
+def postPidCommand():
+    jaia_interface.post_pid_command(request.json)
     return JSONResponse({"status": "ok"})
 
 ######## Map tiles

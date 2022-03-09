@@ -15,7 +15,8 @@ message ClientToPortalMessage
         unit_system: "si"
     };
 
-    optional PIDCommand command = 1;
+    optional PIDCommand pid_command = 1;
+    optional Command command = 2;
 }
 
 message PortalToClientMessage

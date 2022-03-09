@@ -429,7 +429,7 @@ function diveButtonOnClick() {
 
 function sendCommand(command) {
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/jaia/command", true);
+  xhr.open("POST", "/jaia/pid-command", true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.send(JSON.stringify(command));
 }
