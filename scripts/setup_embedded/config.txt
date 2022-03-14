@@ -15,7 +15,9 @@ kernel=uboot_rpi_4.bin
 max_framebuffers=2
 dtoverlay=dwc2,dr_mode=host
 dtoverlay=uart3,txd3_pin=7,rxd3_pin=29
+dtoverlay=uart4,txd4_pin=24,rxd4_pin=21
 dtoverlay=uart5,txd5_pin=32,rxd5_pin=33
+dtoverlay=spi1-3cs
 
 [pi2]
 kernel=uboot_rpi_2.bin
