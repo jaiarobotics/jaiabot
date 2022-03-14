@@ -47,3 +47,5 @@ for device_name in device_map:
                     break
                 except IndexError:
                     pass
+
+os.system('cp /home/ubuntu/jaiabot/scripts/setup_embedded/gpsd /etc/default/')

@@ -42,9 +42,6 @@ apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 apt update
 apt install -y gpsd gpsd-clients python3-pip goby3-apps goby3-gui
 
-echo "===Setting up gpsd"
-cp gpsd /etc/default/
-
 echo "===Setting up i2c"
 groupadd i2c
 chown :i2c /dev/i2c-1
@@ -81,5 +78,7 @@ else
   echo "---making entry"
   echo "PATH=\${HOME}/jaiabot/build/arm64/bin:\${PATH}" >> /home/ubuntu/.bashrc
 fi
+
+python3 /home/ubuntu/jaiabot/scripts/setup_embedded/setup_device_links.py
 
 echo "===Made it to the end! You need to reboot."
