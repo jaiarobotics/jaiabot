@@ -32,6 +32,22 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
+        goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(0, 10) ]
+
+        cmd = {
+            'botId': 0, 
+            'time': str(now()),
+            'type': 'MISSION_PLAN', 
+            'plan': {
+                'start': 'START_IMMEDIATELY', 
+                'movement': 'TRANSIT', 
+                'goal': goals, 
+                'recovery': {'recoverAtFinalGoal': True}
+                }
+            }
+
+        # self.post_command(cmd)
+
     def loop(self):
         while True:
 
@@ -42,7 +58,7 @@ class Interface:
                     msg = PortalToClientMessage()
                     byteCount = msg.ParseFromString(data)
 
-                    print(f'Received PortalToClientMessage: {msg}')
+                    print(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
                     
                     try:
                         botStatus = msg.bot_status
@@ -74,7 +90,6 @@ class Interface:
                     "velocity": bot.speed.over_ground,
                     "time": {
                         "time": 42,
-                        "time_to_ack": bot.time_to_ack,
                     },
                     "sensorData": [
                         {
@@ -97,22 +112,6 @@ class Interface:
             },
             "bots": bots
         }
-
-        # goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(0, 10) ]
-
-        # cmd = {
-        #     'botId': 0, 
-        #     'time': str(now()),
-        #     'type': 'MISSION_PLAN', 
-        #     'plan': {
-        #         'start': 'START_IMMEDIATELY', 
-        #         'movement': 'TRANSIT', 
-        #         'goal': goals, 
-        #         'recovery': {'recoverAtFinalGoal': True}
-        #         }
-        #     }
-
-        # self.post_command(cmd)
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
