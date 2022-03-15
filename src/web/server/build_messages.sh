@@ -1,3 +1,3 @@
 #!/bin/bash
 
-protoc -I/usr/include/ -I/usr/local/include/ -I. --python_out=. jaiabot/messages/*.proto
+protoc -I/usr/local/include/ -I. --python_out=. goby/middleware/protobuf/*.proto jaiabot/messages/*.proto
