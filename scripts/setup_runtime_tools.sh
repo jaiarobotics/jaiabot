@@ -3,4 +3,4 @@ sudo apt install goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp
 echo "Installing pip packages"
 pip install python-dateutil plotly pyQt5 h5py
 echo "updating PATH"
-echo "export PATH=$PATH:$(realpath $PWD/../build/bin)" >> ~/.bashrc
+echo "export PATH=$HOME/jaiabot/build/arm64/bin:\$PATH" >> ~/.bashrc
