@@ -32,21 +32,25 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
-        goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(0, 10) ]
+        self.post_test_mission()
 
-        cmd = {
-            'botId': 0, 
-            'time': str(now()),
-            'type': 'MISSION_PLAN', 
-            'plan': {
-                'start': 'START_IMMEDIATELY', 
-                'movement': 'TRANSIT', 
-                'goal': goals, 
-                'recovery': {'recoverAtFinalGoal': True}
+    def post_test_mission(self):
+        for bot_id in range(0, 4):
+            goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(bot_id, 10 + bot_id) ]
+
+            cmd = {
+                'botId': bot_id, 
+                'time': str(now()),
+                'type': 'MISSION_PLAN', 
+                'plan': {
+                    'start': 'START_IMMEDIATELY', 
+                    'movement': 'TRANSIT', 
+                    'goal': goals, 
+                    'recovery': {'recoverAtFinalGoal': True}
+                    }
                 }
-            }
 
-        # self.post_command(cmd)
+            self.post_command(cmd)
 
     def loop(self):
         while True:
