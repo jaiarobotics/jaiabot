@@ -125,7 +125,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
     substitution_dict['charts_div'] = fig.to_html(include_plotlyjs=False, full_html=False)
 
-    document_string = Template(open('/Users/edsanville/Sync/jaia/jaiabot/scripts/log_analysis/analysis.html.template').read()).\
+    document_string = Template(open('./analysis.html.template').read()).\
         substitute(substitution_dict)
     path = temppath + f'analysis.html'
     open(path, 'w').write(document_string)
@@ -235,8 +235,8 @@ class MainWindow(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_window = MainWindow()
-    main_window.setFixedWidth(640)
-    main_window.setFixedHeight(480)
+    main_window.setFixedWidth(1280)
+    main_window.setFixedHeight(960)
 
     # bdr_file = bdr.BdrFile('/Users/edsanville/Sync/jaia/logs/bot2/bot/0/PierTest.bdr', real_datetime=datetime.datetime.fromisoformat('2022-02-16T09:30:44'), data_time_s=3742.45)
 
