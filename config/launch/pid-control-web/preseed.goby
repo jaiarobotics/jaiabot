@@ -1,5 +1,4 @@
 export jaia_log_dir=$HOME/jaia-logs
-export PATH=$HOME/jaiabot/build/bin:$PATH
 
 export goby3_lib_dir=$(realpath "$(dirname $(which gobyd))/../lib")
 export jaia_lib_dir=$(realpath "$(dirname $(which jaiabot_single_thread_pattern))/../lib")
