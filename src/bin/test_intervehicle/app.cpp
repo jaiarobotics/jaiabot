@@ -55,13 +55,21 @@ int main(int argc, char* argv[])
 
 void jaiabot::apps::SingleThreadPattern::loop()
 {
-    jaiabot::protobuf::Command command;
-    command.set_bot_id(0);
+    using jaiabot::protobuf::Command;
+    Command command;
+    command.set_bot_id(1);
     command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     command.set_type(jaiabot::protobuf::Command::STOP);
 
     glog.is_debug2() && glog << group("main") << "Sending command: " << command.ShortDebugString()
                              << std::endl;
+
+    goby::middleware::Publisher<Command> command_publisher(
+        {}, [](Command& cmd, const goby::middleware::Group& group) {
+            cmd.set_bot_id(group.numeric());
+        });
+
     intervehicle().publish_dynamic(
-        command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()));
+        command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
+        command_publisher);
 }
