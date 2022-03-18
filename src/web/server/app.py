@@ -5,15 +5,22 @@ import json
 import sys
 import jaia
 import argparse
+import logging
 
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("hostname", type=str, nargs="?", help="goby hostname to send and receive protobuf messages")
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
+parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 args = parser.parse_args()
 
+# Setup logging module
+logLevel = getattr(logging, args.logLevel.upper())
+logging.basicConfig(level=logLevel)
+logging.getLogger('werkzeug').setLevel(logLevel)
+
 if args.hostname is None:
-    print('no ip specified, using localhost')
+    logging.warning('no ip specified, using localhost')
     args.hostname = "localhost"
 
 jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port))
