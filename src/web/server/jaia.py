@@ -72,13 +72,18 @@ class Interface:
                         self.bots[botStatus.bot_id] = botStatus
 
             except socket.timeout:
-                pass
+                self.ping_portal()
 
     def send_message_to_portal(self, msg):
         print('🟢 SENDING')
         print(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
+
+    '''Send empty message to portal, to get it to start sending statuses back to us'''
+    def ping_portal(self):
+        print('🟢 Pinging server')
+        self.send_message_to_portal(ClientToPortalMessage())
 
     def get_ab_status(self):
         bots = []
