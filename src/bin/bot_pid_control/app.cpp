@@ -74,26 +74,69 @@ jaiabot::apps::BotPidControl::BotPidControl()
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
 
     // Create our PID objects
-    throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1.0, 0.0, 0.0);
+    if (cfg().has_throttle_speed_pid_gains())
+    {
+        auto& gains = cfg().throttle_speed_pid_gains();
+        throttle_speed_pid =
+            new Pid(&actual_speed, &throttle, &target_speed, gains.kp(), gains.ki(), gains.kd());
+    }
+    else
+    {
+        throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1, 0, 0);
+    }
     throttle_speed_pid->set_limits(0.0, 100.0);
     throttle_speed_pid->set_auto();
 
-    throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 1.0, 0.0, 0.0);
+    if (cfg().has_throttle_depth_pid_gains())
+    {
+        auto& gains = cfg().throttle_depth_pid_gains();
+        throttle_depth_pid =
+            new Pid(&actual_depth, &throttle, &target_depth, gains.kp(), gains.ki(), gains.kd());
+    }
+    else
+    {
+        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 1, 0, 0);
+    }
     throttle_depth_pid->set_direction(E_PID_REVERSE);
     throttle_depth_pid->set_limits(-100.0, 100.0);
     throttle_depth_pid->set_auto();
 
-    heading_pid =
-        new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
+    if (cfg().has_heading_pid_gains())
+    {
+        auto& gains = cfg().heading_pid_gains();
+        heading_pid =
+            new Pid(&actual_heading, &rudder, &target_heading, gains.kp(), gains.ki(), gains.kd());
+    }
+    else
+    {
+        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 1, 0, 0);
+    }
     heading_pid->set_limits(-100.0, 100.0);
     heading_pid->set_auto();
 
-    roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
+    if (cfg().has_roll_pid_gains())
+    {
+        auto& gains = cfg().roll_pid_gains();
+        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, gains.kp(), gains.ki(),
+                           gains.kd());
+    }
+    else
+    {
+        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, 1, 0, 0);
+    }
     roll_pid->set_limits(-100.0, 100.0);
     roll_pid->set_auto();
 
-    pitch_pid =
-        new Pid(&actual_pitch, &elevator_middle, &target_pitch, pitch_kp, pitch_ki, pitch_kd);
+    if (cfg().has_pitch_pid_gains())
+    {
+        auto& gains = cfg().pitch_pid_gains();
+        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, gains.kp(), gains.ki(),
+                            gains.kd());
+    }
+    else
+    {
+        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, 1, 0, 0);
+    }
     pitch_pid->set_limits(-100.0, 100.0);
     pitch_pid->set_auto();
 
@@ -407,33 +450,9 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
             target_roll = roll.target();
         }
 
-        bool gains_changed = false;
-
         if (roll.has_kp())
         {
-            roll_kp = roll.kp();
-            gains_changed = true;
-        }
-
-        if (roll.has_ki())
-        {
-            roll_ki = roll.ki();
-            gains_changed = true;
-        }
-
-        if (roll.has_kd())
-        {
-            roll_kd = roll.kd();
-            gains_changed = true;
-        }
-
-        if (gains_changed)
-        {
-            delete roll_pid;
-            roll_pid =
-                new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
-            roll_pid->set_limits(-100.0, 100.0);
-            roll_pid->set_auto();
+            roll_pid->tune(roll.kp(), roll.ki(), roll.kd());
         }
     }
 
@@ -448,33 +467,9 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
             target_pitch = pitch.target();
         }
 
-        bool gains_changed = false;
-
         if (pitch.has_kp())
         {
-            pitch_kp = pitch.kp();
-            gains_changed = true;
-        }
-
-        if (pitch.has_ki())
-        {
-            pitch_ki = pitch.ki();
-            gains_changed = true;
-        }
-
-        if (pitch.has_kd())
-        {
-            pitch_kd = pitch.kd();
-            gains_changed = true;
-        }
-
-        if (gains_changed)
-        {
-            delete pitch_pid;
-            pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, pitch_kp, pitch_ki,
-                                pitch_kd);
-            pitch_pid->set_limits(-100.0, 100.0);
-            pitch_pid->set_auto();
+            pitch_pid->tune(pitch.kp(), pitch.ki(), pitch.kd());
         }
     }
 }

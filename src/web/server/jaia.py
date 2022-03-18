@@ -11,6 +11,8 @@ from time import sleep
 import datetime
 from math import *
 
+import logging
+
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
 
@@ -28,7 +30,7 @@ class Interface:
     def __init__(self, goby_host=('optiplex', 40000)):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(5)
+        self.sock.settimeout(2)
 
         threading.Thread(target=lambda: self.loop()).start()
 
@@ -58,23 +60,30 @@ class Interface:
                     msg = PortalToClientMessage()
                     byteCount = msg.ParseFromString(data)
 
-                    print(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
+                    logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
                     
                     try:
                         botStatus = msg.bot_status
                         self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                        print('Received BotStatus:\n', botStatus)
+                        logging.debug(f'Received BotStatus:\n{botStatus}')
                     except KeyError:
                         self.bots[botStatus.bot_id] = botStatus
 
             except socket.timeout:
-                pass
+                self.ping_portal()
 
     def send_message_to_portal(self, msg):
-        print('🟢 SENDING')
-        print(msg)
+        logging.debug('🟢 SENDING')
+        logging.debug(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
+
+    '''Send empty message to portal, to get it to start sending statuses back to us'''
+    def ping_portal(self):
+        logging.warning('🏓 Pinging server')
+        msg = ClientToPortalMessage()
+        msg.ping = True
+        self.send_message_to_portal(msg)
 
     def get_ab_status(self):
         bots = []
