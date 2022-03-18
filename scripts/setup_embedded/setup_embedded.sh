@@ -81,8 +81,8 @@ fi
 
 echo "===Disabling u-boot waiting for any key to stop boot which really messes with the GPS if on UART like we do for RasPi3"
 # As described here: https://stackoverflow.com/questions/34356844/how-to-disable-serial-consolenon-kernel-in-u-boot
-cp /boot/firmware/uboot_rpi_3 /boot/firmware/uboot_rpi_3.bak
-cp ./uboot_rpi_3.bin /boot/firmware/
+cp /boot/firmware/uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bak
+cp setup_embedded/uboot_rpi_3.bin /boot/firmware/
 
 echo "===Setting up device links"
 python3 /home/ubuntu/jaiabot/scripts/setup_embedded/setup_device_links.py
