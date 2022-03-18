@@ -35,3 +35,5 @@ Installation steps:
 
 - Install jaiabot code via instructions on the [CI/CD](page20_build.md) page from either the release or continuous repository.
 
+## Raspberry Pi 3 B - semi-supported
+
