@@ -1,8 +1,0 @@
-#!/usr/bin/env -S goby_launch -L -P
-
-gobyd <(../../gen/hub.py gobyd)
-goby_gps <(../../gen/hub.py goby_gps)
-goby_logger <(../../gen/hub.py goby_logger)
-
-jaiabot_dev_hub <(../../gen/hub.py jaiabot_dev_hub)
-goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
