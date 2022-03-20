@@ -513,13 +513,9 @@ function handleKey(key) {
       rollSlider.value = 0
       break
     case 'KeyC':
-      throttleSlider.value = 0
-      speedSlider.value = 0
       rudderSlider.value = rudderCenter
-      headingSlider.value = 0
       portElevatorSlider.value = portCenter
       stbdElevatorSlider.value = stbdCenter
-      rollSlider.value = 0
       break
     case 'KeyI':
       switch (elevatorsTabbedSections.activeIndex) {
