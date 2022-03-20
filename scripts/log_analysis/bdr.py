@@ -51,11 +51,3 @@ class BdrFile:
         fig.add_trace(go.Scatter(x=self.data['Milliseconds'], y=self.data['RPM'], mode='lines', name='RPM'), secondary_y=True)
 
         fig.show()
-
-
-if __name__ == '__main__':
-    # , real_datetime=datetime.fromisoformat('2022-02-16T09:30:44')
-    bdr = BdrFile('/Users/edsanville/Sync/jaia/logs/bot2/bot/0/PierTest.bdr', real_datetime=datetime.fromisoformat('2022-02-16T09:30:44'), data_time_s=3745)
-
-    bdr.show_chart()
-    
