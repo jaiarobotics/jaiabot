@@ -5,3 +5,4 @@ package-lock.json
 dist
 common/version.js
 __pycache__
+test.sh

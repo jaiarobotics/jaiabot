@@ -153,8 +153,8 @@ module.exports = class JaiaAPI {
     });
   }
 
-  sendStop() {
-    return this.sendStandardCommand(0, null);
+  allStop() {
+    this.post('allStop', null)
   }
 
   postCommand(command) {

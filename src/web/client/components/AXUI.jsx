@@ -978,7 +978,6 @@ export default class AXUI extends React.Component {
     this.sendCommand = this.sendCommand.bind(this);
     this.sendStop = this.sendStop.bind(this);
     this.startMission = this.startMission.bind(this);
-    this.stopMission = this.stopMission.bind(this);
     this.skipToNextMissionAction = this.skipToNextMissionAction.bind(this);
 
     this.setSelectedMissionAction = this.setSelectedMissionAction.bind(this);
@@ -2265,62 +2264,13 @@ export default class AXUI extends React.Component {
     );
   }
 
-  stopMission() {
-    const { missionExecutionState } = this.state;
-    const { planName } = missionExecutionState;
-    this.missionExecutionAPI.post('stop').then(
-      (result) => {
-        if (result.ok) {
-          this.setState({ missionExecutionState: result.missionStatus });
-          this.setMissionPlanFileLocked(planName, false);
-          this.unRenderMissionPlan(planName);
-          success('Mission stopped');
-          if (this.isMissionPlanLoaded(planName)) {
-            this.setActiveEditMissionPlan(planName);
-          }
-        } else {
-          console.error(result.msg);
-          error(`Failed to stop mission execution: ${result.msg}`);
-        }
-      },
-      (failReason) => {
-        console.error(failReason);
-        error(`Failed to contact mission computer to stop mission execution: ${failReason}`);
-      }
-    );
-  }
-
   setMissionManagerMode(mode) {
     this.setState({ missionManagerMode: mode });
   }
 
   sendStop() {
-
     console.log('STOP')
-    this.sna.postCommand({
-      'botId': 0, 
-      'time': '1642891753471247', 
-      'type': 'MISSION_PLAN', 
-      'plan': {
-        'start': 'START_IMMEDIATELY', 
-        'movement': 'TRANSIT', 
-        'goal': [{'location': {'lat': 0.0, 'lon': 0.01}}, {'location': {'lat': 0.0058778525229247315, 'lon': 0.008090169943749474}}, {'location': {'lat': 0.009510565162951536, 'lon': 0.0030901699437494747}}, {'location': {'lat': 0.009510565162951536, 'lon': -0.0030901699437494734}}, {'location': {'lat': 0.005877852522924732, 'lon': -0.008090169943749474}}, {'location': {'lat': 1.2246467991473532e-18, 'lon': -0.01}}, {'location': {'lat': -0.005877852522924731, 'lon': -0.008090169943749474}}, {'location': {'lat': -0.009510565162951536, 'lon': -0.0030901699437494755}}, {'location': {'lat': -0.009510565162951536, 'lon': 0.0030901699437494725}}, {'location': {'lat': -0.005877852522924732, 'lon': 0.008090169943749474}}], 
-        'recovery': {'recoverAtFinalGoal': true}
-      }
-    })
-
-    const { controlRecipient } = this.state;
-    if (controlRecipient) {
-      this.sendThrottle(0);
-    }
-    info('Sending stop command');
-    this.updateLiveCommandField('type', 'stop');
-    const { missionExecutionState, liveFormationOriginMarker, headingControlMarker } = this.state;
-    if (missionExecutionState.isActive) {
-      this.stopMission();
-    }
-    liveFormationOriginMarker.disableEdit();
-    liveFormationOriginMarker.hide();
+    this.sna.allStop()
   }
 
   handleGlobalCommandSelect(command) {
@@ -2736,11 +2686,6 @@ export default class AXUI extends React.Component {
             <div className="panel">
               JaiaBot Central Command<br />
               Version 1.1.0
-            </div>
-            <div className="panel">
-              <a className="button" href={`http://${window.location.hostname}:5000/`} target="snawindow" rel="noopener noreferrer">
-                Hub Portal
-              </a>
             </div>
             <div className="panel">
               <button type="button" onClick={function() { location.reload() } }>
