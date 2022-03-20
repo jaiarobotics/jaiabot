@@ -133,6 +133,15 @@ class Interface:
         msg.command.CopyFrom(command)
         self.send_message_to_portal(msg)
 
+    def post_all_stop(self):
+        for bot in self.bots.values():
+            cmd = {
+                'botId': bot.bot_id,
+                'time': str(now()),
+                'type': 'STOP', 
+            }
+            self.post_command(cmd)
+
     def get_status(self):
         bots = [google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()]
 
