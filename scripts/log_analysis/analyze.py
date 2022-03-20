@@ -238,7 +238,5 @@ if __name__ == '__main__':
     main_window.setFixedWidth(1280)
     main_window.setFixedHeight(960)
 
-    # bdr_file = bdr.BdrFile('/Users/edsanville/Sync/jaia/logs/bot2/bot/0/PierTest.bdr', real_datetime=datetime.datetime.fromisoformat('2022-02-16T09:30:44'), data_time_s=3742.45)
-
     main_window.show()
     app.exec_()
