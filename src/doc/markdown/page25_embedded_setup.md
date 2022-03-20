@@ -1,35 +1,54 @@
 # Embedded Board Setup
 
-## Raspberry Pi CM4
-
-JaiaBot uses the Raspberry Pi CM4 Lite (without built-in eMMC) as the embedded Linux computer.
+JaiaBot uses the Raspberry Pi CM4 Lite as the embedded Linux computer. For R&D Purposes, it has also been necessary to run the jaiabot software on a Raspberry Pi 3 although this is not ideal due to the port mappings being unequivalent to the 4.
 
 Installation steps:
 
-- Download the SD card image (currently Ubuntu Server 20.04.2 LTS 64-bit): https://ubuntu.com/download/raspberry-pi
+- Download the SD card image (currently Ubuntu Server 20.04.4 LTS 64-bit): https://ubuntu.com/download/raspberry-pi
 
-- Install (assuming SD card on /dev/sdd):
+- Install via command line (or use something like balenaEtcher https://www.balena.io/etcher/):
 
-  ```bash
-  unxz ubuntu-20.04.2-preinstalled-server-arm64+raspi.img.xz
-  sudo dd if=ubuntu-20.04.2-preinstalled-server-arm64+raspi.img of=/dev/sdd bs=1M status=progress
-  ```
+    ```bash
+    unxz ubuntu-20.04.4-preinstalled-server-arm64+raspi.img.xz
+    # assuming µSD card on /dev/sdd
+    sudo dd if=ubuntu-20.04.4-preinstalled-server-arm64+raspi.img of=/dev/sdd bs=1M status=progress
+    ```
+        
+- If you have access to a LAN connection to the internet (DHCP) do so and power up the Pi. You will need to find the ip address from your router.
+    - ssh in as `ubuntu` `ubuntu` and change password. This will log you out, so log back in.
 
-- Connect to internet (DHCP)
+- Else:
+    - Create a file named `99-disable-network-config.cfg` in /etc/cloud/cloud.cfg.d/
+        - Edit the contents to be:
+      
+            ```bash
+            network: {config: disabled}
+            ```
+      
+        - Make sure the user and group are root
+    - Create a file named `50-cloud-init.yaml` in /etc/netplan/
+        - Make sure the user and group are root
+    - Connect the Pi to a keyboard and mouse and login as `ubuntu` `ubuntu`. You will need to change the password upon login.
+    - Run:
+    
+        ```bash
+        sudo netplan generate
+        sudo netplan apply
+        ```
+    
+    - You can now ssh in or stay at the keyboard to continue
 
-- Log in as ubuntu and change password. This will log you out, so log back in.
+- Clone the jaiabot repository to get a setup script, change directories and run it (with xxx as either _bot_ or _hub_ and yyy as the serial number)
 
-- Clone the jaiabot repository to get a setup script, change directories and run it
-
-  ```bash
-  git clone https://github.com/jaiarobotics/jaiabot.git
-  cd jaiabot/scripts/setup_embedded
-  ./setup_embedded.sh
-  ```
+    ```bash
+    git clone https://github.com/jaiarobotics/jaiabot.git
+    cd jaiabot/scripts/setup_embedded
+    sudo ./setup_embedded.sh xxx yyy
+    ```
 
 - After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` by changing the appropriate line to:
 
-      PasswordAuthentication no
+    ```PasswordAuthentication no```
   
 - Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
 
