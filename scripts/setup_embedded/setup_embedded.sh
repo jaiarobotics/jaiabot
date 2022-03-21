@@ -21,7 +21,10 @@ fi
 echo "===Setting up as $1, number $2"
 
 echo "===Setting up boot config"
-cp /boot/firmware/config.txt config.txt.bak
+
+if ! [ -f /boot/firmware/config.txt.orig ]; then
+  cp /boot/firmware/config.txt /boot/firmware/config.txt.orig
+fi
 cp config.txt /boot/firmware/config.txt
 
 echo "===Setting hostname to jaia$1$2"
@@ -82,8 +85,10 @@ fi
 
 echo "===Disabling u-boot waiting for any key to stop boot which really messes with the GPS if on UART like we do for RasPi3"
 # As described here: https://stackoverflow.com/questions/34356844/how-to-disable-serial-consolenon-kernel-in-u-boot
-cp /boot/firmware/uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bak
-cp setup_embedded/uboot_rpi_3.bin /boot/firmware/
+if ! [ -f /boot/firmware/uboot_rpi_3.bin.orig ]; then
+  cp /boot/firmware/uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bin.orig
+fi
+cp uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bin
 
 echo "===Setting up device links"
 python3 /home/ubuntu/jaiabot/scripts/setup_embedded/setup_device_links.py
