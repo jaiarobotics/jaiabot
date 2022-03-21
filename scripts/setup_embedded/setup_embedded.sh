@@ -21,7 +21,8 @@ fi
 echo "===Setting up as $1, number $2"
 
 echo "===Setting up boot config"
-cp config.txt /boot/firmware
+cp /boot/firmware/config.txt config.txt.bak
+cp config.txt /boot/firmware/config.txt
 
 echo "===Setting hostname to jaia$1$2"
 echo "jaia$1$2" > /etc/hostname
