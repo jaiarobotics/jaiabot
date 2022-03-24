@@ -737,22 +737,7 @@ export default class AXUI extends React.Component {
       moveTolerance: 20
     });
 
-    map.on('click', (evt) => {
-      var lonlat = mercator_to_equirectangular(evt.coordinate)
-      var lon = lonlat[0]
-      var lat = lonlat[1]
-      this.sna.postCommand({
-        'botId': 0, 
-        'time': '1642891753471247', 
-        'type': 'MISSION_PLAN', 
-        'plan': {
-          'start': 'START_IMMEDIATELY', 
-          'movement': 'TRANSIT', 
-          'goal': [{'location': {'lat': lat, 'lon': lon}}], 
-          'recovery': {'recoverAtFinalGoal': true}
-        }
-      })
-    })
+    map.on('click', this.didClickMap.bind(this))
 
     const graticule = new OlGraticule({
       // the style to use for the lines, optional.
@@ -3375,6 +3360,38 @@ Missions
           */}
       </div>
     );
+  }
+
+  didClickMap(evt) {
+    var lonlat = mercator_to_equirectangular(evt.coordinate)
+    var lon = lonlat[0]
+    var lat = lonlat[1]
+    console.log('Did click map!')
+
+    var marker = new OlFeature({
+      geometry: new OlPoint(equirectangular_to_mercator([lon, lat])),
+    });
+    
+    var markers = new OlVectorSource({
+        features: [marker]
+    });
+    
+    var markerVectorLayer = new OlVectorLayer({
+        source: markers,
+    });
+    map.addLayer(markerVectorLayer);
+
+    this.sna.postCommand({
+      'botId': 0, 
+      'time': '1642891753471247', 
+      'type': 'MISSION_PLAN', 
+      'plan': {
+        'start': 'START_IMMEDIATELY', 
+        'movement': 'TRANSIT', 
+        'goal': [{'location': {'lat': lat, 'lon': lon}}], 
+        'recovery': {'recoverAtFinalGoal': true}
+      }
+    })
   }
 }
 
