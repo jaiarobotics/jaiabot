@@ -143,7 +143,7 @@ class Interface:
             self.post_command(cmd)
 
     def get_status(self):
-        bots = [google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()]
+        bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
 
         return {
             'bots': bots,

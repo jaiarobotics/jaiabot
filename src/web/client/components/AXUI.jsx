@@ -117,6 +117,7 @@ import cmdIconLED from '../icons/other_commands/LED.png';
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
+import {BotDetailsComponent} from './BotDetails'
 import AssetInfo from './AssetInfo';
 import AssetControl from './AssetControl';
 import PodControl from './PodControl';
@@ -1535,10 +1536,18 @@ export default class AXUI extends React.Component {
     // map.render();
   }
 
+  // POLL THE BOTS
   pollPodStatus() {
     clearInterval(this.timerID);
     const us = this;
+
     this.sna.getStatus().then(
+      (result) => {
+        this.podStatus = result
+      }
+    )
+
+    this.sna.getOldStatus().then(
       (result) => {
         const { selectedBotsFeatureCollection } = this.state;
         // console.log('Poll result: ');
@@ -2559,130 +2568,11 @@ export default class AXUI extends React.Component {
       $('#speedControl').hide();
     }
     // map.render();
+
     return (
       <div id="axui_container">
         <div id="leftSidebar" className="column-left">
           <div id="leftPanelsContainer" className="panelsContainerVertical">
-            {/* This bots table takes the longest time to render
-            <div className="panel layers-control">
-              <h2>Bots</h2>
-              {this.toggleButton('assetListContainer')}
-              <div id="assetListContainer" className="scroll">
-                <button type="button" onClick={this.zoomToAllBots.bind(this)}>
-                  Zoom to All
-                </button>
-                <table id="assetList" className="assetList">
-                  <thead>
-                    <tr>
-                      <td>ID</td>
-                      <td>Follow</td>
-                      <td>Control</td>
-                      <td>Batt</td>
-                      <td>Fault</td>
-                      <td>Lead</td>
-                      <td>State</td>
-                      <td>RF</td>
-                      <td>Other</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {botsLayerCollection
-                      ? botsLayerCollection.getArray().map((layer) => {
-                        const feature = layer.getSource().getFeatureById(layer.bot_id);
-                        return (
-                          <tr
-                            key={feature.getId()}
-                            onClick={this.selectBot.bind(this, feature.getId())}
-                            className={
-                                this.isBotSelected(feature.getId())
-                                  ? 'row-selected'
-                                  : `${
-                                    controlRecipient && feature.getId() === controlRecipient.getId()
-                                      ? ' row-controlled'
-                                      : ''
-                                  }`
-                              }
-                          >
-                            <td className="name">{feature.getId()}</td>
-                            <td>
-                              {trackingTarget === feature.getId() ? (
-                                <button
-                                  type="button"
-                                  onClick={this.trackBot.bind(this, '')}
-                                  title="Unfollow Bot"
-                                  className="toggle-inactive"
-                                >
-                                    Unfollow
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={this.trackBot.bind(this, feature.getId())}
-                                  title="Follow Bot"
-                                  className="toggle-active"
-                                >
-                                    Follow
-                                </button>
-                              )}
-                            </td>
-                            <td>
-                              {controlRecipient && feature.getId() === controlRecipient.getId() ? (
-                                <button
-                                  type="button"
-                                  onClick={this.unsetControlRecipient.bind(this)}
-                                  className=""
-                                  title="Release"
-                                >
-                                    Release
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={this.setControlRecipient.bind(this, feature)}
-                                  className=""
-                                  title="Control Bot"
-                                >
-                                    Control
-                                </button>
-                              )}
-                            </td>
-                            <td className={`battery-state-${feature.get('batteryState')}`}>
-                              <span title={JaiaAPI.getBatteryStateDescription(feature.get('batteryState'))}>
-                                {(8 - parseFloat(feature.get('batteryState'))) * (100.0 / 8.0)}
-%
-                              </span>
-                            </td>
-                            <td
-                              className={`fault-state-${feature.get('faultState')}`}
-                              dangerouslySetInnerHTML={{
-                                __html: JaiaAPI.getFaultStateDescription(feature.get('faultState'))
-                              }}
-                            />
-                            <td>{feature.get('isLeader') === 'true' ? 'Yes' : 'No'}</td>
-                            <td
-                              dangerouslySetInnerHTML={{
-                                __html: JaiaAPI.getCommandStateDescription(feature.get('commandState'))
-                              }}
-                            />
-                            <td
-                              dangerouslySetInnerHTML={{
-                                __html: JaiaAPI.getCommunicationStateDescription(feature.get('commState'))
-                              }}
-                            />
-                            <td
-                              dangerouslySetInnerHTML={{
-                                __html: JaiaAPI.getStateDescription(feature.get('otherMarker'))
-                              }}
-                            />
-                          </tr>
-                        );
-                      })
-                      : ''}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-                    */}
             <div className="panel">
               JaiaBot Central Command<br />
               Version 1.1.0
@@ -2744,90 +2634,6 @@ export default class AXUI extends React.Component {
               ) : ''}
             </div>
 
-            {/* These are resource hogs (or redundant, in the case of mission control)
-            <div className="panel">
-              <h2>Points of Interest</h2>
-              {this.toggleButton('geoEditContainer')}
-              <div id="geoEditContainer" className="scroll">
-                <GeoEdit
-                  url="/geofiles"
-                  dataLayerCollection={poiLayerCollection}
-                  map={map}
-                  changeInteraction={this.changeInteraction}
-                  mapView={this}
-                  setActiveEditLayer={this.setActiveEditLayer}
-                  activeFileIsDirty={activeFileIsDirty}
-                  activeEditFile={activeEditFile}
-                  activeEditLayer={activeEditLayer}
-                  setActiveEditFile={this.setActiveEditFile}
-                  setActiveFileDirty={this.setActiveFileDirty}
-                />
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2>Mission Plans</h2>
-              {this.toggleButton('missionEditContainer')}
-              <div id="missionEditContainer" className="scroll">
-                <FileManager
-                  source="/missionfiles"
-                  setMode={this.setMissionManagerMode}
-                  loadData={this.loadMissionPlanData}
-                  createNewDataObject={AXUI.newMissionPlan}
-                  loadedFileData={missionPlanData}
-                  setFileDirty={this.setMissionPlanFileDirty}
-                  setFileLocked={this.setMissionPlanFileLocked}
-                  setDataVisibility={this.setMissionPlanVisibility}
-                  setActiveEditFile={this.setActiveEditMissionPlan}
-                  zoomToFileLayerExtent={this.zoomToMissionPlanExtent}
-                  additionalFileActions={[
-                    {
-                      name: 'Execute',
-                      description: 'Execute Mission Plan',
-                      callback: this.startMission,
-                      icon: <FontAwesomeIcon icon={faLocationArrow} />
-                    }
-                  ]}
-                />
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2>Mission Execution</h2>
-              {this.toggleButton('missionExecutionContainer')}
-              <div id="missionExecutionContainer" className="scroll">
-                {missionExecutionState ? (
-                  <MissionControl
-                    missionExecutionState={missionExecutionState}
-                    startMission={this.startMission}
-                    stopMission={this.stopMission}
-                  />
-                ) : (
-                  'No active mission'
-                )}
-              </div>
-            </div>
-
-            <div className="panel layersTree">
-              <h2>Layers</h2>
-              {this.toggleButton('layerTreeContainer')}
-              <div id="layerTreeContainer" className="scroll">
-                <LayerTree map={map} />
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2>Selection Info</h2>
-              {this.toggleButton('selectionInfoContainer')}
-              <div id="selectionInfoContainer" className="scroll">
-                {selectedBotsFeatureCollection
-                  ? selectedBotsFeatureCollection
-                    .getArray()
-                    .map(feature => <AssetInfo key={feature.getId()} map={map} asset={feature} />)
-                  : ''}
-              </div>
-            </div>
-                */}
           </div>
           <div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
             <FontAwesomeIcon icon={faGripVertical} />
@@ -3035,6 +2841,7 @@ Pod
               })
               : ''}
           </div>
+
           <div id="botDetailsBox">
             {selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
               ? selectedBotsFeatureCollection.getArray().map(feature => (
@@ -3044,96 +2851,7 @@ Pod
                     controlRecipient && feature.getId() === controlRecipient.getId() ? ' controlled' : ''
                   }`}
                 >
-                  <h2 className="name">{`Bot ${feature.getId()}`}</h2>
-                  <table>
-                    <tbody>
-                      <tr>
-                        <td>Battery</td>
-                        <td className={`battery-state-${feature.get('batteryState')}`}>
-                          <span title={JaiaAPI.getBatteryStateDescription(feature.get('batteryState'))}>
-                            {(8 - parseFloat(feature.get('batteryState'))) * (100.0 / 8.0)}
-%
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Status</td>
-                        <td
-                          className={`fault-level-${feature.get('faultLevel')}`}
-                          dangerouslySetInnerHTML={{
-                            __html: AXUI.getPodDiverStatus(feature)
-                          }}
-                        />
-                      </tr>
-                      {/*
-                      {feature.get('faultState') !== 0 ? (
-                        <tr>
-                          <td>Fault</td>
-                          <td
-                            className={`fault-state-${feature.get('faultState')}`}
-                            dangerouslySetInnerHTML={{
-                              __html: JaiaAPI.getFaultStateDescription(feature.get('faultState'))
-                            }}
-                          />
-                        </tr>
-                      ) : (
-                        ''
-                      )}
-                      */}
-                      {/*
-                  Heading:
-                            <div>{Math.round(feature.get('heading'))}</div>
-                            Speed:
-                            <div>{feature.get('speed')}</div>
-                      <tr>
-                        <td>Leader</td>
-
-                        <td>{feature.get('isLeader') === 'true' ? 'Yes' : 'No'}</td>
-                      </tr>
-                            */}
-                      {/*
-                            <div>
-                              {Math.round(Date.now() / 1000.0 - feature.get('lastUpdated'))}
-  s ago
-                            </div>
-                      */}
-                      {/*
-                      {feature.get('commandState') !== 0 ? (
-                        <tr>
-                          <td>Capability</td>
-                          <td
-                            dangerouslySetInnerHTML={{
-                              __html: JaiaAPI.getCommandStateDescription(feature.get('commandState'))
-                            }}
-                          />
-                        </tr>
-                      ) : (
-                        ''
-                      )}
-                      <tr>
-                        <td>RF</td>
-
-                        <td
-                          dangerouslySetInnerHTML={{
-                            __html: JaiaAPI.getCommunicationStateDescription(feature.get('commState'))
-                          }}
-                        />
-                      </tr>
-                      {feature.get('otherMarker') !== 0 ? (
-                        <tr>
-                          <td>Other State</td>
-                          <td
-                            dangerouslySetInnerHTML={{
-                              __html: JaiaAPI.getStateDescription(feature.get('otherMarker'))
-                            }}
-                          />
-                        </tr>
-                      ) : (
-                        ''
-                      )}
-                      */}
-                    </tbody>
-                  </table>
+                  {BotDetailsComponent(this.podStatus?.bots?.[feature.getId()])}
                   <div id="botContextCommandBox">
                     {/* Leader-based commands and manual control go here */}
                     {controlRecipient && feature.getId() === controlRecipient.getId() ? (

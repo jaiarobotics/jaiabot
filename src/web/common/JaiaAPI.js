@@ -141,8 +141,12 @@ module.exports = class JaiaAPI {
     return this.hit('GET', endpoint, body);
   }
 
-  getStatus() {
+  getOldStatus() {
     return this.get('getStatus');
+  }
+
+  getStatus() {
+    return this.get('status')
   }
 
   setControlId(id = -1, rcMode = 0) {
@@ -384,4 +388,5 @@ module.exports = class JaiaAPI {
         return '<span title="">Unknown</span>';
     }
   }
+
 };
