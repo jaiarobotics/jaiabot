@@ -272,6 +272,7 @@ loadVisibleLayers()
 // ===========================================================================================================================
 
 export default class AXUI extends React.Component {
+
   constructor(props) {
     super(props);
 
@@ -344,8 +345,6 @@ export default class AXUI extends React.Component {
       selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
       headingControlMarkerLayerCollection: new OlCollection([], { unique: true }),
       headingControlMarker: null,
-      liveFormationOriginMarkerLayerCollection: new OlCollection([], { unique: true }),
-      liveFormationOriginMarker: null,
       liveCommand: {
         type: '',
         parameters: [],
@@ -588,18 +587,6 @@ export default class AXUI extends React.Component {
       chartLayerCollection.push(layer);
     });
 
-    /*
-    // https://www.gebco.net/
-    addChartLayerWMTS({
-      title: 'NOAA GEBCO (General Bathymetric Chart of the Oceans) 2014 Hillshade',
-      url: 'https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/gebco_2014_hillshade/MapServer/WMTS/1.0.0/WMTSCapabilities.xml',
-      layer: 'web_mercator_gebco_2014_hillshade',
-      tileMatrixSet: 'default028mm',
-      type: 'base',
-      // maxZoom: 10 // Can't specify zoom on source, but can maybe specify resolution limit on layer
-    }, baseLayerCollection);
-    */
-
     addChartLayerWMTS(
       {
         title: 'NOAA Bathymetry Hillshades (online only)',
@@ -610,16 +597,6 @@ export default class AXUI extends React.Component {
       },
       chartLayerCollection
     );
-    /*
-    /*
-    addChartLayerWMTS({
-      title: '',
-      url: '',
-      layer: '',
-      tileMatrixSet: 'default028mm',
-      type: 'base'
-    }, baseLayerCollection);
-    */
 
     this.clientAccuracyFeature = new OlFeature();
 
@@ -659,7 +636,6 @@ export default class AXUI extends React.Component {
       botsLayerCollection,
       dataLayerCollection,
       poiLayerCollection,
-      liveFormationOriginMarkerLayerCollection,
       testSurveyMarkerLayerCollection,
       headingControlMarkerLayerCollection,
       selectedBotsFeatureCollection,
@@ -674,44 +650,7 @@ export default class AXUI extends React.Component {
     });
 
     map = new OlMap({
-      layers: [
-        new OlLayerGroup({
-          title: 'Base Maps (internet connection required)',
-          fold: 'open',
-          layers: baseLayerCollection
-        }),
-        this.chartLayerGroup,
-        new OlLayerGroup({
-          // title: 'Plans',
-          // fold: 'open',
-          layers: this.planLayerCollection
-        }),
-        new OlLayerGroup({
-          // title: 'Data',
-          // fold: 'open',
-          layers: dataLayerCollection
-        }),
-        new OlLayerGroup({
-          // title: 'Points of Interest',
-          // fold: 'open',
-          layers: poiLayerCollection
-        }),
-        this.botsLayerGroup,
-        this.clientPositionLayer,
-        this.measureLayer,
-        new OlLayerGroup({
-          name: 'Live Command Formation Origin',
-          layers: liveFormationOriginMarkerLayerCollection
-        }),
-        new OlLayerGroup({
-          name: 'Debug SurveyMarker',
-          layers: testSurveyMarkerLayerCollection
-        }),
-        new OlLayerGroup({
-          name: 'Heading Control',
-          layers: headingControlMarkerLayerCollection
-        })
-      ],
+      layers: this.createLayers(),
       controls: [
         new OlZoom(),
         new OlRotate(),
@@ -958,16 +897,12 @@ export default class AXUI extends React.Component {
     this.zoomToMissionPlanExtent = this.zoomToMissionPlanExtent.bind(this);
     this.setMissionManagerMode = this.setMissionManagerMode.bind(this);
 
-    this.updateLiveCommandField = this.updateLiveCommandField.bind(this);
-    this.updateLiveCommandParameter = this.updateLiveCommandParameter.bind(this);
-
     this.sendCommand = this.sendCommand.bind(this);
     this.sendStop = this.sendStop.bind(this);
     this.startMission = this.startMission.bind(this);
     this.skipToNextMissionAction = this.skipToNextMissionAction.bind(this);
 
     this.setSelectedMissionAction = this.setSelectedMissionAction.bind(this);
-    this.zoomToLiveFormation = this.zoomToLiveFormation.bind(this);
 
     this.updateAcceleration = this.updateAcceleration.bind(this);
 
@@ -996,6 +931,50 @@ export default class AXUI extends React.Component {
       setCookie("rotation", rotation)
     })
 
+  }
+
+  createLayers() {
+    this.missionLayer = new OlVectorLayer()
+  
+    console.log(this.state.baseLayerCollection)
+
+    let layers = [
+      new OlLayerGroup({
+        title: 'Base Maps (internet connection required)',
+        fold: 'open',
+        layers: this.state.baseLayerCollection
+      }),
+      this.chartLayerGroup,
+      new OlLayerGroup({
+        // title: 'Plans',
+        // fold: 'open',
+        layers: this.planLayerCollection
+      }),
+      new OlLayerGroup({
+        // title: 'Data',
+        // fold: 'open',
+        layers: this.state.dataLayerCollection
+      }),
+      new OlLayerGroup({
+        // title: 'Points of Interest',
+        // fold: 'open',
+        layers: this.state.poiLayerCollection
+      }),
+      this.botsLayerGroup,
+      this.clientPositionLayer,
+      this.measureLayer,
+      this.missionLayer,
+      new OlLayerGroup({
+        name: 'Debug SurveyMarker',
+        layers: this.state.testSurveyMarkerLayerCollection
+      }),
+      new OlLayerGroup({
+        name: 'Heading Control',
+        layers: this.state.headingControlMarkerLayerCollection
+      })
+    ]
+
+    return layers
   }
 
   componentDidMount() {
@@ -1115,47 +1094,6 @@ export default class AXUI extends React.Component {
       }
     });
 
-    const { liveFormationOriginMarkerLayerCollection } = this.state;
-    //   FormationOriginMarker(id, shape, map, layerGroup, coordsCallback, headingCallback, distanceCallback) {
-    const liveFormationOriginMarker = new FormationOriginMarker(
-      'Live Formation Origin',
-      'line',
-      map,
-      liveFormationOriginMarkerLayerCollection,
-      (coords) => {
-        const { liveCommand } = us.state;
-        if (liveCommand.type === 'formation') {
-          us.updateLiveCommandParameter(0, Math.round(coords[1] * 1000000) / 1000000.0);
-          us.updateLiveCommandParameter(1, Math.round(coords[0] * 1000000) / 1000000.0);
-        }
-      },
-      (heading) => {
-        const { liveCommand } = us.state;
-        if (
-          liveCommand.type === 'formation'
-          && (liveCommand.formationType === '5' || liveCommand.formationType === '6')
-        ) {
-          us.updateLiveCommandParameter(2, Math.round(heading));
-        }
-      },
-      (distance) => {
-        const { liveCommand } = us.state;
-        if (
-          liveCommand.type === 'formation'
-          && (liveCommand.formationType === '5' || liveCommand.formationType === '6')
-        ) {
-          us.updateLiveCommandParameter(3, Math.round(distance));
-        }
-      },
-      COLOR_CONTROLLED
-    );
-    this.setState({ liveFormationOriginMarker });
-
-    /*
-        This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-        */
-    liveFormationOriginMarker.create(0, 0, 0, 10);
-    liveFormationOriginMarker.hide();
 
     const { testSurveyMarkerLayerCollection } = this.state;
       /*
@@ -2122,12 +2060,6 @@ export default class AXUI extends React.Component {
     this.fit(extent, { duration: 500 }, true);
   }
 
-  zoomToLiveFormation() {
-    const { liveFormationOriginMarker } = this.state;
-    const extent = liveFormationOriginMarker.getExtent();
-    this.fit(extent, { duration: 500 }, true);
-  }
-
   updateMissionPlan(name, data) {
     const { missionPlanData } = this.state;
     if (!missionPlanData.has(name)) {
@@ -2267,64 +2199,6 @@ export default class AXUI extends React.Component {
     this.sna.allStop()
   }
 
-  handleGlobalCommandSelect(command) {
-    // eslint apparently doesn't detect use of Object.assign()
-    // eslint-disable-next-line prefer-const
-    let { liveCommand } = this.state;
-    const { liveFormationOriginMarker } = this.state;
-    Object.assign(liveCommand, command);
-    this.setState({ liveCommand });
-    if (liveCommand.type === 'formation') {
-      if (liveCommand.formationType === '5') {
-        liveFormationOriginMarker.setShape('line');
-      }
-      if (liveCommand.formationType === '6') {
-        liveFormationOriginMarker.setShape('circle');
-      }
-      liveFormationOriginMarker.show();
-      liveFormationOriginMarker.enableEdit();
-    } else {
-      liveFormationOriginMarker.hide();
-      liveFormationOriginMarker.disableEdit();
-    }
-  }
-
-  updateLiveCommand(command) {
-    this.handleGlobalCommandSelect(command);
-  }
-
-  updateLiveCommandField(fieldName, fieldValue) {
-    const { liveCommand } = this.state;
-    liveCommand[fieldName] = fieldValue;
-    this.setState({ liveCommand });
-  }
-
-  updateLiveCommandParameter(parameterIndex, parameterValue) {
-    const { liveCommand, liveFormationOriginMarker } = this.state;
-    if (liveCommand.type === 'formation') liveCommand.formationParameters[parameterIndex] = parameterValue;
-    else liveCommand.parameters[parameterIndex] = parameterValue;
-    this.setState({ liveCommand });
-    // Skipping when parameterIndex is 2 as a workaround for the bug caused by calling
-    // this function multiple times from within liveFormationOriginMarker
-    // TODO fix properly by updating the marker elsewhere or adding another param to this function
-    // or maybe by consolidating the params into one callback from FormationOriginMarker
-    if (liveCommand.type === 'formation' && parameterIndex !== 2) {
-      if (liveCommand.formationType === '5') {
-        liveFormationOriginMarker.setShape('line');
-      }
-      if (liveCommand.formationType === '6') {
-        liveFormationOriginMarker.setShape('circle');
-      }
-
-      liveFormationOriginMarker.update(
-        liveCommand.formationParameters[0],
-        liveCommand.formationParameters[1],
-        liveCommand.formationParameters[2],
-        liveCommand.formationParameters[3]
-      );
-    }
-  }
-
   sendCommand(command) {
     info(`Sending ${command.type} command`);
     switch (command.type) {
@@ -2338,25 +2212,6 @@ export default class AXUI extends React.Component {
         error('Invalid command type');
         break;
     }
-  }
-
-  sendLiveCommand() {
-    var liveCommand = Object.assign({}, this.state.liveCommand)
-
-    // For the Pod Dive -> RC Dive kludge
-    const podHitBottomDiveId = 3
-    const rcHitBottomDiveId = 8
-
-    // Change command to RC command, if it's a dive command and there's a bot selected
-    if (this.state.controlRecipient) {
-      if (liveCommand.type == 'other') {
-        if (liveCommand.OtherCommand == podHitBottomDiveId) {
-          liveCommand.OtherCommand = rcHitBottomDiveId
-        }
-      }
-    }
-
-    this.sendCommand(liveCommand)
   }
 
   openBotsDrawer() {
@@ -2514,8 +2369,6 @@ export default class AXUI extends React.Component {
       missionManagerMode,
       missionExecutionState,
       liveCommand,
-      liveFormationOriginMarker,
-      liveFormationOriginMarkerLayerCollection,
       selectedMissionAction,
       faultCounts,
       controlHeading,
@@ -2528,24 +2381,7 @@ export default class AXUI extends React.Component {
       headingControlMarker
     } = this.state;
     const us = this;
-    /*
-    if (missionExecutionState && missionExecutionState.isActive && missionExecutionState.missionPlan) {
-      this.renderMissionPlan(missionExecutionState.planName, { data: missionExecutionState.missionPlan, activeSegment: missionExecutionState.missionSegment });
-    } else if (activeEditMissionPlan && activeEditMissionPlan.name !== '') {
-      this.renderMissionPlan(activeEditMissionPlan.name, activeEditMissionPlan);
-    }
-    */
-    /*
-    if (liveFormationOriginMarker) {
-      if (liveCommand) {
-        // Formation params
-        // lat, lon, bearing, sep
-        liveFormationOriginMarker.enableEdit();
-      } else {
-        liveFormationOriginMarker.disableEdit();
-      }
-    }
-    */
+
     if (controlRecipient && headingControlMarker.isVisible()) {
       $('#speedControl').show();
       $('#speedSlider').slider('value', controlSpeed);
@@ -2982,11 +2818,6 @@ Commands
                 liveCommand && liveCommand.type === 'formation' && liveCommand.formationType === '5' ? ' selected' : ''
               }`}
               title="Line Formation"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'formation',
-                formationType: '5',
-                OtherCommand: '0'
-              })}
             >
               <img src={cmdIconLineFormation} alt="Line Formation" />
             </button>
@@ -2996,11 +2827,6 @@ Commands
                 liveCommand && liveCommand.type === 'formation' && liveCommand.formationType === '6' ? ' selected' : ''
               }`}
               title="Circle Formation"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'formation',
-                formationType: '6',
-                OtherCommand: '0'
-              })}
             >
               <img src={cmdIconCircleFormation} alt="Circle Formation" />
             </button>
@@ -3010,39 +2836,15 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '5' ? ' selected' : ''
               }`}
               title="Sample Data at Surface"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '5'
-              })}
             >
               <img src={cmdIconLineData} alt="" />
             </button>
-            {/*
-            <button
-              type="button"
-              className="globalCommand"
-              title="Dive"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '2'
-              })}
-            >
-              <img src={cmdIconDive} alt="" />
-            </button>
-          */}
             <button
               type="button"
               className={`globalCommand${
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '3' ? ' selected' : ''
               }`}
               title="Dive Bottom"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '3'
-              })}
             >
               <img src={cmdIconDiveBottom} alt="" />
             </button>
@@ -3052,11 +2854,6 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '4' ? ' selected' : ''
               }`}
               title="Dive Drift"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '4'
-              })}
             >
               <img src={cmdIconDiveDrift} alt="" />
             </button>
@@ -3066,11 +2863,6 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '2' ? ' selected' : ''
               }`}
               title="Dive Profile"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '2'
-              })}
             >
               <img src={cmdIconDiveProfile} alt="" />
             </button>
@@ -3080,11 +2872,6 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '1' ? ' selected' : ''
               }`}
               title="Return Home"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '1'
-              })}
             >
               <img src={cmdIconRTH} alt="" />
             </button>
@@ -3094,11 +2881,6 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '0' ? ' selected' : ''
               }`}
               title="Beep"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '0'
-              })}
             >
               <img src={cmdIconBeep} alt="Beep" />
               {/* <FontAwesomeIcon icon={faVolumeUp} /> */}
@@ -3109,79 +2891,10 @@ Commands
                 liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '11' ? ' selected' : ''
               }`}
               title="Other LED blink pattern"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '11'
-              })}
             >
               <img src={cmdIconLED} alt="LED" />
             </button>
-            {/*
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '10' ? ' selected' : ''
-              }`}
-              title="Override Out-of-Water Detection"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'other',
-                formationType: '0',
-                OtherCommand: '10'
-              })}
-            >
-              <img src={cmdIconOverrideOOW} alt="" />
-            </button>
-            */}
-            {/*
-            <button
-              type="button"
-              className="globalCommand"
-              title="Default"
-              onClick={this.handleGlobalCommandSelect.bind(this, {
-                type: 'none',
-                formationType: '0',
-                OtherCommand: '0'
-              })}
-            >
-              <img src={cmdIconDiveDefault} alt="" />
-            </button>
-          */}
           </div>
-
-          {liveCommand.type === 'formation' || liveCommand.type === 'other' ? (
-            <div id="liveCommandEdit">
-              <CommandEditor
-                key={liveCommand}
-                command={liveCommand}
-                fixedType
-                updateCommandField={this.updateLiveCommandField}
-                updateCommandParameter={this.updateLiveCommandParameter}
-                sna={this.sna}
-                changeInteraction={this.changeInteraction}
-                dataLayerCollection={liveFormationOriginMarkerLayerCollection}
-                zoomToFormation={this.zoomToLiveFormation}
-              />
-              {!(
-                liveCommand.type === 'formation'
-                && liveCommand.formationParameters[0] === 0
-                && liveCommand.formationParameters[1] === 0
-              ) ? (
-                <button
-                  type="button"
-                  onClick={this.sendLiveCommand.bind(this)}
-                  title="Send Command"
-                  id="sendLiveCommand"
-                >
-                  <FontAwesomeIcon icon={faPlay} />
-                </button>
-                ) : (
-                  ''
-                )}
-            </div>
-          ) : (
-            ''
-          )}
         </div>
 
         {activeEditLayer ? (
@@ -3370,16 +3083,13 @@ Missions
 
     var marker = new OlFeature({
       geometry: new OlPoint(equirectangular_to_mercator([lon, lat])),
-    });
+    })
     
     var markers = new OlVectorSource({
         features: [marker]
-    });
-    
-    var markerVectorLayer = new OlVectorLayer({
-        source: markers,
-    });
-    map.addLayer(markerVectorLayer);
+    })
+
+    this.missionLayer.setSource(markers)
 
     this.sna.postCommand({
       'botId': 0, 
