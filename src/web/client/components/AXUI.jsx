@@ -2407,36 +2407,6 @@ export default class AXUI extends React.Component {
               </div>
             </div>
 
-            <div className="panel">
-              <h2>Log</h2>
-              <button
-                type="button"
-                onClick={() => {
-                  $('#logContainer').html(messageLog.reduce((accum, value) => `${accum}<div>${value}</div>`, ''));
-                }}
-              >
-                Refresh log
-              </button>
-              <div id="logContainer" className="scroll" />
-            </div>
-
-            <div className="panel">
-              {debugMode? (
-                <div id="debugButtons">
-              <div>
-                <button type="button" onClick={this.addTestSurveyMarker.bind(this)}>
-                  Test survey marker
-                </button>
-              </div>
-              <div>
-                <button type="button" onClick={this.disconnectPod.bind(this)}>
-                  Disconnect from pod
-                </button>
-              </div>
-              </div>
-              ) : ''}
-            </div>
-
           </div>
           <div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
             <FontAwesomeIcon icon={faGripVertical} />
@@ -2739,19 +2709,6 @@ Pod
             Hold to Accelerate
           </button>
 
-          {/*
-          <div>
-            <button type="button" onClick={this.sendThrottle.bind(this, 0)} title="Stop">
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-          <div id="speedSlider" />
-          <div>
-            <button type="button" onClick={this.sendThrottle.bind(this, 100)} title="Max Speed">
-              Max
-            </button>
-          </div>
-          */}
         </div>
 
         <div
@@ -2886,148 +2843,6 @@ Commands
           ''
         )}
 
-        <div>Testing</div>
-
-        <div id="missionSummary">
-          {!missionExecutionState || !missionExecutionState.isActive ? (
-            <div id="missionFileManager" onClick={this.openMissionDrawer.bind(this)}>
-              {missionManagerMode === 'closed' ? (
-                <h2>
-                  <FontAwesomeIcon icon={faRoute} />
-                </h2>
-              ) : (
-                ''
-              )}
-              <FileManager
-                source="/missionfiles"
-                mode={missionManagerMode}
-                setMode={this.setMissionManagerMode}
-                loadData={this.loadMissionPlanData}
-                createNewDataObject={AXUI.newMissionPlan}
-                loadedFileData={missionPlanData}
-                setFileDirty={this.setMissionPlanFileDirty}
-                setFileLocked={this.setMissionPlanFileLocked}
-                setDataVisibility={this.setMissionPlanVisibility}
-                setActiveEditFile={this.setActiveEditMissionPlan}
-                zoomToFileLayerExtent={this.zoomToMissionPlanExtent}
-                activeEditFile={activeEditMissionPlan ? activeEditMissionPlan.name : ''}
-                additionalFileActions={[
-                  {
-                    name: 'Execute',
-                    description: 'Execute Mission Plan',
-                    callback: this.startMission,
-                    icon: <FontAwesomeIcon icon={faPlay} />
-                  }
-                ]}
-                normalizeDataForStorage={AXUI.fixupMissionPlan}
-              />
-            </div>
-          ) : (
-            <div id="missionControl">
-              <MissionControl
-                missionExecutionState={missionExecutionState}
-                startMission={this.startMission}
-                stopMission={this.stopMission}
-              />
-            </div>
-          )}
-          {missionDrawerOpen ? (
-            <button
-              type="button"
-              id="toggleMissionDrawer"
-              className="not-a-button"
-              onClick={this.closeMissionDrawer.bind(this)}
-              title="Close Mission Panel"
-            >
-              <FontAwesomeIcon icon={faChevronDown} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              id="toggleMissionDrawer"
-              className="not-a-button"
-              onClick={this.openMissionDrawer.bind(this)}
-              title="Open Mission Panel"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-          )}
-        </div>
-        <div id="missionDrawer">
-          {!missionExecutionState || !missionExecutionState.isActive ? (
-            <div id="missionPlanning">
-              {activeEditMissionPlan && activeEditMissionPlan.name !== '' ? (
-                <div id="missionPlanner">
-                  <MissionEditor
-                    missionName={activeEditMissionPlan.name}
-                    missionPlan={activeEditMissionPlan.data}
-                    changeInteraction={this.changeInteraction}
-                    // eslint-disable-next-line react/jsx-no-bind
-                    updateMissionPlan={this.updateMissionPlan.bind(this, activeEditMissionPlan.name)}
-                    executeMissionPlan={this.startMission}
-                    sna={this.sna}
-                    dataLayerCollection={poiLayerCollection}
-                    selectedMissionAction={selectedMissionAction}
-                    setSelectedMissionAction={this.setSelectedMissionAction}
-                    zoomToFileLayerExtent={this.zoomToMissionPlanExtent.bind(this, activeEditMissionPlan.name)}
-                    zoomToFormation={this.zoomToMissionFormation.bind(this, activeEditMissionPlan.name)}
-                    $={$}
-                    sendCommand={this.sendCommand}
-                  />
-                </div>
-              ) : (
-                ''
-              )}
-            </div>
-          ) : (
-            <div id="missionExecution">
-              {missionExecutionState.missionPlan ? (
-                <div id="missionPlanView">
-                  <MissionEditor
-                    missionPlan={missionExecutionState.missionPlan}
-                    changeInteraction={this.changeInteraction}
-                    // eslint-disable-next-line react/jsx-no-bind
-                    updateMissionPlan={() => {}}
-                    sna={this.sna}
-                    dataLayerCollection={poiLayerCollection}
-                    selectedMissionAction={selectedMissionAction}
-                    setSelectedMissionAction={this.setSelectedMissionAction}
-                    readOnly
-                    activeMissionAction={missionExecutionState.missionSegment}
-                    zoomToFileLayerExtent={this.zoomToMissionPlanExtent}
-                    zoomToFormation={this.zoomToMissionFormation.bind(this, missionExecutionState.planName)}
-                    sendCommand={this.sendCommand}
-                    execNextMissionAction={this.skipToNextMissionAction}
-                  />
-                </div>
-              ) : (
-                ''
-              )}
-            </div>
-          )}
-        </div>
-
-        {/*
-          <div id="statusBar">
-            Latitude:
-            {' '}
-            <span id="statusLatitude">{cursorLocation.latitude.toFixed(6)}</span>
-            {'   |   '}
-            Longitude:
-            {' '}
-            <span id="statusLongitude">{cursorLocation.longitude.toFixed(6)}</span>
-            {debugMode ? (
-              <span>
-                {'   |   '}
-                Zoom:
-                {' '}
-                <span id="statusZoom">{mapZoomLevel.toFixed(1)}</span>
-              </span>
-            ) : (
-              ''
-            )}
-          </div>
-          */}
       </div>
     );
   }
