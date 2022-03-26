@@ -99,8 +99,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import cmdIconStop from '../icons/Stop.png';
-import cmdIconLineFormation from '../icons/formations/LineFormation3.png';
-import cmdIconCircleFormation from '../icons/formations/CircleFormation2.png';
 
 import cmdIconBeep from '../icons/other_commands/beep.png';
 // import cmdIconDefault from '../icons/other_commands/default.png';
@@ -188,17 +186,6 @@ const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 const waypointDefaultProperties = new Map([['Depth', '0'], ['Notes', '']]);
 
-
-// not used at this time
-const globalCommands = [
-  {
-    id: 'formation_line',
-    description: 'Line Formation',
-    type: 'formation',
-    icon: cmdIconDiveDefault,
-    cmdId: 5
-  }
-];
 
 const ACCEL_PROFILE = [[0, 20], [3000, 30], [5000, 70]];
 
@@ -298,19 +285,14 @@ export default class AXUI extends React.Component {
 
     const localScratchSource = new OlVectorSource({});
 
+    this.missions = {}
+
     this.state = {
       error: {},
       debugMode: process.env.NODE_ENV === 'development',
       // User interaction modes
       mode: 'exec',
       currentInteraction: null,
-      // Not tracking cursor position here because it updates the state too often
-      /*
-      cursorLocation: {
-        latitude: 0,
-        longitude: 0
-      },
-      */
       mapZoomLevel: 14,
       controlRecipient: null,
       controlSpeed: 0,
@@ -2807,29 +2789,6 @@ Commands
         </div>
         <div id="commandsDrawer">
           <div id="globalCommandBox">
-            {/*
-            <button type="button" className="globalCommand" title="Stop" onClick={this.sendStop}>
-              <img src={cmdIconStop} alt="Stop All" />
-            </button>
-          */}
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'formation' && liveCommand.formationType === '5' ? ' selected' : ''
-              }`}
-              title="Line Formation"
-            >
-              <img src={cmdIconLineFormation} alt="Line Formation" />
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'formation' && liveCommand.formationType === '6' ? ' selected' : ''
-              }`}
-              title="Circle Formation"
-            >
-              <img src={cmdIconCircleFormation} alt="Circle Formation" />
-            </button>
             <button
               type="button"
               className={`globalCommand${
@@ -2927,16 +2886,14 @@ Commands
           ''
         )}
 
+        <div>Testing</div>
+
         <div id="missionSummary">
           {!missionExecutionState || !missionExecutionState.isActive ? (
             <div id="missionFileManager" onClick={this.openMissionDrawer.bind(this)}>
               {missionManagerMode === 'closed' ? (
                 <h2>
                   <FontAwesomeIcon icon={faRoute} />
-                  {/*
-                  {' '}
-Missions
-        */}
                 </h2>
               ) : (
                 ''
@@ -3079,26 +3036,42 @@ Missions
     var lonlat = mercator_to_equirectangular(evt.coordinate)
     var lon = lonlat[0]
     var lat = lonlat[1]
-    console.log('Did click map!')
 
-    var marker = new OlFeature({
-      geometry: new OlPoint(equirectangular_to_mercator([lon, lat])),
+    let botId = 0
+
+    if (!(botId in this.missions)) {
+      this.missions[botId] = []
+    }
+
+    this.missions[botId].push([lon, lat])
+
+    // Update the mission layer
+    let features = this.missions[botId].map((location) => {
+      return new OlFeature({
+        geometry: new OlPoint(equirectangular_to_mercator(location)),
+      })
     })
     
     var markers = new OlVectorSource({
-        features: [marker]
+        features: features
     })
 
     this.missionLayer.setSource(markers)
 
+    // Issue command
+
+    let goals = this.missions[botId].map((location) => {
+      return {'location': {'lon': location[0], 'lat': location[1]}}
+    })
+
     this.sna.postCommand({
-      'botId': 0, 
-      'time': '1642891753471247', 
-      'type': 'MISSION_PLAN', 
+      'botId': botId,
+      'time': '1642891753471247',
+      'type': 'MISSION_PLAN',
       'plan': {
-        'start': 'START_IMMEDIATELY', 
-        'movement': 'TRANSIT', 
-        'goal': [{'location': {'lat': lat, 'lon': lon}}], 
+        'start': 'START_IMMEDIATELY',
+        'movement': 'TRANSIT',
+        'goal': goals,
         'recovery': {'recoverAtFinalGoal': true}
       }
     })
