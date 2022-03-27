@@ -1349,21 +1349,21 @@ export default class AXUI extends React.Component {
 
     this.sna.getStatus().then(
       (result) => {
-        this.podStatus = result
+        if (result.error) {
+          this.podStatus = {}
+          error('Unable to load Pod data!')
+          console.error(result)
+          this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+        }
+        else {
+          this.podStatus = result
+        }
       }
     )
 
     this.sna.getOldStatus().then(
       (result) => {
         const { selectedBotsFeatureCollection } = this.state;
-        // console.log('Poll result: ');
-        // console.log(result);
-        if (!Reflect.has(result, 'dialog')) {
-          error('Unable to load Pod data!');
-          console.error(result);
-          this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-          return;
-        }
         if (!Reflect.has(this, 'prevDialogType')) {
           this.prevDialogType = 0;
         }
