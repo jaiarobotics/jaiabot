@@ -56,6 +56,7 @@ import OlLayerSwitcher from 'ol-layerswitcher';
 import OlBingMaps from 'ol/source/BingMaps';
 import OlGraticule from 'ol/Graticule';
 import OlStroke from 'ol/style/Stroke';
+import OlFill from 'ol/style/Fill';
 import OlAttribution from 'ol/control/Attribution';
 import { fromLonLat, getTransform } from 'ol/proj';
 
@@ -151,6 +152,7 @@ import {
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/AXUI.less';
+import { transform } from 'ol/proj';
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -2812,15 +2814,45 @@ Commands
 
   updateMissionLayer() {
     // Update the mission layer
-    let features = this.missions[0].map((location) => {
-      return new OlFeature({
-        geometry: new OlPoint(equirectangular_to_mercator(location)),
-      })
+    let features = []
+
+    let transformed_pts = this.missions[0].map(pt => {
+      return equirectangular_to_mercator(pt)
     })
-    
+
+    for (let pt of transformed_pts) {
+      features.push(new OlFeature({ geometry: new OlPoint(pt) }))
+    }
+
+    features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
+
     var markers = new OlVectorSource({
         features: features
     })
+
+
+    const fill = new OlFillStyle({
+      color: '#CC9933',
+    });
+    const stroke = new OlStrokeStyle({
+      color: '#CC9933',
+      width: 1.25,
+    });
+    const styles = [
+      new OlStyle({
+        image: new OlCircleStyle({
+          fill: fill,
+          stroke: stroke,
+          radius: 5,
+        }),
+        fill: fill,
+        stroke: stroke,
+      }),
+    ];
+
+    this.missionLayer.setStyle(styles)
+
+    console.log(this.missionLayer.style)
 
     this.missionLayer.setSource(markers)
   }
