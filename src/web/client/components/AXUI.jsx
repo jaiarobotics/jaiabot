@@ -999,7 +999,6 @@ export default class AXUI extends React.Component {
             }
     });
     */
-    console.log("State change")
   }
 
   componentWillUnmount() {
@@ -1300,7 +1299,7 @@ export default class AXUI extends React.Component {
 
     this.sna.getStatus().then(
       (result) => {
-        if (result.error) {
+        if (!("bots" in result)) {
           this.podStatus = {}
           error('Unable to load Pod data!')
           console.error(result)
