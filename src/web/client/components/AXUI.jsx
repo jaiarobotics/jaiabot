@@ -575,17 +575,6 @@ export default class AXUI extends React.Component {
       chartLayerCollection.push(layer);
     });
 
-    addChartLayerWMTS(
-      {
-        title: 'NOAA Bathymetry Hillshades (online only)',
-        url:
-          'https://gis.ngdc.noaa.gov/arcgis/rest/services/bag_hillshades/ImageServer/WMTS/1.0.0/WMTSCapabilities.xml',
-        layer: 'bag_hillshades',
-        tileMatrixSet: 'default028mm'
-      },
-      chartLayerCollection
-    );
-
     this.clientAccuracyFeature = new OlFeature();
 
     this.clientPositionFeature = new OlFeature();
@@ -924,8 +913,6 @@ export default class AXUI extends React.Component {
   createLayers() {
     this.missionLayer = new OlVectorLayer()
   
-    console.log(this.state.baseLayerCollection)
-
     let layers = [
       new OlLayerGroup({
         title: 'Base Maps (internet connection required)',
@@ -2851,8 +2838,6 @@ Commands
     ];
 
     this.missionLayer.setStyle(styles)
-
-    console.log(this.missionLayer.style)
 
     this.missionLayer.setSource(markers)
   }
