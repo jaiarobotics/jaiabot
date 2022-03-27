@@ -235,7 +235,6 @@ export default class AXUI extends React.Component {
 
     this.state = {
       error: {},
-      debugMode: process.env.NODE_ENV === 'development',
       // User interaction modes
       mode: 'exec',
       currentInteraction: null,
@@ -853,10 +852,6 @@ export default class AXUI extends React.Component {
 
     const us = this;
 
-    const { debugMode } = this.state;
-    if (debugMode) {
-      warning("Running in debug mode!");
-    }
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 2500);
 
@@ -1004,6 +999,7 @@ export default class AXUI extends React.Component {
             }
     });
     */
+    console.log("State change")
   }
 
   componentWillUnmount() {
@@ -1016,18 +1012,6 @@ export default class AXUI extends React.Component {
       this.unsetControlRecipient();
     }
   }
-
-	toggleDebugMode() {
-		const { debugMode } = this.state;
-		this.setState({ debugMode: !debugMode }, () => {
-			const { debugMode } = this.state;
-			if (debugMode) {
-				error("Running in debug mode!");
-			} else {
-				error("Exited debug mode!");
-			}
-		});
-	}
 
   getLiveLayerFromBotId(bot_id) {
     const { botsLayerCollection } = this.state;
