@@ -11,6 +11,10 @@
 
 import React from 'react';
 
+// Material Design Icons
+import Icon from '@mdi/react'
+import { mdiDelete, mdiPlay } from '@mdi/js'
+
 import OlMap from 'ol/Map';
 import OlView from 'ol/View';
 import OlText from 'ol/style/Text';
@@ -2675,6 +2679,7 @@ Pod
                 </div>
               ))
               : ''}
+              
           </div>
         </div>
 
@@ -2746,69 +2751,11 @@ Commands
         </div>
         <div id="commandsDrawer">
           <div id="globalCommandBox">
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '5' ? ' selected' : ''
-              }`}
-              title="Sample Data at Surface"
-            >
-              <img src={cmdIconLineData} alt="" />
+            <button type="button" className="globalCommand" title="Run Mission" onClick={this.runMissionClicked.bind(this)}>
+              <Icon path={mdiPlay} title="Run Mission"/>
             </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '3' ? ' selected' : ''
-              }`}
-              title="Dive Bottom"
-            >
-              <img src={cmdIconDiveBottom} alt="" />
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '4' ? ' selected' : ''
-              }`}
-              title="Dive Drift"
-            >
-              <img src={cmdIconDiveDrift} alt="" />
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '2' ? ' selected' : ''
-              }`}
-              title="Dive Profile"
-            >
-              <img src={cmdIconDiveProfile} alt="" />
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '1' ? ' selected' : ''
-              }`}
-              title="Return Home"
-            >
-              <img src={cmdIconRTH} alt="" />
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '0' ? ' selected' : ''
-              }`}
-              title="Beep"
-            >
-              <img src={cmdIconBeep} alt="Beep" />
-              {/* <FontAwesomeIcon icon={faVolumeUp} /> */}
-            </button>
-            <button
-              type="button"
-              className={`globalCommand${
-                liveCommand && liveCommand.type === 'other' && liveCommand.OtherCommand === '11' ? ' selected' : ''
-              }`}
-              title="Other LED blink pattern"
-            >
-              <img src={cmdIconLED} alt="LED" />
+            <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
+              <Icon path={mdiDelete} title="Clear Mission"/>
             </button>
           </div>
         </div>
@@ -2860,8 +2807,12 @@ Commands
 
     this.missions[botId].push([lon, lat])
 
+    this.updateMissionLayer()
+  }
+
+  updateMissionLayer() {
     // Update the mission layer
-    let features = this.missions[botId].map((location) => {
+    let features = this.missions[0].map((location) => {
       return new OlFeature({
         geometry: new OlPoint(equirectangular_to_mercator(location)),
       })
@@ -2872,8 +2823,14 @@ Commands
     })
 
     this.missionLayer.setSource(markers)
+  }
 
+  sendMissionCommand(botId) {
     // Issue command
+    if (!(botId in this.missions)) {
+      console.log("No mission data for bot " + botId + "!")
+      return
+    }
 
     let goals = this.missions[botId].map((location) => {
       return {'location': {'lon': location[0], 'lat': location[1]}}
@@ -2890,6 +2847,15 @@ Commands
         'recovery': {'recoverAtFinalGoal': true}
       }
     })
+  }
+
+  runMissionClicked() {
+    this.sendMissionCommand(0)
+  }
+
+  clearMissionClicked() {
+    this.missions[0] = []
+    this.updateMissionLayer()
   }
 }
 
