@@ -6,7 +6,6 @@
 /* eslint-disable react/no-danger */
 /* eslint-disable max-len */
 /* eslint-disable react/no-unused-state */
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/no-multi-comp */
 
 import React from 'react';
@@ -27,17 +26,13 @@ import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
 import OlTileLayer from 'ol/layer/Tile';
-import OlTileImage from 'ol/source/TileImage';
 import OlTileWMS from 'ol/source/TileWMS';
-import OlTileJSON from 'ol/source/TileJSON';
-import OlTileGrid from 'ol/tilegrid/TileGrid';
 import OlWMTS, { optionsFromCapabilities as OlOptionsFromWMTSCapabilities } from 'ol/source/WMTS';
 import OlWMTSCapabilities from 'ol/format/WMTSCapabilities';
 import OlTileArcGISRest from 'ol/source/TileArcGISRest';
-import { click, altKeyOnly } from 'ol/events/condition';
+import { click } from 'ol/events/condition';
 import OlSelect from 'ol/interaction/Select';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
-import OlZoomSlider from 'ol/control/ZoomSlider';
 import OlScaleLine from 'ol/control/ScaleLine';
 import OlMousePosition from 'ol/control/MousePosition';
 import OlZoom from 'ol/control/Zoom';
@@ -45,20 +40,17 @@ import OlRotate from 'ol/control/Rotate';
 import { createStringXY as OlCreateStringXY } from 'ol/coordinate';
 import OlGeolocation from 'ol/Geolocation';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
-import OlOverlay from 'ol/Overlay';
-import { getArea as OlGetArea, getLength as OlGetLength } from 'ol/sphere';
-import { LineString as OlLineString, Polygon as OlPolygon } from 'ol/geom';
+import { getLength as OlGetLength } from 'ol/sphere';
+import { LineString as OlLineString } from 'ol/geom';
 import OlDrawInteraction from 'ol/interaction/Draw';
 import {
   Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import OlBingMaps from 'ol/source/BingMaps';
 import OlGraticule from 'ol/Graticule';
 import OlStroke from 'ol/style/Stroke';
-import OlFill from 'ol/style/Fill';
 import OlAttribution from 'ol/control/Attribution';
-import { fromLonLat, getTransform } from 'ol/proj';
+import { getTransform } from 'ol/proj';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -79,15 +71,8 @@ import dateFormat from 'dateformat';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCaretDown,
-  faCaretLeft,
   faGripVertical,
-  faExpand,
-  faVolumeUp,
-  faWindowClose,
-  faLocationArrow,
   faCrosshairs,
-  faTimes,
   faChevronDown,
   faChevronLeft,
   faChevronUp,
@@ -96,42 +81,21 @@ import {
   faMapMarkerAlt,
   faMapPin,
   faMapMarkedAlt,
-  faPlay,
-  faPlayCircle,
-  faRoute,
   faRuler,
   faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 
-import cmdIconStop from '../icons/Stop.png';
 
-import cmdIconBeep from '../icons/other_commands/beep.png';
 // import cmdIconDefault from '../icons/other_commands/default.png';
-import cmdIconDive from '../icons/other_commands/dive.png';
-import cmdIconDiveBottom from '../icons/other_commands/DiveBottom.png';
-import cmdIconDiveDefault from '../icons/other_commands/DiveDefault.png';
-import cmdIconDiveDrift from '../icons/other_commands/DiveDrift.png';
-import cmdIconDiveProfile from '../icons/other_commands/DiveProfile.png';
-import cmdIconJump from '../icons/other_commands/Jump1.png';
-import cmdIconRTH from '../icons/other_commands/rth.png';
-import cmdIconLineData from '../icons/other_commands/SurfaceData.png';
-import cmdIconOverrideOOW from '../icons/other_commands/OverrideOOW.png';
-import cmdIconLED from '../icons/other_commands/LED.png';
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent} from './BotDetails'
-import AssetInfo from './AssetInfo';
 import AssetControl from './AssetControl';
 import PodControl from './PodControl';
 import JaiaAPI from '../../common/JaiaAPI';
-import GeoEdit from './GeoEdit';
 import LayerEditControls from './LayerEditControls';
 import FeaturePropertiesEditor from './FeaturePropertiesEditor';
-import FileManager from './FileManager';
-import MissionEditor from './MissionEditor';
-import MissionControl from './MissionControl';
-import CommandEditor from './CommandEditor';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
@@ -142,33 +106,22 @@ import JsonAPI from '../../common/JsonAPI';
 
 // jQuery UI touch punch
 import punchJQuery from '../libs/jquery.ui.touch-punch';
-import jqueryDrawer from '../libs/jquery.drawer';
 
 import {
-  error, success, warning, info, debug, messageLog
-} from '../libs/notifications';
+  error, success, warning, info} from '../libs/notifications';
 
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/AXUI.less';
-import { transform } from 'ol/proj';
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
 
-const COLOR_CONTROL_DEFAULT = lessVars.buttonColor;
 const COLOR_SELECTED = lessVars.selectedColor;
-const COLOR_INACTIVE = lessVars.inactiveColor;
-const COLOR_MEASURE_DRIFT = lessVars.driftingColor;
-const COLOR_UNDERWATER = lessVars.underwaterColor;
 const COLOR_CONTROLLED = lessVars.controlledColor;
-const COLOR_TRACKED = lessVars.trackedColor;
-const COLOR_STATUS_GOOD = lessVars.goodColor;
-const COLOR_STATUS_WARNING = lessVars.warningColor;
-const COLOR_STATUS_ERROR = lessVars.errorColor;
 const COLOR_MISSION_DEFAULT = lessVars.missionColor;
 const COLOR_GOAL = lessVars.missionGoalColor;
 
@@ -247,7 +200,7 @@ function makeLayerSavable(layer) {
   layer.set("visible", visible)
 
   // Catch change in visible state
-  layer.on("change:visible", (event) => {
+  layer.on("change:visible", () => {
     if (layer.getVisible()) {
       visibleLayers.add(title)
     }
@@ -274,11 +227,7 @@ export default class AXUI extends React.Component {
 
     this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-    this.jaiaAPIUrl = '/jaia';
-    // this.jaiaAPIUrl = 'http://192.168.42.1:5000/jaia';
-
-    this.sna = new JaiaAPI(this.jaiaAPIUrl, this.clientId, false);
-    this.missionExecutionAPI = JsonAPI('/mission');
+    this.sna = new JaiaAPI("/jaia", this.clientId, false);
 
     this.mapTilesAPI = JsonAPI('/tiles');
 
@@ -289,7 +238,6 @@ export default class AXUI extends React.Component {
       data: 'Analyze'
     };
 
-    const localScratchSource = new OlVectorSource({});
 
     this.missions = {}
 
@@ -412,31 +360,6 @@ export default class AXUI extends React.Component {
       return layer
     };
 
-    const addChartLayerWMTS = (wmtsOpts, collection) => {
-      const parser = new OlWMTSCapabilities();
-      fetch(wmtsOpts.url)
-        .then(response => response.text())
-        .then((text) => {
-          const result = parser.read(text);
-          const options = OlOptionsFromWMTSCapabilities(result, {
-            layer: wmtsOpts.layer,
-            matrixSet: wmtsOpts.tileMatrixSet,
-            attributions: wmtsOpts.attributions || ''
-          });
-          // options.maxZoom = wmtsOpts.maxZoom || 19;
-          var layer = new OlTileLayer({
-              title: wmtsOpts.title,
-              type: wmtsOpts.type || '',
-              opacity: 1,
-              source: new OlWMTS(options),
-              visible: wmtsOpts.type === 'base',
-              preload: Infinity
-            })
-          makeLayerSavable(layer)
-
-          collection.push(layer)
-        });
-    };
 
     const { chartLayerCollection } = this.state;
 
@@ -611,14 +534,7 @@ export default class AXUI extends React.Component {
 
     const {
       botsLayerCollection,
-      dataLayerCollection,
-      poiLayerCollection,
-      testSurveyMarkerLayerCollection,
-      headingControlMarkerLayerCollection,
-      selectedBotsFeatureCollection,
-      mapZoomLevel,
-      measureFeature
-    } = this.state;
+      selectedBotsFeatureCollection    } = this.state;
 
     this.botsLayerGroup = new OlLayerGroup({
       // title: 'Bots',
@@ -725,8 +641,8 @@ export default class AXUI extends React.Component {
           this.clientLocation.position[0]
         )
         .then(
-          (response) => {},
-          (failReason) => {
+          () => {},
+          () => {
             console.error('Failed to send user location to topside system.');
           }
         );
@@ -830,8 +746,6 @@ export default class AXUI extends React.Component {
       (evt) => {
         this.setState({ measureFeature: evt.feature });
 
-        /** @type {module:ol/coordinate~Coordinate|undefined} */
-        const tooltipCoord = evt.coordinate;
 
         listener = evt.feature.getGeometry().on('change', (evt2) => {
           const geom = evt2.target;
@@ -876,8 +790,6 @@ export default class AXUI extends React.Component {
 
     this.sendCommand = this.sendCommand.bind(this);
     this.sendStop = this.sendStop.bind(this);
-    this.startMission = this.startMission.bind(this);
-    this.skipToNextMissionAction = this.skipToNextMissionAction.bind(this);
 
     this.setSelectedMissionAction = this.setSelectedMissionAction.bind(this);
 
@@ -969,14 +881,13 @@ export default class AXUI extends React.Component {
     }
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-		this.missionStatusTimer = setInterval(() => this.pollMissionStatus(), 2500);
 
     $('#leftSidebar').resizable({
       containment: 'parent',
       handles: null,
       maxWidth: sidebarMaxWidth,
       minWidth: sidebarMinWidth,
-      resize(event, ui) {
+      resize(ui) {
         us.setViewport([0, 0, 0, ui.size.width]);
       }
     });
@@ -1043,7 +954,7 @@ export default class AXUI extends React.Component {
           console.error('Controlling heading of null bot');
         }
       },
-      (distance) => {
+      () => {
         // Do nothing
       },
       COLOR_CONTROLLED
@@ -1064,7 +975,7 @@ export default class AXUI extends React.Component {
       min: 0,
       orientation: 'horizontal',
       value: controlSpeed,
-      slide(event, ui) {
+      slide(ui) {
         us.sendThrottle(ui.value);
       }
     });
@@ -1087,10 +998,10 @@ export default class AXUI extends React.Component {
       map,
       testSurveyMarkerLayerCollection,
       10,
-      (marker) => {
+      () => {
       },
       COLOR_CONTROLLED,
-      (click) => {
+      () => {
 
       }
     );
@@ -1131,7 +1042,6 @@ export default class AXUI extends React.Component {
 
   componentWillUnmount() {
     clearInterval(this.timerID);
-    clearInterval(this.missionStatusTimer);
     clearTimeout(this.accelTimer);
     const { controlRecipient } = this.state;
     if (controlRecipient) {
@@ -1415,7 +1325,6 @@ export default class AXUI extends React.Component {
     const size = map.getSize();
     const origZoom = map.getView().getZoom();
     const newRes = map.getView().getResolutionForExtent(geom, size);
-    const newZoom = map.getView().getZoomForResolution(newRes);
     const optsOverride = {};
 //     if (!firstMove) {
       optsOverride.maxZoom = origZoom;
@@ -1548,7 +1457,6 @@ export default class AXUI extends React.Component {
           const faultState = parseInt(botFeature.get('faultState') || 0, 10);
           // const commandState = parseInt(botFeature.get('commandState') || 0, 10);
           const batteryState = parseInt(botFeature.get('batteryState') || 0, 10);
-          const otherState = parseInt(botFeature.get('otherMarker') || 0, 10);
 
           if (rfState >= 2 || faultState === 6) {
             faultLevel = 2;
@@ -1786,7 +1694,7 @@ export default class AXUI extends React.Component {
   // Can't call this from render() because it renders interactive elements and rendering kills the drag action
   renderMissionPlan(name, missionPlan) {
     const {
-      activeEditMissionPlan, activeEditMissionAction, missionExecutionState, selectedMissionAction
+      selectedMissionAction
     } = this.state;
     const oldMarkers = this.missionPlanMarkers.get(name);
     if (oldMarkers) {
@@ -1836,7 +1744,7 @@ export default class AXUI extends React.Component {
             us.updateMissionPlan(name, missionPlan.data);
           },
           formationColor,
-          (event) => {
+          () => {
             us.setSelectedMissionAction(index);
           }
         );
@@ -1886,7 +1794,6 @@ export default class AXUI extends React.Component {
     }
     const markers = [];
     const markerExtents = new Map();
-    const us = this;
     this.missionPlanMarkers.set(name, markers);
     this.missionPlanMarkerExtents.set(name, markerExtents);
     // map.render();
@@ -2060,111 +1967,6 @@ export default class AXUI extends React.Component {
     };
   }
 
-  startMission(name) {
-    const { missionPlanData, activeEditMissionPlan } = this.state;
-    let plan;
-    if (name) {
-      if (!missionPlanData.has(name)) {
-        console.error(`Requested operation on missing plan file ${name}`);
-        return;
-      }
-      plan = missionPlanData.get(name);
-    } else {
-      plan = activeEditMissionPlan;
-    }
-    this.setSelectedMissionAction(-1);
-    this.setActiveEditMissionPlan(null);
-
-    this.setMissionPlanFileLocked(plan.name, true);
-
-    this.missionExecutionAPI.post(`start/${plan.name}`).then(
-      (result) => {
-        if (result.ok) {
-          this.setState({ missionExecutionState: result.missionStatus });
-          this.setState({ mode: this.modes.exec });
-          success(`Started mission ${plan.name}`);
-        } else {
-          console.error(result.msg);
-          error(`Failed to start mission ${plan.name}: ${result.msg}`);
-        }
-      },
-      (failReason) => {
-        console.error(failReason);
-        error(`Failed to start mission ${plan.name}: ${failReason}`);
-      }
-    );
-  }
-
-  skipToNextMissionAction() {
-    this.missionExecutionAPI.post('next').then(
-      (result) => {
-        if (result.ok) {
-          this.setState({ missionExecutionState: result.missionStatus });
-          success('Skipped to next mission action');
-        } else {
-          error(`Failed to skip: ${result.msg}`);
-        }
-      },
-      (failReason) => {
-        error(`Failed to skip: ${failReason}`);
-      }
-    );
-  }
-
-  pollMissionStatus() {
-    clearInterval(this.missionStatusTimer);
-    const us = this;
-    let newAction = false;
-    let missionDone = false;
-    const { missionExecutionState } = this.state;
-    this.missionExecutionAPI.get('status').then(
-      (result) => {
-        if (result.missionStatus) {
-          if (
-            result.missionStatus.missionSegment !== missionExecutionState.missionSegment
-            && parseInt(result.missionStatus.missionSegment, 10) !== -1
-          ) {
-            newAction = true;
-          }
-          if (
-            result.missionStatus.missionComplete !== missionExecutionState.missionComplete
-            && result.missionStatus.missionComplete === true
-          ) {
-            missionDone = true;
-          }
-          us.setState({ missionExecutionState: result.missionStatus });
-          if (
-            result.missionStatus.isActive
-            && result.missionStatus.missionPlan
-            && result.missionStatus.missionPlan.length > 0
-          ) {
-            us.renderMissionPlan(result.missionStatus.planName, {
-              data: result.missionStatus.missionPlan,
-              activeSegment: parseInt(result.missionStatus.missionSegment, 10)
-            });
-          }
-          if (newAction) {
-            const cmd = result.missionStatus.missionPlan[parseInt(result.missionStatus.missionSegment, 10)];
-            success(`Executing command ${result.missionStatus.missionSegment + 1}`);
-          }
-          if (missionDone) {
-            success('Mission completed.');
-          }
-          us.missionStatusTimer = setInterval(() => us.pollMissionStatus(), 250);
-        } else {
-          console.error(result);
-          us.missionStatusTimer = setInterval(() => us.pollMissionStatus(), 2500);
-          error(`Unable to connect to mission computer: ${result}`);
-        }
-      },
-      (failReason) => {
-        console.error(failReason);
-        us.missionStatusTimer = setInterval(() => us.pollMissionStatus(), 2500);
-        error(`Unable to connect to mission computer: ${failReason}`);
-      }
-    );
-  }
-
   setMissionManagerMode(mode) {
     this.setState({ missionManagerMode: mode });
   }
@@ -2248,7 +2050,6 @@ export default class AXUI extends React.Component {
     const rfState = parseInt(feature.get('commState') || 0, 10);
     const faultState = parseInt(feature.get('faultState') || 0, 10);
     // const commandState = parseInt(feature.get('commandState') || 0, 10); // commandState doesn't tell us anything
-    const batteryState = parseInt(feature.get('batteryState') || 0, 10);
     const otherState = parseInt(feature.get('otherMarker') || 0, 10);
 
     // First we show RF errors, because if we haven't heard from the bot there's no other state data to be had
@@ -2326,36 +2127,19 @@ export default class AXUI extends React.Component {
 
   render() {
     const {
-      debugMode,
       selectedBotsFeatureCollection,
       botsLayerCollection,
       controlRecipient,
-      // cursorLocation,
-      panelsVisibility,
-      poiLayerCollection,
       trackingTarget,
-      mapZoomLevel,
-      activeEditFile,
       activeEditLayer,
       activeEditWaypoint,
-      activeFileIsDirty,
-      missionPlanData,
-      activeEditMissionPlan,
-      missionManagerMode,
-      missionExecutionState,
-      liveCommand,
-      selectedMissionAction,
       faultCounts,
-      controlHeading,
       controlSpeed,
-      missionDrawerOpen,
       botsDrawerOpen,
       commandDrawerOpen,
-      measureFeature,
       measureActive,
       headingControlMarker
     } = this.state;
-    const us = this;
 
     if (controlRecipient && headingControlMarker.isVisible()) {
       $('#speedControl').show();
@@ -2670,39 +2454,6 @@ Pod
               : ''}
               
           </div>
-        </div>
-
-        <div id="speedControl">
-          {/*
-          onMouseDown={this.startAcceleration.bind(this)} onMouseUp={this.cancelAcceleration.bind(this)}
-          onTouchStart={this.startAcceleration.bind(this)} onTouchEnd={this.cancelAcceleration.bind(this)}
-          */}
-
-          <button
-            type="button"
-            id="throttleButtonSingle"
-            onPointerDown={this.startAcceleration.bind(this)}
-            onPointerUp={this.cancelAcceleration.bind(this)}
-            onBlur={this.cancelAcceleration.bind(this)}
-            onMouseLeave={this.cancelAcceleration.bind(this)}
-            onMouseUp={this.cancelAcceleration.bind(this)}
-            onMouseOut={this.cancelAcceleration.bind(this)}
-            onPointerCancel={this.cancelAcceleration.bind(this)}
-            onLostPointerCapture={this.cancelAcceleration.bind(this)}
-            onPointerLeave={this.cancelAcceleration.bind(this)}
-            onPointerOut={this.cancelAcceleration.bind(this)}
-            onTouchEnd={this.cancelAcceleration.bind(this)}
-            onTouchCancel={this.cancelAcceleration.bind(this)}
-            title="Press and Hold to Accelerate"
-          >
-            {/*
-            onDragStart={this.cancelAcceleration.bind(this)}
-            onDragLeave={this.cancelAcceleration.bind(this)}
-            onDragExit={this.cancelAcceleration.bind(this)}
-            */}
-            Hold to Accelerate
-          </button>
-
         </div>
 
         <div
