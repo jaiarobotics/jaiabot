@@ -231,14 +231,6 @@ export default class AXUI extends React.Component {
 
     this.mapTilesAPI = JsonAPI('/tiles');
 
-    //not used yet
-    this.modes = {
-      plan: 'Plan',
-      exec: 'Execute',
-      data: 'Analyze'
-    };
-
-
     this.missions = {}
 
     this.state = {
@@ -256,20 +248,6 @@ export default class AXUI extends React.Component {
       manualControlTabletID: 0,
       manualControlTarget: 4294967295, // Defaults to MAX_INT_32, or signed -1 cast to unsigned
 
-      // not used anymore
-      panelsVisibility: {
-        assetListContainer: false,
-        layerTreeContainer: false,
-        toolboxContainer: false,
-        selectionInfoContainer: false,
-        assetControlContainer: false,
-        podControlContainer: false,
-        geoEditContainer: false,
-        missionEditContainer: false,
-        missionExecutionContainer: false
-      },
-
-      missionDrawerOpen: false,
       botsDrawerOpen: false,
       commandDrawerOpen: false,
       // Map layers
@@ -931,16 +909,6 @@ export default class AXUI extends React.Component {
       });
     });
 
-    /*
-    const { panelsVisibility } = this.state;
-
-    Object.keys(panelsVisibility).forEach((id) => {
-      if (!panelsVisibility[id]) {
-        $(`#${id}`).hide('blind', {}, 500);
-      }
-    });
-    */
-
     const { headingControlMarkerLayerCollection } = this.state;
     const headingControlMarker = new HeadingControlMarker(
       'Manual Control',
@@ -1014,9 +982,8 @@ export default class AXUI extends React.Component {
 
     tooltips();
 
-    $('#botsDrawer').hide('blind', { direction: 'up' }, 2000);
-    $('#missionDrawer').hide('blind', { direction: 'up' }, 2000);
-    $('#mapLayers').hide('blind', { direction: 'right' }, 2000);
+    $('#botsDrawer').hide('blind', { direction: 'up' }, 0);
+    $('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
     info('Welcome to Central Command!');
   }
@@ -2000,18 +1967,6 @@ export default class AXUI extends React.Component {
     this.setState({ botsDrawerOpen: false });
   }
 
-  openMissionDrawer() {
-    $('#missionDrawer').show('blind', { direction: 'up' });
-    this.setState({ missionDrawerOpen: true });
-    this.setViewportEdge(1, $('#missionDrawer').width());
-  }
-
-  closeMissionDrawer() {
-    $('#missionDrawer').hide('blind', { direction: 'up' });
-    this.setState({ missionDrawerOpen: false });
-    this.setViewportEdge(1, 0);
-  }
-
   static formatLength(line) {
     const length = OlGetLength(line, { projection: mercator });
     if (length > 100) {
@@ -2075,34 +2030,6 @@ export default class AXUI extends React.Component {
   // eslint-disable-next-line class-methods-use-this
   toggleButton(id) {
     return '';
-    /*
-    const { panelsVisibility } = this.state;
-    const us = this;
-    return (
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-      <div
-        className="panelToggleButton"
-        role="button"
-        tabIndex={0}
-        onClick={() => {
-          // eslint-disable-next-line no-shadow
-          const { panelsVisibility } = us.state;
-          if (panelsVisibility[id]) {
-            $(`#${id}`).hide('blind', {}, 500);
-          } else {
-            $(`#${id}`).show('blind', {}, 500);
-          }
-          us.setState({
-            panelsVisibility: { [id]: !panelsVisibility[id] }
-          });
-        }}
-        // No clue if this works
-        // It does not: onKeyUp={this.onClick}
-      >
-        <FontAwesomeIcon key={id} icon={panelsVisibility[id] ? faCaretDown : faCaretLeft} />
-      </div>
-    );
-      */
   }
 
   addTestSurveyMarker() {
@@ -2157,19 +2084,6 @@ export default class AXUI extends React.Component {
               {this.toggleButton('podControlContainer')}
               <div id="podControlContainer" className="scroll">
                 {this.sna ? <PodControl map={map} sna={this.sna} /> : 'No pod connection'}
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2>Asset Control</h2>
-              {/* TODO implement direct rudder control */}
-              {this.toggleButton('assetControlContainer')}
-              <div id="assetControlContainer" className="scroll">
-                {controlRecipient ? (
-                  <AssetControl key={controlRecipient.getId()} map={map} asset={controlRecipient} sna={this.sna} />
-                ) : (
-                  'No bot under your control.'
-                )}
               </div>
             </div>
 
