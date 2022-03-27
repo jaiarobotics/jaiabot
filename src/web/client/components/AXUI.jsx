@@ -1016,7 +1016,6 @@ export default class AXUI extends React.Component {
 
     $('#botsDrawer').hide('blind', { direction: 'up' }, 2000);
     $('#missionDrawer').hide('blind', { direction: 'up' }, 2000);
-    $('#commandsDrawer').hide('blind', { direction: 'down' }, 2000);
     $('#mapLayers').hide('blind', { direction: 'right' }, 2000);
 
     info('Welcome to Central Command!');
@@ -2001,16 +2000,6 @@ export default class AXUI extends React.Component {
     this.setState({ botsDrawerOpen: false });
   }
 
-  openCommandDrawer() {
-    $('#commandsDrawer').show('blind', { direction: 'down' });
-    this.setState({ commandDrawerOpen: true });
-  }
-
-  closeCommandDrawer() {
-    $('#commandsDrawer').hide('blind', { direction: 'down' });
-    this.setState({ commandDrawerOpen: false });
-  }
-
   openMissionDrawer() {
     $('#missionDrawer').show('blind', { direction: 'up' });
     this.setState({ missionDrawerOpen: true });
@@ -2456,39 +2445,6 @@ Pod
           </div>
         </div>
 
-        <div
-          id="commandsButton"
-          onClick={commandDrawerOpen ? this.closeCommandDrawer.bind(this) : this.openCommandDrawer.bind(this)}
-        >
-          <h2>
-            <FontAwesomeIcon icon={faDirections} />
-            {/*
-            {' '}
-Commands
-            */}
-          </h2>
-          {commandDrawerOpen ? (
-            <button
-              type="button"
-              id="toggleCommandDrawer"
-              className="not-a-button"
-              onClick={this.closeCommandDrawer.bind(this)}
-              title="Close Command Drawer"
-            >
-              <FontAwesomeIcon icon={faChevronUp} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              id="toggleCommandDrawer"
-              className="not-a-button"
-              onClick={this.openCommandDrawer.bind(this)}
-              title="Open Command Drawer"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-          )}
-        </div>
         <div id="commandsDrawer">
           <div id="globalCommandBox">
             <button type="button" className="globalCommand" title="Run Mission" onClick={this.runMissionClicked.bind(this)}>
