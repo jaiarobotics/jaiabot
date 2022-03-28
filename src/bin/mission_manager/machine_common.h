@@ -22,6 +22,13 @@ struct MissionManagerStateMachine;
 template <typename Derived> class AppMethodsAccess
 {
   protected:
+    goby::middleware::InterVehicleForwarder<
+        goby::zeromq::InterProcessPortal<goby::middleware::InterThreadTransporter>>&
+    intervehicle()
+    {
+        return app().intervehicle();
+    }
+
     goby::zeromq::InterProcessPortal<goby::middleware::InterThreadTransporter>& interprocess()
     {
         return app().interprocess();
