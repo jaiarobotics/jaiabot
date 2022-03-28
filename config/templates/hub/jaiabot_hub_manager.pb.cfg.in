@@ -17,3 +17,19 @@ status_sub_cfg {
         }
     }
 }
+
+
+dive_packet_sub_cfg {
+    intervehicle {
+        # publisher_id added in code for each configured managed_bot_modem_id
+        # buffer configuration for BotStatus messages
+        buffer {
+            ack_required: true
+            blackout_time: 0
+            max_queue: 10
+            newest_first: false
+            ttl: 3000
+            value_base: 5
+        }
+    }
+}

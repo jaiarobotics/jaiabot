@@ -16,6 +16,7 @@
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/high_control.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "machine_common.h"
 
@@ -84,6 +85,13 @@ struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {
     EvVehicleDepth(boost::units::quantity<boost::units::si::length> d) : depth(d) {}
     boost::units::quantity<boost::units::si::length> depth;
+};
+struct EvMeasurement : boost::statechart::event<EvMeasurement>
+{
+    boost::optional<
+        boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
+        temperature;
+    boost::optional<double> salinity;
 };
 
 STATECHART_EVENT(EvResumeMovement)
@@ -680,7 +688,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
     using StateBase = boost::statechart::state<Dive, Task, dive::PoweredDescent>;
 
     Dive(typename StateBase::my_context c);
-    ~Dive() {}
+    ~Dive();
 
     const protobuf::MissionTask::DiveParameters& current_dive()
     {
@@ -690,9 +698,16 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
     bool dive_complete() { return dive_depths_.empty(); }
     boost::units::quantity<boost::units::si::length> goal_depth() { return dive_depths_.front(); }
     void pop_goal_depth() { dive_depths_.pop_front(); }
+    jaiabot::protobuf::DivePacket& dive_packet() { return dive_packet_; }
+
+    void add_to_dive_duration(goby::time::MicroTime time) { dive_duration_ += time; }
 
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
+
+    jaiabot::protobuf::DivePacket dive_packet_;
+
+    goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
 };
 namespace dive
 {
@@ -703,7 +718,7 @@ struct PoweredDescent
 {
     using StateBase = boost::statechart::state<PoweredDescent, Dive>;
     PoweredDescent(typename StateBase::my_context c);
-    ~PoweredDescent() {}
+    ~PoweredDescent();
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
@@ -713,6 +728,9 @@ struct PoweredDescent
         boost::statechart::in_state_reaction<EvLoop, PoweredDescent, &PoweredDescent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredDescent,
                                              &PoweredDescent::depth>>;
+
+  private:
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct Hold
@@ -721,17 +739,27 @@ struct Hold
 {
     using StateBase = boost::statechart::state<Hold, Dive>;
     Hold(typename StateBase::my_context c);
-    ~Hold() {}
+    ~Hold();
 
     void loop(const EvLoop&);
+    void measurement(const EvMeasurement& ev);
+    void depth(const EvVehicleDepth& ev);
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvHoldComplete, PoweredDescent>,
-                         boost::statechart::in_state_reaction<EvLoop, Hold, &Hold::loop>,
-                         boost::statechart::transition<EvDiveComplete, UnpoweredAscent>>;
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvHoldComplete, PoweredDescent>,
+        boost::statechart::in_state_reaction<EvLoop, Hold, &Hold::loop>,
+        boost::statechart::in_state_reaction<EvMeasurement, Hold, &Hold::measurement>,
+        boost::statechart::in_state_reaction<EvVehicleDepth, Hold, &Hold::depth>,
+        boost::statechart::transition<EvDiveComplete, UnpoweredAscent>>;
 
   private:
     goby::time::SteadyClock::time_point hold_stop_;
+    jaiabot::protobuf::DivePacket::Measurements& measurement_;
+
+    std::vector<boost::units::quantity<boost::units::si::length>> depths_;
+    std::vector<boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
+        temperatures_;
+    std::vector<double> salinities_;
 };
 
 struct UnpoweredAscent
@@ -741,7 +769,7 @@ struct UnpoweredAscent
 {
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
     UnpoweredAscent(typename StateBase::my_context c);
-    ~UnpoweredAscent() {}
+    ~UnpoweredAscent();
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
@@ -754,6 +782,8 @@ struct UnpoweredAscent
 
   private:
     goby::time::SteadyClock::time_point timeout_stop_;
+
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct PoweredAscent
@@ -763,7 +793,7 @@ struct PoweredAscent
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
     PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
-    ~PoweredAscent() {}
+    ~PoweredAscent();
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
@@ -771,6 +801,9 @@ struct PoweredAscent
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvLoop, PoweredAscent, &PoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>>;
+
+  private:
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 } // namespace dive
