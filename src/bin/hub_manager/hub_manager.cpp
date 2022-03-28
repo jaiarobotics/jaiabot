@@ -47,6 +47,7 @@ class HubManager : public ApplicationBase
 
   private:
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
+    void handle_dive_packet(const jaiabot::protobuf::DivePacket& dive_packet);
 };
 } // namespace apps
 } // namespace jaiabot
@@ -61,16 +62,33 @@ jaiabot::apps::HubManager::HubManager()
 {
     for (auto id : cfg().managed_bot_modem_id())
     {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
 
-        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> nav_subscriber(subscriber_cfg);
+            goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(subscriber_cfg);
 
-        intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
-            [this](const jaiabot::protobuf::BotStatus& dccl_nav) { handle_bot_nav(dccl_nav); },
-            nav_subscriber);
+            intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+                [this](const jaiabot::protobuf::BotStatus& dccl_nav) { handle_bot_nav(dccl_nav); },
+                subscriber);
+        }
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
+                cfg().dive_packet_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
+
+            goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
+
+            intervehicle().subscribe<jaiabot::groups::dive_packet, jaiabot::protobuf::DivePacket>(
+                [this](const jaiabot::protobuf::DivePacket& dive_packet) {
+                    handle_dive_packet(dive_packet);
+                },
+                subscriber);
+        }
     }
 }
 
@@ -78,22 +96,36 @@ jaiabot::apps::HubManager::~HubManager()
 {
     for (auto id : cfg().managed_bot_modem_id())
     {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
 
-        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> nav_subscriber(subscriber_cfg);
+            goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(subscriber_cfg);
 
-        intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
-            nav_subscriber);
+            intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+                subscriber);
+        }
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
+                cfg().dive_packet_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
+
+            goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
+
+            intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::DivePacket>(
+                subscriber);
+        }
     }
 }
 
 void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
 {
-    glog.is_warn() && glog << group("bot_nav")
-                           << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("bot_nav")
+                             << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
@@ -127,4 +159,14 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     // publish for opencpn interface
     if (node_status.IsInitialized())
         interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
+}
+
+void jaiabot::apps::HubManager::handle_dive_packet(const jaiabot::protobuf::DivePacket& dive_packet)
+{
+    glog.is_debug1() && glog << group("dive_packet")
+                             << "Received Dive packet: " << dive_packet.ShortDebugString()
+                             << std::endl;
+
+    // republish
+    interprocess().publish<jaiabot::groups::dive_packet>(dive_packet);
 }
