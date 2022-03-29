@@ -8,6 +8,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/pid_control.pb.h"
+#include "jaiabot/messages/high_control.pb.h"
 
 #include "PID/PID.h"
 
@@ -70,6 +71,12 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void loop() override;
 
     void handle_command(const jaiabot::protobuf::PIDCommand& command);
+
+    void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
+    void handle_helm_course(const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course);
+    void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
+    void handle_dive_depth(const double& dive_depth);
+    void handle_powered_ascent();
 
   private:
 };

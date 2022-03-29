@@ -95,7 +95,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     pitch_pid->set_limits(-100.0, 100.0);
     pitch_pid->set_auto();
 
-    // subscribe for commands
+    // subscribe for commands from engineering
     {
         auto on_command_subscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
@@ -112,7 +112,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
             [this](const jaiabot::protobuf::PIDCommand& command) { handle_command(command); }, command_subscriber);
     }
 
-    // Subscribe to get vehicle yaw (for testing)
+    // subscribe for commands from mission manager
+    {
+        interprocess().subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
+            [this](const jaiabot::protobuf::DesiredSetpoints& command) { handle_command(command); });
+    }
+
+    // Subscribe to get vehicle movement and orientation, for PID targeting
     interprocess().subscribe<jaiabot::groups::bot_status>([this](const jaiabot::protobuf::BotStatus& bot_status) {
         glog.is_debug2() && glog << "Received bot status: " << bot_status.ShortDebugString()
                                     << std::endl;
@@ -277,7 +283,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
         throttleMode = MANUAL;
         throttle = command.throttle();
     }
-    // Heading
+    // Speed
     else if (command.has_speed()) {
         throttleMode = PID_SPEED;
         auto speed = command.speed();
@@ -411,5 +417,83 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
         }
 
     }
+
+}
+
+// Handle DesiredSetpoint messages from high_control.proto
+
+void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::DesiredSetpoints& command)
+{
+    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
+    
+    switch (command.type()) {
+        case jaiabot::protobuf::SETPOINT_STOP:
+            throttle = 0.0;
+            throttleMode = MANUAL;
+            break;
+        case jaiabot::protobuf::SETPOINT_IVP_HELM:
+            handle_helm_course(command.helm_course());
+            break;
+        case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
+            handle_remote_control(command.remote_control());
+            break;
+        case jaiabot::protobuf::SETPOINT_DIVE:
+            handle_dive_depth(command.dive_depth());
+            break;
+        case jaiabot::protobuf::SETPOINT_POWERED_ASCENT:
+            handle_powered_ascent();
+            break;
+    }
+}
+
+void jaiabot::apps::BotPidControl::handle_helm_course(const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course) {
+
+    if (desired_course.has_heading()) {
+        rudder_is_using_pid = true;
+        target_heading = desired_course.heading();
+    }
+    if (desired_course.has_speed()) {
+        throttleMode = PID_SPEED;
+        target_speed = desired_course.speed();
+    }
+    // TO DO:  PID for the depth that uses elevators while moving forward
+    if (desired_course.has_pitch()) {
+        elevator_is_using_pid = true;
+        target_pitch = desired_course.pitch();
+    }
+    if (desired_course.has_roll()) {
+        elevator_is_using_pid = true;
+        target_roll = desired_course.roll();
+    }
+    // TO DO:  PID for z_rate and altitude, if present?
+
+}
+
+void jaiabot::apps::BotPidControl::handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control) {
+
+    if (remote_control.has_heading()) {
+        rudder_is_using_pid = true;
+        target_heading = remote_control.heading();
+    }
+    if (remote_control.has_speed()) {
+        throttleMode = PID_SPEED;
+        target_speed = remote_control.speed();
+    }
+
+}
+
+void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth) {
+
+    throttleMode = PID_DEPTH;
+    target_depth = dive_depth;
+
+}
+
+void jaiabot::apps::BotPidControl::handle_powered_ascent() {
+
+    throttleMode = MANUAL;
+    throttle = 50.0;
 
 }
