@@ -87,13 +87,9 @@ import {
 import {BotDetailsComponent} from './BotDetails'
 import PodControl from './PodControl';
 import JaiaAPI from '../../common/JaiaAPI';
-import LayerEditControls from './LayerEditControls';
-import FeaturePropertiesEditor from './FeaturePropertiesEditor';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
-import SurveyMarker from '../libs/RectangleSurveyMarker';
-import HeadingControlMarker from '../libs/HeadingControlMarker';
 import JsonAPI from '../../common/JsonAPI';
 
 // jQuery UI touch punch
@@ -114,8 +110,6 @@ const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/
 
 const COLOR_SELECTED = lessVars.selectedColor;
 const COLOR_CONTROLLED = lessVars.controlledColor;
-const COLOR_MISSION_DEFAULT = lessVars.missionColor;
-const COLOR_GOAL = lessVars.missionGoalColor;
 
 punchJQuery($);
 // jqueryDrawer($);
@@ -135,10 +129,7 @@ const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
-const waypointDefaultProperties = new Map([['Depth', '0'], ['Notes', '']]);
 
-
-const ACCEL_PROFILE = [[0, 20], [3000, 30], [5000, 70]];
 
 // Saving and loading settings from browser's localStorage
 
@@ -210,34 +201,23 @@ export default class AXUI extends React.Component {
       mode: 'exec',
       currentInteraction: null,
       mapZoomLevel: 14,
-      controlRecipient: null,
       controlSpeed: 0,
       controlHeading: 0,
       accelerationProfileIndex: 0,
-      manualControlStatus: 3, // 3 = unselected (default), 2 = failed to select, 1 = selecting, 0 = selected
-      manualControlTabletID: 0,
-      manualControlTarget: 4294967295, // Defaults to MAX_INT_32, or signed -1 cast to unsigned
 
       botsDrawerOpen: false,
       commandDrawerOpen: false,
       // Map layers
       botsLayerCollection: new OlCollection([], { unique: true }),
-      poiLayerCollection: new OlCollection([], { unique: true }),
-      dataLayerCollection: new OlCollection([], { unique: true }), // not used yet
       chartLayerCollection: new OlCollection([], { unique: true }),
       baseLayerCollection: new OlCollection([], { unique: true }),
       selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
-      headingControlMarkerLayerCollection: new OlCollection([], { unique: true }),
-      headingControlMarker: null,
       liveCommand: {
         type: '',
         parameters: [],
         formationParameters: [0, 0, 0, 10]
       },
-      testSurveyMarkerLayerCollection: new OlCollection([], { unique: true }),
-      testSurveyMarker: null,
       // incoming data
-      rawBotData: {},
       lastBotCount: 0,
       faultCounts: { faultLevel0Count: 0, faultLevel1Count: 0, faultLevel2Count: 0 },
       botExtents: {},
@@ -248,28 +228,6 @@ export default class AXUI extends React.Component {
         viewportDefaultPadding,
         viewportDefaultPadding + sidebarInitialWidth
       ],
-      activeEditFile: '',
-      activeEditLayer: null,
-      activeEditWaypoint: null,
-      activeFileIsDirty: false,
-      activeEditMissionPlan: {
-        name: '',
-        data: null,
-        isDirty: false,
-        isVisible: false,
-        activeEditMissionAction: null
-      },
-      missionPlanData: new Map(),
-      missionManagerMode: 'closed',
-      missionExecutionState: {
-        planName: '',
-        missionPlan: null,
-        isActive: false,
-        isExecuting: false,
-        missionSegment: -1,
-        error: null,
-        lastAction: null
-      },
       selectedMissionAction: -1,
       measureFeature: null,
       measureActive: false
@@ -357,93 +315,15 @@ export default class AXUI extends React.Component {
         title: 'Google Satellite & Roads',
         type: 'base',
         source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-//         tileGrid: new OlTileGrid({origin: [45, 45]})
       }),
       new OlTileLayer({
         title: 'OpenStreetMap',
         type: 'base',
         source: new OlSourceOsm()
-      }),
-      // Data details: https://www.ngdc.noaa.gov/mgg/global/global.html
-      // Visualization details: https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/etopo1_hillshade/MapServer
-      new OlTileLayer({
-        title: 'NOAA ETOPO1 Global Relief Model Hillshade',
-        type: 'base',
-        source: new OlTileWMS({
-          url: 'https://gis.ngdc.noaa.gov/arcgis/services/web_mercator/etopo1_hillshade/MapServer/WmsServer',
-          attributions: 'NOAA National Centers for Environmental Information (NCEI)',
-          params: {
-            LAYERS: '0',
-            TILED: true
-          }
-        })
-      }),
-      new OlTileLayer({
-        // See https://gis.ngdc.noaa.gov/arcgis/rest/services/EMAG2v3/MapServer for legend
-        // See https://www.ngdc.noaa.gov/geomag/emag2.html for more info
-        title: 'NOAA EMAG2 (Earth Magnetic Anomaly Grid 2-minute) (v3)',
-        type: 'base',
-        source: new OlTileWMS({
-          url: 'https://gis.ngdc.noaa.gov/arcgis/services/EMAG2v3/MapServer/WmsServer',
-          attributions: 'NOAA National Centers for Environmental Information (NCEI)',
-          params: {
-            LAYERS: '4,7,8',
-            TILED: true
-          }
-        })
-      }),
-      new OlTileLayer({
-        // https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/gebco_2014_hillshade/MapServer
-        title: 'NOAA GEBCO (General Bathymetric Chart of the Oceans) 2014 Hillshade',
-        type: 'base',
-        source: new OlTileWMS({
-          url: 'https://gis.ngdc.noaa.gov/arcgis/services/web_mercator/gebco_2014_hillshade/MapServer/WmsServer',
-          attributions:
-            'General Bathymetric Chart of the Oceans (GEBCO); NOAA National Centers for Environmental Information (NCEI); Natural Earth',
-          params: {
-            LAYERS: '0',
-            TILED: true
-          }
-        })
-      }),
+      })
     ].forEach((layer) => {
       makeLayerSavable(layer);
       baseLayerCollection.push(layer);
-    });
-
-
-    [
-      new OlTileLayer({
-        // https://gis.ngdc.noaa.gov/arcgis/rest/services/web_mercator/seafloor_age/MapServer
-        title: 'NOAA Seafloor Age (mYa) (online only)',
-        visible: false,
-        source: new OlTileWMS({
-          url: 'https://gis.ngdc.noaa.gov/arcgis/services/web_mercator/seafloor_age/MapServer/WmsServer',
-          attributions: 'Muller et al (2008); NOAA National Centers for Environmental Information (NCEI)',
-          params: {
-            LAYERS: '0,1,2,3',
-            TILED: true
-          }
-        })
-      }),
-      new OlTileLayer({
-        // https://gis.ngdc.noaa.gov/arcgis/rest/services/reference/world_countries_overlay/MapServer
-        title: 'NOAA World Countries Overlay (online only)',
-        visible: false,
-        source: new OlTileArcGISRest({
-          url: 'https://gis.ngdc.noaa.gov/arcgis/rest/services/reference/world_countries_overlay/MapServer',
-          attributions: 'Esri, Garmin, CIA Factbook',
-          crossOrigin: 'anonymous',
-          projection: 'ESPG:3857',
-          params: {
-            // Don't specify f here
-            layers: 'show:0,1,2' // 0 = detailed, 1 = generalized, 2 = labels
-          }
-        })
-      })
-    ].forEach((layer) => {
-      makeLayerSavable(layer)
-      chartLayerCollection.push(layer);
     });
 
     this.clientAccuracyFeature = new OlFeature();
@@ -623,25 +503,6 @@ export default class AXUI extends React.Component {
       this.clientAccuracyFeature.setGeometry(this.geolocation.getAccuracyGeometry());
     });
 
-    /*
-      Default interactions:
-        - Click on bot - select bot + show info
-        - Click on POI - select POI + show info
-        - Click on origin - select origin + show handles + info
-        - Double click on map - zoom in
-        - Double click on Marker - zoom to?
-        - Right click / long press on bot - Context menu for control/track
-        - Right click / long press on POI - edit POI?
-        - Right click / long press on map - set origin?
-        - Ctrl+click+drag - group rect. select
-      Other Interactions:
-        - Click to select location for origin
-        - Click to select location for POI
-        - Click to select location for formation
-        - Click+drag on origin - move origin
-        - Click+drag on origin vector - move vector end
-    */
-
     // select interaction working on "click"
     this.selectBotInteraction = new OlSelect({
       condition: click,
@@ -655,14 +516,6 @@ export default class AXUI extends React.Component {
       const ids = e.selected.map(feature => feature.getId());
       us.selectBots(ids);
     });
-
-    /*
-    this.selectAltClick = new OlSelect({
-      condition: function altClickCondition(mapBrowserEvent) {
-        return click(mapBrowserEvent) && altKeyOnly(mapBrowserEvent);
-      }
-    });
-    */
 
     this.measureInteraction = new OlDrawInteraction({
       source: this.measureSource,
@@ -717,21 +570,12 @@ export default class AXUI extends React.Component {
     // Callbacks
     this.changeInteraction = this.changeInteraction.bind(this);
 
-    this.setActiveEditFile = this.setActiveEditFile.bind(this);
-    this.setActiveEditLayer = this.setActiveEditLayer.bind(this);
-    this.setActiveEditWaypoint = this.setActiveEditWaypoint.bind(this);
-    this.setActiveFileDirty = this.setActiveFileDirty.bind(this);
-
-    this.setControlRecipient = this.setControlRecipient.bind(this);
-    this.unsetControlRecipient = this.unsetControlRecipient.bind(this);
     this.setViewport = this.setViewport.bind(this);
     this.centerOn = this.centerOn.bind(this);
     this.fit = this.fit.bind(this);
 
     this.sendCommand = this.sendCommand.bind(this);
     this.sendStop = this.sendStop.bind(this);
-
-    this.updateAcceleration = this.updateAcceleration.bind(this);
 
     // Read the zoomLevel
     map.getView().setZoom(readSetting("zoomLevel") || 2)
@@ -766,28 +610,10 @@ export default class AXUI extends React.Component {
         // fold: 'open',
         layers: this.planLayerCollection
       }),
-      new OlLayerGroup({
-        // title: 'Data',
-        // fold: 'open',
-        layers: this.state.dataLayerCollection
-      }),
-      new OlLayerGroup({
-        // title: 'Points of Interest',
-        // fold: 'open',
-        layers: this.state.poiLayerCollection
-      }),
       this.botsLayerGroup,
       this.clientPositionLayer,
       this.measureLayer,
       this.missionLayer,
-      new OlLayerGroup({
-        name: 'Debug SurveyMarker',
-        layers: this.state.testSurveyMarkerLayerCollection
-      }),
-      new OlLayerGroup({
-        name: 'Heading Control',
-        layers: this.state.headingControlMarkerLayerCollection
-      })
     ]
 
     return layers
@@ -856,33 +682,9 @@ export default class AXUI extends React.Component {
       });
     });
 
-    const { headingControlMarkerLayerCollection } = this.state;
-    const headingControlMarker = new HeadingControlMarker(
-      'Manual Control',
-      map,
-      headingControlMarkerLayerCollection,
-      (heading) => {
-        const { controlRecipient } = us.state;
-        if (controlRecipient) {
-          us.sendHeading(Math.round(heading));
-        } else {
-          console.error('Controlling heading of null bot');
-        }
-      },
-      () => {
-        // Do nothing
-      },
-      COLOR_CONTROLLED
-    );
-
     /*
         This needs to be called whenever liveCommand is updated externally, but NOT in the render method
         */
-    headingControlMarker.create(0, 0, 0, 10);
-    headingControlMarker.disableEdit();
-    headingControlMarker.hide();
-
-    this.setState({ headingControlMarker });
 
     const { controlSpeed } = this.state;
     $('#speedSlider').slider({
@@ -894,33 +696,6 @@ export default class AXUI extends React.Component {
         us.sendThrottle(ui.value);
       }
     });
-
-
-    const { testSurveyMarkerLayerCollection } = this.state;
-      /*
-    id,
-    map,
-    layerCollection,
-    numBots,
-    positionCallback,
-    sizeCallback,
-    rotationCallback,
-    fillColor = '#2073BA',
-    onClick = null
-      */
-    const testSurveyMarker = new SurveyMarker(
-      'Debug Survey',
-      map,
-      testSurveyMarkerLayerCollection,
-      10,
-      () => {
-      },
-      COLOR_CONTROLLED,
-      () => {
-
-      }
-    );
-    this.setState({ testSurveyMarker });
 
     OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
     // $('input').checkboxradio();
@@ -956,12 +731,6 @@ export default class AXUI extends React.Component {
   componentWillUnmount() {
     clearInterval(this.timerID);
     clearTimeout(this.accelTimer);
-    const { controlRecipient } = this.state;
-    if (controlRecipient) {
-      // TODO - test
-      this.sendThrottle(0);
-      this.unsetControlRecipient();
-    }
   }
 
   getLiveLayerFromBotId(bot_id) {
@@ -1003,129 +772,6 @@ export default class AXUI extends React.Component {
     return botsLayerCollection.item(botsLayerCollection.getLength() - 1);
   }
 
-  unsetControlRecipient() {
-    const { controlRecipient } = this.state;
-
-    if (controlRecipient) {
-      return this.sna.setControlId(parseInt(controlRecipient.getId(), 10) || -1, 0).then(
-        (result) => {
-          if (!result) {
-            return Promise.reject(new Error('Error from setManualID'));
-          }
-          if (result.code === 0) {
-            controlRecipient.setStyle(getBoatStyle(map));
-            const { headingControlMarker } = this.state;
-            headingControlMarker.disableEdit();
-            headingControlMarker.hide();
-            this.setState({ controlRecipient: null, headingControlMarker, controlSpeed: 0 });
-            this.trackBot('');
-            return Promise.resolve();
-          }
-          return Promise.reject(new Error(`Error from setManualID: Code ${result.code} ${result.msg}`));
-        },
-        failReason => Promise.reject(new Error(failReason))
-      );
-    }
-    return Promise.resolve();
-  }
-
-  setControlRecipient(recipient, startControl = true) {
-    const { controlRecipient } = this.state;
-    // Don't do anything if the object hasn't changed
-    if (recipient === controlRecipient) return;
-    // Not changing ID but have a new feature object
-    if (!startControl || (controlRecipient && recipient && controlRecipient.getId() === recipient.getId())) {
-      recipient.setStyle(getBoatStyle(map, COLOR_CONTROLLED));
-      this.setState({ controlRecipient: recipient });
-      return;
-    }
-    // New one is different, un-control old one
-    this.unsetControlRecipient()
-      // Request control from hub
-      .then(
-        () => {
-          this.sna.setControlId(parseInt(recipient.getId(), 10) || -1, 1).then(
-            (result) => {
-              if (!result) {
-                console.error('Error from setManualID');
-                error('Unable to control bot.');
-              } else if (result.code === 0) {
-                recipient.setStyle(getBoatStyle(map, COLOR_CONTROLLED));
-                const { headingControlMarker } = this.state;
-                headingControlMarker.update(
-                  recipient.getGeometry().getCoordinates()[1],
-                  recipient.getGeometry().getCoordinates()[0],
-                  0
-                );
-                headingControlMarker.show();
-                headingControlMarker.enableEdit();
-                this.setState({ controlRecipient: recipient, headingControlMarker });
-                info(`Now controlling bot ${recipient.getId()}`);
-                this.trackBot(recipient.getId());
-              } else {
-                console.error(`Error from setManualID: Code ${result.code} ${result.msg}`);
-                error('Unable to control bot.');
-              }
-            },
-            (failReason) => {
-              console.error(failReason);
-              error('Unable to set controlled bot.');
-            }
-          );
-        },
-        (failReason) => {
-          console.error(failReason);
-          error('Unable to release controlled bot.');
-        }
-      );
-  }
-
-  sendManualControl(heading, throttle) {
-    return this.sna.sendManualControl(heading, throttle, 0);
-  }
-
-  sendHeading(newHeading) {
-    // Constrain to 0-360
-    let heading = newHeading;
-    while (heading < 0) heading += 360;
-    while (heading > 360) heading -= 360;
-    const { controlSpeed } = this.state;
-    this.setState({ controlHeading: heading });
-    this.sendManualControl(heading, controlSpeed);
-  }
-
-  sendThrottle(throttle) {
-    const { controlHeading } = this.state;
-    this.setState({ controlSpeed: throttle });
-    this.sendManualControl(controlHeading, throttle);
-  }
-
-  updateAcceleration() {
-    clearTimeout(this.accelTimer);
-    const { accelerationProfileIndex } = this.state;
-    if (accelerationProfileIndex >= ACCEL_PROFILE.length) {
-      return;
-    }
-    this.sendThrottle(ACCEL_PROFILE[accelerationProfileIndex][1]);
-    if (accelerationProfileIndex < ACCEL_PROFILE.length - 1) {
-      this.setState({ accelerationProfileIndex: accelerationProfileIndex + 1 });
-      this.accelTimer = setTimeout(this.updateAcceleration, ACCEL_PROFILE[accelerationProfileIndex + 1][0]);
-    }
-  }
-
-  startAcceleration() {
-    $('#throttleButtonSingle').addClass('active');
-    this.accelTimer = setTimeout(this.updateAcceleration, ACCEL_PROFILE[0][0]);
-    this.setState({ accelerationProfileIndex: 0 });
-  }
-
-  cancelAcceleration() {
-    clearTimeout(this.accelTimer);
-    this.sendThrottle(0);
-    $('#throttleButtonSingle').removeClass('active');
-    this.setState({ accelerationProfileIndex: 0 });
-  }
-
   changeInteraction(newInteraction = null, cursor = '') {
     const { currentInteraction } = this.state;
     if (currentInteraction !== null) {
@@ -1142,39 +788,6 @@ export default class AXUI extends React.Component {
     this.changeInteraction();
   }
 
-  setActiveEditFile(fileName) {
-    this.setState({ activeEditFile: fileName });
-  }
-
-  setActiveFileDirty(dirty) {
-    this.setState({ activeFileIsDirty: dirty });
-  }
-
-  setActiveEditLayer(layer) {
-    const { activeEditLayer, activeEditWaypoint } = this.state;
-    if (activeEditWaypoint) this.setActiveEditWaypoint(null);
-    if (activeEditLayer && activeEditLayer !== layer) {
-      activeEditLayer.setStyle(getWaypointStyle());
-    }
-    if (layer) {
-      layer.setStyle(getWaypointStyle(COLOR_CONTROLLED));
-    } else {
-      // If we are leaving edit mode, go back to default interaction
-      this.changeInteraction();
-    }
-    this.setState({ activeEditLayer: layer });
-  }
-
-  setActiveEditWaypoint(waypoint) {
-    const { activeEditWaypoint } = this.state;
-    if (activeEditWaypoint) {
-      activeEditWaypoint.setStyle(null);
-    }
-    if (waypoint) {
-      waypoint.setStyle(getWaypointStyle(COLOR_SELECTED));
-    }
-    this.setState({ activeEditWaypoint: waypoint });
-  }
 
   setViewport(dims) {
     const { viewportPadding } = this.state;
@@ -1260,47 +873,24 @@ export default class AXUI extends React.Component {
         else {
           this.podStatus = result
         }
+      },
+      (err) => {
+        this.setState({
+          error: err
+        });
+        this.timerID = setInterval(() => this.pollPodStatus(), 2500);
+        error('Unable to connect to pod interface.');
       }
     )
 
     this.sna.getOldStatus().then(
       (result) => {
         const { selectedBotsFeatureCollection } = this.state;
-        if (!Reflect.has(this, 'prevDialogType')) {
-          this.prevDialogType = 0;
-        }
-        if (result.dialog.dialogType !== this.prevDialogType && result.dialog.dialogType === 1) {
-          info(result.dialog.message);
-        }
-        this.prevDialogType = result.dialog.dialogType;
-
-        this.setState({
-          manualControlStatus: result.dialog.manualStatus,
-          manualControlTabletID: result.dialog.browser_id,
-          manualControlTarget: result.dialog.manual_bot_id
-        });
-        if (result.dialog.manualStatus === 0 && result.dialog.manual_bot_id && result.dialog.manual_bot_id !== 4294967295) {
-          const { controlRecipient } = this.state;
-          if (!controlRecipient || result.dialog.manual_bot_id.toString() !== controlRecipient.getId()) {
-            const controlRecipientFeature = this.getLiveLayerFromBotId(result.dialog.manual_bot_id.toString())
-              .getSource()
-              .getFeatureById(result.dialog.manual_bot_id.toString());
-            // this.setState({ controlRecipient: controlRecipientFeature });
-            this.setControlRecipient(controlRecipientFeature, false);
-          }
-        }
 
         if (!Array.isArray(result.bots)) {
           // No bots connected to hub
           return;
         }
-        const rawBotData = {};
-        result.bots.forEach((bot) => {
-          rawBotData[bot.botID.toString()] = bot;
-        });
-        this.setState({
-          rawBotData
-        });
 
         let faultLevel0Count = 0;
         let faultLevel1Count = 0;
@@ -1404,32 +994,8 @@ export default class AXUI extends React.Component {
             }
           }
 
-          const { controlRecipient } = this.state;
-
-          if (controlRecipient && botFeature.getId() === controlRecipient.getId()) {
-            botFeature.set('controlled', true);
-            this.setControlRecipient(botFeature);
-            const { headingControlMarker, controlHeading } = this.state;
-
-            let bot = this.state.rawBotData[controlRecipient.getId().toString()]
-
-            headingControlMarker.update(
-              bot.location.lat,
-              bot.location.lon,
-              controlHeading
-            );
-            this.setState({ headingControlMarker });
-          }
-
           if (trackingTarget === bot_id) {
             botFeature.set('tracked', true);
-          }
-
-          const { missionExecutionState } = this.state;
-          if (missionExecutionState.isActive && Array.isArray(missionExecutionState.botsDoneWithAction)) {
-            if (missionExecutionState.botsDoneWithAction.includes(botFeature.getId())) {
-              botFeature.set('completed', true);
-            }
           }
 
           botLayer.getSource().clear();
@@ -1538,7 +1104,6 @@ export default class AXUI extends React.Component {
       this.openBotsDrawer();
     }
     this.setState({ selectedBotsFeatureCollection });
-    this.setSelectedMissionAction(-1);
     map.render();
   }
 
@@ -1630,67 +1195,8 @@ export default class AXUI extends React.Component {
     return `${Math.round(length * 100) / 100} m`;
   }
 
-  static showHelpText() {
-    // Add transparent overlay
-    // const overlay = $(document).?
-    // Set overlay to top layer
-    // Add click handler
-    // Get coords
-    // Remove overlay
-    // Get element at coords
-    // const elem = elementFromPoint(x, y);
-    // Get title attr
-    // const title = elem.getAttribute('title');
-    // If no title, find first parent element with title
-    // Show title in popup
-  }
-
-  static getPodDiverStatus(feature) {
-    const rfState = parseInt(feature.get('commState') || 0, 10);
-    const faultState = parseInt(feature.get('faultState') || 0, 10);
-    // const commandState = parseInt(feature.get('commandState') || 0, 10); // commandState doesn't tell us anything
-    const otherState = parseInt(feature.get('otherMarker') || 0, 10);
-
-    // First we show RF errors, because if we haven't heard from the bot there's no other state data to be had
-    if (rfState >= 1) {
-      return JaiaAPI.getCommunicationStateDescription(feature.get('commState'));
-    }
-    if (faultState === 6) {
-      return JaiaAPI.getFaultStateDescription(feature.get('faultState'));
-    }
-    // Then faults
-    //   faultState 7 is reported by Podulator
-    if (faultState >= 4 && faultState !== 7) {
-      return JaiaAPI.getFaultStateDescription(feature.get('faultState'));
-    }
-    // Battery states over 7 might show up as faults, but there is a separate battery field so it doesn't matter that they are lower priority here
-    /*
-    if (batteryState >= 7) {
-      return JaiaAPI.getBatteryStateDescription(feature.get('batteryState'));
-    }
-    */
-    if (faultState >= 3 && faultState !== 7) {
-      return JaiaAPI.getFaultStateDescription(feature.get('faultState'));
-    }
-    if (otherState > 0) {
-      return JaiaAPI.getStateDescription(feature.get('otherMarker'));
-    }
-    if (faultState >= 1) {
-      return JaiaAPI.getFaultStateDescription(feature.get('faultState'));
-    }
-    return 'Good';
-  }
-
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // eslint-disable-next-line class-methods-use-this
-  toggleButton(id) {
-    return '';
-  }
-
-  addTestSurveyMarker() {
-    const { testSurveyMarker } = this.state;
-    testSurveyMarker.addInteractively(this.changeInteraction.bind(this));
-  }
 
   dive() {
     this.sna.sendDiveCommand()
@@ -1700,25 +1206,12 @@ export default class AXUI extends React.Component {
     const {
       selectedBotsFeatureCollection,
       botsLayerCollection,
-      controlRecipient,
       trackingTarget,
-      activeEditLayer,
-      activeEditWaypoint,
       faultCounts,
-      controlSpeed,
       botsDrawerOpen,
-      commandDrawerOpen,
       measureActive,
-      headingControlMarker
     } = this.state;
 
-    if (controlRecipient && headingControlMarker.isVisible()) {
-      $('#speedControl').show();
-      $('#speedSlider').slider('value', controlSpeed);
-    } else {
-      $('#speedControl').hide();
-    }
-    // map.render();
 
     return (
       <div id="axui_container">
@@ -1736,7 +1229,6 @@ export default class AXUI extends React.Component {
 
             <div className="panel">
               <h2>Pod Control</h2>
-              {this.toggleButton('podControlContainer')}
               <div id="podControlContainer" className="scroll">
                 {this.sna ? <PodControl map={map} sna={this.sna} /> : 'No pod connection'}
               </div>
@@ -1860,10 +1352,6 @@ export default class AXUI extends React.Component {
         >
           <h2>
             <FontAwesomeIcon icon={faMapMarkerAlt} />
-            {/*
-            {' '}
-Pod
-        */}
           </h2>
           <div id="faultCounts">
             <span id="faultLevel0Count" title="Count of bots with no issues">
@@ -1876,19 +1364,6 @@ Pod
               {faultCounts.faultLevel2Count}
             </span>
           </div>
-          {controlRecipient && controlRecipient.getId() !== '' ? (
-            <button
-              type="button"
-              onClick={this.unsetControlRecipient.bind(this)}
-              className="active-rc"
-              title="Release Control"
-            >
-              <FontAwesomeIcon icon={faDharmachakra} />
-              {controlRecipient.getId().toString()}
-            </button>
-          ) : (
-            ''
-          )}
           {trackingTarget
           && trackingTarget !== ''
           && trackingTarget !== 'all'
@@ -1939,7 +1414,7 @@ Pod
                       }
                     className={`bot-item faultLevel${feature.get('faultLevel')} ${
                       this.isBotSelected(feature.getId()) ? 'selected' : ''
-                    }${controlRecipient && feature.getId() === controlRecipient.getId() ? ' controlled' : ''}${
+                    }${
                       trackingTarget && feature.getId() === trackingTarget ? ' tracked' : ''
                     }`}
                   >
@@ -1955,32 +1430,18 @@ Pod
               ? selectedBotsFeatureCollection.getArray().map(feature => (
                 <div
                   key={feature.getId()}
-                  className={`${
-                    controlRecipient && feature.getId() === controlRecipient.getId() ? ' controlled' : ''
-                  }`}
+                  className=''
                 >
                   {BotDetailsComponent(this.podStatus?.bots?.[feature.getId()])}
                   <div id="botContextCommandBox">
                     {/* Leader-based commands and manual control go here */}
-                    {controlRecipient && feature.getId() === controlRecipient.getId() ? (
                       <button
                         type="button"
-                        onClick={this.unsetControlRecipient.bind(this)}
-                        className="active-rc"
-                        title="Release Control"
-                      >
-                        <FontAwesomeIcon icon={faDharmachakra} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={this.setControlRecipient.bind(this, feature)}
                         className=""
                         title="Control Bot"
                       >
                         <FontAwesomeIcon icon={faDharmachakra} />
                       </button>
-                    )}
                     {trackingTarget === feature.getId() ? (
                       <button
                         type="button"
@@ -1992,18 +1453,14 @@ Pod
                       </button>
                     ) : (
                       <span>
-                        {!controlRecipient || feature.getId() === controlRecipient.getId() ? (
-                          <button
-                            type="button"
-                            onClick={this.trackBot.bind(this, feature.getId())}
-                            title="Follow Bot"
-                            className="toggle-inactive"
-                          >
-                            <FontAwesomeIcon icon={faMapPin} />
-                          </button>
-                        ) : (
-                          ''
-                        )}
+                        <button
+                          type="button"
+                          onClick={this.trackBot.bind(this, feature.getId())}
+                          title="Follow Bot"
+                          className="toggle-inactive"
+                        >
+                          <FontAwesomeIcon icon={faMapPin} />
+                        </button>
                       </span>
                     )}
                   </div>
@@ -2024,36 +1481,6 @@ Pod
             </button>
           </div>
         </div>
-
-        {activeEditLayer ? (
-          <div id="controlsOverlay">
-            <LayerEditControls
-              activeEditLayer={activeEditLayer}
-              map={map}
-              changeInteraction={this.changeInteraction}
-              mapView={this}
-              setActiveFileDirty={this.setActiveFileDirty}
-              setActiveEditWaypoint={this.setActiveEditWaypoint}
-              waypointDefaultProperties={waypointDefaultProperties}
-            />
-          </div>
-        ) : (
-          ''
-        )}
-
-        {activeEditWaypoint ? (
-          <div id="mapContextOverlay">
-            <FeaturePropertiesEditor
-              activeEditWaypoint={activeEditWaypoint}
-              map={map}
-              setActiveFileDirty={this.setActiveFileDirty}
-              setActiveEditWaypoint={this.setActiveEditWaypoint}
-              mapView={this}
-            />
-          </div>
-        ) : (
-          ''
-        )}
 
       </div>
     );
