@@ -27,8 +27,6 @@ import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
 import OlTileLayer from 'ol/layer/Tile';
 import OlTileWMS from 'ol/source/TileWMS';
-import OlWMTS, { optionsFromCapabilities as OlOptionsFromWMTSCapabilities } from 'ol/source/WMTS';
-import OlWMTSCapabilities from 'ol/format/WMTSCapabilities';
 import OlTileArcGISRest from 'ol/source/TileArcGISRest';
 import { click } from 'ol/events/condition';
 import OlSelect from 'ol/interaction/Select';
@@ -75,9 +73,7 @@ import {
   faCrosshairs,
   faChevronDown,
   faChevronLeft,
-  faChevronUp,
   faDharmachakra,
-  faDirections,
   faMapMarkerAlt,
   faMapPin,
   faMapMarkedAlt,
@@ -91,7 +87,6 @@ import {
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent} from './BotDetails'
-import AssetControl from './AssetControl';
 import PodControl from './PodControl';
 import JaiaAPI from '../../common/JaiaAPI';
 import LayerEditControls from './LayerEditControls';
@@ -148,48 +143,29 @@ const waypointDefaultProperties = new Map([['Depth', '0'], ['Notes', '']]);
 
 const ACCEL_PROFILE = [[0, 20], [3000, 30], [5000, 70]];
 
-// Cookies to save visible map layers
-
-function setCookie(cname, cvalue, exdays) {
-  var d = new Date();
-  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-  var expires = "expires="+ d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-}
-
-function getCookie(cname) {
-  var name = cname + "=";
-  var decodedCookie = decodeURIComponent(document.cookie);
-  var ca = decodedCookie.split(';');
-  for(var i = 0; i <ca.length; i++) {
-    var c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
+function readSetting(key) {
+  let valueString = localStorage.getItem(key)
+  if (!valueString) {
+    return null
   }
-  return "";
+  else {
+    return JSON.parse(valueString)
+  }
 }
+
+function writeSetting(key, value) {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
 
 function saveVisibleLayers() {
-  setCookie("visibleLayers", Array.from(visibleLayers).join(","), 365)
+  writeSetting("visibleLayers", visibleLayers)
 }
 
 var visibleLayers = new Set()
 
 function loadVisibleLayers() {
-  let cookie = getCookie("visibleLayers")
-
-  if (cookie == "") {
-    visibleLayers = new Set([
-      "OpenStreetMap"
-    ])
-  }
-  else {
-    visibleLayers = new Set(cookie.split(','))
-  }
+  visibleLayers = new Set(readSetting('visibleLayers') || ['OpenStreetMap'])
 }
 
 function makeLayerSavable(layer) {
@@ -772,29 +748,20 @@ export default class AXUI extends React.Component {
 
     this.updateAcceleration = this.updateAcceleration.bind(this);
 
-
     // Read the zoomLevel
-    let zoomLevel = getCookie("zoomLevel")
-    if (zoomLevel != "") {
-      map.getView().setZoom(zoomLevel)
-    }
+    map.getView().setZoom(readSetting("zoomLevel") || 2)
 
     // On Zoom, save the zoomLevel
     map.getView().on('change:resolution', function() {
-      let zoomLevel = map.getView().getZoom()
-      setCookie("zoomLevel", zoomLevel)
+      writeSetting('zoomLevel', map.getView().getZoom())
     })
 
     // Read the rotation
-    let rotation = getCookie("rotation")
-    if (rotation != "") {
-      map.getView().setRotation(rotation)
-    }
+    map.getView().setRotation(readSetting("rotation") || 0)
 
     // On rotation change, save the rotation
     map.getView().on('change:rotation', function() {
-      let rotation = map.getView().getRotation()
-      setCookie("rotation", rotation)
+      writeSetting('rotation', map.getView().getRotation())
     })
 
   }
