@@ -65,8 +65,6 @@ import 'jquery-ui/ui/effects/effect-blind';
 // import 'jquery-ui/themes/base/checkboxradio.css';
 // import 'jquery-ui/ui/widgets/checkboxradio';
 
-import dateFormat from 'dateformat';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faGripVertical,
@@ -94,7 +92,6 @@ import FeaturePropertiesEditor from './FeaturePropertiesEditor';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
-import FormationOriginMarker from '../libs/FormationOriginMarker';
 import SurveyMarker from '../libs/RectangleSurveyMarker';
 import HeadingControlMarker from '../libs/HeadingControlMarker';
 import JsonAPI from '../../common/JsonAPI';
@@ -143,6 +140,8 @@ const waypointDefaultProperties = new Map([['Depth', '0'], ['Notes', '']]);
 
 const ACCEL_PROFILE = [[0, 20], [3000, 30], [5000, 70]];
 
+// Saving and loading settings from browser's localStorage
+
 function readSetting(key) {
   let valueString = localStorage.getItem(key)
   if (!valueString) {
@@ -156,7 +155,6 @@ function readSetting(key) {
 function writeSetting(key, value) {
   localStorage.setItem(key, JSON.stringify(value))
 }
-
 
 function saveVisibleLayers() {
   writeSetting("visibleLayers", visibleLayers)
@@ -198,12 +196,9 @@ export default class AXUI extends React.Component {
   constructor(props) {
     super(props);
 
-    // Hope this doesn't collide. Pretty unlikely.
-    this.clientId = Math.floor(Math.random() * Math.floor(2 ** 15));
-
     this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-    this.sna = new JaiaAPI("/jaia", this.clientId, false);
+    this.sna = new JaiaAPI("/jaia", false);
 
     this.mapTilesAPI = JsonAPI('/tiles');
 
