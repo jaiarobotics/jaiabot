@@ -26,8 +26,6 @@ import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
 import OlTileLayer from 'ol/layer/Tile';
-import OlTileWMS from 'ol/source/TileWMS';
-import OlTileArcGISRest from 'ol/source/TileArcGISRest';
 import { click } from 'ol/events/condition';
 import OlSelect from 'ol/interaction/Select';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
@@ -85,7 +83,6 @@ import {
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent} from './BotDetails'
-import PodControl from './PodControl';
 import JaiaAPI from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
@@ -109,13 +106,11 @@ import '../style/AXUI.less';
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
-const COLOR_CONTROLLED = lessVars.controlledColor;
 
 punchJQuery($);
 // jqueryDrawer($);
 
 const { getBoatStyle } = shapes;
-const { getWaypointStyle } = shapes;
 const { getClientPositionStyle } = shapes;
 
 // Sorry, map is a global because it really gets used from everywhere
@@ -235,7 +230,6 @@ export default class AXUI extends React.Component {
 
     this.missionPlanMarkers = new Map();
     this.missionPlanMarkerExtents = new Map();
-    this.planLayerCollection = new OlCollection([], { unique: true });
 
     const getChartLayerXYZ = (chart) => {
       const sourceOpts = {
@@ -574,7 +568,6 @@ export default class AXUI extends React.Component {
     this.centerOn = this.centerOn.bind(this);
     this.fit = this.fit.bind(this);
 
-    this.sendCommand = this.sendCommand.bind(this);
     this.sendStop = this.sendStop.bind(this);
 
     // Read the zoomLevel
@@ -605,11 +598,6 @@ export default class AXUI extends React.Component {
         layers: this.state.baseLayerCollection
       }),
       this.chartLayerGroup,
-      new OlLayerGroup({
-        // title: 'Plans',
-        // fold: 'open',
-        layers: this.planLayerCollection
-      }),
       this.botsLayerGroup,
       this.clientPositionLayer,
       this.measureLayer,
@@ -1162,21 +1150,6 @@ export default class AXUI extends React.Component {
     this.sna.allStop()
   }
 
-  sendCommand(command) {
-    info(`Sending ${command.type} command`);
-    switch (command.type) {
-      case 'formation':
-        this.sna.sendPodCommand(command.formationType, command.formationParameters);
-        break;
-      case 'other':
-        this.sna.sendOtherCommand(command.OtherCommand, command.parameters);
-        break;
-      default:
-        error('Invalid command type');
-        break;
-    }
-  }
-
   openBotsDrawer() {
     $('#botsDrawer').show('blind', { direction: 'up' });
     this.setState({ botsDrawerOpen: true });
@@ -1197,10 +1170,6 @@ export default class AXUI extends React.Component {
 
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // eslint-disable-next-line class-methods-use-this
-
-  dive() {
-    this.sna.sendDiveCommand()
-  }
 
   render() {
     const {
@@ -1225,13 +1194,6 @@ export default class AXUI extends React.Component {
               <button type="button" onClick={function() { location.reload() } }>
                 Reload Central Command
               </button>
-            </div>
-
-            <div className="panel">
-              <h2>Pod Control</h2>
-              <div id="podControlContainer" className="scroll">
-                {this.sna ? <PodControl map={map} sna={this.sna} /> : 'No pod connection'}
-              </div>
             </div>
 
           </div>
