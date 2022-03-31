@@ -32,6 +32,11 @@ device_map = {
         [ ['/dev/ttyAMA2'], 'xbee' ],
         [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
     ],
+    'Raspberry Pi 4': [
+        [ ['/dev/ttyAMA1'], 'arduino' ],
+        [ ['/dev/ttyAMA2'], 'xbee' ],
+        [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
+    ],
 }
 
 
