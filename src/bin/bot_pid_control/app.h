@@ -52,7 +52,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float rudder = 0.0;
     bool rudder_is_using_pid = false;
     Pid* heading_pid;
-    float heading_kp = 1, heading_ki = 1, heading_kd = 1;
+    float heading_kp = 1, heading_ki = 0, heading_kd = 0;
 
     // Roll targeting
     float target_roll = 0.0;
@@ -61,14 +61,16 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float port_elevator, stbd_elevator;
     bool elevator_is_using_pid = false;
     Pid* roll_pid;
-    float roll_kp = 1, roll_ki = 1, roll_kd = 1;
+    float roll_kp = 1, roll_ki = 0, roll_kd = 0;
 
     // Pitch targeting
     float target_pitch = 0.0;
     float actual_pitch = 0.0;
     float elevator_middle = 0.0;
     Pid* pitch_pid;
-    float pitch_kp = 1, pitch_ki = 1, pitch_kd = 1;
+    float pitch_kp = 1, pitch_ki = 0, pitch_kd = 0;
+
+  private:
 
     void loop() override;
 
@@ -81,7 +83,6 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_dive_depth(const double& dive_depth);
     void handle_powered_ascent();
 
-  private:
 };
 
 } // namespace apps

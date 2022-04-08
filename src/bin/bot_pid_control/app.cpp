@@ -75,7 +75,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
     // Create our PID objects
     throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1.0, 0.0, 0.0);
-    throttle_speed_pid->set_limits(-100.0, 100.0);
+    throttle_speed_pid->set_limits(0.0, 100.0);
     throttle_speed_pid->set_auto();
 
     throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 1.0, 0.0, 0.0);
