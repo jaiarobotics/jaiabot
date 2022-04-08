@@ -83,10 +83,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     throttle_depth_pid->set_limits(-100.0, 100.0);
     throttle_depth_pid->set_auto();
 
-    course_pid =
+    heading_pid =
         new Pid(&actual_heading, &rudder, &target_heading, heading_kp, heading_ki, heading_kd);
-    course_pid->set_limits(-100.0, 100.0);
-    course_pid->set_auto();
+    heading_pid->set_limits(-100.0, 100.0);
+    heading_pid->set_auto();
 
     roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, roll_kp, roll_ki, roll_kd);
     roll_pid->set_limits(-100.0, 100.0);
@@ -134,9 +134,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
             {
                 auto attitude = bot_status.attitude();
 
-                if (attitude.has_course_over_ground())
+                if (attitude.has_heading())
                 {
-                    actual_heading = attitude.course_over_ground();
+                    actual_heading = attitude.heading();
                 }
 
                 if (attitude.has_roll())
@@ -215,9 +215,9 @@ void jaiabot::apps::BotPidControl::loop()
         }
 
         // Compute new rudder value
-        if (course_pid->need_compute())
+        if (heading_pid->need_compute())
         {
-            course_pid->compute();
+            heading_pid->compute();
         }
 
         glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading
@@ -380,7 +380,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
 
         if (heading.has_kp())
         {
-            course_pid->tune(heading.kp(), heading.ki(), heading.kd());
+            heading_pid->tune(heading.kp(), heading.ki(), heading.kd());
         }
     }
 
