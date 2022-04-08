@@ -51,7 +51,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float actual_heading = 0.0;
     float rudder = 0.0;
     bool rudder_is_using_pid = false;
-    Pid* course_pid;
+    Pid* heading_pid;
     float heading_kp = 1, heading_ki = 1, heading_kd = 1;
 
     // Roll targeting
