@@ -1,5 +1,5 @@
 #! /bin/bash
 
-cd jaiabot/config/launch/dev
+cd jaiabot/config/launch/engineering
 ./hub.launch
 
