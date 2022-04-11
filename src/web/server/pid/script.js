@@ -737,7 +737,7 @@ function updateStatus(status) {
   
   let now_us = Date.now() * 1000
 
-  for (bot of bots) {
+  for (const [botId, bot] of Object.entries(bots)) {
     if (bot.botId == 255) {
       var hub = bot
       hub_location = hub.location
@@ -770,8 +770,7 @@ function updateStatus(status) {
     lastCommandTime = bot.lastCommandTime ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(1) : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
 
-    innerHTML += "</tr>" 
-
+    innerHTML += "</tr>"
   }
 
   table.innerHTML = innerHTML

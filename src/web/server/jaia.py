@@ -30,7 +30,7 @@ class Interface:
     def __init__(self, goby_host=('optiplex', 40000)):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(2)
+        self.sock.settimeout(5)
 
         threading.Thread(target=lambda: self.loop()).start()
 
