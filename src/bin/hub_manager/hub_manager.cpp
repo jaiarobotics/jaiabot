@@ -66,6 +66,9 @@ jaiabot::apps::HubManager::HubManager()
             *subscriber_cfg.mutable_intervehicle();
         intervehicle_cfg.add_publisher_id(id);
 
+        glog.is_warn() && glog << group("bot_nav") << "Subscribed to BotStatus using cfg: "
+                               << subscriber_cfg.ShortDebugString() << std::endl;
+
         goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> nav_subscriber(subscriber_cfg);
 
         intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
