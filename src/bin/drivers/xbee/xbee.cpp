@@ -1,8 +1,8 @@
 #include "xbee.h"
+#include "goby/util/debug_logger.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
-#include "goby/util/debug_logger.h"
 
 using goby::glog;
 
@@ -12,6 +12,7 @@ using namespace boost::algorithm;
 using namespace std;
 using namespace boost::asio;
 using namespace boost::endian;
+using xbee::protobuf::XBeePacket;
 
 // Node ID broadcast timeout
 
@@ -23,7 +24,6 @@ std::time_t last_node_id_broadcast_time = 0;
 const byte frame_type_at_command_response = 0x88;
 const byte frame_type_extended_transmit_status = 0x8b;
 const byte frame_type_receive_packet = 0x90;
-const byte frame_type_node_identification_indicator = 0x95;
 
 // Utilities
 
@@ -130,8 +130,6 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
 
     get_my_serial_number();
 
-    broadcast_node_id();
-
     do_work();
 
     return;
@@ -185,20 +183,6 @@ void XBeeDevice::get_my_serial_number() {
 
     string cmd2 = string("\x08") + *((char *) &frame_id) + string("SL");
     write(frame_data(cmd2));
-    frame_id++;
-}
-
-void XBeeDevice::broadcast_node_id() {
-    // Send ND command
-    string cmd = string("\x08") + *((char *) &frame_id) + string("CB") + '\x01';
-    write(frame_data(cmd));
-    frame_id++;
-}
-
-void XBeeDevice::network_discover() {
-    // Send ND command
-    string cmd = string("\x08") + *((char *) &frame_id) + string("ND");
-    write(frame_data(cmd));
     frame_id++;
 }
 
@@ -286,6 +270,8 @@ string XBeeDevice::read_frame() {
     read(response_buffer, response_size);
 
     auto response_string = string((const char *)response_buffer, response_size);
+    glog.is_debug1() && glog << "Read frame: " << hexadecimal(response_string) << endl;
+
     byte cs = checksum(response_string);
 
     delete[] response_buffer;
@@ -296,6 +282,10 @@ string XBeeDevice::read_frame() {
     if (cs != cs_correct) {
         glog.is_warn() && glog << "ERROR: Incorrect checksum in frame data" << cs << " != " << cs_correct << endl;
         return "";
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Correct checksum" << endl;
     }
 
 #if DEBUG
@@ -328,12 +318,7 @@ void XBeeDevice::process_frame() {
         case frame_type_at_command_response:
             process_frame_at_command_response(response_string);
             break;
-        case frame_type_receive_packet:
-            process_frame_receive_packet(response_string);
-            break;
-        case frame_type_node_identification_indicator:
-            process_frame_node_identification_indicator(response_string);
-            break;
+        case frame_type_receive_packet: process_frame_receive_packet(response_string); break;
         default:
             cout << "Unknown frame_type = " << (int) frame_type << endl;
             break;
@@ -353,30 +338,6 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     assert(response->frame_type == frame_type_at_command_response);
     string at_command = string((char *) &response->at_command, 2);
 
-    if (at_command == "ND") {
-        assert(response->command_status == 0);
-
-        string command_data = string((char *) &response->command_data_start, response_string.size() - 5);
-
-        struct NodeInfo {
-            byte junk[2];
-            byte serial_number[8];
-            char node_id_start;
-        };
-
-        NodeInfo *info = (NodeInfo *) command_data.c_str();
-        SerialNumber serial_number = *((SerialNumber *) info->serial_number);
-        NodeId node_id = string(&info->node_id_start);
-
-        glog.is_verbose() && glog << "NodeInfo node_id=" << node_id << " serial_number=" << std::hex << serial_number << std::dec << endl;
-
-        node_id_to_serial_number_map[node_id] = serial_number;
-        serial_number_to_node_id_map[serial_number] = node_id;
-        flush_packets_for_node(node_id);
-
-        return;
-    }
-
     if (at_command == "SH") {
         assert(response->command_status == 0);
         uint32_t upper_serial_number = *((uint32_t *)&response->command_data_start);
@@ -388,6 +349,9 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
         my_serial_number |= ((SerialNumber) lower_serial_number << 32);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
+
+        // Broadcast our node_id, and request everyone else's node_id
+        send_node_id(broadcast_serial_number, true);
     }
 
     if (at_command == "CB") {
@@ -411,7 +375,7 @@ void XBeeDevice::flush_packets_for_node(const NodeId& node_id) {
         if (packet.dest == node_id) {
             try {
                 auto serial_number = node_id_to_serial_number_map.at(packet.dest);
-                send_packet(serial_number, (byte *) packet.data.c_str(), packet.data.size());
+                send_packet(serial_number, packet.data);
             } catch (exception& error) {
                 glog.is_warn() && glog << "WARNING: No cached serial_number for node_id " << node_id << " still." << endl;
                 return;
@@ -453,49 +417,56 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
         byte received_data_start;
     };
 
+    glog.is_debug1() && glog << "Packet frame" << endl;
+
     auto response = (const ReceivePacket*) response_string.c_str();
     auto response_size = response_string.size();
     auto data_size = response_size - 12;
 
-    auto packet = string((char *) &response->received_data_start, data_size);
-    received_packets.push_back(packet);
+    auto serialized_packet = string((char*)&response->received_data_start, data_size);
+    glog.is_debug1() && glog << "Received XBeePacket raw data length=" << serialized_packet.length()
+                             << endl;
 
-    glog.is_debug2() && glog << "Received datagram data=" << hexadecimal(packet) << endl;
-}
+    XBeePacket packet;
+    if (packet.ParseFromString(serialized_packet))
+    {
+        glog.is_debug1() && glog << "Parsed packet of length " << serialized_packet.length()
+                                 << endl;
 
-void XBeeDevice::process_frame_node_identification_indicator(const string& response_string) {
-    struct Info {
-        byte frame_type;
-        byte src[8];
-        byte reserved[2];
-        byte options;
-        byte reserved2[2];
-        byte remote_serial_number[8];
-        byte node_id_start;
-    };
+        if (packet.has_xbee_address_entry())
+        {
+            auto xbee_address_entry = packet.xbee_address_entry();
+            auto node_id = xbee_address_entry.node_id();
+            auto serial_number = xbee_address_entry.serial_number();
 
-    auto info = (const Info*) response_string.c_str();
-    NodeId node_id = string((char *) &info->node_id_start);
-    SerialNumber serial_number = *((SerialNumber *) &info->remote_serial_number);
+            glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec
+                                      << " node_id= " << node_id << endl;
 
-    // If we receive a node_id within timeout, then we should respond and tell them our node_id, because they're
-    //   new to this network.
-    std::time_t current_time = std::time(nullptr);
+            node_id_to_serial_number_map[node_id] = serial_number;
+            serial_number_to_node_id_map[serial_number] = node_id;
 
-    if (current_time - last_node_id_broadcast_time > node_id_broadcast_timeout) {
-        broadcast_node_id();
-        last_node_id_broadcast_time = std::time(nullptr);
+            // Remote is requesting our xbee_address_entry
+            if (packet.has_xbee_address_entry_request() && packet.xbee_address_entry_request())
+            {
+                auto src = *((SerialNumber*)response->src);
+                glog.is_verbose() &&
+                    glog << "Responding to xbee_address_entry_request for serial_number= "
+                         << std::hex << src << std::dec << std::endl;
+                send_node_id(src, false);
+            }
+        }
+
+        if (packet.has_data())
+        {
+            received_packets.push_back(packet.data());
+            glog.is_debug1() && glog << "Received datagram data=" << hexadecimal(packet.data())
+                                     << endl;
+        }
     }
-
-    if (node_id_to_serial_number_map.find(node_id) == node_id_to_serial_number_map.end() ||
-        node_id_to_serial_number_map[node_id] != serial_number) {
-        node_id_to_serial_number_map[node_id] = serial_number;
-        serial_number_to_node_id_map[serial_number] = node_id;
-        
-        glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec << " node_id= " << node_id << endl;
+    else
+    {
+        glog.is_warn() && glog << "Could not deserialize packet" << endl;
     }
-
-    flush_packets_for_node(node_id);
 }
 
 vector<string> XBeeDevice::get_packets() {
@@ -524,15 +495,48 @@ SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id) {
     }
 }
 
-void XBeeDevice::send_packet(const SerialNumber& dest, const byte* ptr, const size_t length) {
-    write(frame_data(api_transmit_request(dest, frame_id, ptr, length)));
-    frame_id ++;
+void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet)
+{
+    string serialized_packet;
+
+    if (packet.SerializeToString(&serialized_packet))
+    {
+        write(frame_data(api_transmit_request(
+            dest, frame_id, (const byte*)serialized_packet.c_str(), serialized_packet.length())));
+        frame_id++;
+    }
+    else
+    {
+        glog.is_warn() && glog << "Could not serialize packet for transmission:  "
+                               << packet.ShortDebugString() << endl;
+    }
 }
 
-void XBeeDevice::send_packet(const NodeId& dest, const byte* ptr, const size_t length) {
+void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)
+{
+    auto packet = XBeePacket();
+    auto xbee_address_entry = packet.mutable_xbee_address_entry();
+    xbee_address_entry->set_node_id(my_node_id);
+    xbee_address_entry->set_serial_number(my_serial_number);
+    packet.set_xbee_address_entry_request(xbee_address_entry_request);
+    _send_packet(dest, packet);
+}
+
+void XBeeDevice::send_packet(const SerialNumber& dest, const string& data)
+{
+    auto packet = XBeePacket();
+    packet.set_data(data);
+    _send_packet(dest, packet);
+}
+
+// Public interface
+void XBeeDevice::send_packet(const NodeId& dest, const string& data)
+{
+    glog.is_debug2() && glog << "send_packet to NodeId" << endl;
+
     SerialNumber dest_ser;
 
-    auto packet = Packet(dest, string((char *) ptr, length));
+    auto packet = Packet(dest, data);
 
     if (dest == broadcast) {
         dest_ser = broadcast_serial_number;
@@ -547,10 +551,5 @@ void XBeeDevice::send_packet(const NodeId& dest, const byte* ptr, const size_t l
         }
     }
 
-    send_packet(dest_ser, ptr, length);
+    send_packet(dest_ser, data);
 }
-
-void XBeeDevice::send_packet(const NodeId& dest, const string& s) {
-    send_packet(dest, (const byte *)s.c_str(), s.size());
-}
-
