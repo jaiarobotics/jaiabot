@@ -1,7 +1,7 @@
 #!/usr/bin/env -S goby_launch -L -P -d 1000
 
 # start the Goby processes
-gobyd <(../../gen/bot.py gobyd) -v -n
+gobyd <(../../gen/bot.py gobyd) -z -v -n
 
 # IMU sensor
 ~/jaiabot/src/python/adafruit-BNO055/imu.py 20000

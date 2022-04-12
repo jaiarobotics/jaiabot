@@ -31,6 +31,8 @@
 #include <queue>
 #include <boost/asio.hpp>   // for serial_port
 
+#include "xbee.pb.h"
+
 using namespace std;
 typedef unsigned char byte;
 
@@ -59,10 +61,7 @@ class XBeeDevice
 
     vector<NodeId> get_peers();
 
-    void send_packet(const NodeId& dest, const byte* ptr, const size_t length);
     void send_packet(const NodeId& dest, const std::string& s);
-
-    void send_packet(const SerialNumber& dest, const byte* ptr, const size_t length);
 
     vector<string> get_packets();
 
@@ -95,6 +94,11 @@ class XBeeDevice
     void get_maximum_payload_size();
     void broadcast_node_id();
     void network_discover();
+
+    // Packet sending
+    void _send_packet(const SerialNumber& dest, const xbee::protobuf::XBeePacket& packet);
+    void send_packet(const SerialNumber& dest, const string& data);
+    void send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request);
 
     // Low level reads and writes
     void write(const std::string& raw);
