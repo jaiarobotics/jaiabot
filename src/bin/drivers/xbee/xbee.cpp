@@ -454,6 +454,8 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
                          << std::hex << src << std::dec << std::endl;
                 send_node_id(src, false);
             }
+
+            flush_packets_for_node(node_id);
         }
 
         if (packet.has_data())
