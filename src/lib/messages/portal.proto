@@ -17,6 +17,7 @@ message ClientToPortalMessage
 
     optional PIDCommand pid_command = 1;
     optional Command command = 2;
+    optional bool ping = 3;
 }
 
 message PortalToClientMessage
