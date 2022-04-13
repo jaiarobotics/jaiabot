@@ -36,7 +36,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     ThrottleMode throttleMode = MANUAL;
 
-    float throttle;
+    float throttle = 0.0;
 
     float actual_speed = 0.0;
     float target_speed = 0.0;
@@ -57,7 +57,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float target_roll = 0.0;
     float actual_roll = 0.0;
     float elevator_delta = 0.0;
-    float port_elevator, stbd_elevator;
+    float port_elevator = 0.0, stbd_elevator = 0.0;
     bool elevator_is_using_pid = false;
     Pid* roll_pid;
 
