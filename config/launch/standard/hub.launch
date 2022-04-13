@@ -3,7 +3,6 @@
 gobyd <(../../gen/hub.py gobyd) -vvv -n
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
 goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
-goby_geov_interface <(../../gen/hub.py goby_geov_interface)
 jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager)
 jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal)
 

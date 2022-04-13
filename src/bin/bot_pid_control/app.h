@@ -7,6 +7,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/pid_control.pb.h"
 
 #include "PID/PID.h"
@@ -21,14 +22,16 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     BotPidControl();
 
   private:
-
     // Timeout
-    int timeout = 5;
-    goby::time::MicroTime lastCommandReceived;
+    goby::time::MicroTime timeout{5 * boost::units::si::seconds};
+    goby::time::MicroTime lastCommandReceived{0 * boost::units::si::seconds};
 
     // Throttle
-    enum ThrottleMode {
-      MANUAL, PID_SPEED, PID_DEPTH
+    enum ThrottleMode
+    {
+        MANUAL,
+        PID_SPEED,
+        PID_DEPTH
     };
 
     ThrottleMode throttleMode = MANUAL;
@@ -37,19 +40,18 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     float actual_speed = 0.0;
     float target_speed = 0.0;
-    Pid *throttle_speed_pid;
+    Pid* throttle_speed_pid;
 
     float actual_depth = 0.0;
     float target_depth = 0.0;
-    Pid *throttle_depth_pid;
+    Pid* throttle_depth_pid;
 
     // Course targeting
     float target_heading = 0.0;
     float actual_heading = 0.0;
     float rudder = 0.0;
     bool rudder_is_using_pid = false;
-    Pid *course_pid;
-    float heading_kp = 1, heading_ki = 1, heading_kd = 1;
+    Pid* heading_pid;
 
     // Roll targeting
     float target_roll = 0.0;
@@ -57,21 +59,27 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float elevator_delta = 0.0;
     float port_elevator, stbd_elevator;
     bool elevator_is_using_pid = false;
-    Pid *roll_pid;
-    float roll_kp = 1, roll_ki = 1, roll_kd = 1;
+    Pid* roll_pid;
 
     // Pitch targeting
     float target_pitch = 0.0;
     float actual_pitch = 0.0;
     float elevator_middle = 0.0;
-    Pid *pitch_pid;
-    float pitch_kp = 1, pitch_ki = 1, pitch_kd = 1;
+    Pid* pitch_pid;
+
+  private:
 
     void loop() override;
 
     void handle_command(const jaiabot::protobuf::PIDCommand& command);
 
-  private:
+    void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
+    void
+    handle_helm_course(const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course);
+    void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
+    void handle_dive_depth(const double& dive_depth);
+    void handle_powered_ascent();
+
 };
 
 } // namespace apps
