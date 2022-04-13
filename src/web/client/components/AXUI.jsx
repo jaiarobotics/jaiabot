@@ -126,6 +126,33 @@ const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
 
+const P0 = {location: {lon: -71.273084, lat: 41.662615}}
+const P1 = {location: {lon: -71.273505, lat: 41.662410}}
+const P2 = {location: {lon: -71.274137, lat: 41.661976}}
+const P3 = {location: {lon: -71.274978, lat: 41.661539}}
+
+function _mission(goals) {
+  return {
+    botId: 0,
+    time: '1642891753471247',
+    type: 'MISSION_PLAN',
+    plan: {
+      start: 'START_IMMEDIATELY',
+      movement: 'TRANSIT',
+      goal: goals,
+      recovery: {recoverAtFinalGoal: true}
+    }
+  }
+}
+
+
+const missions = [
+  _mission([P0]),
+  _mission([P1]),
+  _mission([P2]),
+  _mission([P3]),
+]
+
 // Saving and loading settings from browser's localStorage
 
 function readSetting(key) {
@@ -1438,6 +1465,18 @@ export default class AXUI extends React.Component {
             <button type="button" className="globalCommand" title="Run Mission" onClick={this.runMissionClicked.bind(this)}>
               <Icon path={mdiPlay} title="Run Mission"/>
             </button>
+            <button type="button" className="globalCommand" title="Run Home" onClick={this.runHardcodedMissionClicked.bind(this, 0)}>
+              Home
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.runHardcodedMissionClicked.bind(this, 1)}>
+              M 1
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.runHardcodedMissionClicked.bind(this, 2)}>
+              M 2
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 3)}>
+              M 3
+            </button>
             <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
               <Icon path={mdiDelete} title="Clear Mission"/>
             </button>
@@ -1533,6 +1572,11 @@ export default class AXUI extends React.Component {
 
   runMissionClicked() {
     this.sendMissionCommand(0)
+  }
+
+  runHardcodedMissionClicked(index) {
+    console.log("Running hard-coded mission: ", missions[index])
+    this.sna.postCommand(missions[index])
   }
 
   clearMissionClicked() {

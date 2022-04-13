@@ -34,8 +34,6 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
-        self.post_test_mission()
-
     def post_test_mission(self):
         for bot_id in range(0, 4):
             goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(bot_id, 10 + bot_id) ]
