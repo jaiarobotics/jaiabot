@@ -15,3 +15,16 @@ def bar30_py_udp_port(vehicle_id):
         return 20000 + vehicle_id
     else:
         return 20001
+
+def atlas_ezo_cpp_udp_port(vehicle_id):
+    if is_simulation():
+        return 20200 + vehicle_id
+    else:
+        return 0
+    
+def atlas_ezo_py_udp_port(vehicle_id):
+    if is_simulation():
+        return 20300 + vehicle_id
+    else:
+        return 20002
+    

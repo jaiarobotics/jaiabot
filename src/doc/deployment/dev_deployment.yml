@@ -3,11 +3,14 @@ platforms:
   - name: HUB
     interfaces:
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
-      - jaiabot_dev_hub_interface.yml
-      - jaiabot_liaison_interface.yml
+      - jaiabot_hub_manager_interface.yml
+      - jaiabot_web_portal_interface.yml
   - name: BOT
     interfaces:
+      - jaiabot_adafruit-BNO055-driver_interface.yml
+      - bluerobotics-pressure-sensor-driver_interface.yml
+      - jaiabot_atlas-scientific-ezo-ec-driver_interface.yml
+      - jaiabot_fusion_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
-      - jaiabot_dev_bot_interface.yml
       - jaiabot_control_surfaces_driver_interface.yml
-      - jaiabot_liaison_interface.yml
+      - bot_pid_control_interface.yml

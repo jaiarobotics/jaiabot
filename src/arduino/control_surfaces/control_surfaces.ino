@@ -26,7 +26,7 @@ Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 constexpr int STBD_ELEVATOR_PIN = 2;
 constexpr int RUDDER_PIN = 3;
 constexpr int PORT_ELEVATOR_PIN = 4;
-constexpr int MOTOR_PIN = 5;
+constexpr int MOTOR_PIN = 6;
 
 // The timeout
 unsigned long t_last_command = 0;

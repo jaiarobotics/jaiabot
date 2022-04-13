@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 udp_config { 
-    bind_port: 0
+    bind_port: $bind_port
     remote_address: "127.0.0.1"
-    remote_port: 20002
+    remote_port: $remote_port
 }

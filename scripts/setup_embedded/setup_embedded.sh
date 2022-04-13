@@ -20,8 +20,20 @@ fi
 
 echo "===Setting up as $1, number $2"
 
-echo "===Setting up boot config"
-cp config.txt /boot/firmware
+echo "===Setting up boot stuff"
+
+if ! [ -f /boot/firmware/config.txt.orig ]; then
+  cp /boot/firmware/config.txt /boot/firmware/config.txt.orig
+fi
+cp config.txt /boot/firmware/config.txt
+
+if ! [ -f /boot/firmware/cmdline.txt.orig ]; then
+  cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.orig
+fi
+cp cmdline.txt /boot/firmware/cmdline.txt
+
+systemctl stop serial-getty@ttyS0.service
+systemctl disable serial-getty@ttyS0.service
 
 echo "===Setting hostname to jaia$1$2"
 echo "jaia$1$2" > /etc/hostname
@@ -53,6 +65,13 @@ grep "$udev_entry" /etc/udev/rules.d/10-local_i2c_group.rules || echo "$udev_ent
 echo "===Installing Python packages"
 pip install smbus adafruit-circuitpython-busdevice adafruit-circuitpython-register
 
+echo "===Disabling u-boot waiting for any key to stop boot which really messes with the GPS if on UART like we do for RasPi3"
+# As described here: https://stackoverflow.com/questions/34356844/how-to-disable-serial-consolenon-kernel-in-u-boot
+if ! [ -f /boot/firmware/uboot_rpi_3.bin.orig ]; then
+  cp /boot/firmware/uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bin.orig
+fi
+cp uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bin
+
 echo "===Placing run script in the home dir"
 if [ $1 == 'bot' ]
 then
@@ -78,11 +97,6 @@ else
   echo "---making entry"
   echo "PATH=\${HOME}/jaiabot/build/arm64/bin:\${PATH}" >> /home/ubuntu/.bashrc
 fi
-
-echo "===Disabling u-boot waiting for any key to stop boot which really messes with the GPS if on UART like we do for RasPi3"
-# As described here: https://stackoverflow.com/questions/34356844/how-to-disable-serial-consolenon-kernel-in-u-boot
-cp /boot/firmware/uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bak
-cp setup_embedded/uboot_rpi_3.bin /boot/firmware/
 
 echo "===Setting up device links"
 python3 /home/ubuntu/jaiabot/scripts/setup_embedded/setup_device_links.py

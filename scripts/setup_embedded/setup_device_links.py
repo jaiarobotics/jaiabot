@@ -23,13 +23,18 @@ pi_model = get_pi_model()
 
 device_map = {
     'Raspberry Pi 3': [
-        [ ['/dev/serial/by-id/usb-1a86_USB2.0-Serial-if00-port0'], 'arduino' ],
+        [ ['/dev/serial/by-id/usb-1a86_USB2.0-Serial-if00-port0', '/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AB0LMK0R-if00-port0'], 'arduino' ],
         [ ['/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DN*-if00-port0', '/dev/serial/by-id/usb-SparkFun_XBee_Explorer_USB_SF3779M7-if00-port0'], 'xbee' ],
         [ ['/dev/ttyS0'], 'gps' ]
     ],
     'Raspberry Pi Compute Module 4': [
         [ ['/dev/ttyAMA1'], 'arduino' ],
         [ ['/dev/ttyAMA2'], 'xbee' ],
+        [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
+    ],
+    'Raspberry Pi 4': [
+        [ ['/dev/ttyAMA1'], 'arduino' ],
+        [ ['/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DN*-if00-port0', '/dev/serial/by-id/usb-SparkFun_XBee_Explorer_USB_SF3779M7-if00-port0'], 'xbee' ],
         [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
     ],
 }

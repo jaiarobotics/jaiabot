@@ -39,8 +39,7 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
-constexpr goby::middleware::Group salinity{"jaiabot::salinity",
-                                            goby::middleware::Group::broadcast_group};
+constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
 // low control
 constexpr goby::middleware::Group vehicle_command{"jaiabot::vehicle_command"};
@@ -51,13 +50,17 @@ constexpr goby::middleware::Group desired_setpoints{"jaiabot::desired_setpoints"
 
 // mission manager
 constexpr goby::middleware::Group mission_report{"jaiabot::mission_report"};
-constexpr goby::middleware::Group mission_ivp_behavior_update{"jaiabot::mission_ivp_behavior_update"};
-constexpr goby::middleware::Group mission_ivp_behavior_report{"jaiabot::mission_ivp_behavior_report"};
+constexpr goby::middleware::Group mission_ivp_behavior_update{
+    "jaiabot::mission_ivp_behavior_update"};
+constexpr goby::middleware::Group mission_ivp_behavior_report{
+    "jaiabot::mission_ivp_behavior_report"};
 
 // DCCL (intervehicle)
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
                                              goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
+                                              goby::middleware::Group::broadcast_group};
+constexpr goby::middleware::Group dive_packet{"jaiabot::dive_packet",
                                               goby::middleware::Group::broadcast_group};
 
 // pid-control-web
