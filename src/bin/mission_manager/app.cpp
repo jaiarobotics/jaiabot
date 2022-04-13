@@ -125,12 +125,20 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
-        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints) {
+        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints)
+        {
+            glog.is_verbose() && glog << "Received DesiredCourse: "
+                                      << desired_setpoints.ShortDebugString() << std::endl;
+            glog.is_verbose() && glog << "Relaying flag: "
+                                      << (machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM)
+                                      << std::endl;
             if (machine_->setpoint_type() == protobuf::SETPOINT_IVP_HELM)
             {
                 protobuf::DesiredSetpoints setpoint_msg;
                 setpoint_msg.set_type(protobuf::SETPOINT_IVP_HELM);
                 *setpoint_msg.mutable_helm_course() = desired_setpoints;
+                glog.is_verbose() && glog << "Relaying desired_setpoints: "
+                                          << setpoint_msg.ShortDebugString() << std::endl;
                 interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
             }
         });

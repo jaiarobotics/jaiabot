@@ -479,7 +479,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
 void jaiabot::apps::BotPidControl::handle_command(
     const jaiabot::protobuf::DesiredSetpoints& command)
 {
-    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+    glog.is_verbose() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
     lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 
