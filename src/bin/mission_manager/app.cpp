@@ -23,6 +23,9 @@
 #include "machine.h"
 #include "mission_manager.h"
 
+#include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/salinity.pb.h"
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
@@ -158,6 +161,23 @@ jaiabot::apps::MissionManager::MissionManager()
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             machine_->process_event(
                 statechart::EvVehicleDepth(node_status.global_fix().depth_with_units()));
+        });
+
+    // subscribe for sensor measurements
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+        {
+            statechart::EvMeasurement ev;
+            ev.temperature = pt.temperature_with_units();
+            machine_->process_event(ev);
+        });
+
+    interprocess().subscribe<jaiabot::groups::salinity>(
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
+            statechart::EvMeasurement ev;
+            ev.salinity = sal.salinity();
+            machine_->process_event(ev);
         });
 }
 

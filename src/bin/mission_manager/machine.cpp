@@ -174,6 +174,22 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     }
     // always add max_depth at the end
     dive_depths_.push_back(max_depth);
+
+    dive_packet_.set_bot_id(cfg().bot_id());
+    dive_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    dive_packet_.set_depth_achieved(0);
+}
+
+jaiabot::statechart::inmission::underway::task::Dive::~Dive()
+{
+    // compute dive rate based on dz / (sum of dt while in PoweredDescent)
+    quantity<si::time> dt(dive_duration_);
+    quantity<si::length> dz(context<Dive>().dive_packet().depth_achieved_with_units());
+    quantity<si::velocity> vz = dz / dt;
+    dive_packet().set_dive_rate_with_units(vz);
+
+    dive_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    intervehicle().publish<groups::dive_packet>(dive_packet_);
 }
 
 // Task::Dive::PoweredDescent
@@ -182,6 +198,13 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     : StateBase(c)
 {
     loop(EvLoop());
+}
+
+jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDescent()
+{
+    goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime dt(end_time - start_time_);
+    context<Dive>().add_to_dive_duration(dt);
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(const EvLoop&)
@@ -202,17 +225,46 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
 
 // Task::Dive::Hold
 jaiabot::statechart::inmission::underway::task::dive::Hold::Hold(typename StateBase::my_context c)
-    : StateBase(c)
+    : StateBase(c), measurement_(*context<Dive>().dive_packet().add_measurement())
 {
     goby::time::SteadyClock::time_point hold_start = goby::time::SteadyClock::now();
-
     // duration granularity is seconds
-
     int hold_seconds =
         context<Dive>().current_dive().hold_time_with_units<goby::time::SITime>().value();
 
     goby::time::SteadyClock::duration hold_duration = std::chrono::seconds(hold_seconds);
     hold_stop_ = hold_start + hold_duration;
+}
+
+jaiabot::statechart::inmission::underway::task::dive::Hold::~Hold()
+{
+    // compute stats for DivePacket
+    if (!depths_.empty())
+    {
+        quantity<si::length> d_mean(0 * si::meters);
+        for (const auto& d : depths_) d_mean += d;
+        d_mean /= static_cast<double>(depths_.size());
+        measurement_.set_mean_depth_with_units(d_mean);
+    }
+
+    if (!temperatures_.empty())
+    {
+        double t_mean(0);
+        // can't sum absolute temperatures, so strip off the units while we do the mean calculation
+        for (const auto& t : temperatures_) t_mean += t.value();
+
+        t_mean /= static_cast<double>(temperatures_.size());
+        measurement_.set_mean_temperature_with_units(
+            t_mean * boost::units::absolute<boost::units::celsius::temperature>());
+    }
+
+    if (!salinities_.empty())
+    {
+        double s_mean(0);
+        for (const auto& s : salinities_) s_mean += s;
+        s_mean /= static_cast<double>(salinities_.size());
+        measurement_.set_mean_salinity(s_mean);
+    }
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLoop&)
@@ -234,6 +286,23 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
     }
 }
 
+void jaiabot::statechart::inmission::underway::task::dive::Hold::measurement(
+    const EvMeasurement& ev)
+{
+    if (ev.temperature)
+        temperatures_.push_back(ev.temperature.get());
+    if (ev.salinity)
+        salinities_.push_back(ev.salinity.get());
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::Hold::depth(const EvVehicleDepth& ev)
+{
+    if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
+        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
+    depths_.push_back(ev.depth);
+}
+
 // Task::Dive::UnpoweredAscent
 jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::UnpoweredAscent(
     typename StateBase::my_context c)
@@ -245,6 +314,15 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     int timeout_seconds = cfg().surfacing_timeout_with_units<goby::time::SITime>().value();
     goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
     timeout_stop_ = timeout_start + timeout_duration;
+}
+
+jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~UnpoweredAscent()
+{
+    goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    quantity<si::time> dt(end_time - start_time_);
+    quantity<si::length> dz(context<Dive>().dive_packet().depth_achieved_with_units());
+    quantity<si::velocity> vz = dz / dt;
+    context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(vz);
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
@@ -268,6 +346,15 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
 }
 
 // Task::Dive::PoweredAscent
+jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAscent()
+{
+    goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    quantity<si::time> dt(end_time - start_time_);
+    quantity<si::length> dz(context<Dive>().dive_packet().depth_achieved_with_units());
+    quantity<si::velocity> vz = dz / dt;
+    context<Dive>().dive_packet().set_powered_rise_rate_with_units(vz);
+}
+
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;

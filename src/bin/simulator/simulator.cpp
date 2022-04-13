@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <random>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
@@ -31,12 +33,15 @@
 #include <goby/time/steady_clock.h>
 #include <goby/time/types.h>
 #include <goby/util/linebasedcomms/gps_sentence.h>
+#include <goby/util/sci.h>
 #include <goby/util/seawater.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -57,6 +62,9 @@ constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
 constexpr goby::middleware::Group pressure_udp_in{"pressure_udp_in"};
 constexpr goby::middleware::Group pressure_udp_out{"pressure_udp_out"};
 
+constexpr goby::middleware::Group salinity_udp_in{"salinity_udp_in"};
+constexpr goby::middleware::Group salinity_udp_out{"salinity_udp_out"};
+
 class SimulatorTranslation : public goby::moos::Translator
 {
   public:
@@ -66,6 +74,7 @@ class SimulatorTranslation : public goby::moos::Translator
   private:
     void process_nav(const CMOOSMsg& msg);
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
+    void process_control_surfaces(const protobuf::ControlSurfaces& control_surfaces);
 
   private:
     const config::Simulator& sim_cfg_;
@@ -74,6 +83,13 @@ class SimulatorTranslation : public goby::moos::Translator
 
     quantity<si::length> dive_x_, dive_y_, dive_depth_;
     goby::time::SteadyClock::time_point last_nav_process_time_;
+
+    std::map<quantity<si::length>, double> temperature_degC_profile_;
+    std::map<quantity<si::length>, double> salinity_profile_;
+
+    std::default_random_engine generator_;
+    std::normal_distribution<double> temperature_distribution_;
+    std::normal_distribution<double> salinity_distribution_;
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -103,6 +119,10 @@ jaiabot::apps::Simulator::Simulator()
         goby::middleware::io::UDPPointToPointThread<pressure_udp_in, pressure_udp_out>;
     launch_thread<PressureUDPThread>(cfg().pressure_udp_config());
 
+    using SalinityUDPThread =
+        goby::middleware::io::UDPPointToPointThread<salinity_udp_in, salinity_udp_out>;
+    launch_thread<SalinityUDPThread>(cfg().salinity_udp_config());
+
     goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
     *sim_cfg.mutable_app() = cfg().app();
     *sim_cfg.mutable_interprocess() = cfg().interprocess();
@@ -113,7 +133,11 @@ jaiabot::apps::Simulator::Simulator()
 // Translation thread
 jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     const std::pair<goby::apps::moos::protobuf::GobyMOOSGatewayConfig, config::Simulator>& cfg)
-    : goby::moos::Translator(cfg.first), sim_cfg_(cfg.second)
+    : goby::moos::Translator(cfg.first),
+      sim_cfg_(cfg.second),
+      temperature_distribution_(0, sim_cfg_.temperature_stdev()),
+      salinity_distribution_(0, sim_cfg_.salinity_stdev())
+
 {
     interprocess().subscribe<goby::middleware::groups::datum_update>(
         [this](const goby::middleware::protobuf::DatumUpdate& datum_update) {
@@ -130,6 +154,19 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         [this](const protobuf::DesiredSetpoints& desired_setpoints) {
             process_desired_setpoints(desired_setpoints);
         });
+
+    interprocess().subscribe<groups::vehicle_command>(
+        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command)
+        {
+            if (vehicle_command.has_control_surfaces())
+                process_control_surfaces(vehicle_command.control_surfaces());
+        });
+
+    for (const auto& sample : sim_cfg_.sample())
+    {
+        temperature_degC_profile_[sample.depth_with_units()] = sample.temperature();
+        salinity_profile_[sample.depth_with_units()] = sample.salinity();
+    }
 }
 
 void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
@@ -206,18 +243,45 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         std::stringstream ss;
         auto pressure = goby::util::seawater::pressure(depth, latlon.lat);
 
+        // interpolate temperature value from table
+        double temperature = goby::util::linear_interpolate(depth, temperature_degC_profile_);
+        // randomize temperature
+        temperature += temperature_distribution_(generator_);
+
         // omit in sim
-        double temp = 0.0;
         std::string time = "";
 
         using goby::util::seawater::bar;
 
         // date_string, p_mbar, t_celsius
         ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temp;
+           << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature;
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(ss.str());
         interthread().publish<pressure_udp_out>(io_data);
+    }
+
+    // publish salinity as UDP message for atlas scientific ezo-ec driver
+    {
+        std::stringstream ss;
+        // interpolate salinity value from table
+        double salinity = goby::util::linear_interpolate(depth, salinity_profile_);
+        // randomize salinity
+        salinity += salinity_distribution_(generator_);
+
+        // omit in sim
+        std::string time = "";
+        std::string conductivity = "0.0";
+        std::string dissolved_solids = "0.0";
+        std::string specific_gravity = "0.0";
+
+        // date_string, conductivity, dissolved solids, salinity, specific gravity
+        ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
+           << conductivity << "," << dissolved_solids << "," << salinity << "," << specific_gravity;
+
+        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+        io_data->set_data(ss.str());
+        interthread().publish<salinity_udp_out>(io_data);
     }
 
     last_nav_process_time_ = now;
@@ -230,52 +294,31 @@ void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
 
     switch (desired_setpoints.type())
     {
+        // all of these can be handled by uSimMarine directly
         case protobuf::SETPOINT_IVP_HELM:
-        {
-            glog.is_debug1() && glog << "Received desired course: "
-                                     << desired_setpoints.helm_course().ShortDebugString()
-                                     << std::endl;
-
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", desired_setpoints.helm_course().heading());
-            moos().comms().Notify("DESIRED_SPEED", desired_setpoints.helm_course().speed());
-            moos().comms().Notify("DESIRED_DEPTH", desired_setpoints.helm_course().depth());
-        }
-
-        break;
-
         case protobuf::SETPOINT_STOP:
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", 0.0);
-            moos().comms().Notify("DESIRED_SPEED", 0.0);
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
-            break;
-
-        case protobuf::SETPOINT_REMOTE_CONTROL:
-        {
-            glog.is_debug1() && glog << "Received remote control: "
-                                     << desired_setpoints.remote_control().ShortDebugString()
-                                     << std::endl;
-
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", desired_setpoints.remote_control().heading());
-            moos().comms().Notify("DESIRED_SPEED", desired_setpoints.remote_control().speed());
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
-        }
-        break;
-
-        case protobuf::SETPOINT_DIVE:
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true");
-            // otherwise handled by depth loop
-            break;
-
         case protobuf::SETPOINT_POWERED_ASCENT:
+        case protobuf::SETPOINT_REMOTE_CONTROL:
             moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", 0.0);
-
-            // some high value for the simulator. real controller will presumably set some fixed RPM
-            moos().comms().Notify("DESIRED_SPEED", 5.0);
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
             break;
+
+            // handled by depth loop by resetting uSimMarine
+        case protobuf::SETPOINT_DIVE: moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true"); break;
     }
+}
+
+void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
+    const protobuf::ControlSurfaces& control_surfaces)
+{
+    // both uSimMarine and BotPidControl use -100 -> 100 scale for these control surfaces so no normalization is required
+    constexpr double thrust_normalization = 1.0;
+    constexpr double rudder_normalization = 1.0;
+    constexpr double elevator_normalization = 1.0;
+
+    moos().comms().Notify("DESIRED_THRUST", thrust_normalization * control_surfaces.motor());
+    moos().comms().Notify("DESIRED_RUDDER", rudder_normalization * control_surfaces.rudder());
+    moos().comms().Notify(
+        "DESIRED_ELEVATOR",
+        elevator_normalization *
+            (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
 }

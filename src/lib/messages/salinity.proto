@@ -6,11 +6,7 @@ package jaiabot.protobuf;
 
 message SalinityData
 {
-
     option (dccl.msg) = {
-        id: 94
-        max_bytes: 64
-        codec_version: 3
         unit_system: "si"
     };
 

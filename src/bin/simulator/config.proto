@@ -47,7 +47,30 @@ message Simulator
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
     optional goby.middleware.protobuf.UDPPointToPointConfig
         pressure_udp_config = 21;
+    optional goby.middleware.protobuf.UDPPointToPointConfig
+        salinity_udp_config = 22;
 
     optional double vertical_dive_rate = 30
-        [(dccl.field) = { units { derived_dimensions: "velocity" } }];    
+        [(dccl.field) = { units { derived_dimensions: "velocity" } }];
+
+    message ScalarSample
+    {
+        optional double depth = 1
+            [(dccl.field) = { units: { derived_dimensions: "length" } }];
+
+        optional double temperature = 2 [(dccl.field) = {
+            units { derived_dimensions: "temperature" system: "celsius" }
+        }];
+        optional double salinity = 3;
+    }
+
+    repeated ScalarSample sample = 40;
+    optional double temperature_stdev = 41 [(dccl.field) = {
+        units {
+            derived_dimensions: "temperature"
+            system: "celsius"
+            relative_temperature: true
+        }
+    }];
+    optional double salinity_stdev = 5;
 }
