@@ -20,12 +20,20 @@ fi
 
 echo "===Setting up as $1, number $2"
 
-echo "===Setting up boot config"
+echo "===Setting up boot stuff"
 
 if ! [ -f /boot/firmware/config.txt.orig ]; then
   cp /boot/firmware/config.txt /boot/firmware/config.txt.orig
 fi
 cp config.txt /boot/firmware/config.txt
+
+if ! [ -f /boot/firmware/cmdline.txt.orig ]; then
+  cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.orig
+fi
+cp cmdline.txt /boot/firmware/cmdline.txt
+
+systemctl stop serial-getty@ttyS0.service
+systemctl disable serial-getty@ttyS0.service
 
 echo "===Setting hostname to jaia$1$2"
 echo "jaia$1$2" > /etc/hostname
