@@ -158,6 +158,11 @@ public:
         }
     }
 
+    float get_Kp() { return Kp; }
+
+    float get_Ki() { return Ki; }
+
+    float get_Kd() { return Kd; }
 
     void sample(uint32_t time)
     {
