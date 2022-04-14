@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include <iostream>
+#include <sstream>
 
 /*-------------------------------------------------------------*/
 /*		Macros and definitions				*/
@@ -163,6 +164,13 @@ public:
     float get_Ki() { return Ki; }
 
     float get_Kd() { return Kd; }
+
+    std::string description()
+    {
+        std::stringstream s;
+        s << "PID gains: " << Kp << ", " << Ki << ", " << Kd;
+        return s.str();
+    }
 
     void sample(uint32_t time)
     {
