@@ -1,4 +1,4 @@
-set(APP bot_pid_control)
+set(APP jaiabot_pid_control)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 
