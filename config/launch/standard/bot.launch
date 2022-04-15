@@ -27,7 +27,7 @@ goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver) -vvv
 
-bot_pid_control <(../../gen/bot.py bot_pid_control) -v
+jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
 
 # vehicle MOOS components
 [kill=SIGTERM] ../../gen/moos_gen.sh
