@@ -375,11 +375,11 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     // Speed
     else if (command.has_speed())
     {
-        throttleMode = PID_SPEED;
         auto speed = command.speed();
 
         if (speed.has_target())
         {
+            throttleMode = PID_SPEED;
             target_speed = speed.target();
         }
 
@@ -391,11 +391,11 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     // Depth PID for dive
     else if (command.has_depth())
     {
-        throttleMode = PID_DEPTH;
         auto depth = command.depth();
 
         if (depth.has_target())
         {
+            throttleMode = PID_DEPTH;
             target_depth = depth.target();
         }
 
@@ -415,10 +415,10 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     else if (command.has_heading())
     {
         auto heading = command.heading();
-        rudder_is_using_pid = true;
 
         if (heading.has_target())
         {
+            rudder_is_using_pid = true;
             target_heading = heading.target();
         }
 
@@ -444,10 +444,10 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     else if (command.has_roll())
     {
         auto roll = command.roll();
-        elevator_is_using_pid = true;
 
         if (roll.has_target())
         {
+            elevator_is_using_pid = true;
             target_roll = roll.target();
         }
 
@@ -461,10 +461,10 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     else if (command.has_pitch())
     {
         auto pitch = command.pitch();
-        elevator_is_using_pid = true;
 
         if (pitch.has_target())
         {
+            elevator_is_using_pid = true;
             target_pitch = pitch.target();
         }
 
