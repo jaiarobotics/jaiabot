@@ -131,8 +131,22 @@ const P1 = {location: {lon: -71.273505, lat: 41.662410}}
 const P2 = {location: {lon: -71.274137, lat: 41.661976}}
 const P3 = {location: {lon: -71.274978, lat: 41.661539}}
 
+const dive_task = {
+  type: "DIVE",
+  dive: {
+    max_depth: 2,
+    depth_interval: 2,
+    hold_time: 5
+  }
+}
+
+const P0_dive = {location: {lon: -71.273084, lat: 41.662615}, task: dive_task}
+const P1_dive = {location: {lon: -71.273505, lat: 41.662410}, task: dive_task}
+const P2_dive = {location: {lon: -71.274137, lat: 41.661976}, task: dive_task}
+const P3_dive = {location: {lon: -71.274978, lat: 41.661539}, task: dive_task}
+
 function _mission(goals) {
-  return {
+  const mission = {
     botId: 0,
     time: '1642891753471247',
     type: 'MISSION_PLAN',
@@ -143,14 +157,18 @@ function _mission(goals) {
       recovery: {recoverAtFinalGoal: true}
     }
   }
+  return mission
 }
-
 
 const missions = [
   _mission([P0]),
   _mission([P1]),
   _mission([P2]),
   _mission([P3]),
+  _mission([P0_dive]),
+  _mission([P1_dive]),
+  _mission([P2_dive]),
+  _mission([P3_dive]),
 ]
 
 // Saving and loading settings from browser's localStorage
@@ -1476,6 +1494,18 @@ export default class AXUI extends React.Component {
             </button>
             <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 3)}>
               M 3
+            </button>
+            <button type="button" className="globalCommand" title="Run Home" onClick={this.runHardcodedMissionClicked.bind(this, 4)}>
+              D Home
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.runHardcodedMissionClicked.bind(this, 5)}>
+              D 1
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.runHardcodedMissionClicked.bind(this, 6)}>
+              D 2
+            </button>
+            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 7)}>
+              D 3
             </button>
             <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
               <Icon path={mdiDelete} title="Clear Mission"/>
