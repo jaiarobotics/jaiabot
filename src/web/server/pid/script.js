@@ -352,31 +352,51 @@ timeoutSlider.value = 5
 /////////// PIDGains form class //////////
 
 class PIDGains {
-  constructor(name) {
-    this.name = name
+  constructor(name, api_name) {
+    this.name = name this.api_name = api_name
 
     let parentElement = el(name + "Gains")
     parentElement.innerHTML = `
       <div class="gains">
         <div class="gainRow">
           <div class="gainLabel">Kp</div>
-          <input class="gain" type="text" id="` + name + `_Kp" name="fname" value="1"><br/>
+          <input class="gain" type="text" id="` +
+                              name + `_Kp" name="fname" value="1"><br/>
         </div>
         <div class="gainRow">
           <div class="gainLabel">Ki</div>
-          <input class="gain" type="text" id="` + name + `_Ki" name="fname" value="0"><br/>
+          <input class="gain" type="text" id="` +
+                              name + `_Ki" name="fname" value="0"><br/>
         </div>
         <div class="gainRow">
           <div class="gainLabel">Kd</div>
-          <input class="gain" type="text" id="` + name + `_Kd" name="fname" value="0"><br/>
+          <input class="gain" type="text" id="` +
+                              name + `_Kd" name="fname" value="0"><br/>
         </div>
-        <button class="submit" type="button" id="` + name + `_submit">Submit</button>
+        <button class="submit" type="button" id="` +
+                              name +
+                              `_submit">Submit</button>
       </div>
     `
 
-    this.KpElement = el(name + '_Kp')
-    this.KiElement = el(name + '_Ki')
-    this.KdElement = el(name + '_Kd')
+                              this.KpElement = el(name + '_Kp') this.KiElement =
+                                  el(name + '_Ki') this.KdElement =
+                                      el(name + '_Kd') this.submitElement =
+                                          el(name + '_submit')
+    let self = this
+
+               this.submitElement.onclick = function() {
+      let command = {timeout : 1}
+
+      command[self.api_name] = {
+        Kp : self.KpElement.value,
+        Ki : self.KiElement.value,
+        Kd : self.KdElement.value
+      }
+
+                               console.log('Sending command: ', command)
+      sendCommand(command)
+    }
   }
 
   get Kp() {
@@ -393,11 +413,11 @@ class PIDGains {
 
 }
 
-diveGains = new PIDGains('divePID')
-speedGains = new PIDGains('speed')
-headingGains = new PIDGains('heading')
-rollGains = new PIDGains('roll')
-pitchGains = new PIDGains('pitch')
+diveGains = new PIDGains('divePID', 'depth')
+speedGains = new PIDGains('speed', 'speed')
+headingGains = new PIDGains('heading', 'heading')
+rollGains = new PIDGains('roll', 'roll')
+pitchGains = new PIDGains('pitch', 'pitch')
 
 //////// Dive Button 
 
@@ -443,14 +463,6 @@ function selectSection(selectedSection, unselectedSection) {
 
   el(unselectedSection + "Section").classList.add("unselected")
   el(unselectedSection + "Section").classList.remove("selected")
-}
-
-
-function setupOther(id) {
-  el(id).onclick = function() {
-    resetSliders()
-    sendVisibleCommand()
-  }
 }
 
 ////////// Dead man's switch / throttle lock ////////
@@ -588,33 +600,25 @@ function setCookie(cname, cvalue) {
   document.cookie = cname + "=" + cvalue + ";";
 }
 
-el("rudderCenter").onclick = function(e) {
+el("rudderCenter").onclick =
+    function(e) {
   rudderCenter = Number(el("rudderSlider").value)
   setCookie("rudderCenter", rudderCenter)
 }
 
-el("portElevatorCenter").onclick = function(e) {
+    el("portElevatorCenter")
+        .onclick =
+        function(e) {
   portCenter = Number(el("portElevatorSlider").value)
   setCookie("portCenter", portCenter)
 }
 
-el("stbdElevatorCenter").onclick = function(e) {
+        el("stbdElevatorCenter")
+            .onclick =
+            function(e) {
   stbdCenter = Number(el("stbdElevatorSlider").value)
   setCookie("stbdCenter", stbdCenter)
 }
-
-////////// Speed //////////////
-
-setupOther("speed_submit")
-
-////////// Heading //////////////
-
-setupOther("heading_submit")
-
-////////// Heading //////////////
-
-setupOther("roll_submit")
-setupOther("pitch_submit")
 
 ////////// Command Sender //////////////
 
