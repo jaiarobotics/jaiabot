@@ -40,7 +40,7 @@ verbosities = \
   'jaiabot_fusion':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_gps':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
-  'bot_pid_control': {'runtime': {'tty': 'DEBUG1', 'log': 'DEBUG2'},
+  'jaiabot_pid_control': {'runtime': {'tty': 'DEBUG1', 'log': 'DEBUG2'},
                               'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
   }
 
