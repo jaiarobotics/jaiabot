@@ -126,24 +126,24 @@ const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
 
-const P0 = {location: {lon: -71.273084, lat: 41.662615}}
-const P1 = {location: {lon: -71.273505, lat: 41.662410}}
-const P2 = {location: {lon: -71.274137, lat: 41.661976}}
-const P3 = {location: {lon: -71.274978, lat: 41.661539}}
+const P0 = {location: {lon: -71.273056, lat: 41.662665}}
+const P1 = {location: {lon: -71.2732990507409, lat: 41.66249821600168}}
+const P2 = {location: {lon: -71.27355703837601, lat: 41.66201485801076}}
+const P3 = {location: {lon: -71.27382208146715, lat: 41.66166863453342}}
 
 const dive_task = {
   type: "DIVE",
   dive: {
     max_depth: 2,
-    depth_interval: 2,
-    hold_time: 5
+    depth_interval: 1,
+    hold_time: 0
   }
 }
 
-const P0_dive = {location: {lon: -71.273084, lat: 41.662615}, task: dive_task}
-const P1_dive = {location: {lon: -71.273505, lat: 41.662410}, task: dive_task}
-const P2_dive = {location: {lon: -71.274137, lat: 41.661976}, task: dive_task}
-const P3_dive = {location: {lon: -71.274978, lat: 41.661539}, task: dive_task}
+const P0_dive = {location: {lon: -71.273056, lat: 41.662665}, task: dive_task}
+const P1_dive = {location: {lon: -71.2732990507409, lat: 41.66249821600168}, task: dive_task}
+const P2_dive = {location: {lon: -71.27355703837601, lat: 41.66201485801076}, task: dive_task}
+const P3_dive = {location: {lon: -71.27382208146715, lat: 41.66166863453342}, task: dive_task}
 
 function _mission(goals) {
   const mission = {
