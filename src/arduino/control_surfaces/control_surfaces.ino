@@ -98,6 +98,13 @@ void setup()
 }
 
 
+int32_t clamp(int32_t v, int32_t min, int32_t max) {
+  if (v < min) return min;
+  if (v > max) return max;
+  return v;
+}
+
+
 void loop()
 {
 
@@ -145,8 +152,19 @@ void loop()
               motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
             }
 
+            // Keep motor value in useful range (not abs(motor) < 30)
+            if (motor > 0 && motor < 30) {
+              motor = 30;
+            }
+            if (motor > -30 && motor < 0) {
+              motor = -30;
+            }
+
+            // Clamp and center rudder
+            int32_t rudder = clamp(command.rudder - 15, -55, 100);
+
             motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
-            rudder_servo.writeMicroseconds(1500 - command.rudder * 475 / 100);
+            rudder_servo.writeMicroseconds(1500 - rudder * 475 / 100);
             stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
             port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
 
