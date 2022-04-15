@@ -31,6 +31,7 @@
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
+using namespace std;
 using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
@@ -82,7 +83,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 1, 0, 0);
+        throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 20, 10, 0);
     }
     throttle_speed_pid->set_limits(0.0, 100.0);
     throttle_speed_pid->set_auto();
@@ -95,7 +96,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 1, 0, 0);
+        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 20, 10, 0);
     }
     throttle_depth_pid->set_direction(E_PID_REVERSE);
     throttle_depth_pid->set_limits(-100.0, 100.0);
@@ -109,7 +110,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 1, 0, 0);
+        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 1, 0.5, 0);
     }
     heading_pid->set_limits(-100.0, 100.0);
     heading_pid->set_auto();
@@ -122,7 +123,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, 1, 0, 0);
+        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, 1, 0.5, 0);
     }
     roll_pid->set_limits(-100.0, 100.0);
     roll_pid->set_auto();
@@ -135,7 +136,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, 1, 0, 0);
+        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, 1, 0.5, 0);
     }
     pitch_pid->set_limits(-100.0, 100.0);
     pitch_pid->set_auto();
