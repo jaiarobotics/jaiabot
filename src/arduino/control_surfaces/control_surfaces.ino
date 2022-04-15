@@ -161,7 +161,7 @@ void loop()
             }
 
             // Clamp and center rudder
-            int32_t rudder = clamp(command.rudder - 15, -55, 100);
+            int32_t rudder = clamp(command.rudder + 15, -55, 100);
 
             motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
             rudder_servo.writeMicroseconds(1500 - rudder * 475 / 100);
