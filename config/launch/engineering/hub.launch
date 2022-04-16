@@ -3,5 +3,6 @@
 gobyd <(../../gen/hub.py gobyd) -z -v -n
 goby_gps <(../../gen/hub.py goby_gps)
 jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -vv
+goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
 jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -vv
 goby_logger <(../../gen/hub.py goby_logger)

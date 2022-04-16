@@ -4,7 +4,8 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message PIDCommand {
+message PIDCommand
+{
     option (dccl.msg) = {
         id: 92
         max_bytes: 250
@@ -17,68 +18,48 @@ message PIDCommand {
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 
-    message PIDControl {
-        optional double target = 1  [(dccl.field) = {
-                min: -360
-                max: 360
-                precision: 0
-                units { derived_dimensions: "plane_angle" system: "angle::degree" }
-            }];
-        optional double Kp = 2  [(dccl.field) = {
-                min: 0
-                max: 100
-                precision: 2
-            }];
-        optional double Ki = 3  [(dccl.field) = {
-                min: 0
-                max: 100
-                precision: 2
-            }]; 
-        optional double Kd = 4  [(dccl.field) = {
-                min: 0
-                max: 100
-                precision: 2
-            }];
+    message PIDControl
+    {
+        optional double target = 1 [(dccl.field) = {
+            min: -360
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double Kp = 2
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Ki = 3
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Kd = 4
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
     }
 
     optional uint32 timeout = 6 [(dccl.field) = {
         min: 0
         max: 100
         precision: 0
+        units { derived_dimensions: "time" }
     }];
 
-    optional double throttle = 3 [(dccl.field) = {
-            min: -100
-            max: 100
-            precision: 0
-        }];
-        
+    optional double throttle = 3
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
+
     optional PIDControl speed = 4;
 
-    optional double rudder = 1 [(dccl.field) = {
-            min: -100
-            max: 100
-            precision: 0
-        }];
+    optional double rudder = 1
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
     optional PIDControl heading = 2;
 
-    optional double port_elevator = 7 [(dccl.field) = {
-            min: -100
-            max: 100
-            precision: 0
-        }];
+    optional double port_elevator = 7
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional double stbd_elevator = 8 [(dccl.field) = {
-            min: -100
-            max: 100
-            precision: 0
-        }];
+    optional double stbd_elevator = 8
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
     optional PIDControl roll = 9;
 
     optional PIDControl pitch = 10;
 
     optional PIDControl depth = 11;
-
 }

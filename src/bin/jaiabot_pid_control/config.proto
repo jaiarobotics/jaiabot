@@ -9,9 +9,28 @@ package jaiabot.config;
 
 message BotPidControl
 {
+    option (dccl.msg).unit_system = "si";
+
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
+
+    optional int32 default_timeout = 20
+        [default = 5, (dccl.field).units.base_dimensions = "T"];
+
+    message PIDGains
+    {
+        required double Kp = 1;
+        required double Ki = 2;
+        required double Kd = 3;
+    };
+
+    optional PIDGains throttle_speed_pid_gains = 30;
+    optional PIDGains throttle_depth_pid_gains = 40;
+    optional PIDGains heading_pid_gains = 50;
+    optional PIDGains roll_pid_gains = 60;
+    optional PIDGains pitch_pid_gains = 70;
+
 }

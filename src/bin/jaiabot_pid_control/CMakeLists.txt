@@ -1,4 +1,4 @@
-set(APP jaiabot_adafruit-BNO055-driver)
+set(APP jaiabot_pid_control)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 
@@ -14,5 +14,3 @@ target_link_libraries(${APP}
 if(export_goby_interfaces)
   generate_interfaces(${APP})
 endif()
-
-project_install_bin(${APP})

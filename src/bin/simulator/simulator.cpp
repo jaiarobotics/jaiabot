@@ -39,7 +39,9 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
+#include "jaiabot/messages/vehicle_command.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -72,6 +74,7 @@ class SimulatorTranslation : public goby::moos::Translator
   private:
     void process_nav(const CMOOSMsg& msg);
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
+    void process_control_surfaces(const protobuf::ControlSurfaces& control_surfaces);
 
   private:
     const config::Simulator& sim_cfg_;
@@ -150,6 +153,13 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     goby().interprocess().subscribe<groups::desired_setpoints>(
         [this](const protobuf::DesiredSetpoints& desired_setpoints) {
             process_desired_setpoints(desired_setpoints);
+        });
+
+    interprocess().subscribe<groups::vehicle_command>(
+        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command)
+        {
+            if (vehicle_command.has_control_surfaces())
+                process_control_surfaces(vehicle_command.control_surfaces());
         });
 
     for (const auto& sample : sim_cfg_.sample())
@@ -284,52 +294,31 @@ void jaiabot::apps::SimulatorTranslation::process_desired_setpoints(
 
     switch (desired_setpoints.type())
     {
+        // all of these can be handled by uSimMarine directly
         case protobuf::SETPOINT_IVP_HELM:
-        {
-            glog.is_debug1() && glog << "Received desired course: "
-                                     << desired_setpoints.helm_course().ShortDebugString()
-                                     << std::endl;
-
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", desired_setpoints.helm_course().heading());
-            moos().comms().Notify("DESIRED_SPEED", desired_setpoints.helm_course().speed());
-            moos().comms().Notify("DESIRED_DEPTH", desired_setpoints.helm_course().depth());
-        }
-
-        break;
-
         case protobuf::SETPOINT_STOP:
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", 0.0);
-            moos().comms().Notify("DESIRED_SPEED", 0.0);
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
-            break;
-
-        case protobuf::SETPOINT_REMOTE_CONTROL:
-        {
-            glog.is_debug1() && glog << "Received remote control: "
-                                     << desired_setpoints.remote_control().ShortDebugString()
-                                     << std::endl;
-
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", desired_setpoints.remote_control().heading());
-            moos().comms().Notify("DESIRED_SPEED", desired_setpoints.remote_control().speed());
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
-        }
-        break;
-
-        case protobuf::SETPOINT_DIVE:
-            moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true");
-            // otherwise handled by depth loop
-            break;
-
         case protobuf::SETPOINT_POWERED_ASCENT:
+        case protobuf::SETPOINT_REMOTE_CONTROL:
             moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
-            moos().comms().Notify("DESIRED_HEADING", 0.0);
-
-            // some high value for the simulator. real controller will presumably set some fixed RPM
-            moos().comms().Notify("DESIRED_SPEED", 5.0);
-            moos().comms().Notify("DESIRED_DEPTH", 0.0);
             break;
+
+            // handled by depth loop by resetting uSimMarine
+        case protobuf::SETPOINT_DIVE: moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "true"); break;
     }
+}
+
+void jaiabot::apps::SimulatorTranslation::process_control_surfaces(
+    const protobuf::ControlSurfaces& control_surfaces)
+{
+    // both uSimMarine and BotPidControl use -100 -> 100 scale for these control surfaces so no normalization is required
+    constexpr double thrust_normalization = 1.0;
+    constexpr double rudder_normalization = 1.0;
+    constexpr double elevator_normalization = 1.0;
+
+    moos().comms().Notify("DESIRED_THRUST", thrust_normalization * control_surfaces.motor());
+    moos().comms().Notify("DESIRED_RUDDER", rudder_normalization * control_surfaces.rudder());
+    moos().comms().Notify(
+        "DESIRED_ELEVATOR",
+        elevator_normalization *
+            (control_surfaces.port_elevator() + control_surfaces.stbd_elevator()) / 2);
 }
