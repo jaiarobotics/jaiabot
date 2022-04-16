@@ -1,4 +1,4 @@
-set(APP jaiabot_adafruit-BNO055-driver)
+set(APP jaiabot_adafruit_BNO055_driver)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 

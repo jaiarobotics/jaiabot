@@ -18,6 +18,6 @@ platforms:
         file: jaiabot_liaison_interface.yml
       - jaiabot_simulator_interface.yml
       - jaiabot_fusion_interface.yml
-      - bluerobotics-pressure-sensor-driver_interface.yml
+      - jaiabot_bluerobotics_pressure_sensor_driver_interface.yml
       - jaiabot_mission_manager_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
