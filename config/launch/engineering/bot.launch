@@ -1,25 +1,41 @@
 #!/usr/bin/env -S goby_launch -L -P -d 1000
 
 # start the Goby processes
-gobyd <(../../gen/bot.py gobyd) -z -v -n
+gobyd <(../../gen/bot.py gobyd) -v -n
+goby_logger <(../../gen/bot.py goby_logger)
 
 # IMU sensor
-~/jaiabot/src/python/adafruit-BNO055/imu.py 20000
-jaiabot_adafruit-BNO055-driver <(../../gen/bot.py jaiabot_adafruit-BNO055-driver)
+~/jaiabot/src/python/adafruit_BNO055/imu.py 20000
+jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
 
 # Pressure sensor
 ~/jaiabot/src/python/pressure_sensor/pressure_sensor.py
-bluerobotics-pressure-sensor-driver <(../../gen/bot.py bluerobotics-pressure-sensor-driver)
+jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
 
 # Salinity sensor
-~/jaiabot/src/python/atlas-scientific-ezo-ec/as-ezo-ec.py 20002
-jaiabot_atlas-scientific-ezo-ec-driver <(../../gen/bot.py jaiabot_atlas-scientific-ezo-ec-driver) -vv
+~/jaiabot/src/python/atlas_scientific_ezo_ec/as-ezo-ec.py 20002
+jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
+
+# GPS
+goby_gps <(../../gen/bot.py goby_gps)
 
 # Sensor fusion
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion) -vv
 
-goby_gps <(../../gen/bot.py goby_gps)
-goby_logger <(../../gen/bot.py goby_logger)
-jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver) -vv
+# MOOS IvP
+[kill=SIGTERM] ../../gen/moos_gen.sh
+[kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
+[kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_index}.moos
+[kill=SIGTERM] uProcessWatch /tmp/jaiabot_${jaia_bot_index}.moos
+[kill=SIGTERM] pNodeReporter /tmp/jaiabot_${jaia_bot_index}.moos
+[env=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so:libjaiabot_moos_gateway_plugin.so] goby_moos_gateway <(../../gen/bot.py goby_moos_gateway)
 
-bot_pid_control <(../../gen/bot.py bot_pid_control) -vv
+# Missions
+jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
+goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
+
+# PID
+jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control) -vv
+
+# Control surfaces
+jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver) -vv
