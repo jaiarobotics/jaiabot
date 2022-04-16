@@ -1,4 +1,4 @@
-set(APP bluerobotics-pressure-sensor-driver)
+set(APP jaiabot_atlas_scientific_ezo_ec_driver)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 
