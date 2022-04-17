@@ -126,6 +126,7 @@ class Interface:
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
+        logging.info(f'Sending command: {command}')
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
