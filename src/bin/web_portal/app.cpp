@@ -156,13 +156,12 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
         using jaiabot::protobuf::Command;
         auto command = msg.command();
 
-        glog.is_debug2() && glog << group("main") << "Sending command: " << command.ShortDebugString()
-                                << std::endl;
+        glog.is_debug2() && glog << group("main")
+                                 << "Sending command: " << command.ShortDebugString() << std::endl;
 
         goby::middleware::Publisher<Command> command_publisher(
-            {}, [](Command& cmd, const goby::middleware::Group& group) {
-                cmd.set_bot_id(group.numeric());
-            });
+            {}, [](Command& cmd, const goby::middleware::Group& group)
+            { cmd.set_bot_id(group.numeric()); });
 
         intervehicle().publish_dynamic(
             command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
