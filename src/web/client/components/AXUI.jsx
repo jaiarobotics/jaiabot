@@ -99,6 +99,7 @@ import {
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/AXUI.less';
+import { transform } from 'ol/proj';
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -350,6 +351,11 @@ export default class AXUI extends React.Component {
     const { baseLayerCollection } = this.state;
 
     [
+      new OlTileLayer({
+        title: 'NOAA Charts',
+        type: 'base',
+        source: new OlSourceXYZ({ url: 'http://tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png' })
+      }),
       new OlTileLayer({
         title: 'Google Satellite & Roads',
         type: 'base',
@@ -615,18 +621,23 @@ export default class AXUI extends React.Component {
 
     this.sendStop = this.sendStop.bind(this);
 
-    // Read the zoomLevel
+    // center persistence
+    map.getView().setCenter(readSetting("center") || equirectangular_to_mercator([-71.272237, 41.663559]))
+
+    map.getView().on('change:center', function() {
+      writeSetting('center', map.getView().getCenter())
+    })
+
+    // zoomLevel persistence
     map.getView().setZoom(readSetting("zoomLevel") || 2)
 
-    // On Zoom, save the zoomLevel
     map.getView().on('change:resolution', function() {
       writeSetting('zoomLevel', map.getView().getZoom())
     })
 
-    // Read the rotation
+    // rotation persistence
     map.getView().setRotation(readSetting("rotation") || 0)
 
-    // On rotation change, save the rotation
     map.getView().on('change:rotation', function() {
       writeSetting('rotation', map.getView().getRotation())
     })
@@ -1525,10 +1536,20 @@ export default class AXUI extends React.Component {
     let botId = 0
 
     if (!(botId in this.missions)) {
-      this.missions[botId] = []
+      this.missions[botId] = {
+        botId: botId,
+        time: '1642891753471247',
+        type: 'MISSION_PLAN',
+        plan: {
+          start: 'START_IMMEDIATELY',
+          movement: 'TRANSIT',
+          goal: [],
+          recovery: {recoverAtFinalGoal: true}
+        }
+      }
     }
 
-    this.missions[botId].push([lon, lat])
+    this.missions[botId].plan.goal.push({location: {lon: lon, lat: lat}})
 
     this.updateMissionLayer()
   }
@@ -1537,8 +1558,10 @@ export default class AXUI extends React.Component {
     // Update the mission layer
     let features = []
 
-    let transformed_pts = this.missions[0].map(pt => {
-      return equirectangular_to_mercator(pt)
+    let goals = this.missions?.[0]?.plan?.goal || []
+
+    let transformed_pts = goals.map(goal => {
+      return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
     })
 
     for (let pt of transformed_pts) {
@@ -1547,33 +1570,25 @@ export default class AXUI extends React.Component {
 
     features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
 
-    var markers = new OlVectorSource({
+    var vectorSource = new OlVectorSource({
         features: features
     })
 
-
-    const fill = new OlFillStyle({
-      color: '#CC9933',
-    });
-    const stroke = new OlStrokeStyle({
-      color: '#CC9933',
-      width: 1.25,
-    });
     const styles = [
       new OlStyle({
         image: new OlCircleStyle({
-          fill: fill,
-          stroke: stroke,
-          radius: 5,
+          fill: new OlFillStyle({color: '#5ec957'}),
+          stroke: new OlStrokeStyle({color: '#cfffd2'}),
+          radius: 10,
         }),
-        fill: fill,
-        stroke: stroke,
+        fill: new OlFillStyle({color: '#5ec957'}),
+        stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
       }),
     ];
 
     this.missionLayer.setStyle(styles)
 
-    this.missionLayer.setSource(markers)
+    this.missionLayer.setSource(vectorSource)
   }
 
   sendMissionCommand(botId) {
@@ -1583,21 +1598,7 @@ export default class AXUI extends React.Component {
       return
     }
 
-    let goals = this.missions[botId].map((location) => {
-      return {'location': {'lon': location[0], 'lat': location[1]}}
-    })
-
-    this.sna.postCommand({
-      'botId': botId,
-      'time': '1642891753471247',
-      'type': 'MISSION_PLAN',
-      'plan': {
-        'start': 'START_IMMEDIATELY',
-        'movement': 'TRANSIT',
-        'goal': goals,
-        'recovery': {'recoverAtFinalGoal': true}
-      }
-    })
+    this.sna.postCommand(this.missions[botId])
   }
 
   runMissionClicked() {
@@ -1605,12 +1606,15 @@ export default class AXUI extends React.Component {
   }
 
   runHardcodedMissionClicked(index) {
-    console.log("Running hard-coded mission: ", missions[index])
     this.sna.postCommand(missions[index])
+
+    // Add waypoint markers
+    this.missions[0] = missions[index]
+    this.updateMissionLayer()
   }
 
   clearMissionClicked() {
-    this.missions[0] = []
+    delete this.missions[0]
     this.updateMissionLayer()
   }
 }
