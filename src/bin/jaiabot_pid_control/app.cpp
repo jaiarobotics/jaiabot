@@ -145,11 +145,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
     {
         auto on_command_subscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack)
+        {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
 
         goby::middleware::Subscriber<jaiabot::protobuf::PIDCommand> command_subscriber{
             cfg().command_sub_cfg(), on_command_subscribed};
