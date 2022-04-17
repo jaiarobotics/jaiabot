@@ -17,7 +17,7 @@ args = parser.parse_args()
 # Setup logging module
 logLevel = getattr(logging, args.logLevel.upper())
 logging.basicConfig(level=logLevel)
-logging.getLogger('werkzeug').setLevel(logLevel)
+logging.getLogger('werkzeug').setLevel('WARN')
 
 if args.hostname is None:
     logging.warning('no ip specified, using localhost')

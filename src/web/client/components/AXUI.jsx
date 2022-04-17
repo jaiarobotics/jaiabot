@@ -132,20 +132,6 @@ const P1 = {location: {lon: -71.2732990507409, lat: 41.66249821600168}}
 const P2 = {location: {lon: -71.27355703837601, lat: 41.66201485801076}}
 const P3 = {location: {lon: -71.27382208146715, lat: 41.66166863453342}}
 
-const dive_task = {
-  type: "DIVE",
-  dive: {
-    max_depth: 2,
-    depth_interval: 1,
-    hold_time: 0
-  }
-}
-
-const P0_dive = {location: {lon: -71.273056, lat: 41.662665}, task: dive_task}
-const P1_dive = {location: {lon: -71.2732990507409, lat: 41.66249821600168}, task: dive_task}
-const P2_dive = {location: {lon: -71.27355703837601, lat: 41.66201485801076}, task: dive_task}
-const P3_dive = {location: {lon: -71.27382208146715, lat: 41.66166863453342}, task: dive_task}
-
 function _mission(goals) {
   const mission = {
     botId: 0,
@@ -161,15 +147,33 @@ function _mission(goals) {
   return mission
 }
 
+const rc_dive_mission = {
+  botId: 0,
+  time: 1650164499654668,
+  type: 'REMOTE_CONTROL_TASK',
+  plan: {
+    start: 'START_IMMEDIATELY',
+    movement: 'REMOTE_CONTROL',
+    recovery: {
+      recoverAtFinalGoal: true
+    }
+  },
+  rc_task: {
+    type: 'DIVE',
+    dive: {
+      max_depth: 1,
+      depth_interval: 1,
+      hold_time: 0
+    }
+  }
+}
+
 const missions = [
   _mission([P0]),
   _mission([P1]),
   _mission([P2]),
   _mission([P3]),
-  _mission([P0_dive]),
-  _mission([P1_dive]),
-  _mission([P2_dive]),
-  _mission([P3_dive]),
+  rc_dive_mission
 ]
 
 // Saving and loading settings from browser's localStorage
@@ -1506,17 +1510,8 @@ export default class AXUI extends React.Component {
             <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 3)}>
               M 3
             </button>
-            <button type="button" className="globalCommand" title="Run Home" onClick={this.runHardcodedMissionClicked.bind(this, 4)}>
-              D Home
-            </button>
-            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.runHardcodedMissionClicked.bind(this, 5)}>
-              D 1
-            </button>
-            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.runHardcodedMissionClicked.bind(this, 6)}>
-              D 2
-            </button>
-            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 7)}>
-              D 3
+            <button type="button" className="globalCommand" title="RC Dive" onClick={this.runHardcodedMissionClicked.bind(this, 4)}>
+              Dive
             </button>
             <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
               <Icon path={mdiDelete} title="Clear Mission"/>
@@ -1606,6 +1601,7 @@ export default class AXUI extends React.Component {
   }
 
   runHardcodedMissionClicked(index) {
+    console.log('Running mission: ', missions[index])
     this.sna.postCommand(missions[index])
 
     // Add waypoint markers
