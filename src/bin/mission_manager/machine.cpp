@@ -203,7 +203,7 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
 jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDescent()
 {
     goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
-    goby::time::MicroTime dt(end_time - start_time_);
+    goby::time::MicroTime dt(end_time - start_time_ - duration_correction_);
     context<Dive>().add_to_dive_duration(dt);
 }
 
@@ -221,6 +221,24 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
         cfg().dive_depth_eps_with_units())
         post_event(EvDepthTargetReached());
+
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+    // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
+    if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+    {
+        last_depth_change_time_ = now;
+        last_depth_ = ev.depth;
+    }
+
+    // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
+    if ((now - last_depth_change_time_) >
+        static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+    {
+        context<Dive>().set_seafloor_reached(ev.depth);
+        // used to correct dive rate calculation
+        duration_correction_ = (now - last_depth_change_time_);
+        post_event(EvDepthTargetReached());
+    }
 }
 
 // Task::Dive::Hold
