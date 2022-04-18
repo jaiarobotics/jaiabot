@@ -9,6 +9,7 @@
 /* eslint-disable react/no-multi-comp */
 
 import React from 'react';
+import { missions, demo_mission } from './Missions'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -17,6 +18,7 @@ import { mdiDelete, mdiPlay } from '@mdi/js'
 import OlMap from 'ol/Map';
 import OlView from 'ol/View';
 import OlText from 'ol/style/Text';
+import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
@@ -80,6 +82,8 @@ import {
 
 // import cmdIconDefault from '../icons/other_commands/default.png';
 
+import jaiabot_icon from '../icons/jaiabot.png'
+
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent} from './BotDetails'
@@ -127,54 +131,7 @@ const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
 
-const P0 = {location: {lon: -71.273056, lat: 41.662665}}
-const P1 = {location: {lon: -71.2732990507409, lat: 41.66249821600168}}
-const P2 = {location: {lon: -71.27355703837601, lat: 41.66201485801076}}
-const P3 = {location: {lon: -71.27382208146715, lat: 41.66166863453342}}
 
-function _mission(goals) {
-  const mission = {
-    botId: 0,
-    time: '1642891753471247',
-    type: 'MISSION_PLAN',
-    plan: {
-      start: 'START_IMMEDIATELY',
-      movement: 'TRANSIT',
-      goal: goals,
-      recovery: {recoverAtFinalGoal: true}
-    }
-  }
-  return mission
-}
-
-const rc_dive_mission = {
-  botId: 0,
-  time: 1650164499654668,
-  type: 'REMOTE_CONTROL_TASK',
-  plan: {
-    start: 'START_IMMEDIATELY',
-    movement: 'REMOTE_CONTROL',
-    recovery: {
-      recoverAtFinalGoal: true
-    }
-  },
-  rc_task: {
-    type: 'DIVE',
-    dive: {
-      max_depth: 1,
-      depth_interval: 1,
-      hold_time: 0
-    }
-  }
-}
-
-const missions = [
-  _mission([P0]),
-  _mission([P1]),
-  _mission([P2]),
-  _mission([P3]),
-  rc_dive_mission
-]
 
 // Saving and loading settings from browser's localStorage
 
@@ -658,10 +615,10 @@ export default class AXUI extends React.Component {
         layers: this.state.baseLayerCollection
       }),
       this.chartLayerGroup,
-      this.botsLayerGroup,
       this.clientPositionLayer,
       this.measureLayer,
       this.missionLayer,
+      this.botsLayerGroup,
     ]
 
     return layers
@@ -1513,6 +1470,9 @@ export default class AXUI extends React.Component {
             <button type="button" className="globalCommand" title="RC Dive" onClick={this.runHardcodedMissionClicked.bind(this, 4)}>
               Dive
             </button>
+            <button type="button" className="globalCommand" title="RC Dive" onClick={this.runHardcodedMissionClicked.bind(this, 5)}>
+              Demo
+            </button>
             <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
               <Icon path={mdiDelete} title="Clear Mission"/>
             </button>
@@ -1553,17 +1513,21 @@ export default class AXUI extends React.Component {
     // Update the mission layer
     let features = []
 
-    let goals = this.missions?.[0]?.plan?.goal || []
+    let missions = this.missions || {}
 
-    let transformed_pts = goals.map(goal => {
-      return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
-    })
+    for (let botId in missions) {
+      let goals = missions[botId]?.plan?.goal || []
 
-    for (let pt of transformed_pts) {
-      features.push(new OlFeature({ geometry: new OlPoint(pt) }))
+      let transformed_pts = goals.map(goal => {
+        return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
+      })
+
+      for (let pt of transformed_pts) {
+        features.push(new OlFeature({ geometry: new OlPoint(pt) }))
+      }
+
+      features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
     }
-
-    features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
 
     var vectorSource = new OlVectorSource({
         features: features
@@ -1573,8 +1537,9 @@ export default class AXUI extends React.Component {
       new OlStyle({
         image: new OlCircleStyle({
           fill: new OlFillStyle({color: '#5ec957'}),
-          stroke: new OlStrokeStyle({color: '#cfffd2'}),
-          radius: 10,
+          // stroke: new OlStrokeStyle({color: '#cfffd2'}),
+          stroke: new OlStrokeStyle({color: '#000000'}),
+          radius: 5,
         }),
         fill: new OlFillStyle({color: '#5ec957'}),
         stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
@@ -1602,15 +1567,19 @@ export default class AXUI extends React.Component {
 
   runHardcodedMissionClicked(index) {
     console.log('Running mission: ', missions[index])
-    this.sna.postCommand(missions[index])
+
+    for (let botId in missions[index]) {
+      let bot_mission = missions[index][botId]
+      this.sna.postCommand(bot_mission)
+    }
 
     // Add waypoint markers
-    this.missions[0] = missions[index]
+    this.missions = missions[index]
     this.updateMissionLayer()
   }
 
   clearMissionClicked() {
-    delete this.missions[0]
+    this.missions = {}
     this.updateMissionLayer()
   }
 }
