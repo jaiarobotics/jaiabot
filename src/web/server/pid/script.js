@@ -353,7 +353,8 @@ timeoutSlider.value = 5
 
 class PIDGains {
   constructor(name, api_name) {
-    this.name = name this.api_name = api_name
+    this.name = name
+    this.api_name = api_name
 
     let parentElement = el(name + "Gains")
     parentElement.innerHTML = `
@@ -379,13 +380,13 @@ class PIDGains {
       </div>
     `
 
-                              this.KpElement = el(name + '_Kp') this.KiElement =
-                                  el(name + '_Ki') this.KdElement =
-                                      el(name + '_Kd') this.submitElement =
-                                          el(name + '_submit')
+    this.KpElement = el(name + '_Kp') 
+    this.KiElement = el(name + '_Ki') 
+    this.KdElement = el(name + '_Kd') 
+    this.submitElement = el(name + '_submit')
     let self = this
 
-               this.submitElement.onclick = function() {
+    this.submitElement.onclick = function() {
       let command = {timeout : 1}
 
       command[self.api_name] = {
@@ -394,7 +395,7 @@ class PIDGains {
         Kd : self.KdElement.value
       }
 
-                               console.log('Sending command: ', command)
+      console.log('Sending command: ', command)
       sendCommand(command)
     }
   }
