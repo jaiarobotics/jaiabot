@@ -156,8 +156,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         });
 
     interprocess().subscribe<groups::vehicle_command>(
-        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command)
-        {
+        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command) {
             if (vehicle_command.has_control_surfaces())
                 process_control_surfaces(vehicle_command.control_surfaces());
         });
@@ -194,6 +193,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         dive_depth_ += sim_cfg_.vertical_dive_rate_with_units() * quantity<si::time>(dt);
         if (dive_depth_ > last_setpoints_.dive_depth_with_units())
             dive_depth_ = last_setpoints_.dive_depth_with_units();
+
+        if (dive_depth_ > sim_cfg_.seafloor_depth_with_units())
+            dive_depth_ = sim_cfg_.seafloor_depth_with_units();
 
         depth = dive_depth_;
 

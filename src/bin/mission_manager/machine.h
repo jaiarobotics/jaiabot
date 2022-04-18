@@ -702,6 +702,13 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
 
     void add_to_dive_duration(goby::time::MicroTime time) { dive_duration_ += time; }
 
+    void set_seafloor_reached(boost::units::quantity<boost::units::si::length> seafloor_depth)
+    {
+        // remove any more depth goals, and set the current goal to the measured depth
+        dive_depths_.clear();
+        dive_depths_.push_back(seafloor_depth);
+    }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
 
@@ -731,6 +738,12 @@ struct PoweredDescent
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime duration_correction_{0 * boost::units::si::seconds};
+
+    // keep track of the depth changes so we can detect if we've hit the seafloor
+    boost::units::quantity<boost::units::si::length> last_depth_;
+    goby::time::MicroTime last_depth_change_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct Hold
