@@ -58,21 +58,28 @@ class Interface:
             # Get PortalToClientMessage
             try:
                 data = self.sock.recv(256)
-                if len(data) > 0:
-                    msg = PortalToClientMessage()
-                    byteCount = msg.ParseFromString(data)
-
-                    logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
-                    
-                    try:
-                        botStatus = msg.bot_status
-                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                        logging.debug(f'Received BotStatus:\n{botStatus}')
-                    except KeyError:
-                        self.bots[botStatus.bot_id] = botStatus
+                self.process_portal_to_client_message(data)
 
             except socket.timeout:
                 self.ping_portal()
+
+    def process_portal_to_client_message(self, data):
+        if len(data) > 0:
+            msg = PortalToClientMessage()
+            byteCount = msg.ParseFromString(data)
+
+            logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
+            
+            try:
+                botStatus = msg.bot_status
+
+                # Discard the status, if it's a base station
+                if botStatus.bot_id < 255:
+                    self.bots[botStatus.bot_id].MergeFrom(botStatus)
+
+                logging.debug(f'Received BotStatus:\n{botStatus}')
+            except KeyError:
+                self.bots[botStatus.bot_id] = botStatus
 
     def send_message_to_portal(self, msg):
         logging.debug('🟢 SENDING')
