@@ -11,6 +11,8 @@ add_library(xbee SHARED
     xbee_driver.cpp
     ${PROTO_SRCS} ${PROTO_HDRS})
 
+project_install_lib(xbee)
+  
 target_link_libraries(${APP}
   goby
   goby_zeromq)

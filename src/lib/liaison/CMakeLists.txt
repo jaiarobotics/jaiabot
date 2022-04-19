@@ -8,3 +8,5 @@ configure_file(goby_liaison_jaiabot.in ${project_BIN_DIR}/goby_liaison_jaiabot @
 if(export_goby_interfaces)
   generate_interfaces(jaiabot_liaison)
 endif()
+
+project_install_lib(jaiabot_liaison)
