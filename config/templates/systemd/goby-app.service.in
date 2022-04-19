@@ -6,7 +6,7 @@ After=gobyd.service
 
 [Service]
 EnvironmentFile=$env_file
-ExecStart=$jaia_bin_dir/$exe -C '$gen $exe'
+ExecStart=$jaiabot_bin_dir/$exe -C '$gen $exe'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
 
 [Install]

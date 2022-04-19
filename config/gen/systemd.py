@@ -5,38 +5,42 @@ from enum import Enum
 import os
 from string import Template
 import shutil
+import subprocess
 
 # defaults based on $PATH settings
 script_dir=os.path.dirname(os.path.realpath(__file__))
+
 try:
-    jaia_bin_dir_default=os.path.dirname(shutil.which('jaiabot_single_thread_pattern'))
+    jaiabot_bin_dir_default=os.path.dirname(shutil.which('jaiabot_single_thread_pattern'))
 except Exception as e:
-    jaia_bin_dir_default='/usr/bin'
+    jaiabot_bin_dir_default='/usr/bin'
                             
 try:
     goby_bin_dir_default=os.path.dirname(shutil.which('gobyd'))
 except Exception as e:
     goby_bin_dir_default='/usr/bin'
 
-gen_dir_default=script_dir
-    
+gen_dir_default=script_dir    
 
 parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--type', choices=['bot', 'hub'], required=True, help='Should we generate service files for a bot or a hub?')
-parser.add_argument('--env_file', default='/etc/jaia/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
-parser.add_argument('--jaia_bin_dir', default=jaia_bin_dir_default, help='Directory of the JaiaBot binaries')
+parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate service files for a bot or a hub?')
+parser.add_argument('--env_file', default='/etc/jaiabot/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
+parser.add_argument('--jaiabot_bin_dir', default=jaiabot_bin_dir_default, help='Directory of the JaiaBot binaries')
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
 args=parser.parse_args()
 
+# make the output directories, if they don't exist
+os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
+
 # generate env file from preseed.goby
-os.system('bash -c "jaia_mode=runtime; source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"')
+subprocess.run('bash -ic "export jaia_mode=runtime; source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"', check=True, shell=True)
 
 common_macros=dict()
 
 common_macros['env_file']=args.env_file
-common_macros['jaia_bin_dir']=args.jaia_bin_dir
+common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
 
 class Type(Enum):

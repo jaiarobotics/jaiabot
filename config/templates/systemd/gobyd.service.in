@@ -6,6 +6,7 @@ After=jaia.service
 
 [Service]
 EnvironmentFile=$env_file
+Environment=GOBY_MODEMDRIVER_PLUGINS=libxbee.so
 ExecStart=$goby_bin_dir/gobyd -C '$gen gobyd'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
 
