@@ -54,3 +54,17 @@ Installation steps:
 
 - Install jaiabot code via instructions on the [CI/CD](page20_build.md) page from either the release or continuous repository.
 
+## Systemd
+
+We use `systemd` to launch the jaiabot services on the embedded system, just as any other Ubuntu daemon.
+
+Each application has a service definition, and they are all set to `BindTo` the `jaia.service` which exists to provide a common service that can be `stop`ped or `start`ed, thereby stopping or starting all the bound services.
+
+### Generation
+
+The systemd service files are generated via templates much like the application configuration.
+
+The generation script lives in: `jaiabot/config/gen/systemd.py` and can be run to install systemd service jobs for either a locally built copy of jaiabot or used during the Debian package build.
+
+For a locally built copy, the defaults are generally sufficient, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd.py` generation script.
+

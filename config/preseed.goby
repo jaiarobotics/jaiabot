@@ -1,5 +1,15 @@
 export jaia_log_dir=$HOME/jaia-logs
 
+if ! which gobyd > /dev/null; then
+   echo "gobyd is not on $PATH"
+   return 1
+fi
+
+if ! which jaiabot_single_thread_pattern > /dev/null; then
+    echo "JaiaBot apps are not on $PATH"
+    return 1
+fi
+    
 export goby3_lib_dir=$(realpath "$(dirname $(which gobyd))/../lib")
 export jaia_lib_dir=$(realpath "$(dirname $(which jaiabot_single_thread_pattern))/../lib")
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${goby3_lib_dir}:${jaia_lib_dir}
