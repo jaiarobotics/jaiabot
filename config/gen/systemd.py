@@ -29,6 +29,8 @@ parser.add_argument('--jaiabot_bin_dir', default=jaiabot_bin_dir_default, help='
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
+parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
+parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 args=parser.parse_args()
 
 # make the output directories, if they don't exist
@@ -42,6 +44,8 @@ common_macros=dict()
 common_macros['env_file']=args.env_file
 common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
+common_macros['extra_service']=''
+common_macros['extra_unit']=''
 
 class Type(Enum):
      BOT = 'bot'
@@ -62,23 +66,87 @@ jaiabot_apps=[
     {'exe': 'gobyd',
      'template': 'gobyd.service.in',
      'runs_on': Type.BOTH },
+    {'exe': 'goby_liaison_jaiabot',
+     'description': 'Goby Liaison GUI for JaiaBot',
+     'template': 'goby-app.service.in',
+     'bin_dir': common_macros['jaiabot_bin_dir'],
+     'runs_on': Type.BOTH},
+    {'exe': 'goby_gps',
+     'description': 'Goby GPS Driver',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOTH,
+     'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service'},
+    {'exe': 'goby_logger',
+     'description': 'Goby Logger',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOTH},
+    {'exe': 'jaiabot_hub_manager',
+     'description': 'JaiaBot Hub Manager',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.HUB},
+    {'exe': 'jaiabot_web_portal',
+     'description': 'JaiaBot Web GUI Portal',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.HUB},
     {'exe': 'jaiabot_fusion',
      'description': 'JaiaBot Data Fusion',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT},
+    {'exe': 'goby_moos_gateway',
+     'description': 'Goby to MOOS Gateway',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT,
+     'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so:libjaiabot_moos_gateway_plugin.so'},
+    {'exe': 'jaiabot_mission_manager',
+     'description': 'JaiaBot Mission Manager',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_pid_control',
+     'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOT},
     {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
      'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
      'template': 'goby-app.service.in',
-     'runs_on': Type.BOT}
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
+     'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_adafruit_BNO055_driver',
+     'description': 'JaiaBot IMU Sensor Driver',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_control_surfaces_driver',
+     'description': 'JaiaBot Control Surfaces Driver',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOT}    
 ]
 
 
 for app in jaiabot_apps:
     if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
-        macros={**app, **common_macros}
+        macros={**common_macros, **app}
+        service=app['exe']
+        if not 'bin_dir' in macros:
+            if macros['exe'][0:4] == 'goby':
+                macros['bin_dir'] = macros['goby_bin_dir']
+            else:
+                macros['bin_dir'] = macros['jaiabot_bin_dir']
+            
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
             out=Template(file.read()).substitute(macros)    
-        outfilename = args.systemd_dir + '/' + app['exe'] + '.service'
+        outfilename = args.systemd_dir + '/' + service + '.service'
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
         outfile.write(out)
+        outfile.close()
+        if args.enable:
+            print('Enabling ' + service)
+            subprocess.run('systemctl enable ' + service, check=True, shell=True)
+        if args.disable:
+            print('Disabling ' + service)
+            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        
+if args.enable or args.disable:
+    subprocess.run('systemctl daemon-reload', check=True, shell=True)
