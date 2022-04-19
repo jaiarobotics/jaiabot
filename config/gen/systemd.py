@@ -20,6 +20,12 @@ try:
 except Exception as e:
     goby_bin_dir_default='/usr/bin'
 
+try:
+    moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
+except Exception as e:
+    moos_bin_dir_default='/usr/bin'
+
+    
 gen_dir_default=script_dir    
 
 parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -27,8 +33,10 @@ parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate ser
 parser.add_argument('--env_file', default='/etc/jaiabot/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
 parser.add_argument('--jaiabot_bin_dir', default=jaiabot_bin_dir_default, help='Directory of the JaiaBot binaries')
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
+parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
+parser.add_argument('--bot_index', default=0, type=int, help='Directory to write systemd services to')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 args=parser.parse_args()
@@ -44,8 +52,11 @@ common_macros=dict()
 common_macros['env_file']=args.env_file
 common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
+common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
 common_macros['extra_unit']=''
+common_macros['bhv_file']='/tmp/jaiabot_' + str(args.bot_index) + '.bhv'
+common_macros['moos_file']='/tmp/jaiabot_' + str(args.bot_index) + '.moos'
 
 class Type(Enum):
      BOT = 'bot'
@@ -60,10 +71,11 @@ elif args.type == 'hub':
     common_macros['gen']=args.gen_dir + '/hub.py'
 
 jaiabot_apps=[
-    {'exe': 'jaia',
-     'template': 'jaia.service.in',
+    {'exe': 'jaiabot',
+     'template': 'jaiabot.service.in',
      'runs_on': Type.BOTH },
     {'exe': 'gobyd',
+     'description': 'Goby Daemon',
      'template': 'gobyd.service.in',
      'runs_on': Type.BOTH },
     {'exe': 'goby_liaison',
@@ -138,6 +150,22 @@ jaiabot_apps=[
      'template': 'py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
      'args': '20002',
+     'runs_on': Type.BOT},
+    {'exe': 'MOOSDB',
+     'description': 'MOOSDB Broker',
+     'template': 'moosdb.service.in',
+     'runs_on': Type.BOT},
+    {'exe': 'pHelmIvP',
+     'description': 'pHelmIvP Autonomy Engine',
+     'template': 'moos-app.service.in',
+     'runs_on': Type.BOT},    
+    {'exe': 'uProcessWatch',
+     'description': 'uProcessWatch MOOS Health monitor',
+     'template': 'moos-app.service.in',
+     'runs_on': Type.BOT},    
+    {'exe': 'pNodeReporter',
+     'description': 'pNodeReporter MOOS data aggregator',
+     'template': 'moos-app.service.in',
      'runs_on': Type.BOT}
 ]
 
@@ -145,7 +173,13 @@ jaiabot_apps=[
 for app in jaiabot_apps:
     if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
         macros={**common_macros, **app}
-        service=app['exe'].replace('.', '_')
+
+        # generate service name from lowercase exe name, substituting . for _, and
+        # adding jaiabot to the front if it doesn't already start with that
+        service = app['exe'].replace('.', '_').lower()
+        if macros['exe'][0:7] != 'jaiabot':
+            service = 'jaiabot_' + service
+            
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
                 macros['bin_dir'] = macros['goby_bin_dir']

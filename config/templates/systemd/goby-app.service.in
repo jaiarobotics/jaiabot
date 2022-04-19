@@ -1,8 +1,8 @@
 [Unit]
 Description=$description
 
-BindsTo=gobyd.service
-After=gobyd.service
+BindsTo=jaiabot_gobyd.service
+After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
@@ -12,4 +12,4 @@ ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MA
 $extra_service
 
 [Install]
-WantedBy=gobyd.service
+WantedBy=jaiabot_gobyd.service

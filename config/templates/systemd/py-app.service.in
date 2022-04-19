@@ -1,8 +1,8 @@
 [Unit]
 Description=$description
 
-BindsTo=gobyd.service
-After=gobyd.service
+BindsTo=jaiabot_gobyd.service
+After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
@@ -11,4 +11,4 @@ ExecStart=$jaiabot_bin_dir/jaia_py/$subdir/$exe $args
 $extra_service
 
 [Install]
-WantedBy=gobyd.service
+WantedBy=jaiabot_gobyd.service
