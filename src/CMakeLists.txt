@@ -20,4 +20,4 @@ foreach(P ${PYTHON_FILES})
   configure_file(${project_SRC_DIR}/python/${P} ${project_BIN_DIR}/jaia_py/${P} COPYONLY)
 endforeach()
 
-install(DIRECTORY ${project_BUILD_DIR}/jaia_py DESTINATION bin USE_SOURCE_PERMISSIONS FILES_MATCHING PATTERN *.py)
+install(DIRECTORY ${project_BIN_DIR}/jaia_py DESTINATION bin USE_SOURCE_PERMISSIONS FILES_MATCHING PATTERN *.py)
