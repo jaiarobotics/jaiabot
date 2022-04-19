@@ -69,7 +69,7 @@ jaiabot_apps=[
     {'exe': 'goby_liaison',
      'description': 'Goby Liaison GUI for JaiaBot',
      'template': 'goby-app.service.in',
-     'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1'},
+     'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'runs_on': Type.BOTH},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
@@ -120,14 +120,32 @@ jaiabot_apps=[
     {'exe': 'jaiabot_control_surfaces_driver',
      'description': 'JaiaBot Control Surfaces Driver',
      'template': 'goby-app.service.in',
-     'runs_on': Type.BOT}    
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_imu.py',
+     'description': 'JaiaBot IMU Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'adafruit_BNO055',
+     'args': '20000',
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_pressure_sensor.py',
+     'description': 'JaiaBot Pressure Sensor Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'pressure_sensor',
+     'args': '',
+     'runs_on': Type.BOT},
+    {'exe': 'jaiabot_as-ezo-ec.py',
+     'description': 'JaiaBot Salinity Sensor Python Driver',
+     'template': 'py-app.service.in',
+     'subdir': 'atlas_scientific_ezo_ec',
+     'args': '20002',
+     'runs_on': Type.BOT}
 ]
 
 
 for app in jaiabot_apps:
     if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
         macros={**common_macros, **app}
-        service=app['exe']
+        service=app['exe'].replace('.', '_')
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
                 macros['bin_dir'] = macros['goby_bin_dir']
