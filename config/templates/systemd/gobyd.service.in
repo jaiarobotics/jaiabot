@@ -1,8 +1,8 @@
 [Unit]
-Description=Goby Daemon
+Description=$description
 
-BindsTo=jaia.service
-After=jaia.service
+BindsTo=jaiabot.service
+After=jaiabot.service
 
 [Service]
 EnvironmentFile=$env_file
@@ -11,4 +11,4 @@ ExecStart=$goby_bin_dir/gobyd -C '$gen gobyd'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
 
 [Install]
-WantedBy=jaia.service
+WantedBy=jaiabot.service
