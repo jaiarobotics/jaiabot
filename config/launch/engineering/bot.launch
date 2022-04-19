@@ -5,15 +5,15 @@ gobyd <(../../gen/bot.py gobyd) -v -n
 goby_logger <(../../gen/bot.py goby_logger)
 
 # IMU sensor
-~/jaiabot/src/python/adafruit_BNO055/imu.py 20000
+~/jaiabot/src/python/adafruit_BNO055/jaiabot_imu.py 20000
 jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
 
 # Pressure sensor
-~/jaiabot/src/python/pressure_sensor/pressure_sensor.py
+~/jaiabot/src/python/pressure_sensor/jaiabot_pressure_sensor.py
 jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
 
 # Salinity sensor
-~/jaiabot/src/python/atlas_scientific_ezo_ec/as-ezo-ec.py 20002
+~/jaiabot/src/python/atlas_scientific_ezo_ec/jaiabot_as-ezo-ec.py 20002
 jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
 
 # GPS
