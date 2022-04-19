@@ -21,13 +21,13 @@ except Exception as e:
 gen_dir_default=script_dir
     
 
-parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub')
-parser.add_argument('--type', choices=['bot', 'hub'], required=True)
-parser.add_argument('--env_file', default='/etc/jaia/runtime.env')
-parser.add_argument('--jaia_bin_dir', default=jaia_bin_dir_default)
-parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default)
-parser.add_argument('--gen_dir', default=gen_dir_default)
-parser.add_argument('--systemd_dir', default='/etc/systemd/system')
+parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--type', choices=['bot', 'hub'], required=True, help='Should we generate service files for a bot or a hub?')
+parser.add_argument('--env_file', default='/etc/jaia/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
+parser.add_argument('--jaia_bin_dir', default=jaia_bin_dir_default, help='Directory of the JaiaBot binaries')
+parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
+parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
+parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
 args=parser.parse_args()
 
 # generate env file from preseed.goby
