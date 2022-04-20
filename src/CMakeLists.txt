@@ -12,5 +12,5 @@ if(build_doc)
 endif()
 
 
-file(COPY ${project_SRC_DIR}/python/ DESTINATION ${project_SHARE_DIR}/jaiabot-python)
-install(DIRECTORY ${project_SHARE_DIR}/jaiabot-python DESTINATION share USE_SOURCE_PERMISSIONS FILES_MATCHING PATTERN *.py)
+file(COPY ${project_SRC_DIR}/python/ DESTINATION ${project_SHARE_DIR}/jaiabot/python)
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
