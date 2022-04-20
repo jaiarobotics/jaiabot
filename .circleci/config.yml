@@ -38,6 +38,10 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
+    - run: &run-submodules
+        name: Sync and Update Git Submodules
+        command: |
+          git submodule sync && git submodule update --init
     - run: &run-add-packages-key
         name: Install packages.gobysoft.org key
         command: |
@@ -213,13 +217,14 @@ jobs:
       <<: *environment-template-amd64
     steps:
       - checkout
+      - run: &run-submodules
       - run:
           name: Get original source tarball
           command: |
             export NEWVERSION="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"          
             git config tar.tar.xz.command "xz -c" &&
             mkdir -p /root/src &&
-            git archive --prefix=jaiabot-${NEWVERSION}/ -o /root/src/jaiabot_${NEWVERSION}.orig.tar.xz HEAD;
+            ${CIRCLE_WORKING_DIRECTORY}/scripts/git-archive-all.sh --prefix jaiabot-${NEWVERSION}/ /root/src/jaiabot_${NEWVERSION}.orig.tar.xz
       - run:
           name: Add changelog entry 
           command: |
@@ -267,7 +272,6 @@ jobs:
       <<: *environment-template-amd64
       UPLOAD_DESTINATION: "gobysoft-continuous"
     steps: &steps-upload
-      - checkout
       - add_ssh_keys:
           fingerprints:
             - "cd:15:c9:43:48:20:c9:56:58:9e:91:01:74:0d:fe:d2"

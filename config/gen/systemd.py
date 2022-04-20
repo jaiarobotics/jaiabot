@@ -14,7 +14,9 @@ try:
     jaiabot_bin_dir_default=os.path.dirname(shutil.which('jaiabot_single_thread_pattern'))
 except Exception as e:
     jaiabot_bin_dir_default='/usr/bin'
-                            
+
+jaiabot_share_dir_default=os.path.realpath(jaiabot_bin_dir_default + '/../share')
+    
 try:
     goby_bin_dir_default=os.path.dirname(shutil.which('gobyd'))
 except Exception as e:
@@ -32,6 +34,7 @@ parser = argparse.ArgumentParser(description='Generate systemd services for Jaia
 parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate service files for a bot or a hub?')
 parser.add_argument('--env_file', default='/etc/jaiabot/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
 parser.add_argument('--jaiabot_bin_dir', default=jaiabot_bin_dir_default, help='Directory of the JaiaBot binaries')
+parser.add_argument('--jaiabot_share_dir', default=jaiabot_share_dir_default, help='Directory of the JaiaBot arch-independent files (share)')
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
 parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')

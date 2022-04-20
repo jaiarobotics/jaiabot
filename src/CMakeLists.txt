@@ -12,12 +12,5 @@ if(build_doc)
 endif()
 
 
-file(GLOB_RECURSE PYTHON_FILES RELATIVE ${project_SRC_DIR}/python
-  *.py
-  )
-
-foreach(P ${PYTHON_FILES})
-  configure_file(${project_SRC_DIR}/python/${P} ${project_BIN_DIR}/jaia_py/${P} COPYONLY)
-endforeach()
-
-install(DIRECTORY ${project_BIN_DIR}/jaia_py DESTINATION bin USE_SOURCE_PERMISSIONS FILES_MATCHING PATTERN *.py)
+file(COPY ${project_SRC_DIR}/python/ DESTINATION ${project_SHARE_DIR}/jaiabot-python)
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot-python DESTINATION share USE_SOURCE_PERMISSIONS FILES_MATCHING PATTERN *.py)

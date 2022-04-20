@@ -7,7 +7,8 @@ $extra_unit
 
 [Service]
 EnvironmentFile=$env_file
-ExecStart=$jaiabot_bin_dir/jaia_py/$subdir/$exe $args
+# Run python code within a pre-installed venv
+ExecStart=/bin/bash -c ". $jaiabot_share_dir/jaiabot-python/venv/bin/activate; $jaiabot_share_dir/jaiabot-python/$subdir/$exe $args"
 $extra_service
 
 [Install]
