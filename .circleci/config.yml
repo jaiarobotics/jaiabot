@@ -222,9 +222,8 @@ jobs:
           name: Get original source tarball
           command: |
             export NEWVERSION="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"          
-            git config tar.tar.xz.command "xz -c" &&
             mkdir -p /root/src &&
-            ${CIRCLE_WORKING_DIRECTORY}/scripts/git-archive-all.sh --prefix jaiabot-${NEWVERSION}/ /root/src/jaiabot_${NEWVERSION}.orig.tar.xz
+            ${CIRCLE_WORKING_DIRECTORY}/scripts/git-archive-all.sh --format tar.xz --prefix jaiabot-${NEWVERSION}/ /root/src/jaiabot_${NEWVERSION}.orig.tar.xz
       - run:
           name: Add changelog entry 
           command: |
