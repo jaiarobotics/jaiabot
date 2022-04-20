@@ -217,7 +217,7 @@ jobs:
       <<: *environment-template-amd64
     steps:
       - checkout
-      - run: &run-submodules
+      - run: *run-submodules
       - run:
           name: Get original source tarball
           command: |
