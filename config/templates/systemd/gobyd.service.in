@@ -6,7 +6,7 @@ After=jaiabot.service
 
 [Service]
 EnvironmentFile=$env_file
-Environment=GOBY_MODEMDRIVER_PLUGINS=libxbee.so
+Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1
 ExecStart=$goby_bin_dir/gobyd -C '$gen gobyd'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
 
