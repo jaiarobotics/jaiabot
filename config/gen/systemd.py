@@ -61,6 +61,7 @@ common_macros=dict()
 
 common_macros['env_file']=args.env_file
 common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
+common_macros['jaiabot_share_dir']=args.jaiabot_share_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
 common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
