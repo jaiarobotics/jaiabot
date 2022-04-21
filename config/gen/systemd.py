@@ -39,7 +39,9 @@ parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Direct
 parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
-parser.add_argument('--bot_index', default=0, type=int, help='Directory to write systemd services to')
+parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
+parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
+parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 args=parser.parse_args()
@@ -48,7 +50,12 @@ args=parser.parse_args()
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
 # generate env file from preseed.goby
-subprocess.run('bash -ic "export jaia_mode=runtime; source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"', check=True, shell=True)
+subprocess.run('bash -ic "' +
+               'export jaia_mode=runtime; ' +
+               'export jaia_bot_index=' + args.bot_index + '; ' +
+               'export jaia_fleet_index=' + args.fleet_index + '; ' +
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"',
+               check=True, shell=True)
 
 common_macros=dict()
 
