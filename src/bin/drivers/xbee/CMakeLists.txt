@@ -6,22 +6,20 @@ add_executable(${APP}
   main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
-add_library(xbee SHARED
+add_library(jaiabot_xbee SHARED
     xbee.cpp
     xbee_driver.cpp
     ${PROTO_SRCS} ${PROTO_HDRS})
 
-project_install_lib(xbee)
+project_install_lib(jaiabot_xbee)
   
 target_link_libraries(${APP}
   goby
   goby_zeromq)
 
-target_link_libraries(xbee
+target_link_libraries(jaiabot_xbee
   goby
 )
-
-
 
 if(export_goby_interfaces)
   generate_interfaces(${APP})
