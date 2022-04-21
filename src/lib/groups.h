@@ -70,6 +70,9 @@ constexpr goby::middleware::Group pid_control{"jaiabot::pid_control",
 // control surfaces
 constexpr goby::middleware::Group control_surfaces_ack{"jaiabot::control_surfaces_ack"};
 
+// Metadata
+constexpr goby::middleware::Group jaia_metadata{"jaiabot::metadata"};
+
 } // namespace groups
 } // namespace jaiabot
 

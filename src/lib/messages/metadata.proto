@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message DeviceMetadata
+{
+    option (dccl.msg) = {
+        id: 95
+        max_bytes: 250
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required string name = 1;
+}
