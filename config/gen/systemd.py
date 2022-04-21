@@ -42,6 +42,7 @@ parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Direct
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
 parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
+parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the fleet')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 args=parser.parse_args()
@@ -50,11 +51,13 @@ args=parser.parse_args()
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
 # generate env file from preseed.goby
+print('Writing ' + args.env_file + ' from preseed.goby')
 subprocess.run('bash -ic "' +
                'export jaia_mode=runtime; ' +
-               'export jaia_bot_index=' + args.bot_index + '; ' +
-               'export jaia_fleet_index=' + args.fleet_index + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"',
+               'export jaia_bot_index=' + str(args.bot_index) + '; ' +
+               'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
+               'export jaia_n_bots=' + str(args.n_bots) + '; ' +
+              'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"',
                check=True, shell=True)
 
 common_macros=dict()
