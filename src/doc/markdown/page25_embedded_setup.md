@@ -92,6 +92,15 @@ cd jaiabot/config/gen
 
 See `./systemd-local.sh --help` for more options.
 
+### Design
+
+The systemd services are all controlled by a single `jaiabot.service` which doesn't do anything itself, but serves as a single point from which all the other services can be stopped, started, etc.
+
+Then, `jaiabot_gobyd` and `jaiabot_moosdb` are bound to `jaiabot` and start their respective middleware's broker (`gobyd` and `MOOSDB`). From there, all the client services are bound to the respective broker's service. This ensures that no Goby apps are started before `gobyd` and no MOOS apps are started before `MOOSDB`. The Python apps are also bound to `jaiabot_gobyd` at the moment since they are used exclusively by the Goby driver applications. If this changes, these services can be updated.
+
+![](../figures/systemd.png)
+
+
 ### Generation
 
 The systemd service files are generated via templates much like the application configuration.
@@ -105,6 +114,37 @@ For a locally built copy, you can use the `systemd-local.sh` shell script (a thi
 This script will generally have the correct defaults for the various directories, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd-local.sh` generation script.
 
 Running `./systemd-local.sh --help` will always show the defaults inferred from the `$PATH` for all the directories (`--jaiabot_bin_dir`, `--jaiabot_share_dir`, etc.)
+
+### Usage
+
+- To start, stop, or restart all the JaiaBot applications:
+	```
+	sudo systemctl start jaiabot
+	```
+	```
+	sudo systemctl stop jaiabot
+	```
+	```
+	sudo systemctl restart jaiabot
+	```
+	
+- To start (or stop, restart) a single application:
+	```
+	sudo systemctl start jaiabot_control_surfaces_driver
+	```	
+- To get a quick summary of all the applications' status:
+	```
+	systemctl list-units "jaiabot*"
+	```
+- To get the full log from a particular service (stdout/stderr),
+	```
+	sudo journalctl -u jaiabot_control_surfaces_driver
+	```
+- To get a summary and the last few lines of the log,
+	```
+	sudo systemctl status jaiabot_control_surfaces_driver
+	```
+	
 
 ## Testing with Vagrant
 
