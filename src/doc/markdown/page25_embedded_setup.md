@@ -43,7 +43,7 @@ Installation steps:
     ```bash
     git clone https://github.com/jaiarobotics/jaiabot.git
     cd jaiabot/scripts/setup_embedded
-    sudo ./setup_embedded.sh xxx yyy
+    sudo ./setup_embedded_release.sh xxx yyy
     ```
 
 - After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` by changing the appropriate line to:
@@ -60,7 +60,7 @@ Installation steps:
 	# update the apt package manager
 	sudo apt update
 	# install all the necessary packages (jaiabot-embedded will install jaiabot-apps, jaiabot-python, and all other dependencies)
-	sudo apt install jaiabot-embedded
+	sudo apt -y install jaiabot-embedded
 	# answer the questions from debconf and systemd, etc. will be automatically configured, and the jaiabot applications started.
 	# see if everything is running OK.
 	systemctl list-units "jaiabot*"
