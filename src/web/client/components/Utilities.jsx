@@ -1,7 +1,6 @@
 let abs = Math.abs
-let prec = 5
 
-export function latitudeString(lat) {
+export function formatLatitude(lat, prec=5) {
     if (lat == null) {
         return "?"
     } 
@@ -13,7 +12,7 @@ export function latitudeString(lat) {
     }
 }
 
-export function longitudeString(lon) {
+export function formatLongitude(lon, prec=5) {
     if (lon == null) {
         return "?"
     } 
@@ -23,4 +22,11 @@ export function longitudeString(lon) {
     else {
         return abs(lon).toFixed(prec) + "° W"
     }
+}
+
+export function formatAttitudeAngle(angle_deg, prec=2) {
+    if (angle_deg == null) {
+        return "?"
+    }
+    return angle_deg.toFixed(prec) + '°'
 }
