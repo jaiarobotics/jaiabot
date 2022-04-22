@@ -1,6 +1,6 @@
 # Embedded Board Setup
 
-JaiaBot uses the Raspberry Pi CM4 Lite as the embedded Linux computer. For R&D Purposes, it has also been necessary to run the jaiabot software on a Raspberry Pi 3 although this is not ideal due to the port mappings being unequivalent to the 4.
+JaiaBot uses the Raspberry Pi (RP) Compute Module (CM) 4 Lite as the embedded Linux computer. For R&D Purposes, it has also been necessary to run the jaiabot software on a Raspberry Pi 3 although this is not ideal due to the port mappings being different from the RP4.
 
 Installation steps:
 
@@ -51,8 +51,21 @@ Installation steps:
     ```PasswordAuthentication no```
   
 - Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
-
-- Install jaiabot code via instructions on the [CI/CD](page20_build.md) page from either the release or continuous repository.
+- Install the software using the `jaiabot-embedded` apt metapackage:
+	```
+	# add packages.gobysoft.org to your apt sources
+	echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+	# install the public key for packages.gobysoft.org
+	sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+	# update the apt package manager
+	sudo apt update
+	# install all the necessary packages (jaiabot-embedded will install jaiabot-apps, jaiabot-python, and all other dependencies)
+	sudo apt install jaiabot-embedded
+	# answer the questions from debconf and systemd, etc. will be automatically configured, and the jaiabot applications started.
+	# see if everything is running OK.
+	systemctl list-units "jaiabot*"
+	```
+  If you wish to use the continuous repository (latest commit to the main `1.y` branch,) substitute "continuous" for "release" in the first command above).
 
 ## Systemd
 
@@ -60,11 +73,80 @@ We use `systemd` to launch the jaiabot services on the embedded system, just as 
 
 Each application has a service definition, and they are all set to `BindTo` the `jaia.service` which exists to provide a common service that can be `stop`ped or `start`ed, thereby stopping or starting all the bound services.
 
+### Quick start
+
+When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
+
+Bot 0 (install and enable):
+```
+cd jaiabot/config/gen
+./systemd-local.sh bot --bot_index 0 --n_bots 4 --enable
+```
+
+Hub (install and enable):
+
+```
+cd jaiabot/config/gen
+./systemd-local.sh hub --n_bots 4 --enable
+```
+
+See `./systemd-local.sh --help` for more options.
+
 ### Generation
 
 The systemd service files are generated via templates much like the application configuration.
 
 The generation script lives in: `jaiabot/config/gen/systemd.py` and can be run to install systemd service jobs for either a locally built copy of jaiabot or used during the Debian package build.
 
-For a locally built copy, the defaults are generally sufficient, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd.py` generation script.
+To see all the options for configuring this script, run `systemd.py --help`
 
+For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that executes `systemd.py` using the current interactive shell settings, such as `$PATH`).
+
+This script will generally have the correct defaults for the various directories, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd-local.sh` generation script.
+
+Running `./systemd-local.sh --help` will always show the defaults inferred from the `$PATH` for all the directories (`--jaiabot_bin_dir`, `--jaiabot_share_dir`, etc.)
+
+## Testing with Vagrant
+
+[Vagrant](https://www.vagrantup.com) is a useful tool for creating and managing full virtual machines (VMs), which allows us to quickly spin up and delete standard amd64 VMs for deployment testing (such as `systemd` or package testing before deployment to the actual Raspberry Pi hardware).
+
+### Install
+
+```
+sudo apt install vagrant
+```
+
+### Initialize machine
+
+```
+vagrant init ubuntu/focal64
+```
+
+This generates a `Vagrantfile` in the current working directory, which can be modified to fit our needs. For example, to create a VM for [Virtualbox](https://www.virtualbox.org/) with 8 CPUs and 1GB memory, we can uncomment and edit this block from the `Vagrantfile`:
+
+```
+  config.vm.provider "virtualbox" do |vb|
+     # Display the VirtualBox GUI when booting the machine
+     vb.gui = false
+     vb.cpus = 8
+     # Customize the amount of memory on the VM:
+     vb.memory = "1024"
+  end
+```
+
+###  Start machine
+
+To start the machine from the directory with the `Vagrantfile`, simply run
+```
+vagrant up
+```
+
+To ssh in, run
+
+```
+vagrant ssh
+```
+
+### Other commands
+
+To destroy the VM, use `vagrant destroy`.
