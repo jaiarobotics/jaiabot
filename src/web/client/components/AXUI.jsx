@@ -131,6 +131,8 @@ const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
 
+let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
+let pid_gains = ['Kp', 'Ki', 'Kd']
 
 
 // Saving and loading settings from browser's localStorage
@@ -1198,27 +1200,14 @@ export default class AXUI extends React.Component {
       measureActive,
     } = this.state;
 
+    let bots = this.podStatus?.bots
 
     return (
       <div id="axui_container">
-        <div id="leftSidebar" className="column-left">
-          <div id="leftPanelsContainer" className="panelsContainerVertical">
-            <div className="panel">
-              JaiaBot Central Command<br />
-              Version 1.1.0
-            </div>
-            <div className="panel">
-              <button type="button" onClick={function() { location.reload() } }>
-                Reload Central Command
-              </button>
-            </div>
-
-          </div>
-          <div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
-            <FontAwesomeIcon icon={faGripVertical} />
-          </div>
-        </div>
-        {/* End of left sidebar */}
+        
+        {
+          this.leftPanelSidebar()
+        }
 
         <div id={this.mapDivId} className="map-control" />
 
@@ -1582,6 +1571,99 @@ export default class AXUI extends React.Component {
     this.missions = {}
     this.updateMissionLayer()
   }
+
+  leftPanelSidebar() {
+    return (
+      <div id="leftSidebar" className="column-left">
+        <div id="leftPanelsContainer" className="panelsContainerVertical">
+          <div className="panel">
+            JaiaBot Central Command<br />
+            Version 1.1.0
+          </div>
+          <div className="panel">
+            <button type="button" onClick={function() { location.reload() } }>
+              Reload Central Command
+            </button>
+          </div>
+
+          {
+            this.pidGainsPanel()
+          }
+        </div>
+        <div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
+          <FontAwesomeIcon icon={faGripVertical} />
+        </div>
+      </div>
+    )
+  }
+
+  pidGainsPanel() {
+    let bots = this.podStatus?.bots
+    if (bots == null) {
+      return <div></div>
+    }
+
+    let pidGainsTable = <table>
+      <thead>
+        <tr>
+          <th></th><th>Kp</th><th>Ki</th><th>Kd</th>
+        </tr>
+      </thead>
+      <tbody>
+      {
+        pid_types.map(function(pid_type) {
+          return (
+            <tr>
+              <td>{pid_type}</td>
+              {
+                pid_gains.map(function(pid_gain) {
+                  let pid_type_gain = pid_type + "_" + pid_gain
+
+                  return (
+                    <td key={pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} /></td>
+                  )
+                })
+              }
+            </tr>
+          )
+        })
+      }
+      </tbody>
+    </table>
+
+    return (
+      <div className="panel">
+        <label style={{marginRight: "25px"}}>Bot</label>
+        <select style={{width: "50px"}} name="bot" id="pid_gains_bot_selector">
+          {
+            bots ? Object.keys(bots).map((botId) => (
+              <option key={botId} value={botId}>{botId}</option>
+            )) : ""
+          }
+        </select><br />
+        {
+          pidGainsTable
+        }
+        <button type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</button>
+      </div>
+    )
+  }
+
+  submitGains() {
+    info("Submit gains for botId: " + $("#pid_gains_bot_selector").val())
+    let pid_command = {}
+    for (let pid_type of pid_types) {
+      pid_command[pid_type] = {}
+      for (let pid_gain of pid_gains) {
+        pid_command[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
+      }
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/jaia/pid-command", true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(pid_command));
+  }
+
 }
 
 // =================================================================================================

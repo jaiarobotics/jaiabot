@@ -218,6 +218,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
 void jaiabot::apps::BotPidControl::loop()
 {
+    glog.is_debug3() && glog << throttle_speed_pid->description() << endl;
+    glog.is_debug3() && glog << throttle_depth_pid->description() << endl;
+    glog.is_debug3() && glog << heading_pid->description() << endl;
+    glog.is_debug3() && glog << roll_pid->description() << endl;
+    glog.is_debug3() && glog << pitch_pid->description() << endl;
+
     // Speed PID
     switch (throttleMode)
     {
@@ -374,7 +380,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
         throttle = command.throttle();
     }
     // Speed
-    else if (command.has_speed())
+    if (command.has_speed())
     {
         auto speed = command.speed();
 
@@ -390,7 +396,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
         }
     }
     // Depth PID for dive
-    else if (command.has_depth())
+    if (command.has_depth())
     {
         auto depth = command.depth();
 
@@ -413,7 +419,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
         rudder_is_using_pid = false;
     }
     // Heading
-    else if (command.has_heading())
+    if (command.has_heading())
     {
         auto heading = command.heading();
 
@@ -442,7 +448,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     }
 
     // Roll
-    else if (command.has_roll())
+    if (command.has_roll())
     {
         auto roll = command.roll();
 
@@ -459,7 +465,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::PIDCo
     }
 
     // Pitch
-    else if (command.has_pitch())
+    if (command.has_pitch())
     {
         auto pitch = command.pitch();
 
