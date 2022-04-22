@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PORT=/etc/jaiabot/dev/arduino
+PORT=/dev/jaiabot/arduino
 MYFQBN=arduino:avr:nano:cpu=atmega328
 sketch=$1
 
