@@ -66,6 +66,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float actual_pitch = 0.0;
     float elevator_middle = 0.0;
     Pid* pitch_pid;
+    
+    bool engineering_messages_enabled = false;
+    jaiabot::protobuf::EngineeringStatus engineering_status;
 
   private:
     void loop() override;
@@ -78,6 +81,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
     void handle_dive_depth(const double& dive_depth);
     void handle_powered_ascent();
+
+    void publish_engineering_status();
 };
 
 } // namespace apps

@@ -62,6 +62,8 @@ message EngineeringCommand
     optional PIDControl pitch = 10;
 
     optional PIDControl depth = 11;
+
+    optional bool engineering_messages_enabled = 12;
 }
 
 message EngineeringStatus
@@ -78,5 +80,25 @@ message EngineeringStatus
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
+
+    optional double heading = 3 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle", system: "angle::degree" }
+        }
+
+    ];
+    optional double speed = 4 [
+        default = 0,
+        (dccl.field) = {
+            min: 0,
+            max: 5,
+            precision: 1,
+            units { derived_dimensions: "length/time" }
+        }
+    ];
 
 }

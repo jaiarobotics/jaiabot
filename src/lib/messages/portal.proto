@@ -29,5 +29,7 @@ message PortalToClientMessage
         unit_system: "si"
     };
 
-    optional BotStatus bot_status = 1; 
+    optional BotStatus bot_status = 1;
+
+    optional EngineeringStatus engineering_status = 2;
 }
