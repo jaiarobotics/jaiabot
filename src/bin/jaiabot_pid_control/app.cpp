@@ -214,6 +214,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " heading: " << actual_heading << " depth: " << actual_depth
                                      << std::endl;
         });
+
+    engineering_status.set_bot_id(cfg().bot_id());
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -480,6 +482,11 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
             pitch_pid->tune(pitch.kp(), pitch.ki(), pitch.kd());
         }
     }
+
+    if (command.has_engineering_messages_enabled()) {
+        engineering_messages_enabled = command.engineering_messages_enabled();
+        glog.is_verbose() && glog << "engineering_messages_enabled = " << engineering_messages_enabled << endl;
+    }
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -504,6 +511,8 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command.dive_depth()); break;
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
     }
+
+    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
@@ -513,11 +522,13 @@ void jaiabot::apps::BotPidControl::handle_helm_course(
     {
         rudder_is_using_pid = true;
         target_heading = desired_course.heading();
+        engineering_status.set_heading_with_units(desired_course.heading_with_units());
     }
     if (desired_course.has_speed())
     {
         throttleMode = PID_SPEED;
         target_speed = desired_course.speed();
+        engineering_status.set_speed_with_units(desired_course.speed_with_units());
     }
     // TO DO:  PID for the depth that uses elevators while moving forward
     if (desired_course.has_pitch())
@@ -540,11 +551,13 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     {
         rudder_is_using_pid = true;
         target_heading = remote_control.heading();
+        engineering_status.set_heading_with_units(remote_control.heading_with_units());
     }
     if (remote_control.has_speed())
     {
         throttleMode = PID_SPEED;
         target_speed = remote_control.speed();
+        engineering_status.set_speed_with_units(remote_control.speed_with_units());
     }
 }
 
@@ -552,10 +565,31 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
     throttleMode = PID_DEPTH;
     target_depth = dive_depth;
+    engineering_status.clear_heading();
+    engineering_status.clear_speed();
 }
 
 void jaiabot::apps::BotPidControl::handle_powered_ascent()
 {
     throttleMode = MANUAL;
     throttle = 50.0;
+    engineering_status.clear_heading();
+    engineering_status.clear_speed();
+}
+
+// Engineering status
+void jaiabot::apps::BotPidControl::publish_engineering_status() {
+    if (!engineering_messages_enabled) {
+        return;
+    }
+
+    // DCCL uses the real system clock to encode time, so "unwarp" the time first
+    auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
+        goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
+
+    engineering_status.set_time_with_units(unwarped_time);
+
+    glog.is_debug1() && glog << "Publishing engineering status: " << engineering_status.ShortDebugString() << endl;
+
+    intervehicle().publish<jaiabot::groups::engineering>(engineering_status);
 }
