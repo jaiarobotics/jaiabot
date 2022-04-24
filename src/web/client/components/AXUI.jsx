@@ -1651,17 +1651,17 @@ export default class AXUI extends React.Component {
 
   submitGains() {
     info("Submit gains for botId: " + $("#pid_gains_bot_selector").val())
-    let pid_command = {}
+    let engineering_command = {}
     for (let pid_type of pid_types) {
-      pid_command[pid_type] = {}
+      engineering_command[pid_type] = {}
       for (let pid_gain of pid_gains) {
-        pid_command[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
+        engineering_command[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
       }
     }
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/jaia/pid-command", true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify(pid_command));
+    xhr.send(JSON.stringify(engineering_command));
   }
 
 }

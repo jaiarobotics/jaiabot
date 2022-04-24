@@ -4,7 +4,7 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message PIDCommand
+message EngineeringCommand
 {
     option (dccl.msg) = {
         id: 92
@@ -62,4 +62,21 @@ message PIDCommand
     optional PIDControl pitch = 10;
 
     optional PIDControl depth = 11;
+}
+
+message EngineeringStatus
+{
+    option (dccl.msg) = {
+        id: 95
+        max_bytes: 64
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    required uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
 }
