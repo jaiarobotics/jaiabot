@@ -143,13 +143,13 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 {
     glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << std::endl;
 
-    if (msg.has_pid_command()) {
-        auto pid_command = msg.pid_command();
+    if (msg.has_engineering_command()) {
+        auto engineering_command = msg.engineering_command();
         auto t = NOW;
-        pid_command.set_time_with_units(t);
+        engineering_command.set_time_with_units(t);
 
-        glog.is_debug2() && glog << group("main") << "Sending pid_command: " << pid_command.ShortDebugString() << std::endl;
-        intervehicle().publish<jaiabot::groups::pid_control>(pid_command);
+        glog.is_debug2() && glog << group("main") << "Sending engineering_command: " << engineering_command.ShortDebugString() << std::endl;
+        intervehicle().publish<jaiabot::groups::engineering>(engineering_command);
     }
 
     if (msg.has_command()) {
