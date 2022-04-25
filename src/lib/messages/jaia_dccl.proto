@@ -168,7 +168,7 @@ message DivePacket
         units { derived_dimensions: "velocity" }
     }];
 
-    required double unpowered_rise_rate = 11 [(dccl.field) = {
+    optional double unpowered_rise_rate = 11 [(dccl.field) = {
         min: 0
         max: 10
         precision: 1
