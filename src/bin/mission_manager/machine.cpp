@@ -425,6 +425,21 @@ void jaiabot::statechart::inmission::underway::task::SurfaceDrift::loop(const Ev
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
+boost::statechart::result
+jaiabot::statechart::inmission::underway::movement::remotecontrol::RemoteControlEndSelection::react(
+    const EvRCEndSelect&)
+{
+    switch (this->cfg().rc_setpoint_end())
+    {
+        case config::MissionManager::RC_SETPOINT_ENDS_IN_STATIONKEEP: return transit<StationKeep>();
+        case config::MissionManager::RC_SETPOINT_ENDS_IN_SURFACE_DRIFT:
+            return transit<SurfaceDrift>();
+    }
+
+    // should never reach here but if does, abort the mission
+    return transit<underway::Abort>();
+}
+
 // Movement::RemoteControl::StationKeep
 jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::StationKeep(
     typename StateBase::my_context c)
@@ -440,6 +455,14 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+void jaiabot::statechart::inmission::underway::movement::remotecontrol::SurfaceDrift::loop(
+    const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 // Movement::RemoteControl::Setpoint

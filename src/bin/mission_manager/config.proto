@@ -35,4 +35,12 @@ message MissionManager
     // surfacing timeout in seconds before switching to powered ascent
     optional double surfacing_timeout = 31
         [default = 600, (dccl.field).units = { base_dimensions: "T" }];
+
+    
+    enum RemoteControlSetpointEnd
+    {
+        RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
+        RC_SETPOINT_ENDS_IN_SURFACE_DRIFT = 2;
+    }
+    optional RemoteControlSetpointEnd rc_setpoint_end = 50 [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 }
