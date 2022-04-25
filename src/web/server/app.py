@@ -29,7 +29,7 @@ app = Flask(__name__)
 
 ####### Static files
 root = '../dist/client/'
-pid = 'pid/'
+pid = '../client/engineering/'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
