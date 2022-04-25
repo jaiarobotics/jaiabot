@@ -4,6 +4,9 @@
 gobyd <(../../gen/bot.py gobyd) -v -n
 goby_logger <(../../gen/bot.py goby_logger)
 
+# Jaia Metadata
+jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
+
 # IMU sensor
 ~/jaiabot/src/python/adafruit_BNO055/imu.py 20000
 jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
