@@ -8,6 +8,7 @@ BotStatus_speed_over_ground = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/
 BotStatus_course_over_ground = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/course_over_ground'
 BotStatus_depth = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/depth'
 BotStatus_salinity = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/salinity'
+BotStatus_mission_state = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state'
 
 PressureTemperature_time = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/_utime_'
 PressureTemperature_pressure = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/pressure'
@@ -24,6 +25,12 @@ RestCommand_timeout = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/timeo
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
 
+DesiredCourse_time = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/_utime_'
+DesiredCourse_heading = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/heading'
+DesiredCourse_speed = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/speed'
+
+DesiredSetpoints_time = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/_utime_'
+DesiredSetpoints_dive_depth = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/dive_depth'
 
 def date_from_micros(micros):
     date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()
