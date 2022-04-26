@@ -173,6 +173,8 @@ available_fields = [
     Field(x_datapath=DesiredCourse_time, y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
 
     Field(x_datapath=DesiredSetpoints_time, y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
+
+    Field(x_datapath=PIDCommand_time, y_datapath=PIDCommand_depth_Kp, y_axis_label='Kp gain')
 ]
 
 
