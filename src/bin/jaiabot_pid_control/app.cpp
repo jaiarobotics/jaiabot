@@ -487,6 +487,8 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
         engineering_messages_enabled = command.engineering_messages_enabled();
         glog.is_verbose() && glog << "engineering_messages_enabled = " << engineering_messages_enabled << endl;
     }
+
+    publish_engineering_status();
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -577,19 +579,27 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
     engineering_status.clear_speed();
 }
 
+void copy_gains(Pid* pid, jaiabot::protobuf::EngineeringStatus_PIDGains* pid_gains) {
+    pid_gains->set_kp(pid->get_Kp());
+    pid_gains->set_ki(pid->get_Ki());
+    pid_gains->set_kd(pid->get_Kd());
+}
+
 // Engineering status
 void jaiabot::apps::BotPidControl::publish_engineering_status() {
-    if (!engineering_messages_enabled) {
-        return;
-    }
-
     // DCCL uses the real system clock to encode time, so "unwarp" the time first
     auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
         goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
 
     engineering_status.set_time_with_units(unwarped_time);
 
+    copy_gains(throttle_speed_pid, engineering_status.mutable_speed_pid_gains());
+    copy_gains(throttle_depth_pid, engineering_status.mutable_depth_pid_gains());
+    copy_gains(heading_pid, engineering_status.mutable_heading_pid_gains());
+    copy_gains(pitch_pid, engineering_status.mutable_pitch_pid_gains());
+    copy_gains(roll_pid, engineering_status.mutable_roll_pid_gains());
+
     glog.is_debug1() && glog << "Publishing engineering status: " << engineering_status.ShortDebugString() << endl;
 
-    intervehicle().publish<jaiabot::groups::engineering>(engineering_status);
+    interprocess().publish<jaiabot::groups::engineering>(engineering_status);
 }

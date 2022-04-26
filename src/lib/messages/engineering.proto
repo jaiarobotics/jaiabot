@@ -101,4 +101,24 @@ message EngineeringStatus
         }
     ];
 
+    message PIDGains
+    {
+        optional double Kp = 2
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Ki = 3
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Kd = 4
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    }
+
+    optional PIDGains speed_pid_gains = 5;
+
+    optional PIDGains heading_pid_gains = 6;
+
+    optional PIDGains roll_pid_gains = 9;
+
+    optional PIDGains pitch_pid_gains = 10;
+
+    optional PIDGains depth_pid_gains = 11;
+
 }
