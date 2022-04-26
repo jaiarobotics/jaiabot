@@ -36,7 +36,7 @@
 #include <vector>
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
-using string = std::string;
+using namespace std;
 using goby::glog;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
@@ -88,12 +88,12 @@ jaiabot::apps::WebPortal::WebPortal()
     using UDPThread = goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
-    glog.is_debug1() && glog << group("main") << "Web Portal Started" << std::endl;
-    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Web Portal Started" << endl;
+    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << endl;
 
     ///////////// INPUT from Client
     interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-        glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << std::endl;
+        glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << endl;
 
         auto command = jaiabot::protobuf::ClientToPortalMessage();
         if (command.ParseFromString(io_data.data())) {
@@ -103,7 +103,7 @@ jaiabot::apps::WebPortal::WebPortal()
             dest.set_port(io_data.udp_src().port());
         }
         else {
-            glog.is_warn() && glog << group("main") << "Could not parse incoming message from client: " << io_data.ShortDebugString() << std::endl;
+            glog.is_warn() && glog << group("main") << "Could not parse incoming message from client: " << io_data.ShortDebugString() << endl;
         }
     });
 
@@ -113,7 +113,7 @@ jaiabot::apps::WebPortal::WebPortal()
     // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
         glog.is_debug2() && glog << group("main")
-                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << endl;
 
         auto message = jaiabot::protobuf::PortalToClientMessage();
         message.set_allocated_bot_status(new jaiabot::protobuf::BotStatus(dccl_nav));
@@ -127,7 +127,7 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             glog.is_debug2() && glog << "Received TimePositionVelocity update: "
-                                     << tpv.ShortDebugString() << std::endl;
+                                     << tpv.ShortDebugString() << endl;
 
             if (tpv.has_location())
             {
@@ -137,19 +137,30 @@ jaiabot::apps::WebPortal::WebPortal()
                 hub_status.mutable_speed()->set_over_ground(tpv.speed());
             }
         });
+
+
+    // Subscribe to engineering status messages
+    interprocess().subscribe<jaiabot::groups::engineering>([this](const jaiabot::protobuf::EngineeringStatus& engineering_status) {
+        glog.is_debug1() && glog << "Sending engineering_status to client: " << engineering_status.ShortDebugString() << endl;
+
+        auto message = jaiabot::protobuf::PortalToClientMessage();
+        message.set_allocated_engineering_status(new jaiabot::protobuf::EngineeringStatus(engineering_status));
+
+        send_message_to_client(message);
+    });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
 {
-    glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << endl;
 
-    if (msg.has_pid_command()) {
-        auto pid_command = msg.pid_command();
+    if (msg.has_engineering_command()) {
+        auto engineering_command = msg.engineering_command();
         auto t = NOW;
-        pid_command.set_time_with_units(t);
+        engineering_command.set_time_with_units(t);
 
-        glog.is_debug2() && glog << group("main") << "Sending pid_command: " << pid_command.ShortDebugString() << std::endl;
-        intervehicle().publish<jaiabot::groups::pid_control>(pid_command);
+        glog.is_debug2() && glog << group("main") << "Sending engineering_command: " << engineering_command.ShortDebugString() << endl;
+        intervehicle().publish<jaiabot::groups::engineering>(engineering_command);
     }
 
     if (msg.has_command()) {
@@ -157,7 +168,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
         auto command = msg.command();
 
         glog.is_debug2() && glog << group("main")
-                                 << "Sending command: " << command.ShortDebugString() << std::endl;
+                                 << "Sending command: " << command.ShortDebugString() << endl;
 
         goby::middleware::Publisher<Command> command_publisher(
             {}, [](Command& cmd, const goby::middleware::Group& group)
@@ -185,9 +196,9 @@ void jaiabot::apps::WebPortal::send_message_to_client(const jaiabot::protobuf::P
         return;
     }
 
-    glog.is_debug1() && glog << group("main") << "Sending message to client: " << message.ShortDebugString() << std::endl;
+    glog.is_debug1() && glog << group("main") << "Sending message to client: " << message.ShortDebugString() << endl;
 
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    auto io_data = make_shared<goby::middleware::protobuf::IOData>();
     io_data->mutable_udp_dest()->set_addr(dest.addr());
     io_data->mutable_udp_dest()->set_port(dest.port());
 
@@ -199,5 +210,5 @@ void jaiabot::apps::WebPortal::send_message_to_client(const jaiabot::protobuf::P
     // Send it
     interthread().publish<web_portal_udp_out>(io_data);
 
-    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << std::endl;
+    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << endl;
 }

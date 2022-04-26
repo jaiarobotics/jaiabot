@@ -30,6 +30,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -70,6 +71,8 @@ jaiabot::apps::HubManager::HubManager()
 
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(subscriber_cfg);
 
+            glog.is_debug1() && glog << "Subscribing to bot_status" << std::endl;
+
             intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
                 [this](const jaiabot::protobuf::BotStatus& dccl_nav) { handle_bot_nav(dccl_nav); },
                 subscriber);
@@ -83,9 +86,37 @@ jaiabot::apps::HubManager::HubManager()
 
             goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
 
+            glog.is_debug1() && glog << "Subscribing to dive_packet" << std::endl;
+
             intervehicle().subscribe<jaiabot::groups::dive_packet, jaiabot::protobuf::DivePacket>(
                 [this](const jaiabot::protobuf::DivePacket& dive_packet)
                 { handle_dive_packet(dive_packet); },
+                subscriber);
+        }
+
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
+
+            goby::middleware::Subscriber<jaiabot::protobuf::EngineeringStatus> subscriber(subscriber_cfg);
+
+            glog.is_debug1() && glog << "Subscribing to engineering_status" << std::endl;
+
+            intervehicle().subscribe<jaiabot::groups::engineering, jaiabot::protobuf::EngineeringStatus>(
+                [this](const jaiabot::protobuf::EngineeringStatus& input_engineering_status) {
+                    glog.is_debug1() && glog << "Received input_engineering_status: " << input_engineering_status.ShortDebugString() << std::endl;
+
+                    auto engineering_status = input_engineering_status;
+
+                    // rewarp the time if needed
+                    engineering_status.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
+                    goby::time::SystemClock::warp(goby::time::convert<std::chrono::system_clock::time_point>(
+                    input_engineering_status.time_with_units()))));
+
+                    interprocess().publish<jaiabot::groups::engineering>(engineering_status);
+                },
                 subscriber);
         }
     }
@@ -116,6 +147,18 @@ jaiabot::apps::HubManager::~HubManager()
             goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
 
             intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::DivePacket>(
+                subscriber);
+        }
+
+        {
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
+                *subscriber_cfg.mutable_intervehicle();
+            intervehicle_cfg.add_publisher_id(id);
+
+            goby::middleware::Subscriber<jaiabot::protobuf::EngineeringStatus> subscriber(subscriber_cfg);
+
+            intervehicle().unsubscribe<jaiabot::groups::engineering, jaiabot::protobuf::EngineeringStatus>(
                 subscriber);
         }
     }

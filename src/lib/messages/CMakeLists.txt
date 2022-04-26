@@ -11,7 +11,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/salinity.proto
   jaiabot/messages/mission.proto
   jaiabot/messages/jaia_dccl.proto
-  jaiabot/messages/pid_control.proto
+  jaiabot/messages/engineering.proto
   jaiabot/messages/vehicle_command.proto
   jaiabot/messages/portal.proto
   jaiabot/messages/metadata.proto

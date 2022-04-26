@@ -1,7 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
-import "jaiabot/messages/pid_control.proto";
+import "jaiabot/messages/engineering.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 
 package jaiabot.protobuf;
@@ -15,7 +15,7 @@ message ClientToPortalMessage
         unit_system: "si"
     };
 
-    optional PIDCommand pid_command = 1;
+    optional EngineeringCommand engineering_command = 1;
     optional Command command = 2;
     optional bool ping = 3;
 }
@@ -29,5 +29,7 @@ message PortalToClientMessage
         unit_system: "si"
     };
 
-    optional BotStatus bot_status = 1; 
+    optional BotStatus bot_status = 1;
+
+    optional EngineeringStatus engineering_status = 2;
 }
