@@ -67,7 +67,7 @@ class H5FileSet:
                     all_data.extend(data)
                 except KeyError:
                     print(f'WARNING:  Cannot locate {dataset_name} in {h5_file}')
-                    pass
+                    return None
 
                 # Sentinel nil value, to prevent connection of multiple series
                 all_data.append(None)
@@ -75,3 +75,12 @@ class H5FileSet:
             series = Series(name, all_data)
             self.series[dataset_name] = series
             return series
+
+    def check_enum_dtype(self, dataset_name):
+        dataset = self.h5_files[0][dataset_name]
+        try:
+            enum_names = dataset.attrs['enum_names']
+            enum_values = dataset.attrs['enum_values']
+            return { enum_values[index]: enum_names[index] for index in range(0, len(enum_values))}
+        except KeyError:
+            return None

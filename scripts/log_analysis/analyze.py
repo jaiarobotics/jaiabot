@@ -5,9 +5,11 @@ from datetime import tzinfo
 import os
 import tempfile
 from time import tzname
+from typing import Callable
 import webbrowser
 from dateutil.parser import parse
 import argparse
+from numpy import array
 import plotly.graph_objects as go
 from pathlib import Path
 import PyQt5
@@ -100,6 +102,7 @@ class Field:
     x_datapath: str
     y_datapath: str
     y_axis_label: str
+    y_filter: Callable = None
     default_on: bool = False
 
 
@@ -118,9 +121,23 @@ def generate_webpage(fields, data_filenames, bdr_file):
     for series_index, field in enumerate(fields):
         series_x = h5_fileset[field.x_datapath]
         series_y = h5_fileset[field.y_datapath]
+
+        if series_x is None or series_y is None:
+            continue
+
         yaxis_title = field.y_axis_label
 
-        fig.append_trace(go.Scatter(x=series_x.data, y=series_y.data, mode='lines', name=series_y.name, connectgaps=False), series_index + 1, 1)
+        hovertext = None
+
+        if field.y_filter:
+            series_y.data = list(filter(field.y_filter, series_y.data))
+
+        # Hovertext for enum types is their enum string
+        enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+        if enum_dict:
+            hovertext = list(map(lambda i: enum_dict[i], series_y.data))
+
+        fig.append_trace(go.Scatter(x=series_x.data, y=series_y.data, mode='lines', name=series_y.name, connectgaps=False, hovertext=hovertext), series_index + 1, 1)
         fig.update_yaxes(title_text=yaxis_title, row=series_index + 1)
 
     substitution_dict['charts_div'] = fig.to_html(include_plotlyjs=False, full_html=False)
@@ -150,7 +167,7 @@ available_fields = [
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_course_over_ground, y_axis_label='Course over ground (°)'),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_depth, y_axis_label='Depth (m)', default_on=True),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_salinity, y_axis_label='Salinity'),
-    Field(x_datapath=BotStatus_time, y_datapath=BotStatus_mission_state, y_axis_label='Mission state'),
+    Field(x_datapath=BotStatus_time, y_datapath=BotStatus_mission_state, y_axis_label='Mission state', y_filter=lambda y: y and y < 1024),
 
     Field(x_datapath=DesiredCourse_time, y_datapath=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
     Field(x_datapath=DesiredCourse_time, y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
