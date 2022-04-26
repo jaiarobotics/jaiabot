@@ -99,7 +99,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
         throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 20, 10, 0);
     }
     throttle_depth_pid->set_direction(E_PID_REVERSE);
-    throttle_depth_pid->set_limits(-100.0, 100.0);
+    throttle_depth_pid->set_limits(-100.0, 0.0);
     throttle_depth_pid->set_auto();
 
     if (cfg().has_heading_pid_gains())
