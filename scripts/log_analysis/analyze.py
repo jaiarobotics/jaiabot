@@ -150,6 +150,12 @@ available_fields = [
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_course_over_ground, y_axis_label='Course over ground (°)'),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_depth, y_axis_label='Depth (m)', default_on=True),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_salinity, y_axis_label='Salinity'),
+    Field(x_datapath=BotStatus_time, y_datapath=BotStatus_mission_state, y_axis_label='Mission state'),
+
+    Field(x_datapath=DesiredCourse_time, y_datapath=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
+    Field(x_datapath=DesiredCourse_time, y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
+
+    Field(x_datapath=DesiredSetpoints_time, y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
 ]
 
 
