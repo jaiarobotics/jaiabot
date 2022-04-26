@@ -2,7 +2,7 @@ import socket
 import threading
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
-from jaiabot.messages.pid_control_pb2 import PIDCommand
+from jaiabot.messages.engineering_pb2 import EngineeringCommand
 from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
 
 import google.protobuf.json_format
@@ -170,9 +170,9 @@ class Interface:
             'code': 0
         }
 
-    def post_pid_command(self, command):
-        cmd = google.protobuf.json_format.ParseDict(command, PIDCommand())
+    def post_engineering_command(self, command):
+        cmd = google.protobuf.json_format.ParseDict(command, EngineeringCommand())
         cmd.time = now()
         msg = ClientToPortalMessage()
-        msg.pid_command.CopyFrom(cmd)
+        msg.engineering_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)

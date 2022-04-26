@@ -29,7 +29,7 @@ app = Flask(__name__)
 
 ####### Static files
 root = '../dist/client/'
-pid = 'pid/'
+pid = '../client/engineering/'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
@@ -73,7 +73,7 @@ def setManualID():
 
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
-    jaia_interface.post_pid_command(request.json)
+    jaia_interface.post_engineering_command(request.json)
     return JSONResponse({"status": "ok"})
 
 ######## Map tiles

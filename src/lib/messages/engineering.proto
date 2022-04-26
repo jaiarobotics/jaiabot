@@ -4,7 +4,7 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message PIDCommand
+message EngineeringCommand
 {
     option (dccl.msg) = {
         id: 92
@@ -62,4 +62,63 @@ message PIDCommand
     optional PIDControl pitch = 10;
 
     optional PIDControl depth = 11;
+
+    optional bool engineering_messages_enabled = 12;
+}
+
+message EngineeringStatus
+{
+    option (dccl.msg) = {
+        id: 95
+        max_bytes: 64
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    required uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    optional double heading = 3 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle", system: "angle::degree" }
+        }
+
+    ];
+    optional double speed = 4 [
+        default = 0,
+        (dccl.field) = {
+            min: 0,
+            max: 5,
+            precision: 1,
+            units { derived_dimensions: "length/time" }
+        }
+    ];
+
+    message PIDGains
+    {
+        optional double Kp = 2
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Ki = 3
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+        optional double Kd = 4
+            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    }
+
+    optional PIDGains speed_pid_gains = 5;
+
+    optional PIDGains heading_pid_gains = 6;
+
+    optional PIDGains roll_pid_gains = 9;
+
+    optional PIDGains pitch_pid_gains = 10;
+
+    optional PIDGains depth_pid_gains = 11;
+
 }

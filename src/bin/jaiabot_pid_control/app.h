@@ -8,7 +8,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/high_control.pb.h"
-#include "jaiabot/messages/pid_control.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 #include "PID/PID.h"
 
@@ -66,11 +66,14 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float actual_pitch = 0.0;
     float elevator_middle = 0.0;
     Pid* pitch_pid;
+    
+    bool engineering_messages_enabled = false;
+    jaiabot::protobuf::EngineeringStatus engineering_status;
 
   private:
     void loop() override;
 
-    void handle_command(const jaiabot::protobuf::PIDCommand& command);
+    void handle_command(const jaiabot::protobuf::EngineeringCommand& command);
 
     void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
     void
@@ -78,6 +81,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
     void handle_dive_depth(const double& dive_depth);
     void handle_powered_ascent();
+
+    void publish_engineering_status();
 };
 
 } // namespace apps
