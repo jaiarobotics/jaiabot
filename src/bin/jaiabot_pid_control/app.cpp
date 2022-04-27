@@ -98,9 +98,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
     {
         throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 20, 10, 0);
     }
+    throttle_depth_pid->set_auto();
     throttle_depth_pid->set_direction(E_PID_REVERSE);
     throttle_depth_pid->set_limits(-100.0, 0.0);
-    throttle_depth_pid->set_auto();
 
     if (cfg().has_heading_pid_gains())
     {
@@ -216,6 +216,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 
     engineering_status.set_bot_id(cfg().bot_id());
+
+    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -361,7 +363,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
-    interprocess().publish<jaiabot::groups::bot_status>(command);
+    interprocess().publish<jaiabot::groups::engineering>(command);
 
     lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 

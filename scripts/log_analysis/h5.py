@@ -14,13 +14,15 @@ PressureTemperature_time = 'jaiabot::pressure_temperature/jaiabot.protobuf.Press
 PressureTemperature_pressure = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/pressure'
 PressureTemperature_temperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature'
 
-RestCommand_time = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/_utime_'
-RestCommand_throttle = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/throttle'
-RestCommand_heading = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/heading/target'
-RestCommand_rudder = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/rudder'
-RestCommand_depth = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/depth/target'
-RestCommand_speed = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/speed/target'
-RestCommand_timeout = 'jaiabot::bot_status;0/jaiabot.protobuf.rest.Command/timeout'
+EngineeringCommand = 'jaiabot::bot_status;0/jaiabot.protobuf.EngineeringCommand/'
+
+EngineeringCommand_time = EngineeringCommand + '_utime_'
+EngineeringCommand_throttle = EngineeringCommand + 'throttle'
+EngineeringCommand_heading = EngineeringCommand + 'heading/target'
+EngineeringCommand_rudder = EngineeringCommand + 'rudder'
+EngineeringCommand_depth = EngineeringCommand + 'depth/target'
+EngineeringCommand_speed = EngineeringCommand + 'speed/target'
+EngineeringCommand_timeout = EngineeringCommand + 'timeout'
 
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
