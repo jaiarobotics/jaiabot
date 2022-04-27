@@ -125,6 +125,15 @@ def generate_webpage(fields, data_filenames, bdr_file):
         if series_x is None or series_y is None:
             continue
 
+        # Get the _scheme_path
+        scheme_path = ('/'.join(field.x_datapath.split('/')[:2]) + '/_scheme_')
+        series_scheme = h5_fileset[scheme_path].data
+
+        if series_scheme is not None:
+            # Filter to only _scheme_ == 1
+            series_x.data = [series_x.data[i] for i in range(0, len(series_x.data)) if series_scheme[i] == 1]
+            series_y.data = [series_y.data[i] for i in range(0, len(series_y.data)) if series_scheme[i] == 1]
+
         yaxis_title = field.y_axis_label
 
         hovertext = None
@@ -151,12 +160,12 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
 
 available_fields = [
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_throttle, y_axis_label='Throttle (%)', default_on=True),
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_speed, y_axis_label='Target Speed (m/s)', default_on=True),
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_depth, y_axis_label='Target Depth (m)'),
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_rudder, y_axis_label='Rudder'),
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_heading, y_axis_label='Target Heading (°)'),
-    Field(x_datapath=RestCommand_time, y_datapath=RestCommand_timeout, y_axis_label='Timeout (s)'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_throttle, y_axis_label='Throttle (%)', default_on=True),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_speed, y_axis_label='Target Speed (m/s)', default_on=True),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Target Depth (m)'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_rudder, y_axis_label='Rudder'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_heading, y_axis_label='Target Heading (°)'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_timeout, y_axis_label='Timeout (s)'),
 
     Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_motor, y_axis_label='Motor (%)', default_on=True),
 
@@ -242,6 +251,15 @@ class MainWindow(QWidget):
         
         data_filenames = [item.filename for item in self.file_selector_list.selectedItems()]
 
+        if len(data_filenames) == 0:
+            alert = QMessageBox()
+            alert.setText('No files selected')
+            alert.setInformativeText('Please select at least one file.')
+            alert.exec()
+            return
+
+        print('Opening files: ', data_filenames)
+
         generate_webpage(fields, data_filenames, None)
 
         # Unselect all files
@@ -253,7 +271,8 @@ class MainWindow(QWidget):
 
     def get_datafiles(self):
         datafiles = [DataFile(filename) for filename in glob.glob(os.path.expanduser('~/jaia-logs/') + '**/*_???????????????.h5', recursive=True)]
-        datafiles.sort(key=lambda datafile: datafile.date, reverse=True)
+
+        datafiles.sort(key=lambda datafile: os.path.getmtime(datafile.filename), reverse=True)
         return datafiles
 
 
