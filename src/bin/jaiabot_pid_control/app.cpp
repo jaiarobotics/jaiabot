@@ -229,7 +229,7 @@ void jaiabot::apps::BotPidControl::loop()
     glog.is_debug3() && glog << pitch_pid->description() << endl;
 
     // Speed PID
-    switch (throttleMode)
+    switch (_throttleMode)
     {
         case MANUAL: break;
         case PID_SPEED:
@@ -257,7 +257,7 @@ void jaiabot::apps::BotPidControl::loop()
     }
 
     // Heading PID
-    if (rudder_is_using_pid)
+    if (_rudder_is_using_pid)
     {
         // Make sure track is within 180 degrees of the course
         if (actual_heading > target_heading + 180.0)
@@ -281,7 +281,7 @@ void jaiabot::apps::BotPidControl::loop()
     }
 
     // Roll/Pitch PID
-    if (elevator_is_using_pid)
+    if (_elevator_is_using_pid)
     {
         if (actual_roll > target_roll + 180.0)
         {
@@ -333,7 +333,7 @@ void jaiabot::apps::BotPidControl::loop()
         lastCommandReceived = 0;
 
         throttle = 0.0;
-        throttleMode = MANUAL;
+        setThrottleMode(MANUAL);
     }
 
     // Publish the VehicleCommand
@@ -359,6 +359,37 @@ void jaiabot::apps::BotPidControl::loop()
     interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
 }
 
+void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {
+    if (newThrottleMode != _throttleMode) {
+        switch (newThrottleMode) {
+            case MANUAL:
+                break;
+            case PID_SPEED:
+                throttle_speed_pid->reset_iterm();
+                break;
+            case PID_DEPTH:
+                throttle_depth_pid->reset_iterm();
+                break;
+        }
+    }
+    _throttleMode = newThrottleMode;
+}
+
+void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled) {
+    if (enabled != _rudder_is_using_pid) {
+        heading_pid->reset_iterm();
+    }
+    _rudder_is_using_pid = enabled;
+}
+
+void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
+    if (enabled != _elevator_is_using_pid) {
+        roll_pid->reset_iterm();
+        pitch_pid->reset_iterm();
+    }
+    _elevator_is_using_pid = enabled;
+}
+
 void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::EngineeringCommand& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
@@ -380,7 +411,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
     // Throttle
     if (command.has_throttle())
     {
-        throttleMode = MANUAL;
+        setThrottleMode(MANUAL);
         throttle = command.throttle();
     }
     // Speed
@@ -390,7 +421,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 
         if (speed.has_target())
         {
-            throttleMode = PID_SPEED;
+            setThrottleMode(PID_SPEED);
             target_speed = speed.target();
         }
 
@@ -406,7 +437,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 
         if (depth.has_target())
         {
-            throttleMode = PID_DEPTH;
+            setThrottleMode(PID_DEPTH);
             target_depth = depth.target();
         }
 
@@ -420,7 +451,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
     if (command.has_rudder())
     {
         rudder = command.rudder();
-        rudder_is_using_pid = false;
+        toggleRudderPid(false);
     }
     // Heading
     if (command.has_heading())
@@ -429,7 +460,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 
         if (heading.has_target())
         {
-            rudder_is_using_pid = true;
+            toggleRudderPid(true);
             target_heading = heading.target();
         }
 
@@ -443,12 +474,12 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
     if (command.has_port_elevator())
     {
         port_elevator = command.port_elevator();
-        elevator_is_using_pid = false;
+        toggleElevatorPid(false);
     }
     if (command.has_stbd_elevator())
     {
         stbd_elevator = command.stbd_elevator();
-        elevator_is_using_pid = false;
+        toggleElevatorPid(false);
     }
 
     // Roll
@@ -458,7 +489,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 
         if (roll.has_target())
         {
-            elevator_is_using_pid = true;
+            toggleElevatorPid(true);
             target_roll = roll.target();
         }
 
@@ -475,7 +506,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 
         if (pitch.has_target())
         {
-            elevator_is_using_pid = true;
+            toggleElevatorPid(true);
             target_pitch = pitch.target();
         }
 
@@ -506,7 +537,7 @@ void jaiabot::apps::BotPidControl::handle_command(
     {
         case jaiabot::protobuf::SETPOINT_STOP:
             throttle = 0.0;
-            throttleMode = MANUAL;
+            setThrottleMode(MANUAL);
             break;
         case jaiabot::protobuf::SETPOINT_IVP_HELM: handle_helm_course(command.helm_course()); break;
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
@@ -524,25 +555,25 @@ void jaiabot::apps::BotPidControl::handle_helm_course(
 {
     if (desired_course.has_heading())
     {
-        rudder_is_using_pid = true;
+        toggleRudderPid(true);
         target_heading = desired_course.heading();
         engineering_status.set_heading_with_units(desired_course.heading_with_units());
     }
     if (desired_course.has_speed())
     {
-        throttleMode = PID_SPEED;
+        setThrottleMode(PID_SPEED);
         target_speed = desired_course.speed();
         engineering_status.set_speed_with_units(desired_course.speed_with_units());
     }
     // TO DO:  PID for the depth that uses elevators while moving forward
     if (desired_course.has_pitch())
     {
-        elevator_is_using_pid = true;
+        toggleElevatorPid(true);
         target_pitch = desired_course.pitch();
     }
     if (desired_course.has_roll())
     {
-        elevator_is_using_pid = true;
+        toggleElevatorPid(true);
         target_roll = desired_course.roll();
     }
     // TO DO:  PID for z_rate and altitude, if present?
@@ -553,13 +584,13 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 {
     if (remote_control.has_heading())
     {
-        rudder_is_using_pid = true;
+        toggleRudderPid(true);
         target_heading = remote_control.heading();
         engineering_status.set_heading_with_units(remote_control.heading_with_units());
     }
     if (remote_control.has_speed())
     {
-        throttleMode = PID_SPEED;
+        setThrottleMode(PID_SPEED);
         target_speed = remote_control.speed();
         engineering_status.set_speed_with_units(remote_control.speed_with_units());
     }
@@ -567,7 +598,7 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 
 void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
-    throttleMode = PID_DEPTH;
+    setThrottleMode(PID_DEPTH);
     target_depth = dive_depth;
     engineering_status.clear_heading();
     engineering_status.clear_speed();
@@ -575,7 +606,7 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 
 void jaiabot::apps::BotPidControl::handle_powered_ascent()
 {
-    throttleMode = MANUAL;
+    setThrottleMode(MANUAL);
     throttle = 50.0;
     engineering_status.clear_heading();
     engineering_status.clear_speed();

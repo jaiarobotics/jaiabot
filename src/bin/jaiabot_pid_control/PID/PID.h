@@ -265,4 +265,8 @@ public:
         direction = dir;
     }
 
+    void reset_iterm() {
+        iterm = 0;
+    }
+
 };
