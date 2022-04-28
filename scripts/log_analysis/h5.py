@@ -24,6 +24,10 @@ EngineeringCommand_depth = EngineeringCommand + 'depth/target'
 EngineeringCommand_speed = EngineeringCommand + 'speed/target'
 EngineeringCommand_timeout = EngineeringCommand + 'timeout'
 
+EngineeringCommand_depth_Kp = EngineeringCommand + 'depth/Kp'
+EngineeringCommand_depth_Ki = EngineeringCommand + 'depth/Ki'
+EngineeringCommand_depth_Kd = EngineeringCommand + 'depth/Kd'
+
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
 
@@ -33,9 +37,6 @@ DesiredCourse_speed = 'goby::middleware::frontseat::desired_course/goby.middlewa
 
 DesiredSetpoints_time = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/_utime_'
 DesiredSetpoints_dive_depth = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/dive_depth'
-
-PIDCommand_time = 'jaiabot::bot_status;0/jaiabot.protobuf.PIDCommand/_utime_'
-PIDCommand_depth_Kp = 'jaiabot::bot_status;0/jaiabot.protobuf.PIDCommand/depth/Kp'
 
 def date_from_micros(micros):
     date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()
