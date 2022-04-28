@@ -75,8 +75,6 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1;
-
 // for string delimiter
 std::vector<std::string> split(std::string s, std::string delimiter)
 {
@@ -96,7 +94,7 @@ std::vector<std::string> split(std::string s, std::string delimiter)
 }
 
 jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
-    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(loop_freq * si::hertz)
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(2 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);
