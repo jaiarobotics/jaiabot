@@ -23,6 +23,8 @@ import json
 from string import Template
 import glob
 
+from copy import deepcopy
+
 browser = webbrowser.get()
 tempdir = tempfile.TemporaryDirectory()
 temppath = tempdir.name + '/'
@@ -119,8 +121,8 @@ def generate_webpage(fields, data_filenames, bdr_file):
     fig.update_layout(title='Jaiabot Data', hovermode="closest")
 
     for series_index, field in enumerate(fields):
-        series_x = h5_fileset[field.x_datapath]
-        series_y = h5_fileset[field.y_datapath]
+        series_x = deepcopy(h5_fileset[field.x_datapath])
+        series_y = deepcopy(h5_fileset[field.y_datapath])
 
         if series_x is None or series_y is None:
             continue
@@ -139,14 +141,17 @@ def generate_webpage(fields, data_filenames, bdr_file):
         hovertext = None
 
         if field.y_filter:
-            series_y.data = list(filter(field.y_filter, series_y.data))
+            series_x.data = [series_x.data[i] for i in range(0, len(series_x.data)) if field.y_filter(series_y.data[i])]
+            series_y.data = [series_y.data[i] for i in range(0, len(series_y.data)) if field.y_filter(series_y.data[i])]
+
+        assert(len(series_x.data) == len(series_y.data))
 
         # Hovertext for enum types is their enum string
         enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
         if enum_dict:
             hovertext = list(map(lambda i: enum_dict[i], series_y.data))
 
-        fig.append_trace(go.Scatter(x=series_x.data, y=series_y.data, mode='lines', name=series_y.name, connectgaps=False, hovertext=hovertext), series_index + 1, 1)
+        fig.append_trace(go.Scatter(x=series_x.data, y=series_y.data, mode='lines+markers', name=series_y.name, connectgaps=False, hovertext=hovertext), series_index + 1, 1)
         fig.update_yaxes(title_text=yaxis_title, row=series_index + 1)
 
     substitution_dict['charts_div'] = fig.to_html(include_plotlyjs=False, full_html=False)
@@ -167,6 +172,8 @@ available_fields = [
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_heading, y_axis_label='Target Heading (°)'),
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_timeout, y_axis_label='Timeout (s)'),
 
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Old Target Depth (m)'),
+
     Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_motor, y_axis_label='Motor (%)', default_on=True),
 
     Field(x_datapath=PressureTemperature_time, y_datapath=PressureTemperature_pressure, y_axis_label='Pressure (mbar)'),
@@ -183,7 +190,9 @@ available_fields = [
 
     Field(x_datapath=DesiredSetpoints_time, y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
 
-    Field(x_datapath=PIDCommand_time, y_datapath=PIDCommand_depth_Kp, y_axis_label='Kp gain')
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Kp, y_axis_label='Depth P gain'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Ki, y_axis_label='Depth I gain'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Kd, y_axis_label='Depth D gain'),
 ]
 
 
@@ -261,9 +270,6 @@ class MainWindow(QWidget):
         print('Opening files: ', data_filenames)
 
         generate_webpage(fields, data_filenames, None)
-
-        # Unselect all files
-        self.file_selector_list.clearSelection()
 
     def unselect_all_files(self):
         # Unselect all files
