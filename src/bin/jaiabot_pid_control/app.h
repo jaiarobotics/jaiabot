@@ -34,7 +34,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
         PID_DEPTH
     };
 
-    ThrottleMode throttleMode = MANUAL;
+    ThrottleMode _throttleMode = MANUAL;
+    void setThrottleMode(const ThrottleMode newThrottleMode);
 
     float throttle = 0.0;
 
@@ -50,7 +51,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float target_heading = 0.0;
     float actual_heading = 0.0;
     float rudder = 0.0;
-    bool rudder_is_using_pid = false;
+    bool _rudder_is_using_pid = false;
+    void toggleRudderPid(const bool enabled);
     Pid* heading_pid;
 
     // Roll targeting
@@ -58,7 +60,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float actual_roll = 0.0;
     float elevator_delta = 0.0;
     float port_elevator = 0.0, stbd_elevator = 0.0;
-    bool elevator_is_using_pid = false;
+    bool _elevator_is_using_pid = false;
+    void toggleElevatorPid(const bool enabled);
     Pid* roll_pid;
 
     // Pitch targeting
