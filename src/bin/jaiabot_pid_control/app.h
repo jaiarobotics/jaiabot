@@ -47,6 +47,11 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     float target_depth = 0.0;
     Pid* throttle_depth_pid;
 
+    bool use_rpm_table_for_speed = false;
+
+    // maps speed to rpm value
+    std::map<float, int> speed_to_rpm_;
+
     // Course targeting
     float target_heading = 0.0;
     float actual_heading = -1e10;
