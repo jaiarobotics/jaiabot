@@ -157,7 +157,9 @@ struct Transit;
 struct RemoteControl;
 namespace remotecontrol
 {
+struct RemoteControlEndSelection;
 struct StationKeep;
+struct SurfaceDrift;
 struct Setpoint;
 } // namespace remotecontrol
 
@@ -524,9 +526,11 @@ struct Transit : boost::statechart::state<Transit, Movement>,
                                                            &Transit::waypoint_reached>;
 };
 
-struct RemoteControl : boost::statechart::state<RemoteControl, Movement, remotecontrol::StationKeep>
+struct RemoteControl
+    : boost::statechart::state<RemoteControl, Movement, remotecontrol::RemoteControlEndSelection>
 {
-    using StateBase = boost::statechart::state<RemoteControl, Movement, remotecontrol::StationKeep>;
+    using StateBase =
+        boost::statechart::state<RemoteControl, Movement, remotecontrol::RemoteControlEndSelection>;
     RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
     ~RemoteControl() {}
 
@@ -535,6 +539,27 @@ struct RemoteControl : boost::statechart::state<RemoteControl, Movement, remotec
 
 namespace remotecontrol
 {
+// dummy state that should immediately transit to the correct RemoteControl child state based on the configured rc_setpoint_end value
+struct RemoteControlEndSelection
+    : boost::statechart::state<RemoteControlEndSelection, RemoteControl>,
+      AppMethodsAccess<RemoteControlEndSelection>
+{
+    struct EvRCEndSelect : boost::statechart::event<EvRCEndSelect>
+    {
+    };
+
+    using StateBase = boost::statechart::state<RemoteControlEndSelection, RemoteControl>;
+    RemoteControlEndSelection(typename StateBase::my_context c) : StateBase(c)
+    {
+        post_event(EvRCEndSelect());
+    }
+    ~RemoteControlEndSelection() {}
+
+    boost::statechart::result react(const EvRCEndSelect&);
+
+    using reactions = boost::statechart::custom_reaction<EvRCEndSelect>;
+};
+
 struct StationKeep
     : boost::statechart::state<StationKeep, RemoteControl>,
       Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP,
@@ -544,6 +569,21 @@ struct StationKeep
     using StateBase = boost::statechart::state<StationKeep, RemoteControl>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
+};
+
+struct SurfaceDrift
+    : boost::statechart::state<SurfaceDrift, RemoteControl>,
+      Notify<SurfaceDrift, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
+    SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
+    ~SurfaceDrift() {}
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, SurfaceDrift, &SurfaceDrift::loop>>;
 };
 
 struct Setpoint
@@ -557,9 +597,9 @@ struct Setpoint
 
     void loop(const EvLoop&);
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvRCSetpointComplete, StationKeep>,
-                         boost::statechart::in_state_reaction<EvLoop, Setpoint, &Setpoint::loop>>;
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvRCSetpointComplete, RemoteControlEndSelection>,
+        boost::statechart::in_state_reaction<EvLoop, Setpoint, &Setpoint::loop>>;
 
   private:
     goby::time::SteadyClock::time_point setpoint_stop_;
