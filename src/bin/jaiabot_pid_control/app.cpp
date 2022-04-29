@@ -29,6 +29,8 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
+#include "goby/util/sci.h"                                // for linear_interpolate
+
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 const float THROTTLE_FOR_ZERO_NET_BOUYANCY = -35.0; // throttle that equalizes the bouyancy force of bot
@@ -75,6 +77,24 @@ jaiabot::apps::BotPidControl::BotPidControl()
     : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
 {
     glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
+
+    auto app_config = cfg();
+
+    // Setup speed => rpm table
+    if (app_config.has_use_rpm_table_for_speed()) {
+        use_rpm_table_for_speed = app_config.use_rpm_table_for_speed();
+    }
+
+    if (use_rpm_table_for_speed)
+    {
+        if (app_config.rpm_table_size() < 2)
+            glog.is_die() && glog << "Must define at least two entries in the 'rpm_table' when "
+                                    "using 'use_rpm_table_for_speed == true'"
+                                 << std::endl;
+
+        for (const auto& entry : app_config.rpm_table())
+            speed_to_rpm_.insert(std::make_pair(entry.speed(), entry.rpm()));
+    }
 
     // Create our PID objects
     if (cfg().has_throttle_speed_pid_gains())
@@ -235,10 +255,16 @@ void jaiabot::apps::BotPidControl::loop()
     {
         case MANUAL: break;
         case PID_SPEED:
-            // Compute new throttle value
-            if (throttle_speed_pid->need_compute())
-            {
-                throttle_speed_pid->compute();
+
+            if (use_rpm_table_for_speed) {
+                    throttle = goby::util::linear_interpolate(target_speed, speed_to_rpm_);
+            }
+            else {
+                // Compute new throttle value
+                if (throttle_speed_pid->need_compute())
+                {
+                    throttle_speed_pid->compute();
+                }
             }
 
             glog.is_debug2() && glog << group("main") << "target_speed = " << target_speed
