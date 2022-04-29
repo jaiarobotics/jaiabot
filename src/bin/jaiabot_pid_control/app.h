@@ -41,6 +41,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     float actual_speed = 0.0;
     float target_speed = 0.0;
+    float processed_target_speed = 0.0;
     Pid* throttle_speed_pid;
 
     float actual_depth = 0.0;

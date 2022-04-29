@@ -101,11 +101,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
     {
         auto& gains = cfg().throttle_speed_pid_gains();
         throttle_speed_pid =
-            new Pid(&actual_speed, &throttle, &target_speed, gains.kp(), gains.ki(), gains.kd());
+            new Pid(&actual_speed, &throttle, &processed_target_speed, gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
-        throttle_speed_pid = new Pid(&actual_speed, &throttle, &target_speed, 20, 10, 0);
+        throttle_speed_pid = new Pid(&actual_speed, &throttle, &processed_target_speed, 20, 10, 0);
     }
     throttle_speed_pid->set_limits(0.0, 100.0);
     throttle_speed_pid->set_auto();
@@ -256,20 +256,33 @@ void jaiabot::apps::BotPidControl::loop()
         case MANUAL: break;
         case PID_SPEED:
 
-            if (use_rpm_table_for_speed) {
-                    throttle = goby::util::linear_interpolate(target_speed, speed_to_rpm_);
-            }
-            else {
-                // Compute new throttle value
-                if (throttle_speed_pid->need_compute())
-                {
-                    throttle_speed_pid->compute();
+            {
+                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
+                float speed_multiplier = 1.0;
+                if (_rudder_is_using_pid && actual_heading > -1000.0) {
+                    speed_multiplier = max(0.25, min(cos((actual_heading - target_heading) * M_PI / 180.0), 1.0));
                 }
-            }
+                else {
+                    speed_multiplier = 1.0;
+                }
+                processed_target_speed = target_speed * speed_multiplier;
 
-            glog.is_debug2() && glog << group("main") << "target_speed = " << target_speed
-                                     << ", actual_speed = " << actual_speed
-                                     << ", throttle = " << throttle << std::endl;
+                if (use_rpm_table_for_speed) {
+                        throttle = goby::util::linear_interpolate(processed_target_speed, speed_to_rpm_);
+                }
+                else {
+                    // Compute new throttle value
+                    if (throttle_speed_pid->need_compute())
+                    {
+                        throttle_speed_pid->compute();
+                    }
+                }
+
+                glog.is_debug2() && glog << group("main") << "target_speed = " << target_speed
+                                        << ", processed_target_speed = " << processed_target_speed
+                                        << ", actual_speed = " << actual_speed
+                                        << ", throttle = " << throttle << std::endl;
+            }
             break;
         case PID_DEPTH:
             // Compute new throttle value
@@ -457,12 +470,6 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
         if (speed.has_kp())
         {
             throttle_speed_pid->tune(speed.kp(), speed.ki(), speed.kd());
-        }
-
-        // Make target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
-        if (_rudder_is_using_pid && actual_heading > -1000.0) {
-            auto speed_multiplier = max(0.25, min(cos((actual_heading - target_heading) * M_PI / 180.0), 1.0));
-            target_speed *= speed_multiplier;
         }
 
     }
