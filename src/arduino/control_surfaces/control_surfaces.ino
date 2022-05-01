@@ -17,7 +17,6 @@ constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
 using serial_size_type = uint16_t;
-uint8_t this_address = 0;
 
 constexpr int BITS_IN_BYTE = 8;
 
@@ -34,10 +33,6 @@ int32_t command_timeout = -1;
 void handle_timeout();
 void halt_all();
 
-// Motor ramp-up
-float motor = 0.0; // motor should range from -100.0 to +100.0
-const float MOTOR_DAMP = 0.2;
-
 static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
@@ -46,6 +41,9 @@ bool data_to_receive = false;
 jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
 jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
 
+// Motor stuff
+  const uint32_t max_motor_step = 10;
+  int32_t motor = 0;
 
 enum AckCode {
   STARTUP = 0,
@@ -56,16 +54,16 @@ enum AckCode {
 
 void send_ack()
 {
+  const size_t max_ack_size = 256;
+
   bool status = true;
-  uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfacesAck_size] = {0};
+  uint8_t pb_binary_data[max_ack_size] = {0};
   serial_size_type message_length = 0;
-  {
-    {
-      pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
-      status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
-      message_length = stream.bytes_written;
-    }
-  }
+
+  pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
+  status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
+  message_length = stream.bytes_written;
+
   if (status)
   {
     Serial.write(SERIAL_MAGIC, SERIAL_MAGIC_BYTES);
@@ -143,13 +141,14 @@ void loop()
               DEBUG_MESSAGE("Decoding ControlSurfaces protobuf failed:");
               DEBUG_MESSAGE(PB_GET_ERROR(&stream));
             }
-            DEBUG_MESSAGE("Received ControlSurfaces");
 
             if (command.motor == 0) {
               motor = command.motor;
             }
             else {
-              motor = MOTOR_DAMP * command.motor + (1.0 - MOTOR_DAMP) * motor;
+              int32_t delta_motor = command.motor - motor;
+              delta_motor = clamp(delta_motor, -max_motor_step, max_motor_step);
+              motor += delta_motor;
             }
 
             // Keep motor value in useful range (not abs(motor) < 30)
@@ -222,4 +221,5 @@ void halt_all() {
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
 PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
+PB_BIND(jaiabot_protobuf_ControlSurfaces_Config, jaiabot_protobuf_ControlSurfaces_Config, 2)
 PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)

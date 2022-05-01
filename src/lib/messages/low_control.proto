@@ -6,7 +6,7 @@ import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.protobuf;
 
-message VehicleCommand
+message LowControl
 {
     option (dccl.msg) = {
         unit_system: "si"
@@ -17,36 +17,10 @@ message VehicleCommand
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
 
-    enum CommandType
-    {
-        LowLevel = 1;
-        Helm = 2;
-        Dive = 3;
-    }
-    required CommandType command_type = 4;
-
     optional ControlSurfaces control_surfaces = 5;
-
-    message HelmCommand
-    {
-        required float course = 1;
-        optional float course_kp = 2;
-        optional float course_ki = 3;
-        optional float course_kd = 4;
-    }
-    optional HelmCommand helm_command = 6;
-
-    message DiveCommand
-    {
-        required float depth = 1;
-        optional float speed = 2;
-        optional int32 interval_count = 3;
-        optional float interval_duration = 4;
-    }
-    optional DiveCommand dive_command = 7;
 }
 
-message ControlAck
+message LowControlAck
 {
     option (dccl.msg) = {
         unit_system: "si"
