@@ -1,6 +1,8 @@
 #ifndef BOT_PID_CONTROL_H
 #define BOT_PID_CONTROL_H
 
+#include <atomic>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/multi_thread.h>
@@ -9,6 +11,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 
 #include "PID/PID.h"
 
@@ -72,6 +75,9 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     
     bool engineering_messages_enabled = false;
     jaiabot::protobuf::EngineeringStatus engineering_status;
+
+    jaiabot::protobuf::LowControl cmd_msg;
+    std::atomic<int> id;
 
   private:
     void loop() override;

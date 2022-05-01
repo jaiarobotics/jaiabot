@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/control_surfaces.proto";
 
 package jaiabot.protobuf;
 
