@@ -259,13 +259,18 @@ void jaiabot::apps::BotPidControl::loop()
             {
                 // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
                 float speed_multiplier = 1.0;
+
                 if (_rudder_is_using_pid && actual_heading > -1000.0) {
-                    speed_multiplier = max(0.25, min(cos((actual_heading - target_heading) * M_PI / 180.0), 1.0));
+                    speed_multiplier = cos((actual_heading - target_heading) * M_PI / 180.0);
                 }
                 else {
                     speed_multiplier = 1.0;
                 }
                 processed_target_speed = target_speed * speed_multiplier;
+                
+                if (processed_target_speed != 0.0) {
+                    processed_target_speed = max(0.5f, processed_target_speed);
+                }
 
                 if (use_rpm_table_for_speed) {
                         throttle = goby::util::linear_interpolate(processed_target_speed, speed_to_rpm_);
