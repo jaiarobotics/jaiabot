@@ -1,7 +1,7 @@
-const P0 = {location: {lon: -71.273056, lat: 41.662665}}
-const P1 = {location: {lon: -71.2732990507409, lat: 41.66249821600168}}
-const P2 = {location: {lon: -71.27355703837601, lat: 41.66201485801076}}
-const P3 = {location: {lon: -71.27382208146715, lat: 41.66166863453342}}
+const P0 = {location: {lon: -71.273047, lat: 41.662612}}
+const P1 = {location: {lon: -71.274211, lat: 41.661849}}
+const P2 = {location: {lon: -71.274361, lat: 41.662299}
+const P3 = {location: {lon: -71.274854, lat: 41.662726}}
 
 function _mission(botId, goals) {
   const mission = {
