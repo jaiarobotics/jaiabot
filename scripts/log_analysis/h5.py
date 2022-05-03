@@ -14,7 +14,7 @@ PressureTemperature_time = 'jaiabot::pressure_temperature/jaiabot.protobuf.Press
 PressureTemperature_pressure = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/pressure'
 PressureTemperature_temperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/temperature'
 
-EngineeringCommand = 'jaiabot::bot_status;0/jaiabot.protobuf.EngineeringCommand/'
+EngineeringCommand = 'jaiabot::engineering;0/jaiabot.protobuf.EngineeringCommand/'
 
 EngineeringCommand_time = EngineeringCommand + '_utime_'
 EngineeringCommand_throttle = EngineeringCommand + 'throttle'
