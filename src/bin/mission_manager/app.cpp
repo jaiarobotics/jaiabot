@@ -119,14 +119,17 @@ jaiabot::apps::MissionManager::MissionManager()
             cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
 
         intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& command) { handle_command(command); },
+            [this](const protobuf::Command& command) {
+                handle_command(command);
+                // republish for logging purposes
+                interprocess().publish<jaiabot::groups::hub_command>(command);
+            },
             *groups::hub_command_this_bot, command_subscriber);
     }
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
-        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints)
-        {
+        [this](const goby::middleware::frontseat::protobuf::DesiredCourse& desired_setpoints) {
             glog.is_verbose() && glog << "Received DesiredCourse: "
                                       << desired_setpoints.ShortDebugString() << std::endl;
             glog.is_verbose() && glog << "Relaying flag: "
@@ -173,16 +176,14 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for sensor measurements
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
-        {
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal)
-        {
+        [this](const jaiabot::protobuf::SalinityData& sal) {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
