@@ -76,9 +76,9 @@ int main(int argc, char* argv[])
 jaiabot::apps::BotPidControl::BotPidControl()
     : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
 {
-    glog.is_debug1() && glog << "BotPidControl starting" << std::endl;
-
     auto app_config = cfg();
+    glog.is_verbose() && glog << "BotPidControl starting" << std::endl;
+    glog.is_verbose() && glog << "Config: " << app_config.ShortDebugString() << std::endl;
 
     // Setup speed => rpm table
     if (app_config.has_use_rpm_table_for_speed()) {
@@ -273,7 +273,8 @@ void jaiabot::apps::BotPidControl::loop()
                 }
 
                 if (use_rpm_table_for_speed) {
-                        throttle = goby::util::linear_interpolate(processed_target_speed, speed_to_rpm_);
+                    throttle = goby::util::linear_interpolate(processed_target_speed, speed_to_rpm_);
+                    glog.is_debug2() && glog << group("main") << "using rpm table, processed_target_speed = " << processed_target_speed << " throttle = " << throttle << std::endl;
                 }
                 else {
                     // Compute new throttle value
@@ -281,12 +282,13 @@ void jaiabot::apps::BotPidControl::loop()
                     {
                         throttle_speed_pid->compute();
                     }
+
+                    glog.is_debug2() && glog << group("main") << "using speed PID, target_speed = " << target_speed
+                                            << " processed_target_speed = " << processed_target_speed
+                                            << " actual_speed = " << actual_speed
+                                            << " throttle = " << throttle << std::endl;
                 }
 
-                glog.is_debug2() && glog << group("main") << "target_speed = " << target_speed
-                                        << ", processed_target_speed = " << processed_target_speed
-                                        << ", actual_speed = " << actual_speed
-                                        << ", throttle = " << throttle << std::endl;
             }
             break;
         case PID_DEPTH:
