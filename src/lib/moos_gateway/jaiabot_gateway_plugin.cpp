@@ -24,6 +24,20 @@ extern "C"
 void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
     const protobuf::IvPBehaviorUpdate& update)
 {
+    // if we're waiting for the new NAV_* to be published post datum update,
+    // hold back on publishing this update until we get a new NAV_X
+    if (pending_datum_update_)
+    {
+        glog.is_debug1() &&
+            glog << "Waiting on NAV_* to be republished before writing a new IvPBehaviorUpdate"
+                 << std::endl;
+        pending_bhv_update_.reset(new protobuf::IvPBehaviorUpdate(update));
+        return;
+    }
+
+    glog.is_debug1() && glog << "Processing IvPBehaviorUpdate: " << update.ShortDebugString()
+                             << std::endl;
+
     // we don't want the Helm in Park ever
     moos().comms().Notify("MOOS_MANUAL_OVERRIDE", "false");
 

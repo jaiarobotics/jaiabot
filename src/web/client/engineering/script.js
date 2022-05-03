@@ -211,7 +211,6 @@ class Slider {
       document.addEventListener('keydown', function (e) {
         if (elementIsVisible(self.sliderElement)) {
           for (let keyCode of self.decrementKeys) {
-            console.log(keyCode)
             if (!pressedKeys[keyCode] && e.code != keyCode) {
               return
             }
@@ -346,7 +345,7 @@ stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Eleva
 rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, ['KeyQ'], ['KeyE'])
 pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, ['KeyK'], ['KeyI'])
 
-timeoutSlider = new Slider(horizontal, "timeout", 0, 30, "Timeout", false, false, "timeout", stepSize=2, decrementKeys=["KeyV"], incrementKeys=["KeyB"])
+timeoutSlider = new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false, "timeout", stepSize=5, decrementKeys=["KeyV"], incrementKeys=["KeyB"], fineStepSize=1)
 timeoutSlider.value = 5
 
 /////////// PIDGains form class //////////
