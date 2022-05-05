@@ -14,4 +14,19 @@ message DeviceMetadata
     };
 
     required string name = 1;
+
+    message Version
+    {
+        required uint32 major = 1;
+        required uint32 minor = 2;
+        required string patch = 3;
+        optional string githash = 4;
+    }
+
+    required Version jaiabot_version = 2;
+    required string goby_version = 3;
+    required string moos_version = 4;
+
+    // no way yet to get this information, but will keep this as a placeholder
+    optional string ivp_version = 5;
 }
