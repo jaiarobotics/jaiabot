@@ -21,10 +21,10 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdlib>
-using namespace std;
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <goby/version.h>
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
@@ -34,10 +34,11 @@ using namespace jaiabot::protobuf;
 #include "jaiabot/groups.h"
 using namespace jaiabot::groups;
 
+#include "jaiabot/version.h"
+
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase =
-    goby::zeromq::SingleThreadApplication<jaiabot::config::SingleThreadPattern>;
+using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::SingleThreadPattern>;
 
 namespace jaiabot
 {
@@ -46,28 +47,44 @@ namespace apps
 class SingleThreadPattern : public ApplicationBase
 {
   public:
-    SingleThreadPattern() : ApplicationBase(0.0 * si::hertz) {
-      auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
-      string jaia_device_name;
-      if (jaia_name_c) {
-        jaia_device_name = string(jaia_name_c);
-      }
-      else {
-        char buffer[256];
-        if (gethostname(buffer, 256) == 0) {
-          jaia_device_name = string(buffer);
+    SingleThreadPattern() : ApplicationBase(0.0 * si::hertz)
+    {
+        auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
+        std::string jaia_device_name;
+        if (jaia_name_c)
+        {
+            jaia_device_name = std::string(jaia_name_c);
         }
-        else {
-          jaia_device_name = "<No Name>";
+        else
+        {
+            char buffer[256];
+            if (gethostname(buffer, 256) == 0)
+            {
+                jaia_device_name = std::string(buffer);
+            }
+            else
+            {
+                jaia_device_name = "<No Name>";
+            }
         }
-      }
 
-      glog.is_verbose() && glog << "jaia_device_name = " << jaia_device_name << endl;
+        DeviceMetadata metadata;
+        metadata.set_name(jaia_device_name);
+        auto& jaiabot_version = *metadata.mutable_jaiabot_version();
+        jaiabot_version.set_major(JAIABOT_VERSION_MAJOR);
+        jaiabot_version.set_minor(JAIABOT_VERSION_MINOR);
+        jaiabot_version.set_patch(JAIABOT_VERSION_PATCH);
 
-      auto metadata = DeviceMetadata();
-      metadata.set_name(jaia_device_name);
+#ifdef JAIABOT_VERSION_GITHASH
+        jaiabot_version.set_githash(JAIABOT_VERSION_GITHASH);
+#endif
 
-      interprocess().publish<jaia_metadata>(metadata);
+        metadata.set_goby_version(goby::VERSION_STRING);
+        metadata.set_moos_version(MOOS_VERSION);
+
+        glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
+
+        interprocess().publish<jaia_metadata>(metadata);
     }
 
   private:
@@ -79,8 +96,7 @@ class SingleThreadPattern : public ApplicationBase
 int main(int argc, char* argv[])
 {
     return goby::run<jaiabot::apps::SingleThreadPattern>(
-        goby::middleware::ProtobufConfigurator<jaiabot::config::SingleThreadPattern>(argc,
-                                                                                          argv));
+        goby::middleware::ProtobufConfigurator<jaiabot::config::SingleThreadPattern>(argc, argv));
 }
 
 void jaiabot::apps::SingleThreadPattern::loop()
