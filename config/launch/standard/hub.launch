@@ -2,5 +2,6 @@
 
 gobyd <(../../gen/hub.py gobyd) -zzz -n
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
-jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -v
-jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
+jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager)
+jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal)
+jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)

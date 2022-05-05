@@ -12,6 +12,7 @@ jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobot
 jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
+jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 
 # vehicle MOOS components
 [kill=SIGTERM] ../../gen/moos_gen.sh
