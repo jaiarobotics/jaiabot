@@ -1542,12 +1542,14 @@ export default class AXUI extends React.Component {
 
   // Runs the currently active onscreen mission
   runMissionClicked() {
-    let missions = this.missions
-    console.log('Running mission: ', missions)
+    if (confirm("Click the OK button to run this mission.")) {
+      let missions = this.missions
+      console.log('Running mission: ', missions)
 
-    for (let botId in missions) {
-      let bot_mission = missions[botId]
-      this.sna.postCommand(bot_mission)
+      for (let botId in missions) {
+        let bot_mission = missions[botId]
+        this.sna.postCommand(bot_mission)
+      }
     }
   }
 
