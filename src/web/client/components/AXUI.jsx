@@ -1444,22 +1444,22 @@ export default class AXUI extends React.Component {
             <button type="button" className="globalCommand" title="Run Mission" onClick={this.runMissionClicked.bind(this)}>
               <Icon path={mdiPlay} title="Run Mission"/>
             </button>
-            <button type="button" className="globalCommand" title="Run Home" onClick={this.runHardcodedMissionClicked.bind(this, 0)}>
+            <button type="button" className="globalCommand" title="Run Home" onClick={this.loadHardcodedMissionClicked.bind(this, 0)}>
               Home
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.runHardcodedMissionClicked.bind(this, 1)}>
+            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMissionClicked.bind(this, 1)}>
               M 1
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.runHardcodedMissionClicked.bind(this, 2)}>
+            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMissionClicked.bind(this, 2)}>
               M 2
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.runHardcodedMissionClicked.bind(this, 3)}>
+            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMissionClicked.bind(this, 3)}>
               M 3
             </button>
-            <button type="button" className="globalCommand" title="RC Dive" onClick={this.runHardcodedMissionClicked.bind(this, 4)}>
+            <button type="button" className="globalCommand" title="RC Dive" onClick={this.loadHardcodedMissionClicked.bind(this, 4)}>
               Dive
             </button>
-            <button type="button" className="globalCommand" title="RC Dive" onClick={this.runHardcodedMissionClicked.bind(this, 5)}>
+            <button type="button" className="globalCommand" title="RC Dive" onClick={this.loadHardcodedMissionClicked.bind(this, 5)}>
               Demo
             </button>
             <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
@@ -1540,33 +1540,25 @@ export default class AXUI extends React.Component {
     this.missionLayer.setSource(vectorSource)
   }
 
-  sendMissionCommand(botId) {
-    // Issue command
-    if (!(botId in this.missions)) {
-      console.log("No mission data for bot " + botId + "!")
-      return
-    }
-
-    this.sna.postCommand(this.missions[botId])
-  }
-
+  // Runs the currently active onscreen mission
   runMissionClicked() {
-    this.sendMissionCommand(0)
-  }
+    let missions = this.missions
+    console.log('Running mission: ', missions)
 
-  runHardcodedMissionClicked(index) {
-    console.log('Running mission: ', missions[index])
-
-    for (let botId in missions[index]) {
-      let bot_mission = missions[index][botId]
+    for (let botId in missions) {
+      let bot_mission = missions[botId]
       this.sna.postCommand(bot_mission)
     }
+  }
 
+  // Load the hardcoded mission as the active mission
+  loadHardcodedMissionClicked(index) {
     // Add waypoint markers
     this.missions = missions[index]
     this.updateMissionLayer()
   }
 
+  // Clears the currently active mission
   clearMissionClicked() {
     this.missions = {}
     this.updateMissionLayer()
