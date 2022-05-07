@@ -88,6 +88,9 @@ jaiabot::apps::MissionManager::MissionManager()
     glog.add_group("movement", goby::util::Colors::lt_green);
     glog.add_group("task", goby::util::Colors::lt_blue);
 
+    // Set a mutable config, so we can adjust outer_speed and transit_speed
+    _active_cfg = cfg();
+
     interthread().subscribe<jaiabot::groups::state_change>(
         [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
@@ -182,11 +185,18 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->process_event(ev);
         });
 
+    // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& sal) {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
+        });
+
+    // subscribe for jaiabot::messages::EngineeringCommands
+    interprocess().subscribe<jaiabot::groups::engineering>(
+        [this](const protobuf::EngineeringCommand& command) {
+            handle_engineering_command(command);
         });
 }
 
@@ -307,4 +317,21 @@ void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
         machine_->process_event(statechart::EvSelfTestSuccessful());
     else
         machine_->process_event(statechart::EvSelfTestFails());
+}
+
+void jaiabot::apps::MissionManager::handle_engineering_command(const protobuf::EngineeringCommand& command) {
+    glog.is_debug1() && glog << "Received engineering_command: " << command.ShortDebugString() << std::endl;
+
+    if (command.has_stationkeep_outer_speed()) {
+        _active_cfg.set_stationkeep_outer_speed_with_units(command.stationkeep_outer_speed_with_units());
+    }
+
+    if (command.has_transit_speed()) {
+        _active_cfg.set_transit_speed_with_units(command.transit_speed_with_units());
+    }
+
+}
+
+const jaiabot::config::MissionManager& jaiabot::apps::MissionManager::active_cfg() const {
+    return _active_cfg;
 }
