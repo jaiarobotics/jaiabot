@@ -115,7 +115,7 @@ void jaiabot::LiaisonJaiabot::loop()
     auto it = vehicle_data_.find(current_vehicle_);
     if (it != vehicle_data_.end())
     {
-        jaiabot::protobuf::VehicleCommand cmd_msg;
+        jaiabot::protobuf::LowControl cmd_msg;
 
         auto& cmd = *cmd_msg.mutable_control_surfaces();
 
@@ -167,7 +167,7 @@ void jaiabot::LiaisonJaiabot::loop()
     }
 }
 
-void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::ControlAck& ack)
+void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::LowControlAck& ack)
 {
     glog.is_debug1() && glog << ack.ShortDebugString() << std::endl;
     auto it = vehicle_data_.find(ack.vehicle());
@@ -210,7 +210,7 @@ void jaiabot::LiaisonJaiabot::post_imu(const jaiabot::protobuf::IMUData& imu)
 }
 
 void jaiabot::LiaisonJaiabot::post_vehicle_command(
-    const jaiabot::protobuf::VehicleCommand& vehicle_command)
+    const jaiabot::protobuf::LowControl& vehicle_command)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
         bot_vehicle_command_text_->setText("<pre>" + vehicle_command.DebugString() + "</pre>");

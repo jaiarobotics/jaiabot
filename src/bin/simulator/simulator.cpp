@@ -41,7 +41,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
-#include "jaiabot/messages/vehicle_command.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -156,7 +156,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         });
 
     interprocess().subscribe<groups::vehicle_command>(
-        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command)
+        [this](const jaiabot::protobuf::LowControl& vehicle_command)
         {
             if (vehicle_command.has_control_surfaces())
                 process_control_surfaces(vehicle_command.control_surfaces());
