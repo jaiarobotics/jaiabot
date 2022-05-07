@@ -675,6 +675,9 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
     copy_gains(pitch_pid, engineering_status.mutable_pitch_pid_gains());
     copy_gains(roll_pid, engineering_status.mutable_roll_pid_gains());
 
+    engineering_status.set_throttle(throttle);
+    engineering_status.set_rudder(rudder);
+
     glog.is_debug1() && glog << "Publishing engineering status: " << engineering_status.ShortDebugString() << endl;
 
     interprocess().publish<jaiabot::groups::engineering>(engineering_status);
