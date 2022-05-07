@@ -165,21 +165,23 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
 
 available_fields = [
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_throttle, y_axis_label='Throttle (%)', default_on=True),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_throttle, y_axis_label='Manual Throttle (%)', default_on=True),
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_speed, y_axis_label='Target Speed (m/s)', default_on=True),
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Target Depth (m)'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_rudder, y_axis_label='Rudder'),
+    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_rudder, y_axis_label='Manual Rudder'),
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_heading, y_axis_label='Target Heading (°)'),
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_timeout, y_axis_label='Timeout (s)'),
 
     Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Old Target Depth (m)'),
 
     Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_motor, y_axis_label='Motor (%)', default_on=True),
+    Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_rudder, y_axis_label='Rudder'),
 
     Field(x_datapath=PressureTemperature_time, y_datapath=PressureTemperature_pressure, y_axis_label='Pressure (mbar)'),
     Field(x_datapath=PressureTemperature_time, y_datapath=PressureTemperature_temperature, y_axis_label='Temperature (℃)'),
 
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_speed_over_ground, y_axis_label='Speed over ground (m/s)'),
+    Field(x_datapath=BotStatus_time, y_datapath=BotStatus_attitude_heading, y_axis_label='Heading (°)'),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_course_over_ground, y_axis_label='Course over ground (°)'),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_depth, y_axis_label='Depth (m)', default_on=True),
     Field(x_datapath=BotStatus_time, y_datapath=BotStatus_salinity, y_axis_label='Salinity'),

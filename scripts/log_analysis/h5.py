@@ -4,6 +4,7 @@ import datetime
 BotStatus_time = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/_utime_'
 BotStatus_latitude = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
 BotStatus_longitude = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
+BotStatus_attitude_heading = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/heading'
 BotStatus_speed_over_ground = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/speed/over_ground'
 BotStatus_course_over_ground = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/course_over_ground'
 BotStatus_depth = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/depth'
@@ -30,6 +31,7 @@ EngineeringCommand_depth_Kd = EngineeringCommand + 'depth/Kd'
 
 VehicleCommand_time = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/_utime_'
 VehicleCommand_motor = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/motor'
+VehicleCommand_rudder = 'jaiabot::vehicle_command/jaiabot.protobuf.VehicleCommand/control_surfaces/rudder'
 
 DesiredCourse_time = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/_utime_'
 DesiredCourse_heading = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/heading'
