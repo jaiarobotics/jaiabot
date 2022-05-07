@@ -101,6 +101,22 @@ message EngineeringStatus
         }
     ];
 
+    optional double throttle = 20 [
+        (dccl.field) = {
+            min: 100,
+            max: 100,
+            precision: 0
+        }
+    ];
+
+    optional double rudder = 21 [
+        (dccl.field) = {
+            min: 100,
+            max: 100,
+            precision: 0
+        }
+    ];
+
     message PIDGains
     {
         optional double Kp = 2
