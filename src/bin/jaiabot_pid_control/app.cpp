@@ -581,6 +581,8 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_STOP:
             throttle = 0.0;
             setThrottleMode(MANUAL);
+            rudder = 0.0;
+            toggleRudderPid(false);
             break;
         case jaiabot::protobuf::SETPOINT_IVP_HELM: handle_helm_course(command.helm_course()); break;
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
