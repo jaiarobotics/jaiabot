@@ -41,7 +41,7 @@ template <typename Derived> class AppMethodsAccess
         return static_cast<const Derived*>(this)->outermost_context().app();
     }
 
-    const config::MissionManager& cfg() const { return this->app().cfg(); }
+    const config::MissionManager& cfg() const { return this->app().active_cfg(); }
 
     MissionManagerStateMachine& machine()
     {

@@ -10,6 +10,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "machine_common.h"
 
 namespace jaiabot
@@ -22,12 +23,15 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     MissionManager();
     ~MissionManager();
 
+    const config::MissionManager& active_cfg() const;
+
   private:
     void initialize() override;
     void finalize() override;
     void loop() override;
 
     void handle_command(const protobuf::Command& command);
+    void handle_engineering_command(const protobuf::EngineeringCommand& command);
 
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
 
@@ -35,6 +39,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
   private:
     std::unique_ptr<statechart::MissionManagerStateMachine> machine_;
+
+    config::MissionManager _active_cfg;    
 };
 
 } // namespace apps

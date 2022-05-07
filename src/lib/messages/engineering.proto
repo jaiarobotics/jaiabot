@@ -63,6 +63,15 @@ message EngineeringCommand
 
     optional PIDControl depth = 11;
 
+    optional double transit_speed = 20 [
+        default = 2,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
+    optional double stationkeep_outer_speed = 21 [
+        default = 1,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
+
     optional bool engineering_messages_enabled = 12;
 }
 
