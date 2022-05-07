@@ -16,7 +16,7 @@
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/vehicle_command.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
 #include "config.pb.h"
@@ -33,13 +33,13 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                    Wt::WContainerWidget* parent = 0);
 
-    void post_control_ack(const protobuf::ControlAck& ack);
+    void post_control_ack(const protobuf::LowControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
     void post_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv);
     void post_pt(const jaiabot::protobuf::PressureTemperatureData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
-    void post_vehicle_command(const jaiabot::protobuf::VehicleCommand& vehicle_command);
+    void post_vehicle_command(const jaiabot::protobuf::LowControl& vehicle_command);
 
   private:
     void loop();
@@ -96,7 +96,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
             Wt::WGroupBox* data_box;
             Wt::WText* data_text{0};
 
-            protobuf::ControlAck latest_ack;
+            protobuf::LowControlAck latest_ack;
 
             // must be static, not sure why (segfault in JSignal otherwise)
             static void timeout_slider_moved(int value, Wt::WText* text)
@@ -242,7 +242,7 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
                 int index)
         : LiaisonCommsThread<LiaisonJaiabot>(tab, config, index), tab_(tab)
     {
-        interprocess().subscribe<groups::control_ack>([this](const protobuf::ControlAck& ack) {
+        interprocess().subscribe<groups::control_ack>([this](const protobuf::LowControlAck& ack) {
             tab_->post_to_wt([=]() { tab_->post_control_ack(ack); });
         });
 
@@ -277,7 +277,7 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
 
         // post the control surfaces data in its own box
         interprocess().subscribe<groups::vehicle_command>(
-            [this](const jaiabot::protobuf::VehicleCommand& vehicle_command) {
+            [this](const jaiabot::protobuf::LowControl& vehicle_command) {
                 tab_->post_to_wt([=]() { tab_->post_vehicle_command(vehicle_command); });
             });
 

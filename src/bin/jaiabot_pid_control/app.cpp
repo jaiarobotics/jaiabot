@@ -23,7 +23,6 @@
 #include "app.h"
 
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/vehicle_command.pb.h"
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
@@ -385,16 +384,10 @@ void jaiabot::apps::BotPidControl::loop()
         setThrottleMode(MANUAL);
     }
 
-    // Publish the VehicleCommand
-
-    jaiabot::protobuf::VehicleCommand cmd_msg;
-
-    static std::atomic<int> id(0);
-
+    // Publish the LowControl
     cmd_msg.set_id(id++);
     cmd_msg.set_vehicle(1); // Set this to correct value?
     cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    cmd_msg.set_command_type(jaiabot::protobuf::VehicleCommand_CommandType_LowLevel);
 
     auto& control_surfaces = *cmd_msg.mutable_control_surfaces();
     control_surfaces.set_timeout(static_cast<goby::time::SITime>(timeout).value());

@@ -27,7 +27,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
-#include "jaiabot/messages/vehicle_command.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
@@ -76,7 +76,7 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     launch_thread<SerialThread>(cfg().serial_arduino());
 
     interprocess().subscribe<groups::vehicle_command>(
-        [this](const jaiabot::protobuf::VehicleCommand& vehicle_command) {
+        [this](const jaiabot::protobuf::LowControl& vehicle_command) {
             if (vehicle_command.has_control_surfaces())
             {
                 glog.is_verbose() && glog << group("main")
@@ -93,8 +93,12 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
         auto control_ack = lora::parse<jaiabot::protobuf::ControlSurfacesAck>(io);
 
-        glog.is_verbose() && glog << group("main")
+        glog.is_debug1() && glog << group("main")
                                     << control_ack.ShortDebugString() << std::endl;
+        
+        if (control_ack.has_message()) {
+            glog.is_verbose() && glog << group("main") << control_ack.message() << std::endl;
+        }
 
         interprocess().publish<groups::control_surfaces_ack>(control_ack);    
     });
