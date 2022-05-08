@@ -88,7 +88,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
   private:
     void loop() override;
 
-    void handle_command(const jaiabot::protobuf::EngineeringCommand& command);
+    void handle_command(const jaiabot::protobuf::Engineering& command);
 
     void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
     void

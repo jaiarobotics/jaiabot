@@ -193,7 +193,7 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->process_event(ev);
         });
 
-    // subscribe for jaiabot::messages::EngineeringCommands
+    // subscribe for jaiabot::messages::Engineerings
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const protobuf::MissionManagerSettings& settings) {
             handle_settings(settings);

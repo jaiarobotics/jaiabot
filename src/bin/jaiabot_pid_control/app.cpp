@@ -173,11 +173,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << std::endl;
         };
 
-        goby::middleware::Subscriber<jaiabot::protobuf::EngineeringCommand> command_subscriber{
+        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
             cfg().command_sub_cfg(), on_command_subscribed};
 
-        intervehicle().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::EngineeringCommand>(
-            [this](const jaiabot::protobuf::EngineeringCommand& command) { handle_command(command); },
+        intervehicle().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
+            [this](const jaiabot::protobuf::Engineering& command) { handle_command(command); },
             command_subscriber);
     }
 
@@ -432,7 +432,7 @@ void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
     _elevator_is_using_pid = enabled;
 }
 
-void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::EngineeringCommand& command)
+void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engineering& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
