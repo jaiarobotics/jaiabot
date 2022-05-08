@@ -159,8 +159,8 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 
         glog.is_debug2() && glog << group("main") << "Sending engineering_command: " << engineering_command.ShortDebugString() << endl;
 
-        goby::middleware::Publisher<jaiabot::protobuf::EngineeringCommand> command_publisher(
-            {}, [](jaiabot::protobuf::EngineeringCommand& cmd, const goby::middleware::Group& group)
+        goby::middleware::Publisher<jaiabot::protobuf::Engineering> command_publisher(
+            {}, [](jaiabot::protobuf::Engineering& cmd, const goby::middleware::Group& group)
             { cmd.set_bot_id(group.numeric()); });
 
         intervehicle().publish_dynamic(

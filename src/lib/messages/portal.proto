@@ -15,7 +15,7 @@ message ClientToPortalMessage
         unit_system: "si"
     };
 
-    optional EngineeringCommand engineering_command = 1;
+    optional Engineering engineering_command = 1;
     optional Command command = 2;
     optional bool ping = 3;
 }
