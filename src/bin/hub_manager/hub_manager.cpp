@@ -104,7 +104,7 @@ jaiabot::apps::HubManager::HubManager()
 
             glog.is_debug1() && glog << "Subscribing to engineering_status" << std::endl;
 
-            intervehicle().subscribe<jaiabot::groups::engineering, jaiabot::protobuf::EngineeringStatus>(
+            intervehicle().subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::EngineeringStatus>(
                 [this](const jaiabot::protobuf::EngineeringStatus& input_engineering_status) {
                     glog.is_debug1() && glog << "Received input_engineering_status: " << input_engineering_status.ShortDebugString() << std::endl;
 
@@ -115,7 +115,7 @@ jaiabot::apps::HubManager::HubManager()
                     goby::time::SystemClock::warp(goby::time::convert<std::chrono::system_clock::time_point>(
                     input_engineering_status.time_with_units()))));
 
-                    interprocess().publish<jaiabot::groups::engineering>(engineering_status);
+                    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
                 },
                 subscriber);
         }
@@ -158,7 +158,7 @@ jaiabot::apps::HubManager::~HubManager()
 
             goby::middleware::Subscriber<jaiabot::protobuf::EngineeringStatus> subscriber(subscriber_cfg);
 
-            intervehicle().unsubscribe<jaiabot::groups::engineering, jaiabot::protobuf::EngineeringStatus>(
+            intervehicle().unsubscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::EngineeringStatus>(
                 subscriber);
         }
     }

@@ -9,7 +9,7 @@ package jaiabot.protobuf;
 message ClientToPortalMessage
 {
     option (dccl.msg) = {
-        id: 93
+        id: 124
         max_bytes: 250
         codec_version: 3
         unit_system: "si"
@@ -23,7 +23,7 @@ message ClientToPortalMessage
 message PortalToClientMessage
 {
     option (dccl.msg) = {
-        id: 94
+        id: 125
         max_bytes: 250
         codec_version: 3
         unit_system: "si"

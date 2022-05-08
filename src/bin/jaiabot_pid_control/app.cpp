@@ -176,7 +176,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
         goby::middleware::Subscriber<jaiabot::protobuf::EngineeringCommand> command_subscriber{
             cfg().command_sub_cfg(), on_command_subscribed};
 
-        intervehicle().subscribe<jaiabot::groups::engineering, jaiabot::protobuf::EngineeringCommand>(
+        intervehicle().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::EngineeringCommand>(
             [this](const jaiabot::protobuf::EngineeringCommand& command) { handle_command(command); },
             command_subscriber);
     }
@@ -436,7 +436,7 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
-    interprocess().publish<jaiabot::groups::engineering>(command);
+    interprocess().publish<jaiabot::groups::engineering_command>(command);
 
     lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 
@@ -682,5 +682,5 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
 
     glog.is_debug1() && glog << "Publishing engineering status: " << engineering_status.ShortDebugString() << endl;
 
-    interprocess().publish<jaiabot::groups::engineering>(engineering_status);
+    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
 }
