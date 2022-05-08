@@ -602,13 +602,11 @@ void jaiabot::apps::BotPidControl::handle_helm_course(
     {
         toggleRudderPid(true);
         target_heading = desired_course.heading();
-        engineering_status.set_heading_with_units(desired_course.heading_with_units());
     }
     if (desired_course.has_speed())
     {
         setThrottleMode(PID_SPEED);
         target_speed = desired_course.speed();
-        engineering_status.set_speed_with_units(desired_course.speed_with_units());
     }
     // TO DO:  PID for the depth that uses elevators while moving forward
     if (desired_course.has_pitch())
@@ -631,13 +629,11 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     {
         toggleRudderPid(true);
         target_heading = remote_control.heading();
-        engineering_status.set_heading_with_units(remote_control.heading_with_units());
     }
     if (remote_control.has_speed())
     {
         setThrottleMode(PID_SPEED);
         target_speed = remote_control.speed();
-        engineering_status.set_speed_with_units(remote_control.speed_with_units());
     }
 }
 
@@ -645,22 +641,19 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
     setThrottleMode(PID_DEPTH);
     target_depth = dive_depth;
-    engineering_status.clear_heading();
-    engineering_status.clear_speed();
 }
 
 void jaiabot::apps::BotPidControl::handle_powered_ascent()
 {
     setThrottleMode(MANUAL);
     throttle = 50.0;
-    engineering_status.clear_heading();
-    engineering_status.clear_speed();
 }
 
-void copy_gains(Pid* pid, jaiabot::protobuf::EngineeringStatus_PIDGains* pid_gains) {
-    pid_gains->set_kp(pid->get_Kp());
-    pid_gains->set_ki(pid->get_Ki());
-    pid_gains->set_kd(pid->get_Kd());
+void copy_pid(Pid* pid, jaiabot::protobuf::Engineering_PIDControl* pid_control) {
+    pid_control->set_target(pid->get_setpoint());
+    pid_control->set_kp(pid->get_Kp());
+    pid_control->set_ki(pid->get_Ki());
+    pid_control->set_kd(pid->get_Kd());
 }
 
 // Engineering status
@@ -671,11 +664,11 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
 
     engineering_status.set_time_with_units(unwarped_time);
 
-    copy_gains(throttle_speed_pid, engineering_status.mutable_speed_pid_gains());
-    copy_gains(throttle_depth_pid, engineering_status.mutable_depth_pid_gains());
-    copy_gains(heading_pid, engineering_status.mutable_heading_pid_gains());
-    copy_gains(pitch_pid, engineering_status.mutable_pitch_pid_gains());
-    copy_gains(roll_pid, engineering_status.mutable_roll_pid_gains());
+    copy_pid(throttle_speed_pid, engineering_status.mutable_speed());
+    copy_pid(throttle_depth_pid, engineering_status.mutable_depth());
+    copy_pid(heading_pid, engineering_status.mutable_heading());
+    copy_pid(pitch_pid, engineering_status.mutable_pitch());
+    copy_pid(roll_pid, engineering_status.mutable_roll());
 
     engineering_status.set_throttle(throttle);
     engineering_status.set_rudder(rudder);
