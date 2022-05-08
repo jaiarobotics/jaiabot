@@ -627,6 +627,10 @@ blockSendingUntil = 0
 function getVisibleCommand() {
   let command = {}
 
+  // Bot ID
+  //   TODO:  Use GUI selected value
+  command.botId = 0
+
   // Timeout
   command.timeout = timeoutSlider.value
   
