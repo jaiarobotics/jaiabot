@@ -11,10 +11,20 @@ message MissionManagerSettings {
 
     optional double transit_speed = 1 [
         default = 2,
-        (dccl.field).units = { base_dimensions: "LT^-1" }
+        (dccl.field) = {
+            min: 0,
+            max: 100,
+            precision: 2,
+            units: { base_dimensions: "LT^-1" }
+        }
     ];  // meters/second
     optional double stationkeep_outer_speed = 2 [
         default = 1,
-        (dccl.field).units = { base_dimensions: "LT^-1" }
+        (dccl.field) = {
+            min: 0,
+            max: 100,
+            precision: 2,
+            units: { base_dimensions: "LT^-1" }
+        }
     ];  // meters/second
 }

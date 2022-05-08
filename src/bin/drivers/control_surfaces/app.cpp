@@ -75,15 +75,15 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
-    interprocess().subscribe<groups::vehicle_command>(
-        [this](const jaiabot::protobuf::LowControl& vehicle_command) {
-            if (vehicle_command.has_control_surfaces())
+    interprocess().subscribe<groups::low_control>(
+        [this](const jaiabot::protobuf::LowControl& low_control) {
+            if (low_control.has_control_surfaces())
             {
                 glog.is_verbose() && glog << group("main")
-                                          << "Sending: " << vehicle_command.ShortDebugString()
+                                          << "Sending: " << low_control.ShortDebugString()
                                           << std::endl;
 
-                auto raw_output = lora::serialize(vehicle_command.control_surfaces());
+                auto raw_output = lora::serialize(low_control.control_surfaces());
                 interthread().publish<serial_out>(raw_output);
             }
         });

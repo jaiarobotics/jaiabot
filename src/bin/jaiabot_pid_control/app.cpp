@@ -40,36 +40,10 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-namespace jaiabot
-{
-namespace apps
-{
-namespace groups
-{
-std::unique_ptr<goby::middleware::DynamicGroup> hub_command_this_bot;
-}
-
-class BotPidControlConfigurator
-    : public goby::middleware::ProtobufConfigurator<config::BotPidControl>
-{
-  public:
-    BotPidControlConfigurator(int argc, char* argv[])
-        : goby::middleware::ProtobufConfigurator<config::BotPidControl>(argc, argv)
-    {
-        const auto& cfg = mutable_cfg();
-
-        // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
-        groups::hub_command_this_bot.reset(
-            new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
-    }
-};
-} // namespace apps
-} // namespace jaiabot
-
 int main(int argc, char* argv[])
 {
     return goby::run<jaiabot::apps::BotPidControl>(
-        jaiabot::apps::BotPidControlConfigurator(argc, argv));
+        goby::middleware::ProtobufConfigurator<jaiabot::config::BotPidControl>(argc, argv));
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
@@ -163,23 +137,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
     pitch_pid->set_auto();
 
     // subscribe for commands from engineering
-    {
-        auto on_command_subscribed =
-            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack)
-        {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
-
-        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
-            cfg().command_sub_cfg(), on_command_subscribed};
-
-        intervehicle().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
-            [this](const jaiabot::protobuf::Engineering& command) { handle_command(command); },
-            command_subscriber);
-    }
+    interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            if (command.has_pid_control()) {
+                handle_engineering_command(command.pid_control());
+            }
+        });
 
     // subscribe for commands from mission manager
     {
@@ -235,8 +198,6 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " heading: " << actual_heading << " depth: " << actual_depth
                                      << std::endl;
         });
-
-    engineering_status.set_bot_id(cfg().bot_id());
 
     publish_engineering_status();
 }
@@ -398,7 +359,10 @@ void jaiabot::apps::BotPidControl::loop()
 
     glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::vehicle_command>(cmd_msg);
+    interprocess().publish<jaiabot::groups::low_control>(cmd_msg);
+
+    // Update the engineering_status
+    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {
@@ -432,11 +396,9 @@ void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
     _elevator_is_using_pid = enabled;
 }
 
-void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engineering& command)
+void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::protobuf::PIDControl& command)
 {
-    glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
-
-    interprocess().publish<jaiabot::groups::engineering_command>(command);
+    glog.is_debug1() && glog << "Received engineering command: " << command.ShortDebugString() << std::endl;
 
     lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
 
@@ -558,13 +520,6 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
             pitch_pid->tune(pitch.kp(), pitch.ki(), pitch.kd());
         }
     }
-
-    if (command.has_engineering_messages_enabled()) {
-        engineering_messages_enabled = command.engineering_messages_enabled();
-        glog.is_verbose() && glog << "engineering_messages_enabled = " << engineering_messages_enabled << endl;
-    }
-
-    publish_engineering_status();
 }
 
 // Handle DesiredSetpoint messages from high_control.proto
@@ -592,7 +547,6 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
     }
 
-    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
@@ -649,31 +603,27 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
     throttle = 50.0;
 }
 
-void copy_pid(Pid* pid, jaiabot::protobuf::Engineering_PIDControl* pid_control) {
-    pid_control->set_target(pid->get_setpoint());
-    pid_control->set_kp(pid->get_Kp());
-    pid_control->set_ki(pid->get_Ki());
-    pid_control->set_kd(pid->get_Kd());
+void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings) {
+    pid_settings->set_target(pid->get_setpoint());
+    pid_settings->set_kp(pid->get_Kp());
+    pid_settings->set_ki(pid->get_Ki());
+    pid_settings->set_kd(pid->get_Kd());
 }
 
 // Engineering status
 void jaiabot::apps::BotPidControl::publish_engineering_status() {
-    // DCCL uses the real system clock to encode time, so "unwarp" the time first
-    auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
-        goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
+    auto pid_control_status = jaiabot::protobuf::PIDControl();
 
-    engineering_status.set_time_with_units(unwarped_time);
+    copy_pid(throttle_speed_pid, pid_control_status.mutable_speed());
+    copy_pid(throttle_depth_pid, pid_control_status.mutable_depth());
+    copy_pid(heading_pid, pid_control_status.mutable_heading());
+    copy_pid(pitch_pid, pid_control_status.mutable_pitch());
+    copy_pid(roll_pid, pid_control_status.mutable_roll());
 
-    copy_pid(throttle_speed_pid, engineering_status.mutable_speed());
-    copy_pid(throttle_depth_pid, engineering_status.mutable_depth());
-    copy_pid(heading_pid, engineering_status.mutable_heading());
-    copy_pid(pitch_pid, engineering_status.mutable_pitch());
-    copy_pid(roll_pid, engineering_status.mutable_roll());
+    pid_control_status.set_throttle(throttle);
+    pid_control_status.set_rudder(rudder);
 
-    engineering_status.set_throttle(throttle);
-    engineering_status.set_rudder(rudder);
+    glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString() << endl;
 
-    glog.is_debug1() && glog << "Publishing engineering status: " << engineering_status.ShortDebugString() << endl;
-
-    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+    interprocess().publish<jaiabot::groups::engineering_status>(pid_control_status);
 }

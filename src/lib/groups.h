@@ -42,7 +42,7 @@ constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temper
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
 // low control
-constexpr goby::middleware::Group vehicle_command{"jaiabot::vehicle_command"};
+constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 
 // high control

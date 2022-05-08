@@ -88,8 +88,6 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
   private:
     void loop() override;
 
-    void handle_command(const jaiabot::protobuf::Engineering& command);
-
     void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
     void
     handle_helm_course(const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course);
@@ -97,6 +95,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     void handle_dive_depth(const double& dive_depth);
     void handle_powered_ascent();
 
+    void handle_engineering_command(const jaiabot::protobuf::PIDControl& pid_control);
     void publish_engineering_status();
 };
 

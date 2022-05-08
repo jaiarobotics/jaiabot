@@ -165,17 +165,17 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
 
 available_fields = [
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_throttle, y_axis_label='Manual Throttle (%)', default_on=True),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_speed, y_axis_label='Target Speed (m/s)', default_on=True),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Target Depth (m)'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_rudder, y_axis_label='Manual Rudder'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_heading, y_axis_label='Target Heading (°)'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_timeout, y_axis_label='Timeout (s)'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_throttle, y_axis_label='Manual Throttle (%)', default_on=True),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_speed, y_axis_label='Target Speed (m/s)', default_on=True),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_depth, y_axis_label='Target Depth (m)'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_rudder, y_axis_label='Manual Rudder'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_heading, y_axis_label='Target Heading (°)'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_timeout, y_axis_label='Timeout (s)'),
 
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth, y_axis_label='Old Target Depth (m)'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_depth, y_axis_label='Old Target Depth (m)'),
 
-    Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_motor, y_axis_label='Motor (%)', default_on=True),
-    Field(x_datapath=VehicleCommand_time, y_datapath=VehicleCommand_rudder, y_axis_label='Rudder'),
+    Field(x_datapath=LowControl_time, y_datapath=LowControl_motor, y_axis_label='Motor (%)', default_on=True),
+    Field(x_datapath=LowControl_time, y_datapath=LowControl_rudder, y_axis_label='Rudder'),
 
     Field(x_datapath=PressureTemperature_time, y_datapath=PressureTemperature_pressure, y_axis_label='Pressure (mbar)'),
     Field(x_datapath=PressureTemperature_time, y_datapath=PressureTemperature_temperature, y_axis_label='Temperature (℃)'),
@@ -192,9 +192,9 @@ available_fields = [
 
     Field(x_datapath=DesiredSetpoints_time, y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
 
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Kp, y_axis_label='Depth P gain'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Ki, y_axis_label='Depth I gain'),
-    Field(x_datapath=EngineeringCommand_time, y_datapath=EngineeringCommand_depth_Kd, y_axis_label='Depth D gain'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_depth_Kp, y_axis_label='Depth P gain'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_depth_Ki, y_axis_label='Depth I gain'),
+    Field(x_datapath=PIDControl_time, y_datapath=PIDControl_depth_Kd, y_axis_label='Depth D gain'),
 ]
 
 
