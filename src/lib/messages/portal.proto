@@ -31,5 +31,5 @@ message PortalToClientMessage
 
     optional BotStatus bot_status = 1;
 
-    optional EngineeringStatus engineering_status = 2;
+    optional Engineering engineering_status = 2;
 }

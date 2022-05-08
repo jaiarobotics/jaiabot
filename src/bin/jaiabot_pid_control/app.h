@@ -80,7 +80,7 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     Pid* pitch_pid;
     
     bool engineering_messages_enabled = false;
-    jaiabot::protobuf::EngineeringStatus engineering_status;
+    jaiabot::protobuf::Engineering engineering_status;
 
     jaiabot::protobuf::LowControl cmd_msg;
     std::atomic<int> id;

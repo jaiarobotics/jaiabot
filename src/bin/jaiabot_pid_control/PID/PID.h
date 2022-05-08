@@ -165,6 +165,8 @@ public:
 
     float get_Kd() { return Kd; }
 
+    float get_setpoint() { return *setpoint; }
+
     std::string description()
     {
         std::stringstream s;

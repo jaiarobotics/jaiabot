@@ -140,11 +140,11 @@ jaiabot::apps::WebPortal::WebPortal()
 
 
     // Subscribe to engineering status messages
-    interprocess().subscribe<jaiabot::groups::engineering_status>([this](const jaiabot::protobuf::EngineeringStatus& engineering_status) {
+    interprocess().subscribe<jaiabot::groups::engineering_status>([this](const jaiabot::protobuf::Engineering& engineering_status) {
         glog.is_debug1() && glog << "Sending engineering_status to client: " << engineering_status.ShortDebugString() << endl;
 
         auto message = jaiabot::protobuf::PortalToClientMessage();
-        message.set_allocated_engineering_status(new jaiabot::protobuf::EngineeringStatus(engineering_status));
+        message.set_allocated_engineering_status(new jaiabot::protobuf::Engineering(engineering_status));
 
         send_message_to_client(message);
     });
