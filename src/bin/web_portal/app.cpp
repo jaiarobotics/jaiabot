@@ -156,11 +156,16 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 
     if (msg.has_engineering_command()) {
         auto engineering_command = msg.engineering_command();
-        auto t = NOW;
-        engineering_command.set_time_with_units(t);
 
         glog.is_debug2() && glog << group("main") << "Sending engineering_command: " << engineering_command.ShortDebugString() << endl;
-        intervehicle().publish<jaiabot::groups::engineering_command>(engineering_command);
+
+        goby::middleware::Publisher<jaiabot::protobuf::EngineeringCommand> command_publisher(
+            {}, [](jaiabot::protobuf::EngineeringCommand& cmd, const goby::middleware::Group& group)
+            { cmd.set_bot_id(group.numeric()); });
+
+        intervehicle().publish_dynamic(
+            engineering_command, goby::middleware::DynamicGroup(jaiabot::groups::engineering_command, engineering_command.bot_id()),
+            command_publisher);
     }
 
     if (msg.has_command()) {

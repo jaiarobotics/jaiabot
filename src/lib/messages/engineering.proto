@@ -13,7 +13,8 @@ message EngineeringCommand
         unit_system: "si"
     };
 
-    optional uint64 time = 5 [(dccl.field) = {
+    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint64 time = 2 [(dccl.field) = {
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
@@ -34,36 +35,36 @@ message EngineeringCommand
             [(dccl.field) = { min: 0 max: 100 precision: 2 }];
     }
 
-    optional uint32 timeout = 6 [(dccl.field) = {
+    optional uint32 timeout = 3 [(dccl.field) = {
         min: 0
         max: 100
         precision: 0
         units { derived_dimensions: "time" }
     }];
 
-    optional double throttle = 3
+    optional double throttle = 4
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl speed = 4;
+    optional PIDControl speed = 5;
 
-    optional double rudder = 1
+    optional double rudder = 6
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl heading = 2;
+    optional PIDControl heading = 7;
 
-    optional double port_elevator = 7
+    optional double port_elevator = 8
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional double stbd_elevator = 8
+    optional double stbd_elevator = 9
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl roll = 9;
+    optional PIDControl roll = 10;
 
-    optional PIDControl pitch = 10;
+    optional PIDControl pitch = 11;
 
-    optional PIDControl depth = 11;
+    optional PIDControl depth = 12;
 
-    optional bool engineering_messages_enabled = 12;
+    optional bool engineering_messages_enabled = 13;
 }
 
 message EngineeringStatus
