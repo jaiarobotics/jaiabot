@@ -39,7 +39,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void post_pt(const jaiabot::protobuf::PressureTemperatureData& pt);
     void post_salinity(const jaiabot::protobuf::SalinityData& salinity);
     void post_imu(const jaiabot::protobuf::IMUData& imu);
-    void post_vehicle_command(const jaiabot::protobuf::LowControl& vehicle_command);
+    void post_low_control(const jaiabot::protobuf::LowControl& low_control);
 
   private:
     void loop();
@@ -220,8 +220,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WText* bot_salinity_text_;
     Wt::WGroupBox* bot_imu_box_;
     Wt::WText* bot_imu_text_;
-    Wt::WGroupBox* bot_vehicle_command_box_;
-    Wt::WText* bot_vehicle_command_text_;
+    Wt::WGroupBox* bot_low_control_box_;
+    Wt::WText* bot_low_control_text_;
 
     // currently shown vehicle id
     int current_vehicle_{-1};
@@ -276,9 +276,9 @@ class CommsThread : public goby::zeromq::LiaisonCommsThread<LiaisonJaiabot>
         });
 
         // post the control surfaces data in its own box
-        interprocess().subscribe<groups::vehicle_command>(
-            [this](const jaiabot::protobuf::LowControl& vehicle_command) {
-                tab_->post_to_wt([=]() { tab_->post_vehicle_command(vehicle_command); });
+        interprocess().subscribe<groups::low_control>(
+            [this](const jaiabot::protobuf::LowControl& low_control) {
+                tab_->post_to_wt([=]() { tab_->post_low_control(low_control); });
             });
 
     } // namespace jaiabot

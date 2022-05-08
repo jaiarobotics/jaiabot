@@ -25,6 +25,7 @@
 
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -194,10 +195,14 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 
     // subscribe for jaiabot::messages::Engineerings
-    interprocess().subscribe<jaiabot::groups::engineering_command>(
-        [this](const protobuf::MissionManagerSettings& settings) {
-            handle_settings(settings);
+    interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            if (command.has_mission_manager_settings()) {
+                handle_settings(command.mission_manager_settings());
+            }
         });
+
+    publish_settings();
 }
 
 jaiabot::apps::MissionManager::~MissionManager()
@@ -333,6 +338,8 @@ void jaiabot::apps::MissionManager::handle_settings(const jaiabot::protobuf::Mis
     if (settings.has_transit_speed()) {
         _active_cfg.set_transit_speed_with_units(settings.transit_speed_with_units());
     }
+
+    publish_settings();
 }
 
 void jaiabot::apps::MissionManager::publish_settings() {
@@ -340,5 +347,5 @@ void jaiabot::apps::MissionManager::publish_settings() {
     settings.set_transit_speed_with_units(active_cfg().transit_speed_with_units());
     settings.set_stationkeep_outer_speed_with_units(active_cfg().stationkeep_outer_speed_with_units());
 
-    interprocess().publish<jaiabot::groups::bot_status>(settings);
+    interprocess().publish<jaiabot::groups::engineering_status>(settings);
 }

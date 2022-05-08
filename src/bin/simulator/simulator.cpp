@@ -155,11 +155,11 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             process_desired_setpoints(desired_setpoints);
         });
 
-    interprocess().subscribe<groups::vehicle_command>(
-        [this](const jaiabot::protobuf::LowControl& vehicle_command)
+    interprocess().subscribe<groups::low_control>(
+        [this](const jaiabot::protobuf::LowControl& low_control)
         {
-            if (vehicle_command.has_control_surfaces())
-                process_control_surfaces(vehicle_command.control_surfaces());
+            if (low_control.has_control_surfaces())
+                process_control_surfaces(low_control.control_surfaces());
         });
 
     for (const auto& sample : sim_cfg_.sample())

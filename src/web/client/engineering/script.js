@@ -625,26 +625,22 @@ el("rudderCenter").onclick =
 blockSendingUntil = 0
 
 function getVisibleCommand() {
-  let command = {}
 
-  // Bot ID
-  //   TODO:  Use GUI selected value
-  command.botId = 0
+  let pid_control = {
+    timeout: timeoutSlider.value
+  }
 
-  // Timeout
-  command.timeout = timeoutSlider.value
-  
   if (DeadMansSwitch.on) {
 
     // Throttle
     switch(throttleTabbedSections.activeIndex) {
       case 0:
-        command.throttle = el("throttleSlider").value
-        delete command.speed
+        pid_control.throttle = el("throttleSlider").value
+        delete pid_control.speed
         break
       case 1:
-        delete command.throttle
-        command.speed = {
+        delete pid_control.throttle
+        pid_control.speed = {
           target: el("speedSlider").value,
           Kp: el("speed_Kp").value,
           Ki: el("speed_Ki").value,
@@ -655,19 +651,19 @@ function getVisibleCommand() {
   }
   else {
     // Man is dead!  Send zero throttle...
-    command.throttle = 0
-    delete command.speed
+    pid_control.throttle = 0
+    delete pid_control.speed
   }
   
   // Rudder
   switch (rudderTabbedSections.activeIndex) {
     case 0:
-      command.rudder = el("rudderSlider").value
-      delete command.heading
+      pid_control.rudder = el("rudderSlider").value
+      delete pid_control.heading
       break
     case 1:
-      delete command.rudder
-      command.heading = {
+      delete pid_control.rudder
+      pid_control.heading = {
         target: headingSlider.value,
         Kp: el("heading_Kp").value,
         Ki: el("heading_Ki").value,
@@ -679,20 +675,20 @@ function getVisibleCommand() {
   // Elevators
   switch (elevatorsTabbedSections.activeIndex) {
     case 0:
-      command.portElevator = el("portElevatorSlider").value
-      command.stbdElevator = el("stbdElevatorSlider").value
-      delete command.roll
+      pid_control.portElevator = el("portElevatorSlider").value
+      pid_control.stbdElevator = el("stbdElevatorSlider").value
+      delete pid_control.roll
       break
     case 1:
-      delete command.portElevator
-      delete command.stbdElevator
-      command.roll = {
+      delete pid_control.portElevator
+      delete pid_control.stbdElevator
+      pid_control.roll = {
         target: el("rollSlider").value,
         Kp: el("roll_Kp").value,
         Ki: el("roll_Ki").value,
         Kd: el("roll_Kd").value
       }
-      command.pitch = {
+      pid_control.pitch = {
         target: el("pitchSlider").value,
         Kp: el("pitch_Kp").value,
         Ki: el("pitch_Ki").value,
@@ -701,7 +697,14 @@ function getVisibleCommand() {
       break
   }
 
-  return command
+  let engineering_command = {
+    botId: 0,
+    pid_control: pid_control
+  }
+
+  console.log(engineering_command)
+
+  return engineering_command
 }
 
 function sendVisibleCommand() {

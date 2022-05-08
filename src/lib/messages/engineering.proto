@@ -1,25 +1,16 @@
 syntax = "proto2";
 
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/mission_manager_settings.proto";
 
 package jaiabot.protobuf;
 
-message Engineering
-{
+message PIDControl {
     option (dccl.msg) = {
-        id: 127
-        max_bytes: 250
-        codec_version: 3
         unit_system: "si"
     };
 
-    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    optional uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-
-    message PIDControl
+    message PIDSettings
     {
         optional double target = 1 [(dccl.field) = {
             min: -360
@@ -45,12 +36,12 @@ message Engineering
     optional double throttle = 4
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl speed = 5;
+    optional PIDSettings speed = 5;
 
     optional double rudder = 6
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl heading = 7;
+    optional PIDSettings heading = 7;
 
     optional double port_elevator = 8
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
@@ -58,11 +49,31 @@ message Engineering
     optional double stbd_elevator = 9
         [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 
-    optional PIDControl roll = 10;
+    optional PIDSettings roll = 10;
 
-    optional PIDControl pitch = 11;
+    optional PIDSettings pitch = 11;
 
-    optional PIDControl depth = 12;
+    optional PIDSettings depth = 12;
+
+}
+
+message Engineering
+{
+    option (dccl.msg) = {
+        id: 127
+        max_bytes: 250
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    optional PIDControl pid_control = 3;
+    optional MissionManagerSettings mission_manager_settings = 4;
 
     optional bool engineering_messages_enabled = 13;
 }
