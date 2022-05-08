@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message MissionManagerSettings {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double transit_speed = 1 [
+        default = 2,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
+    optional double stationkeep_outer_speed = 2 [
+        default = 1,
+        (dccl.field).units = { base_dimensions: "LT^-1" }
+    ];  // meters/second
+}

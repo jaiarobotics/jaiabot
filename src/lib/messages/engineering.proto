@@ -7,7 +7,7 @@ package jaiabot.protobuf;
 message EngineeringCommand
 {
     option (dccl.msg) = {
-        id: 92
+        id: 127
         max_bytes: 250
         codec_version: 3
         unit_system: "si"
@@ -63,22 +63,13 @@ message EngineeringCommand
 
     optional PIDControl depth = 11;
 
-    optional double transit_speed = 20 [
-        default = 2,
-        (dccl.field).units = { base_dimensions: "LT^-1" }
-    ];  // meters/second
-    optional double stationkeep_outer_speed = 21 [
-        default = 1,
-        (dccl.field).units = { base_dimensions: "LT^-1" }
-    ];  // meters/second
-
     optional bool engineering_messages_enabled = 12;
 }
 
 message EngineeringStatus
 {
     option (dccl.msg) = {
-        id: 95
+        id: 128
         max_bytes: 64
         codec_version: 3
         unit_system: "si"

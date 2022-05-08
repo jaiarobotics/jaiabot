@@ -62,9 +62,9 @@ constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
                                               goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group dive_packet{"jaiabot::dive_packet",
                                               goby::middleware::Group::broadcast_group};
-
-// pid-control-web
-constexpr goby::middleware::Group engineering{"jaiabot::engineering",
+constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_command",
+                                              goby::middleware::Group::broadcast_group};
+constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_status",
                                               goby::middleware::Group::broadcast_group};
 
 // control surfaces

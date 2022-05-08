@@ -7,7 +7,7 @@ package jaiabot.protobuf;
 message DeviceMetadata
 {
     option (dccl.msg) = {
-        id: 95
+        id: 126
         max_bytes: 250
         codec_version: 3
         unit_system: "si"

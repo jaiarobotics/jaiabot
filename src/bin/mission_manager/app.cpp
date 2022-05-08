@@ -194,9 +194,9 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 
     // subscribe for jaiabot::messages::EngineeringCommands
-    interprocess().subscribe<jaiabot::groups::engineering>(
-        [this](const protobuf::EngineeringCommand& command) {
-            handle_engineering_command(command);
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const protobuf::MissionManagerSettings& settings) {
+            handle_settings(settings);
         });
 }
 
@@ -319,19 +319,26 @@ void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
         machine_->process_event(statechart::EvSelfTestFails());
 }
 
-void jaiabot::apps::MissionManager::handle_engineering_command(const protobuf::EngineeringCommand& command) {
-    glog.is_debug1() && glog << "Received engineering_command: " << command.ShortDebugString() << std::endl;
-
-    if (command.has_stationkeep_outer_speed()) {
-        _active_cfg.set_stationkeep_outer_speed_with_units(command.stationkeep_outer_speed_with_units());
-    }
-
-    if (command.has_transit_speed()) {
-        _active_cfg.set_transit_speed_with_units(command.transit_speed_with_units());
-    }
-
-}
-
 const jaiabot::config::MissionManager& jaiabot::apps::MissionManager::active_cfg() const {
     return _active_cfg;
+}
+
+void jaiabot::apps::MissionManager::handle_settings(const jaiabot::protobuf::MissionManagerSettings& settings) {
+    glog.is_debug1() && glog << "Received settings: " << settings.ShortDebugString() << std::endl;
+
+    if (settings.has_stationkeep_outer_speed()) {
+        _active_cfg.set_stationkeep_outer_speed_with_units(settings.stationkeep_outer_speed_with_units());
+    }
+
+    if (settings.has_transit_speed()) {
+        _active_cfg.set_transit_speed_with_units(settings.transit_speed_with_units());
+    }
+}
+
+void jaiabot::apps::MissionManager::publish_settings() {
+    auto settings = jaiabot::protobuf::MissionManagerSettings();
+    settings.set_transit_speed_with_units(active_cfg().transit_speed_with_units());
+    settings.set_stationkeep_outer_speed_with_units(active_cfg().stationkeep_outer_speed_with_units());
+
+    interprocess().publish<jaiabot::groups::bot_status>(settings);
 }
