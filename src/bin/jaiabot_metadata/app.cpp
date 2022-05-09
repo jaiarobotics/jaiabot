@@ -36,38 +36,42 @@ using namespace jaiabot::groups;
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase =
-    goby::zeromq::SingleThreadApplication<jaiabot::config::SingleThreadPattern>;
+using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Metadata>;
 
 namespace jaiabot
 {
 namespace apps
 {
-class SingleThreadPattern : public ApplicationBase
+class Metadata : public ApplicationBase
 {
   public:
-    SingleThreadPattern() : ApplicationBase(0.0 * si::hertz) {
-      auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
-      string jaia_device_name;
-      if (jaia_name_c) {
-        jaia_device_name = string(jaia_name_c);
-      }
-      else {
-        char buffer[256];
-        if (gethostname(buffer, 256) == 0) {
-          jaia_device_name = string(buffer);
+    Metadata() : ApplicationBase(0.0 * si::hertz)
+    {
+        auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
+        string jaia_device_name;
+        if (jaia_name_c)
+        {
+            jaia_device_name = string(jaia_name_c);
         }
-        else {
-          jaia_device_name = "<No Name>";
+        else
+        {
+            char buffer[256];
+            if (gethostname(buffer, 256) == 0)
+            {
+                jaia_device_name = string(buffer);
+            }
+            else
+            {
+                jaia_device_name = "<No Name>";
+            }
         }
-      }
 
-      glog.is_verbose() && glog << "jaia_device_name = " << jaia_device_name << endl;
+        glog.is_verbose() && glog << "jaia_device_name = " << jaia_device_name << endl;
 
-      auto metadata = DeviceMetadata();
-      metadata.set_name(jaia_device_name);
+        auto metadata = DeviceMetadata();
+        metadata.set_name(jaia_device_name);
 
-      interprocess().publish<jaia_metadata>(metadata);
+        interprocess().publish<jaia_metadata>(metadata);
     }
 
   private:
@@ -78,12 +82,11 @@ class SingleThreadPattern : public ApplicationBase
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::SingleThreadPattern>(
-        goby::middleware::ProtobufConfigurator<jaiabot::config::SingleThreadPattern>(argc,
-                                                                                          argv));
+    return goby::run<jaiabot::apps::Metadata>(
+        goby::middleware::ProtobufConfigurator<jaiabot::config::Metadata>(argc, argv));
 }
 
-void jaiabot::apps::SingleThreadPattern::loop()
+void jaiabot::apps::Metadata::loop()
 {
     // called at frequency passed to SingleThreadApplication (ApplicationBase)
 }

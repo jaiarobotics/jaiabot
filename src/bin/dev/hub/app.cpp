@@ -49,10 +49,10 @@ namespace jaiabot
 {
 namespace apps
 {
-class ControlSurfacesTest : public zeromq::MultiThreadApplication<config::ControlSurfacesTest>
+class HubDevTest : public zeromq::MultiThreadApplication<config::HubDevTest>
 {
   public:
-    ControlSurfacesTest();
+    HubDevTest();
 
   private:
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
@@ -66,14 +66,14 @@ class ControlSurfacesTest : public zeromq::MultiThreadApplication<config::Contro
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::ControlSurfacesTest>(
-        goby::middleware::ProtobufConfigurator<config::ControlSurfacesTest>(argc, argv));
+    return goby::run<jaiabot::apps::HubDevTest>(
+        goby::middleware::ProtobufConfigurator<config::HubDevTest>(argc, argv));
 }
 
 // Main thread
 
-jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesTest>(10 * si::hertz)
+jaiabot::apps::HubDevTest::HubDevTest()
+    : zeromq::MultiThreadApplication<config::HubDevTest>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("debug", goby::util::Colors::red);
@@ -157,4 +157,4 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 
 }
 
-void jaiabot::apps::ControlSurfacesTest::loop() {}
+void jaiabot::apps::HubDevTest::loop() {}

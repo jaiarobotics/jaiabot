@@ -70,7 +70,10 @@ endfunction()
 
 function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
   protobuf_include_dirs(${CMAKE_CURRENT_BINARY_DIR})
-
+  # so that we can use Google's included descriptor.proto
+  protobuf_include_dirs(${PROTOBUF_INCLUDE_DIR})
+ 
+  
   if(NOT ARGN)
     message(SEND_ERROR "Error: PROTOBUF_GENERATE_CPP() called without any proto files")
     return()
@@ -95,7 +98,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
     else() # avoid an extra /
       set(FULL_OUT_DIR "${CPP_OUT_DIR}")
     endif()
-    
+
     list(APPEND ${SRCS} "${FULL_OUT_DIR}/${FIL_WE}.pb.cc")
     list(APPEND ${HDRS} "${FULL_OUT_DIR}/${FIL_WE}.pb.h")   
 
@@ -103,8 +106,12 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
     # files correctly for later inclusion into other protos (Protobuf is picky about this)
     set(FIL_DEST ${FULL_OUT_DIR}/${FIL_WE}.proto)
 
-    # copy proto to destination 
-    configure_file(${FIL_WE}.proto ${FIL_DEST} COPYONLY)
+    # copy proto to destination
+    if(EXISTS ${ABS_FIL})
+      configure_file(${ABS_FIL} ${FIL_DEST} COPYONLY)
+    else()
+      configure_file(${FIL_WE}.proto ${FIL_DEST} COPYONLY)
+    endif()
     
     add_custom_command(
       OUTPUT "${FULL_OUT_DIR}/${FIL_WE}.pb.cc"
@@ -184,9 +191,6 @@ endfunction()
 
 
 find_path(PROTOBUF_INCLUDE_DIR google/protobuf/service.h)
-
-# so that we can use Google's included descriptor.proto
-list(APPEND ALL_PROTOBUF_INCLUDE_DIRS "-I${PROTOBUF_INCLUDE_DIR}")
 
 
 # Google's provided vcproj files generate libraries with a "lib"

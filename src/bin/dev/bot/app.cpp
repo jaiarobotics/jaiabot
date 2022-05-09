@@ -22,12 +22,12 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include <goby/zeromq/application/multi_thread.h>
-#include <goby/middleware/protobuf/gpsd.pb.h>
+#include <boost/units/io.hpp>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/constants.h>
 #include <goby/util/geodesy.h>
-#include <boost/units/io.hpp>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -49,10 +49,10 @@ namespace jaiabot
 {
 namespace apps
 {
-class ControlSurfacesTest : public zeromq::MultiThreadApplication<config::ControlSurfacesTest>
+class BotDevTest : public zeromq::MultiThreadApplication<config::BotDevTest>
 {
   public:
-    ControlSurfacesTest();
+    BotDevTest();
 
   private:
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
@@ -66,14 +66,14 @@ class ControlSurfacesTest : public zeromq::MultiThreadApplication<config::Contro
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::ControlSurfacesTest>(
-        goby::middleware::ProtobufConfigurator<config::ControlSurfacesTest>(argc, argv));
+    return goby::run<jaiabot::apps::BotDevTest>(
+        goby::middleware::ProtobufConfigurator<config::BotDevTest>(argc, argv));
 }
 
 // Main thread
 
-jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesTest>(10 * si::hertz)
+jaiabot::apps::BotDevTest::BotDevTest()
+    : zeromq::MultiThreadApplication<config::BotDevTest>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("debug", goby::util::Colors::red);
@@ -84,7 +84,9 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     // Subscribe to gps
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            glog.is_debug1() && glog << group("main") << "Received from gpsd: " << tpv.ShortDebugString() << std::endl;
+            glog.is_debug1() && glog << group("main")
+                                     << "Received from gpsd: " << tpv.ShortDebugString()
+                                     << std::endl;
 
             if (!geodesy_)
             {
@@ -97,19 +99,22 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
 
                     glog.is_debug1() && glog << group("debug") << "Geodesy defined!" << endl;
                 }
-                else {
-                    glog.is_warn() && glog << group("debug") << "TPV not in valid mode, so no geodesy defined!  Mode = " << tpv.mode() << endl;
+                else
+                {
+                    glog.is_warn() &&
+                        glog << group("debug")
+                             << "TPV not in valid mode, so no geodesy defined!  Mode = "
+                             << tpv.mode() << endl;
                 }
             }
             latest_gps_tpv_ = tpv;
         });
 
-
     // command from Xbee -> jaiabot_lora_test
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
         auto pb_msg = lora::parse<jaiabot::protobuf::VehicleCommand>(io);
-        glog.is_debug1() && glog << group("main")
-                                  << "Received: " << pb_msg.ShortDebugString() << std::endl;
+        glog.is_debug1() && glog << group("main") << "Received: " << pb_msg.ShortDebugString()
+                                 << std::endl;
 
         interprocess().publish<groups::vehicle_command>(pb_msg);
 
@@ -142,4 +147,4 @@ jaiabot::apps::ControlSurfacesTest::ControlSurfacesTest()
     });
 }
 
-void jaiabot::apps::ControlSurfacesTest::loop() {}
+void jaiabot::apps::BotDevTest::loop() {}
