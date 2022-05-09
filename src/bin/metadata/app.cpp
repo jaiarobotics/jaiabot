@@ -32,8 +32,6 @@
 using namespace jaiabot::protobuf;
 
 #include "jaiabot/groups.h"
-using namespace jaiabot::groups;
-
 #include "jaiabot/version.h"
 
 using goby::glog;
@@ -76,7 +74,8 @@ class SingleThreadPattern : public ApplicationBase
         jaiabot_version.set_patch(JAIABOT_VERSION_PATCH);
 
 #ifdef JAIABOT_VERSION_GITHASH
-        jaiabot_version.set_githash(JAIABOT_VERSION_GITHASH);
+        jaiabot_version.set_git_hash(JAIABOT_VERSION_GITHASH);
+        jaiabot_version.set_git_branch(JAIABOT_VERSION_GITBRANCH);
 #endif
 
         metadata.set_goby_version(goby::VERSION_STRING);
@@ -84,7 +83,7 @@ class SingleThreadPattern : public ApplicationBase
 
         glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
 
-        interprocess().publish<jaia_metadata>(metadata);
+        interprocess().publish<groups::metadata>(metadata);
     }
 
   private:
