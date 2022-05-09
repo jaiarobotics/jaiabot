@@ -7,3 +7,4 @@ target_link_libraries(${LIB}
 if(export_goby_interfaces)
   generate_interfaces(${LIB})
 endif()
+project_install_lib(${LIB})

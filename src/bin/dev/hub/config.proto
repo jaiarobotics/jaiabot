@@ -28,7 +28,7 @@ import "goby/middleware/protobuf/serial_config.proto";
 
 package jaiabot.config;
 
-message ControlSurfacesTest
+message HubDevTest
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
