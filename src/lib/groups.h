@@ -73,6 +73,9 @@ constexpr goby::middleware::Group control_surfaces_ack{"jaiabot::control_surface
 // Metadata
 constexpr goby::middleware::Group jaia_metadata{"jaiabot::metadata"};
 
+// MOOS
+constexpr goby::middleware::Group moos{"jaiabot::moos"};
+
 } // namespace groups
 } // namespace jaiabot
 

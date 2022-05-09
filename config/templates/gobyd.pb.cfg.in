@@ -5,3 +5,8 @@ intervehicle {
     $link_block
     $persist_subscriptions
 }
+
+hold {
+  # don't allow any apps to publish until the logger is ready
+  required_client: "goby_logger"
+}
