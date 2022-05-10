@@ -30,3 +30,23 @@ export function formatAttitudeAngle(angle_deg, prec=2) {
     }
     return angle_deg.toFixed(prec) + '°'
 }
+
+export function deepcopy(aObject) {
+    // Prevent undefined objects
+    // if (!aObject) return aObject;
+  
+    let bObject = Array.isArray(aObject) ? [] : {};
+  
+    let value;
+    for (const key in aObject) {
+  
+      // Prevent self-references to parent object
+      // if (Object.is(aObject[key], aObject)) continue;
+      
+      value = aObject[key];
+  
+      bObject[key] = (typeof value === "object") ? deepcopy(value) : value;
+    }
+  
+    return bObject;
+  }

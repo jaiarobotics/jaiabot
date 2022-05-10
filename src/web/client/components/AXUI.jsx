@@ -49,6 +49,7 @@ import OlGraticule from 'ol/Graticule';
 import OlStroke from 'ol/style/Stroke';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
+import { deepcopy } from './Utilities';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -1556,7 +1557,7 @@ export default class AXUI extends React.Component {
   // Load the hardcoded mission as the active mission
   loadHardcodedMissionClicked(index) {
     // Add waypoint markers
-    this.missions = missions[index]
+    this.missions = deepcopy(missions[index])
     this.updateMissionLayer()
   }
 
