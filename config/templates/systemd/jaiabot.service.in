@@ -1,0 +1,13 @@
+[Unit]
+Description=Jaia Base Service
+
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/bin/echo "Starting Jaia"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)
+
+
+echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+echo "                                    __  __ ___                   "
+echo "                         | /\ | /\ |__)/  \ |                    "
+echo "                       __)/--\|/--\|__)\__/ |                    "
+echo ""
+echo "                       https://www.jaia.tech/                    "
+echo "                   https://github.com/jaiarobotics/              " 
+export SYSTEMD_COLORS=1
+systemctl list-units -all "jaia*"
+echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+
