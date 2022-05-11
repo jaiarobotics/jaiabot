@@ -27,3 +27,4 @@ dive_depth_eps: 0.1  #  (optional) (default=0.1)
 surfacing_timeout: 600  #  (optional) (default=600)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
+bottoming_timeout: 5 # (optional) (default=5)
