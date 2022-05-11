@@ -195,6 +195,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         if (dive_depth_ > last_setpoints_.dive_depth_with_units())
             dive_depth_ = last_setpoints_.dive_depth_with_units();
 
+        if (dive_depth_ > sim_cfg_.seafloor_depth_with_units())
+            dive_depth_ = sim_cfg_.seafloor_depth_with_units();
+
         depth = dive_depth_;
 
         std::stringstream reset_ss;

@@ -32,11 +32,14 @@ message MissionManager
     optional double dive_depth_eps = 30
         [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
 
+    // bottoming timeout in seconds without depth change greater than dive_depth_eps before assuming the bottom has been hit
+    optional double bottoming_timeout = 31
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
+
     // surfacing timeout in seconds before switching to powered ascent
-    optional double surfacing_timeout = 31
+    optional double surfacing_timeout = 32
         [default = 600, (dccl.field).units = { base_dimensions: "T" }];
 
-    
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
