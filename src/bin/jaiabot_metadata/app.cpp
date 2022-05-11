@@ -38,29 +38,30 @@ using namespace jaiabot::groups;
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::SingleThreadPattern>;
+using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Metadata>;
+using namespace std;
 
 namespace jaiabot
 {
 namespace apps
 {
-class SingleThreadPattern : public ApplicationBase
+class Metadata : public ApplicationBase
 {
   public:
-    SingleThreadPattern() : ApplicationBase(0.0 * si::hertz)
+    Metadata() : ApplicationBase(0.0 * si::hertz)
     {
         auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
-        std::string jaia_device_name;
+        string jaia_device_name;
         if (jaia_name_c)
         {
-            jaia_device_name = std::string(jaia_name_c);
+            jaia_device_name = string(jaia_name_c);
         }
         else
         {
             char buffer[256];
             if (gethostname(buffer, 256) == 0)
             {
-                jaia_device_name = std::string(buffer);
+                jaia_device_name = string(buffer);
             }
             else
             {
@@ -95,11 +96,11 @@ class SingleThreadPattern : public ApplicationBase
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::SingleThreadPattern>(
-        goby::middleware::ProtobufConfigurator<jaiabot::config::SingleThreadPattern>(argc, argv));
+    return goby::run<jaiabot::apps::Metadata>(
+        goby::middleware::ProtobufConfigurator<jaiabot::config::Metadata>(argc, argv));
 }
 
-void jaiabot::apps::SingleThreadPattern::loop()
+void jaiabot::apps::Metadata::loop()
 {
     // called at frequency passed to SingleThreadApplication (ApplicationBase)
 }

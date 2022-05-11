@@ -1,4 +1,7 @@
-#!/usr/bin/env -S goby_launch -L -P -d 1000
+#!/usr/bin/env -S goby_launch -L -P -d 100
+
+# start this first so it's done before we get to the MOOS parts
+[kill=SIGTERM] ../../gen/moos_gen.sh
 
 [kill=SIGTERM] gpsd $(../../gen/bot.py gpsd)
 
@@ -15,7 +18,6 @@ goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 
 # vehicle MOOS components
-[kill=SIGTERM] ../../gen/moos_gen.sh
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
 [kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_index}.moos
 #[kill=SIGTERM] pMarineViewer /tmp/jaiabot_pmv_${jaia_bot_index}.moos
@@ -28,3 +30,5 @@ jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 # [kill=SIGTERM] pMarinePID /tmp/jaiabot_sim_${jaia_bot_index}.moos
 
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
+
+goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control
