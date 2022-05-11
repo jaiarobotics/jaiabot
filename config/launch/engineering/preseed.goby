@@ -4,7 +4,7 @@ export goby3_lib_dir=$(realpath "$(dirname $(which gobyd))/../lib")
 export jaia_lib_dir=$(realpath "$(dirname $(which jaiabot_single_thread_pattern))/../lib")
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${goby3_lib_dir}:${jaia_lib_dir}
 
-export GOBY_MODEMDRIVER_PLUGINS=libxbee.so
+export GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so
 
 export jaia_max_number_vehicles=128
 export jaia_mode=runtime

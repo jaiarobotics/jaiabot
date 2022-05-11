@@ -1,3 +1,3 @@
 #!/bin/bash
 
-LD_LIBRARY_PATH=@project_LIB_DIR@:${LD_LIBRARY_PATH} GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so exec goby_liaison $@
+LD_LIBRARY_PATH=@project_LIB_DIR@:${LD_LIBRARY_PATH} GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so exec goby_liaison "$*"
