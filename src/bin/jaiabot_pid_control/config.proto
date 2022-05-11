@@ -33,4 +33,15 @@ message BotPidControl
     optional PIDGains roll_pid_gains = 60;
     optional PIDGains pitch_pid_gains = 70;
 
+    // Speed => rpm table
+    optional bool use_rpm_table_for_speed = 31;
+
+    message RPMSpeedEntry
+    {
+        required double speed = 1
+            [(dccl.field).units = {derived_dimensions: "velocity"}];
+        required int32 rpm = 2;
+    }
+    repeated RPMSpeedEntry rpm_table = 32;
+
 }
