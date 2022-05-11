@@ -10,6 +10,7 @@ extern "C"
         goby::zeromq::MultiThreadApplication<goby::apps::moos::protobuf::GobyMOOSGatewayConfig>*
             handler)
     {
+        handler->launch_thread<jaiabot::moos::AllMessagesForLoggingTranslation>();
         handler->launch_thread<jaiabot::moos::IvPHelmTranslation>();
     }
 
@@ -18,6 +19,7 @@ extern "C"
             handler)
     {
         handler->join_thread<jaiabot::moos::IvPHelmTranslation>();
+        handler->join_thread<jaiabot::moos::AllMessagesForLoggingTranslation>();
     }
 }
 

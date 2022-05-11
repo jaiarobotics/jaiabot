@@ -6,7 +6,9 @@
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 
+#include "config.pb.h"
 namespace jaiabot
 {
 namespace moos
@@ -65,6 +67,52 @@ class IvPHelmTranslation : public goby::moos::Translator
     std::unique_ptr<protobuf::IvPBehaviorUpdate> pending_bhv_update_;
 
 }; // namespace moos
+
+class AllMessagesForLoggingTranslation : public goby::moos::Translator
+{
+  public:
+    AllMessagesForLoggingTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg),
+          jaiabot_cfg_(cfg.GetExtension(jaiabot::protobuf::jaiabot_config)),
+          omit_var_(jaiabot_cfg_.logging_omit_var_regex()),
+          omit_app_(jaiabot_cfg_.logging_omit_app_regex())
+    {
+        moos().add_wildcard_trigger(
+            "*", "*",
+            [this](const CMOOSMsg& msg)
+            {
+                if (jaiabot_cfg_.has_logging_omit_var_regex() &&
+                    std::regex_match(msg.m_sKey, omit_var_))
+                    return;
+                if (jaiabot_cfg_.has_logging_omit_app_regex() &&
+                    std::regex_match(msg.m_sSrc, omit_app_))
+                    return;
+
+                protobuf::MOOSMessage pb_msg;
+                pb_msg.set_type(static_cast<protobuf::MOOSMessage::Type>(msg.m_cDataType));
+                pb_msg.set_key(msg.m_sKey);
+                switch (pb_msg.type())
+                {
+                    case protobuf::MOOSMessage::TYPE_DOUBLE: pb_msg.set_dvalue(msg.m_dfVal); break;
+                    case protobuf::MOOSMessage::TYPE_STRING: pb_msg.set_svalue(msg.m_sVal); break;
+                    case protobuf::MOOSMessage::TYPE_BINARY_STRING:
+                        pb_msg.set_bvalue(msg.m_sVal);
+                        break;
+                }
+                pb_msg.set_unixtime(msg.m_dfTime);
+                pb_msg.set_id(msg.m_nID);
+                pb_msg.set_source(msg.m_sSrc);
+                pb_msg.set_source_aux(msg.m_sSrcAux);
+                pb_msg.set_community(msg.m_sOriginatingCommunity);
+                interprocess().publish<jaiabot::groups::moos>(pb_msg);
+            });
+    }
+
+  private:
+    const jaiabot::protobuf::MOOSGatewayConfig jaiabot_cfg_;
+    std::regex omit_var_;
+    std::regex omit_app_;
+};
 
 } // namespace moos
 } // namespace jaiabot

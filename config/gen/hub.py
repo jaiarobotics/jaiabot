@@ -74,7 +74,11 @@ elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
-elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
+elif common.app == 'goby_coroner':    
+    print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common))
+elif common.app == 'goby_liaison':
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,

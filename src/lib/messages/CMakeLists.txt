@@ -15,10 +15,11 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/low_control.proto
   jaiabot/messages/portal.proto
   jaiabot/messages/metadata.proto
+  jaiabot/messages/moos.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(jaiabot_messages ${PROTOBUF_LIBRARIES})
+target_link_libraries(jaiabot_messages ${PROTOBUF_LIBRARIES} goby)
 
 project_install_lib(jaiabot_messages)
 
