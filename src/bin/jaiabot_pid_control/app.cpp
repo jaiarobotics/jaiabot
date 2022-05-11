@@ -451,6 +451,13 @@ void jaiabot::apps::BotPidControl::handle_command(const jaiabot::protobuf::Engin
         {
             throttle_speed_pid->tune(speed.kp(), speed.ki(), speed.kd());
         }
+
+        // Make target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
+        if (_rudder_is_using_pid && actual_heading > -1000.0) {
+            auto speed_multiplier = max(0.25, min(cos((actual_heading - target_heading) * M_PI / 180.0), 1.0));
+            target_speed *= speed_multiplier;
+        }
+
     }
     // Depth PID for dive
     if (command.has_depth())
