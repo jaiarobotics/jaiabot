@@ -221,5 +221,4 @@ void halt_all() {
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
 PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
-PB_BIND(jaiabot_protobuf_ControlSurfaces_Config, jaiabot_protobuf_ControlSurfaces_Config, 2)
 PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)
