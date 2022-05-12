@@ -10,3 +10,17 @@ if(build_doc)
   install(DIRECTORY ${project_BUILD_DIR}/src/doc/figures DESTINATION share/doc/jaiabot)
 
 endif()
+
+file(COPY ${project_SRC_DIR}/python/ DESTINATION ${project_SHARE_DIR}/jaiabot/python)
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+# library with all the config.protos
+file(GLOB_RECURSE CONFIG_PROTOS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  "bin/*/config.proto")
+
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
+  ${project_INC_DIR}
+  ${CONFIG_PROTOS}
+  )
+add_library(jaiabot_config SHARED ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(jaiabot_config ${PROTOBUF_LIBRARIES} jaiabot_messages goby goby_zeromq goby_moos)
+project_install_lib(jaiabot_config)

@@ -1,0 +1,31 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+// Protobuf version of CMOOSMsg
+message MOOSMessage
+{
+    enum Type
+    {
+        TYPE_DOUBLE = 0x44;         // 'D'
+        TYPE_STRING = 0x53;         // 'S'
+        TYPE_BINARY_STRING = 0x42;  // 'B'
+    }
+    required Type type = 1;
+    required string key = 2;
+
+    oneof value
+    {
+        string svalue = 3;
+        double dvalue = 4;
+        bytes bvalue = 5;
+    }
+
+    required double unixtime = 6;
+    required int32 id = 7;
+    required string source = 8;
+    optional string source_aux = 9;
+    required string community = 10;
+}

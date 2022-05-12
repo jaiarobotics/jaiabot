@@ -50,8 +50,10 @@ message Simulator
     optional goby.middleware.protobuf.UDPPointToPointConfig
         salinity_udp_config = 22;
 
-    optional double vertical_dive_rate = 30
+    required double vertical_dive_rate = 30
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
+    required double seafloor_depth = 31
+        [(dccl.field) = { units { derived_dimensions: "length" } }];
 
     message ScalarSample
     {
@@ -72,5 +74,5 @@ message Simulator
             relative_temperature: true
         }
     }];
-    optional double salinity_stdev = 5;
+    optional double salinity_stdev = 42;
 }

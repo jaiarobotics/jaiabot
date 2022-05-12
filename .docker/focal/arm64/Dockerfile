@@ -20,3 +20,6 @@ RUN apt-get update && \
             wget:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
+
+# Allow compilation of this directory, even if it's owned by someone else, not root
+RUN git config --global --add safe.directory /home/ubuntu/jaiabot

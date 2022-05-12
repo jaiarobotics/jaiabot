@@ -172,6 +172,13 @@ endmacro()
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share)
 
 unset(PROJECT_LIBRARY_LIST CACHE)
+ 
+# share
+# install config
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+# etc
+install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 
 
 # add the code
@@ -186,9 +193,7 @@ if(export_goby_interfaces)
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
 endif()
 
-
 # configuration export - installed version
 install(EXPORT jaiabot-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot)
 # configuration export - local build version
 export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-config.cmake)
- 

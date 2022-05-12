@@ -27,7 +27,7 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 
 package jaiabot.config;
 
-message SingleThreadPattern
+message Metadata
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;

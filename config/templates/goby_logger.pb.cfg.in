@@ -3,3 +3,6 @@ $interprocess_block
 
 log_dir: "$goby_logger_dir"
 load_shared_library: "libjaiabot_messages.so.1"
+# order matters - load the jaiabot_config extension first
+load_shared_library: "libjaiabot_liaison.so.1"
+load_shared_library: "libjaiabot_config.so.1"
