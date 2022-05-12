@@ -2,7 +2,7 @@
 import glob
 import os
 
-devices_path = '/dev/jaiabot/'
+devices_path = '/etc/jaiabot/dev/'
 os.system(f'sudo mkdir -p {devices_path}')
 
 
@@ -30,12 +30,12 @@ device_map = {
     'Raspberry Pi Compute Module 4': [
         [ ['/dev/ttyAMA1'], 'arduino' ],
         [ ['/dev/ttyAMA2'], 'xbee' ],
-        [ ['/dev/jaiabot/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
+        [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
     ],
     'Raspberry Pi 4': [
         [ ['/dev/ttyAMA1'], 'arduino' ],
         [ ['/dev/serial/by-id/usb-FTDI_FT231X_USB_UART_DN*-if00-port0', '/dev/serial/by-id/usb-SparkFun_XBee_Explorer_USB_SF3779M7-if00-port0'], 'xbee' ],
-        [ ['/dev/jaiabot/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
+        [ ['/etc/jaiabot/dev/gps_i2c', '/dev/ttyAMA3'], 'gps' ]
     ],
 }
 

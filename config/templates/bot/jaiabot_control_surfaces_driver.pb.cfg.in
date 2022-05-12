@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 serial_arduino {
-    port: "/dev/jaiabot/arduino"
+    port: "/etc/jaiabot/dev/arduino"
     baud: 115200
 }
 
