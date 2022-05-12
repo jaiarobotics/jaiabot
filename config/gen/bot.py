@@ -32,17 +32,16 @@ templates_dir=common.jaia_templates_dir
 vehicle_id=common.vehicle.bot_index_to_vehicle_id(bot_index)
 
 verbosities = \
-{ 'gobyd':                                    { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'goby_logger':                              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'goby_frontseat_interface_basic_simulator': { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_simulator':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'jaiabot_bluerobotics_pressure_sensor_driver':                          { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
-  'jaiabot_fusion':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'goby_gps':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                                 { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
-  'jaiabot_pid_control': {'runtime': {'tty': 'DEBUG1', 'log': 'DEBUG2'},
-                              'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
-  }
+{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_frontseat_interface_basic_simulator':     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
+  'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
+  'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
+  'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
+}
 
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 
@@ -72,12 +71,16 @@ if common.app == 'gobyd':
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
                                      persist_subscriptions='persist_subscriptions { name: "bot" dir: "' + debug_log_file_dir + '" }'))
+elif common.app == 'goby_coroner':    
+    print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir))
-elif common.app == 'goby_liaison':
+elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,

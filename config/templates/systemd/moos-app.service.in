@@ -1,0 +1,14 @@
+[Unit]
+Description=$description
+
+BindsTo=jaiabot_moosdb.service
+After=jaiabot_moosdb.service
+$extra_unit
+
+[Service]
+EnvironmentFile=$env_file
+ExecStart=$moos_bin_dir/$exe $moos_file
+$extra_service
+
+[Install]
+WantedBy=jaiabot_moosdb.service

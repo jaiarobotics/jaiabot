@@ -1,0 +1,15 @@
+[Unit]
+Description=$description
+
+BindsTo=jaiabot_gobyd.service
+After=jaiabot_gobyd.service
+$extra_unit
+
+[Service]
+EnvironmentFile=$env_file
+ExecStart=$bin_dir/$exe -C '$gen $exe'
+ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
+$extra_service
+
+[Install]
+WantedBy=jaiabot_gobyd.service
