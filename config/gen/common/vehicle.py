@@ -17,7 +17,7 @@ def gpsd_device(vehicle_id):
     if is_simulation():
         return "udp://127.0.0.1:" + str(gpsd_simulator_udp_port(vehicle_id))
     else:
-        return '/dev/jaiabot/gps'
+        return '/etc/jaiabot/dev/gps'
 
 def gpsd_simulator_udp_port(vehicle_id):
     return 32000 + vehicle_id
