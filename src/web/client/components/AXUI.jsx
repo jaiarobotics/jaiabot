@@ -9,7 +9,7 @@
 /* eslint-disable react/no-multi-comp */
 
 import React from 'react';
-import { missions, demo_mission } from './Missions'
+import { missions, demo_mission, Missions } from './Missions'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -1442,28 +1442,31 @@ export default class AXUI extends React.Component {
 
         <div id="commandsDrawer">
           <div id="globalCommandBox">
-            <button type="button" className="globalCommand" title="Run Mission" onClick={this.runMissionClicked.bind(this)}>
+            <button type="button" className="globalCommand" title="Run Mission" onClick={this.runLoadedMissions.bind(this)}>
               <Icon path={mdiPlay} title="Run Mission"/>
             </button>
-            <button type="button" className="globalCommand" title="Run Home" onClick={this.loadHardcodedMissionClicked.bind(this, 0)}>
+            <button type="button" className="globalCommand" title="Run Home" onClick={this.loadMissions.bind(this, Missions.hardcoded(0))}>
               Home
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMissionClicked.bind(this, 1)}>
+            <button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
               M 1
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMissionClicked.bind(this, 2)}>
+            <button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
               M 2
             </button>
-            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMissionClicked.bind(this, 3)}>
+            <button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
               M 3
             </button>
-            <button type="button" className="globalCommand" title="RC Dive" onClick={this.loadHardcodedMissionClicked.bind(this, 4)}>
+            <button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
+              RC
+            </button>
+            <button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
               Dive
             </button>
-            <button type="button" className="globalCommand" title="RC Dive" onClick={this.loadHardcodedMissionClicked.bind(this, 5)}>
+            <button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
               Demo
             </button>
-            <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissionClicked.bind(this)}>
+            <button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
               <Icon path={mdiDelete} title="Clear Mission"/>
             </button>
           </div>
@@ -1541,28 +1544,45 @@ export default class AXUI extends React.Component {
     this.missionLayer.setSource(vectorSource)
   }
 
-  // Runs the currently active onscreen mission
-  runMissionClicked() {
-    if (confirm("Click the OK button to run this mission.")) {
-      let missions = this.missions
-      console.log('Running mission: ', missions)
+  // Runs a mission
+  _runMission(bot_mission) {
+    console.log('Running mission: ', bot_mission)
+    this.sna.postCommand(bot_mission)
+  }
 
-      for (let botId in missions) {
-        let bot_mission = missions[botId]
-        this.sna.postCommand(bot_mission)
+  // Runs a set of missions, and updates the GUI
+  runMissions(missions) {
+    if (confirm("Click the OK button to run this mission.")) {
+      for (let bot_id in missions) {
+        let mission = missions[bot_id]
+        this.missions[mission.bot_id] = deepcopy(mission)
+        this._runMission(mission)
       }
+      this.updateMissionLayer()
+      info("Running mission")
     }
   }
 
-  // Load the hardcoded mission as the active mission
-  loadHardcodedMissionClicked(index) {
-    // Add waypoint markers
-    this.missions = deepcopy(missions[index])
+  // Loads the set of missions, and updates the GUI
+  loadMissions(missions) {
+    this.missions = deepcopy(missions)
     this.updateMissionLayer()
+    info("Loaded mission")
+  }
+
+  // Runs the currently loaded mission
+  runLoadedMissions() {
+    if (confirm("Click the OK button to run this mission.")) {
+      for (let bot_id in this.missions) {
+        let mission = this.missions[bot_id]
+        this._runMission(mission)
+      }
+      info("Running mission")
+    }
   }
 
   // Clears the currently active mission
-  clearMissionClicked() {
+  clearMissions() {
     this.missions = {}
     this.updateMissionLayer()
   }
