@@ -31,6 +31,13 @@ for i in `seq 0 $((n_bots-1))`; do
     echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_mode=simulation] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
 
-echo "warp=${warp}" > ${warpfile}
+cat <<EOF > ${warpfile}
+from common import is_simulation, is_runtime
+
+if is_simulation():
+    warp=${warp}
+else:
+    warp=1
+EOF
 
 echo "Generated all.launch with ${n_bots} AUVS. Set warp to ${warp}"
