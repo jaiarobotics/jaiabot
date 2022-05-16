@@ -1,4 +1,4 @@
-#!/usr/bin/env -S goby_launch -P
+#!/usr/bin/env -S goby_launch -P -L
 
 gobyd <(../../gen/hub.py gobyd) -zzz -n
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
