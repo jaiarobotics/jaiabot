@@ -52,7 +52,7 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
     set(memop_flag "-Uflash:w:${hex_output_with_bootloader}:i")
   endif()
   add_custom_target(arduino_upload_${nickname}
-    DEPENDS ${hex_output} ${hex_output_with_bootloader}
+    DEPENDS arduino_compile_${nickname}
     COMMAND avrdude
     "-patmega328p"
     "-C+${ARDUINO_BINARY_DIR}/avrdude.conf"
