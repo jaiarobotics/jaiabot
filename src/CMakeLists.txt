@@ -24,3 +24,8 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS
 add_library(jaiabot_config SHARED ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(jaiabot_config ${PROTOBUF_LIBRARIES} jaiabot_messages goby goby_zeromq goby_moos)
 project_install_lib(jaiabot_config)
+
+if(build_arduino)
+  include(ArduinoCompile)
+  add_subdirectory(arduino)
+endif()

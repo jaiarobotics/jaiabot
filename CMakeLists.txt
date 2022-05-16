@@ -110,6 +110,14 @@ if(export_goby_interfaces)
 endif()
 
 
+find_program(ARDUINO_CLI arduino-cli)
+if(ARDUINO_CLI)
+  option(build_arduino "Build Arduino code (requires arduino-cli)" ON)
+else()
+  message(STATUS "Did not find arduino-cli, so not building arduino code")
+  option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
+endif()
+
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
