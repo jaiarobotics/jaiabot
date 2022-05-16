@@ -1,5 +1,5 @@
 set(ARDUINO_SOURCE_DIR ${project_SRC_DIR}/arduino)
-set(ARDUINO_BINARY_DIR ${project_SHARE_DIR}/arduino)
+set(ARDUINO_BINARY_DIR ${project_SHARE_DIR}/jaiabot/arduino)
 set(ARDUINO_SERIAL_PORT /etc/jaiabot/dev/arduino CACHE STRING 
   "Serial port for Arduino flashing" )
 
@@ -43,7 +43,7 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
     )
 
   set(arduino_compile_targets "${arduino_compile_targets};arduino_compile_${nickname}" CACHE INTERNAL "Arduino sketches")
-
+  
   if(baudrate)
     set(baudrate_flag "-b${baudrate}")
     set(serial_port_flag "-P${ARDUINO_SERIAL_PORT}")
@@ -51,16 +51,20 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   else()
     set(memop_flag "-Uflash:w:${hex_output_with_bootloader}:i")
   endif()
+
+  # write an upload script for convenience of repeated or docker-based uploads
+  file(WRITE ${outdir}/tmp/upload.sh
+    "#!/bin/bash" "\n"
+    "exec avrdude -patmega328p -C+${ARDUINO_BINARY_DIR}/avrdude.conf -c${avrdude_programmer} ${memop_flag} ${baudrate_flag} ${serial_port_flag} -v -D -V" "\n"
+    )
+  # work around lack of CHMOD command in this version of CMake
+  file (COPY ${outdir}/tmp/upload.sh DESTINATION ${outdir} FILE_PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)
+  file (REMOVE_RECURSE ${outdir}/tmp)
+  
   add_custom_target(arduino_upload_${nickname}
     DEPENDS arduino_compile_${nickname}
-    COMMAND avrdude
-    "-patmega328p"
-    "-C+${ARDUINO_BINARY_DIR}/avrdude.conf"
-    "-c${avrdude_programmer}"
-    "${memop_flag}"
-    "${baudrate_flag}"
-    "${serial_port_flag}"
-    "-v" "-D" "-V"
+    COMMAND ${outdir}/upload.sh
     )
+  
 endfunction()
 
