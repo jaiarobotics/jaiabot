@@ -1,4 +1,4 @@
-configure_file(avrdude.conf ${ARDUINO_BINARY_DIR} COPYONLY)
+configure_file(avrdude.conf ${ARDUINO_BINARY_DIR}/avrdude.conf COPYONLY)
 
 arduino_sketch(control_surfaces usb_old arduino:avr:nano:cpu=atmega328old arduino 57600)
 arduino_sketch(control_surfaces spi     arduino:avr:nano:cpu=atmega328old jaiabot "")
