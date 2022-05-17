@@ -5,7 +5,7 @@ DEST_HOSTNAME=optiplex
 
 set -ex
 ssh ${DEST_HOSTNAME} mkdir -p '${HOME}'/jaia-logs/`hostname`
-rsync -zaP ${HOME}/jaia-logs/ ${DEST_HOSTNAME}:jaia-logs/`hostname`
-rm -rf ${HOME}/jaia-logs/*
+rsync -zaP /var/log/jaiabot/ ${DEST_HOSTNAME}:jaia-logs/`hostname`
+sudo rm -rf /var/log/jaiabot/*
 
 echo "✅ Successfully uploaded all logs!"
