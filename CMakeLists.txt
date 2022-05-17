@@ -177,7 +177,10 @@ macro(project_install_lib target_lib)
   set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
 endmacro()
 
-install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share)
+install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
+  PATTERN "*"
+  EXCLUDE PATTERN "arduino" # this is specially installed by ArduinoCompile.cmake
+  )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
  
@@ -186,8 +189,10 @@ unset(PROJECT_LIBRARY_LIST CACHE)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
 # etc
-install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
-
+option(install_motd "Install MOTD script" ON)
+if(install_motd)
+  install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
+endif()
 
 # add the code
 add_subdirectory(src)
