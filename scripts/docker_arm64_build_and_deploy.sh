@@ -36,15 +36,18 @@ else
     	echo "🟢 Uploading to "$var
 	rsync -zaP --delete --force --relative ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
-    	echo "🟢 Installing and enabling systemd services"
+   	echo "🟢 Installing and enabling systemd services"
         ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh bot --enable'"
+
+    	echo "🟢 Creating and setting permissons on log dir"
+        ssh ubuntu@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ubuntu:ubuntu /var/log/jaiabot"
         
         if [ ! -z "$jaiabot_arduino_type" ]; then
             echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
             ssh ubuntu@"$var" "/home/ubuntu/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
         fi
-    done
 
-    
+        echo "When you're ready, ssh ubuntu@${var} and run 'sudo systemctl start jaiabot'"
+    done
 fi
 
