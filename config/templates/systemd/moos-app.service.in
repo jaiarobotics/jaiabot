@@ -7,7 +7,7 @@ $extra_unit
 
 [Service]
 EnvironmentFile=$env_file
-ExecStart=$moos_bin_dir/$exe $moos_file
+ExecStart=$moos_bin_dir/$exe $moos_file $exe
 $extra_service
 
 [Install]
