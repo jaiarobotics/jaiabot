@@ -1,5 +1,15 @@
 #!/bin/bash
 
+
+##
+## Usage:
+## jaiabot_arduino_type=usb_old ./docker_arm64_build_and_deploy.sh 172.20.11.102
+##
+## Command line arguments is a list of Jaiabots to push deployed code to.
+## If omitted, the code is just built, but not pushed
+## Env var "jaiabot_arduino_type" can be set to one of: usb_old, usb_new, spi which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
+## 
+
 set -e
 
 script_dir=$(dirname $0)

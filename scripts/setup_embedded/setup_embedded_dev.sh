@@ -30,10 +30,17 @@ echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | s
 # install the public key for packages.gobysoft.org
 apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 apt update
-apt install -y gpsd gpsd-clients python3-pip goby3-apps goby3-gui
+apt install -y gpsd gpsd-clients python3-pip goby3-apps goby3-gui avrdude
 
 echo "===Installing Python packages"
 pip install smbus adafruit-circuitpython-busdevice adafruit-circuitpython-register
+
+if [ $1 == 'bot' ]
+then
+  echo "===Setting up Arduino"
+  cd /home/ubuntu/jaiabot/scripts
+  sudo -u ubuntu ./setup_arduino_cli.sh
+fi
 
 echo "===Placing run script in the home dir"
 if [ $1 == 'bot' ]
