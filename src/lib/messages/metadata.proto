@@ -20,7 +20,8 @@ message DeviceMetadata
         required uint32 major = 1;
         required uint32 minor = 2;
         required string patch = 3;
-        optional string githash = 4;
+        optional string git_hash = 4;
+        optional string git_branch = 5;
     }
 
     required Version jaiabot_version = 2;
