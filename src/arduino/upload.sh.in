@@ -7,4 +7,4 @@ nickname=@nickname@
 baud_flag=@baudrate_flag@
 port_flag=@serial_port_flag@
 
-exec avrdude -patmega328p -C+${sharedir}/avrdude.conf -carduino -Uflash:w:${sharedir}/${sketch}/${nickname}/${hex}:i ${baud_flag} ${port_flag} -v -D -V
+avrdude -patmega328p -C+${sharedir}/avrdude.conf -carduino -Uflash:w:${sharedir}/${sketch}/${nickname}/${hex}:i ${baud_flag} ${port_flag} -v -D -V || echo "UPLOAD FAILED!"
