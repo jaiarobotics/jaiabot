@@ -69,6 +69,7 @@ common_macros['goby_bin_dir']=args.goby_bin_dir
 common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
 common_macros['extra_unit']=''
+common_macros['extra_flags']=''
 common_macros['bhv_file']='/tmp/jaiabot_' + str(args.bot_index) + '.bhv'
 common_macros['moos_file']='/tmp/jaiabot_' + str(args.bot_index) + '.moos'
 common_macros['user']=os.getlogin()
@@ -86,6 +87,8 @@ elif args.type == 'hub':
     jaia_type=Type.HUB
     common_macros['gen']=args.gen_dir + '/hub.py'
 
+all_goby_apps=[]
+    
 jaiabot_apps=[
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
@@ -106,6 +109,10 @@ jaiabot_apps=[
      'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service'},
     {'exe': 'goby_logger',
      'description': 'Goby Logger',
+     'template': 'goby-app.service.in',
+     'runs_on': Type.BOTH},
+    {'exe': 'goby_coroner',
+     'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOTH},
     {'exe': 'jaiabot_hub_manager',
@@ -189,6 +196,12 @@ jaiabot_apps=[
 
 for app in jaiabot_apps:
     if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
+        if app['template'] == 'goby-app.service.in':
+            all_goby_apps.append(app['exe'])
+
+        
+for app in jaiabot_apps:
+    if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
         macros={**common_macros, **app}
 
         # generate service name from lowercase exe name, substituting . for _, and
@@ -196,6 +209,10 @@ for app in jaiabot_apps:
         service = app['exe'].replace('.', '_').lower()
         if macros['exe'][0:7] != 'jaiabot':
             service = 'jaiabot_' + service
+
+        # special case for goby_coroner - need a list of everything we're running
+        if app['exe'] == 'goby_coroner':
+            macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
             
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
