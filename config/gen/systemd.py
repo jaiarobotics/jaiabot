@@ -71,6 +71,8 @@ common_macros['extra_service']=''
 common_macros['extra_unit']=''
 common_macros['bhv_file']='/tmp/jaiabot_' + str(args.bot_index) + '.bhv'
 common_macros['moos_file']='/tmp/jaiabot_' + str(args.bot_index) + '.moos'
+common_macros['user']=os.getlogin()
+common_macros['group']=os.getlogin()
 
 class Type(Enum):
      BOT = 'bot'
@@ -122,7 +124,8 @@ jaiabot_apps=[
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOT,
-     'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1'},
+     'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1',
+     'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service'},
     {'exe': 'jaiabot_mission_manager',
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',

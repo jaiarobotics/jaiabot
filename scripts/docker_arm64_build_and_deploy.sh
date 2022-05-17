@@ -36,6 +36,9 @@ else
     	echo "🟢 Uploading to "$var
 	rsync -zaP --delete --force --relative ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
+    	echo "🟢 Installing and enabling systemd services"
+        ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh bot --enable'"
+        
         if [ ! -z "$jaiabot_arduino_type" ]; then
             echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
             ssh ubuntu@"$var" "/home/ubuntu/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"

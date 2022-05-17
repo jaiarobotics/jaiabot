@@ -6,6 +6,9 @@ After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
+User=$user
+Group=$group
+
 EnvironmentFile=$env_file
 ExecStart=$bin_dir/$exe -C '$gen $exe'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
