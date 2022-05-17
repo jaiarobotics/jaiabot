@@ -41,13 +41,13 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
     COMMENT "Running arduino-cli to compile ${sketchname} for ${nickname}")
 
   # target requiring compiled hex
-  add_custom_target(arduino_compile_${nickname}
+  add_custom_target(arduino_compile_${sketchname}_${nickname}
     ALL
     DEPENDS ${hex_output} ${hex_output_with_bootloader} jaiabot_messages_c
     ${arduino_compile_targets} # avoid running in parallel
     )
 
-  set(arduino_compile_targets "${arduino_compile_targets};arduino_compile_${nickname}" CACHE INTERNAL "Arduino sketches")
+  set(arduino_compile_targets "${arduino_compile_targets};arduino_compile_${sketchname}_${nickname}" CACHE INTERNAL "Arduino sketches")
   
   if(baudrate)
     set(baudrate_flag "-b${baudrate}")
@@ -68,8 +68,8 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   install(FILES ${hex_output} ${hex_output_with_bootloader} DESTINATION ${ARDUINO_INSTALL_DIR}/${sketchname}/${nickname})
 
   
-  add_custom_target(arduino_upload_${nickname}
-    DEPENDS arduino_compile_${nickname}
+  add_custom_target(arduino_upload_${sketchname}_${nickname}
+    DEPENDS arduino_compile_${sketchname}_${nickname}
     COMMAND ${outdir}/upload.sh
     )
   
