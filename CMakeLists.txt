@@ -178,8 +178,7 @@ macro(project_install_lib target_lib)
 endmacro()
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
-  PATTERN "*"
-  EXCLUDE PATTERN "arduino" # this is specially installed by ArduinoCompile.cmake
+  PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
