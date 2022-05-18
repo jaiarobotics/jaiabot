@@ -15,7 +15,7 @@ export function BotDetailsComponent(bot) {
 
     // Get the status age
     let statusTime = bot.time
-    let statusAge = (Date.now() * 1e6 - bot.time) / 1e6
+    let statusAge = ((Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
     return (
     <div>
@@ -28,7 +28,7 @@ export function BotDetailsComponent(bot) {
                 </tr>
                 <tr>
                     <td>Status Age</td>
-                    <td>{statusAge}</td>
+                    <td>{statusAge} sec</td>
                 </tr>
                 <tr>
                     <td>Latitude</td>
