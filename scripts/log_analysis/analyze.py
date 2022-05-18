@@ -124,7 +124,9 @@ def generate_webpage(fields, data_filenames, bdr_file):
     # fig.add_trace(go.Scatter(x=bdr_file.data['time'], y=bdr_file.data['Amps'], mode='lines', name='Amps'))
     # fig.add_trace(go.Scatter(x=bdr_file.data['time'], y=bdr_file.data['RPM'], mode='lines', name='RPM'), secondary_y=True)
 
-    fig.update_layout(title='Jaiabot Data', hovermode="closest")
+    display_filenames = ', '.join([os.path.basename(full_filename) for full_filename in data_filenames])
+
+    fig.update_layout(title=f'JaiaData - {display_filenames}', hovermode="closest")
 
     for series_index, field in enumerate(fields):
         trunk_path = '/'.join(field.y_datapath.split('/')[:2])
@@ -172,6 +174,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
         fig.append_trace(go.Scatter(x=series_x_data, y=series_y_data, mode='lines+markers', name=series_y.name, connectgaps=False, hovertext=hovertext), series_index + 1, 1)
         fig.update_yaxes(title_text=yaxis_title, row=series_index + 1)
 
+    substitution_dict['page_title'] = display_filenames
     substitution_dict['charts_div'] = fig.to_html(include_plotlyjs=False, full_html=False)
 
     document_string = Template(open('./analysis.html.template').read()).\
