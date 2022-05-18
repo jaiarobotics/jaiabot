@@ -79,7 +79,7 @@ class H5FileSet:
                     all_data.extend(data)
                 except KeyError:
                     print(f'WARNING:  Cannot locate {dataset_name} in {h5_file}')
-                    return None
+                    continue
 
                 # Sentinel nil value, to prevent connection of multiple series
                 all_data.append(None)
