@@ -39,6 +39,7 @@ DesiredSetpoints_dive_depth = 'jaiabot::desired_setpoints/jaiabot.protobuf.Desir
 TPV = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/'
 TPV_time = TPV + '_utime_'
 TPV_lat = TPV + 'location/lat'
+TPV_lon = TPV + 'location/lon'
 
 def date_from_micros(micros):
     date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()
