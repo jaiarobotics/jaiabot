@@ -51,9 +51,9 @@ def process_goby_to_hdf5(goby_filename):
 
 
 def generate_map(h5_fileset):
-    times = h5_fileset[BotStatus_time].data
-    latitudes = h5_fileset[BotStatus_latitude].data
-    longitudes = h5_fileset[BotStatus_longitude].data
+    times = h5_fileset[TPV_time].data
+    latitudes = h5_fileset[TPV_lat].data
+    longitudes = h5_fileset[TPV_lon].data
 
     # Divide the segments up on the map
     points = []
@@ -221,6 +221,8 @@ class DataFile:
         date_string = filename.split('.')[-2][-15:]
         self.date = datetime.datetime.strptime(date_string, '%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
 
+log_root_path = os.path.expanduser('~/jaia-logs/')
+
 class MainWindow(QWidget):
 
     def __init__(self, parent = None):
@@ -237,10 +239,15 @@ class MainWindow(QWidget):
         file_selector_list = QListWidget()
         file_selector_list.setSelectionMode(2)
 
+        # Add the file selector
         for datafile in self.datafiles:
             list_widget_item = QListWidgetItem(file_selector_list)
             local_datetime = datafile.date.astimezone()
-            list_widget_item.setText(local_datetime.strftime('%Y %b %d %a %-I:%M:%S %p'))
+            
+            file_modification_time_string = local_datetime.strftime(f'%Y %b %d %a %-I:%M:%S %p')
+            display_filename = os.path.basename(datafile.filename)
+
+            list_widget_item.setText(f'{file_modification_time_string}  {display_filename}')
             list_widget_item.filename = datafile.filename
             file_selector_list.addItem(list_widget_item)
 
@@ -298,7 +305,7 @@ class MainWindow(QWidget):
         self.file_selector_list.clearSelection()
 
     def get_datafiles(self):
-        datafiles = [DataFile(filename) for filename in glob.glob(os.path.expanduser('~/jaia-logs/') + '**/*_???????????????.h5', recursive=True)]
+        datafiles = [DataFile(filename) for filename in glob.glob(log_root_path + '**/*_???????????????.h5', recursive=True)]
 
         datafiles.sort(key=lambda datafile: os.path.getmtime(datafile.filename), reverse=True)
         return datafiles
