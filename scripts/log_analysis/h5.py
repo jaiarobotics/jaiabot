@@ -40,6 +40,9 @@ TPV = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePos
 TPV_time = TPV + '_utime_'
 TPV_lat = TPV + 'location/lat'
 TPV_lon = TPV + 'location/lon'
+TPV_epx = TPV + 'epx'
+TPV_epy = TPV + 'epy'
+TPV_epv = TPV + 'epv'
 
 def date_from_micros(micros):
     date = datetime.datetime.fromtimestamp(micros / 1e6, tz=datetime.timezone.utc).astimezone()

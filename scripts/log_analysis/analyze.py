@@ -51,6 +51,17 @@ def process_goby_to_hdf5(goby_filename):
 
 
 def generate_map(h5_fileset):
+    time_series = h5_fileset[TPV_time]
+    if time_series is None:
+        print('No GPS fix?')
+        return {
+            'points': '[ ]',
+            'path': '[ ]',
+            'center_lat': 0,
+            'center_lon': 0,
+            'zoom': 1,
+        }
+
     times = h5_fileset[TPV_time].data
     latitudes = h5_fileset[TPV_lat].data
     longitudes = h5_fileset[TPV_lon].data
@@ -86,17 +97,6 @@ def generate_map(h5_fileset):
 
     coordinates = tuple(filter(lambda p: p[0] != 0.0, zip(latitudes, longitudes)))
 
-    # No GPS fix
-    if len(path) == 0:
-        print('No GPS fix?')
-        return {
-            'points': '[ ]',
-            'path': '[ ]',
-            'center_lat': 0,
-            'center_lon': 0,
-            'zoom': 1,
-        }
-
     path_string = json.dumps(path)
 
     return {
@@ -130,6 +130,10 @@ def generate_webpage(fields, data_filenames, bdr_file):
         trunk_path = '/'.join(field.y_datapath.split('/')[:2])
         scheme_path = trunk_path + '/_scheme_'
         x_datapath = trunk_path + '/_utime_'
+
+        # Pass if we don't have this series
+        if h5_fileset[scheme_path] is None:
+            continue
 
         series_scheme = h5_fileset[scheme_path].data
         series_x = deepcopy(h5_fileset[x_datapath])
@@ -211,6 +215,10 @@ available_fields = [
     Field(y_datapath=PIDControl_depth_Kd, y_axis_label='Depth D gain'),
 
     Field(y_datapath=TPV_lat, y_axis_label='Latitude (°)'),
+    Field(y_datapath=TPV_lon, y_axis_label='Longitude (°)'),
+    Field(y_datapath=TPV_epx, y_axis_label='Longitude Error 95% (m)'),
+    Field(y_datapath=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
+    Field(y_datapath=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
 ]
 
 
