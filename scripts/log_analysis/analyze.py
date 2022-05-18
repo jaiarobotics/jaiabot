@@ -198,6 +198,8 @@ available_fields = [
     Field(y_datapath=BotStatus_depth, y_axis_label='Depth (m)'),
     Field(y_datapath=BotStatus_salinity, y_axis_label='Salinity'),
     Field(y_datapath=BotStatus_mission_state, y_axis_label='Mission state'),
+    Field(y_datapath=BotStatus_latitude, y_axis_label='BotStatus latitude (°)'),
+    Field(y_datapath=BotStatus_longitude, y_axis_label='BotStatus longitude (°)'),
 
     Field(y_datapath=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
     Field(y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
