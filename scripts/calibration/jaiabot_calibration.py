@@ -25,7 +25,7 @@ try:
     boundsCFG = open("output_bounds.pb.cfg","r")
     boundsCFG = boundsCFG.read()
     google.protobuf.text_format.Parse(boundsCFG, check_bounds)
-    boundsCFG.close
+    boundsCFG.close()
 except:
     pass
 
