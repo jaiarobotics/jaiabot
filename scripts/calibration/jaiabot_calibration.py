@@ -137,8 +137,8 @@ def motorInsurance(adjustment, currentSpeed):
         else:
             return adjustment
             
-
-def inputMotorCommand():
+#betcha cant guess what this does
+def inputMotorCommand(comfirmation1, comfirmation2):
     y = True
     currentSpeed = 0
     lastSpeed = 0
@@ -151,62 +151,15 @@ def inputMotorCommand():
         currentSpeed = adjustment+currentSpeed
         write(currentSpeed)
         while z is True:
-            confirmation = input("is the motor moving? Yes/No ")
+            print(comfirmation1)
+            confirmation = input()
             confirmation = confirmation.upper()
             if confirmation == "YES":
                 write("Y")
                 x = True
                 while x is True:
-                    completion = input("ensure you are as close as possible to startup speed before confirming: is this the motor startup speed? Yes/No ")
-                    completion = completion.upper()
-                    if completion == "YES":
-                        write("J")
-                        value = rd()
-                        z = False
-                        y = False
-                        x = False
-                    elif completion == "NO":
-                        write("K")
-                        print("your last functional value was", lastSpeed)
-                        write(lastSpeed)
-                        z = False
-                        x = False
-                    else:
-                        print("Please enter yes or no")
-            elif confirmation == "NO":
-                lastSpeed = currentSpeed
-                write("N")
-                z = False
-            else:
-                print("Please enter yes or no")
-    #reformats the value output from the arduino serial moniter to be nice and pretty          
-    value = str(value)
-    value = value.replace("b","")
-    value = value.replace("'","")
-    print(value)
-    return value
-
-#is basically the same thing as above, but with slightly different prompts.
-def inputHaltCommand():
-    y = True
-    currentSpeed = 0
-    lastSpeed = 0
-    while y is True:
-        z = True
-        currentSpeed=lastSpeed
-        print("How many microseconds to adjust by? positive between", 25-currentSpeed, "and", 160-currentSpeed, "only.")
-        adjustment = int(input())
-        adjustment = motorInsurance(adjustment, currentSpeed)
-        currentSpeed = adjustment+currentSpeed
-        write(currentSpeed)
-        while z is True:
-            confirmation = input("is the motor stopped? Yes/No ")
-            confirmation = confirmation.upper()
-            if confirmation == "YES":
-                write("Y")
-                x = True
-                while x is True:
-                    completion = input("ensure you are as close as possible to stopping speed before confirming: is this the motor stop speed? Yes/No ")
+                    print(comfirmation2)
+                    completion = input()
                     completion = completion.upper()
                     if completion == "YES":
                         write("J")
@@ -244,13 +197,13 @@ def calibrateMotor():
         #calibrates the forward, backward, forward halt, and backward halt limitations
         print(rd())
         print("calibrating forward start")
-        check_bounds.motor.forwardStart = int(inputMotorCommand())
+        check_bounds.motor.forwardStart = int(inputMotorCommand("is the motor moving? Yes/No ","ensure you are as close as possible to startup speed before confirming: is this the motor startup speed? Yes/No "))
         print("calibrating reverse start")
-        check_bounds.motor.reverseStart = int(inputMotorCommand())
+        check_bounds.motor.reverseStart = int(inputMotorCommand("is the motor moving? Yes/No ","ensure you are as close as possible to startup speed before confirming: is this the motor startup speed? Yes/No "))
         print("calibrating forward halt")
-        check_bounds.motor.forwardHalt = int(inputHaltCommand())
+        check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","ensure you are as close as possible to stopping speed before confirming: is this the motor stop speed? Yes/No "))
         print("calibrating reverse halt")
-        check_bounds.motor.reverseHalt = int(inputHaltCommand())
+        check_bounds.motor.reverseHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","ensure you are as close as possible to stopping speed before confirming: is this the motor stop speed? Yes/No "))
 
         #my scripts are like meseeks, not made for this world. existance is pain, and they would like to be free
         letitend = True
