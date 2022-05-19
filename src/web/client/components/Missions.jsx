@@ -1,4 +1,4 @@
-const P0 = {location: {lat: 41.662612, lon: -71.273047}}
+const P0 = {location: {lat: 41.66260,  lon: -71.27310 }}
 const P1 = {location: {lat: 41.662350, lon: -71.273283}}
 const P2 = {location: {lat: 41.661992, lon: -71.273560}}
 const P3 = {location: {lat: 41.661652, lon: -71.273825}}
