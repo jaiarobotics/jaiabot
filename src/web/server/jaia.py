@@ -34,24 +34,6 @@ class Interface:
 
         threading.Thread(target=lambda: self.loop()).start()
 
-    def post_test_mission(self):
-        for bot_id in range(0, 4):
-            goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(bot_id, 10 + bot_id) ]
-
-            cmd = {
-                'botId': bot_id, 
-                'time': str(now()),
-                'type': 'MISSION_PLAN', 
-                'plan': {
-                    'start': 'START_IMMEDIATELY', 
-                    'movement': 'TRANSIT', 
-                    'goal': goals, 
-                    'recovery': {'recoverAtFinalGoal': True}
-                    }
-                }
-
-            self.post_command(cmd)
-
     def loop(self):
         while True:
 
@@ -86,6 +68,7 @@ class Interface:
         logging.debug(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
+        logging.info(f'Sent {len(data)} bytes')
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
@@ -133,7 +116,7 @@ class Interface:
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
-        logging.info(f'Sending command: {command}')
+        logging.debug(f'Sending command: {command}')
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)

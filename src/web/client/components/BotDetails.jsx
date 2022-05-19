@@ -15,7 +15,7 @@ export function BotDetailsComponent(bot) {
 
     // Get the status age
     let statusTime = bot.time
-    let statusAge = ((Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
     return (
     <div>
