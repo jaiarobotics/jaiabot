@@ -1,6 +1,8 @@
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
 
+var selectedBotId = 0
+
 // Gets an element with this id
 function el(id) {
   element = document.getElementById(id)
@@ -81,7 +83,7 @@ class AngleSlider {
       switch(e.code) {
         case self.leftKey:
           self.value -= delta
-          break
+          break;
         case self.rightKey:
           self.value += delta
       }
@@ -386,16 +388,20 @@ class PIDGains {
     let self = this
 
     this.submitElement.onclick = function() {
-      let command = {timeout : 1}
+      let pid_control = {timeout : 1}
 
-      command[self.api_name] = {
+      pid_control[self.api_name] = {
         Kp : self.KpElement.value,
         Ki : self.KiElement.value,
         Kd : self.KdElement.value
       }
 
-      console.log('Sending command: ', command)
-      sendCommand(command)
+      let engineering_command = {
+        botId: selectedBotId,
+        pid_control: pid_control
+      }
+
+      sendCommand(engineering_command)
     }
   }
 
@@ -422,33 +428,33 @@ pitchGains = new PIDGains('pitch', 'pitch')
 //////// Dive Button 
 
 function diveButtonOnClick() {
-  var command = getVisibleCommand()
-  command.timeout = timeoutSlider.value
+  var engineering_command = getVisibleCommand()
+  var pid_control = engineering_command.pid_control
+  pid_control.timeout = timeoutSlider.value
 
   // Stop sending commands until
-  blockSendingUntil = Date.now() + command.timeout * 1000
-
-  console.log('Dive button pressed!')
+  blockSendingUntil = Date.now() + pid_control.timeout * 1000
 
   switch (diveTabbedSections.activeIndex) {
     case 0: // Manual
-      command.throttle = -diveManualSlider.value
-      break
+      pid_control.throttle = -diveManualSlider.value
+      break;
     case 1: // PID
-      delete command.throttle
-      command.depth = {
+      delete pid_control.throttle
+      pid_control.depth = {
         target: divePIDSlider.value,
         Kp: diveGains.Kp,
         Ki: diveGains.Ki,
         Kd: diveGains.Kd
       }
-      break
+      break;
   }
 
-  sendCommand(command)
+  sendCommand(engineering_command)
 }
 
 function sendCommand(command) {
+  console.log('Sending: ', command)
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "/jaia/pid-command", true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -524,48 +530,48 @@ function handleKey(key) {
       portElevatorSlider.value = 0
       stbdElevatorSlider.value = 0
       rollSlider.value = 0
-      break
+      break;
     case 'KeyC':
       rudderSlider.value = rudderCenter
       portElevatorSlider.value = portCenter
       stbdElevatorSlider.value = stbdCenter
-      break
+      break;
     case 'KeyI':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
           portElevatorSlider.value += delta
           stbdElevatorSlider.value += delta
-          break
+          break;
       }
-      break
+      break;
     case 'KeyK':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value -= delta
-          break
+          break;
       }
-      break
+      break;
     case 'KeyQ':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value += delta
-          break
+          break;
       }
-      break
+      break;
     case 'KeyE':
       switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
           portElevatorSlider.value += delta
           stbdElevatorSlider.value -= delta
-          break
+          break;
       }
-      break
+      break;
   }
 }
 
@@ -637,7 +643,7 @@ function getVisibleCommand() {
       case 0:
         pid_control.throttle = el("throttleSlider").value
         delete pid_control.speed
-        break
+        break;
       case 1:
         delete pid_control.throttle
         pid_control.speed = {
@@ -646,7 +652,7 @@ function getVisibleCommand() {
           Ki: el("speed_Ki").value,
           Kd: el("speed_Kd").value
         }
-        break
+        break;
     }
   }
   else {
@@ -660,7 +666,7 @@ function getVisibleCommand() {
     case 0:
       pid_control.rudder = el("rudderSlider").value
       delete pid_control.heading
-      break
+      break;
     case 1:
       delete pid_control.rudder
       pid_control.heading = {
@@ -669,7 +675,7 @@ function getVisibleCommand() {
         Ki: el("heading_Ki").value,
         Kd: el("heading_Kd").value
       }
-      break
+      break;
   }
   
   // Elevators
@@ -678,7 +684,7 @@ function getVisibleCommand() {
       pid_control.portElevator = el("portElevatorSlider").value
       pid_control.stbdElevator = el("stbdElevatorSlider").value
       delete pid_control.roll
-      break
+      break;
     case 1:
       delete pid_control.portElevator
       delete pid_control.stbdElevator
@@ -694,15 +700,13 @@ function getVisibleCommand() {
         Ki: el("pitch_Ki").value,
         Kd: el("pitch_Kd").value
       }
-      break
+      break;
   }
 
   let engineering_command = {
-    botId: 0,
+    botId: selectedBotId,
     pid_control: pid_control
   }
-
-  console.log(engineering_command)
 
   return engineering_command
 }
