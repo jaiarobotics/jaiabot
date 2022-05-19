@@ -6,13 +6,17 @@
 import $ from "jquery"
 import React from 'react'
 import { debug } from "../libs/notifications"
+import { Settings } from './Settings'
 
-export function currentParameters() {
-    return {
-        maxDepth: $("#dive_max_depth").val(),
-        depthInterval: $("#dive_depth_interval").val(),
-        holdTime: $("#dive_hold_time").val(),
-    }
+export var currentParameters = Settings.read('diveParameters') || {
+    maxDepth: 1,
+    depthInterval: 1,
+    holdTime: 0,
+}
+
+function setParameter(parameterName, event) {
+    currentParameters[parameterName] = Number(event.target.value)
+    Settings.write('diveParameters', currentParameters)
 }
 
 export function panel() {
@@ -23,15 +27,15 @@ export function panel() {
                 <tbody>
                     <tr key="max_depth">
                         <td>Max Depth</td>
-                        <td><input type="text" id="dive_max_depth" defaultValue="1" /></td>
+                        <td><input type="text" id="dive_max_depth" defaultValue={currentParameters.maxDepth} onChange={setParameter.bind(null, 'maxDepth')} /></td>
                     </tr>
                     <tr key="dive_depth_interval">
                         <td>Depth Interval</td>
-                        <td><input type="text" id="dive_depth_interval" defaultValue="1" /></td>
+                        <td><input type="text" id="dive_depth_interval" defaultValue={currentParameters.depthInterval} onChange={setParameter.bind(null, 'depthInterval')} /></td>
                     </tr>
                     <tr key="hold_time">
                         <td>Hold Time</td>
-                        <td><input type="text" id="dive_hold_time" defaultValue="0" /></td>
+                        <td><input type="text" id="dive_hold_time" defaultValue={currentParameters.holdTime} onChange={setParameter.bind(null, 'holdTime')} /></td>
                     </tr>
                 </tbody>
             </table>
