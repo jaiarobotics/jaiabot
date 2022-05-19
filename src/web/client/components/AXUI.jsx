@@ -852,12 +852,29 @@ export default class AXUI extends React.Component {
 			(result) => {
 				if (!("bots" in result)) {
 					this.podStatus = {}
-					error('Unable to load Pod data!')
+					error('Cannot connect to the Jaia Central Command web server (app.py)')
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
 				else {
 					this.podStatus = result
+
+                    let messages = result.messages
+
+                    if (messages) {
+                        if (messages.info) {
+                            info(messages.info)
+                        }
+
+                        if (messages.warning) {
+                            warning(messages.warning)
+                        }
+
+                        if (messages.error) {
+                            error(messages.error)
+                        }
+                    }
+
 				}
 			},
 			(err) => {
