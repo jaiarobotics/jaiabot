@@ -32,6 +32,10 @@ class Interface:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(5)
 
+        self.messages = {}
+
+        self.pingCount = 0
+
         threading.Thread(target=lambda: self.loop()).start()
 
     def loop(self):
@@ -60,6 +64,12 @@ class Interface:
                     self.bots[botStatus.bot_id].MergeFrom(botStatus)
 
                 logging.debug(f'Received BotStatus:\n{botStatus}')
+
+                # If we were disconnected, then report successful reconnection
+                if self.pingCount > 1:
+                    self.messages['info'] = 'Reconnected to jaiabot_web_portal'
+
+                self.pingCount = 0
             except KeyError:
                 self.bots[botStatus.bot_id] = botStatus
 
@@ -76,6 +86,12 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.ping = True
         self.send_message_to_portal(msg)
+
+        # Display warning if more than one ping required
+        self.pingCount += 1
+
+        if self.pingCount > 1:
+            self.messages['error'] = 'No response from jaiabot_web_portal app'
 
     def get_ab_status(self):
         bots = []
@@ -134,10 +150,14 @@ class Interface:
     def get_status(self):
         bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
 
-        return {
+        status = {
             'bots': bots,
-            'message': None
+            'messages': self.messages
         }
+
+        self.messages = {}
+
+        return status
 
     def get_mission_status(self):
         return {
