@@ -212,6 +212,7 @@ available_fields = [
     Field(y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
 
     Field(y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
+    Field(y_datapath=DesiredSetpoints_type, y_axis_label='Desired Setpoint Type'),
 
     Field(y_datapath=PIDControl_depth_Kp, y_axis_label='Depth P gain'),
     Field(y_datapath=PIDControl_depth_Ki, y_axis_label='Depth I gain'),
