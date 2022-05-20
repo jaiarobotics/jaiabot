@@ -1001,8 +1001,8 @@ export default class AXUI extends React.Component {
 						botFeature.set('tracked', true);
 					}
 
-					let newBotStatus = this.podStatus.bots[bot_id]
-					botFeature.set('remoteControlled', newBotStatus?.missionState?.includes('REMOTE_CONTROL'))
+					let newBotStatus = this.podStatus?.bots[bot_id]
+					botFeature.set('remoteControlled', newBotStatus?.missionState?.includes('REMOTE_CONTROL') || false)
 
 					botLayer.getSource().clear();
 					botLayer.getSource().addFeature(botFeature);
