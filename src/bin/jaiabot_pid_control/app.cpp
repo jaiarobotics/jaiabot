@@ -595,6 +595,10 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
     setThrottleMode(PID_DEPTH);
     target_depth = dive_depth;
+
+    // Set rudder to center
+    rudder = 0.0;
+    toggleRudderPid(false);
 }
 
 void jaiabot::apps::BotPidControl::handle_powered_ascent()
