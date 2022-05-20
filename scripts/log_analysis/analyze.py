@@ -246,31 +246,22 @@ class MainWindow(QWidget):
 
         file_selector_layout = QVBoxLayout()
 
-        self.datafiles = self.get_datafiles()
-
         file_selector_list = QListWidget()
         file_selector_list.setSelectionMode(2)
-
-        # Add the file selector
-        for datafile in self.datafiles:
-            list_widget_item = QListWidgetItem(file_selector_list)
-            local_datetime = datafile.date.astimezone()
-            
-            file_modification_time_string = local_datetime.strftime(f'%Y %b %d %a %-I:%M:%S %p')
-            display_filename = os.path.basename(datafile.filename)
-
-            list_widget_item.setText(f'{file_modification_time_string}  {display_filename}')
-            list_widget_item.filename = datafile.filename
-            file_selector_list.addItem(list_widget_item)
-
         self.file_selector_list = file_selector_list
+        file_selector_layout.addWidget(file_selector_list)
+
+        self.load_file_list()
 
         self.unselect_all_files_button = QPushButton()
         self.unselect_all_files_button.setText('Unselect All Files')
         self.unselect_all_files_button.clicked.connect(self.unselect_all_files)
-
-        file_selector_layout.addWidget(file_selector_list)
         file_selector_layout.addWidget(self.unselect_all_files_button)
+
+        self.reload_file_list_button = QPushButton()
+        self.reload_file_list_button.setText('Reload File List')
+        self.reload_file_list_button.clicked.connect(self.load_file_list)
+        file_selector_layout.addWidget(self.reload_file_list_button)
 
         checkbox_layout = QVBoxLayout()
 
@@ -315,6 +306,23 @@ class MainWindow(QWidget):
     def unselect_all_files(self):
         # Unselect all files
         self.file_selector_list.clearSelection()
+
+    def load_file_list(self):
+        self.datafiles = self.get_datafiles()
+
+        self.file_selector_list.clear()
+
+        # Add the file selector
+        for datafile in self.datafiles:
+            list_widget_item = QListWidgetItem(self.file_selector_list)
+            local_datetime = datafile.date.astimezone()
+            
+            file_modification_time_string = local_datetime.strftime(f'%Y %b %d %a %-I:%M:%S %p')
+            display_filename = os.path.basename(datafile.filename)
+
+            list_widget_item.setText(f'{file_modification_time_string}  {display_filename}')
+            list_widget_item.filename = datafile.filename
+            self.file_selector_list.addItem(list_widget_item)
 
     def get_datafiles(self):
         datafiles = [DataFile(filename) for filename in glob.glob(log_root_path + '**/*_???????????????.h5', recursive=True)]
