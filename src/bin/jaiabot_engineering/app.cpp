@@ -81,12 +81,6 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1.0 / 
           [this](const jaiabot::protobuf::PIDControl& pid_control) { 
             latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
           });
-
-        // jaiabot_mission_manager
-        interprocess().subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::MissionManagerSettings>(
-          [this](const jaiabot::protobuf::MissionManagerSettings& settings) { 
-            latest_engineering.mutable_mission_manager_settings()->CopyFrom(settings);
-          });
     }
 
     // Intervehicle subscribe for commands from engineering
