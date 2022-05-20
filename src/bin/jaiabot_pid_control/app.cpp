@@ -341,8 +341,7 @@ void jaiabot::apps::BotPidControl::loop()
                                << std::endl;
         lastCommandReceived = 0;
 
-        throttle = 0.0;
-        setThrottleMode(MANUAL);
+        all_stop();
     }
 
     // Publish the LowControl
@@ -547,6 +546,18 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
     }
 
+    // Special case:  don't track the rudder if the target speed is zero, and the throttle is speed-PID
+    if (_throttleMode == PID_SPEED && target_speed == 0.0)
+    {
+        all_stop();
+    }
+
+    // Special case:  don't track the rudder during a dive
+    if (_throttleMode == PID_DEPTH)
+    {
+        toggleRudderPid(false);
+        rudder = 0;
+    }
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
@@ -630,4 +641,13 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
     glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString() << endl;
 
     interprocess().publish<jaiabot::groups::engineering_status>(pid_control_status);
+}
+
+void jaiabot::apps::BotPidControl::all_stop()
+{
+    throttle = 0.0;
+    setThrottleMode(MANUAL);
+
+    rudder = 0.0;
+    toggleRudderPid(false);
 }

@@ -34,7 +34,9 @@ LowControl_rudder = 'jaiabot::low_control/jaiabot.protobuf.LowControl/control_su
 DesiredCourse_heading = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/heading'
 DesiredCourse_speed = 'goby::middleware::frontseat::desired_course/goby.middleware.frontseat.protobuf.DesiredCourse/speed'
 
-DesiredSetpoints_dive_depth = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/dive_depth'
+DesiredSetpoints = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/'
+DesiredSetpoints_dive_depth = DesiredSetpoints + 'dive_depth'
+DesiredSetpoints_type = DesiredSetpoints + 'type'
 
 TPV = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/'
 TPV_time = TPV + '_utime_'
