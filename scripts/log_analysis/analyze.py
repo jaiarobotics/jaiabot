@@ -150,7 +150,11 @@ def generate_webpage(fields, data_filenames, bdr_file):
         hovertext = None
 
         # If we're dealing with an enum, we need a hovertext list
-        enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+        try:
+            enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+        except KeyError:
+            continue
+
         if enum_dict:
             hovertext = []
 
