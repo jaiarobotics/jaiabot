@@ -446,7 +446,8 @@ function diveButtonOnClick() {
         Kp : diveGains.Kp,
         Ki : diveGains.Ki,
         Kd : diveGains.Kd
-      } break;
+      };
+      break;
   }
 
   sendCommand(engineering_command)
@@ -542,7 +543,7 @@ function handleKey(key) {
           portElevatorSlider.value += delta
           stbdElevatorSlider.value += delta
           break;
-      }
+        };
       break;
     case 'KeyK':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -551,7 +552,7 @@ function handleKey(key) {
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value -= delta
           break;
-      }
+        };
       break;
     case 'KeyQ':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -560,7 +561,7 @@ function handleKey(key) {
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value += delta
           break;
-      }
+        };
       break;
     case 'KeyE':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -569,7 +570,7 @@ function handleKey(key) {
           portElevatorSlider.value += delta
           stbdElevatorSlider.value -= delta
           break;
-      }
+        };
       break;
   }
 }
@@ -650,7 +651,8 @@ function getVisibleCommand() {
           Kp : el("speed_Kp").value,
           Ki : el("speed_Ki").value,
           Kd : el("speed_Kd").value
-        } break;
+        };
+        break;
     }
   }
   else {
@@ -672,7 +674,8 @@ function getVisibleCommand() {
         Kp : el("heading_Kp").value,
         Ki : el("heading_Ki").value,
         Kd : el("heading_Kd").value
-      } break;
+      };
+      break;
   }
   
   // Elevators
@@ -690,12 +693,14 @@ function getVisibleCommand() {
         Kp : el("roll_Kp").value,
         Ki : el("roll_Ki").value,
         Kd : el("roll_Kd").value
-      } pid_control.pitch = {
+      };
+      pid_control.pitch = {
         target : el("pitchSlider").value,
         Kp : el("pitch_Kp").value,
         Ki : el("pitch_Ki").value,
         Kd : el("pitch_Kd").value
-      } break;
+      };
+      break;
   }
 
   let engineering_command = {
