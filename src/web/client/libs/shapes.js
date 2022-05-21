@@ -228,6 +228,7 @@ export default {
       const trackedFill = new OlFill({ color: COLOR_TRACKED });
       const driftFill = new OlFill({ color: COLOR_MEASURE_DRIFT });
       const doneFill = new OlFill({ color: '#0000FF' });
+      const remoteControlFill = new OlFill({color : '#a16da3'})
       let fill = defaultFill;
 
       const defaultStroke = new OlStroke({ color: 'black', width: 2 });
@@ -250,6 +251,7 @@ export default {
       const controlled = feature.get('controlled') === true;
       const tracked = feature.get('tracked') === true;
       const completed = feature.get('completed') === true;
+      const remoteControlled = feature.get('remoteControlled') === true
 
       // Serious faults
       if (rfState >= 2 || faultState === 6) {
@@ -300,6 +302,10 @@ export default {
 
       if (selected && !controlled) {
         fill = selectedFill;
+      }
+
+      if (remoteControlled) {
+        fill = remoteControlFill
       }
 
       return [
