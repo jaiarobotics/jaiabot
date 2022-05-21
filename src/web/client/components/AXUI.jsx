@@ -190,7 +190,7 @@ export default class AXUI extends React.Component {
 		this.state = {
 			error: {},
 			// User interaction modes
-			mode: 'exec',
+			mode: '',
 			currentInteraction: null,
 			mapZoomLevel: 14,
 			controlSpeed: 0,
@@ -393,6 +393,8 @@ export default class AXUI extends React.Component {
 			loadTilesWhileInteracting: true,
 			moveTolerance: 20
 		});
+
+		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
 		const graticule = new OlGraticule({
 			// the style to use for the lines, optional.
@@ -1162,10 +1164,10 @@ export default class AXUI extends React.Component {
 
 	returnToHome() {
 		if (!this.homeLocation) {
+			alert('No Home location selected.  Click on the map to select a Home location and try again.')
 			return
 		}
 		
-		console.log('location: ', this.homeLocation)
 		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.homeLocation))
 
 		this.runMissions(returnToHomeMissions)
@@ -1441,44 +1443,27 @@ export default class AXUI extends React.Component {
 					</div>
 				</div>
 
-				<div id="commandsDrawer">
-					<div id="globalCommandBox">
-						<button type="button" className="globalCommand" title="Run Mission" onClick={this.runLoadedMissions.bind(this)}>
-							<Icon path={mdiPlay} title="Run Mission"/>
-						</button>
-						<button type="button" className="globalCommand" title="Run Home" onClick={this.returnToHome.bind(this)}>
-							Home
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
-							M 1
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
-							M 2
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
-							M 3
-						</button>
-						<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
-							RC
-						</button>
-						<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
-							Dive
-						</button>
-						<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
-							Demo
-						</button>
-						<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
-							<Icon path={mdiDelete} title="Clear Mission"/>
-						</button>
-					</div>
-				</div>
+				{this.commandDrawer()}
 
 			</div>
 		);
 	}
 
+	locationFromCoordinate(coordinate) {
+		let latlon = this.coordinate_to_location_transform(coordinate)
+		return {lat: latlon[1], lon: latlon[0]}
+	}
+
+	addWaypointAtCoordinate(coordinate) {
+		this.addWaypointAt(this.locationFromCoordinate(coordinate))
+	}
+
 	addWaypointAt(location) {
 		let botId = this.selectedBotIds().at(-1)
+
+		if (!botId) {
+			return
+		}
 
 		if (!(botId in this.missions)) {
 			this.missions[botId] = {
@@ -1495,6 +1480,8 @@ export default class AXUI extends React.Component {
 		}
 
 		this.missions[botId].plan.goal.push({location: location})
+
+		this.updateMissionLayer()
 	}
 
 	updateMissionLayer() {
@@ -1506,17 +1493,12 @@ export default class AXUI extends React.Component {
 		let defaultWaypointStyle = new OlStyle({
 			image: new OlCircleStyle({
 				fill: new OlFillStyle({color: '#5ec957'}),
-				stroke: new OlStrokeStyle({color: '#000000'}),
+				stroke: new OlStrokeStyle({color: '#eeeeee'}),
 				radius: 5,
 			})
 		})
 
 		let homeStyle = new OlStyle({
-			// image: new OlCircleStyle({
-			// 	fill: new OlFillStyle({color: '#ee1111'}),
-			// 	stroke: new OlStrokeStyle({color: '#000000'}),
-			// 	radius: 5,
-			// })
 			image: new OlIcon({ src: homeIcon })
 		})
 
@@ -1647,12 +1629,27 @@ export default class AXUI extends React.Component {
 
 	pointerInteraction() {
 		return new PointerInteraction({
-			handleDownEvent: this.handleDownEvent.bind(this)
+			handleEvent: this.handleEvent.bind(this),
+			stopDown: this.stopDown.bind(this)
 		})
 	}
 
-	handleDownEvent(evt) {
+	handleEvent(evt) {
+		switch(evt.type) {
+			case 'click':
+				return this.clickEvent(evt)
+				break;
+		}
+		return true
+	}
+
+	clickEvent(evt) {
 		const map = evt.map;
+
+		if (this.state.mode == 'setHome') {
+			this.placeHomeAtCoordinate(evt.coordinate)
+			return false // Not a drag event
+		}
 
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
 			return feature
@@ -1667,20 +1664,95 @@ export default class AXUI extends React.Component {
 			}
 		}
 		else {
-			var lonlat = mercator_to_equirectangular(evt.coordinate)
-			let location = {lon: lonlat[0], lat: lonlat[1]}
-	
-			if (this.selectedBotIds().length > 0) {
-				this.addWaypointAt(location)
-			}
-			// No bots are selected, to set Home to this point
-			else {
-				this.homeLocation = location
-			}
-	
-			this.updateMissionLayer()
+			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
+		return true
+	}
+
+	placeHomeAtCoordinate(coordinate) {
+		var lonlat = mercator_to_equirectangular(coordinate)
+		let location = {lon: lonlat[0], lat: lonlat[1]}
+		this.homeLocation = location
+
+		this.updateMissionLayer()
+	}
+
+	stopDown(evt) {
+		return false
+	}
+
+	// Command Drawer
+
+	commandDrawer() {
+		var element = (
+			<div id="commandsDrawer">
+			<div id="globalCommandBox">
+				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
+				</button>
+				<button type="button" className="globalCommand" id="setHome" title="Run Home" onClick={this.setHomeClicked.bind(this)}>
+					Set<br />Home
+				</button>
+				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
+					Go<br />Home
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
+					M 1
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
+					M 2
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
+					M 3
+				</button>
+				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
+					RC
+				</button>
+				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
+					Dive
+				</button>
+				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
+					Demo
+				</button>
+				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
+					<Icon path={mdiDelete} title="Clear Mission"/>
+				</button>
+			</div>
+		</div>
+
+		)
+
+		return element
+	}
+
+	setHomeClicked(evt) {
+		this.toggleMode('setHome')
+	}
+
+	goHomeClicked(evt) {
+		this.returnToHome()
+	}
+
+	playClicked(evt) {
+		this.runLoadedMissions()
+	}
+
+	toggleMode(modeName) {
+		if (this.state.mode == modeName) {
+			if (this.state.mode) {
+				let selectedButton = $('#' + this.state.mode)
+				if (selectedButton) {
+					selectedButton.removeClass('selected')
+				}
+			}
+
+			this.state.mode = ""
+		}
+		else {
+			let button = $('#' + modeName)?.addClass('selected')
+			this.state.mode = modeName
+		}
 	}
 
 }
