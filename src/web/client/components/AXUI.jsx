@@ -19,6 +19,10 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay } from '@mdi/js'
 
 import OlMap from 'ol/Map';
+import {
+	Pointer as PointerInteraction,
+	defaults as defaultInteractions,
+  } from 'ol/interaction';
 import OlView from 'ol/View';
 import OlText from 'ol/style/Text';
 import OlIcon from 'ol/style/Icon'
@@ -107,6 +111,8 @@ import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/AXUI.less';
 import { transform } from 'ol/proj';
+
+import homeIcon from '../icons/home.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -361,6 +367,7 @@ export default class AXUI extends React.Component {
 		});
 
 		map = new OlMap({
+			interactions: defaultInteractions().extend([this.pointerInteraction()]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -386,8 +393,6 @@ export default class AXUI extends React.Component {
 			loadTilesWhileInteracting: true,
 			moveTolerance: 20
 		});
-
-		map.on('click', this.didClickMap.bind(this))
 
 		const graticule = new OlGraticule({
 			// the style to use for the lines, optional.
@@ -493,20 +498,6 @@ export default class AXUI extends React.Component {
 			this.clientAccuracyFeature.setGeometry(this.geolocation.getAccuracyGeometry());
 		});
 
-		// select interaction working on "click"
-		this.selectBotInteraction = new OlSelect({
-			condition: click,
-			style: getBoatStyle(map, COLOR_SELECTED),
-			layers: botsLayerCollection.getArray(),
-			features: selectedBotsFeatureCollection
-		});
-
-		const us = this;
-		this.selectBotInteraction.on('select', (e) => {
-			const ids = e.selected.map(feature => feature.getId());
-			us.selectBots(ids);
-		});
-
 		this.measureInteraction = new OlDrawInteraction({
 			source: this.measureSource,
 			type: 'LineString',
@@ -610,7 +601,6 @@ export default class AXUI extends React.Component {
 
 	componentDidMount() {
 		map.setTarget(this.mapDivId);
-		map.addInteraction(this.selectBotInteraction);
 
 		const viewport = document.getElementById(this.mapDivId);
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
@@ -1101,8 +1091,10 @@ export default class AXUI extends React.Component {
 				if (bot_ids.includes(feature.getId())) {
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
+					console.log("Setting bot ", feature.getId(), " to selected")
 				} else {
 					feature.set('selected', false);
+					console.log("Setting bot ", feature.getId(), " to unselected")
 				}
 			}
 		});
@@ -1166,6 +1158,17 @@ export default class AXUI extends React.Component {
 	sendStop() {
         info("Sent STOP")
 		this.sna.allStop()
+	}
+
+	returnToHome() {
+		if (!this.homeLocation) {
+			return
+		}
+		
+		console.log('location: ', this.homeLocation)
+		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.homeLocation))
+
+		this.runMissions(returnToHomeMissions)
 	}
 
 	openBotsDrawer() {
@@ -1443,7 +1446,7 @@ export default class AXUI extends React.Component {
 						<button type="button" className="globalCommand" title="Run Mission" onClick={this.runLoadedMissions.bind(this)}>
 							<Icon path={mdiPlay} title="Run Mission"/>
 						</button>
-						<button type="button" className="globalCommand" title="Run Home" onClick={this.loadMissions.bind(this, Missions.hardcoded(0))}>
+						<button type="button" className="globalCommand" title="Run Home" onClick={this.returnToHome.bind(this)}>
 							Home
 						</button>
 						<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
@@ -1474,12 +1477,8 @@ export default class AXUI extends React.Component {
 		);
 	}
 
-	didClickMap(evt) {
-		var lonlat = mercator_to_equirectangular(evt.coordinate)
-		var lon = lonlat[0]
-		var lat = lonlat[1]
-
-		let botId = 0
+	addWaypointAt(location) {
+		let botId = this.selectedBotIds().at(-1)
 
 		if (!(botId in this.missions)) {
 			this.missions[botId] = {
@@ -1495,9 +1494,7 @@ export default class AXUI extends React.Component {
 			}
 		}
 
-		this.missions[botId].plan.goal.push({location: {lon: lon, lat: lat}})
-
-		this.updateMissionLayer()
+		this.missions[botId].plan.goal.push({location: location})
 	}
 
 	updateMissionLayer() {
@@ -1505,6 +1502,28 @@ export default class AXUI extends React.Component {
 		let features = []
 
 		let missions = this.missions || {}
+
+		let defaultWaypointStyle = new OlStyle({
+			image: new OlCircleStyle({
+				fill: new OlFillStyle({color: '#5ec957'}),
+				stroke: new OlStrokeStyle({color: '#000000'}),
+				radius: 5,
+			})
+		})
+
+		let homeStyle = new OlStyle({
+			// image: new OlCircleStyle({
+			// 	fill: new OlFillStyle({color: '#ee1111'}),
+			// 	stroke: new OlStrokeStyle({color: '#000000'}),
+			// 	radius: 5,
+			// })
+			image: new OlIcon({ src: homeIcon })
+		})
+
+		let defaultLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: '#5ec957'}),
+			stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
+		})
 
 		for (let botId in missions) {
 			let goals = missions[botId]?.plan?.goal || []
@@ -1514,30 +1533,27 @@ export default class AXUI extends React.Component {
 			})
 
 			for (let pt of transformed_pts) {
-				features.push(new OlFeature({ geometry: new OlPoint(pt) }))
+				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
+				pointFeature.setStyle(defaultWaypointStyle)
+				features.push(pointFeature)
 			}
 
-			features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
+			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
+			lineStringFeature.setStyle(defaultLineStyle)
+			features.push(lineStringFeature)
+		}
+
+		// Add Home, if available
+		if (this.homeLocation) {
+			let pt = equirectangular_to_mercator([this.homeLocation.lon, this.homeLocation.lat])
+			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
+			homeFeature.setStyle(homeStyle)
+			features.push(homeFeature)
 		}
 
 		var vectorSource = new OlVectorSource({
 				features: features
 		})
-
-		const styles = [
-			new OlStyle({
-				image: new OlCircleStyle({
-					fill: new OlFillStyle({color: '#5ec957'}),
-					// stroke: new OlStrokeStyle({color: '#cfffd2'}),
-					stroke: new OlStrokeStyle({color: '#000000'}),
-					radius: 5,
-				}),
-				fill: new OlFillStyle({color: '#5ec957'}),
-				stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
-			}),
-		];
-
-		this.missionLayer.setStyle(styles)
 
 		this.missionLayer.setSource(vectorSource)
 	}
@@ -1612,6 +1628,59 @@ export default class AXUI extends React.Component {
 				</div>
 			</div>
 		)
+	}
+
+	selectedBotIds() {
+		const { selectedBotsFeatureCollection } = this.state
+		var botIds = []
+
+		// Update feature in selected set
+		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
+			const feature = selectedBotsFeatureCollection.item(i)
+			botIds.push(feature.getId())
+		}
+
+		return botIds
+	}
+
+	// PointerInteraction
+
+	pointerInteraction() {
+		return new PointerInteraction({
+			handleDownEvent: this.handleDownEvent.bind(this)
+		})
+	}
+
+	handleDownEvent(evt) {
+		const map = evt.map;
+
+		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+			return feature
+		});
+
+		if (feature) {
+			if (this.isBotSelected(feature.getId())) {
+				this.selectBots([])
+			}
+			else {
+				this.selectBots([feature.getId()])
+			}
+		}
+		else {
+			var lonlat = mercator_to_equirectangular(evt.coordinate)
+			let location = {lon: lonlat[0], lat: lonlat[1]}
+	
+			if (this.selectedBotIds().length > 0) {
+				this.addWaypointAt(location)
+			}
+			// No bots are selected, to set Home to this point
+			else {
+				this.homeLocation = location
+			}
+	
+			this.updateMissionLayer()
+		}
+
 	}
 
 }
