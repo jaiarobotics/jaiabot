@@ -19,6 +19,10 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay } from '@mdi/js'
 
 import OlMap from 'ol/Map';
+import {
+	Pointer as PointerInteraction,
+	defaults as defaultInteractions,
+  } from 'ol/interaction';
 import OlView from 'ol/View';
 import OlText from 'ol/style/Text';
 import OlIcon from 'ol/style/Icon'
@@ -108,6 +112,8 @@ import 'reset-css';
 import '../style/AXUI.less';
 import { transform } from 'ol/proj';
 
+import homeIcon from '../icons/home.svg'
+
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
@@ -184,7 +190,7 @@ export default class AXUI extends React.Component {
 		this.state = {
 			error: {},
 			// User interaction modes
-			mode: 'exec',
+			mode: '',
 			currentInteraction: null,
 			mapZoomLevel: 14,
 			controlSpeed: 0,
@@ -361,6 +367,7 @@ export default class AXUI extends React.Component {
 		});
 
 		map = new OlMap({
+			interactions: defaultInteractions().extend([this.pointerInteraction()]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -387,7 +394,7 @@ export default class AXUI extends React.Component {
 			moveTolerance: 20
 		});
 
-		map.on('click', this.didClickMap.bind(this))
+		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
 		const graticule = new OlGraticule({
 			// the style to use for the lines, optional.
@@ -493,20 +500,6 @@ export default class AXUI extends React.Component {
 			this.clientAccuracyFeature.setGeometry(this.geolocation.getAccuracyGeometry());
 		});
 
-		// select interaction working on "click"
-		this.selectBotInteraction = new OlSelect({
-			condition: click,
-			style: getBoatStyle(map, COLOR_SELECTED),
-			layers: botsLayerCollection.getArray(),
-			features: selectedBotsFeatureCollection
-		});
-
-		const us = this;
-		this.selectBotInteraction.on('select', (e) => {
-			const ids = e.selected.map(feature => feature.getId());
-			us.selectBots(ids);
-		});
-
 		this.measureInteraction = new OlDrawInteraction({
 			source: this.measureSource,
 			type: 'LineString',
@@ -610,7 +603,6 @@ export default class AXUI extends React.Component {
 
 	componentDidMount() {
 		map.setTarget(this.mapDivId);
-		map.addInteraction(this.selectBotInteraction);
 
 		const viewport = document.getElementById(this.mapDivId);
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
@@ -1101,8 +1093,10 @@ export default class AXUI extends React.Component {
 				if (bot_ids.includes(feature.getId())) {
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
+					console.log("Setting bot ", feature.getId(), " to selected")
 				} else {
 					feature.set('selected', false);
+					console.log("Setting bot ", feature.getId(), " to unselected")
 				}
 			}
 		});
@@ -1166,6 +1160,17 @@ export default class AXUI extends React.Component {
 	sendStop() {
         info("Sent STOP")
 		this.sna.allStop()
+	}
+
+	returnToHome() {
+		if (!this.homeLocation) {
+			alert('No Home location selected.  Click on the map to select a Home location and try again.')
+			return
+		}
+		
+		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.homeLocation))
+
+		this.runMissions(returnToHomeMissions)
 	}
 
 	openBotsDrawer() {
@@ -1438,48 +1443,27 @@ export default class AXUI extends React.Component {
 					</div>
 				</div>
 
-				<div id="commandsDrawer">
-					<div id="globalCommandBox">
-						<button type="button" className="globalCommand" title="Run Mission" onClick={this.runLoadedMissions.bind(this)}>
-							<Icon path={mdiPlay} title="Run Mission"/>
-						</button>
-						<button type="button" className="globalCommand" title="Run Home" onClick={this.loadMissions.bind(this, Missions.hardcoded(0))}>
-							Home
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
-							M 1
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
-							M 2
-						</button>
-						<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
-							M 3
-						</button>
-						<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
-							RC
-						</button>
-						<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
-							Dive
-						</button>
-						<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
-							Demo
-						</button>
-						<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
-							<Icon path={mdiDelete} title="Clear Mission"/>
-						</button>
-					</div>
-				</div>
+				{this.commandDrawer()}
 
 			</div>
 		);
 	}
 
-	didClickMap(evt) {
-		var lonlat = mercator_to_equirectangular(evt.coordinate)
-		var lon = lonlat[0]
-		var lat = lonlat[1]
+	locationFromCoordinate(coordinate) {
+		let latlon = this.coordinate_to_location_transform(coordinate)
+		return {lat: latlon[1], lon: latlon[0]}
+	}
 
-		let botId = 0
+	addWaypointAtCoordinate(coordinate) {
+		this.addWaypointAt(this.locationFromCoordinate(coordinate))
+	}
+
+	addWaypointAt(location) {
+		let botId = this.selectedBotIds().at(-1)
+
+		if (!botId) {
+			return
+		}
 
 		if (!(botId in this.missions)) {
 			this.missions[botId] = {
@@ -1495,7 +1479,7 @@ export default class AXUI extends React.Component {
 			}
 		}
 
-		this.missions[botId].plan.goal.push({location: {lon: lon, lat: lat}})
+		this.missions[botId].plan.goal.push({location: location})
 
 		this.updateMissionLayer()
 	}
@@ -1506,6 +1490,23 @@ export default class AXUI extends React.Component {
 
 		let missions = this.missions || {}
 
+		let defaultWaypointStyle = new OlStyle({
+			image: new OlCircleStyle({
+				fill: new OlFillStyle({color: '#5ec957'}),
+				stroke: new OlStrokeStyle({color: '#eeeeee'}),
+				radius: 5,
+			})
+		})
+
+		let homeStyle = new OlStyle({
+			image: new OlIcon({ src: homeIcon })
+		})
+
+		let defaultLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: '#5ec957'}),
+			stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
+		})
+
 		for (let botId in missions) {
 			let goals = missions[botId]?.plan?.goal || []
 
@@ -1514,30 +1515,27 @@ export default class AXUI extends React.Component {
 			})
 
 			for (let pt of transformed_pts) {
-				features.push(new OlFeature({ geometry: new OlPoint(pt) }))
+				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
+				pointFeature.setStyle(defaultWaypointStyle)
+				features.push(pointFeature)
 			}
 
-			features.push(new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" }))
+			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
+			lineStringFeature.setStyle(defaultLineStyle)
+			features.push(lineStringFeature)
+		}
+
+		// Add Home, if available
+		if (this.homeLocation) {
+			let pt = equirectangular_to_mercator([this.homeLocation.lon, this.homeLocation.lat])
+			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
+			homeFeature.setStyle(homeStyle)
+			features.push(homeFeature)
 		}
 
 		var vectorSource = new OlVectorSource({
 				features: features
 		})
-
-		const styles = [
-			new OlStyle({
-				image: new OlCircleStyle({
-					fill: new OlFillStyle({color: '#5ec957'}),
-					// stroke: new OlStrokeStyle({color: '#cfffd2'}),
-					stroke: new OlStrokeStyle({color: '#000000'}),
-					radius: 5,
-				}),
-				fill: new OlFillStyle({color: '#5ec957'}),
-				stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
-			}),
-		];
-
-		this.missionLayer.setStyle(styles)
 
 		this.missionLayer.setSource(vectorSource)
 	}
@@ -1612,6 +1610,149 @@ export default class AXUI extends React.Component {
 				</div>
 			</div>
 		)
+	}
+
+	selectedBotIds() {
+		const { selectedBotsFeatureCollection } = this.state
+		var botIds = []
+
+		// Update feature in selected set
+		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
+			const feature = selectedBotsFeatureCollection.item(i)
+			botIds.push(feature.getId())
+		}
+
+		return botIds
+	}
+
+	// PointerInteraction
+
+	pointerInteraction() {
+		return new PointerInteraction({
+			handleEvent: this.handleEvent.bind(this),
+			stopDown: this.stopDown.bind(this)
+		})
+	}
+
+	handleEvent(evt) {
+		switch(evt.type) {
+			case 'click':
+				return this.clickEvent(evt)
+				break;
+		}
+		return true
+	}
+
+	clickEvent(evt) {
+		const map = evt.map;
+
+		if (this.state.mode == 'setHome') {
+			this.placeHomeAtCoordinate(evt.coordinate)
+			return false // Not a drag event
+		}
+
+		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+			return feature
+		});
+
+		if (feature) {
+			if (this.isBotSelected(feature.getId())) {
+				this.selectBots([])
+			}
+			else {
+				this.selectBots([feature.getId()])
+			}
+		}
+		else {
+			this.addWaypointAtCoordinate(evt.coordinate)
+		}
+
+		return true
+	}
+
+	placeHomeAtCoordinate(coordinate) {
+		var lonlat = mercator_to_equirectangular(coordinate)
+		let location = {lon: lonlat[0], lat: lonlat[1]}
+		this.homeLocation = location
+
+		this.updateMissionLayer()
+	}
+
+	stopDown(evt) {
+		return false
+	}
+
+	// Command Drawer
+
+	commandDrawer() {
+		var element = (
+			<div id="commandsDrawer">
+			<div id="globalCommandBox">
+				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
+				</button>
+				<button type="button" className="globalCommand" id="setHome" title="Run Home" onClick={this.setHomeClicked.bind(this)}>
+					Set<br />Home
+				</button>
+				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
+					Go<br />Home
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
+					M 1
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
+					M 2
+				</button>
+				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
+					M 3
+				</button>
+				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
+					RC
+				</button>
+				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
+					Dive
+				</button>
+				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
+					Demo
+				</button>
+				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
+					<Icon path={mdiDelete} title="Clear Mission"/>
+				</button>
+			</div>
+		</div>
+
+		)
+
+		return element
+	}
+
+	setHomeClicked(evt) {
+		this.toggleMode('setHome')
+	}
+
+	goHomeClicked(evt) {
+		this.returnToHome()
+	}
+
+	playClicked(evt) {
+		this.runLoadedMissions()
+	}
+
+	toggleMode(modeName) {
+		if (this.state.mode == modeName) {
+			if (this.state.mode) {
+				let selectedButton = $('#' + this.state.mode)
+				if (selectedButton) {
+					selectedButton.removeClass('selected')
+				}
+			}
+
+			this.state.mode = ""
+		}
+		else {
+			let button = $('#' + modeName)?.addClass('selected')
+			this.state.mode = modeName
+		}
 	}
 
 }
