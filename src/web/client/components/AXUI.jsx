@@ -1372,30 +1372,7 @@ export default class AXUI extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<div id="botsList">
-						{botsLayerCollection
-							? botsLayerCollection.getArray().map((layer) => {
-								const feature = layer.getSource().getFeatureById(layer.bot_id);
-								return (
-									<div
-										key={feature.getId()}
-										onClick={
-												this.isBotSelected(feature.getId())
-													? this.selectBots.bind(this, [])
-													: this.selectBot.bind(this, feature.getId())
-											}
-										className={`bot-item faultLevel${feature.get('faultLevel')} ${
-											this.isBotSelected(feature.getId()) ? 'selected' : ''
-										}${
-											trackingTarget && feature.getId() === trackingTarget ? ' tracked' : ''
-										}`}
-									>
-										{feature.getId()}
-									</div>
-								);
-							})
-							: ''}
-					</div>
+					{this.botsList()}
 
 					<div id="botDetailsBox">
 						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
@@ -1753,6 +1730,38 @@ export default class AXUI extends React.Component {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
+	}
+
+	botsList() {
+		let bots = this.podStatus?.bots
+		if (!bots) { return }
+
+		let botIds = Object.keys(bots).sort()
+		console.log(botIds)
+
+		return (
+			<div id="botsList">
+			{botIds.map((botId) => {
+				return (
+					<div
+						key={botId}
+						onClick={
+								this.isBotSelected(botId)
+									? this.selectBots.bind(this, [])
+									: this.selectBot.bind(this, botId)
+							}
+						className={`bot-item faultLevel0 ${
+							this.isBotSelected(botId) ? 'selected' : ''
+						}${
+							botId === this.state.trackingTarget ? ' tracked' : ''
+						}`}
+					>
+						{botId}
+					</div>
+				);
+				})}
+			</div>
+		)
 	}
 
 }
