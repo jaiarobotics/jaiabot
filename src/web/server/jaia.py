@@ -35,6 +35,7 @@ class Interface:
         self.messages = {}
 
         self.pingCount = 0
+        self.ping_portal()
 
         threading.Thread(target=lambda: self.loop()).start()
 
@@ -53,7 +54,6 @@ class Interface:
         if len(data) > 0:
             msg = PortalToClientMessage()
             byteCount = msg.ParseFromString(data)
-
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
             
             try:

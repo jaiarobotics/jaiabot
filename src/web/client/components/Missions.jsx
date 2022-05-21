@@ -102,4 +102,15 @@ export class Missions {
         return mission_dict
     }
 
+    static missionWithWaypoints(botId, locations) {
+        console.log('locations: ', locations)
+        if (!Array.isArray(locations)) {
+            locations = [locations]
+        }
+        console.log('locations: ', locations)
+        let goals = locations.map((location) => ({location: location}))
+        console.log('goals: ', goals)
+        return _mission(botId, goals)
+    }
+
 }
