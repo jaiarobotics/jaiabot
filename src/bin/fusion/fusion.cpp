@@ -39,6 +39,8 @@
 #include "jaiabot/messages/salinity.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 
+#include "wmm/WMM.h"
+
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
 using goby::glog;
@@ -46,6 +48,7 @@ using namespace std;
 
 namespace si = boost::units::si;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Fusion>;
+
 
 namespace jaiabot
 {
@@ -77,6 +80,8 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
+
+    WMM wmm;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -105,14 +110,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (att.has_heading())
             {
-                auto heading = att.heading_with_units();
+                auto heading = att.heading_with_units() + wmm.magneticDeclination(latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat()) * boost::units::degree::plane_angle();
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
 
             if (att.has_roll())
             {
-                auto roll = att.heading_with_units();
+                auto roll = att.roll_with_units();
                 latest_node_status_.mutable_pose()->set_roll_with_units(roll);
                 latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
             }
