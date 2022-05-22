@@ -1569,8 +1569,10 @@ export default class AXUI extends React.Component {
 						Version 1.1.0
 					</div>
 					<div className="panel">
-						<button type="button" onClick={function() { location.reload() } }>
-							Reload Central Command
+						<button type="button" onClick={function() {
+							window.location.assign('/pid/')
+						} }>
+							Jaia Engineering
 						</button>
 					</div>
 
