@@ -110,7 +110,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (att.has_heading())
             {
-                auto heading = att.heading_with_units() + wmm.magneticDeclination(latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat()) * boost::units::degree::plane_angle();
+                auto magneticDeclination = wmm.magneticDeclination(latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                glog.is_debug2() && glog << "Location: " << latest_node_status_.global_fix().ShortDebugString() << "  Magnetic declination: " << magneticDeclination << endl;
+                auto heading = att.heading_with_units() + magneticDeclination * boost::units::degree::plane_angle();
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
@@ -136,6 +138,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 if (heading > 360 * boost::units::degree::plane_angle()) {
                     heading -= (360 * boost::units::degree::plane_angle());
                 }
+
+                // Apply magnetic declination
+                auto magneticDeclination = wmm.magneticDeclination(latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                glog.is_debug2() && glog << "Location: " << latest_node_status_.global_fix().ShortDebugString() << "  Magnetic declination: " << magneticDeclination << endl;
+                heading = heading + magneticDeclination * boost::units::degree::plane_angle();
+
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
