@@ -187,6 +187,8 @@ export default class AXUI extends React.Component {
 
 		this.missions = {}
 
+		this.flagNumber = 1
+
 		this.state = {
 			error: {},
 			// User interaction modes
@@ -1694,6 +1696,9 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
 					Demo
 				</button>
+				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
+					Flag
+				</button>
 				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
@@ -1715,6 +1720,21 @@ export default class AXUI extends React.Component {
 
 	playClicked(evt) {
 		this.runLoadedMissions()
+	}
+
+	sendFlag(evt) {
+		// Send a user flag, to get recorded in the bot's logs
+		let botId = this.selectedBotIds().at(-1) || 0
+		let engineeringCommand = {
+			botId: botId,
+			flag: this.flagNumber
+		}
+
+		this.sna.postEngineering(engineeringCommand)
+		info("Posted Flag " + this.flagNumber + " to bot " + botId)
+
+		// Increment the flag number
+		this.flagNumber ++
 	}
 
 	toggleMode(modeName) {

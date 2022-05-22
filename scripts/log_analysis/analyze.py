@@ -227,6 +227,8 @@ available_fields = [
     Field(y_datapath=TPV_epx, y_axis_label='Longitude Error 95% (m)'),
     Field(y_datapath=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
     Field(y_datapath=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
+
+    Field(y_datapath=Engineering_flag, y_axis_label='Flag Event')
 ]
 
 
