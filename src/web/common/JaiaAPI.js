@@ -45,9 +45,10 @@ module.exports = class JaiaAPI {
               return response.text();
             }
           }
-	  if (this.debug) {
-	    console.error(`Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`);
-	  }
+          if (this.debug) {
+            console.error(`Error from ${method} to JaiaAPI: ${
+                response.status} ${response.statusText}`);
+          }
           return Promise.reject(
             new Error(`Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`)
           );
@@ -84,9 +85,7 @@ module.exports = class JaiaAPI {
     return this.get('status')
   }
 
-  allStop() {
-    this.post('allStop', null)
-  }
+  allStop() { return this.post('allStop', null) }
 
   postCommand(command) {
     return this.post('command', command)

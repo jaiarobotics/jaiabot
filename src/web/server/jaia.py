@@ -32,25 +32,12 @@ class Interface:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(5)
 
+        self.messages = {}
+
+        self.pingCount = 0
+        self.ping_portal()
+
         threading.Thread(target=lambda: self.loop()).start()
-
-    def post_test_mission(self):
-        for bot_id in range(0, 4):
-            goals = [ { 'location': { 'lat': 0.01 * sin(i / 10 * 2 * pi), 'lon': 0.01 * cos(i / 10 * 2 * pi) } } for i in range(bot_id, 10 + bot_id) ]
-
-            cmd = {
-                'botId': bot_id, 
-                'time': str(now()),
-                'type': 'MISSION_PLAN', 
-                'plan': {
-                    'start': 'START_IMMEDIATELY', 
-                    'movement': 'TRANSIT', 
-                    'goal': goals, 
-                    'recovery': {'recoverAtFinalGoal': True}
-                    }
-                }
-
-            self.post_command(cmd)
 
     def loop(self):
         while True:
@@ -67,7 +54,6 @@ class Interface:
         if len(data) > 0:
             msg = PortalToClientMessage()
             byteCount = msg.ParseFromString(data)
-
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
             
             try:
@@ -78,6 +64,12 @@ class Interface:
                     self.bots[botStatus.bot_id].MergeFrom(botStatus)
 
                 logging.debug(f'Received BotStatus:\n{botStatus}')
+
+                # If we were disconnected, then report successful reconnection
+                if self.pingCount > 1:
+                    self.messages['info'] = 'Reconnected to jaiabot_web_portal'
+
+                self.pingCount = 0
             except KeyError:
                 self.bots[botStatus.bot_id] = botStatus
 
@@ -86,6 +78,7 @@ class Interface:
         logging.debug(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
+        logging.info(f'Sent {len(data)} bytes')
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
@@ -93,6 +86,12 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.ping = True
         self.send_message_to_portal(msg)
+
+        # Display warning if more than one ping required
+        self.pingCount += 1
+
+        if self.pingCount > 1:
+            self.messages['error'] = 'No response from jaiabot_web_portal app'
 
     def get_ab_status(self):
         bots = []
@@ -133,7 +132,7 @@ class Interface:
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
-        logging.info(f'Sending command: {command}')
+        logging.debug(f'Sending command: {command}')
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
@@ -151,10 +150,14 @@ class Interface:
     def get_status(self):
         bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
 
-        return {
+        status = {
             'bots': bots,
-            'message': None
+            'messages': self.messages
         }
+
+        self.messages = {}
+
+        return status
 
     def get_mission_status(self):
         return {
