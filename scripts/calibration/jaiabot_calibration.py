@@ -102,7 +102,7 @@ def calibrateWingSurface():
                 output = output.replace("r","")
                 output = output.replace("\\","")
                 output = output.replace("n","")
-                output = output.replace("2"," ")
+                #output = output.replace("2"," ")
                 output = output.split()
 
                 write_bounds.upper = int(output[0])
@@ -289,6 +289,7 @@ while misclick == True:
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 calibrateMotor()
+                print(str(check_bounds.motor))
                 x = False
             elif calibrate == "NO":
                 check_bounds.motor.forwardStart = 1600
@@ -352,7 +353,7 @@ while misclick == True:
         check_bounds.port.center = 1500
                 
         check_bounds.motor.forwardStart = 1600
-        check_bounds.motor.reverseStart = 1380
+        check_bounds.motor.reverseStart = 1400
         check_bounds.motor.forwardHalt = 1500
         check_bounds.motor.reverseHalt = 1500
 
