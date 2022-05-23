@@ -191,6 +191,21 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     quantity<si::velocity> vz = dz / dt;
     dive_packet().set_dive_rate_with_units(vz);
 
+    // ensure we don't exceed the bounds on the DCCL repeated field
+    const auto max_measurement_size = dive_packet_.GetDescriptor()
+                                          ->FindFieldByName("measurement")
+                                          ->options()
+                                          .GetExtension(dccl::field)
+                                          .max_repeat();
+    if (dive_packet_.measurement_size() > max_measurement_size)
+    {
+        glog.is_warn() && glog << "Number of measurements (" << dive_packet_.measurement_size()
+                               << ") exceed DivePacket maximum of " << max_measurement_size
+                               << ". Truncating." << std::endl;
+        while (dive_packet_.measurement_size() > max_measurement_size)
+            dive_packet_.mutable_measurement()->RemoveLast();
+    }
+
     dive_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     intervehicle().publish<groups::dive_packet>(dive_packet_);
 }
