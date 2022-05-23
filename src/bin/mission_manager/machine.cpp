@@ -83,7 +83,10 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     }
     else
     {
-        // if we have no goal, recover
+        // Transit is called without a goal on the last return from Task
+        // So if the mission has no goals, call ReturnToHome as this means it is the end of the
+        // Transit mission
+        glog.is_debug1() && glog << "Transit has no goal, recovering" << std::endl;
         post_event(EvReturnToHome());
     }
 }
