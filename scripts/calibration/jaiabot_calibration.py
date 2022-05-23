@@ -231,7 +231,7 @@ while misclick == True:
     permission = input("would you like to calibrate the jaiabot? Yes/No ")
     permission = permission.upper()
     if permission == "YES":
-        os.system('cd ~/jaiabot/src/arduino/; ./upload_usb_old.sh JAIABOT_calibration_arduino/')
+        os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh calibration/')
 
         #ask the user to calibrate bounds
         x = True
@@ -315,7 +315,7 @@ while misclick == True:
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
-                os.system("cd ~/jaiabot/src/arduino/; ./upload_usb_old.sh control_surfaces")
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces")
                 please = False
             elif upload == "NO":
                 #leaves JAIABOT_calibration running
@@ -333,7 +333,7 @@ while misclick == True:
             upload = input("Would you like to upload control_surfaces? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
-                os.system("cd ~/jaiabot/src/arduino/; ./upload_usb_old.sh control_surfaces")
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces")
                 iguessitwas = False
             elif upload == "NO":
                 iguessitwas = False
