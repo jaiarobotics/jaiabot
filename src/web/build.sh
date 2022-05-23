@@ -3,8 +3,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 set -e
 
-echo "Setting up build"
-
 pushd "$DIR"
 
 cat <<EOM > common/version.js
@@ -61,6 +59,11 @@ then
 	npm install --no-audit
 fi
 
-echo "Building app package"
-exec webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
+# Build the protobuf messages
+echo "🟢 Building messages"
+pushd server
+  ./build_messages.sh
+popd
 
+echo "🟢 Building app package"
+exec webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
