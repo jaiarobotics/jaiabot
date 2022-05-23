@@ -73,7 +73,6 @@ message Engineering
     }];
 
     optional PIDControl pid_control = 3;
-    optional MissionManagerSettings mission_manager_settings = 4;
 
     optional bool engineering_messages_enabled = 13;
 }

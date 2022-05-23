@@ -13,6 +13,10 @@ export function BotDetailsComponent(bot) {
         return (<div></div>)
     }
 
+    // Get the status age
+    let statusTime = bot.time
+    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+
     return (
     <div>
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
@@ -21,6 +25,10 @@ export function BotDetailsComponent(bot) {
                 <tr>
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
+                </tr>
+                <tr>
+                    <td>Status Age</td>
+                    <td>{statusAge} sec</td>
                 </tr>
                 <tr>
                     <td>Latitude</td>
