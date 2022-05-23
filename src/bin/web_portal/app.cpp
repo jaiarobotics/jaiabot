@@ -152,7 +152,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
 {
-    glog.is_debug1() && glog << group("main") << "Received message from client: " << msg.ShortDebugString() << endl;
+    glog.is_verbose() && glog << group("main")
+                              << "Received message from client: " << msg.ShortDebugString() << endl;
 
     if (msg.has_engineering_command()) {
         auto engineering_command = msg.engineering_command();

@@ -194,14 +194,6 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->process_event(ev);
         });
 
-    // subscribe for jaiabot::messages::Engineerings
-    interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
-        [this](const jaiabot::protobuf::Engineering& command) {
-            if (command.has_mission_manager_settings()) {
-                handle_settings(command.mission_manager_settings());
-            }
-        });
-
     publish_settings();
 }
 
