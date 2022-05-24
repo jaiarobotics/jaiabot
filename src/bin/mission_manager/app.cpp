@@ -23,9 +23,9 @@
 #include "machine.h"
 #include "mission_manager.h"
 
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
-#include "jaiabot/messages/engineering.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -220,6 +220,13 @@ void jaiabot::apps::MissionManager::loop()
 {
     protobuf::MissionReport report;
     report.set_state(machine_->state());
+
+    const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
+
+    // only report the goal index when not in recovery
+    if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
+        report.set_active_goal(in_mission->goal_index());
+
     interprocess().publish<jaiabot::groups::mission_report>(report);
 
     machine_->process_event(statechart::EvLoop());
@@ -235,7 +242,6 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         {
             machine_->process_event(statechart::EvNewMission());
 
-            // TODO: check mission plan feasibility
             bool mission_is_feasible = true;
 
             // must have at least one goal
@@ -316,28 +322,36 @@ void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
         machine_->process_event(statechart::EvSelfTestFails());
 }
 
-const jaiabot::config::MissionManager& jaiabot::apps::MissionManager::active_cfg() const {
+const jaiabot::config::MissionManager& jaiabot::apps::MissionManager::active_cfg() const
+{
     return _active_cfg;
 }
 
-void jaiabot::apps::MissionManager::handle_settings(const jaiabot::protobuf::MissionManagerSettings& settings) {
+void jaiabot::apps::MissionManager::handle_settings(
+    const jaiabot::protobuf::MissionManagerSettings& settings)
+{
     glog.is_debug1() && glog << "Received settings: " << settings.ShortDebugString() << std::endl;
 
-    if (settings.has_stationkeep_outer_speed()) {
-        _active_cfg.set_stationkeep_outer_speed_with_units(settings.stationkeep_outer_speed_with_units());
+    if (settings.has_stationkeep_outer_speed())
+    {
+        _active_cfg.set_stationkeep_outer_speed_with_units(
+            settings.stationkeep_outer_speed_with_units());
     }
 
-    if (settings.has_transit_speed()) {
+    if (settings.has_transit_speed())
+    {
         _active_cfg.set_transit_speed_with_units(settings.transit_speed_with_units());
     }
 
     publish_settings();
 }
 
-void jaiabot::apps::MissionManager::publish_settings() {
+void jaiabot::apps::MissionManager::publish_settings()
+{
     auto settings = jaiabot::protobuf::MissionManagerSettings();
     settings.set_transit_speed_with_units(active_cfg().transit_speed_with_units());
-    settings.set_stationkeep_outer_speed_with_units(active_cfg().stationkeep_outer_speed_with_units());
+    settings.set_stationkeep_outer_speed_with_units(
+        active_cfg().stationkeep_outer_speed_with_units());
 
     interprocess().publish<jaiabot::groups::engineering_status>(settings);
 }
