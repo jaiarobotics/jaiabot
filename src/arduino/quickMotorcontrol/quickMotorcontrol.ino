@@ -20,7 +20,7 @@ void setup() {
   motor_servo.attach(motor);
   Serial.setTimeout(500000);
   int input = Serial.parseInt(SKIP_ALL);
-  Motor = map(input, 1100, 1900, -100, 100);
+  Motor = map(input, -100, 100, 1100, 1900);
   motor_servo.writeMicroseconds(Motor/4);
   motor_servo.writeMicroseconds(Motor/2);
   motor_servo.writeMicroseconds((Motor/4)*3);
