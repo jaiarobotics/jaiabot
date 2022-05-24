@@ -8,6 +8,8 @@ import os
 #arduino = serial.Serial('/dev/cu.usbmodem1432401', 19200,timeout = .1)
 arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
 
+os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh quickMotorcontrol/')
+
 temp = open("temp_recornd.csv", "w")
 temp.write("")
 temp.close()
