@@ -117,13 +117,43 @@ def calibrateWingSurface():
             elif finish == "NO":
 
                 #releases from the answer loop and restarts calibration
-                letitend = False
                 write("Z")
+                letitend = False
                 
             else:
                 print("Please enter Yes or No")
     return
-                
+
+#guesss whattttt
+def skipWing():
+    write("0")
+    write("Y")
+    write("0")
+    write("Y")
+    write("0")
+    write("Y")
+    write("X")
+    print("current bounds are ",rd())
+
+#these dooooo!!!!
+def skipMotor():
+    write("0")
+    write("Y")
+    write("J")
+    print("current bounds are ",rd())
+    write("0")
+    write("Y")
+    write("J")
+    print("current bounds are ",rd())
+    write("0")
+    write("Y")
+    write("J")
+    print("current bounds are ",rd())
+    write("0")
+    write("Y")
+    write("J")
+    print("current bounds are ",rd())
+    write("C")
     
 #makes sure the motor isnt sent such a low value it inevitably crashes. the minimum speed may be tweaked if the tails proved a significant amount of resistance,
 #25 was determined without a tail mount
@@ -145,6 +175,7 @@ def inputMotorCommand(comfirmation1, comfirmation2):
     while y is True:
         z = True
         currentSpeed=lastSpeed
+        print("motor is currently at ", currentSpeed)
         print("How many microseconds to adjust by? positive between", 25-currentSpeed, "and", 160-currentSpeed, "only.")
         adjustment = int(input())
         adjustment = motorInsurance(adjustment, currentSpeed)
@@ -195,7 +226,6 @@ def calibrateMotor():
     while y is True:
 
         #calibrates the forward, backward, forward halt, and backward halt limitations
-        print(rd())
         print("calibrating forward start")
         check_bounds.motor.forwardStart = int(inputMotorCommand("is the motor moving? Yes/No ","ensure you are as close as possible to startup speed before confirming: is this the motor startup speed? Yes/No "))
         print("calibrating reverse start")
@@ -219,8 +249,8 @@ def calibrateMotor():
                     
             elif finish == "NO":
                 #releases from the answer loop and restarts calibration
-                letitend = False
                 write("Z")
+                letitend = False
             else:
                 print("Please enter Yes or No")
 
@@ -231,7 +261,18 @@ while misclick == True:
     permission = input("would you like to calibrate the jaiabot? Yes/No ")
     permission = permission.upper()
     if permission == "YES":
-        os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh calibration/')
+        uplaod = True
+        while uplaod == True:
+            insert = input("do you need to upload the calibration script? Yes/No ")
+            insert = insert.upper()
+            if insert == "YES":
+                print("system uploading...")
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh calibration/')
+                uplaod = False
+            elif insert == "NO":
+                uplaod = False
+            else:
+                print("please enter Yes or No")
 
         #ask the user to calibrate bounds
         x = True
@@ -246,6 +287,7 @@ while misclick == True:
                 check_bounds.strb.upper = 1000
                 check_bounds.strb.lower = 2000
                 check_bounds.strb.center = 1500
+                skipWing()
                 x = False
             else:
                 print("please enter Yes or No")
@@ -262,6 +304,7 @@ while misclick == True:
                 check_bounds.port.upper = 1000
                 check_bounds.port.lower = 2000
                 check_bounds.port.center = 1500
+                skipWing()
                 x = False
             else:
                 print("please enter Yes or No")
@@ -278,6 +321,7 @@ while misclick == True:
                 check_bounds.rudder.upper = 1000
                 check_bounds.rudder.lower = 2000
                 check_bounds.rudder.center = 1500
+                skipWing()
                 x = False
             else:
                 print("please enter Yes or No")
@@ -296,6 +340,7 @@ while misclick == True:
                 check_bounds.motor.reverseStart = 1380
                 check_bounds.motor.forwardHalt = 1500
                 check_bounds.motor.reverseHalt = 1500
+                skipMotor()
                 x = False
             else:
                 print("please enter Yes or No")
@@ -315,7 +360,7 @@ while misclick == True:
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
-                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces")
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces')
                 please = False
             elif upload == "NO":
                 #leaves JAIABOT_calibration running
@@ -333,7 +378,7 @@ while misclick == True:
             upload = input("Would you like to upload control_surfaces? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
-                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces")
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces')
                 iguessitwas = False
             elif upload == "NO":
                 iguessitwas = False
