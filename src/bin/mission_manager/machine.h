@@ -223,27 +223,31 @@ struct MissionManagerStateMachine
     apps::MissionManager& app() { return app_; }
     const apps::MissionManager& app() const { return app_; }
 
-    void set_mission_plan(const jaiabot::protobuf::MissionPlan& plan)
+    void set_mission_plan(const jaiabot::protobuf::MissionPlan& plan, bool reset_datum)
     {
         plan_ = plan;
+        goby::glog.is_debug1() && goby::glog << "Set new mission plan." << std::endl;
 
-        // use recovery location for datum
-        auto lat_origin = plan.recovery().recover_at_final_goal()
-                              ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
-                              : plan.recovery().location().lat_with_units();
-        auto lon_origin = plan.recovery().recover_at_final_goal()
-                              ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
-                              : plan.recovery().location().lon_with_units();
+        if (reset_datum)
+        {
+            // use recovery location for datum
+            auto lat_origin = plan.recovery().recover_at_final_goal()
+                                  ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
+                                  : plan.recovery().location().lat_with_units();
+            auto lon_origin = plan.recovery().recover_at_final_goal()
+                                  ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
+                                  : plan.recovery().location().lon_with_units();
 
-        // set the local datum origin to the first goal
-        goby::middleware::protobuf::DatumUpdate update;
-        update.mutable_datum()->set_lat_with_units(lat_origin);
-        update.mutable_datum()->set_lon_with_units(lon_origin);
-        this->interprocess().template publish<goby::middleware::groups::datum_update>(update);
-        geodesy_.reset(new goby::util::UTMGeodesy({lat_origin, lon_origin}));
+            // set the local datum origin to the first goal
+            goby::middleware::protobuf::DatumUpdate update;
+            update.mutable_datum()->set_lat_with_units(lat_origin);
+            update.mutable_datum()->set_lon_with_units(lon_origin);
+            this->interprocess().template publish<goby::middleware::groups::datum_update>(update);
+            geodesy_.reset(new goby::util::UTMGeodesy({lat_origin, lon_origin}));
 
-        goby::glog.is_debug1() && goby::glog << "Set new mission plan. Updated datum to: "
-                                             << update.ShortDebugString() << std::endl;
+            goby::glog.is_debug1() &&
+                goby::glog << "Updated datum to: " << update.ShortDebugString() << std::endl;
+        }
     }
     const jaiabot::protobuf::MissionPlan& mission_plan() { return plan_; }
 
@@ -339,7 +343,7 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
         if (mission_feasible_event)
         {
             const auto plan = mission_feasible_event->plan;
-            this->machine().set_mission_plan(plan);
+            this->machine().set_mission_plan(plan, true); // reset the datum on the initial mission
             if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
@@ -466,7 +470,9 @@ struct Movement : boost::statechart::state<Movement, Underway, movement::Movemen
         auto mission_feasible_event = dynamic_cast<const EvMissionFeasible*>(triggering_event());
         if (mission_feasible_event)
         {
-            this->machine().set_mission_plan(mission_feasible_event->plan);
+            this->machine().set_mission_plan(
+                mission_feasible_event->plan,
+                false); // do not reset the datum on Replanned missions to avoid a race condition with IvP
         }
     }
     ~Movement() {}
