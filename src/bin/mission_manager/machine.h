@@ -403,7 +403,6 @@ struct InMission
                                                   << "All goals complete, mission is complete."
                                                   << std::endl;
 
-            post_event(EvReturnToHome());
             set_mission_complete();
         }
     }
