@@ -27,7 +27,7 @@ records = []
 
 x = True
 while x == True:
-    command = int(input("number between -100 and 100"))
+    command = int(input("number between -100 and 100 "))
     if command <= 100 or command >= -100:
         write(command)
         x = False
