@@ -846,7 +846,7 @@ export default class AXUI extends React.Component {
 			(result) => {
 				if (!("bots" in result)) {
 					this.podStatus = {}
-					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					error("Web server status response doesn't include bots field")
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -876,7 +876,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Unable to connect to pod interface.');
+				error('Cannot connect to the Jaia Central Command web server (app.py)');
 			}
 		)
 
@@ -1043,7 +1043,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Unable to connect to pod interface.');
+				error('Cannot connect to the Jaia Central Command web server (app.py)');
 			}
 		);
 	}

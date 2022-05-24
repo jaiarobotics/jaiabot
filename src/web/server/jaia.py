@@ -56,22 +56,23 @@ class Interface:
             byteCount = msg.ParseFromString(data)
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
             
-            try:
+            if msg.HasField('bot_status'):
                 botStatus = msg.bot_status
 
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
-                    self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                    if botStatus.bot_id in self.bots:
+                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
+                    else:
+                        self.bots[botStatus.bot_id] = botStatus
 
                 logging.debug(f'Received BotStatus:\n{botStatus}')
 
-                # If we were disconnected, then report successful reconnection
-                if self.pingCount > 1:
-                    self.messages['info'] = 'Reconnected to jaiabot_web_portal'
+            # If we were disconnected, then report successful reconnection
+            if self.pingCount > 1:
+                self.messages['info'] = 'Reconnected to jaiabot_web_portal'
 
-                self.pingCount = 0
-            except KeyError:
-                self.bots[botStatus.bot_id] = botStatus
+            self.pingCount = 0
 
     def send_message_to_portal(self, msg):
         logging.debug('🟢 SENDING')
