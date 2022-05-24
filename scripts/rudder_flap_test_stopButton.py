@@ -19,4 +19,5 @@ def write(command):
     arduino.write(bytes(command, 'utf_8'))
 
 while True:
-    write(input("type capital S when you want to program to stop "))
+    command = input("type capital S when you want to program to stop ")
+    write(command)
