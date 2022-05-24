@@ -1545,12 +1545,35 @@ export default class AXUI extends React.Component {
 		info("Loaded mission")
 	}
 
+	// Currently selected botId
+	selectedBotId() {
+		return this.selectedBotIds().at(-1)
+	}
+
+	// Loads a hardcoded mission
+	loadHardcodedMission(index) {
+		let botId = this.selectedBotId() || 0
+		let mission = Missions.hardcoded(botId, index)
+		this.missions[botId] = mission
+		this.updateMissionLayer()
+		info("Loaded mission")
+	}
+
 	// Runs the currently loaded mission
-	runLoadedMissions() {
-		if (confirm("Click the OK button to run this mission.")) {
-			for (let bot_id in this.missions) {
+	runLoadedMissions(botIds=[]) {
+		if (botIds.length == 0) {
+			botIds = Object.keys(this.missions)
+		}
+
+		if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
+			for (let bot_id of botIds) {
 				let mission = this.missions[bot_id]
-				this._runMission(mission)
+				if (mission) {
+					this._runMission(mission)
+				}
+				else {
+					error('No mission set for bot ' + bot_id)
+				}
 			}
 			info("Running mission")
 		}
@@ -1678,13 +1701,13 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
+				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
 					M 1
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
+				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMission.bind(this, 2)}>
 					M 2
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
+				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
 					M 3
 				</button>
 				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
@@ -1693,7 +1716,7 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
 					Dive
 				</button>
-				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
+				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
 				</button>
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
@@ -1719,7 +1742,7 @@ export default class AXUI extends React.Component {
 	}
 
 	playClicked(evt) {
-		this.runLoadedMissions()
+		this.runLoadedMissions(this.selectedBotIds())
 	}
 
 	sendFlag(evt) {
@@ -1759,7 +1782,6 @@ export default class AXUI extends React.Component {
 		if (!bots) { return }
 
 		let botIds = Object.keys(bots).sort()
-		console.log(botIds)
 
 		return (
 			<div id="botsList">
