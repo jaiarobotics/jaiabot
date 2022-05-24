@@ -5,8 +5,8 @@ import time
 import os
 
 
-arduino = serial.Serial('/dev/cu.usbmodem1432401', 19200,timeout = .1)
-#arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
+#arduino = serial.Serial('/dev/cu.usbmodem1432401', 19200,timeout = .1)
+arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
 
 temp = open("temp_recornd.csv", "w")
 temp.write("")
