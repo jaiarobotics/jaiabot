@@ -212,13 +212,13 @@ struct MissionManagerStateMachine
     MissionManagerStateMachine(apps::MissionManager& a) : app_(a) {}
 
     void set_state(jaiabot::protobuf::MissionState state) { state_ = state; }
-    jaiabot::protobuf::MissionState state() { return state_; }
+    jaiabot::protobuf::MissionState state() const { return state_; }
 
     void set_setpoint_type(jaiabot::protobuf::SetpointType setpoint_type)
     {
         setpoint_type_ = setpoint_type;
     }
-    jaiabot::protobuf::SetpointType setpoint_type() { return setpoint_type_; }
+    jaiabot::protobuf::SetpointType setpoint_type() const { return setpoint_type_; }
 
     apps::MissionManager& app() { return app_; }
     const apps::MissionManager& app() const { return app_; }
@@ -249,9 +249,9 @@ struct MissionManagerStateMachine
                 goby::glog << "Updated datum to: " << update.ShortDebugString() << std::endl;
         }
     }
-    const jaiabot::protobuf::MissionPlan& mission_plan() { return plan_; }
+    const jaiabot::protobuf::MissionPlan& mission_plan() const { return plan_; }
 
-    bool has_geodesy() { return geodesy_ ? true : false; }
+    bool has_geodesy() const { return geodesy_ ? true : false; }
     goby::util::UTMGeodesy& geodesy()
     {
         if (has_geodesy())
@@ -359,6 +359,8 @@ struct InMission
     : boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>,
       AppMethodsAccess<InMission>
 {
+    constexpr static int RECOVERY_GOAL_INDEX{-1};
+
     using StateBase =
         boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>;
 
@@ -368,24 +370,25 @@ struct InMission
     }
     ~InMission() { goby::glog.is_debug1() && goby::glog << "~InMission" << std::endl; }
 
-    int goal_index() { return goal_index_; }
+    int goal_index() const { return goal_index_; }
 
-    boost::optional<protobuf::MissionPlan::Goal> current_goal()
+    boost::optional<protobuf::MissionPlan::Goal> current_goal() const
     {
-        if (goal_index() >= this->machine().mission_plan().goal_size())
+        if (goal_index() >= this->machine().mission_plan().goal_size() ||
+            goal_index() == RECOVERY_GOAL_INDEX)
             return boost::none;
         else
             return boost::optional<protobuf::MissionPlan::Goal>(
                 this->machine().mission_plan().goal(goal_index()));
     }
 
-    protobuf::MissionPlan::Goal final_goal()
+    protobuf::MissionPlan::Goal final_goal() const
     {
         const auto& mission_plan = this->machine().mission_plan();
         return mission_plan.goal(mission_plan.goal_size() - 1);
     }
 
-    boost::optional<protobuf::MissionTask> current_planned_task()
+    boost::optional<protobuf::MissionTask> current_planned_task() const
     {
         if (mission_complete_)
             return boost::none;
@@ -408,6 +411,7 @@ struct InMission
                                                   << std::endl;
 
             set_mission_complete();
+            goal_index_ = RECOVERY_GOAL_INDEX;
         }
     }
 

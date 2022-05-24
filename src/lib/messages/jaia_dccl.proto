@@ -131,6 +131,9 @@ message BotStatus
 
     optional MissionState mission_state = 40;
 
+    // bounds should match MissionPlan.goal max_repeat value
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }]; 
+
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
 
