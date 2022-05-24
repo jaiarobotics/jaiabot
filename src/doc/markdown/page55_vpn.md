@@ -10,20 +10,29 @@ We use a VPN to securely connect to the JaiaBots for development and testing.
 
 We're using the private subnet 172.20.11.0/24:
 
-- Server: 172.20.11.1
+- VPN Server: 172.20.11.1
+
 - jaiahub0: 172.20.11.10
 - jaiahub1: 172.20.11.11
 - jaiabot0: 172.20.11.100
 - jaiabot2: 172.20.11.102
+- jaiabot4: 172.20.11.104
+
 - JaiaBook1: 172.20.11.230
-- JaiaTab1: 172.20.11.231
+- JaiaBook2: 172.20.11.231
+- JaiaTab1: 172.20.11.232
+
+- Ben's macbook: 172.20.11.215
+- Sean's maccook: 172.20.11.220
 - tsaubergine dev laptop: 172.20.11.240
 - tsaubergine dev desktop: 172.20.11.241
-- edsanville dev computer:  172.20.11.245
-- edsanville iMac :         172.20.11.246
-- edsnaville Mac mini:      172.20.11.247
-- jason-jaia dev laptop:  172.20.11.250
-- jason-jaia desktop:       172.20.11.251
+- edsanville dev computer: 172.20.11.245
+- edsanville iMac: 172.20.11.246
+- edsnaville Mac mini: 172.20.11.247
+- jason's laptop - wsl: 172.20.11.250
+- jason's desktop - wsl: 172.20.11.251
+- jason's desktop - Ubuntu: 172.20.11.252
+- jason's NUC - wsl: 172.20.11.254
 
 ### Server
 
