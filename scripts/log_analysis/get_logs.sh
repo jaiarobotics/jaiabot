@@ -17,8 +17,8 @@ do
     BOT_HOSTNAME="${!i}"
     echo "🟢 Downloading logs from: ${BOT_HOSTNAME}"
     set -x
-    rsync -zaP ubuntu@${BOT_HOSTNAME}:jaia-logs/ ${HOME}/jaia-logs/${BOT_HOSTNAME}
-    ssh ubuntu@${BOT_HOSTNAME} 'rm -rf ${HOME}/jaia-logs/*'
+    rsync -zaP ubuntu@${BOT_HOSTNAME}:/var/log/jaiabot/ ${HOME}/jaia-logs/${BOT_HOSTNAME}
+    ssh ubuntu@${BOT_HOSTNAME} 'sudo rm -rf /var/log/jaiabot/*'
     set +x
 done
 

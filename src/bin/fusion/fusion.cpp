@@ -38,7 +38,6 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
-
 #include "wmm/WMM.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
@@ -263,6 +262,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         [this](const jaiabot::protobuf::SalinityData& salinityData) {
             glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
             latest_bot_status_.set_salinity(salinityData.salinity());
+        });
+
+    interprocess().subscribe<goby::middleware::groups::health_report>(
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            latest_bot_status_.set_health_state(vehicle_health.state());
         });
 
     // subscribe for commands, to set last_command_time

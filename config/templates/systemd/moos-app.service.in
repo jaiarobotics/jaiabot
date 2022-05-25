@@ -6,8 +6,11 @@ After=jaiabot_moosdb.service
 $extra_unit
 
 [Service]
+User=$user
+Group=$group
+
 EnvironmentFile=$env_file
-ExecStart=$moos_bin_dir/$exe $moos_file
+ExecStart=$moos_bin_dir/$exe $moos_file $exe
 $extra_service
 
 [Install]
