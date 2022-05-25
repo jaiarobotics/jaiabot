@@ -2,11 +2,17 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
-message ControlSurfaces
+message ArduinoCommand
 {
     optional sint32 motor = 1;
     optional sint32 port_elevator = 2;
     optional sint32 stbd_elevator = 3;
     optional sint32 rudder = 4;
     optional sint32 timeout = 5;
+}
+
+message ArduinoResponse
+{
+    required sint32 code = 1;
+    optional string message = 20;
 }
