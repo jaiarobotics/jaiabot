@@ -6,6 +6,9 @@ After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
+User=$user
+Group=$group
+
 EnvironmentFile=$env_file
 # Run python code within a pre-installed venv
 ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/python/$subdir/$exe $args

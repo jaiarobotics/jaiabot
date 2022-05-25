@@ -94,12 +94,16 @@ cp uboot_rpi_3.bin /boot/firmware/uboot_rpi_3.bin
 # chown ubuntu:ubuntu /home/ubuntu/run.sh
 ############################################
 
-if [ $1 == 'bot' ]
-then
-  echo "===Setting up Arduino"
-  cd /home/ubuntu/jaiabot/scripts
-  sudo -u ubuntu ./setup_arduino_cli.sh
-fi
+############################################
+## Replaced by compiling with arduino-cli during CircleCI build
+## and flashing with avrdude in jaiabot-embedded postinst
+#if [ $1 == 'bot' ]
+#then
+#  echo "===Setting up Arduino"
+#  cd /home/ubuntu/jaiabot/scripts
+#  sudo -u ubuntu ./setup_arduino_cli.sh
+#fi
+############################################
 
 ############################################
 ## No path required for systemd
