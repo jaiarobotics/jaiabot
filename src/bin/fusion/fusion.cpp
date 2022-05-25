@@ -253,11 +253,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.clear_active_goal();
         });
 
-    interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
-        [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
-            // glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
-        });
-
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& salinityData) {
             glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;

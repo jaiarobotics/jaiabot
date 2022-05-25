@@ -8,8 +8,6 @@
 #endif
 #include "jaiabot/messages/nanopb/control_surfaces.pb.h"
 
-#define DEBUG_MESSAGE(x) (x)
-
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
 // TODO: Add CRC32?
@@ -33,26 +31,31 @@ int32_t command_timeout = -1;
 void handle_timeout();
 void halt_all();
 
-static_assert(jaiabot_protobuf_ControlSurfaces_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ControlSurfaces is too large, must fit in SIZE_BYTES word");
+static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ArduinoCommand is too large, must fit in SIZE_BYTES word");
 
 bool data_to_send = false;
 bool data_to_receive = false;
 
-jaiabot_protobuf_ControlSurfaces command = jaiabot_protobuf_ControlSurfaces_init_default;
-jaiabot_protobuf_ControlSurfacesAck ack = jaiabot_protobuf_ControlSurfacesAck_init_default;
-
-// Motor stuff
-  const uint32_t max_motor_step = 10;
-  int32_t motor = 0;
+jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 enum AckCode {
   STARTUP = 0,
   ACK = 1,
   TIMEOUT = 2,
+  DEBUG=3
 };
 
+char ack_message[256] = {0};
 
-void send_ack()
+bool write_string(pb_ostream_t *stream, const pb_field_iter_t *field, void * const *arg)
+{
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+
+    return pb_encode_string(stream, (uint8_t*)ack_message, strlen(ack_message));
+}
+
+void send_ack(AckCode code, char message[])
 {
   const size_t max_ack_size = 256;
 
@@ -61,7 +64,20 @@ void send_ack()
   serial_size_type message_length = 0;
 
   pb_ostream_t stream = pb_ostream_from_buffer(pb_binary_data, sizeof(pb_binary_data));
-  status = pb_encode(&stream, jaiabot_protobuf_ControlSurfacesAck_fields, &ack);
+
+  // Copy code and message
+  jaiabot_protobuf_ArduinoResponse ack = jaiabot_protobuf_ArduinoResponse_init_default;
+  ack.code = code;
+  ack.message = write_string;
+
+  if (message != NULL) {
+    strncpy(ack_message, message, 250);
+  }
+  else {
+    strncpy(ack_message, "", 250);
+  }
+
+  status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
 
   if (status)
@@ -90,9 +106,7 @@ void setup()
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
 
   // Send startup code
-  ack.code = STARTUP;
-  send_ack();
-
+  send_ack(STARTUP, NULL);
 }
 
 
@@ -122,77 +136,62 @@ void loop()
     uint8_t prefix[prefix_size] = {0};
     if (Serial.readBytes(prefix, prefix_size) == prefix_size)
     {
+      // If the magic is correct
       if (memcmp(SERIAL_MAGIC, prefix, SERIAL_MAGIC_BYTES) == 0)
       {
+        // Read the message size
         serial_size_type size = 0;
         size |= prefix[SERIAL_MAGIC_BYTES];
         size << BITS_IN_BYTE;
         size |= prefix[SERIAL_MAGIC_BYTES + 1];
 
-        if (size <= jaiabot_protobuf_ControlSurfaces_size)
+        if (size <= jaiabot_protobuf_ArduinoCommand_size)
         {
-          uint8_t pb_binary_data[jaiabot_protobuf_ControlSurfaces_size] = {0};
+          uint8_t pb_binary_data[jaiabot_protobuf_ArduinoCommand_size] = {0};
+
+          // Read the protobuf binary-encoded message
           if (Serial.readBytes(pb_binary_data, size) == size)
           {
             pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
-            bool status = pb_decode(&stream, jaiabot_protobuf_ControlSurfaces_fields, &command);
+
+            // Decode the protobuf command message
+            bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
             if (!status)
             {
-              DEBUG_MESSAGE("Decoding ControlSurfaces protobuf failed:");
-              DEBUG_MESSAGE(PB_GET_ERROR(&stream));
+              send_ack(DEBUG, "Decoding ArduinoCommand protobuf failed:");
+              send_ack(DEBUG, PB_GET_ERROR(&stream));
             }
 
-            if (command.motor == 0) {
-              motor = command.motor;
-            }
-            else {
-              int32_t delta_motor = command.motor - motor;
-              delta_motor = clamp(delta_motor, -max_motor_step, max_motor_step);
-              motor += delta_motor;
-            }
-
-            // Keep motor value in useful range (not abs(motor) < 30)
-            if (motor > 0 && motor < 30) {
-              motor = 30;
-            }
-            if (motor > -30 && motor < 0) {
-              motor = -30;
-            }
-
-            // Clamp and center rudder
-            int32_t rudder = clamp(command.rudder + 15, -55, 100);
-
-            motor_servo.writeMicroseconds (1500 - motor  * 400 / 100);
-            rudder_servo.writeMicroseconds(1500 - rudder * 475 / 100);
-            stbd_elevator_servo.writeMicroseconds(1500 - command.stbd_elevator * 475 / 100);
-            port_elevator_servo.writeMicroseconds(1500 - command.port_elevator * 475 / 100);
+            motor_servo.writeMicroseconds (command.motor);
+            rudder_servo.writeMicroseconds(comamnd.rudder);
+            stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
+            port_elevator_servo.writeMicroseconds(command.port_elevator);
 
             // Set the timeout vars
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
-            ack.code = ACK;
-            send_ack();
+            send_ack(ACK, NULL);
           }
           else
           {
-            DEBUG_MESSAGE("Read wrong number of bytes for PB data");
+            send_ack(DEBUG, "Read wrong number of bytes for PB data");
           }
         }
         else
         {
-          DEBUG_MESSAGE("Size is wrong, expected <= jaiabot_protobuf_LoRaMessage_size");
+          send_ack(DEBUG, "Message size is wrong (too big)");
         }
 
       }
       else
       {
-        DEBUG_MESSAGE("Serial magic is wrong");
+        send_ack(DEBUG, "Serial magic is wrong");
       }
     }
     else
     {
-      DEBUG_MESSAGE("Read wrong number of bytes for prefix");
+      send_ack(DEBUG, "Read wrong number of bytes for prefix");
     }
   }
 
@@ -206,19 +205,18 @@ void handle_timeout() {
     command_timeout = -1;
     halt_all();
 
-    ack.code = TIMEOUT;
-    send_ack();
+    send_ack(TIMEOUT, NULL);
   }
 }
 
 void halt_all() {
-  motor_servo.writeMicroseconds (1500 + 0 * 400 / 100);
-  rudder_servo.writeMicroseconds(1500 + 0 * 475 / 100);
-  stbd_elevator_servo.writeMicroseconds(1500 + 0 * 475 / 100);
-  port_elevator_servo.writeMicroseconds(1500 + 0 * 475 / 100);
+  const int motor_off = 1500;
+  const int rudder_off = 1500;
+  const int stbd_elevator_off = 1500;
+  const int port_elevator_off = 1500;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
-PB_BIND(jaiabot_protobuf_ControlSurfaces, jaiabot_protobuf_ControlSurfaces, 2)
-PB_BIND(jaiabot_protobuf_ControlSurfacesAck, jaiabot_protobuf_ControlSurfacesAck, 2)
+PB_BIND(jaiabot_protobuf_ArduinoCommand, jaiabot_protobuf_ArduinoCommand, 2)
+PB_BIND(jaiabot_protobuf_ArduinoResponse, jaiabot_protobuf_ArduinoResponse, 2)

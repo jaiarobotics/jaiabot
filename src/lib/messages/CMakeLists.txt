@@ -17,6 +17,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${project_INC_DIR}
   jaiabot/messages/metadata.proto
   jaiabot/messages/mission_manager_settings.proto
   jaiabot/messages/moos.proto
+  jaiabot/messages/arduino.proto
   )
 
 add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS})

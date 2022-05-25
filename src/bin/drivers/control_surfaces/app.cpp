@@ -27,6 +27,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -68,41 +69,52 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(0 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
+    // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
         [this](const jaiabot::protobuf::LowControl& low_control) {
             if (low_control.has_control_surfaces())
             {
                 glog.is_verbose() && glog << group("main")
-                                          << "Sending: " << low_control.ShortDebugString()
+                                          << "Received command: " << low_control.ShortDebugString()
                                           << std::endl;
 
-                auto raw_output = lora::serialize(low_control.control_surfaces());
+                auto control_surfaces = low_control.control_surfaces();
+
+                jaiabot::protobuf::ArduinoCommand arduino_cmd;
+                arduino_cmd.set_motor(1500);
+                arduino_cmd.set_rudder(1500);
+                arduino_cmd.set_stbd_elevator(1500);
+                arduino_cmd.set_port_elevator(1500);
+                arduino_cmd.set_timeout(control_surfaces.timeout());
+
+                auto raw_output = lora::serialize(arduino_cmd);
                 interthread().publish<serial_out>(raw_output);
             }
         });
 
-    interthread().subscribe<serial_in>([this](
-                                            const goby::middleware::protobuf::IOData& io) {
+    // Get an ArduinoResponse
+    interthread().subscribe<serial_in>(
+        [this](const goby::middleware::protobuf::IOData& io)
+        {
+            auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
 
-        auto control_ack = lora::parse<jaiabot::protobuf::ControlSurfacesAck>(io);
+            glog.is_debug1() && glog << group("main") << "Received from Arduino: "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
-        glog.is_debug1() && glog << group("main")
-                                    << control_ack.ShortDebugString() << std::endl;
-        
-        if (control_ack.has_message()) {
-            glog.is_verbose() && glog << group("main") << control_ack.message() << std::endl;
-        }
+            if (arduino_response.has_message())
+            {
+                glog.is_warn() && glog << group("main") << arduino_response.message() << std::endl;
+            }
 
-        interprocess().publish<groups::control_surfaces_ack>(control_ack);    
-    });
-
+            interprocess().publish<groups::arduino_response>(arduino_response);
+        });
 }
 
 void jaiabot::apps::ControlSurfacesDriver::loop() {

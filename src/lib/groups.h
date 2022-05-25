@@ -68,7 +68,7 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
                                               goby::middleware::Group::broadcast_group};
 
 // control surfaces
-constexpr goby::middleware::Group control_surfaces_ack{"jaiabot::control_surfaces_ack"};
+constexpr goby::middleware::Group arduino_response{"jaiabot::arduino_response"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
