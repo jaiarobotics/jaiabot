@@ -28,6 +28,8 @@ PIDControl_depth_Kp = PIDControl + 'depth/Kp'
 PIDControl_depth_Ki = PIDControl + 'depth/Ki'
 PIDControl_depth_Kd = PIDControl + 'depth/Kd'
 
+Engineering_flag = 'jaiabot::engineering_command;0/jaiabot.protobuf.Engineering/flag'
+
 LowControl_motor = 'jaiabot::low_control/jaiabot.protobuf.LowControl/control_surfaces/motor'
 LowControl_rudder = 'jaiabot::low_control/jaiabot.protobuf.LowControl/control_surfaces/rudder'
 

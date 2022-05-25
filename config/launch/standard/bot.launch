@@ -30,5 +30,6 @@ jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 # [kill=SIGTERM] pMarinePID /tmp/jaiabot_sim_${jaia_bot_index}.moos
 
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
+jaiabot_engineering <(../../gen/bot.py jaiabot_engineering)
 
 goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control

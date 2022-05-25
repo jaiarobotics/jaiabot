@@ -4,6 +4,9 @@ set -e
 
 script_dir=$(dirname $0)
 
+# install clang-format hook if not installed
+[ ! -e ${script_dir}/../.git/hooks/pre-commit ] && ${script_dir}/../scripts/clang-format-hooks/git-pre-commit-format install
+
 cd ${script_dir}/..
 mkdir -p build/arm64
 

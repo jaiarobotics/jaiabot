@@ -47,6 +47,7 @@ message MissionReport
     };
 
     required MissionState state = 10;
+    optional int32 active_goal = 11;
 }
 
 message MissionTask
@@ -142,6 +143,7 @@ message MissionPlan
         required GeographicCoordinate location = 2;
         optional MissionTask task = 3;
     }
+    // max_repeat should match BotStatus.active_goal bounds
     repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
 
     message Recovery
