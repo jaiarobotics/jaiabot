@@ -55,6 +55,8 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     void loop() override;
 
     int64_t lastAckTime;
+
+    int32_t currentMotor = 0;
 };
 
 } // namespace apps

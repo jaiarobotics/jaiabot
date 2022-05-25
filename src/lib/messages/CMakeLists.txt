@@ -26,7 +26,7 @@ target_link_libraries(jaiabot_messages ${PROTOBUF_LIBRARIES} goby)
 project_install_lib(jaiabot_messages)
 
 protobuf_generate_nanopb_c(PROTO_C_SRCS PROTO_C_HDRS ${project_INC_DIR}
-  jaiabot/messages/nanopb/control_surfaces.proto
+  jaiabot/messages/nanopb/arduino.proto
   jaiabot/messages/nanopb/feather.proto
   )
 
