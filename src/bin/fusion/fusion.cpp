@@ -32,12 +32,14 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/control_surfaces.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
-#include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
-#include "jaiabot/messages/engineering.pb.h"
+
+#include "wmm/WMM.h"
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -68,8 +70,10 @@ class Fusion : public ApplicationBase
 
         latest_bot_status_.set_time_with_units(unwarped_time);
 
-        if (latest_bot_status_.IsInitialized()) {
-            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): " << latest_bot_status_.ShortDebugString() << endl;
+        if (latest_bot_status_.IsInitialized())
+        {
+            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+                                     << latest_bot_status_.ShortDebugString() << endl;
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
         }
     }
@@ -77,6 +81,8 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
+
+    WMM wmm;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -105,50 +111,67 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (att.has_heading())
             {
-                auto heading = att.heading_with_units();
+                auto magneticDeclination = wmm.magneticDeclination(
+                    latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+                glog.is_debug2() &&
+                    glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
+                         << "  Magnetic declination: " << magneticDeclination << endl;
+                auto heading =
+                    att.heading_with_units() + magneticDeclination * boost::units::degree::degrees;
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
             }
 
             if (att.has_roll())
             {
-                auto roll = att.heading_with_units();
+                auto roll = att.roll_with_units();
                 latest_node_status_.mutable_pose()->set_roll_with_units(roll);
                 latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
             }
         });
-    interprocess().subscribe<groups::imu>(
-        [this](const jaiabot::protobuf::IMUData& imu_data) {
-            glog.is_debug1() && glog << "Received Attitude update from IMU: " << imu_data.ShortDebugString()
-                                     << std::endl;
+    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
+        glog.is_debug1() && glog << "Received Attitude update from IMU: "
+                                 << imu_data.ShortDebugString() << std::endl;
 
-            auto euler_angles = imu_data.euler_angles();
+        auto euler_angles = imu_data.euler_angles();
 
-            if (euler_angles.has_alpha())
+        if (euler_angles.has_alpha())
+        {
+            using boost::units::degree::degrees;
+
+            // This produces a heading that is off by 180 degrees, so we need to rotate it
+            auto heading = euler_angles.alpha_with_units() + 180 * degrees;
+            if (heading > 360 * degrees)
             {
-                // This produces a heading that is off by 180 degrees, so we need to rotate it
-                auto heading = euler_angles.alpha_with_units() + 180 * boost::units::degree::plane_angle();
-                if (heading > 360 * boost::units::degree::plane_angle()) {
-                    heading -= (360 * boost::units::degree::plane_angle());
-                }
-                latest_node_status_.mutable_pose()->set_heading_with_units(heading);
-                latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+                heading -= (360 * degrees);
             }
 
-            if (euler_angles.has_gamma())
-            {
-                auto pitch = euler_angles.gamma_with_units();
-                latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
-                latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
-            }
+            // Apply magnetic declination
+            auto magneticDeclination = wmm.magneticDeclination(
+                latest_node_status_.global_fix().lon(), latest_node_status_.global_fix().lat());
+            glog.is_debug2() &&
+                glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
+                     << "  Magnetic declination: " << magneticDeclination << endl;
+            heading = heading + magneticDeclination * degrees;
 
-            if (euler_angles.has_beta())
-            {
-                auto roll = euler_angles.beta_with_units();
-                latest_node_status_.mutable_pose()->set_roll_with_units(roll);
-                latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
-            }
-        });
+            latest_node_status_.mutable_pose()->set_heading_with_units(heading);
+            latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+        }
+
+        if (euler_angles.has_gamma())
+        {
+            auto pitch = euler_angles.gamma_with_units();
+            latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
+            latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+        }
+
+        if (euler_angles.has_beta())
+        {
+            auto roll = euler_angles.beta_with_units();
+            latest_node_status_.mutable_pose()->set_roll_with_units(roll);
+            latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+        }
+    });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
@@ -180,7 +203,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.mutable_speed()->set_over_ground_with_units(speed);
             }
 
-            if (tpv.has_track()) 
+            if (tpv.has_track())
             {
                 auto track = tpv.track_with_units();
                 latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
@@ -199,7 +222,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_node_status_.set_time_with_units(time);
             }
 
-            if (latest_node_status_.IsInitialized()) {
+            if (latest_node_status_.IsInitialized())
+            {
                 interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                     latest_node_status_);
             }
@@ -215,7 +239,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 -latest_node_status_.global_fix().depth_with_units());
             latest_bot_status_.set_depth_with_units(depth);
 
-            if (pt.has_temperature()) {
+            if (pt.has_temperature())
+            {
                 latest_bot_status_.set_temperature_with_units(pt.temperature_with_units());
             }
         });
@@ -223,6 +248,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
+            if (report.has_active_goal())
+                latest_bot_status_.set_active_goal(report.active_goal());
+            else
+                latest_bot_status_.clear_active_goal();
         });
 
     interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
@@ -237,12 +266,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         });
 
     // subscribe for commands, to set last_command_time
-    interprocess().subscribe<jaiabot::groups::engineering_command>([this](const jaiabot::protobuf::Engineering& command) {
-            glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std:: endl;
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
-
 }
 
 void jaiabot::apps::Fusion::init_node_status()

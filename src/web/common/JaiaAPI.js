@@ -92,4 +92,7 @@ module.exports = class JaiaAPI {
     return this.post('command', command)
   }
 
+  postEngineering(engineeringCommand) {
+    return this.post('pid-command', engineeringCommand)
+  }
 }
