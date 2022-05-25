@@ -2,11 +2,12 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <Servo.h>
+#include <stdio.h>
 
 #ifdef UENUM
 #undef UENUM
 #endif
-#include "jaiabot/messages/nanopb/control_surfaces.pb.h"
+#include "jaiabot/messages/nanopb/arduino.pb.h"
 
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
@@ -47,7 +48,7 @@ enum AckCode {
 
 char ack_message[256] = {0};
 
-bool write_string(pb_ostream_t *stream, const pb_field_iter_t *field, void * const *arg)
+bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
         return false;
@@ -68,7 +69,11 @@ void send_ack(AckCode code, char message[])
   // Copy code and message
   jaiabot_protobuf_ArduinoResponse ack = jaiabot_protobuf_ArduinoResponse_init_default;
   ack.code = code;
-  ack.message = write_string;
+
+  pb_callback_t callback;
+  callback.funcs.encode = write_string;
+  callback.arg = NULL;
+  ack.message = callback;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
@@ -163,7 +168,7 @@ void loop()
             }
 
             motor_servo.writeMicroseconds (command.motor);
-            rudder_servo.writeMicroseconds(comamnd.rudder);
+            rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
 
@@ -171,6 +176,8 @@ void loop()
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
+            // char message[256];
+            // sprintf(message, "%ld,%ld,%ld,%ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
             send_ack(ACK, NULL);
           }
           else
