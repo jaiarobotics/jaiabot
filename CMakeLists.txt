@@ -115,6 +115,14 @@ if(export_goby_interfaces)
 endif()
 
 
+find_program(ARDUINO_CLI arduino-cli)
+if(ARDUINO_CLI)
+  option(build_arduino "Build Arduino code (requires arduino-cli)" ON)
+else()
+  message(STATUS "Did not find arduino-cli, so not building arduino code")
+  option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
+endif()
+
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
@@ -174,7 +182,9 @@ macro(project_install_lib target_lib)
   set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
 endmacro()
 
-install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share)
+install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
+  PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
  
@@ -183,8 +193,10 @@ unset(PROJECT_LIBRARY_LIST CACHE)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
 # etc
-install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
-
+option(install_motd "Install MOTD script" ON)
+if(install_motd)
+  install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
+endif()
 
 # add the code
 add_subdirectory(src)

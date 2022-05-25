@@ -28,10 +28,9 @@ environment-template-focal: &environment-template-focal
 ## Pre-declare Docker containers
 
 docker-base-focal: &docker-base-focal
-  - image: gobysoft/goby3-ubuntu-build-base:20.04.1
+  - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
 docker-arm64-focal: &docker-arm64-focal
-  - image: gobysoft/goby3-ubuntu-build-arm64:20.04.1
-
+  - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
     
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
@@ -56,8 +55,7 @@ job-template-amd64: &job-template-amd64
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y &&
-          apt-get install libgoby3-dev:${TARGET_ARCH} libgoby3-moos-dev:${TARGET_ARCH} libgoby3-moos:${TARGET_ARCH} libgoby3-gui-dev:${TARGET_ARCH} goby3-interfaces:amd64 libnanopb-dev:${TARGET_ARCH} nanopb:amd64 python3-protobuf:amd64 -y --no-install-recommends
+          apt-get dist-upgrade -y
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install goby3-clang-tool || true
     - run: &run-build
         name: Build
@@ -157,14 +155,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "systemd"
+        - "cmakify-ui-and-arduino"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "systemd"
+        - "cmakify-ui-and-arduino"
         
 ## Begin actual config
 version: 2

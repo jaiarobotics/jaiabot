@@ -5,6 +5,10 @@ Requires=network-online.target
 After=network-online.target
 
 [Service]
+User=$user
+Group=$group
+
+
 Type=oneshot
 RemainAfterExit=true
 ExecStart=/bin/echo "Starting Jaia"
