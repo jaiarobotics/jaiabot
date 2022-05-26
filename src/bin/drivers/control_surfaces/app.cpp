@@ -22,7 +22,10 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <algorithm>
 #include <goby/zeromq/application/multi_thread.h>
+
+using namespace std;
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -33,6 +36,8 @@
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
 using goby::glog;
+using jaiabot::protobuf::ControlSurfaces;
+
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
@@ -53,10 +58,27 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
   private:
     void loop() override;
+    void handle_control_surfaces(const ControlSurfaces& control_surfaces);
 
     int64_t lastAckTime;
 
-    int32_t currentMotor = 0;
+    uint64_t _time_last_command_received = 0;
+    const uint64_t timeout = 5e6;
+
+    jaiabot::protobuf::Bounds bounds;
+
+    // Motor
+    int current_motor = 1500;
+    int target_motor = 1500;
+    const int motor_max_step = 100;
+
+    // Control surfaces
+    int rudder = 1500;
+    int port_elevator = 1500;
+    int stbd_elevator = 1500;
+
+    // timeout
+    int arduino_timeout = 5;
 };
 
 } // namespace apps
@@ -71,12 +93,15 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(4 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
+
+    // Setup our bounds configuration
+    bounds = cfg().bounds();
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -87,17 +112,7 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                                           << "Received command: " << low_control.ShortDebugString()
                                           << std::endl;
 
-                auto control_surfaces = low_control.control_surfaces();
-
-                jaiabot::protobuf::ArduinoCommand arduino_cmd;
-                arduino_cmd.set_motor(1500);
-                arduino_cmd.set_rudder(1500);
-                arduino_cmd.set_stbd_elevator(1500);
-                arduino_cmd.set_port_elevator(1500);
-                arduino_cmd.set_timeout(control_surfaces.timeout());
-
-                auto raw_output = lora::serialize(arduino_cmd);
-                interthread().publish<serial_out>(raw_output);
+                handle_control_surfaces(low_control.control_surfaces());
             }
         });
 
@@ -119,5 +134,107 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
         });
 }
 
+int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
+{
+    if (input > 0)
+    {
+        return center + (input / 100.0) * (upper - center);
+    }
+    else
+    {
+        return center + (input / 100.0) * (center - lower);
+    }
+}
+
+void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
+    const ControlSurfaces& control_surfaces)
+{
+    if (control_surfaces.has_motor())
+    {
+        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
+    }
+
+    if (control_surfaces.has_rudder())
+    {
+        rudder = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds.rudder().lower(),
+                                            bounds.rudder().center(), bounds.rudder().upper());
+    }
+
+    if (control_surfaces.has_stbd_elevator())
+    {
+        stbd_elevator =
+            surfaceValueToMicroseconds(control_surfaces.stbd_elevator(), bounds.strb().lower(),
+                                       bounds.strb().center(), bounds.strb().upper());
+    }
+
+    if (control_surfaces.has_port_elevator())
+    {
+        port_elevator =
+            surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds.port().lower(),
+                                       bounds.port().center(), bounds.port().upper());
+    }
+
+    if (control_surfaces.has_timeout())
+    {
+        arduino_timeout = control_surfaces.timeout();
+    }
+
+    _time_last_command_received = now_microseconds();
+}
+
 void jaiabot::apps::ControlSurfacesDriver::loop() {
+    jaiabot::protobuf::ArduinoCommand arduino_cmd;
+    arduino_cmd.set_timeout(arduino_timeout);
+
+    // If command is too old, then zero the Arduino
+    if (_time_last_command_received != 0 &&
+        now_microseconds() - _time_last_command_received > timeout)
+    {
+        arduino_cmd.set_motor(1500);
+        arduino_cmd.set_rudder(bounds.rudder().center());
+        arduino_cmd.set_stbd_elevator(bounds.strb().center());
+        arduino_cmd.set_port_elevator(bounds.port().center());
+
+        // Send the command to the Arduino
+        auto raw_output = lora::serialize(arduino_cmd);
+        interthread().publish<serial_out>(raw_output);
+
+        return;
+    }
+
+    // Motor
+    int corrected_motor;
+
+    if (target_motor > current_motor)
+    {
+        current_motor += min(target_motor - current_motor, motor_max_step);
+
+        if (current_motor > 1500)
+            corrected_motor = max(current_motor, bounds.motor().forwardstart());
+        if (current_motor == 1500)
+            corrected_motor = current_motor;
+        if (current_motor < 1500)
+            corrected_motor = min(current_motor, bounds.motor().reversehalt());
+    }
+    else
+    {
+        current_motor -= min(current_motor - target_motor, motor_max_step);
+
+        if (current_motor > 1500)
+            corrected_motor = max(current_motor, bounds.motor().forwardhalt());
+        if (current_motor == 1500)
+            corrected_motor = current_motor;
+        if (current_motor < 1500)
+            corrected_motor = min(current_motor, bounds.motor().reversestart());
+    }
+
+    arduino_cmd.set_motor(corrected_motor);
+
+    arduino_cmd.set_rudder(rudder);
+    arduino_cmd.set_stbd_elevator(stbd_elevator);
+    arduino_cmd.set_port_elevator(port_elevator);
+
+    // Send the command to the Arduino
+    auto raw_output = lora::serialize(arduino_cmd);
+    interthread().publish<serial_out>(raw_output);
 }

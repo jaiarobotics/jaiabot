@@ -41,7 +41,7 @@ goby_liaison_jaiabot <(../../gen/bot.py goby_liaison)
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control) -vv
 
 # Control surfaces
-jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver) -vv
+jaiabot_control_surfaces_driver <(../../gen/bot.py jaiabot_control_surfaces_driver)
 
 # Engineering
 jaiabot_engineering <(../../gen/bot.py jaiabot_engineering) -vv

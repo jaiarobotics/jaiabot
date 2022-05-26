@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 script_dir=$(dirname $0)
 build_dir=${script_dir}/../build
 

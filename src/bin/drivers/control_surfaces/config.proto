@@ -25,6 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
+import "jaiabot/messages/bounds.proto";
 
 package jaiabot.config;
 
@@ -36,4 +37,6 @@ message ControlSurfacesDriver
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required goby.middleware.protobuf.SerialConfig serial_arduino = 11;
+
+    optional jaiabot.protobuf.Bounds bounds = 20;
 }
