@@ -18,6 +18,7 @@ constexpr int SIZE_BYTES = 2;
 using serial_size_type = uint16_t;
 
 constexpr int BITS_IN_BYTE = 8;
+static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ArduinoCommand is too large, must fit in SIZE_BYTES word");
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
@@ -32,10 +33,11 @@ int32_t command_timeout = -1;
 void handle_timeout();
 void halt_all();
 
-static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ArduinoCommand is too large, must fit in SIZE_BYTES word");
-
-bool data_to_send = false;
-bool data_to_receive = false;
+// Neutral values for timing out
+int motor_neutral = 1500;
+int stbd_elevator_neutral = 1500;
+int port_elevator_neutral = 1500;
+int rudder_neutral = 1500;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -48,6 +50,7 @@ enum AckCode {
 
 char ack_message[256] = {0};
 
+// Callback for encoding the response message, if present
 bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
@@ -56,6 +59,7 @@ bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *a
     return pb_encode_string(stream, (uint8_t*)ack_message, strlen(ack_message));
 }
 
+// Send a response message back to the RasPi
 void send_ack(AckCode code, char message[])
 {
   const size_t max_ack_size = 256;
@@ -217,10 +221,10 @@ void handle_timeout() {
 }
 
 void halt_all() {
-  const int motor_off = 1500;
-  const int rudder_off = 1500;
-  const int stbd_elevator_off = 1500;
-  const int port_elevator_off = 1500;
+  const int motor_off = motor_neutral;
+  const int rudder_off = rudder_neutral;
+  const int stbd_elevator_off = stbd_elevator_neutral;
+  const int port_elevator_off = port_elevator_neutral;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
