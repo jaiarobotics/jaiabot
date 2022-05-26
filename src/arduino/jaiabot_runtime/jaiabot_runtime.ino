@@ -181,7 +181,7 @@ void loop()
             command_timeout = command.timeout * 1000;
 
             // char message[256];
-            // sprintf(message, "%ld,%ld,%ld,%ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
+            // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
             send_ack(ACK, NULL);
           }
           else
