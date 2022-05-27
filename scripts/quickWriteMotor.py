@@ -5,7 +5,7 @@ import time
 import os
 
 
-#arduino = serial.Serial('/dev/cu.usbmodem1432401', 19200,timeout = .1)
+#arduino = serial.Serial('/dev/cu.usbmodem1432301', 19200,timeout = .1)
 arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
 
 os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh quickMotorcontrol/')
@@ -44,6 +44,7 @@ while True:
     value = value.replace("n","")
     value = str(value + ",")
     print(value)
+    print(
     temp.write(value)
     temp.close()
     time.sleep(2)

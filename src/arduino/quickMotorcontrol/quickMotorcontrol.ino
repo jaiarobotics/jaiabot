@@ -3,8 +3,8 @@
 
 #include <Adafruit_MAX31855.h>
 
-#define Clock 10
-#define Data 12
+#define Clock 12
+#define Data 10
 #define ChipSelect 11
 
 Adafruit_MAX31855 thermocouple(Clock, ChipSelect, Data);
