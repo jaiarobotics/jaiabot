@@ -17,6 +17,14 @@ export function BotDetailsComponent(bot) {
     let statusTime = bot.time
     let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
+    let activeGoal = bot.activeGoal || "None"
+    var activeGoalRow = (
+        <tr>
+            <td>Active Goal</td>
+            <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
+        </tr>
+    )
+
     return (
     <div>
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
@@ -26,6 +34,7 @@ export function BotDetailsComponent(bot) {
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
+                {activeGoalRow}
                 <tr>
                     <td>Status Age</td>
                     <td>{statusAge} sec</td>
