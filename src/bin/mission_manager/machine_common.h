@@ -36,18 +36,20 @@ template <typename Derived> class AppMethodsAccess
 
     goby::middleware::InterThreadTransporter& interthread() { return app().interthread(); }
 
-    const apps::MissionManager& app() const
-    {
-        return static_cast<const Derived*>(this)->outermost_context().app();
-    }
-
     const config::MissionManager& cfg() const { return this->app().active_cfg(); }
 
     MissionManagerStateMachine& machine()
     {
         return static_cast<Derived*>(this)->outermost_context();
     }
+
+    const MissionManagerStateMachine& machine() const
+    {
+        return static_cast<const Derived*>(this)->outermost_context();
+    }
+
     apps::MissionManager& app() { return machine().app(); }
+    const apps::MissionManager& app() const { return machine().app(); }
 };
 } // namespace statechart
 } // namespace jaiabot
