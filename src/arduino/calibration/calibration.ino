@@ -28,15 +28,20 @@ int g = 1500;
 //function for  steering bounds creation 
 int BoundsCreation(int microseconds, Servo servo){
   int on = 0;
+  int modifier = microseconds;
   do{
     servo.writeMicroseconds(microseconds);
     int input = Serial.parseInt(SKIP_ALL);
-    microseconds = microseconds-input;
+    microseconds = modifier-input;
     servo.writeMicroseconds(microseconds);
     bool confirmation = Serial.findUntil("Y","N");
     if (confirmation == true){
       on = on+1;
     }
+    else if (confirmation == false){
+      modifier = microseconds;
+    }
+    
   }while(on == 0);
   return microseconds;
 }
@@ -69,14 +74,18 @@ int Bounds(int l, int m, int n, Servo servo){
 }
 
 //for accelerating/decelerating the motor
-int motor_forward_speed(int microseconds, Servo servo){
-  int initialVal = microseconds;
+int motor_speed(int microseconds, Servo servo, int Direction){
   int on = 0;
-  do{  
+  int Step = 0;
+  if (Direction == 1){
+    Step = 5;
+  }
+  else if (Direction == 0){
+    Step = -5;
+  }
+  do{ 
     servo.writeMicroseconds(microseconds);
-    int input = Serial.parseInt(SKIP_ALL);
-    microseconds = initialVal + input;
-    servo.writeMicroseconds(microseconds);
+    Serial.println(microseconds);
     bool confirmation = Serial.findUntil("Y","N");
     if (confirmation == true){
       bool completion = Serial.findUntil("J","K");
@@ -86,35 +95,13 @@ int motor_forward_speed(int microseconds, Servo servo){
       else{
         servo.writeMicroseconds(1500);
         delay(500);
-        input = Serial.parseInt(SKIP_ALL);
-        microseconds = initialVal + input;
+        microseconds = microseconds + Step;
       }
     }
-  }while(on == 0);
-  return microseconds;
-}
-
-//pretty much the same thing, but this one STOPS it
-int motor_reverse_speed(int microseconds, Servo servo){
-  int initialVal = microseconds;
-  int on = 0;
-  do{  
-    servo.writeMicroseconds(microseconds);
-    int input = Serial.parseInt(SKIP_ALL);
-    microseconds = initialVal - input;
-    servo.writeMicroseconds(microseconds);
-    bool confirmation = Serial.findUntil("Y","N");
-    if (confirmation == true){
-      bool completion = Serial.findUntil("J","K");
-      if (completion == true){
-        on = on + 1;
-      }
-      else{
-        servo.writeMicroseconds(1500);
-        delay(500);
-        input = Serial.parseInt(SKIP_ALL);
-        microseconds = initialVal - input;
-      }
+    else if (confirmation == false){
+      servo.writeMicroseconds(1500);
+      delay(500);
+      microseconds = microseconds + Step;
     }
   }while(on == 0);
   return microseconds;
@@ -123,15 +110,24 @@ int motor_reverse_speed(int microseconds, Servo servo){
 //overall motor calibration
 int MotorBounds(int microseconds, Servo servo){
   servo.writeMicroseconds(1500);
+  int on = 0;
   
-  int startup = motor_forward_speed(microseconds, motor_servo);
-  Serial.print(startup);
-  int startdown = motor_reverse_speed(microseconds, motor_servo);
-  Serial.print(startdown);
-  int haltup = motor_reverse_speed(startup, motor_servo);
-  Serial.print(haltup);
-  int haltdown = motor_forward_speed(startdown, motor_servo);
-  Serial.print(haltdown);
+  do{ 
+  
+  int startup = motor_speed(1500, motor_servo, 1);
+  Serial.println(startup);
+  int startdown = motor_speed(1500, motor_servo, 0);
+  Serial.println(startdown);
+  int haltup = motor_speed(startup, motor_servo, 0);
+  Serial.println(haltup);
+  int haltdown = motor_speed(startdown, motor_servo, 1);
+  Serial.println(haltdown);
+  bool completion = Serial.findUntil("C","Z");
+      if (completion == true){
+        on = on + 1;
+      }
+  
+  }while(on == 0);
   
   servo.writeMicroseconds(1500);
 }

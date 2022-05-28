@@ -1586,6 +1586,7 @@ export default class AXUI extends React.Component {
 		this.missions[botId] = mission
 		this.updateMissionLayer()
 		info("Loaded mission")
+		console.debug(botId, mission)
 	}
 
 	// Runs the currently loaded mission
