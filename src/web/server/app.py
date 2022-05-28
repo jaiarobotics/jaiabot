@@ -28,8 +28,8 @@ jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port))
 app = Flask(__name__)
 
 ####### Static files
-root = '../dist/client/'
-pid = '../client/engineering/'
+root = '../central_command/dist/client/'
+pid = '../engineering/'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
