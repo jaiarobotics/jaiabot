@@ -3,11 +3,12 @@
 
 ##
 ## Usage:
-## jaiabot_arduino_type=usb_old ./docker_arm64_build_and_deploy.sh 172.20.11.102
+## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker_arm64_build_and_deploy.sh 172.20.11.102
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
 ## Env var "jaiabot_arduino_type" can be set to one of: usb_old, usb_new, spi which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
+## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
 ## 
 
 set -e
@@ -39,8 +40,10 @@ else
     	echo "🟢 Uploading to "$var
 	rsync -zaP --delete --force --relative ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
-   	echo "🟢 Installing and enabling systemd services"
-        ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh bot --enable'"
+        if [ ! -z "$jaiabot_systemd_type" ]; then
+   	    echo "🟢 Installing and enabling systemd services"
+            ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
+        fi
 
     	echo "🟢 Creating and setting permissons on log dir"
         ssh ubuntu@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ubuntu:ubuntu /var/log/jaiabot"
