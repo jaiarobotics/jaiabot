@@ -1,12 +1,16 @@
-import OlPolygon from 'ol/geom/Polygon';
+import OlCircle from 'ol/geom/Circle';
 import OlMultiLineString from 'ol/geom/MultiLineString';
+import OlPoint from 'ol/geom/Point';
+import OlPolygon from 'ol/geom/Polygon';
+import OlCircleStyle from 'ol/style/Circle';
+import OlFill from 'ol/style/Fill';
+import OlIcon from 'ol/style/Icon'
+import OlStroke from 'ol/style/Stroke';
 import OlStyle from 'ol/style/Style';
 import OlText from 'ol/style/Text';
-import OlFill from 'ol/style/Fill';
-import OlStroke from 'ol/style/Stroke';
-import OlCircleStyle from 'ol/style/Circle';
-import OlCircle from 'ol/geom/Circle';
-import OlPoint from 'ol/geom/Point';
+
+import botIcon from '../icons/bot.svg'
+import botSelectedIcon from '../icons/botSelected.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -216,8 +220,10 @@ export default {
     return function boatStyle(feature, resolution) {
       // font size
       let fontSize;
-      if (resolution > 0.4) fontSize = '8px';
-      else fontSize = '10px';
+      if (resolution > 0.4)
+        fontSize = '8pt';
+      else
+        fontSize = '10pt';
 
       const defaultFill = new OlFill({ color: fillColor });
       const selectedFill = new OlFill({ color: COLOR_SELECTED });
@@ -307,6 +313,27 @@ export default {
       if (remoteControlled) {
         fill = remoteControlFill
       }
+
+      // SVG icon
+      let rotation = (feature.get('heading') || 180) * (Math.PI / 180.0)
+      var icon = botIcon
+
+      if (selected) {
+        icon = botSelectedIcon
+      }
+
+      let defaultBoatStyle = new OlStyle({
+        image : new OlIcon(
+            {src : icon, rotation : rotation, rotateWithView : true}),
+        text : new OlText({
+          font : `bold ${fontSize} helvetica,sans-serif`,
+          text : `${feature.getId()}`,
+          fill : contrastingFgFill(fill.getColor()),
+          overflow : true
+        })
+      })
+
+      return defaultBoatStyle
 
       return [
         new OlStyle({
