@@ -837,6 +837,133 @@ export default class AXUI extends React.Component {
 		// map.render();
 	}
 
+	updateBotsLayer() {
+		const { selectedBotsFeatureCollection } = this.state;
+		let bots = this.podStatus.bots
+
+		let faultLevel0Count = 0;
+		let faultLevel1Count = 0;
+		let faultLevel2Count = 0;
+
+		const { trackingTarget } = this.state;
+
+		const botExtents = {};
+		// This needs to be synchronized somehow?
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			// ID
+			const bot_id = bot.botId
+			// Geometry
+			const botLatitude = bot.location?.lat
+			const botLongitude = bot.location?.lon
+			// Properties
+			const botHeading = bot.attitude?.heading
+			const botSpeed = bot.speed?.overGround
+			const botTimestamp = new Date(null)
+			botTimestamp.setSeconds(bot.time / 1e6)
+
+			const botLayer = this.getLiveLayerFromBotId(bot_id);
+
+			const botFeature = new OlFeature({});
+
+			botFeature.setId(bot_id);
+
+			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
+
+
+			var faultLevel = 0
+			if (bot.healthState == 'HEALTH__OK') {
+				faultLevel = 0
+				faultLevel0Count ++
+			}
+			else {
+				faultLevel = 1
+				faultLevel1Count ++
+			}
+
+			botFeature.setGeometry(new OlPoint(coordinate));
+			botFeature.setProperties({
+				heading: botHeading,
+				speed: botSpeed,
+				lastUpdated: parseFloat(bot.time),
+				lastUpdatedString: botTimestamp.toISOString(),
+				missionState: bot.missionState,
+				healthState: bot.healthState,
+				faultLevel: faultLevel
+			});
+
+			const zoomExtentWidth = 0.001; // Degrees
+
+			// An array of numbers representing an extent: [minx, miny, maxx, maxy].
+			botExtents[bot_id] = [
+				botLongitude - zoomExtentWidth / 2,
+				botLatitude - zoomExtentWidth / 2,
+				botLongitude + zoomExtentWidth / 2,
+				botLatitude + zoomExtentWidth / 2
+			];
+
+			botFeature.set('selected', false);
+			botFeature.set('controlled', false);
+			botFeature.set('tracked', false);
+			botFeature.set('completed', false);
+
+			// Update feature in selected set
+			if (selectedBotsFeatureCollection.getLength() !== 0) {
+				for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
+					const feature = selectedBotsFeatureCollection.item(i);
+					if (feature.getId() === bot_id) {
+						botFeature.set('selected', true);
+						selectedBotsFeatureCollection.setAt(i, botFeature);
+						break;
+					}
+				}
+			}
+
+			if (trackingTarget === bot_id) {
+				botFeature.set('tracked', true);
+			}
+
+			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
+
+			botLayer.getSource().clear();
+			botLayer.getSource().addFeature(botFeature);
+
+			if (trackingTarget === bot_id) {
+				us.centerOn(botFeature.getGeometry().getCoordinates());
+			}
+
+			if (botFeature.get('controlled')) {
+				botLayer.setZIndex(3);
+			} else if (botFeature.get('selected')) {
+				botLayer.setZIndex(2);
+			} else if (botFeature.get('tracked')) {
+				botLayer.setZIndex(1);
+			} else {
+				botLayer.setZIndex(0);
+			}
+
+			botLayer.changed();
+		} // end foreach bot
+		const { lastBotCount } = this.state;
+		const botCount = bots.length;
+		if (botCount > lastBotCount) {
+			this.zoomToAllBots(true);
+		} else if (trackingTarget === 'pod') {
+			this.zoomToAllBots();
+		} else if (trackingTarget === 'all') {
+			this.zoomToAll();
+		}
+		this.setState({
+			botExtents,
+			selectedBotsFeatureCollection,
+			faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
+			lastBotCount: botCount
+		});
+		// map.render();
+		this.timerID = setInterval(() => this.pollPodStatus(), 1000);
+	}
+
 	// POLL THE BOTS
 	pollPodStatus() {
 		clearInterval(this.timerID);
@@ -869,6 +996,7 @@ export default class AXUI extends React.Component {
                         }
                     }
 
+					this.updateBotsLayer()
 				}
 			},
 			(err) => {
@@ -879,173 +1007,6 @@ export default class AXUI extends React.Component {
 				error('Cannot connect to the Jaia Central Command web server (app.py)');
 			}
 		)
-
-		this.sna.getOldStatus().then(
-			(result) => {
-				const { selectedBotsFeatureCollection } = this.state;
-
-				if (!Array.isArray(result.bots)) {
-					// No bots connected to hub
-					return;
-				}
-
-				let faultLevel0Count = 0;
-				let faultLevel1Count = 0;
-				let faultLevel2Count = 0;
-
-				const { trackingTarget } = this.state;
-
-				const botExtents = {};
-				// This needs to be synchronized somehow?
-				result.bots.forEach((bot) => {
-					// ID
-					const bot_id = bot.botID.toString();
-					// Geometry
-					const botLatitude = bot.location.lat;
-					const botLongitude = bot.location.lon;
-					// Properties
-					const botHeading = bot.heading;
-					const botSpeed = bot.velocity;
-					const botTimestamp = new Date(null);
-					botTimestamp.setSeconds(bot.time.time);
-
-					const botLayer = this.getLiveLayerFromBotId(bot_id);
-
-					const botFeature = new OlFeature({});
-
-					botFeature.setId(bot_id);
-
-					const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
-
-					// Emits changed:geometry event?
-					botFeature.setGeometry(new OlPoint(coordinate));
-					botFeature.setProperties({
-						heading: botHeading,
-						speed: botSpeed,
-						lastUpdated: parseFloat(bot.time.time),
-						lastUpdatedString: botTimestamp.toISOString()
-						// rawData: bot
-					});
-
-					Object.getOwnPropertyNames(bot).forEach((property) => {
-						if (typeof bot[property] !== 'object' && bot[property] !== null) {
-							botFeature.set(property, bot[property].toString());
-						}
-					});
-
-					if (Array.isArray(bot.sensorData)) {
-						bot.sensorData.forEach((sensor) => {
-							botFeature.set(sensor.sensorName, sensor.sensorValue);
-						});
-					}
-
-					let faultLevel = 0;
-
-					const rfState = parseInt(botFeature.get('commState') || 0, 10);
-					const faultState = parseInt(botFeature.get('faultState') || 0, 10);
-					// const commandState = parseInt(botFeature.get('commandState') || 0, 10);
-					const batteryState = parseInt(botFeature.get('batteryState') || 0, 10);
-
-					if (rfState >= 2 || faultState === 6) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if (rfState === 1) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if ((faultState >= 4 && faultState !== 7) || batteryState >= 7) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if ((faultState >= 1 && faultState !== 7) || batteryState >= 3) {
-						faultLevel = 1;
-						faultLevel1Count += 1;
-					} else {
-						faultLevel0Count += 1;
-					}
-
-					botFeature.set('faultLevel', faultLevel);
-
-					const zoomExtentWidth = 0.001; // Degrees
-
-					// An array of numbers representing an extent: [minx, miny, maxx, maxy].
-					botExtents[bot_id] = [
-						botLongitude - zoomExtentWidth / 2,
-						botLatitude - zoomExtentWidth / 2,
-						botLongitude + zoomExtentWidth / 2,
-						botLatitude + zoomExtentWidth / 2
-					];
-
-					botFeature.set('selected', false);
-					botFeature.set('controlled', false);
-					botFeature.set('tracked', false);
-					botFeature.set('completed', false);
-
-					// Update feature in selected set
-					if (selectedBotsFeatureCollection.getLength() !== 0) {
-						for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-							const feature = selectedBotsFeatureCollection.item(i);
-							if (feature.getId() === bot_id) {
-								botFeature.set('selected', true);
-								selectedBotsFeatureCollection.setAt(i, botFeature);
-								break;
-							}
-						}
-					}
-
-					if (trackingTarget === bot_id) {
-						botFeature.set('tracked', true);
-					}
-
-					let newBotStatus = this.podStatus?.bots[bot_id]
-					botFeature.set('remoteControlled', newBotStatus?.missionState?.includes('REMOTE_CONTROL') || false)
-
-					botLayer.getSource().clear();
-					botLayer.getSource().addFeature(botFeature);
-
-					if (trackingTarget === bot_id) {
-						us.centerOn(botFeature.getGeometry().getCoordinates());
-					}
-
-					if (botFeature.get('controlled')) {
-						botLayer.setZIndex(3);
-					} else if (botFeature.get('selected')) {
-						botLayer.setZIndex(2);
-					} else if (botFeature.get('tracked')) {
-						botLayer.setZIndex(1);
-					} else {
-						botLayer.setZIndex(0);
-					}
-
-					botLayer.changed();
-				}); // end foreach bot
-				const { lastBotCount } = this.state;
-				const botCount = result.bots.length;
-				if (botCount > lastBotCount) {
-					this.zoomToAllBots(true);
-				} else if (trackingTarget === 'pod') {
-					this.zoomToAllBots();
-				} else if (trackingTarget === 'all') {
-					this.zoomToAll();
-				}
-				this.setState({
-					botExtents,
-					selectedBotsFeatureCollection,
-					faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
-					lastBotCount: botCount
-				});
-				// map.render();
-				this.timerID = setInterval(() => this.pollPodStatus(), 250);
-			},
-			// Note: it's important to handle errors here
-			// instead of a catch() block so that we don't swallow
-			// exceptions from actual bugs in components.
-			(err) => {
-				this.setState({
-					error: err
-				});
-				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)');
-			}
-		);
 	}
 
 	disconnectPod() {
@@ -1092,13 +1053,11 @@ export default class AXUI extends React.Component {
 		botsLayerCollection.getArray().forEach((layer) => {
 			const feature = layer.getSource().getFeatureById(layer.bot_id);
 			if (feature) {
-				if (bot_ids.includes(feature.getId())) {
+				if (bot_ids.includes(feature.getId().toString())) {
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
-					console.log("Setting bot ", feature.getId(), " to selected")
 				} else {
 					feature.set('selected', false);
-					console.log("Setting bot ", feature.getId(), " to unselected")
 				}
 			}
 		});
@@ -1113,7 +1072,7 @@ export default class AXUI extends React.Component {
 	isBotSelected(bot_id) {
 		const { selectedBotsFeatureCollection } = this.state;
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-			if (selectedBotsFeatureCollection.item(i).getId() === bot_id) {
+			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
 				return true;
 			}
 		}
@@ -1820,9 +1779,14 @@ export default class AXUI extends React.Component {
 					<div
 						key={botId}
 						onClick={
-								this.isBotSelected(botId)
-									? this.selectBots.bind(this, [])
-									: this.selectBot.bind(this, botId)
+								() => {
+									if (this.isBotSelected(botId)) {
+										this.selectBots([])
+									}
+									else {
+										this.selectBot(botId)
+									}
+								}
 							}
 						className={`bot-item faultLevel0 ${
 							this.isBotSelected(botId) ? 'selected' : ''
