@@ -398,34 +398,34 @@ export default class AXUI extends React.Component {
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
-		const graticule = new OlGraticule({
-			// the style to use for the lines, optional.
-			// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
-			strokeStyle: new OlStroke({
-				color: 'black',
-				width: 1
-			}),
-			showLabels: true,
-			latLabelStyle: new OlText({
-				font: '16px sans-serif',
-				fill: new OlFillStyle({
-					color: 'maroon'
-				}),
-				textAlign: 'end',
-				offsetX: -4,
-				offsetY: -10,
-			}),
-			lonLabelStyle: new OlText({
-				font: '16px sans-serif',
-				fill: new OlFillStyle({
-					color: 'maroon'
-				}),
-				textBaseline: 'bottom',
-			}),
-			targetSize: 150,
-		});
+		// const graticule = new OlGraticule({
+		// 	// the style to use for the lines, optional.
+		// 	// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
+		// 	strokeStyle: new OlStroke({
+		// 		color: 'black',
+		// 		width: 1
+		// 	}),
+		// 	showLabels: true,
+		// 	latLabelStyle: new OlText({
+		// 		font: '16px sans-serif',
+		// 		fill: new OlFillStyle({
+		// 			color: 'maroon'
+		// 		}),
+		// 		textAlign: 'end',
+		// 		offsetX: -4,
+		// 		offsetY: -10,
+		// 	}),
+		// 	lonLabelStyle: new OlText({
+		// 		font: '16px sans-serif',
+		// 		fill: new OlFillStyle({
+		// 			color: 'maroon'
+		// 		}),
+		// 		textBaseline: 'bottom',
+		// 	}),
+		// 	targetSize: 150,
+		// });
 
-		graticule.setMap(map);
+		// graticule.setMap(map);
 
 		this.geolocation = new OlGeolocation({
 			trackingOptions: {
@@ -1725,10 +1725,10 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
-				<button type="button" className="globalCommand" id="setHome" title="Run Home" onClick={this.setHomeClicked.bind(this)}>
+				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
 					Set<br />Home
 				</button>
-				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
+				<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
 				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
@@ -1740,10 +1740,10 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
 					M 3
 				</button>
-				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
+				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(this.selectedBotId()))}>
 					RC
 				</button>
-				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
+				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(this.selectedBotId()))}>
 					Dive
 				</button>
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
