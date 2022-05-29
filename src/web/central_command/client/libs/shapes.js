@@ -10,6 +10,7 @@ import OlStyle from 'ol/style/Style';
 import OlText from 'ol/style/Text';
 
 import botIcon from '../icons/bot.svg'
+import botRemoteControl from '../icons/botRemoteControl.svg'
 import botSelectedIcon from '../icons/botSelected.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
@@ -17,18 +18,7 @@ import botSelectedIcon from '../icons/botSelected.svg'
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
 
-const COLOR_CONTROL_DEFAULT = lessVars.buttonColor;
-const COLOR_SELECTED = lessVars.selectedColor;
-const COLOR_INACTIVE = lessVars.inactiveColor;
-const COLOR_MEASURE_DRIFT = lessVars.driftingColor;
-const COLOR_UNDERWATER = lessVars.underwaterColor;
-const COLOR_CONTROLLED = lessVars.controlledColor;
-const COLOR_TRACKED = lessVars.trackedColor;
-const COLOR_MISSION_DEFAULT = lessVars.missionColor;
-const COLOR_GOAL = lessVars.missionGoalColor;
 const COLOR_STATUS_GOOD = lessVars.goodColor;
-const COLOR_STATUS_WARNING = lessVars.warningColor;
-const COLOR_STATUS_ERROR = lessVars.errorColor;
 
 function brightness(r, g, b) {
   return (r * 299 + g * 587 + b * 114) / 1000;
@@ -75,57 +65,8 @@ const handleOutlineStyle = new OlStyle({
   zIndex: 100
 });
 
-// Vector shape used for bots on map
-// Negative is up and left. Positive is down and right.
-const arrowShape = [[0, -7], [5, -2], [2, -2], [2, 7], [-2, 7], [-2, -2], [-5, -2]];
-const arrowShapeSourceSize = 14.0;
-
 const arrowHeadShape = [[0, 0], [5, 7], [-5, 7]];
 const arrowHeadShapeSourceSize = 7.0;
-
-// These are eventually going to be dynamic
-// eslint-disable-next-line prefer-const
-let botSize = 65;
-
-// eslint-disable-next-line prefer-const
-let liveBotShape = arrowShape;
-// eslint-disable-next-line prefer-const
-let shapeSourceSize = arrowShapeSourceSize;
-
-function getPixelBoatGeometry(map) {
-  return function pixelBoatGeometry(feature) {
-    const startingCoordinates = feature.getGeometry().getCoordinates();
-    const pixelStart = map.getPixelFromCoordinate(startingCoordinates);
-    const polyCoords = [];
-    const scale = botSize / shapeSourceSize;
-    for (let c = 0; c < liveBotShape.length; c += 1) {
-      polyCoords.push(
-        map.getCoordinateFromPixel([
-          pixelStart[0] + liveBotShape[c][0] * scale,
-          pixelStart[1] + liveBotShape[c][1] * scale
-        ])
-      );
-    }
-    const mapRotation = map.getView().getRotation();
-    let heading = feature.get('heading') || 180;
-    heading *= Math.PI;
-    heading /= 180.0;
-    heading += mapRotation;
-    const out = new OlPolygon([polyCoords]);
-    out.rotate(-heading, startingCoordinates);
-    return out;
-  };
-}
-
-function getCircleGeometry(map, radius) {
-  return function circleGeometry(feature) {
-    const startingCoordinates = feature.getGeometry().getCoordinates();
-    const pixelStart = map.getPixelFromCoordinate(startingCoordinates);
-    const radPoint = map.getCoordinateFromPixel([pixelStart[0] + radius, pixelStart[1]]);
-    const out = new OlCircle(startingCoordinates, radPoint[0] - startingCoordinates[0], 'XY');
-    return out;
-  };
-}
 
 function getOriginGeometry(map, inner = 15, outer = 30) {
   return function originGeometry(feature) {
@@ -225,94 +166,11 @@ export default {
       else
         fontSize = '10pt';
 
-      const defaultFill = new OlFill({ color: fillColor });
-      const selectedFill = new OlFill({ color: COLOR_SELECTED });
-      const fadedFill = new OlFill({ color: COLOR_INACTIVE });
-      const faultFill = new OlFill({ color: COLOR_STATUS_ERROR });
-      const warnFill = new OlFill({ color: COLOR_STATUS_WARNING });
-      const controlledFill = new OlFill({ color: COLOR_CONTROLLED });
-      const trackedFill = new OlFill({ color: COLOR_TRACKED });
-      const driftFill = new OlFill({ color: COLOR_MEASURE_DRIFT });
-      const doneFill = new OlFill({ color: '#0000FF' });
-      const remoteControlFill = new OlFill({color : '#a16da3'})
+      const defaultFill = new OlFill({color : fillColor});
       let fill = defaultFill;
 
-      const defaultStroke = new OlStroke({ color: 'black', width: 2 });
-      const dottedStroke = new OlStroke({ color: 'black', width: 2, lineDash: [5, 7] });
-      let stroke = defaultStroke;
-
-      const defaultGeometry = getPixelBoatGeometry(map);
-      const circleGeometry = getCircleGeometry(map, 20);
-      let geometry = defaultGeometry;
-
-      // const heading = Math.round(feature.get('heading')).toString() || '-';
-
-      const rfState = parseInt(feature.get('commState') || 0, 10);
-      const faultState = parseInt(feature.get('faultState') || 0, 10);
-      // const commandState = parseInt(feature.get('commandState') || 0, 10);
-      const batteryState = parseInt(feature.get('batteryState') || 0, 10);
-      const otherState = parseInt(feature.get('otherMarker') || 0, 10);
-
       const selected = feature.get('selected') === true;
-      const controlled = feature.get('controlled') === true;
-      const tracked = feature.get('tracked') === true;
-      const completed = feature.get('completed') === true;
       const remoteControlled = feature.get('remoteControlled') === true
-
-      // Serious faults
-      if (rfState >= 2 || faultState === 6) {
-        // Loss of comms
-        stroke = dottedStroke;
-        fill = fadedFill;
-        geometry = circleGeometry;
-      } else if (rfState === 1) {
-        // Late comms
-        stroke = dottedStroke;
-        fill = fadedFill;
-      } else if ((faultState >= 4 && faultState !== 7) || batteryState >= 7) {
-        // Bot failure
-        fill = faultFill;
-        geometry = circleGeometry;
-      } else {
-        // Minor faults and other states
-        if ((faultState >= 2 && faultState !== 7) || batteryState >= 4) {
-          // Low battery or payload issue
-          fill = warnFill;
-        }
-        if (otherState === 1) {
-          // Diving
-          geometry = circleGeometry;
-        } else if (otherState === 2) {
-          // Drifting on purpose
-          stroke = dottedStroke;
-          // What should this be?
-          // Circle indicates no heading, which is not the case
-          // Dotted stroke means no location, which is also not the case
-          // Leaving as normal for now
-        } else if (otherState === 3) {
-          // waiting for gps
-          stroke = dottedStroke;
-          geometry = circleGeometry;
-        }
-      }
-
-      if (fill === defaultFill) {
-        if (controlled) {
-          fill = controlledFill;
-        } else if (tracked) {
-          fill = trackedFill;
-        } else if (completed) {
-          fill = doneFill;
-        }
-      }
-
-      if (selected && !controlled) {
-        fill = selectedFill;
-      }
-
-      if (remoteControlled) {
-        fill = remoteControlFill
-      }
 
       // SVG icon
       let rotation = (feature.get('heading') || 180) * (Math.PI / 180.0)
@@ -322,9 +180,17 @@ export default {
         icon = botSelectedIcon
       }
 
-      let defaultBoatStyle = new OlStyle({
-        image : new OlIcon(
-            {src : icon, rotation : rotation, rotateWithView : true}),
+      if (remoteControlled) {
+        icon = botRemoteControl
+      }
+
+      let boatStyle = new OlStyle({
+        image : new OlIcon({
+          src : icon,
+          rotation : rotation,
+          rotateWithView : true,
+          opacity : 0.8
+        }),
         text : new OlText({
           font : `bold ${fontSize} helvetica,sans-serif`,
           text : `${feature.getId()}`,
@@ -333,21 +199,7 @@ export default {
         })
       })
 
-      return defaultBoatStyle
-
-      return [
-        new OlStyle({
-          fill,
-          stroke,
-          text: new OlText({
-            font: `bold ${fontSize} helvetica,sans-serif`,
-            text: `${feature.getId()}`,
-            fill: contrastingFgFill(fill.getColor()),
-            overflow: true
-          }),
-          geometry
-        })
-      ];
+      return boatStyle
     };
   },
 
