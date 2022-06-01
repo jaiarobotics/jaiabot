@@ -150,7 +150,11 @@ def generate_webpage(fields, data_filenames, bdr_file):
         hovertext = None
 
         # If we're dealing with an enum, we need a hovertext list
-        enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+        try:
+            enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+        except KeyError:
+            continue
+
         if enum_dict:
             hovertext = []
 
@@ -223,6 +227,8 @@ available_fields = [
     Field(y_datapath=TPV_epx, y_axis_label='Longitude Error 95% (m)'),
     Field(y_datapath=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
     Field(y_datapath=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
+
+    Field(y_datapath=Engineering_flag, y_axis_label='Flag Event')
 ]
 
 

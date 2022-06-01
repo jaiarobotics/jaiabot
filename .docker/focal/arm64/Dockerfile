@@ -18,8 +18,18 @@ RUN apt-get update && \
             nanopb:amd64 \
             python3-protobuf:amd64 \
             wget:amd64 \
+            curl:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 
+
+
 # Allow compilation of this directory, even if it's owned by someone else, not root
 RUN git config --global --add safe.directory /home/ubuntu/jaiabot
+
+# arduino-cli install
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh && \
+    arduino-cli config init && \
+    arduino-cli core update-index && \
+    arduino-cli core install arduino:avr
+

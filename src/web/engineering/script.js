@@ -1,8 +1,6 @@
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
 
-var selectedBotId = 0
-
 // Gets an element with this id
 function el(id) {
   element = document.getElementById(id)
@@ -397,7 +395,7 @@ class PIDGains {
       }
 
       let engineering_command = {
-        botId : selectedBotId,
+        botId : getSelectedBotId(),
         pid_control : pid_control
       }
 
@@ -446,14 +444,15 @@ function diveButtonOnClick() {
         Kp : diveGains.Kp,
         Ki : diveGains.Ki,
         Kd : diveGains.Kd
-      } break;
+      };
+      break;
   }
 
   sendCommand(engineering_command)
 }
 
 function sendCommand(command) {
-  console.log('Sending: ', command)
+  console.debug('Sending: ', command)
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "/jaia/pid-command", true);
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -542,7 +541,7 @@ function handleKey(key) {
           portElevatorSlider.value += delta
           stbdElevatorSlider.value += delta
           break;
-      }
+        };
       break;
     case 'KeyK':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -551,7 +550,7 @@ function handleKey(key) {
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value -= delta
           break;
-      }
+        };
       break;
     case 'KeyQ':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -560,7 +559,7 @@ function handleKey(key) {
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value += delta
           break;
-      }
+        };
       break;
     case 'KeyE':
       switch (elevatorsTabbedSections.activeIndex) {
@@ -569,7 +568,7 @@ function handleKey(key) {
           portElevatorSlider.value += delta
           stbdElevatorSlider.value -= delta
           break;
-      }
+        };
       break;
   }
 }
@@ -650,7 +649,8 @@ function getVisibleCommand() {
           Kp : el("speed_Kp").value,
           Ki : el("speed_Ki").value,
           Kd : el("speed_Kd").value
-        } break;
+        };
+        break;
     }
   }
   else {
@@ -672,7 +672,8 @@ function getVisibleCommand() {
         Kp : el("heading_Kp").value,
         Ki : el("heading_Ki").value,
         Kd : el("heading_Kd").value
-      } break;
+      };
+      break;
   }
   
   // Elevators
@@ -690,16 +691,18 @@ function getVisibleCommand() {
         Kp : el("roll_Kp").value,
         Ki : el("roll_Ki").value,
         Kd : el("roll_Kd").value
-      } pid_control.pitch = {
+      };
+      pid_control.pitch = {
         target : el("pitchSlider").value,
         Kp : el("pitch_Kp").value,
         Ki : el("pitch_Ki").value,
         Kd : el("pitch_Kd").value
-      } break;
+      };
+      break;
   }
 
   let engineering_command = {
-    botId : selectedBotId,
+    botId : getSelectedBotId(),
     pid_control : pid_control
   }
 
@@ -743,6 +746,9 @@ var hub_location = null
 // Updates the status element with a status response object
 function updateStatus(status) {
   bots = status["bots"]
+
+  updateBotSelectDropdown(bots)
+
   table = el("statusTable")
   innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance (m)</th><th>Speed</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Course (°)</th><th>Depth (m)</th><th>Salinity</th><th>Temperature (℃)</th><th>Status Age (s)</th><th>Command Age (s)</th>"
   
@@ -788,6 +794,46 @@ function updateStatus(status) {
 
 }
 
+function getSelectedBotId() { return $("#botSelect")[0].value || "0" }
+
+function updateBotSelectDropdown(bots) {
+  let selectElement = $("#botSelect")[0];
+  let existingBotIds = $("select#botSelect")
+                           .find('option')
+                           .toArray()
+                           .map(element => element.value)
+  let newBotIds = Object.keys(bots)
+
+  // Only change menu if it's different
+  if (newBotIds.length == existingBotIds.length) {
+    var same = true
+    for (let i = 0; i < newBotIds.length; i++) {
+      if (newBotIds[i] != existingBotIds[i]) {
+        same = false
+        break;
+      }
+    }
+  }
+
+  if (same) {
+    return
+  }
+
+  // Clear select options
+  while (selectElement.firstChild) {
+    selectElement.removeChild(selectElement.firstChild)
+  }
+
+  // Rebuild the options
+  for (let botId in bots) {
+    let optionElement = document.createElement('option')
+    optionElement.setAttribute('value', botId)
+    let textNode = document.createTextNode(botId)
+    optionElement.appendChild(textNode)
+
+    selectElement.appendChild(optionElement)
+  }
+}
 
 // Calculate xyz position of lat/lon point
 function xyz(pt) {

@@ -4,6 +4,8 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
+import "goby/middleware/protobuf/coroner.proto";
+
 
 package jaiabot.protobuf;
 
@@ -69,10 +71,12 @@ message BotStatus
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
-    optional uint64 last_command_time = 53 [(dccl.field) = {
+    optional uint64 last_command_time = 3 [(dccl.field) = {
         codec: "dccl.time2"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
+
+    optional goby.middleware.protobuf.HealthState health_state = 4;
 
     optional GeographicCoordinate location = 10;
 
@@ -130,6 +134,9 @@ message BotStatus
     optional Speed speed = 30;
 
     optional MissionState mission_state = 40;
+
+    // bounds should match MissionPlan.goal max_repeat value
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }]; 
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
