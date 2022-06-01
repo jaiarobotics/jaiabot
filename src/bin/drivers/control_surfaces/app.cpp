@@ -138,11 +138,11 @@ int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
 {
     if (input > 0)
     {
-        return center - (input / 100.0) * (upper - center);
+        return center + (input / 100.0) * (upper - center);
     }
     else
     {
-        return center - (input / 100.0) * (center - lower);
+        return center + (input / 100.0) * (center - lower);
     }
 }
 
