@@ -260,8 +260,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { latest_bot_status_.set_health_state(vehicle_health.state()); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            latest_bot_status_.set_health_state(vehicle_health.state());
+        });
 
     // subscribe for commands, to set last_command_time
     interprocess().subscribe<jaiabot::groups::engineering_command>(
