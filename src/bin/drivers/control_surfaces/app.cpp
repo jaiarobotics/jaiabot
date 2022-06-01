@@ -151,7 +151,7 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
 {
     if (control_surfaces.has_motor())
     {
-        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
+        target_motor = 1500 - (control_surfaces.motor() / 100.0) * 400;
     }
 
     if (control_surfaces.has_rudder())
