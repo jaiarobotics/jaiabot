@@ -59,11 +59,6 @@ then
 	npm install --no-audit
 fi
 
-# Build the protobuf messages
-echo "🟢 Building messages"
-pushd server
-  ./build_messages.sh
-popd
-
 echo "🟢 Building app package"
-exec webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
+webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
+echo "✅ Done"

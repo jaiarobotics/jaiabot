@@ -187,6 +187,8 @@ export default class AXUI extends React.Component {
 
 		this.missions = {}
 
+		this.flagNumber = 1
+
 		this.state = {
 			error: {},
 			// User interaction modes
@@ -844,7 +846,7 @@ export default class AXUI extends React.Component {
 			(result) => {
 				if (!("bots" in result)) {
 					this.podStatus = {}
-					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					error("Web server status response doesn't include bots field")
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -874,7 +876,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Unable to connect to pod interface.');
+				error('Cannot connect to the Jaia Central Command web server (app.py)');
 			}
 		)
 
@@ -1041,7 +1043,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Unable to connect to pod interface.');
+				error('Cannot connect to the Jaia Central Command web server (app.py)');
 			}
 		);
 	}
@@ -1372,30 +1374,7 @@ export default class AXUI extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<div id="botsList">
-						{botsLayerCollection
-							? botsLayerCollection.getArray().map((layer) => {
-								const feature = layer.getSource().getFeatureById(layer.bot_id);
-								return (
-									<div
-										key={feature.getId()}
-										onClick={
-												this.isBotSelected(feature.getId())
-													? this.selectBots.bind(this, [])
-													: this.selectBot.bind(this, feature.getId())
-											}
-										className={`bot-item faultLevel${feature.get('faultLevel')} ${
-											this.isBotSelected(feature.getId()) ? 'selected' : ''
-										}${
-											trackingTarget && feature.getId() === trackingTarget ? ' tracked' : ''
-										}`}
-									>
-										{feature.getId()}
-									</div>
-								);
-							})
-							: ''}
-					</div>
+					{this.botsList()}
 
 					<div id="botDetailsBox">
 						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
@@ -1566,12 +1545,36 @@ export default class AXUI extends React.Component {
 		info("Loaded mission")
 	}
 
+	// Currently selected botId
+	selectedBotId() {
+		return this.selectedBotIds().at(-1)
+	}
+
+	// Loads a hardcoded mission
+	loadHardcodedMission(index) {
+		let botId = this.selectedBotId() || 0
+		let mission = Missions.hardcoded(botId, index)
+		this.missions[botId] = mission
+		this.updateMissionLayer()
+		info("Loaded mission")
+		console.debug(botId, mission)
+	}
+
 	// Runs the currently loaded mission
-	runLoadedMissions() {
-		if (confirm("Click the OK button to run this mission.")) {
-			for (let bot_id in this.missions) {
+	runLoadedMissions(botIds=[]) {
+		if (botIds.length == 0) {
+			botIds = Object.keys(this.missions)
+		}
+
+		if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
+			for (let bot_id of botIds) {
 				let mission = this.missions[bot_id]
-				this._runMission(mission)
+				if (mission) {
+					this._runMission(mission)
+				}
+				else {
+					error('No mission set for bot ' + bot_id)
+				}
 			}
 			info("Running mission")
 		}
@@ -1592,8 +1595,10 @@ export default class AXUI extends React.Component {
 						Version 1.1.0
 					</div>
 					<div className="panel">
-						<button type="button" onClick={function() { location.reload() } }>
-							Reload Central Command
+						<button type="button" onClick={function() {
+							window.location.assign('/pid/')
+						} }>
+							Jaia Engineering
 						</button>
 					</div>
 
@@ -1697,13 +1702,13 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadMissions.bind(this, Missions.hardcoded(1))}>
+				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
 					M 1
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadMissions.bind(this, Missions.hardcoded(2))}>
+				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMission.bind(this, 2)}>
 					M 2
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadMissions.bind(this, Missions.hardcoded(3))}>
+				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
 					M 3
 				</button>
 				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
@@ -1712,8 +1717,11 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
 					Dive
 				</button>
-				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.hardcoded(4))}>
+				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
+				</button>
+				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
+					Flag
 				</button>
 				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
@@ -1735,7 +1743,22 @@ export default class AXUI extends React.Component {
 	}
 
 	playClicked(evt) {
-		this.runLoadedMissions()
+		this.runLoadedMissions(this.selectedBotIds())
+	}
+
+	sendFlag(evt) {
+		// Send a user flag, to get recorded in the bot's logs
+		let botId = this.selectedBotIds().at(-1) || 0
+		let engineeringCommand = {
+			botId: botId,
+			flag: this.flagNumber
+		}
+
+		this.sna.postEngineering(engineeringCommand)
+		info("Posted Flag " + this.flagNumber + " to bot " + botId)
+
+		// Increment the flag number
+		this.flagNumber ++
 	}
 
 	toggleMode(modeName) {
@@ -1753,6 +1776,37 @@ export default class AXUI extends React.Component {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
+	}
+
+	botsList() {
+		let bots = this.podStatus?.bots
+		if (!bots) { return }
+
+		let botIds = Object.keys(bots).sort()
+
+		return (
+			<div id="botsList">
+			{botIds.map((botId) => {
+				return (
+					<div
+						key={botId}
+						onClick={
+								this.isBotSelected(botId)
+									? this.selectBots.bind(this, [])
+									: this.selectBot.bind(this, botId)
+							}
+						className={`bot-item faultLevel0 ${
+							this.isBotSelected(botId) ? 'selected' : ''
+						}${
+							botId === this.state.trackingTarget ? ' tracked' : ''
+						}`}
+					>
+						{botId}
+					</div>
+				);
+				})}
+			</div>
+		)
 	}
 
 }

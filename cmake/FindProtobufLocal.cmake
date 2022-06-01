@@ -69,6 +69,8 @@ function(PROTOBUF_INCLUDE_DIRS)
 endfunction()
 
 function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
+  set(PYTHON_OUT_DIR ${CPP_OUT_DIR})
+  
   protobuf_include_dirs(${CMAKE_CURRENT_BINARY_DIR})
   # so that we can use Google's included descriptor.proto
   protobuf_include_dirs(${PROTOBUF_INCLUDE_DIR})
@@ -117,7 +119,7 @@ function(PROTOBUF_GENERATE_CPP SRCS HDRS CPP_OUT_DIR)
       OUTPUT "${FULL_OUT_DIR}/${FIL_WE}.pb.cc"
              "${FULL_OUT_DIR}/${FIL_WE}.pb.h"
       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS --cpp_out ${CPP_OUT_DIR} ${FIL_DEST} ${ALL_PROTOBUF_INCLUDE_DIRS} --dccl_out ${CPP_OUT_DIR} 
+      ARGS --cpp_out ${CPP_OUT_DIR} ${FIL_DEST} ${ALL_PROTOBUF_INCLUDE_DIRS} --dccl_out ${CPP_OUT_DIR} --python_out ${PYTHON_OUT_DIR}
       DEPENDS ${FIL_DEST}
       COMMENT "Running C++ protocol buffer compiler on ${FIL}"
       VERBATIM )
