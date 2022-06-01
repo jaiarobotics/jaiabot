@@ -4,7 +4,7 @@ JaiaBot uses the Raspberry Pi (RP) Compute Module (CM) 4 Lite as the embedded Li
 
 Installation steps:
 
-- Download the SD card image (currently Ubuntu Server 20.04.4 LTS 64-bit): https://ubuntu.com/download/raspberry-pi
+- Download the SD card image (currently Ubuntu Server 20.04.4 LTS 64-bit: 	ubuntu-20.04.3-preinstalled-server-arm64+raspi.img.xz): https://old-releases.ubuntu.com/releases/focal/
 
 - Install via command line (or use something like balenaEtcher https://www.balena.io/etcher/):
 
