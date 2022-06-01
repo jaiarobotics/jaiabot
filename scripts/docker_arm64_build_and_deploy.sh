@@ -37,7 +37,7 @@ else
     for var in "$@"
     do
     	echo "🟢 Uploading to "$var
-	rsync -zaP --delete --force --relative ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
+	rsync -zaP --delete --force --relative ./src/web/dist ./src/web/server ./src/web/client/engineering ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
    	echo "🟢 Installing and enabling systemd services"
         ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh bot --enable'"
