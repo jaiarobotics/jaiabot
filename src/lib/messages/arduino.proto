@@ -21,5 +21,6 @@ message ArduinoCommand
 message ArduinoResponse
 {
     required sint32 code = 1;
+    optional float thermocouple_temperature_C = 2;
     optional string message = 20;
 }
