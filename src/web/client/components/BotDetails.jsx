@@ -64,7 +64,11 @@ export function BotDetailsComponent(bot) {
                 </tr>
                 <tr>
                     <td>Temperature</td>
-                    <td>{bot.temperature?.toFixed(prec)}</td>
+                    <td>{bot.temperature?.toFixed(prec)}°C</td>
+                </tr>
+                <tr>
+                    <td>Thermocouple</td>
+                    <td>{bot.thermocouple_temperature?.toFixed(prec)}°C</td>
                 </tr>
             </tbody>
         </table>

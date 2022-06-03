@@ -32,6 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -241,6 +242,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             if (pt.has_temperature())
             {
                 latest_bot_status_.set_temperature_with_units(pt.temperature_with_units());
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::arduino_response>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            if (arduino_response.has_thermocouple_temperature_c())
+            {
+                latest_bot_status_.set_thermocouple_temperature(
+                    arduino_response.thermocouple_temperature_c());
             }
         });
 
