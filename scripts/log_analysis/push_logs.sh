@@ -6,7 +6,7 @@ DEST_HOSTNAME=optiplex
 set -e
 
 # Convert goby files to h5 files
-GOBY_FILES=`find ~/jaia-logs -name '*.goby'`
+GOBY_FILES=`find /var/log/jaiabot/ -name '*.goby'`
 
 for GOBY_FILE in ${GOBY_FILES}
 do
