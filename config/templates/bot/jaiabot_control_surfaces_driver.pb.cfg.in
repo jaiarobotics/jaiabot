@@ -6,3 +6,4 @@ serial_arduino {
     baud: 115200
 }
 
+$control_surfaces_driver_bounds
