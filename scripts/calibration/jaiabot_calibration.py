@@ -204,13 +204,13 @@ def calibrateMotor():
 
         #calibrates the forward, backward, forward halt, and backward halt limitations
         print("calibrating forward start")
-        check_bounds.motor.forwardStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
-        print("calibrating reverse start")
         check_bounds.motor.reverseStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
+        print("calibrating reverse start")
+        check_bounds.motor.forwadStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
         print("calibrating forward halt")
-        check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
-        print("calibrating reverse halt")
         check_bounds.motor.reverseHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
+        print("calibrating reverse halt")
+        check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
 
         end = True
         while end == True:
@@ -322,10 +322,10 @@ while begin == True:
                 print(str(check_bounds.motor))
                 x = False
             elif calibrate == "NO":
-                if check_bounds.motor.forwardStart == 0:
-                    check_bounds.motor.forwardStart = 1600
                 if check_bounds.motor.reverseStart == 0:
-                    check_bounds.motor.reverseStart = 1400
+                    check_bounds.motor.reverseStart = 1600
+                if check_bounds.motor.forwardStart == 0:
+                    check_bounds.motor.forwardStart = 1400
                 if check_bounds.motor.forwardHalt == 0:
                     check_bounds.motor.forwardHalt = 1500
                 if check_bounds.motor.reverseHalt == 0:
@@ -396,10 +396,10 @@ while begin == True:
         if check_bounds.port.center == 0:
             check_bounds.port.center = 1500
 
-        if check_bounds.motor.forwardStart == 0:
-            check_bounds.motor.forwardStart = 1600
         if check_bounds.motor.reverseStart == 0:
-            check_bounds.motor.reverseStart = 1400
+            check_bounds.motor.reverseStart = 1600
+        if check_bounds.motor.forwardStart == 0:
+            check_bounds.motor.forwardStart = 1400
         if check_bounds.motor.forwardHalt == 0:
             check_bounds.motor.forwardHalt = 1500
         if check_bounds.motor.reverseHalt == 0:

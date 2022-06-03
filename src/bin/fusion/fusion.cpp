@@ -32,6 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -244,6 +245,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino_response>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            if (arduino_response.has_thermocouple_temperature_c())
+            {
+                latest_bot_status_.set_thermocouple_temperature(
+                    arduino_response.thermocouple_temperature_c());
+            }
+        });
+
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
@@ -253,11 +264,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.clear_active_goal();
         });
 
-    interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
-        [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
-            // glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
-        });
-
     interprocess().subscribe<jaiabot::groups::salinity>(
         [this](const jaiabot::protobuf::SalinityData& salinityData) {
             glog.is_debug1() && glog << "=> " << salinityData.ShortDebugString() << std::endl;
@@ -265,8 +271,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { latest_bot_status_.set_health_state(vehicle_health.state()); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            latest_bot_status_.set_health_state(vehicle_health.state());
+        });
 
     // subscribe for commands, to set last_command_time
     interprocess().subscribe<jaiabot::groups::engineering_command>(
