@@ -22,5 +22,8 @@ message ArduinoResponse
 {
     required sint32 code = 1;
     optional float thermocouple_temperature_C = 2;
+    optional int32 current5V = 3;
+    optional int32 currentVcc = 4;
+    optional int32 voltageVcc = 5;
     optional string message = 20;
 }

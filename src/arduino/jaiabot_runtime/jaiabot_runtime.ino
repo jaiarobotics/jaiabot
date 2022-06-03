@@ -23,10 +23,14 @@ static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
+// Pin mappings
 constexpr int STBD_ELEVATOR_PIN = 2;
 constexpr int RUDDER_PIN = 3;
 constexpr int PORT_ELEVATOR_PIN = 4;
 constexpr int MOTOR_PIN = 6;
+constexpr int CURRENT5V_PIN = A3;
+constexpr int CURRENTVCC_PIN = A2;
+constexpr int VOLTAGEVCC_PIN = A0;
 
 // The timeout
 unsigned long t_last_command = 0;
@@ -87,6 +91,7 @@ void send_ack(AckCode code, char message[], double *thermocouple_temperature_C)
   callback.arg = NULL;
   ack.message = callback;
 
+  // Read thermocouple
   if (thermocouple_temperature_C != NULL) {
     ack.thermocouple_temperature_C = *thermocouple_temperature_C;
     ack.has_thermocouple_temperature_C = true;
@@ -94,6 +99,14 @@ void send_ack(AckCode code, char message[], double *thermocouple_temperature_C)
   else {
     ack.has_thermocouple_temperature_C = false;
   }
+
+  // Read the currents and voltages
+  ack.current5V = analogRead(CURRENT5V_PIN);
+  ack.has_current5V = true;
+  ack.currentVcc = analogRead(CURRENTVCC_PIN);
+  ack.has_currentVcc = true;
+  ack.voltageVcc = analogRead(VOLTAGEVCC_PIN);
+  ack.has_voltageVcc = true;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
