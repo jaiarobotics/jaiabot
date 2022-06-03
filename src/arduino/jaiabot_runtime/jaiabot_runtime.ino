@@ -28,9 +28,14 @@ constexpr int STBD_ELEVATOR_PIN = 2;
 constexpr int RUDDER_PIN = 3;
 constexpr int PORT_ELEVATOR_PIN = 4;
 constexpr int MOTOR_PIN = 6;
+
 constexpr int CURRENT5V_PIN = A3;
 constexpr int CURRENTVCC_PIN = A2;
 constexpr int VOLTAGEVCC_PIN = A0;
+
+constexpr int LED1_PIN = A6;
+constexpr int LED2_PIN = A5;
+constexpr int LEDEXT_PIN = A4;
 
 // The timeout
 unsigned long t_last_command = 0;
@@ -210,6 +215,16 @@ void loop()
             rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
+
+            // LEDs
+            if (command.has_led1) { analogWrite(LED1_PIN, command.led1); }
+            else { analogWrite(LED1_PIN, 0); }
+
+            if (command.has_led2) { analogWrite(LED2_PIN, command.led2); }
+            else { analogWrite(LED2_PIN, 0); }
+
+            if (command.has_ledExt) { analogWrite(LEDEXT_PIN, command.ledExt); }
+            else { analogWrite(LEDEXT_PIN, 0); }
 
             // Set the timeout vars
             t_last_command = millis();
