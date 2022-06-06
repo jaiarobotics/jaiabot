@@ -259,6 +259,7 @@ string XBeeDevice::read_frame() {
     read(&start_delimiter, 1);
     if (start_delimiter != 0x7e) {
         glog.is_warn() && glog << "ERROR: Wrong start_delimiter for frame: " << start_delimiter << endl;
+        return "";
     }
 
     uint16_t response_size;
@@ -308,6 +309,8 @@ void XBeeDevice::process_frame_if_available() {
 
 void XBeeDevice::process_frame() {
     auto response_string = read_frame();
+    // Invalid frame data
+    if (response_string.length() == 0) return;
 
     byte frame_type = ((byte*) response_string.c_str())[0];
 
