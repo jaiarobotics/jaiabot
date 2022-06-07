@@ -7,7 +7,7 @@
 |  2  | GND         | Ground           |
 |  3  | PC6/RST     | No Connection    |
 |  4  | +5V         | +5V              |
-|  5  | A7          | Breakout 3       |
+|  5  | A7          | J1 - BRK_3       |
 |  6  | A6          | LED 1            |
 |  7  | A5          | LED 2            |
 |  8  | A4          | LED EXT          |
@@ -24,12 +24,20 @@
 | 19  | GND         | Ground           |
 | 20  | D2          | ARD_GPIO_AUX     |
 | 21  | D3          | PWM - ESC        |
-| 22  | D4          | Breakout 2       |
+| 22  | D4          | J1 - BRK_2       |
 | 23  | D5          | PWM - Actuator 3 |
 | 24  | D6          | PWM - Actuator 2 |
-| 25  | D7          | Breakout 1       |
+| 25  | D7          | J1 - BRK_1       |
 | 26  | D8          | Actuator Fault   |
 | 27  | D9          | PWM - Actuator 1 |
 | 28  | D10         | Actuator Enable  |
 | 29  | D11         | SPI - CIPO       |
 | 30  | D12         | SPI - PICO       |
+
+## Power Board J1 Pinout
+| Pin | Description | Use              |
+| --: | ---         | ---              |
+|  1  | GND         | Ground           |
+|  2  | BRK_1       | Arduino D7       |
+|  3  | BRK_2       | Arduino D4       |
+|  4  | BRK_3       | Arduino A7       |
