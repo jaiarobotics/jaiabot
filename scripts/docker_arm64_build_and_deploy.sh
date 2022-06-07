@@ -41,8 +41,10 @@ else
 	rsync -zaP --delete --force --relative ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
-   	    echo "🟢 Installing and enabling systemd services"
+   	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
             ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
+            ssh ubuntu@"$var" "bash -c 'sudo cp /home/ubuntu/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
+            ssh ubuntu@"$var" "bash -c 'sudo cp /home/ubuntu/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
         fi
 
     	echo "🟢 Creating and setting permissons on log dir"
