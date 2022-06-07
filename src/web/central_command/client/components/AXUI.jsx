@@ -113,6 +113,9 @@ import '../style/AXUI.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/home.svg'
+import startIcon from '../icons/start.svg'
+import stopIcon from '../icons/stop.svg'
+import waypointIcon from '../icons/waypoint.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1462,16 +1465,27 @@ export default class AXUI extends React.Component {
 			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
 		})
 
+		function TintedIconStyle(icon, tint) {
+			return new OlStyle({
+				image: new OlIcon({ 
+					src: icon,
+					color: tint
+				})
+			})
+		}
+
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			var waypointStyle, lineStyle
+			var waypointStyle, lineStyle, color
 			if (this.isBotSelected(botId)) {
 				waypointStyle = selectedWaypointStyle
 				lineStyle = selectedLineStyle
+				color = selectedColor
 			}
 			else {
 				waypointStyle = defaultWaypointStyle
 				lineStyle = defaultLineStyle
+				color = unselectedColor
 			}
 
 			let goals = missions[botId]?.plan?.goal || []
@@ -1482,7 +1496,17 @@ export default class AXUI extends React.Component {
 
 			for (let pt of transformed_pts) {
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
-				pointFeature.setStyle(waypointStyle)
+
+				var icon = waypointIcon
+
+				if (pt === transformed_pts[0]) {
+					icon = startIcon
+				}
+				else if (pt === transformed_pts[transformed_pts.length - 1]) {
+					icon = stopIcon
+				}
+
+				pointFeature.setStyle(TintedIconStyle(icon, color))
 				features.push(pointFeature)
 			}
 
@@ -1495,7 +1519,8 @@ export default class AXUI extends React.Component {
 		if (this.homeLocation) {
 			let pt = equirectangular_to_mercator([this.homeLocation.lon, this.homeLocation.lat])
 			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
-			homeFeature.setStyle(homeStyle)
+			// homeFeature.setStyle(homeStyle)
+			homeFeature.setStyle(TintedIconStyle(homeIcon, "#000000"))
 			features.push(homeFeature)
 		}
 
