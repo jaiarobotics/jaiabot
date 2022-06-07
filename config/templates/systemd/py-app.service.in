@@ -6,8 +6,10 @@ After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
-User=$user
-Group=$group
+
+## for some reason we get "Failed at step EXEC spawning /home/ubuntu/jaiabot/build/arm64/share/jaiabot/python/venv/bin/python3: No such file or directory" when running unprivileged
+#User=$user
+#Group=$group
 
 EnvironmentFile=$env_file
 # Run python code within a pre-installed venv

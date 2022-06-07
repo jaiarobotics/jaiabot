@@ -43,6 +43,7 @@ else
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services"
             ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
+            ssh ubuntu@"$var" "bash -c 'sudo cp /home/ubuntu/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
         fi
 
     	echo "🟢 Creating and setting permissons on log dir"
