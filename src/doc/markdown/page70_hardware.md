@@ -25,11 +25,11 @@
 | 20  | D2          | ARD_GPIO_AUX     |
 | 21  | D3          | PWM - ESC        |
 | 22  | D4          | J1 - BRK_2       |
-| 23  | D5          | PWM - Actuator 3 |
-| 24  | D6          | PWM - Actuator 2 |
+| 23  | D5          | PWM - Rudder     |
+| 24  | D6          | PWM - Stbd ELev  |
 | 25  | D7          | J1 - BRK_1       |
 | 26  | D8          | Actuator Fault   |
-| 27  | D9          | PWM - Actuator 1 |
+| 27  | D9          | PWM - Port Elev  |
 | 28  | D10         | Actuator Enable  |
 | 29  | D11         | SPI - CIPO       |
 | 30  | D12         | SPI - PICO       |
