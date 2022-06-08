@@ -7,14 +7,15 @@
  *    @param  addr The 7-bit I2C address for the device
  *    @param  theWire The I2C bus to use, defaults to &Wire
  */
-Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
-  _addr = addr;
-  _wire = theWire;
-  _begun = false;
+Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire* theWire)
+{
+    _addr = addr;
+    _wire = theWire;
+    _begun = false;
 #ifdef ARDUINO_ARCH_SAMD
-  _maxBufferSize = 250; // as defined in Wire.h's RingBuffer
+    _maxBufferSize = 250; // as defined in Wire.h's RingBuffer
 #else
-  _maxBufferSize = 32;
+    _maxBufferSize = 32;
 #endif
 }
 
@@ -25,30 +26,32 @@ Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
  * on a scan!
  *    @return True if I2C initialized and a device with the addr found
  */
-bool Adafruit_I2CDevice::begin(bool addr_detect) {
-  _wire->begin();
-  _begun = true;
+bool Adafruit_I2CDevice::begin(bool addr_detect)
+{
+    _wire->begin();
+    _begun = true;
 
-  if (addr_detect) {
-    return detected();
-  }
-  return true;
+    if (addr_detect)
+    {
+        return detected();
+    }
+    return true;
 }
 
 /*!
  *    @brief  De-initialize device, turn off the Wire interface
  */
-void Adafruit_I2CDevice::end(void) {
-  // Not all port implement Wire::end(), such as
-  // - ESP8266
-  // - AVR core without WIRE_HAS_END
-  // - ESP32: end() is implemented since 2.0.1 which is latest at the moment.
-  // Temporarily disable for now to give time for user to update.
-#if !(defined(ESP8266) ||                                                      \
-      (defined(ARDUINO_ARCH_AVR) && !defined(WIRE_HAS_END)) ||                 \
+void Adafruit_I2CDevice::end(void)
+{
+    // Not all port implement Wire::end(), such as
+    // - ESP8266
+    // - AVR core without WIRE_HAS_END
+    // - ESP32: end() is implemented since 2.0.1 which is latest at the moment.
+    // Temporarily disable for now to give time for user to update.
+#if !(defined(ESP8266) || (defined(ARDUINO_ARCH_AVR) && !defined(WIRE_HAS_END)) || \
       defined(ARDUINO_ARCH_ESP32))
-  _wire->end();
-  _begun = false;
+    _wire->end();
+    _begun = false;
 #endif
 }
 
@@ -57,24 +60,27 @@ void Adafruit_I2CDevice::end(void) {
  *    if there's no pullups on I2C
  *    @return True if I2C initialized and a device with the addr found
  */
-bool Adafruit_I2CDevice::detected(void) {
-  // Init I2C if not done yet
-  if (!_begun && !begin()) {
-    return false;
-  }
+bool Adafruit_I2CDevice::detected(void)
+{
+    // Init I2C if not done yet
+    if (!_begun && !begin())
+    {
+        return false;
+    }
 
-  // A basic scanner, see if it ACK's
-  _wire->beginTransmission(_addr);
-  if (_wire->endTransmission() == 0) {
+    // A basic scanner, see if it ACK's
+    _wire->beginTransmission(_addr);
+    if (_wire->endTransmission() == 0)
+    {
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println(F("Detected"));
+        DEBUG_SERIAL.println(F("Detected"));
 #endif
-    return true;
-  }
+        return true;
+    }
 #ifdef DEBUG_SERIAL
-  DEBUG_SERIAL.println(F("Not detected"));
+    DEBUG_SERIAL.println(F("Not detected"));
 #endif
-  return false;
+    return false;
 }
 
 /*!
@@ -90,77 +96,89 @@ bool Adafruit_I2CDevice::detected(void) {
  *    @param  stop Whether to send an I2C STOP signal on write
  *    @return True if write was successful, otherwise false.
  */
-bool Adafruit_I2CDevice::write(const uint8_t *buffer, size_t len, bool stop,
-                               const uint8_t *prefix_buffer,
-                               size_t prefix_len) {
-  if ((len + prefix_len) > maxBufferSize()) {
-    // currently not guaranteed to work if more than 32 bytes!
-    // we will need to find out if some platforms have larger
-    // I2C buffer sizes :/
+bool Adafruit_I2CDevice::write(const uint8_t* buffer, size_t len, bool stop,
+                               const uint8_t* prefix_buffer, size_t prefix_len)
+{
+    if ((len + prefix_len) > maxBufferSize())
+    {
+        // currently not guaranteed to work if more than 32 bytes!
+        // we will need to find out if some platforms have larger
+        // I2C buffer sizes :/
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println(F("\tI2CDevice could not write such a large buffer"));
+        DEBUG_SERIAL.println(F("\tI2CDevice could not write such a large buffer"));
 #endif
-    return false;
-  }
-
-  _wire->beginTransmission(_addr);
-
-  // Write the prefix data (usually an address)
-  if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
-    if (_wire->write(prefix_buffer, prefix_len) != prefix_len) {
-#ifdef DEBUG_SERIAL
-      DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
-#endif
-      return false;
+        return false;
     }
-  }
 
-  // Write the data itself
-  if (_wire->write(buffer, len) != len) {
+    _wire->beginTransmission(_addr);
+
+    // Write the prefix data (usually an address)
+    if ((prefix_len != 0) && (prefix_buffer != nullptr))
+    {
+        if (_wire->write(prefix_buffer, prefix_len) != prefix_len)
+        {
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
+            DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
 #endif
-    return false;
-  }
-
-#ifdef DEBUG_SERIAL
-
-  DEBUG_SERIAL.print(F("\tI2CWRITE @ 0x"));
-  DEBUG_SERIAL.print(_addr, HEX);
-  DEBUG_SERIAL.print(F(" :: "));
-  if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
-    for (uint16_t i = 0; i < prefix_len; i++) {
-      DEBUG_SERIAL.print(F("0x"));
-      DEBUG_SERIAL.print(prefix_buffer[i], HEX);
-      DEBUG_SERIAL.print(F(", "));
+            return false;
+        }
     }
-  }
-  for (uint16_t i = 0; i < len; i++) {
-    DEBUG_SERIAL.print(F("0x"));
-    DEBUG_SERIAL.print(buffer[i], HEX);
-    DEBUG_SERIAL.print(F(", "));
-    if (i % 32 == 31) {
-      DEBUG_SERIAL.println();
+
+    // Write the data itself
+    if (_wire->write(buffer, len) != len)
+    {
+#ifdef DEBUG_SERIAL
+        DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
+#endif
+        return false;
     }
-  }
 
-  if (stop) {
-    DEBUG_SERIAL.print("\tSTOP");
-  }
+#ifdef DEBUG_SERIAL
+
+    DEBUG_SERIAL.print(F("\tI2CWRITE @ 0x"));
+    DEBUG_SERIAL.print(_addr, HEX);
+    DEBUG_SERIAL.print(F(" :: "));
+    if ((prefix_len != 0) && (prefix_buffer != nullptr))
+    {
+        for (uint16_t i = 0; i < prefix_len; i++)
+        {
+            DEBUG_SERIAL.print(F("0x"));
+            DEBUG_SERIAL.print(prefix_buffer[i], HEX);
+            DEBUG_SERIAL.print(F(", "));
+        }
+    }
+    for (uint16_t i = 0; i < len; i++)
+    {
+        DEBUG_SERIAL.print(F("0x"));
+        DEBUG_SERIAL.print(buffer[i], HEX);
+        DEBUG_SERIAL.print(F(", "));
+        if (i % 32 == 31)
+        {
+            DEBUG_SERIAL.println();
+        }
+    }
+
+    if (stop)
+    {
+        DEBUG_SERIAL.print("\tSTOP");
+    }
 #endif
 
-  if (_wire->endTransmission(stop) == 0) {
+    if (_wire->endTransmission(stop) == 0)
+    {
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println();
-    // DEBUG_SERIAL.println("Sent!");
+        DEBUG_SERIAL.println();
+        // DEBUG_SERIAL.println("Sent!");
 #endif
-    return true;
-  } else {
+        return true;
+    }
+    else
+    {
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println("\tFailed to send!");
+        DEBUG_SERIAL.println("\tFailed to send!");
 #endif
-    return false;
-  }
+        return false;
+    }
 }
 
 /*!
@@ -171,55 +189,58 @@ bool Adafruit_I2CDevice::write(const uint8_t *buffer, size_t len, bool stop,
  *    @param  stop Whether to send an I2C STOP signal on read
  *    @return True if read was successful, otherwise false.
  */
-bool Adafruit_I2CDevice::read(uint8_t *buffer, size_t len, bool stop) {
-  size_t pos = 0;
-  while (pos < len) {
-    size_t read_len =
-        ((len - pos) > maxBufferSize()) ? maxBufferSize() : (len - pos);
-    bool read_stop = (pos < (len - read_len)) ? false : stop;
-    if (!_read(buffer + pos, read_len, read_stop))
-      return false;
-    pos += read_len;
-  }
-  return true;
+bool Adafruit_I2CDevice::read(uint8_t* buffer, size_t len, bool stop)
+{
+    size_t pos = 0;
+    while (pos < len)
+    {
+        size_t read_len = ((len - pos) > maxBufferSize()) ? maxBufferSize() : (len - pos);
+        bool read_stop = (pos < (len - read_len)) ? false : stop;
+        if (!_read(buffer + pos, read_len, read_stop))
+            return false;
+        pos += read_len;
+    }
+    return true;
 }
 
-bool Adafruit_I2CDevice::_read(uint8_t *buffer, size_t len, bool stop) {
+bool Adafruit_I2CDevice::_read(uint8_t* buffer, size_t len, bool stop)
+{
 #if defined(TinyWireM_h)
-  size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len);
+    size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len);
 #else
-  size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len, (uint8_t)stop);
+    size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len, (uint8_t)stop);
 #endif
 
-  if (recv != len) {
-    // Not enough data available to fulfill our obligation!
+    if (recv != len)
+    {
+        // Not enough data available to fulfill our obligation!
 #ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.print(F("\tI2CDevice did not receive enough data: "));
-    DEBUG_SERIAL.println(recv);
+        DEBUG_SERIAL.print(F("\tI2CDevice did not receive enough data: "));
+        DEBUG_SERIAL.println(recv);
 #endif
-    return false;
-  }
-
-  for (uint16_t i = 0; i < len; i++) {
-    buffer[i] = _wire->read();
-  }
-
-#ifdef DEBUG_SERIAL
-  DEBUG_SERIAL.print(F("\tI2CREAD  @ 0x"));
-  DEBUG_SERIAL.print(_addr, HEX);
-  DEBUG_SERIAL.print(F(" :: "));
-  for (uint16_t i = 0; i < len; i++) {
-    DEBUG_SERIAL.print(F("0x"));
-    DEBUG_SERIAL.print(buffer[i], HEX);
-    DEBUG_SERIAL.print(F(", "));
-    if (len % 32 == 31) {
-      DEBUG_SERIAL.println();
+        return false;
     }
-  }
-  DEBUG_SERIAL.println();
+
+    for (uint16_t i = 0; i < len; i++) { buffer[i] = _wire->read(); }
+
+#ifdef DEBUG_SERIAL
+    DEBUG_SERIAL.print(F("\tI2CREAD  @ 0x"));
+    DEBUG_SERIAL.print(_addr, HEX);
+    DEBUG_SERIAL.print(F(" :: "));
+    for (uint16_t i = 0; i < len; i++)
+    {
+        DEBUG_SERIAL.print(F("0x"));
+        DEBUG_SERIAL.print(buffer[i], HEX);
+        DEBUG_SERIAL.print(F(", "));
+        if (len % 32 == 31)
+        {
+            DEBUG_SERIAL.println();
+        }
+    }
+    DEBUG_SERIAL.println();
 #endif
 
-  return true;
+    return true;
 }
 
 /*!
@@ -233,14 +254,15 @@ bool Adafruit_I2CDevice::_read(uint8_t *buffer, size_t len, bool stop) {
  *    @param  stop Whether to send an I2C STOP signal between the write and read
  *    @return True if write & read was successful, otherwise false.
  */
-bool Adafruit_I2CDevice::write_then_read(const uint8_t *write_buffer,
-                                         size_t write_len, uint8_t *read_buffer,
-                                         size_t read_len, bool stop) {
-  if (!write(write_buffer, write_len, stop)) {
-    return false;
-  }
+bool Adafruit_I2CDevice::write_then_read(const uint8_t* write_buffer, size_t write_len,
+                                         uint8_t* read_buffer, size_t read_len, bool stop)
+{
+    if (!write(write_buffer, write_len, stop))
+    {
+        return false;
+    }
 
-  return read(read_buffer, read_len);
+    return read(read_buffer, read_len);
 }
 
 /*!
@@ -256,12 +278,13 @@ uint8_t Adafruit_I2CDevice::address(void) { return _addr; }
  *    @return True if this platform supports changing I2C speed.
  *    Not necessarily that the speed was achieved!
  */
-bool Adafruit_I2CDevice::setSpeed(uint32_t desiredclk) {
+bool Adafruit_I2CDevice::setSpeed(uint32_t desiredclk)
+{
 #if (ARDUINO >= 157) && !defined(ARDUINO_STM32_FEATHER) && !defined(TinyWireM_h)
-  _wire->setClock(desiredclk);
-  return true;
+    _wire->setClock(desiredclk);
+    return true;
 #else
-  (void)desiredclk;
-  return false;
+    (void)desiredclk;
+    return false;
 #endif
 }
