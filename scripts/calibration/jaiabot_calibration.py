@@ -21,8 +21,8 @@ write_bounds = bounds_pb2.SurfaceBounds()
 
 #tries to open the bounds config and inserts the values to the check_bounds object
 try:
-    os.system('cd /etc/jaiabot/','sudo mv output_bounds.pb.cfg ~/jaiabot/scripts/calibration/')
-    boundsCFG = open("output_bounds.pb.cfg","r")
+    os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
+    boundsCFG = open("bounds.pb.cfg","r")
     boundsCFG = boundsCFG.read()
     google.protobuf.text_format.Parse(boundsCFG, check_bounds)
     boundsCFG.close()
@@ -339,9 +339,13 @@ while begin == True:
         print(str(check_bounds))
 
         #write bounds to a .pb.cfg file and moves it to /etc/jaiabot
-        records = open("output_bounds.pb.cfg", "w")
+        records = open("bounds.pb.cfg", "w")
         records.write(str(check_bounds))
-        os.system('sudo mv output_bounds.pb.cfg /etc/jaiabot/')
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
+        records.close()
+        records = open("bounds.pb.cfg", "a")
+        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         #ask the user to upload control_surfaces and finish calibration
         please = True
@@ -405,9 +409,12 @@ while begin == True:
         if check_bounds.motor.reverseHalt == 0:
             check_bounds.motor.reverseHalt = 1500
 
-        records = open("output_bounds.pb.cfg", "w")
+        records = open("bounds.pb.cfg", "w")
         records.write(str(check_bounds))
-        os.system('sudo mv output_bounds.pb.cfg /etc/jaiabot/')
+        records.close()
+        records = open("bounds.pb.cfg", "a")
+        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         begin = False
     else:

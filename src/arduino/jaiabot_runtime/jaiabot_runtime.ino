@@ -54,6 +54,8 @@ int rudder_neutral = 1500;
 #define select_pin 11
 #define data_pin 12
 
+bool thermocouple_is_present = false;
+
 Adafruit_MAX31855 thermocouple(clock_pin, select_pin, data_pin);
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
@@ -77,7 +79,7 @@ bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *a
 }
 
 // Send a response message back to the RasPi
-void send_ack(AckCode code, char message[], double *thermocouple_temperature_C)
+void send_ack(AckCode code, char message[])
 {
   const size_t max_ack_size = 256;
 
@@ -96,9 +98,9 @@ void send_ack(AckCode code, char message[], double *thermocouple_temperature_C)
   callback.arg = NULL;
   ack.message = callback;
 
-  // Read thermocouple
-  if (thermocouple_temperature_C != NULL) {
-    ack.thermocouple_temperature_C = *thermocouple_temperature_C;
+  if (thermocouple_is_present) {
+    // Get the thermocouple temperature
+    ack.thermocouple_temperature_C = thermocouple.readCelsius();
     ack.has_thermocouple_temperature_C = true;
   }
   else {
@@ -150,12 +152,15 @@ void setup()
 
   // Begin thermocouple, but abandon after 5 second
   for (int i = 0; i < 500; i++) {
-    if (thermocouple.begin()) break;
+    if (thermocouple.begin()) {
+      thermocouple_is_present = true;
+      break;
+    }
     delay(10);
   }
 
   // Send startup code
-  send_ack(STARTUP, NULL, NULL);
+  send_ack(STARTUP, NULL);
 }
 
 
@@ -207,8 +212,8 @@ void loop()
             bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
             if (!status)
             {
-              send_ack(DEBUG, "Decoding ArduinoCommand protobuf failed:", NULL);
-              send_ack(DEBUG, PB_GET_ERROR(&stream), NULL);
+              send_ack(DEBUG, "Decoding ArduinoCommand protobuf failed:");
+              send_ack(DEBUG, PB_GET_ERROR(&stream));
             }
 
             motor_servo.writeMicroseconds (command.motor);
@@ -230,32 +235,29 @@ void loop()
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
-            // Get the thermocouple temperature
-            double thermocouple_temperature_C = thermocouple.readCelsius();
-
             // char message[256];
             // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK, NULL, &thermocouple_temperature_C);
+            send_ack(ACK, NULL);
           }
           else
           {
-            send_ack(DEBUG, "Read wrong number of bytes for PB data", NULL);
+            send_ack(DEBUG, "Read wrong number of bytes for PB data");
           }
         }
         else
         {
-          send_ack(DEBUG, "Message size is wrong (too big)", NULL);
+          send_ack(DEBUG, "Message size is wrong (too big)");
         }
 
       }
       else
       {
-        send_ack(DEBUG, "Serial magic is wrong", NULL);
+        send_ack(DEBUG, "Serial magic is wrong");
       }
     }
     else
     {
-      send_ack(DEBUG, "Read wrong number of bytes for prefix", NULL);
+      send_ack(DEBUG, "Read wrong number of bytes for prefix");
     }
   }
 
@@ -269,7 +271,7 @@ void handle_timeout() {
     command_timeout = -1;
     halt_all();
 
-    send_ack(TIMEOUT, NULL, NULL);
+    send_ack(TIMEOUT, NULL);
   }
 }
 

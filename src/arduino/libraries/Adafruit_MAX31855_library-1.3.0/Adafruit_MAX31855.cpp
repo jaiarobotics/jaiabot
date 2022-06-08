@@ -52,7 +52,9 @@
 */
 /**************************************************************************/
 Adafruit_MAX31855::Adafruit_MAX31855(int8_t _sclk, int8_t _cs, int8_t _miso)
-    : spi_dev(_cs, _sclk, _miso, -1, 1000000) {}
+    : spi_dev(_cs, _sclk, _miso, -1, 1000000)
+{
+}
 
 /**************************************************************************/
 /*!
@@ -62,8 +64,10 @@ Adafruit_MAX31855::Adafruit_MAX31855(int8_t _sclk, int8_t _cs, int8_t _miso)
     @param _spi which spi buss to use.
 */
 /**************************************************************************/
-Adafruit_MAX31855::Adafruit_MAX31855(int8_t _cs, SPIClass *_spi)
-    : spi_dev(_cs, 1000000, SPI_BITORDER_MSBFIRST, SPI_MODE0, _spi) {}
+Adafruit_MAX31855::Adafruit_MAX31855(int8_t _cs, SPIClass* _spi)
+    : spi_dev(_cs, 1000000, SPI_BITORDER_MSBFIRST, SPI_MODE0, _spi)
+{
+}
 
 /**************************************************************************/
 /*!
@@ -72,10 +76,11 @@ Adafruit_MAX31855::Adafruit_MAX31855(int8_t _cs, SPIClass *_spi)
     @return True if the device was successfully initialized, otherwise false.
 */
 /**************************************************************************/
-bool Adafruit_MAX31855::begin(void) {
-  initialized = spi_dev.begin();
+bool Adafruit_MAX31855::begin(void)
+{
+    initialized = spi_dev.begin();
 
-  return initialized;
+    return initialized;
 }
 
 /**************************************************************************/
@@ -85,25 +90,27 @@ bool Adafruit_MAX31855::begin(void) {
     @return The internal temperature in degrees Celsius.
 */
 /**************************************************************************/
-double Adafruit_MAX31855::readInternal(void) {
-  uint32_t v;
+double Adafruit_MAX31855::readInternal(void)
+{
+    uint32_t v;
 
-  v = spiread32();
+    v = spiread32();
 
-  // ignore bottom 4 bits - they're just thermocouple data
-  v >>= 4;
+    // ignore bottom 4 bits - they're just thermocouple data
+    v >>= 4;
 
-  // pull the bottom 11 bits off
-  float internal = v & 0x7FF;
-  // check sign bit!
-  if (v & 0x800) {
-    // Convert to negative value by extending sign and casting to signed type.
-    int16_t tmp = 0xF800 | (v & 0x7FF);
-    internal = tmp;
-  }
-  internal *= 0.0625; // LSB = 0.0625 degrees
-  // Serial.print("\tInternal Temp: "); Serial.println(internal);
-  return internal;
+    // pull the bottom 11 bits off
+    float internal = v & 0x7FF;
+    // check sign bit!
+    if (v & 0x800)
+    {
+        // Convert to negative value by extending sign and casting to signed type.
+        int16_t tmp = 0xF800 | (v & 0x7FF);
+        internal = tmp;
+    }
+    internal *= 0.0625; // LSB = 0.0625 degrees
+    // Serial.print("\tInternal Temp: "); Serial.println(internal);
+    return internal;
 }
 
 /**************************************************************************/
@@ -113,15 +120,15 @@ double Adafruit_MAX31855::readInternal(void) {
     @return The thermocouple temperature in degrees Celsius.
 */
 /**************************************************************************/
-double Adafruit_MAX31855::readCelsius(void) {
+double Adafruit_MAX31855::readCelsius(void)
+{
+    int32_t v;
 
-  int32_t v;
+    v = spiread32();
 
-  v = spiread32();
+    // Serial.print("0x"); Serial.println(v, HEX);
 
-  // Serial.print("0x"); Serial.println(v, HEX);
-
-  /*
+    /*
   float internal = (v >> 4) & 0x7FF;
   internal *= 0.0625;
   if ((v >> 4) & 0x800)
@@ -129,25 +136,29 @@ double Adafruit_MAX31855::readCelsius(void) {
   Serial.print("\tInternal Temp: "); Serial.println(internal);
   */
 
-  if (v & 0x7) {
-    // uh oh, a serious problem!
-    return NAN;
-  }
+    if (v & 0x7)
+    {
+        // uh oh, a serious problem!
+        return NAN;
+    }
 
-  if (v & 0x80000000) {
-    // Negative value, drop the lower 18 bits and explicitly extend sign bits.
-    v = 0xFFFFC000 | ((v >> 18) & 0x00003FFF);
-  } else {
-    // Positive value, just drop the lower 18 bits.
-    v >>= 18;
-  }
-  // Serial.println(v, HEX);
+    if (v & 0x80000000)
+    {
+        // Negative value, drop the lower 18 bits and explicitly extend sign bits.
+        v = 0xFFFFC000 | ((v >> 18) & 0x00003FFF);
+    }
+    else
+    {
+        // Positive value, just drop the lower 18 bits.
+        v >>= 18;
+    }
+    // Serial.println(v, HEX);
 
-  double centigrade = v;
+    double centigrade = v;
 
-  // LSB = 0.25 degrees C
-  centigrade *= 0.25;
-  return centigrade;
+    // LSB = 0.25 degrees C
+    centigrade *= 0.25;
+    return centigrade;
 }
 
 /**************************************************************************/
@@ -166,12 +177,13 @@ uint8_t Adafruit_MAX31855::readError() { return spiread32() & 0x7; }
     @return The thermocouple temperature in degrees Fahrenheit.
 */
 /**************************************************************************/
-double Adafruit_MAX31855::readFahrenheit(void) {
-  float f = readCelsius();
-  f *= 9.0;
-  f /= 5.0;
-  f += 32;
-  return f;
+double Adafruit_MAX31855::readFahrenheit(void)
+{
+    float f = readCelsius();
+    f *= 9.0;
+    f /= 5.0;
+    f += 32;
+    return f;
 }
 
 /**************************************************************************/
@@ -181,26 +193,28 @@ double Adafruit_MAX31855::readFahrenheit(void) {
     @return The raw 32 bit value read.
 */
 /**************************************************************************/
-uint32_t Adafruit_MAX31855::spiread32(void) {
-  uint32_t d = 0;
-  uint8_t buf[4];
+uint32_t Adafruit_MAX31855::spiread32(void)
+{
+    uint32_t d = 0;
+    uint8_t buf[4];
 
-  // backcompatibility!
-  if (!initialized) {
-    begin();
-  }
+    // backcompatibility!
+    if (!initialized)
+    {
+        begin();
+    }
 
-  spi_dev.read(buf, 4);
+    spi_dev.read(buf, 4);
 
-  d = buf[0];
-  d <<= 8;
-  d |= buf[1];
-  d <<= 8;
-  d |= buf[2];
-  d <<= 8;
-  d |= buf[3];
+    d = buf[0];
+    d <<= 8;
+    d |= buf[1];
+    d <<= 8;
+    d |= buf[2];
+    d <<= 8;
+    d |= buf[3];
 
-  // Serial.println(d, HEX);
+    // Serial.println(d, HEX);
 
-  return d;
+    return d;
 }
