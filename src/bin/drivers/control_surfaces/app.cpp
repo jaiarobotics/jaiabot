@@ -243,6 +243,8 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
 
+    interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
+
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
     interthread().publish<serial_out>(raw_output);
