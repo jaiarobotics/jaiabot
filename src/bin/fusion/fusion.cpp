@@ -32,6 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -244,6 +245,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            if (arduino_response.has_thermocouple_temperature_c())
+            {
+                latest_bot_status_.set_thermocouple_temperature(
+                    arduino_response.thermocouple_temperature_c());
+            }
+        });
+
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
@@ -251,11 +262,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.set_active_goal(report.active_goal());
             else
                 latest_bot_status_.clear_active_goal();
-        });
-
-    interprocess().subscribe<jaiabot::groups::control_surfaces_ack>(
-        [this](const protobuf::ControlSurfacesAck& control_surfaces_ack) {
-            // glog.is_debug1() && glog << "=> " << control_surfaces_ack.ShortDebugString() << std::endl;
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(

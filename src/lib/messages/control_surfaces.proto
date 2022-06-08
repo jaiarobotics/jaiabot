@@ -10,9 +10,3 @@ message ControlSurfaces
     optional sint32 rudder = 4;
     optional sint32 timeout = 5;
 }
-
-message ControlSurfacesAck
-{
-    required sint32 code = 1;
-    optional string message = 20;
-}

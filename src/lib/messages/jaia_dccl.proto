@@ -147,6 +147,13 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
+
+    optional double thermocouple_temperature = 53 [(dccl.field) = {
+        min: -50
+        max: 100
+        precision: 2
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
 }
 
 message DivePacket
