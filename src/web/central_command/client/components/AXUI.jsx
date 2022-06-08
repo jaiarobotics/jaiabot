@@ -844,6 +844,14 @@ export default class AXUI extends React.Component {
 
 		this.sna.getStatus().then(
 			(result) => {
+				console.log(result)
+				if (result instanceof Error) {
+					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					console.error(result)
+					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+					return
+				}
+
 				if (!("bots" in result)) {
 					this.podStatus = {}
 					error("Web server status response doesn't include bots field")
@@ -876,7 +884,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)');
+				error('Cannot connect to the Jaia Central Command web server (app.py)')
 			}
 		)
 
