@@ -38,7 +38,7 @@ else
     for var in "$@"
     do
     	echo "🟢 Uploading to "$var
-	rsync -zaP --delete --force --relative ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
+	rsync -zaP --delete --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"

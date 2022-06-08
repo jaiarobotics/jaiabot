@@ -48,6 +48,11 @@ app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='bot'+str(bot_index)+'_fleet' + str(fleet_index))
 
+try:
+    control_surfaces_driver_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
+except FileNotFoundError:
+    control_surfaces_driver_bounds = ''
+
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
@@ -162,4 +167,5 @@ else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index))
+                                     bot_id=bot_index,
+                                     control_surfaces_driver_bounds=control_surfaces_driver_bounds))
