@@ -195,10 +195,9 @@ void XBeeDevice::write(const string& raw) {
 
 string XBeeDevice::read_until(const string& delimiter) {
     string data;
+    glog.is_debug2() && glog << "read_until: " << delimiter << endl;
     boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
-#if DEBUG
-    cout << "Read:  " << data << endl;
-#endif
+    glog.is_debug2() && glog << "read_until completed with: " << delimiter << endl;
     return data;
 }
 
