@@ -23,19 +23,10 @@ static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
-// Pin mappings
 constexpr int STBD_ELEVATOR_PIN = 2;
 constexpr int RUDDER_PIN = 3;
 constexpr int PORT_ELEVATOR_PIN = 4;
 constexpr int MOTOR_PIN = 6;
-
-constexpr int CURRENT5V_PIN = A3;
-constexpr int CURRENTVCC_PIN = A2;
-constexpr int VOLTAGEVCC_PIN = A0;
-
-constexpr int LED1_PIN = A6;
-constexpr int LED2_PIN = A5;
-constexpr int LEDEXT_PIN = A4;
 
 // The timeout
 unsigned long t_last_command = 0;
@@ -106,14 +97,6 @@ void send_ack(AckCode code, char message[])
   else {
     ack.has_thermocouple_temperature_C = false;
   }
-
-  // Read the currents and voltages
-  ack.current5V = analogRead(CURRENT5V_PIN);
-  ack.has_current5V = true;
-  ack.currentVcc = analogRead(CURRENTVCC_PIN);
-  ack.has_currentVcc = true;
-  ack.voltageVcc = analogRead(VOLTAGEVCC_PIN);
-  ack.has_voltageVcc = true;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
@@ -220,16 +203,6 @@ void loop()
             rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
-
-            // LEDs
-            if (command.has_led1) { analogWrite(LED1_PIN, command.led1); }
-            else { analogWrite(LED1_PIN, 0); }
-
-            if (command.has_led2) { analogWrite(LED2_PIN, command.led2); }
-            else { analogWrite(LED2_PIN, 0); }
-
-            if (command.has_ledExt) { analogWrite(LEDEXT_PIN, command.ledExt); }
-            else { analogWrite(LEDEXT_PIN, 0); }
 
             // Set the timeout vars
             t_last_command = millis();
