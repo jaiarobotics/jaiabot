@@ -44,7 +44,7 @@ fi
 
 if [[ ! -e "$DIR/node_modules" ]]
 then
-	ln -sv ~/node_modules "$DIR/"
+	ln -sfv ~/node_modules "$DIR/"
 fi
 
 if [[ ! -e "~/node_modules/package-lock.json" ]]
@@ -53,7 +53,7 @@ then
 fi
 if [[ ! -e "$DIR/package-lock.json" ]]
 then
-	ln -sv ~/node_modules/package-lock.json "$DIR/package-lock.json"
+	ln -sfv ~/node_modules/package-lock.json "$DIR/package-lock.json"
 
 	echo "Installing dependencies"
 	npm install --no-audit
