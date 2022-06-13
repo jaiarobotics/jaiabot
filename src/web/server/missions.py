@@ -4,6 +4,8 @@ from flask import Flask, send_from_directory, Response, request
 import geopandas as gpd
 import json
 import logging
+from math import floor
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -23,6 +25,8 @@ import jaia
 logLevel = getattr(logging, 'INFO')
 logging.basicConfig(level=logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
+
+matplotlib.rcParams['savefig.dpi'] = 300
 
 
 def check_db_init_success(check_success):
@@ -174,7 +178,7 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(boundary_points, mission_type, spacing_meters):
+def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of_bots):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
@@ -220,9 +224,43 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters):
     result = change_shapely_projection(inside_points, from_epsg, to_epsg)
     # Make a rudimentary plot of the points for review TODO: Remove
     p = gpd.GeoSeries(result)
-    p.plot()
+    # plt.figure(figsize=(18, 12), dpi=400, bbox_inches="tight")
+    p.plot(figsize=(18, 12))
     plt.show()
-    return result
+    bot_multipoint_list = assign_points_to_bots(result, number_of_bots)
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+    gpd.GeoSeries(user_polygon_geo).plot(ax=ax, color='white', edgecolor='black')
+    gpd.GeoSeries(bot_multipoint_list[0]).plot(ax=ax, marker='o', color='blue', markersize=5)
+    gpd.GeoSeries(bot_multipoint_list[1]).plot(ax=ax, marker='o', color='red', markersize=5)
+    gpd.GeoSeries(bot_multipoint_list[2]).plot(ax=ax, marker='o', color='black', markersize=5)
+    gpd.GeoSeries(bot_multipoint_list[3]).plot(ax=ax, marker='o', color='magenta', markersize=5)
+    gpd.GeoSeries(bot_multipoint_list[4]).plot(ax=ax, marker='o', color='orange', markersize=5)
+    plt.show()
+    tl = 0
+    for t in bot_multipoint_list:
+        tl = tl + len(t)
+    print(tl)
+    return p, result
+
+
+def assign_points_to_bots(survey_points, number_of_bots):
+    """
+    Split points by simple west-east slicing per bot
+    :return: List of MultiPoint
+    """
+    num_survey_points = len(survey_points)
+    point_break = floor(num_survey_points / number_of_bots)
+    bot_list = list(np.arange(number_of_bots))
+    bot_multipoint_list = []
+    for bot in bot_list:
+        start = point_break*bot
+        if bot == len(bot_list) - 1:
+            end = None
+        else:
+            end = point_break*(bot+1)
+        bot_multipoint_list.append(survey_points[start:end])
+    return bot_multipoint_list
 
 
 def get_exclusion_areas(p):
