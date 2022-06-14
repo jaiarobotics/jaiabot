@@ -57,7 +57,7 @@ subprocess.run('bash -ic "' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
-              'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"',
+              'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
 common_macros=dict()

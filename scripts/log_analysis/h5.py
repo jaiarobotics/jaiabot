@@ -1,6 +1,9 @@
 import h5py
 import datetime
 
+ArduinoCommand = 'jaiabot::arduino/jaiabot.protobuf.ArduinoCommand/'
+ArduinoCommand_motor = ArduinoCommand + 'motor'
+
 BotStatus = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/'
 BotStatus_time = BotStatus + '_utime_'
 BotStatus_latitude = BotStatus + 'location/lat'

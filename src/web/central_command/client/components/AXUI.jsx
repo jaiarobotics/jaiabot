@@ -844,6 +844,14 @@ export default class AXUI extends React.Component {
 
 		this.sna.getStatus().then(
 			(result) => {
+				console.log(result)
+				if (result instanceof Error) {
+					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					console.error(result)
+					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+					return
+				}
+
 				if (!("bots" in result)) {
 					this.podStatus = {}
 					error("Web server status response doesn't include bots field")
@@ -876,7 +884,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)');
+				error('Cannot connect to the Jaia Central Command web server (app.py)')
 			}
 		)
 
@@ -1106,6 +1114,7 @@ export default class AXUI extends React.Component {
 			this.openBotsDrawer();
 		}
 		this.setState({ selectedBotsFeatureCollection });
+		this.updateMissionLayer()
 		map.render();
 	}
 
@@ -1469,11 +1478,22 @@ export default class AXUI extends React.Component {
 
 		let missions = this.missions || {}
 
-		let defaultWaypointStyle = new OlStyle({
+		let selectedColor = '#34d2eb'
+		let unselectedColor = '#5ec957'
+
+		let selectedWaypointStyle = new OlStyle({
 			image: new OlCircleStyle({
-				fill: new OlFillStyle({color: '#5ec957'}),
+				fill: new OlFillStyle({color: selectedColor}),
 				stroke: new OlStrokeStyle({color: '#eeeeee'}),
 				radius: 5,
+			})
+		})
+
+		let defaultWaypointStyle = new OlStyle({
+			image: new OlCircleStyle({
+				fill: new OlFillStyle({color: unselectedColor}),
+				stroke: new OlStrokeStyle({color: '#eeeeee'}),
+				radius: 3,
 			})
 		})
 
@@ -1481,12 +1501,28 @@ export default class AXUI extends React.Component {
 			image: new OlIcon({ src: homeIcon })
 		})
 
+		let selectedLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: selectedColor}),
+			stroke: new OlStrokeStyle({color: selectedColor, width: 2.5}),
+		})
+
 		let defaultLineStyle = new OlStyle({
-			fill: new OlFillStyle({color: '#5ec957'}),
-			stroke: new OlStrokeStyle({color: '#5ec957', width: 2.5}),
+			fill: new OlFillStyle({color: unselectedColor}),
+			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
 		})
 
 		for (let botId in missions) {
+			// Different style for the waypoint marker, depending on if the associated bot is selected or not
+			var waypointStyle, lineStyle
+			if (this.isBotSelected(botId)) {
+				waypointStyle = selectedWaypointStyle
+				lineStyle = selectedLineStyle
+			}
+			else {
+				waypointStyle = defaultWaypointStyle
+				lineStyle = defaultLineStyle
+			}
+
 			let goals = missions[botId]?.plan?.goal || []
 
 			let transformed_pts = goals.map(goal => {
@@ -1495,12 +1531,12 @@ export default class AXUI extends React.Component {
 
 			for (let pt of transformed_pts) {
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
-				pointFeature.setStyle(defaultWaypointStyle)
+				pointFeature.setStyle(waypointStyle)
 				features.push(pointFeature)
 			}
 
 			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
-			lineStringFeature.setStyle(defaultLineStyle)
+			lineStringFeature.setStyle(lineStyle)
 			features.push(lineStringFeature)
 		}
 
@@ -1543,6 +1579,7 @@ export default class AXUI extends React.Component {
 		this.missions = deepcopy(missions)
 		this.updateMissionLayer()
 		info("Loaded mission")
+		console.log('Loaded mission: ', this.missions)
 	}
 
 	// Currently selected botId

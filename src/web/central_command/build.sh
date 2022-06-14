@@ -37,24 +37,8 @@ which npm &> /dev/null || {
 
 which webpack &> /dev/null || sudo npm install -g --no-audit webpack webpack-cli
 
-if [[ ! -e "~/node_modules" ]]
+if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
 then
-	mkdir -pv ~/node_modules
-fi
-
-if [[ ! -e "$DIR/node_modules" ]]
-then
-	ln -sv ~/node_modules "$DIR/"
-fi
-
-if [[ ! -e "~/node_modules/package-lock.json" ]]
-then
-	touch ~/node_modules/package-lock.json
-fi
-if [[ ! -e "$DIR/package-lock.json" ]]
-then
-	ln -sv ~/node_modules/package-lock.json "$DIR/package-lock.json"
-
 	echo "Installing dependencies"
 	npm install --no-audit
 fi
