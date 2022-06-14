@@ -105,7 +105,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 1, 0.5, 0);
+        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 1, 0, 0);
     }
     heading_pid->set_limits(-100.0, 100.0);
     heading_pid->set_auto();

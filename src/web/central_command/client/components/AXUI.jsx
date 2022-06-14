@@ -974,6 +974,14 @@ export default class AXUI extends React.Component {
 
 		this.sna.getStatus().then(
 			(result) => {
+				console.log(result)
+				if (result instanceof Error) {
+					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					console.error(result)
+					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+					return
+				}
+
 				if (!("bots" in result)) {
 					this.podStatus = {}
 					error("Web server status response doesn't include bots field")
@@ -1007,7 +1015,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)');
+				error('Cannot connect to the Jaia Central Command web server (app.py)')
 			}
 		)
 	}
@@ -1724,10 +1732,10 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
 					M 3
 				</button>
-				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(this.selectedBotId()))}>
+				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
 					RC
 				</button>
-				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(this.selectedBotId()))}>
+				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
 					Dive
 				</button>
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
@@ -1757,6 +1765,24 @@ export default class AXUI extends React.Component {
 
 	playClicked(evt) {
 		this.runLoadedMissions(this.selectedBotIds())
+	}
+
+	runRCMode() {
+		let botId = this.selectedBotId()
+		if (botId == null) {
+			warning("No bots selected")
+			return
+		}
+		this.runMissions(Missions.RCMode(botId))
+	}
+
+	runRCDive() {
+		let botId = this.selectedBotId()
+		if (botId == null) {
+			warning("No bots selected")
+			return
+		}
+		this.runMissions(Missions.RCDive(botId))
 	}
 
 	sendFlag(evt) {
