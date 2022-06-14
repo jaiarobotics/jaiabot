@@ -343,14 +343,14 @@ while begin == True:
         records.write(str(check_bounds))
         os.system('sudo mv output_bounds.pb.cfg /etc/jaiabot/')
 
-        #ask the user to upload control_surfaces and finish calibration
+        #ask the user to upload jaiabot_runtime and finish calibration
         please = True
         while please == True:
-            upload = input("Would you like to upload control_surfaces? Yes/No ")
+            upload = input("Would you like to upload jaiabot_runtime?? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
-                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces')
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh jaiabot_runtime/')
                 please = False
             elif upload == "NO":
                 #leaves jaiabot_calibration running
@@ -365,10 +365,10 @@ while begin == True:
     elif permission == "NO":
         end = True
         while end == True:
-            upload = input("Would you like to upload control_surfaces? Yes/No ")
+            upload = input("Would you like to upload jaiabot_runtime? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
-                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh control_surfaces')
+                os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh jaiabot_runtime/')
                 end = False
             elif upload == "NO":
                 end = False
