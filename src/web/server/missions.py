@@ -30,6 +30,10 @@ logging.getLogger('werkzeug').setLevel('WARN')
 matplotlib.rcParams['savefig.dpi'] = 300
 
 
+def utcnow():
+    return int(datetime.datetime.utcnow().timestamp() * 1e6)
+
+
 def check_db_init_success(check_success):
     if False in check_success:
         # TODO: Need to determine where it failed and perform cleanup
@@ -126,7 +130,7 @@ def backup_missions_database(jaia_db_file):
     """
     try:
         if jaia_database_exists(jaia_db_file):
-            jaia_db_file_backup = '.'.join(jaia_db_file.split('.')[:-1]) + '_' + str(jaia.utcnow()) + Path(jaia_db_file).suffix
+            jaia_db_file_backup = '.'.join(jaia_db_file.split('.')[:-1]) + '_' + str(utcnow()) + Path(jaia_db_file).suffix
             shutil.copyfile(jaia_db_file, jaia_db_file_backup, follow_symlinks=True)
             logging.info('Backup of missions database file `{dbfile}` to `{dbfile_backup}` successful.'.format(dbfile=jaia_db_file, dbfile_backup=jaia_db_file_backup))
             return True
@@ -315,14 +319,14 @@ def create_mission_dict(bot_multipoint_list, bot_list):
             bot_points.append(
                 {
                     "location": {
-                        "lat": int(p.y),
-                        "lon": int(p.x)
+                        "lat": p.y,
+                        "lon": p.x
                     }
                 }
             )
         mission_dict = {
-            "botId": bot,
-            "time": str(jaia.utcnow()),
+            "botId": int(bot),
+            "time": str(utcnow()),
             "type": "MISSION_PLAN",
             "plan": {
                 "start": "START_IMMEDIATELY",
