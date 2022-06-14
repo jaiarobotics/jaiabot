@@ -21,8 +21,8 @@ write_bounds = bounds_pb2.SurfaceBounds()
 
 #tries to open the bounds config and inserts the values to the check_bounds object
 try:
-    os.system('cd /etc/jaiabot/','sudo mv output_bounds.pb.cfg ~/jaiabot/scripts/calibration/')
-    boundsCFG = open("output_bounds.pb.cfg","r")
+    os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
+    boundsCFG = open("bounds.pb.cfg","r")
     boundsCFG = boundsCFG.read()
     google.protobuf.text_format.Parse(boundsCFG, check_bounds)
     boundsCFG.close()
@@ -204,13 +204,13 @@ def calibrateMotor():
 
         #calibrates the forward, backward, forward halt, and backward halt limitations
         print("calibrating forward start")
-        check_bounds.motor.forwardStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
-        print("calibrating reverse start")
         check_bounds.motor.reverseStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
+        print("calibrating reverse start")
+        check_bounds.motor.forwadStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
         print("calibrating forward halt")
-        check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
-        print("calibrating reverse halt")
         check_bounds.motor.reverseHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
+        print("calibrating reverse halt")
+        check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
 
         end = True
         while end == True:
@@ -322,10 +322,10 @@ while begin == True:
                 print(str(check_bounds.motor))
                 x = False
             elif calibrate == "NO":
-                if check_bounds.motor.forwardStart == 0:
-                    check_bounds.motor.forwardStart = 1600
                 if check_bounds.motor.reverseStart == 0:
-                    check_bounds.motor.reverseStart = 1400
+                    check_bounds.motor.reverseStart = 1600
+                if check_bounds.motor.forwardStart == 0:
+                    check_bounds.motor.forwardStart = 1400
                 if check_bounds.motor.forwardHalt == 0:
                     check_bounds.motor.forwardHalt = 1500
                 if check_bounds.motor.reverseHalt == 0:
@@ -339,9 +339,13 @@ while begin == True:
         print(str(check_bounds))
 
         #write bounds to a .pb.cfg file and moves it to /etc/jaiabot
-        records = open("output_bounds.pb.cfg", "w")
+        records = open("bounds.pb.cfg", "w")
         records.write(str(check_bounds))
-        os.system('sudo mv output_bounds.pb.cfg /etc/jaiabot/')
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
+        records.close()
+        records = open("bounds.pb.cfg", "a")
+        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         #ask the user to upload jaiabot_runtime and finish calibration
         please = True
@@ -396,18 +400,21 @@ while begin == True:
         if check_bounds.port.center == 0:
             check_bounds.port.center = 1500
 
-        if check_bounds.motor.forwardStart == 0:
-            check_bounds.motor.forwardStart = 1600
         if check_bounds.motor.reverseStart == 0:
-            check_bounds.motor.reverseStart = 1400
+            check_bounds.motor.reverseStart = 1600
+        if check_bounds.motor.forwardStart == 0:
+            check_bounds.motor.forwardStart = 1400
         if check_bounds.motor.forwardHalt == 0:
             check_bounds.motor.forwardHalt = 1500
         if check_bounds.motor.reverseHalt == 0:
             check_bounds.motor.reverseHalt = 1500
 
-        records = open("output_bounds.pb.cfg", "w")
+        records = open("bounds.pb.cfg", "w")
         records.write(str(check_bounds))
-        os.system('sudo mv output_bounds.pb.cfg /etc/jaiabot/')
+        records.close()
+        records = open("bounds.pb.cfg", "a")
+        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         begin = False
     else:
