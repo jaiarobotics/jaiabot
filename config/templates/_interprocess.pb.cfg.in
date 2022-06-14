@@ -1,4 +1,4 @@
 interprocess { 
   platform: "$platform"
+  manager_timeout_seconds: 10
 }
-
