@@ -78,7 +78,8 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     if (goal)
     {
         auto update = create_transit_update(
-            goal->location(), this->cfg().transit_speed_with_units(), this->machine().geodesy());
+            goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
+            this->machine().geodesy());
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
     else
@@ -108,13 +109,14 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<InMission>().final_goal();
-        update =
-            create_transit_update(final_goal.location(), this->cfg().transit_speed_with_units(),
-                                  this->machine().geodesy());
+        update = create_transit_update(final_goal.location(),
+                                       this->machine().mission_plan().speeds().transit_with_units(),
+                                       this->machine().geodesy());
     }
     else
     {
-        update = create_transit_update(recovery.location(), this->cfg().transit_speed_with_units(),
+        update = create_transit_update(recovery.location(),
+                                       this->machine().mission_plan().speeds().transit_with_units(),
                                        this->machine().geodesy());
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
@@ -138,14 +140,16 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     {
         auto final_goal = context<InMission>().final_goal();
         update = create_location_stationkeep_update(
-            final_goal.location(), this->cfg().transit_speed_with_units(),
-            this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+            final_goal.location(), this->machine().mission_plan().speeds().transit_with_units(),
+            this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
+            this->machine().geodesy());
     }
     else
     {
         update = create_location_stationkeep_update(
-            recovery.location(), this->cfg().transit_speed_with_units(),
-            this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+            recovery.location(), this->machine().mission_plan().speeds().transit_with_units(),
+            this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
+            this->machine().geodesy());
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -417,12 +421,13 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     // if we have a defined location in the goal
     if (goal)
         update = create_location_stationkeep_update(
-            goal->location(), this->cfg().transit_speed_with_units(),
-            this->cfg().stationkeep_outer_speed_with_units(), this->machine().geodesy());
+            goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
+            this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
+            this->machine().geodesy());
     else // just use our current position
         update = create_center_activate_stationkeep_update(
-            this->cfg().transit_speed_with_units(),
-            this->cfg().stationkeep_outer_speed_with_units());
+            this->machine().mission_plan().speeds().transit_with_units(),
+            this->machine().mission_plan().speeds().stationkeep_outer_with_units());
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -482,7 +487,8 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
     : StateBase(c)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
-        this->cfg().transit_speed_with_units(), this->cfg().stationkeep_outer_speed_with_units());
+        this->machine().mission_plan().speeds().transit_with_units(),
+        this->machine().mission_plan().speeds().stationkeep_outer_with_units());
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
