@@ -96,7 +96,6 @@ def init_mission_database():
 
 @app.route('/missionfiles/create', methods=['GET'])
 def get_mission_list():
-    j = request.json
     a, b, c, m = missions.create_mission_plan(
         boundary_points=None,
         mission_type=None,
@@ -126,4 +125,4 @@ def pidRoot():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001)
+    app.run(host='0.0.0.0', port=40001, debug=True)
