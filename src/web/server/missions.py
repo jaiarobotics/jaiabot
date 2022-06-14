@@ -6,6 +6,7 @@ import json
 import logging
 from math import floor
 import matplotlib
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -231,17 +232,25 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
     gpd.GeoSeries(user_polygon_geo).plot(ax=ax, color='white', edgecolor='black')
-    gpd.GeoSeries(bot_multipoint_list[0]).plot(ax=ax, marker='o', color='blue', markersize=5)
-    gpd.GeoSeries(bot_multipoint_list[1]).plot(ax=ax, marker='o', color='red', markersize=5)
-    gpd.GeoSeries(bot_multipoint_list[2]).plot(ax=ax, marker='o', color='black', markersize=5)
-    gpd.GeoSeries(bot_multipoint_list[3]).plot(ax=ax, marker='o', color='magenta', markersize=5)
-    gpd.GeoSeries(bot_multipoint_list[4]).plot(ax=ax, marker='o', color='orange', markersize=5)
+    bot_list = list(np.arange(number_of_bots))
+    point_colors = pick_point_colors(number_of_bots)
+    for bot in bot_list:
+        gpd.GeoSeries(bot_multipoint_list[bot]).plot(ax=ax, marker='o', color=point_colors[bot], markersize=5)
     plt.show()
     tl = 0
     for t in bot_multipoint_list:
         tl = tl + len(t)
     print(tl)
-    return p, result
+    mission_dict_list = create_mission_dict(bot_multipoint_list, bot_list)
+    return p, result, bot_multipoint_list, mission_dict_list
+
+
+def pick_point_colors(number_of_bots):
+    """
+    # User the matplotlib CSS palette of colors
+    """
+    list_of_colors = list(mcolors.CSS4_COLORS)
+    return list(np.random.choice(list_of_colors, number_of_bots, replace=False))
 
 
 def assign_points_to_bots(survey_points, number_of_bots):
@@ -290,3 +299,96 @@ def change_shapely_projection(shapely_geom, from_epsg, to_epsg):
     to_crs = pyproj.CRS('EPSG:{to_epsg}'.format(to_epsg=str(to_epsg)))
     project = pyproj.Transformer.from_crs(from_crs, to_crs, always_xy=True).transform
     return transform(project, shapely_geom)
+
+
+def create_mission_dict(bot_multipoint_list, bot_list):
+    """
+    Create the mission dictionaries for each bot
+    """
+    mission_dict_list = []
+    for bot in bot_list:
+        bot_points = []
+        for p in bot_multipoint_list[bot]:
+            bot_points.append(
+                {
+                    "location": {
+                        "lat": p.y,
+                        "lon": p.x
+                    }
+                }
+            )
+        mission_dict = {
+            "botId": bot,
+            "time": str(jaia.utcnow()),
+            "type": "MISSION_PLAN",
+            "plan": {
+                "start": "START_IMMEDIATELY",
+                "movement": "TRANSIT",
+                "goal": bot_points,
+                "recovery": {
+                    "recoverAtFinalGoal": True
+                }
+            }
+        }
+        mission_dict_list.append(mission_dict)
+    return mission_dict_list
+
+
+'''
+{
+    "botId": 1,
+    "time": "1642891753471247",
+    "type": "MISSION_PLAN",
+    "plan": {
+        "start": "START_IMMEDIATELY",
+        "movement": "TRANSIT",
+        "goal": [
+            {
+                "location": {
+                    "lat": 41.6626,
+                    "lon": -71.2731
+                }
+            },
+            {
+                "location": {
+                    "lon": -71.27359708146714,
+                    "lat": 41.6585
+                }
+            },
+            {
+                "location": {
+                    "lon": -71.27509708146714,
+                    "lat": 41.658274999999996
+                }
+            },
+            {
+                "location": {
+                    "lon": -71.27659708146714,
+                    "lat": 41.658049999999996
+                }
+            },
+            {
+                "location": {
+                    "lon": -71.27809708146714,
+                    "lat": 41.657824999999995
+                }
+            },
+            {
+                "location": {
+                    "lon": -71.27959708146714,
+                    "lat": 41.657599999999995
+                }
+            },
+            {
+                "location": {
+                    "lat": 41.6626,
+                    "lon": -71.2731
+                }
+            }
+        ],
+        "recovery": {
+            "recoverAtFinalGoal": true
+        }
+    }
+}
+'''
