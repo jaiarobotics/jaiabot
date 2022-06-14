@@ -152,6 +152,29 @@ message MissionPlan
         optional GeographicCoordinate location = 2;
     }
     required Recovery recovery = 4;
+
+    message Speeds
+    {
+        optional double transit = 1 [
+            default = 2,
+            (dccl.field) = {
+                min: 0.1,
+                max: 6.0,
+                precision: 1,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+        optional double stationkeep_outer = 2 [
+            default = 0.5,
+            (dccl.field) = {
+                min: 0.1,
+                max: 6.0,
+                precision: 1,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+    }
+    optional Speeds speeds = 5;
 }
 
 message IvPBehaviorUpdate
