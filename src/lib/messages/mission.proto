@@ -78,7 +78,7 @@ message MissionTask
         optional double depth_interval = 2 [
             default = inf,
             (dccl.field) = {
-                min: 0
+                min: 0.1
                 max: 50
                 precision: 1
                 units { base_dimensions: "L" }
