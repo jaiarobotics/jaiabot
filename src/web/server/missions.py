@@ -315,8 +315,8 @@ def create_mission_dict(bot_multipoint_list, bot_list):
             bot_points.append(
                 {
                     "location": {
-                        "lat": p.y,
-                        "lon": p.x
+                        "lat": int(p.y),
+                        "lon": int(p.x)
                     }
                 }
             )
