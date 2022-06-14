@@ -10,7 +10,6 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/mission_manager_settings.pb.h"
 #include "machine_common.h"
 
 namespace jaiabot
