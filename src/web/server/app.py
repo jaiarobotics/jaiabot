@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import argparse
 from flask import Flask, send_from_directory, Response, request
 import json
-import sys
-import jaia
-import argparse
 import logging
+
+# Internal Imports
+import jaia
+import missions
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -88,9 +90,27 @@ def getTilesIndex():
 
 ######## Mission files
 
+@app.route('/missionfiles/initdb', methods=['GET'])
+def init_mission_database():
+    return JSONResponse([])
 
-@app.route('/missionfiles/list', methods=['GET'])
-def getMissionFilesList():
+@app.route('/missionfiles/create', methods=['GET'])
+def get_mission_list():
+    j = request.json
+    a, b, c, m = missions.create_mission_plan(
+        boundary_points=None,
+        mission_type=None,
+        spacing_meters=50,
+        number_of_bots=4
+    )
+    return JSONResponse(m)
+
+@app.route('/missionfiles/save', methods=['POST'])
+def save_mission_list():
+    return JSONResponse([])
+
+@app.route('/missionfiles/update', methods=['POST'])
+def update_mission_list():
     return JSONResponse([])
 
 

@@ -231,7 +231,9 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
     bot_multipoint_list = assign_points_to_bots(result, number_of_bots)
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    gpd.GeoSeries(user_polygon_geo).plot(ax=ax, color='white', edgecolor='black')
+    gpd.GeoSeries(user_polygon_geo).plot(ax=ax, color='lightgrey', edgecolor='black')
+    for excluded in exclusion_areas:
+        gpd.GeoSeries(excluded).plot(ax=ax, color='red', edgecolor='red')
     bot_list = list(np.arange(number_of_bots))
     point_colors = pick_point_colors(number_of_bots)
     for bot in bot_list:
@@ -250,6 +252,7 @@ def pick_point_colors(number_of_bots):
     # User the matplotlib CSS palette of colors
     """
     list_of_colors = list(mcolors.CSS4_COLORS)
+    list_of_colors.remove('white')
     return list(np.random.choice(list_of_colors, number_of_bots, replace=False))
 
 
