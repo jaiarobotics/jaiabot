@@ -49,6 +49,12 @@ bool thermocouple_is_present = false;
 
 Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
+// Power Pin
+constexpr int POWER_PIN = A1;
+
+// LED
+constexpr int LED_D1_PIN = A5;
+
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 enum AckCode {
@@ -120,6 +126,8 @@ void send_ack(AckCode code, char message[])
 
 void setup()
 {
+  // Make sure the power pin isn't in the off mode
+  digitalWrite(POWER_PIN, LOW);
 
   Serial.begin(115200);
   while (!Serial) {
