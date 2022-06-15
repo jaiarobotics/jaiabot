@@ -64,9 +64,11 @@ def inputcommand():
         while f is True:
             try:
                 adjustment = int(input("How many microseconds to adjust by? Values between -500 and 500 only. "))
-                f = False
             except:
                 print("please enter a number")
+            adjustmentType = type(adjustment)
+            if adjustmentType == "int":
+                f = False
         adjustment = wingInsurance(adjustment)
         write(adjustment)
         while z is True:
