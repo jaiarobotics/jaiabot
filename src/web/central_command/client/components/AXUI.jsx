@@ -12,6 +12,7 @@ import React from 'react'
 import { Settings } from './Settings'
 import { PIDGainsPanel } from './PIDGainsPanel'
 import * as DiveParameters from './DiveParameters'
+import * as Icons from '../icons/Icons'
 import { missions, demo_mission, Missions } from './Missions'
 
 // Material Design Icons
@@ -974,7 +975,6 @@ export default class AXUI extends React.Component {
 
 		this.sna.getStatus().then(
 			(result) => {
-				console.log(result)
 				if (result instanceof Error) {
 					error('Cannot connect to the Jaia Central Command web server (app.py)')
 					console.error(result)
@@ -1443,22 +1443,6 @@ export default class AXUI extends React.Component {
 		let selectedColor = '#34d2eb'
 		let unselectedColor = '#5ec957'
 
-		let selectedWaypointStyle = new OlStyle({
-			image: new OlCircleStyle({
-				fill: new OlFillStyle({color: selectedColor}),
-				stroke: new OlStrokeStyle({color: '#eeeeee'}),
-				radius: 5,
-			})
-		})
-
-		let defaultWaypointStyle = new OlStyle({
-			image: new OlCircleStyle({
-				fill: new OlFillStyle({color: unselectedColor}),
-				stroke: new OlStrokeStyle({color: '#eeeeee'}),
-				radius: 3,
-			})
-		})
-
 		let homeStyle = new OlStyle({
 			image: new OlIcon({ src: homeIcon })
 		})
@@ -1473,25 +1457,19 @@ export default class AXUI extends React.Component {
 			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
 		})
 
-		function TintedIconStyle(icon, tint) {
-			return new OlStyle({
-				image: new OlIcon({ 
-					src: icon,
-					color: tint
-				})
-			})
-		}
-
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
 			var waypointStyle, lineStyle, color
-			if (this.isBotSelected(botId)) {
-				waypointStyle = selectedWaypointStyle
+
+			let selected = this.isBotSelected(botId)
+
+			if (selected) {
+				waypointStyle = Icons.waypointSelectedStyle
 				lineStyle = selectedLineStyle
 				color = selectedColor
 			}
 			else {
-				waypointStyle = defaultWaypointStyle
+				waypointStyle = Icons.waypointUnselectedStyle
 				lineStyle = defaultLineStyle
 				color = unselectedColor
 			}
@@ -1505,16 +1483,16 @@ export default class AXUI extends React.Component {
 			for (let pt of transformed_pts) {
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
-				var icon = waypointIcon
+				var icon = waypointStyle
 
 				if (pt === transformed_pts[0]) {
-					icon = startIcon
+					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
 				}
 				else if (pt === transformed_pts[transformed_pts.length - 1]) {
-					icon = stopIcon
+					icon = selected ? Icons.stopSelectedStyle : Icons.stopUnselectedStyle
 				}
 
-				pointFeature.setStyle(TintedIconStyle(icon, color))
+				pointFeature.setStyle(icon)
 				features.push(pointFeature)
 			}
 
@@ -1528,7 +1506,7 @@ export default class AXUI extends React.Component {
 			let pt = equirectangular_to_mercator([this.homeLocation.lon, this.homeLocation.lat])
 			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
 			// homeFeature.setStyle(homeStyle)
-			homeFeature.setStyle(TintedIconStyle(homeIcon, "#000000"))
+			homeFeature.setStyle(homeStyle)
 			features.push(homeFeature)
 		}
 
