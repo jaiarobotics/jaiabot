@@ -9,9 +9,9 @@ import OlStroke from 'ol/style/Stroke';
 import OlStyle from 'ol/style/Style';
 import OlText from 'ol/style/Text';
 
-import botIcon from '../icons/bot.svg'
-import botRemoteControl from '../icons/botRemoteControl.svg'
-import botSelectedIcon from '../icons/botSelected.svg'
+import botRemoteControl from '../icons/bot-remoteControl.svg'
+import botSelectedIcon from '../icons/bot-selected.svg'
+import botIcon from '../icons/bot-unselected.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
