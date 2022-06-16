@@ -23,10 +23,10 @@ static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
-constexpr int STBD_ELEVATOR_PIN = 2;
-constexpr int RUDDER_PIN = 3;
-constexpr int PORT_ELEVATOR_PIN = 4;
-constexpr int MOTOR_PIN = 6;
+constexpr int STBD_ELEVATOR_PIN = 6;
+constexpr int RUDDER_PIN = 5;
+constexpr int PORT_ELEVATOR_PIN = 9;
+constexpr int MOTOR_PIN = 3;
 
 // The timeout
 unsigned long t_last_command = 0;
@@ -41,13 +41,19 @@ int port_elevator_neutral = 1500;
 int rudder_neutral = 1500;
 
 // The thermocouple
-#define clock_pin 10
-#define select_pin 11
-#define data_pin 12
+constexpr int CLOCK_PIN = 7;
+constexpr int SELECT_PIN = 4;
+constexpr int DATA_PIN = A4;
 
 bool thermocouple_is_present = false;
 
-Adafruit_MAX31855 thermocouple(clock_pin, select_pin, data_pin);
+Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
+
+// Power Pin
+constexpr int POWER_PIN = A1;
+
+// LED
+constexpr int LED_D1_PIN = A5;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -120,6 +126,8 @@ void send_ack(AckCode code, char message[])
 
 void setup()
 {
+  // Make sure the power pin isn't in the off mode
+  digitalWrite(POWER_PIN, LOW);
 
   Serial.begin(115200);
   while (!Serial) {
