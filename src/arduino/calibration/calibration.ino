@@ -2,10 +2,10 @@
 #include <Servo.h>
 Servo rudder_servo, port_servo, starboard_servo, motor_servo;
 
-const int starboard_flap = 2;
-const int rudder = 3;
-const int port_flap = 4;
-const int motor = 6;
+const int starboard_flap = 6;
+const int rudder = 5;
+const int port_flap = 9;
+const int motor = 3;
 
 //designate the starting ranges (starboard)
 int a = 2000;
@@ -114,13 +114,13 @@ int MotorBounds(int microseconds, Servo servo){
   
   do{ 
   
-  int startup = motor_speed(1500, motor_servo, 1);
+  int startup = motor_speed(1500, motor_servo, 0);
   Serial.println(startup);
-  int startdown = motor_speed(1500, motor_servo, 0);
+  int startdown = motor_speed(1500, motor_servo, 1);
   Serial.println(startdown);
-  int haltup = motor_speed(startup, motor_servo, 0);
+  int haltup = motor_speed(startup, motor_servo, 1);
   Serial.println(haltup);
-  int haltdown = motor_speed(startdown, motor_servo, 1);
+  int haltdown = motor_speed(startdown, motor_servo, 0);
   Serial.println(haltdown);
   bool completion = Serial.findUntil("C","Z");
       if (completion == true){
