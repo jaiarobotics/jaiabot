@@ -797,9 +797,17 @@ export default class AXUI extends React.Component {
 	}
 
 	centerOn(coords, stopTracking = false, firstMove = false) {
+		console.log('coords = ', coords)
+
+		if (isNaN(coords[0]) || isNaN(coords[1])) {
+			return
+		}
+		console.log('centering')
+
 		if (stopTracking) {
 			this.trackBot('');
 		}
+
 		const floatCoords = [parseFloat(coords[0]), parseFloat(coords[1])];
 		const { viewportPadding } = this.state;
 		const size = map.getSize();
@@ -816,6 +824,10 @@ export default class AXUI extends React.Component {
 	}
 
 	fit(geom, opts, stopTracking = false, firstMove = false) {
+		if (isNaN(geom[0]) || isNaN(geom[1]) || isNaN(geom[2]) || isNaN(geom[3])) {
+			return
+		}
+
 		if (stopTracking) {
 			this.trackBot('');
 		}
@@ -934,7 +946,7 @@ export default class AXUI extends React.Component {
 			botLayer.getSource().addFeature(botFeature);
 
 			if (trackingTarget === bot_id) {
-				us.centerOn(botFeature.getGeometry().getCoordinates());
+				this.centerOn(botFeature.getGeometry().getCoordinates());
 			}
 
 			if (botFeature.get('controlled')) {
@@ -1064,10 +1076,14 @@ export default class AXUI extends React.Component {
 		botsLayerCollection.getArray().forEach((layer) => {
 			const feature = layer.getSource().getFeatureById(layer.bot_id);
 			if (feature) {
-				if (bot_ids.includes(feature.getId().toString())) {
+				console.log(bot_ids)
+				console.log(feature.getId().toString())
+				if (bot_ids.includes(feature.getId())) {
+					console.log('contains')
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
 				} else {
+					console.log('no contains')
 					feature.set('selected', false);
 				}
 			}
@@ -1411,7 +1427,7 @@ export default class AXUI extends React.Component {
 	addWaypointAt(location) {
 		let botId = this.selectedBotIds().at(-1)
 
-		if (!botId) {
+		if (botId == null) {
 			return
 		}
 
@@ -1660,6 +1676,7 @@ export default class AXUI extends React.Component {
 		});
 
 		if (feature) {
+			console.log('Clicked on feature = ', feature)
 			if (this.isBotSelected(feature.getId())) {
 				this.selectBots([])
 			}
