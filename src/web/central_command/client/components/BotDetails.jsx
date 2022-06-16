@@ -17,7 +17,7 @@ export function BotDetailsComponent(bot) {
     let statusTime = bot.time
     let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
-    let activeGoal = bot.activeGoal || "None"
+    let activeGoal = bot.activeGoal ?? "None"
     var activeGoalRow = (
         <tr>
             <td>Active Goal</td>
