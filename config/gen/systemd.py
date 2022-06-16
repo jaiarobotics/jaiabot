@@ -70,8 +70,8 @@ common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
 common_macros['extra_unit']=''
 common_macros['extra_flags']=''
-common_macros['bhv_file']='/tmp/jaiabot_' + str(args.bot_index) + '.bhv'
-common_macros['moos_file']='/tmp/jaiabot_' + str(args.bot_index) + '.moos'
+common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
+common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
 common_macros['user']=os.getlogin()
 common_macros['group']=os.getlogin()
 
