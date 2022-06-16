@@ -7,9 +7,9 @@
 |  2  | GND         | Ground           |
 |  3  | PC6/RST     | No Connection    |
 |  4  | +5V         | +5V              |
-|  5  | A7          | J1 - BRK_3       |
+|  5  | A7          | J1 - BRK_3       |  
 |  6  | A6          | LED 1            |
-|  7  | A5          | LED 2            |
+|  7  | A5          | LED 2            |  Doesn't work - can't drive LED from Analog Pin
 |  8  | A4          | LED EXT          |
 |  9  | A3          | Current - 5V     |
 | 10  | A2          | Current - Vcc    |
@@ -41,3 +41,10 @@
 |  2  | BRK_1       | Arduino D7       |
 |  3  | BRK_2       | Arduino D4       |
 |  4  | BRK_3       | Arduino A7       |
+
+## Power Board J9 Pinout
+| Pin | Description |
+| --: | ---         |
+|  1  | +5V         |
+|  2  | LED EXT     |
+|  3  | GND         |

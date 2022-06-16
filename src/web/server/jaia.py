@@ -61,12 +61,7 @@ class Interface:
 
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
-                    if botStatus.bot_id in self.bots:
-                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                    else:
-                        self.bots[botStatus.bot_id] = botStatus
-
-                logging.debug(f'Received BotStatus:\n{botStatus}')
+                    self.bots[botStatus.bot_id] = botStatus
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
