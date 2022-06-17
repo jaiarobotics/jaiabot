@@ -1,10 +1,11 @@
 import h5py
 import datetime
+import re
 
 ArduinoCommand = 'jaiabot::arduino/jaiabot.protobuf.ArduinoCommand/'
 ArduinoCommand_motor = ArduinoCommand + 'motor'
 
-BotStatus = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/'
+BotStatus = 'jaiabot::bot_status;.+/jaiabot.protobuf.BotStatus/'
 BotStatus_time = BotStatus + '_utime_'
 BotStatus_latitude = BotStatus + 'location/lat'
 BotStatus_longitude = BotStatus + 'location/lon'
@@ -19,7 +20,7 @@ PressureTemperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTe
 PressureTemperature_pressure = PressureTemperature + 'pressure'
 PressureTemperature_temperature = PressureTemperature + 'temperature'
 
-Engineering = 'jaiabot::engineering_command;0/jaiabot.protobuf.Engineering/'
+Engineering = 'jaiabot::engineering_command;.+/jaiabot.protobuf.Engineering/'
 PIDControl = Engineering + 'pid_control/'
 PIDControl_throttle = PIDControl + 'throttle'
 PIDControl_heading = PIDControl + 'heading/target'
@@ -44,7 +45,7 @@ DesiredSetpoints = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints
 DesiredSetpoints_dive_depth = DesiredSetpoints + 'dive_depth'
 DesiredSetpoints_type = DesiredSetpoints + 'type'
 
-HUBCommand = 'jaiabot::hub_command;0/jaiabot.protobuf.Command/'
+HUBCommand = 'jaiabot::hub_command;.+/jaiabot.protobuf.Command/'
 HUBCommand_type = HUBCommand + 'type'
 
 TPV = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/'
@@ -93,7 +94,6 @@ class H5FileSet:
                         name = name.replace('_utime_', 'time')
                     all_data.extend(data)
                 except KeyError:
-                    print(f'WARNING:  Cannot locate {dataset_name} in {h5_file}')
                     continue
 
                 # Sentinel nil value, to prevent connection of multiple series
@@ -111,3 +111,17 @@ class H5FileSet:
             return { enum_values[index]: enum_names[index] for index in range(0, len(enum_values))}
         except KeyError:
             return None
+
+    # Finds a datapath, given a regular expression for that datapath
+    def find_datapath_re(self, regex):
+
+        def find_re(name):
+            if re.match(regex, name):
+                return name
+
+        for h5_file in self.h5_files:
+            datapath = h5_file.visit(find_re)
+            if datapath is not None:
+                return datapath
+        
+        return None
