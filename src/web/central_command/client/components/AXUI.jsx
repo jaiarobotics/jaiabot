@@ -14,6 +14,7 @@ import { PIDGainsPanel } from './PIDGainsPanel'
 import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
 import { missions, demo_mission, Missions } from './Missions'
+import { GoalSettingsPanel } from './GoalSettings'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -143,6 +144,8 @@ const sidebarInitialWidth = 0;
 const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
+const POLLING_INTERVAL_MS = 500
+
 function saveVisibleLayers() {
 	Settings.write("visibleLayers", visibleLayers)
 }
@@ -228,7 +231,8 @@ export default class AXUI extends React.Component {
 			],
 			selectedMissionAction: -1,
 			measureFeature: null,
-			measureActive: false
+			measureActive: false,
+			goalSettingsPanel: <GoalSettingsPanel />
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -618,7 +622,7 @@ export default class AXUI extends React.Component {
 		const us = this;
 
 
-		this.timerID = setInterval(() => this.pollPodStatus(), 2500);
+		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
 		$('#leftSidebar').resizable({
 			containment: 'parent',
@@ -977,7 +981,7 @@ export default class AXUI extends React.Component {
 			lastBotCount: botCount
 		});
 		// map.render();
-		this.timerID = setInterval(() => this.pollPodStatus(), 1000);
+		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 	}
 
 	// POLL THE BOTS
@@ -1071,19 +1075,17 @@ export default class AXUI extends React.Component {
 	}
 
 	selectBots(bot_ids) {
+		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
+
 		const { botsLayerCollection, selectedBotsFeatureCollection } = this.state;
 		selectedBotsFeatureCollection.clear();
 		botsLayerCollection.getArray().forEach((layer) => {
 			const feature = layer.getSource().getFeatureById(layer.bot_id);
 			if (feature) {
-				console.log(bot_ids)
-				console.log(feature.getId().toString())
 				if (bot_ids.includes(feature.getId())) {
-					console.log('contains')
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
 				} else {
-					console.log('no contains')
 					feature.set('selected', false);
 				}
 			}
@@ -1194,6 +1196,11 @@ export default class AXUI extends React.Component {
 		} = this.state;
 
 		let bots = this.podStatus?.bots
+
+		var goalSettingsPanel = ''
+		if (this.state.goalBeingEdited != null) {
+			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onClose={() => { this.state.goalBeingEdited = null }} />
+		}
 
 		return (
 			<div id="axui_container">
@@ -1409,6 +1416,8 @@ export default class AXUI extends React.Component {
 					</div>
 				</div>
 
+				{goalSettingsPanel}
+
 				{this.commandDrawer()}
 
 			</div>
@@ -1521,6 +1530,7 @@ export default class AXUI extends React.Component {
 				}
 
 				pointFeature.setStyle(icon)
+				pointFeature.goal = missions[botId]?.plan?.goal?.[pt_index]
 				features.push(pointFeature)
 			}
 
@@ -1688,7 +1698,14 @@ export default class AXUI extends React.Component {
 		});
 
 		if (feature) {
-			console.log('Clicked on feature = ', feature)
+
+			// Clicked on a goal / waypoint
+			if (feature.goal != null) {
+				this.state.goalBeingEdited = feature.goal
+				return false
+			}
+
+			// Clicked on a bot
 			if (this.isBotSelected(feature.getId())) {
 				this.selectBots([])
 			}
