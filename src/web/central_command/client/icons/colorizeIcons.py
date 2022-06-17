@@ -35,5 +35,6 @@ for job in jobs:
     # Build the JS file
     jsName = f"{baseName}{colorName[0].upper() + colorName[1:]}"
     jsFile.write(f'import {jsName} from "../icons/{outputFileName}"\n')
+    jsFile.write(f'export {{{jsName}}}\n')
     jsFile.write(f'export const {jsName}Style = new OlStyle({{ image: new OlIcon({{ src: {jsName} }}) }})\n')
     jsFile.write('\n')

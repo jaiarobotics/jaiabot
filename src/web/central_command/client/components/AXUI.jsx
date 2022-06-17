@@ -1475,17 +1475,17 @@ export default class AXUI extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			var waypointStyle, lineStyle, color
+			var waypointIcon, lineStyle, color
 
 			let selected = this.isBotSelected(botId)
 
 			if (selected) {
-				waypointStyle = Icons.waypointSelectedStyle
+				waypointIcon = Icons.waypointSelected
 				lineStyle = selectedLineStyle
 				color = selectedColor
 			}
 			else {
-				waypointStyle = Icons.waypointUnselectedStyle
+				waypointIcon = Icons.waypointUnselected
 				lineStyle = defaultLineStyle
 				color = unselectedColor
 			}
@@ -1496,16 +1496,28 @@ export default class AXUI extends React.Component {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
 
-			for (let pt of transformed_pts) {
+			for (let [pt_index, pt] of transformed_pts.entries()) {
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
-				var icon = waypointStyle
+				var icon
 
 				if (pt === transformed_pts[0]) {
 					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
 				}
 				else if (pt === transformed_pts[transformed_pts.length - 1]) {
 					icon = selected ? Icons.stopSelectedStyle : Icons.stopUnselectedStyle
+				}
+				else {
+					let previous_pt = transformed_pts[pt_index - 1]
+					let rotation = Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0])
+
+					icon = new OlStyle({
+						image: new OlIcon({
+							src: waypointIcon,
+							rotateWithView: true,
+							rotation: rotation
+						})
+					})
 				}
 
 				pointFeature.setStyle(icon)
