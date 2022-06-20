@@ -891,16 +891,24 @@ export default class AXUI extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
-
 			var faultLevel = 0
-			if (bot.healthState == 'HEALTH__OK') {
-				faultLevel = 0
-				faultLevel0Count ++
+
+			switch(bot.healthState) {
+				case "HEALTH__OK":
+					faultLevel = 0
+					faultLevel0Count ++
+					break;
+				case "HEALTH__DEGRADED":
+					faultLevel = 1
+					faultLevel1Count ++
+					break;
+				default:
+					faultLevel = 2
+					faultLevel2Count ++
+					break;
 			}
-			else {
-				faultLevel = 1
-				faultLevel1Count ++
-			}
+
+			console.log("faultLevel: ", faultLevel)
 
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
@@ -1850,6 +1858,18 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="botsList">
 			{botIds.map((botId) => {
+				let bot = bots[botId]
+
+				let faultLevel = {
+					'HEALTH__OK': 0,
+					'HEALTH__DEGRADED': 1,
+					'HEALTH__FAILED': 2
+				}[bot.healthState] ?? 0
+
+				let faultLevelClass = 'faultLevel' + faultLevel
+				let selected = this.isBotSelected(botId) ? 'selected' : ''
+				let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
+
 				return (
 					<div
 						key={botId}
@@ -1863,11 +1883,7 @@ export default class AXUI extends React.Component {
 									}
 								}
 							}
-						className={`bot-item faultLevel0 ${
-							this.isBotSelected(botId) ? 'selected' : ''
-						}${
-							botId === this.state.trackingTarget ? ' tracked' : ''
-						}`}
+						className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
 					>
 						{botId}
 					</div>
