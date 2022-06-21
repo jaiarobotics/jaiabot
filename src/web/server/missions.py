@@ -4,15 +4,19 @@ from flask import Flask, send_from_directory, Response, request
 import geopandas as gpd
 import json
 import logging
+import math
 from math import floor
 import matplotlib
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+import networkx as nx
+import networkx.algorithms.approximation as nx_app
 import numpy as np
 import os
+import pandas as pd
 from pathlib import Path
 import pyproj
-from shapely.geometry import MultiPoint, Point, Polygon
+from shapely.geometry import MultiPoint, Point, Polygon, LineString
 from shapely.ops import transform
 import shutil
 import sqlite3
@@ -206,6 +210,7 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
     p = change_shapely_projection(user_polygon_geo, from_epsg, to_epsg)
     # Find the exclusion areas inside the user-defined polygon using external data sources
     exclusion_areas = get_exclusion_areas(p)
+    exclusion_areas = []
     # Find the Polygon rectangular boundary
     xmin, ymin, xmax, ymax = p.bounds
     # Generate Points
@@ -219,19 +224,38 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
     # Find Points inside the Polygon
     inside_points = points.intersection(p)
     # Remove the Points that reside inside the exclusion_area Polygons
-    excluded_points = []
-    for excluded in exclusion_areas:
-        excluded_points.append(points.intersection(change_shapely_projection(excluded, from_epsg, to_epsg)))
-    for xp in excluded_points:
-        inside_points = inside_points - xp
+    if len(exclusion_areas) > 0:
+        excluded_points = []
+        for excluded in exclusion_areas:
+            excluded_points.append(points.intersection(change_shapely_projection(excluded, from_epsg, to_epsg)))
+        for xp in excluded_points:
+            inside_points = inside_points - xp
+
+    eastings = [x.x for x in inside_points]
+    northings = [x.y for x in inside_points]
+    eastings_northings_dict = {'eastings': eastings, 'northings': northings}
+    eastings_northings_df = pd.DataFrame(eastings_northings_dict)
+    ordered_points_df, ordered_points_gdf = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings")
+
+    # fig, ax = plt.subplots()
+    # ax.set_aspect('equal')
+    # gpd.GeoSeries(p).plot(ax=ax, figsize=(18, 12))
+    # gpd.GeoDataFrame(ordered_points_gdf).plot(ax=ax, marker='o', markersize=3, color='grey')
+    # lineStringObj = LineString([[a.x, a.y] for a in ordered_points_gdf.geometry.values])
+    # gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
+    # plt.show()
+
+    inside_points = MultiPoint(points=ordered_points_gdf.geometry)
+
     from_epsg = 26919
     to_epsg = 4326
     result = change_shapely_projection(inside_points, from_epsg, to_epsg)
     # Make a rudimentary plot of the points for review TODO: Remove
-    p = gpd.GeoSeries(result)
+    # p = gpd.GeoSeries(result)
     # plt.figure(figsize=(18, 12), dpi=400, bbox_inches="tight")
-    p.plot(figsize=(18, 12))
-    plt.show()
+    # p.plot(figsize=(18, 12))
+    # plt.show()
+
     bot_multipoint_list = assign_points_to_bots(result, number_of_bots)
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
@@ -242,6 +266,8 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
     point_colors = pick_point_colors(number_of_bots)
     for bot in bot_list:
         gpd.GeoSeries(bot_multipoint_list[bot]).plot(ax=ax, marker='o', color=point_colors[bot], markersize=5)
+        lineStringObj = LineString(bot_multipoint_list[bot])
+        gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
     plt.show()
     tl = 0
     for t in bot_multipoint_list:
@@ -306,6 +332,76 @@ def change_shapely_projection(shapely_geom, from_epsg, to_epsg):
     to_crs = pyproj.CRS('EPSG:{to_epsg}'.format(to_epsg=str(to_epsg)))
     project = pyproj.Transformer.from_crs(from_crs, to_crs, always_xy=True).transform
     return transform(project, shapely_geom)
+
+
+def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
+    '''
+    Function, that converts a list of random points into ordered points, searching for the shortest possible distance between the points.
+    Author: Marjan Moderc, 2016
+    '''
+    points_list = points_df[[x_col, y_col]].values.tolist()
+
+    # arrange points in by ascending Y or X
+    points_we = sorted(points_list, key=lambda x: x[0])
+    points_sn = sorted(points_list, key=lambda x: x[1])
+
+    # Calculate the general direction of points (North-South or West-East) - In order to decide where to start the path!
+    westmost_point = points_we[0]
+    eastmost_point = points_we[-1]
+
+    deltay = eastmost_point[1] - westmost_point[1]
+    deltax = eastmost_point[0] - westmost_point[0]
+    alfa = math.degrees(math.atan2(deltay, deltax))
+    azimut = (90 - alfa) % 360
+
+    # If main directon is towards east (45°-135°), take westmost point as starting line.
+    if (azimut > 45 and azimut < 135):
+        points_list = points_we
+    elif azimut > 180:
+        raise Exception(
+            "Error while computing the azimuth! It cant be bigger then 180 since first point is west and second is east.")
+    else:
+        points_list = points_sn
+
+    # Create output (ordered df) and populate it with the first one already.
+    ordered_points_df = pd.DataFrame(columns=points_df.columns)
+    ordered_points_df = ordered_points_df.append(
+        points_df.loc[(points_df[x_col] == points_list[0][0]) & (points_df[y_col] == points_list[0][1])])
+
+    for iteration in range(0, len(points_list) - 1):
+
+        already_ordered = ordered_points_df[[x_col, y_col]].values.tolist()
+
+        current_point = already_ordered[-1]  # current point
+        possible_candidates = [i for i in points_list if i not in already_ordered]  # list of candidates
+
+        distance = 10000000000000000000000
+        best_candidate = None
+        for candidate in possible_candidates:
+            current_distance = Point(current_point).distance(Point(candidate))
+            if current_distance < distance:
+                best_candidate = candidate
+                distance = current_distance
+
+        ordered_points_df = ordered_points_df.append(
+            points_df.loc[(points_df[x_col] == best_candidate[0]) & (points_df[y_col] == best_candidate[1])])
+
+    ordered_points_gdf = gpd.GeoDataFrame(ordered_points_df, geometry=gpd.points_from_xy(ordered_points_df.eastings,
+                                                                                         ordered_points_df.northings))
+    # eastings = [x.x for x in inside_points]
+    # northings = [x.y for x in inside_points]
+    # eastings_northings_dict = {'eastings': eastings, 'northings': northings}
+    # eastings_northings_df = pd.DataFrame(eastings_northings_dict)
+    # eastings_northings_gdf = gpd.GeoDataFrame(eastings_northings_df, geometry=inside_points.geoms)
+
+    # fig, ax = plt.subplots()
+    # ax.set_aspect('equal')
+    # gpd.GeoDataFrame(ordered_points_gdf).plot(ax=ax, marker='o', markersize=3, color='grey')
+    # lineStringObj = LineString([[a.x, a.y] for a in ordered_points_gdf.geometry.values])
+    # gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
+    # plt.show(figsize=(18, 12))
+
+    return ordered_points_df, ordered_points_gdf
 
 
 def create_mission_dict(bot_multipoint_list, bot_list):
