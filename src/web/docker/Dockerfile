@@ -2,7 +2,7 @@
 # docker build -t jaia-webtest -f src/web/docker/Dockerfile .
 
 # run as
-# docker run --network="host" -it jaia-webtest /opt/jaiabot/src/web/server/app.py 127.0.0.1
+# docker run --network="host" jaia-webtest
 
 FROM ubuntu:focal
 
