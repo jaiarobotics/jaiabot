@@ -2,16 +2,19 @@
 
 set -e
 
+SUDO=
+[[ $UID -ne 0 ]] && SUDO=sudo
+
 PROTO_INCLUDE=/etc/jaiabot/proto_include/
 
 if [ ! -d ${PROTO_INCLUDE} ]
 then
-    sudo mkdir -p ${PROTO_INCLUDE}
+    $SUDO mkdir -p ${PROTO_INCLUDE}
 
-    sudo ln -sf /usr/include/goby ${PROTO_INCLUDE}/goby
-    sudo ln -sf /usr/include/dccl ${PROTO_INCLUDE}/dccl
-    sudo mkdir -p ${PROTO_INCLUDE}/jaiabot
-    sudo ln -sf $(pwd)/../../lib/messages ${PROTO_INCLUDE}/jaiabot/messages
+    $SUDO ln -sf /usr/include/goby ${PROTO_INCLUDE}/goby
+    $SUDO ln -sf /usr/include/dccl ${PROTO_INCLUDE}/dccl
+    $SUDO mkdir -p ${PROTO_INCLUDE}/jaiabot
+    $SUDO ln -sf $(pwd)/../../lib/messages ${PROTO_INCLUDE}/jaiabot/messages
 fi
 
 echo "🟢 Building Jaia protobuf python modules"
