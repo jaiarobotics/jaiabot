@@ -1757,6 +1757,9 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
 				</button>
+				<button type="button" className="globalCommand" title="Generator" onClick={this.loadMissions.bind(this, Missions.mission_generator())}>
+					Generator
+				</button>
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
