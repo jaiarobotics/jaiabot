@@ -187,11 +187,20 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of_bots):
+def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, number_of_bots):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
     """
+    # Define the geographic and projection coordinate EPSG codes
+    geo_epsg = 4326
+    proj_epsg = 26919
+
+    plot_it = True
+    if plot_it:
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal')
+
     # Just an example of points
     boundary_points = [
         (-71.32337250, 41.49850826),
@@ -203,78 +212,93 @@ def create_mission_plan(boundary_points, mission_type, spacing_meters, number_of
         (-71.33414666, 41.49966858),
         (-71.32337250, 41.49850826)
     ]
+
+    # Create 0 index list of bots
+    bot_list = list(np.arange(number_of_bots))
+
+    # Get a unique color per bot
+    point_colors = pick_point_colors(number_of_bots)
+
+    # Define the deployment points
+    deployment_point_geo = Point(deploy_lon, deploy_lat)
+    deployment_point_proj = change_shapely_projection(deployment_point_geo, geo_epsg, proj_epsg)
+    print('z')
+    if plot_it:
+        gpd.GeoSeries(deployment_point_geo).plot(ax=ax, marker='p', color='black', markersize=40)
+
     # Define the main user-defined Polygon boundary
     user_polygon_geo = Polygon(boundary_points)
-    from_epsg = 4326
-    to_epsg = 26919
-    p = change_shapely_projection(user_polygon_geo, from_epsg, to_epsg)
+    p = change_shapely_projection(user_polygon_geo, geo_epsg, proj_epsg)
+    if plot_it:
+        gpd.GeoSeries(user_polygon_geo).plot(ax=ax, figsize=(18, 12), color='white')
+
     # Find the exclusion areas inside the user-defined polygon using external data sources
     exclusion_areas = get_exclusion_areas(p)
     exclusion_areas = []
+    if plot_it:
+        for excluded in exclusion_areas:
+            gpd.GeoSeries(excluded).plot(ax=ax, color='red', edgecolor='red')
+
     # Find the Polygon rectangular boundary
     xmin, ymin, xmax, ymax = p.bounds
+
     # Generate Points
-    # Spacing in decimal degrees
-    # n = 1e3
-    # Spacing in meters
     n = spacing_meters
     x = np.arange(np.floor(xmin * n) / n, np.ceil(xmax * n) / n, n)
     y = np.arange(np.floor(ymin * n) / n, np.ceil(ymax * n) / n, n)
     points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
+
     # Find Points inside the Polygon
-    inside_points = points.intersection(p)
+    inside_points_all = points.intersection(p)
+
     # Remove the Points that reside inside the exclusion_area Polygons
     if len(exclusion_areas) > 0:
         excluded_points = []
         for excluded in exclusion_areas:
             excluded_points.append(points.intersection(change_shapely_projection(excluded, from_epsg, to_epsg)))
         for xp in excluded_points:
-            inside_points = inside_points - xp
+            inside_points_all = inside_points_all - xp
 
-    eastings = [x.x for x in inside_points]
-    northings = [x.y for x in inside_points]
-    eastings_northings_dict = {'eastings': eastings, 'northings': northings}
-    eastings_northings_df = pd.DataFrame(eastings_northings_dict)
-    ordered_points_df, ordered_points_gdf = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings")
+    # Assign points to bots
+    bot_multipoint_dict = assign_points_to_bots(inside_points_all, number_of_bots)
 
-    # fig, ax = plt.subplots()
-    # ax.set_aspect('equal')
-    # gpd.GeoSeries(p).plot(ax=ax, figsize=(18, 12))
-    # gpd.GeoDataFrame(ordered_points_gdf).plot(ax=ax, marker='o', markersize=3, color='grey')
-    # lineStringObj = LineString([[a.x, a.y] for a in ordered_points_gdf.geometry.values])
-    # gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
-    # plt.show()
-
-    inside_points = MultiPoint(points=ordered_points_gdf.geometry)
-
-    from_epsg = 26919
-    to_epsg = 4326
-    result = change_shapely_projection(inside_points, from_epsg, to_epsg)
-    # Make a rudimentary plot of the points for review TODO: Remove
-    # p = gpd.GeoSeries(result)
-    # plt.figure(figsize=(18, 12), dpi=400, bbox_inches="tight")
-    # p.plot(figsize=(18, 12))
-    # plt.show()
-
-    bot_multipoint_list = assign_points_to_bots(result, number_of_bots)
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
-    gpd.GeoSeries(user_polygon_geo).plot(ax=ax, color='lightgrey', edgecolor='black')
-    for excluded in exclusion_areas:
-        gpd.GeoSeries(excluded).plot(ax=ax, color='red', edgecolor='red')
-    bot_list = list(np.arange(number_of_bots))
-    point_colors = pick_point_colors(number_of_bots)
+    # Iterate through each bot's points and sort for execution order using TSP
+    bot_gdf_dict_ordered = {}
     for bot in bot_list:
-        gpd.GeoSeries(bot_multipoint_list[bot]).plot(ax=ax, marker='o', color=point_colors[bot], markersize=5)
-        lineStringObj = LineString(bot_multipoint_list[bot])
-        gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
-    plt.show()
-    tl = 0
-    for t in bot_multipoint_list:
-        tl = tl + len(t)
-    print(tl)
-    mission_dict_list = create_mission_dict(bot_multipoint_list, bot_list)
-    return p, result, bot_multipoint_list, mission_dict_list
+        inside_points = bot_multipoint_dict[bot]
+        eastings = [x.x for x in inside_points]
+        northings = [x.y for x in inside_points]
+        eastings_northings_dict = {'eastings': eastings, 'northings': northings}
+        eastings_northings_df = pd.DataFrame(eastings_northings_dict)
+        ordered_points_df = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings")
+        # Add deployment location to start and end of point list in GeoDataFrame
+        r = pd.DataFrame(columns=['eastings', 'northings'])
+        print('a')
+        r = r.append({'eastings': deployment_point_proj.x, 'northings': deployment_point_proj.y}, ignore_index=True)
+        print('b')
+        r = r.append(ordered_points_df, ignore_index=True)
+        print('c')
+        r = r.append({'eastings': deployment_point_proj.x, 'northings': deployment_point_proj.y}, ignore_index=True)
+        print('d')
+        ordered_points_gdf = gpd.GeoDataFrame(r, geometry=gpd.points_from_xy(r.eastings.array, r.northings.array), crs=proj_epsg)
+        print('e')
+        bot_gdf_dict_ordered[bot] = ordered_points_gdf.to_crs(epsg=geo_epsg)
+
+    if plot_it:
+        for bot in bot_list:
+            line_string_obj = LineString([[a.x, a.y] for a in bot_gdf_dict_ordered[bot].geometry.values])
+            gpd.GeoSeries(line_string_obj).plot(ax=ax, color='blue')
+            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[0]]).plot(ax=ax, marker='D', color=point_colors[bot], markersize=20)
+            gpd.GeoDataFrame(bot_gdf_dict_ordered[bot]).plot(ax=ax, marker='o', color=point_colors[bot], markersize=5)
+            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[-1]]).plot(ax=ax, marker='X', color=point_colors[bot], markersize=20)
+
+    # Create mission dict
+    mission_dict_list = create_mission_dict(bot_gdf_dict_ordered, bot_list)
+
+    if plot_it:
+        plt.show()
+
+    return bot_gdf_dict_ordered, mission_dict_list
 
 
 def pick_point_colors(number_of_bots):
@@ -294,15 +318,15 @@ def assign_points_to_bots(survey_points, number_of_bots):
     num_survey_points = len(survey_points)
     point_break = floor(num_survey_points / number_of_bots)
     bot_list = list(np.arange(number_of_bots))
-    bot_multipoint_list = []
+    bot_multipoint_dict = {}
     for bot in bot_list:
         start = point_break*bot
         if bot == len(bot_list) - 1:
             end = None
         else:
             end = point_break*(bot+1)
-        bot_multipoint_list.append(survey_points[start:end])
-    return bot_multipoint_list
+        bot_multipoint_dict[bot] = survey_points[start:end]
+    return bot_multipoint_dict
 
 
 def get_exclusion_areas(p):
@@ -338,6 +362,7 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
     '''
     Function, that converts a list of random points into ordered points, searching for the shortest possible distance between the points.
     Author: Marjan Moderc, 2016
+    Modified: James Case, 2022
     '''
     points_list = points_df[[x_col, y_col]].values.tolist()
 
@@ -386,8 +411,8 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
         ordered_points_df = ordered_points_df.append(
             points_df.loc[(points_df[x_col] == best_candidate[0]) & (points_df[y_col] == best_candidate[1])])
 
-    ordered_points_gdf = gpd.GeoDataFrame(ordered_points_df, geometry=gpd.points_from_xy(ordered_points_df.eastings,
-                                                                                         ordered_points_df.northings))
+    # ordered_points_gdf = gpd.GeoDataFrame(ordered_points_df, geometry=gpd.points_from_xy(ordered_points_df.eastings,
+    #                                                                                      ordered_points_df.northings))
     # eastings = [x.x for x in inside_points]
     # northings = [x.y for x in inside_points]
     # eastings_northings_dict = {'eastings': eastings, 'northings': northings}
@@ -401,17 +426,17 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
     # gpd.GeoSeries(lineStringObj).plot(ax=ax, color='blue')
     # plt.show(figsize=(18, 12))
 
-    return ordered_points_df, ordered_points_gdf
+    return ordered_points_df
 
 
-def create_mission_dict(bot_multipoint_list, bot_list):
+def create_mission_dict(bot_multipoint_dict, bot_list):
     """
     Create the mission dictionaries for each bot
     """
     mission_dict_list = []
     for bot in bot_list:
         bot_points = []
-        for p in bot_multipoint_list[bot]:
+        for p in bot_multipoint_dict[bot].geometry:
             bot_points.append(
                 {
                     "location": {
