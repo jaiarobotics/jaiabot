@@ -193,6 +193,7 @@ export default class AXUI extends React.Component {
 		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
+		this.undoMissions = {}
 
 		this.flagNumber = 1
 
@@ -589,7 +590,7 @@ export default class AXUI extends React.Component {
 		map.getView().on('change:rotation', function() {
 			Settings.write('rotation', map.getView().getRotation())
 		})
-
+		
 	}
 
 	createLayers() {
@@ -697,6 +698,17 @@ export default class AXUI extends React.Component {
 
 		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
+
+
+		// Undo button
+		function KeyPress(e) {
+			var evtobj = window.event? event : e
+			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
+				this.restoreUndo()
+			}
+		}
+		
+		document.onkeydown = KeyPress.bind(this)
 
 		info('Welcome to Central Command!');
 	}
@@ -907,8 +919,6 @@ export default class AXUI extends React.Component {
 					faultLevel2Count ++
 					break;
 			}
-
-			console.log("faultLevel: ", faultLevel)
 
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
@@ -1153,6 +1163,30 @@ export default class AXUI extends React.Component {
 			info('Stopped following you');
 		} else {
 			info(`Stopped following bot ${trackingTarget}`);
+		}
+	}
+
+	changeMissions(func) {
+		// Save a backup of the current mission set
+		let oldMissions = deepcopy(this.missions)
+
+		// Do any alterations to the mission set
+		func(this.missions)
+
+		// If something was changed, then place the old mission set into the undoMissions
+		if (oldMissions != this.missions) {
+			this.undoMissions = deepcopy(oldMissions)
+
+			// Update the mission layer to reflect changes that were made
+			this.updateMissionLayer()
+		}
+	}
+
+	restoreUndo() {
+		if (this.undoMissions != null) {
+			this.missions = deepcopy(this.undoMissions)
+			this.updateMissionLayer()
+			this.undoMissions = null
 		}
 	}
 
@@ -1448,23 +1482,25 @@ export default class AXUI extends React.Component {
 			return
 		}
 
-		if (!(botId in this.missions)) {
-			this.missions[botId] = {
-				botId: botId,
-				time: '1642891753471247',
-				type: 'MISSION_PLAN',
-				plan: {
-					start: 'START_IMMEDIATELY',
-					movement: 'TRANSIT',
-					goal: [],
-					recovery: {recoverAtFinalGoal: true}
+		this.changeMissions((missions) => {
+
+			if (!(botId in missions)) {
+				missions[botId] = {
+					botId: botId,
+					time: '1642891753471247',
+					type: 'MISSION_PLAN',
+					plan: {
+						start: 'START_IMMEDIATELY',
+						movement: 'TRANSIT',
+						goal: [],
+						recovery: {recoverAtFinalGoal: true}
+					}
 				}
 			}
-		}
+	
+			missions[botId].plan.goal.push({location: location})
 
-		this.missions[botId].plan.goal.push({location: location})
-
-		this.updateMissionLayer()
+		})
 	}
 
 	updateMissionLayer() {
@@ -1779,12 +1815,19 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
+				{ this.undoButton() }
 			</div>
 		</div>
 
 		)
 
 		return element
+	}
+
+	undoButton() {
+		let disabled = (this.undoMissions == null)
+		let inactive = disabled ? " inactive" : ""
+		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
 	}
 
 	setHomeClicked(evt) {

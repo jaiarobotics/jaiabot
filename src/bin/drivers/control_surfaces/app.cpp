@@ -154,7 +154,7 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
 {
     if (control_surfaces.has_motor())
     {
-        target_motor = 1500 - (control_surfaces.motor() / 100.0) * 400;
+        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
     }
 
     if (control_surfaces.has_rudder())
@@ -215,23 +215,25 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     {
         current_motor += min(target_motor - current_motor, motor_max_step);
 
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().forwardstart());
+        if (current_motor > 1500)
+            corrected_motor = max(current_motor, bounds.motor().forwardstart());
         if (current_motor == 1500)
             corrected_motor = current_motor;
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().reversehalt());
+        if (current_motor < 1500)
+            corrected_motor =
+                (corrected_motor < bounds.motor().reversehalt()) ? corrected_motor : 1500;
     }
     else
     {
         current_motor -= min(current_motor - target_motor, motor_max_step);
 
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().forwardhalt());
+        if (current_motor > 1500)
+            corrected_motor =
+                (corrected_motor > bounds.motor().forwardhalt()) ? corrected_motor : 1500;
         if (current_motor == 1500)
             corrected_motor = current_motor;
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().reversestart());
+        if (current_motor < 1500)
+            corrected_motor = min(current_motor, bounds.motor().reversestart());
     }
 
     arduino_cmd.set_motor(corrected_motor);
