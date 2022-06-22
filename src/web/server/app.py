@@ -101,8 +101,8 @@ def get_mission_list():
         deploy_lon=-71.3,
         boundary_points=None,
         mission_type=None,
-        spacing_meters=50,
-        number_of_bots=4
+        spacing_meters=100,
+        number_of_bots=2
     )
     return JSONResponse(mission_dict)
 
