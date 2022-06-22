@@ -4,6 +4,7 @@
 /* eslint-disable no-unused-vars */
 
 import * as DiveParameters from "./DiveParameters"
+import JsonAPI from '../../common/JsonAPI';
 
 const hardcoded_goals = [
     [
@@ -129,6 +130,16 @@ export class Missions {
             2: _mission(2, demo_goals(2)),
             3: _mission(3, demo_goals(3)),
             4: _mission(4, demo_goals(4))
+        }
+    }
+
+    static async mission_generator() {
+        let mission_json_api = JsonAPI('/missionfiles');
+        let mission_json = mission_json_api.get('create')
+        console.log(mission_json);
+        return {
+            0: mission_json[0],
+            1: mission_json[1]
         }
     }
     
