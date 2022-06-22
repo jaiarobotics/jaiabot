@@ -96,13 +96,15 @@ def init_mission_database():
 
 @app.route('/missionfiles/create', methods=['GET'])
 def get_mission_list():
-    a, b, c, m = missions.create_mission_plan(
+    mission_gdf, mission_dict = missions.create_mission_plan(
+        deploy_lat=41.47,
+        deploy_lon=-71.3,
         boundary_points=None,
         mission_type=None,
         spacing_meters=50,
         number_of_bots=4
     )
-    return JSONResponse(m)
+    return JSONResponse(mission_dict)
 
 @app.route('/missionfiles/save', methods=['POST'])
 def save_mission_list():
