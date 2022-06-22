@@ -133,14 +133,27 @@ export class Missions {
         }
     }
 
-    static async mission_generator() {
-        let mission_json_api = JsonAPI('/missionfiles');
-        let mission_json = mission_json_api.get('create')
-        console.log(mission_json);
-        return {
-            0: mission_json[0],
-            1: mission_json[1]
-        }
+    static mission_generator() {
+        console.log('hitting mission_generator');
+        fetch('http://localhost:40001/missionfiles/create')
+            .then(response => response.json())
+            .then(data => {
+                console.log('got inside')
+                console.log(data);
+                return data
+            });
+        // let mission_json_api = JsonAPI('http://localhost:40001/missionfiles');
+        // let mission_json = await mission_json_api.get('create', '').then(response => response.json())
+        //     .then(mission_json => {
+        //         console.log(mission_json);
+        //         return {
+        //             0: mission_json[0],
+        //             1: mission_json[1]
+        //         }
+        //         // do something with the data, e.g. setState
+        //     });
+
+
     }
     
 }
