@@ -17,7 +17,9 @@ jobs = [
     ['stop', 'selected'],
     ['bot', 'selected'],
     ['bot', 'unselected'],
-    ['bot', 'remoteControl']
+    ['bot', 'remoteControl'],
+    ['dive', 'selected'],
+    ['dive', 'unselected'],
 ]
 
 jsFile = open('Icons.jsx', 'w')
