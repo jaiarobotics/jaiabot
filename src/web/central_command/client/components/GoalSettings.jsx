@@ -16,6 +16,11 @@ export class GoalSettingsPanel extends React.Component {
         }
 
         this.onClose = props.onClose
+        this.onChange = props.onChange
+    }
+
+    componentDidUpdate() {
+        this.onChange?.()
     }
 
     render() {
