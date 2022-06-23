@@ -66,7 +66,7 @@ def inputcommand():
                 adjustment = int(input("How many microseconds to adjust by? Values between -500 and 500 only. "))
             except:
                 print("please enter a number")
-            adjustmentType = type(adjustment)
+            adjustmentType = str(type(adjustment))
             if adjustmentType == "int":
                 f = False
         adjustment = wingInsurance(adjustment)
@@ -125,7 +125,6 @@ def calibrateWingSurface():
                 
             else:
                 print("Please enter Yes or No")
-    return
 
 #skipd wing calibration for user
 def skipWing():
@@ -151,11 +150,11 @@ def skipMotor():
     write("Y")
     write("J")
     rd()
-    print("current bound is 1500")
+    print("current bound is 1599")
     write("Y")
     write("J")
     rd()
-    print("current bound is 1500")
+    print("current bound is 1401")
     write("C")
     
             
@@ -206,13 +205,13 @@ def calibrateMotor():
 
         #calibrates the forward, backward, forward halt, and backward halt limitations
         print("calibrating forward start")
-        check_bounds.motor.reverseStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
+        check_bounds.motor.forwardStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
         print("calibrating reverse start")
-        check_bounds.motor.forwadStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
+        check_bounds.motor.reverseStart = int(inputMotorCommand("is the motor moving? Yes/No ","Please wait 15 seconds. Is the motor still moving? Yes/No "))
         print("calibrating forward halt")
-        check_bounds.motor.reverseHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
-        print("calibrating reverse halt")
         check_bounds.motor.forwardHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
+        print("calibrating reverse halt")
+        check_bounds.motor.reverseHalt = int(inputMotorCommand("is the motor stopped? Yes/No ","Please wait 10 seconds. Is the motor still stopped? Yes/No "))
 
         end = True
         while end == True:
@@ -256,7 +255,7 @@ while begin == True:
         #ask the user to calibrate bounds
         x = True
         while x is True:
-            calibrate = input("do you want to calibrate the starboard flap? Yes/No ")
+            calibrate = input("do you want to calibrate the starboard elevator? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 check_bounds.strb.CopyFrom(calibrateWingSurface())
@@ -276,7 +275,7 @@ while begin == True:
         x = True
         calibrate = ""
         while x is True:
-            calibrate = input("do you want to calibrate the port flap? Yes/No ")
+            calibrate = input("do you want to calibrate the port elevator? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 check_bounds.port.CopyFrom(calibrateWingSurface())
@@ -325,13 +324,13 @@ while begin == True:
                 x = False
             elif calibrate == "NO":
                 if check_bounds.motor.reverseStart == 0:
-                    check_bounds.motor.reverseStart = 1600
+                    check_bounds.motor.reverseStart = 1400
                 if check_bounds.motor.forwardStart == 0:
-                    check_bounds.motor.forwardStart = 1400
+                    check_bounds.motor.forwardStart = 1600
                 if check_bounds.motor.forwardHalt == 0:
-                    check_bounds.motor.forwardHalt = 1500
+                    check_bounds.motor.forwardHalt = 1599
                 if check_bounds.motor.reverseHalt == 0:
-                    check_bounds.motor.reverseHalt = 1500
+                    check_bounds.motor.reverseHalt = 1401
                 skipMotor()
                 x = False
             else:
@@ -352,7 +351,7 @@ while begin == True:
         #ask the user to upload jaiabot_runtime and finish calibration
         please = True
         while please == True:
-            upload = input("Would you like to upload jaiabot_runtime?? Yes/No ")
+            upload = input("Would you like to upload jaiabot_runtime? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
@@ -403,13 +402,13 @@ while begin == True:
             check_bounds.port.center = 1500
 
         if check_bounds.motor.reverseStart == 0:
-            check_bounds.motor.reverseStart = 1600
+            check_bounds.motor.reverseStart = 1400
         if check_bounds.motor.forwardStart == 0:
-            check_bounds.motor.forwardStart = 1400
+            check_bounds.motor.forwardStart = 1600
         if check_bounds.motor.forwardHalt == 0:
-            check_bounds.motor.forwardHalt = 1500
+            check_bounds.motor.forwardHalt = 1599
         if check_bounds.motor.reverseHalt == 0:
-            check_bounds.motor.reverseHalt = 1500
+            check_bounds.motor.reverseHalt = 1401
 
         records = open("bounds.pb.cfg", "w")
         records.write(str(check_bounds))
