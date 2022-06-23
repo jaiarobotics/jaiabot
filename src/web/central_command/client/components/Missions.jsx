@@ -6,10 +6,23 @@
 import * as DiveParameters from "./DiveParameters"
 
 const hardcoded_goals = [
-    {location: {lat: 41.66260,  lon: -71.27310 }},
-    {location: {lat: 41.662350, lon: -71.273283}},
-    {location: {lat: 41.661992, lon: -71.273560}},
-    {location: {lat: 41.661652, lon: -71.273825}}
+    [
+        {location: {lat: 41.66260,  lon: -71.27310 }},
+        {location: {lat: 41.662350, lon: -71.273283}}
+    ],
+    // M1
+    [
+        {location: {lat: 41.662350, lon: -71.273283}},
+        {location: {lat: 41.661992, lon: -71.273560}}
+    ],
+    // M2
+    [
+        {location: {lat: 41.661992, lon: -71.273560}}
+    ],
+    // M3
+    [
+        {location: {lat: 41.661652, lon: -71.273825}}
+    ]
 ]
 
 function _mission(botId, goals) {
@@ -26,6 +39,10 @@ function _mission(botId, goals) {
     }
     return mission
 }
+
+const hardcoded_missions = [
+
+]
 
 function demo_goals(botId) {
         const origin = { lon: -71.27382208146715, lat: 41.66 }
@@ -101,8 +118,8 @@ export class Missions {
     }
 
     static hardcoded(botId, index) {
-        let waypoint = hardcoded_goals[index]
-        return _mission(botId, [waypoint])
+        let goals = hardcoded_goals[index]
+        return _mission(botId, goals)
     }
 
     static demo_mission() {
