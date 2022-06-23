@@ -1748,10 +1748,10 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
 					M 3
 				</button>
-				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runMissions.bind(this, Missions.RCMode(0))}>
+				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
 					RC
 				</button>
-				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runMissions.bind(this, Missions.RCDive(0))}>
+				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
 					Dive
 				</button>
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
@@ -1781,6 +1781,24 @@ export default class AXUI extends React.Component {
 
 	playClicked(evt) {
 		this.runLoadedMissions(this.selectedBotIds())
+	}
+
+	runRCMode() {
+		let botId = this.selectedBotId()
+		if (botId == null) {
+			warning("No bots selected")
+			return
+		}
+		this.runMissions(Missions.RCMode(botId))
+	}
+
+	runRCDive() {
+		let botId = this.selectedBotId()
+		if (botId == null) {
+			warning("No bots selected")
+			return
+		}
+		this.runMissions(Missions.RCDive(botId))
 	}
 
 	sendFlag(evt) {
