@@ -1241,7 +1241,7 @@ export default class AXUI extends React.Component {
 
 		var goalSettingsPanel = ''
 		if (this.state.goalBeingEdited != null) {
-			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onClose={() => { this.state.goalBeingEdited = null }} />
+			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
 		}
 
 		return (
@@ -1545,19 +1545,21 @@ export default class AXUI extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let transformed_pts = goals.map(goal => {
+			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
 
-			for (let [pt_index, pt] of transformed_pts.entries()) {
+			for (let [pt_index, goal] of goals.entries()) {
+				let pt = transformed_pts[pt_index]
+
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
 				var icon
 
-				if (pt === transformed_pts[0]) {
+				if (pt_index === 0) {
 					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
 				}
-				else if (pt === transformed_pts[transformed_pts.length - 1]) {
+				else if (pt_index === goals.length - 1) {
 					icon = selected ? Icons.stopSelectedStyle : Icons.stopUnselectedStyle
 				}
 				else {
@@ -1576,6 +1578,26 @@ export default class AXUI extends React.Component {
 				pointFeature.setStyle(icon)
 				pointFeature.goal = missions[botId]?.plan?.goal?.[pt_index]
 				features.push(pointFeature)
+
+				// Dive annotation feature
+				switch(goal.task?.type) {
+					case 'DIVE':
+						let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						diveFeature.setStyle(selected ? Icons.diveSelectedStyle : Icons.diveUnselectedStyle)
+						features.push(diveFeature)
+						break;
+					case 'SURFACE_DRIFT':
+						let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						driftFeature.setStyle(selected ? Icons.driftSelectedStyle : Icons.driftUnselectedStyle)
+						features.push(driftFeature)
+						break;
+					case 'STATION_KEEP':
+						let stationkeepFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						stationkeepFeature.setStyle(selected ? Icons.stationkeepSelectedStyle : Icons.stationkeepUnselectedStyle)
+						features.push(stationkeepFeature)
+						break;
+				}
+
 			}
 
 			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
