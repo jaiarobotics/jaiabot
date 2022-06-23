@@ -222,7 +222,7 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
         if (current_motor < 1500)
             corrected_motor = (current_motor < bounds.motor().reversehalt()) ? current_motor : 1500;
     }
-    else
+    else if (target_motor < current_motor)
     {
         current_motor -= min(current_motor - target_motor, motor_max_step);
 
@@ -232,6 +232,10 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
             corrected_motor = current_motor;
         if (current_motor < 1500)
             corrected_motor = min(current_motor, bounds.motor().reversestart());
+    }
+    else
+    {
+        corrected_motor = current_motor;
     }
 
     arduino_cmd.set_motor(corrected_motor);
