@@ -245,7 +245,9 @@ while begin == True:
             insert = insert.upper()
             if insert == "YES":
                 print("system uploading...")
+                os.system('sudo systemctl stop jaiabot')
                 os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh calibration/')
+                os.system('sudo systemctl start jaiabot')
                 uplaod = False
             elif insert == "NO":
                 uplaod = False
@@ -355,7 +357,9 @@ while begin == True:
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
+                os.system('sudo systemctl stop jaiabot')
                 os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh jaiabot_runtime/')
+                os.system('sudo systemctl start jaiabot')
                 please = False
             elif upload == "NO":
                 #leaves jaiabot_calibration running
@@ -373,7 +377,9 @@ while begin == True:
             upload = input("Would you like to upload jaiabot_runtime? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
+                os.system('sudo systemctl stop jaiabot')
                 os.system('cd ~/jaiabot/src/arduino/; /etc/jaiabot/arduino_upload.sh jaiabot_runtime/')
+                os.system('sudo systemctl start jaiabot')
                 end = False
             elif upload == "NO":
                 end = False
