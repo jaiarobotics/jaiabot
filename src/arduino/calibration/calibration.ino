@@ -114,13 +114,13 @@ int MotorBounds(int microseconds, Servo servo){
   
   do{ 
   
-  int startup = motor_speed(1500, motor_servo, 0);
+  int startup = motor_speed(1500, motor_servo, 1);
   Serial.println(startup);
-  int startdown = motor_speed(1500, motor_servo, 1);
+  int startdown = motor_speed(1500, motor_servo, 0);
   Serial.println(startdown);
-  int haltup = motor_speed(startup, motor_servo, 1);
+  int haltup = motor_speed(startup, motor_servo, 0);
   Serial.println(haltup);
-  int haltdown = motor_speed(startdown, motor_servo, 0);
+  int haltdown = motor_speed(startdown, motor_servo, 1);
   Serial.println(haltdown);
   bool completion = Serial.findUntil("C","Z");
       if (completion == true){
