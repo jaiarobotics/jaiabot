@@ -220,16 +220,14 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
         if (current_motor == 1500)
             corrected_motor = current_motor;
         if (current_motor < 1500)
-            corrected_motor =
-                (corrected_motor < bounds.motor().reversehalt()) ? corrected_motor : 1500;
+            corrected_motor = (current_motor < bounds.motor().reversehalt()) ? current_motor : 1500;
     }
     else
     {
         current_motor -= min(current_motor - target_motor, motor_max_step);
 
         if (current_motor > 1500)
-            corrected_motor =
-                (corrected_motor > bounds.motor().forwardhalt()) ? corrected_motor : 1500;
+            corrected_motor = (current_motor > bounds.motor().forwardhalt()) ? current_motor : 1500;
         if (current_motor == 1500)
             corrected_motor = current_motor;
         if (current_motor < 1500)
