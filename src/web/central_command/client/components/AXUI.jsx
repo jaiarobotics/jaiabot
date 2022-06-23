@@ -1724,6 +1724,17 @@ export default class AXUI extends React.Component {
 		return false
 	}
 
+	generateMissions() {
+		console.log('hitting mission_generator');
+        fetch('http://localhost:40001/missionfiles/create')
+            .then(response => response.json())
+            .then(data => {
+                console.log('got inside')
+                console.log(data);
+                this.loadMissions(data);
+            });
+	}
+
 	// Command Drawer
 
 	commandDrawer() {
@@ -1757,7 +1768,7 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
 				</button>
-				<button type="button" className="globalCommand" title="Generator" onClick={this.loadMissions.bind(this, Missions.mission_generator())}>
+				<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>
 					Generator
 				</button>
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
