@@ -35,3 +35,11 @@ import botRemoteControl from "../icons/bot-remoteControl.svg"
 export {botRemoteControl}
 export const botRemoteControlStyle = new OlStyle({ image: new OlIcon({ src: botRemoteControl }) })
 
+import diveSelected from "../icons/dive-selected.svg"
+export {diveSelected}
+export const diveSelectedStyle = new OlStyle({ image: new OlIcon({ src: diveSelected }) })
+
+import diveUnselected from "../icons/dive-unselected.svg"
+export {diveUnselected}
+export const diveUnselectedStyle = new OlStyle({ image: new OlIcon({ src: diveUnselected }) })
+
