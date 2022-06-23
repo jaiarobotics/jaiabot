@@ -94,9 +94,8 @@ while True:
             euler[0], euler[1], euler[2], 
             linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
             gravity[0], gravity[1], gravity[2])
+        print('Sent: ', line)
     except TypeError as e:
         print(e)
 
-    print('Sent: ', line)
     sock.sendto(line.encode('utf8'), addr)
-
