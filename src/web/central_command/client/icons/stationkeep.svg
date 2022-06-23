@@ -8,7 +8,7 @@
    y="0px"
    viewBox="0 0 55.587496 55.467579"
    xml:space="preserve"
-   sodipodi:docname="dive.svg"
+   sodipodi:docname="stationkeep.svg"
    width="55.587494"
    height="55.467579"
    inkscape:version="1.2 (dc2aeda, 2022-05-15)"
@@ -27,7 +27,7 @@
    inkscape:deskcolor="#505050"
    showgrid="false"
    inkscape:zoom="4.04"
-   inkscape:cx="26.113861"
+   inkscape:cx="25.866337"
    inkscape:cy="-0.61881188"
    inkscape:window-width="1920"
    inkscape:window-height="967"
@@ -51,8 +51,10 @@
 
 
 
-<path
-   style="fill:#34d2eb;fill-opacity:1;stroke:#000000;stroke-width:1.37761px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-   d="m 25.271737,33.19148 -0.09254,10.227289 -3.609632,0.04629 5.969775,10.319843 5.923498,-10.227285 h -3.655916 l -0.04629,-10.458672 z"
-   id="path11121"
-   inkscape:label="path11121" /></svg>
+<rect
+   style="opacity:1;fill:#00ffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-dasharray:none;stroke-opacity:1"
+   id="rect12129"
+   width="11.101389"
+   height="11.101389"
+   x="22.47406"
+   y="37.573074" /></svg>

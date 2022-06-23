@@ -24,8 +24,8 @@
      inkscape:deskcolor="#505050"
      showgrid="false"
      inkscape:zoom="23.78125"
-     inkscape:cx="6.0551905"
-     inkscape:cy="8.304862"
+     inkscape:cx="5.2141919"
+     inkscape:cy="8.346912"
      inkscape:window-width="1390"
      inkscape:window-height="967"
      inkscape:window-x="0"
@@ -33,7 +33,21 @@
      inkscape:window-maximized="0"
      inkscape:current-layer="svg6709" />
   <path
-     d="m 8.25,0.75 a 7.5,7.5 0 0 0 -7.5,7.5 7.5,7.5 0 0 0 7.5,7.5 7.5,7.5 0 0 0 7.5,-7.5 7.5,7.5 0 0 0 -7.5,-7.5 z"
-     id="path6707-7"
-     style="fill:#5ec957;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1" />
+     sodipodi:type="star"
+     style="fill:#5ec957;stroke:#000000;stroke-width:1.5;stroke-dasharray:none"
+     id="path17688"
+     inkscape:flatsided="true"
+     sodipodi:sides="3"
+     sodipodi:cx="8.4940863"
+     sodipodi:cy="7.695138"
+     sodipodi:r1="6.5925927"
+     sodipodi:r2="3.2962966"
+     sodipodi:arg1="0.52072839"
+     sodipodi:arg2="1.5679259"
+     inkscape:rounded="0"
+     inkscape:randomized="0"
+     d="M 14.212877,10.975033 2.7942186,11.007809 8.475163,1.1025724 Z"
+     inkscape:transform-center-x="-0.01054068"
+     inkscape:transform-center-y="-1.8269001"
+     transform="matrix(1.1139994,0,0,1.1139994,-1.2219439,0.50785507)" />
 </svg>

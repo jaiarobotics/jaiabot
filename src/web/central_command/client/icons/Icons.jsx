@@ -43,3 +43,19 @@ import diveUnselected from "../icons/dive-unselected.svg"
 export {diveUnselected}
 export const diveUnselectedStyle = new OlStyle({ image: new OlIcon({ src: diveUnselected }) })
 
+import driftSelected from "../icons/drift-selected.svg"
+export {driftSelected}
+export const driftSelectedStyle = new OlStyle({ image: new OlIcon({ src: driftSelected }) })
+
+import driftUnselected from "../icons/drift-unselected.svg"
+export {driftUnselected}
+export const driftUnselectedStyle = new OlStyle({ image: new OlIcon({ src: driftUnselected }) })
+
+import stationkeepSelected from "../icons/stationkeep-selected.svg"
+export {stationkeepSelected}
+export const stationkeepSelectedStyle = new OlStyle({ image: new OlIcon({ src: stationkeepSelected }) })
+
+import stationkeepUnselected from "../icons/stationkeep-unselected.svg"
+export {stationkeepUnselected}
+export const stationkeepUnselectedStyle = new OlStyle({ image: new OlIcon({ src: stationkeepUnselected }) })
+
