@@ -29,6 +29,7 @@ import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
+import { doubleClick } from 'ol/events/condition';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -224,7 +225,9 @@ export default class AXUI extends React.Component {
 			],
 			selectedMissionAction: -1,
 			measureFeature: null,
-			measureActive: false
+			measureActive: false,
+			surveyPolygonFeature: null,
+			surveyPolygonActive: false
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -551,6 +554,73 @@ export default class AXUI extends React.Component {
 			},
 			this
 		);
+
+
+		this.surveyPolygonInteraction = new OlDrawInteraction({
+			source: this.measureSource,
+			stopClick: true,
+			minPoints: 3,
+			clickTolerance: 10,
+			finishCondition: doubleClick,
+			type: 'Polygon',
+			style: new OlStyle({
+				fill: new OlFillStyle({
+					color: 'rgba(255, 255, 255, 0.2)'
+				}),
+				stroke: new OlStrokeStyle({
+					color: 'rgba(0, 0, 0, 0.5)',
+					lineDash: [10, 10],
+					width: 2
+				}),
+				image: new OlCircleStyle({
+					radius: 5,
+					stroke: new OlStrokeStyle({
+						color: 'rgba(0, 0, 0, 0.7)'
+					}),
+					fill: new OlFillStyle({
+						color: 'rgba(255, 255, 255, 0.2)'
+					})
+				})
+			})
+		});
+
+		let surveyPolygonlistener;
+		this.surveyPolygonInteraction.on(
+			'drawstart',
+			(evt) => {
+				this.setState({ surveyPolygonFeature: evt.feature });
+
+				surveyPolygonlistener = evt.feature.getGeometry().on('change', (evt2) => {
+					console.log(evt);
+					const geom = evt2.target;
+
+					// tooltipCoord = geom.getLastCoordinate();
+					$('#surveyPolygonResult').text(AXUI.formatLength(geom));
+				});
+			},
+			this
+		);
+
+		this.surveyPolygonInteraction.on(
+			'drawend',
+			(evt) => {
+				// console.log(evt.feature.getGeometry());
+				let geo_geom = evt.feature.getGeometry();
+				geo_geom.transform("EPSG:3857", "EPSG:4326")
+				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+				console.log(surveyPolygonGeoCoords);
+				// this.generateMissions(surveyPolygonGeoCoords);
+				// console.log(geom);
+				this.setState({ measureActive: false, surveyPolygonFeature: null });
+				OlUnobserveByKey(surveyPolygonlistener);
+				this.changeInteraction();
+			},
+			this
+		);
+
+
+
+
 
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
@@ -1213,6 +1283,7 @@ export default class AXUI extends React.Component {
 			faultCounts,
 			botsDrawerOpen,
 			measureActive,
+			surveyPolygonActive
 		} = this.state;
 
 		let bots = this.podStatus?.bots
@@ -1327,6 +1398,35 @@ export default class AXUI extends React.Component {
 							)}
 						</div>
 					)}
+
+					{surveyPolygonActive ? (
+						<div>
+							<div id="surveyPolygonResult" />
+							<button
+								type="button"
+								className="active"
+								onClick={() => {
+									this.changeInteraction();
+									this.setState({ surveyPolygonActive: false });
+								}}
+							>
+								<FontAwesomeIcon icon={faRuler} />
+							</button>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={() => {
+								this.setState({ surveyPolygonActive: true });
+								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
+								info('Touch map to set first polygon point');
+							}}
+						>
+							<FontAwesomeIcon icon={faRuler} />
+						</button>
+					)}
+
+
 				</div>
 
 				<div
@@ -1724,7 +1824,7 @@ export default class AXUI extends React.Component {
 		return false
 	}
 
-	generateMissions() {
+	generateMissions(surveyPolygonGeoCoords) {
 		console.log('hitting mission_generator');
         fetch('http://localhost:40001/missionfiles/create')
             .then(response => response.json())
