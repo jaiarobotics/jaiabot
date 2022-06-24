@@ -1,71 +1,47 @@
-# Embedded Board Setup
+# Embedded Board Deployment
 
-JaiaBot uses the Raspberry Pi (RP) Compute Module (CM) 4 Lite as the embedded Linux computer. For R&D Purposes, it has also been necessary to run the jaiabot software on a Raspberry Pi 3 although this is not ideal due to the port mappings being different from the RP4.
+JaiaBot uses the Raspberry Pi (RP) Compute Module 4 (CM4) as the embedded Linux computer. For R&D purposes, it has also been necessary to run the jaiabot software on a Raspberry Pi 3 although this is not ideal due to the port mappings being different from the RP4.
 
-Installation steps:
+## Setup steps (new RP CM4)
 
-- Download the SD card image (currently Ubuntu Server 20.04.4 LTS 64-bit: 	ubuntu-20.04.3-preinstalled-server-arm64+raspi.img.xz): https://old-releases.ubuntu.com/releases/focal/
+### Flashing the bootloader configuration
 
-- Install via command line (or use something like balenaEtcher https://www.balena.io/etcher/):
+*Note: this step should only need to be done once per new CM4.*
 
-    ```bash
-    unxz ubuntu-20.04.4-preinstalled-server-arm64+raspi.img.xz
-    # assuming µSD card on /dev/sdd
-    sudo dd if=ubuntu-20.04.4-preinstalled-server-arm64+raspi.img of=/dev/sdd bs=1M status=progress
-    ```
-        
-- If you have access to a LAN connection to the internet (DHCP) do so and power up the Pi. You will need to find the ip address from your router.
-    - ssh in as `ubuntu` `ubuntu` and change password. This will log you out, so log back in.
+The RP bootloader on older CM4 boards does not boot from all the USB ports automatically. Thus, we need to update the bootloader configuration once on each CM4 that we receive in order to ensure that the CM4 will boot from the USB thumb drive.
 
-- Else:
-    - Create a file named `99-disable-network-config.cfg` in /etc/cloud/cloud.cfg.d/
-        - Edit the contents to be:
-      
-            ```bash
-            network: {config: disabled}
-            ```
-      
-        - Make sure the user and group are root
-    - Create a file named `50-cloud-init.yaml` in /etc/netplan/
-        - Make sure the user and group are root
-    - Connect the Pi to a keyboard and mouse and login as `ubuntu` `ubuntu`. You will need to change the password upon login.
-    - Run:
-    
-        ```bash
-        sudo netplan generate
-        sudo netplan apply
-        ```
-    
-    - You can now ssh in or stay at the keyboard to continue
+- Once, to set up your developer machine (e.g. Ubuntu computer), follow the steps to [build the usbboot repository](https://www.raspberrypi.com/documentation/computers/compute-module.html#compute-module-4-bootloader). At the time of writing, this repository was at [commit 70b14a](https://github.com/raspberrypi/usbboot/commit/70b14a2a4fdad7caf7a614d299cb6f6b1c1b3f56).
+- For each CM4, follow the steps to
+	1. [setup the CMIO board](https://www.raspberrypi.com/documentation/computers/compute-module.html#setting-up-the-cmio-board) J2 jumper and micro USB cable.
+	2. [update the CM4 bootloader](https://www.raspberrypi.com/documentation/computers/compute-module.html#cm4bootloader). When editing the `boot.conf` file, check that the `BOOT_ORDER` line is set to `BOOT_ORDER=0xf25641`. For more detail on reading the value, see the [BOOT_ORDER documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER). Older CM4s were omitting the 0x5 value (which corresponds to the USB-A port on the CM4 IO board).
+		- In the last step (`../rpiboot -d . `), I had to use `sudo ../rpiboot -d .`
+		- After running that step (`sudo ../rpiboot -d . `), power on the CM4 IO board. The script should detect the board at this point and upload the configuration changes. It will provide some verbose output to this effect.
 
-- Clone the jaiabot repository to get a setup script, change directories and run it (with xxx as either _bot_ or _hub_ and yyy as the serial number)
 
-    ```bash
-    git clone https://github.com/jaiarobotics/jaiabot.git
-    cd jaiabot/scripts/setup_embedded
-    sudo ./setup_embedded_release.sh xxx yyy
-    ```
+### Generation of the filesystem image
+
+*Note: this step should only need to be done once per change to jaiabot-rootfs-gen (and then reused for any number of USB thumb drives).*
+
+The [jaiabot-rootfs-gen](https://github.com/jaiarobotics/jaiabot-rootfs-gen) project is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
+
+To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot-rootfs-gen/blob/master/README.md
+
+The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
+
+### Installation of the filesystem image
+
+- Install the filesystem image via command line (or use something like balenaEtcher https://www.balena.io/etcher/):
+
+      # assuming USB thumb drive is on /dev/sdd
+      sudo dd if=jaiabot_img-1.0.0~alpha1+5+g90e72a3.img of=/dev/sdd bs=1M status=progress
+
+- If you have access to a LAN connection to the internet (DHCP) do so and power up the Pi. You will need to find the ip address from your router. Otherwise, connect a keyboard and monitor.
+
+- ssh or login as `jaia` / `jaia` and follow the prompts to configure the new system.
 
 - After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` by changing the appropriate line to:
 
-    ```PasswordAuthentication no```
-  
-- Set up Wireguard client configuration using [VPN](page55_vpn.md) instructions.
-- Install the software using the `jaiabot-embedded` apt metapackage:
-	```
-	# add packages.gobysoft.org to your apt sources
-	echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
-	# install the public key for packages.gobysoft.org
-	sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-	# update the apt package manager
-	sudo apt update
-	# install all the necessary packages (jaiabot-embedded will install jaiabot-apps, jaiabot-python, and all other dependencies)
-	sudo apt -y install jaiabot-embedded
-	# answer the questions from debconf and systemd, etc. will be automatically configured, and the jaiabot applications started.
-	# see if everything is running OK.
-	systemctl list-units "jaiabot*"
-	```
-  If you wish to use the continuous repository (latest commit to the main `1.y` branch,) substitute "continuous" for "release" in the first command above).
+      PasswordAuthentication no
 
 ## Systemd
 
@@ -74,6 +50,8 @@ We use `systemd` to launch the jaiabot services on the embedded system, just as 
 Each application has a service definition, and they are all set to `BindTo` the `jaia.service` which exists to provide a common service that can be `stop`ped or `start`ed, thereby stopping or starting all the bound services.
 
 ### Quick start
+
+When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
 
@@ -84,7 +62,6 @@ cd jaiabot/config/gen
 ```
 
 Hub (install and enable):
-
 ```
 cd jaiabot/config/gen
 ./systemd-local.sh hub --n_bots 4 --enable
