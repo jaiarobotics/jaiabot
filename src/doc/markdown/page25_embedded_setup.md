@@ -39,10 +39,6 @@ The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 
 - ssh or login as `jaia` / `jaia` and follow the prompts to configure the new system.
 
-- After adding SSH key to ~/.ssh/authorized_keys, disallow SSH password login in `/etc/ssh/sshd_config` by changing the appropriate line to:
-
-      PasswordAuthentication no
-
 ## Systemd
 
 We use `systemd` to launch the jaiabot services on the embedded system, just as any other Ubuntu daemon.
