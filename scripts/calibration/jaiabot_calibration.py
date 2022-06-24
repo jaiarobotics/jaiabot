@@ -247,6 +247,7 @@ while begin == True:
                 print("system uploading...")
                 os.system('sudo systemctl stop jaiabot')
                 os.system('cd ~/jaiabot/src/arduino/; ./upload_usb_new.sh calibration/')
+                print("upload complete!")
                 os.system('sudo systemctl start jaiabot')
                 uplaod = False
             elif insert == "NO":
