@@ -63,7 +63,6 @@ int Bounds(int l, int m, int n, Servo servo){
     }
     n = BoundsCreation(n, servo);
     bool contentment = Serial.findUntil("X","Z");
-    Serial.print("10-4 good buddy");
     if (contentment == true){
       completion = completion+1;
     }
