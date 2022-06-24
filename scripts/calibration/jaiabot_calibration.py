@@ -19,6 +19,7 @@ import bounds_pb2
 check_bounds = bounds_pb2.Bounds()
 write_bounds = bounds_pb2.SurfaceBounds()
 
+os.system('sudo systemctl stop jaiabot')
 #tries to open the bounds config and inserts the values to the check_bounds object
 try:
     os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
@@ -245,10 +246,8 @@ while begin == True:
             insert = insert.upper()
             if insert == "YES":
                 print("system uploading...")
-                os.system('sudo systemctl stop jaiabot')
                 os.system('cd ~/jaiabot/src/arduino/; ./upload_usb_new.sh calibration/')
                 print("upload complete!")
-                os.system('sudo systemctl start jaiabot')
                 uplaod = False
             elif insert == "NO":
                 uplaod = False
@@ -358,9 +357,9 @@ while begin == True:
             upload = upload.upper()
             if upload == "YES":
                 #uplaods control surfaces to the arduino
-                os.system('sudo systemctl stop jaiabot')
+                print("system uploading...")
                 os.system('cd ~/jaiabot/src/arduino/; ./upload_usb_new.sh jaiabot_runtime/')
-                os.system('sudo systemctl start jaiabot')
+                print("upload complete!")
                 please = False
             elif upload == "NO":
                 #leaves jaiabot_calibration running
@@ -378,9 +377,9 @@ while begin == True:
             upload = input("Would you like to upload jaiabot_runtime? Yes/No ")
             upload = upload.upper()
             if upload == "YES":
-                os.system('sudo systemctl stop jaiabot')
+                print("system uploading...")
                 os.system('cd ~/jaiabot/src/arduino/; ./upload_usb_new.sh jaiabot_runtime/')
-                os.system('sudo systemctl start jaiabot')
+                print("upload complete!")
                 end = False
             elif upload == "NO":
                 end = False
@@ -427,7 +426,9 @@ while begin == True:
         begin = False
     else:
         print("Please enter Yes or No")
+print("calibration complete!")
 
 #cleaning up and closing everything
 records.close()
 arduino.close()
+os.system('sudo systemctl start jaiabot')
