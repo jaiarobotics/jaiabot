@@ -340,7 +340,7 @@ export default class AXUI extends React.Component {
 
 		// Measure tool
 
-		const measureSource = new OlVectorSource();
+		let measureSource = new OlVectorSource();
 
 		this.measureLayer = new OlVectorLayer({
 			source: measureSource,
@@ -506,7 +506,7 @@ export default class AXUI extends React.Component {
 		});
 
 		this.measureInteraction = new OlDrawInteraction({
-			source: this.measureSource,
+			source: measureSource,
 			type: 'LineString',
 			style: new OlStyle({
 				fill: new OlFillStyle({
@@ -555,13 +555,17 @@ export default class AXUI extends React.Component {
 			this
 		);
 
+		let surveyPolygonSource = new OlVectorSource({ wrapX: false });
 
 		this.surveyPolygonInteraction = new OlDrawInteraction({
-			source: this.measureSource,
+			source: surveyPolygonSource,
 			stopClick: true,
 			minPoints: 3,
 			clickTolerance: 10,
-			finishCondition: doubleClick,
+			finishCondition: event => {
+				console.log(event);
+				return this.surveyPolygonInteraction.finishCoordinate_ === this.surveyPolygonInteraction.sketchCoords_[0][0];
+			},
 			type: 'Polygon',
 			style: new OlStyle({
 				fill: new OlFillStyle({
@@ -609,11 +613,11 @@ export default class AXUI extends React.Component {
 				geo_geom.transform("EPSG:3857", "EPSG:4326")
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 				console.log(surveyPolygonGeoCoords);
-				// this.generateMissions(surveyPolygonGeoCoords);
+				this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
-				this.setState({ measureActive: false, surveyPolygonFeature: null });
-				OlUnobserveByKey(surveyPolygonlistener);
-				this.changeInteraction();
+				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
+				// OlUnobserveByKey(surveyPolygonlistener);
+				// this.changeInteraction();
 			},
 			this
 		);
@@ -1793,6 +1797,8 @@ export default class AXUI extends React.Component {
 			return false // Not a drag event
 		}
 
+
+
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
 			return feature
 		});
@@ -1826,8 +1832,14 @@ export default class AXUI extends React.Component {
 
 	generateMissions(surveyPolygonGeoCoords) {
 		console.log('hitting mission_generator');
-        fetch('http://localhost:40001/missionfiles/create')
-            .then(response => response.json())
+		fetch('http://localhost:40001/missionfiles/create', {
+			method: 'POST',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(surveyPolygonGeoCoords)
+		}).then(response => response.json())
             .then(data => {
                 console.log('got inside')
                 console.log(data);

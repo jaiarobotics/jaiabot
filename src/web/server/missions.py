@@ -196,22 +196,24 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     geo_epsg = 4326
     proj_epsg = 26919
 
-    plot_it = True
+    plot_it = False
     if plot_it:
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
 
     # Just an example of points
-    boundary_points = [
-        (-71.32337250, 41.49850826),
-        (-71.32485131, 41.49576561),
-        (-71.33301995, 41.49312834),
-        (-71.34759675, 41.49407777),
-        (-71.35104730, 41.50372953),
-        (-71.34780801, 41.50420416),
-        (-71.33414666, 41.49966858),
-        (-71.32337250, 41.49850826)
-    ]
+    if not boundary_points:
+        boundary_points = [
+            (-71.32337250, 41.49850826),
+            (-71.32485131, 41.49576561),
+            (-71.33301995, 41.49312834),
+            (-71.34759675, 41.49407777),
+            (-71.35104730, 41.50372953),
+            (-71.34780801, 41.50420416),
+            (-71.33414666, 41.49966858),
+            (-71.32337250, 41.49850826)
+        ]
+    print(boundary_points)
 
     # Create 0 index list of bots
     bot_list = list(np.arange(number_of_bots))
