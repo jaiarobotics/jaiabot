@@ -32,9 +32,11 @@ int BoundsCreation(int microseconds, Servo servo){
   do{
     servo.writeMicroseconds(microseconds);
     int input = Serial.parseInt(SKIP_ALL);
+    Serial.print("10-4 good buddy");
     microseconds = modifier-input;
     servo.writeMicroseconds(microseconds);
     bool confirmation = Serial.findUntil("Y","N");
+    Serial.print("10-4 good buddy");
     if (confirmation == true){
       on = on+1;
     }
@@ -60,6 +62,7 @@ int Bounds(int l, int m, int n, Servo servo){
     }
     n = BoundsCreation(n, servo);
     bool contentment = Serial.findUntil("X","Z");
+    Serial.print("10-4 good buddy");
     if (contentment == true){
       completion = completion+1;
     }
