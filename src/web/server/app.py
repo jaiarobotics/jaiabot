@@ -94,12 +94,13 @@ def getTilesIndex():
 def init_mission_database():
     return JSONResponse([])
 
-@app.route('/missionfiles/create', methods=['GET'])
+@app.route('/missionfiles/create', methods=['POST'])
 def get_mission_list():
+    print(request.json[0])
     mission_gdf, mission_dict = missions.create_mission_plan(
         deploy_lat=41.47,
         deploy_lon=-71.3,
-        boundary_points=None,
+        boundary_points=request.json[0],
         mission_type=None,
         spacing_meters=100,
         number_of_bots=2
