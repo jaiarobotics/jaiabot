@@ -52,17 +52,17 @@ def wingInsurance(adjustment):
     while x is True:
         if adjustment > 500 or adjustment < -500:
             print("this value is too high.")
-        f = True
-        while f is True:
-            adjustment = input("How many microseconds to adjust by? Values between -500 and 500 only. ")
-            try:
-                adjustment = int(adjustment)
-                f = False
-            except:
-                print("please enter a number")
-            adjustmentType = str(type(adjustment))
-            if adjustmentType == "int":
-                f = False
+            f = True
+            while f is True:
+                adjustment = input("How many microseconds to adjust by? Values between -500 and 500 only. ")
+                try:
+                    adjustment = int(adjustment)
+                    f = False
+                except:
+                    print("please enter a number")
+                adjustmentType = str(type(adjustment))
+                if adjustmentType == "int":
+                    f = False
         else:
             return adjustment
 
