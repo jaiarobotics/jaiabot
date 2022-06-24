@@ -6,6 +6,9 @@ const int starboard_flap = 6;
 const int rudder = 5;
 const int port_flap = 9;
 const int motor = 3;
+const int CTRL_ACTS = 10;
+const int FAULT_ACTS = 8;
+const int POWER_PIN = A1;
 
 //designate the starting ranges (starboard)
 int a = 2000;
@@ -32,11 +35,9 @@ int BoundsCreation(int microseconds, Servo servo){
   do{
     servo.writeMicroseconds(microseconds);
     int input = Serial.parseInt(SKIP_ALL);
-    Serial.print("10-4 good buddy");
     microseconds = modifier-input;
     servo.writeMicroseconds(microseconds);
     bool confirmation = Serial.findUntil("Y","N");
-    Serial.print("10-4 good buddy");
     if (confirmation == true){
       on = on+1;
     }
@@ -135,12 +136,19 @@ int MotorBounds(int microseconds, Servo servo){
   servo.writeMicroseconds(1500);
 }
 void setup() {
-  // put your setup code here, to run once:
+  //pin setup and Serial begin
   Serial.begin(19200);
   rudder_servo.attach(rudder);
   starboard_servo.attach(starboard_flap);
   port_servo.attach(port_flap);
   motor_servo.attach(motor);
+  digitalWrite(POWER_PIN, LOW);
+  
+  pinMode(CTRL_ACTS, OUTPUT);
+  digitalWrite(CTRL_ACTS, LOW);
+
+  pinMode(FAULT_ACTS, INPUT);
+  
   Serial.setTimeout(500000);
 
   Bounds(a, b, c, starboard_servo);
