@@ -52,7 +52,17 @@ def wingInsurance(adjustment):
     while x is True:
         if adjustment > 500 or adjustment < -500:
             print("this value is too high.")
-            adjustment = int(input("How many microseconds to adjust by? values between -500 and 500 only. "))
+        f = True
+        while f is True:
+            adjustment = input("How many microseconds to adjust by? Values between -500 and 500 only. ")
+            try:
+                adjustment = int(adjustment)
+                f = False
+            except:
+                print("please enter a number")
+            adjustmentType = str(type(adjustment))
+            if adjustmentType == "int":
+                f = False
         else:
             return adjustment
 
@@ -63,8 +73,10 @@ def inputcommand():
         z = True
         f = True
         while f is True:
+            adjustment = input("How many microseconds to adjust by? Values between -500 and 500 only. ")
             try:
-                adjustment = int(input("How many microseconds to adjust by? Values between -500 and 500 only. "))
+                adjustment = int(adjustment)
+                f = False
             except:
                 print("please enter a number")
             adjustmentType = str(type(adjustment))
@@ -136,7 +148,7 @@ def skipWing():
     write("0")
     write("Y")
     write("X")
-    print("current bounds are ",rd())
+    print("current bounds are 1000, 1500, 2000")
 
 #skips motor calibration for user
 def skipMotor():
