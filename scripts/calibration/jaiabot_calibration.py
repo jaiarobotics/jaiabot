@@ -148,7 +148,8 @@ def skipWing():
     write("0")
     write("Y")
     write("X")
-    print("current bounds are 1000, 1500, 2000")
+    print("current bounds are:")
+    print(rd())
 
 #skips motor calibration for user
 def skipMotor():
