@@ -85,6 +85,7 @@ import {
 	faMapPin,
 	faMapMarkedAlt,
 	faRuler,
+	faEdit,
 	faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -1409,24 +1410,27 @@ export default class AXUI extends React.Component {
 							<button
 								type="button"
 								className="active"
+								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
 									this.setState({ surveyPolygonActive: false });
 								}}
 							>
-								<FontAwesomeIcon icon={faRuler} />
+								<FontAwesomeIcon icon={faEdit} />
 							</button>
 						</div>
 					) : (
 						<button
 							type="button"
+							title="Edit Survey Plan"
+							className="inactive"
 							onClick={() => {
 								this.setState({ surveyPolygonActive: true });
 								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faRuler} />
+							<FontAwesomeIcon icon={faEdit} />
 						</button>
 					)}
 
@@ -1832,13 +1836,15 @@ export default class AXUI extends React.Component {
 
 	generateMissions(surveyPolygonGeoCoords) {
 		console.log('hitting mission_generator');
+		console.log(this.homeLocation);
+
 		fetch('http://localhost:40001/missionfiles/create', {
 			method: 'POST',
 			headers: {
 				'Accept': 'application/json',
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify(surveyPolygonGeoCoords)
+			body: JSON.stringify({"num_bots": 2, "sample_spacing": 100, "home_lon": this.homeLocation['lon'], "home_lat": this.homeLocation['lat'], "survey_polygon": surveyPolygonGeoCoords})
 		}).then(response => response.json())
             .then(data => {
                 console.log('got inside')
@@ -1880,9 +1886,9 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
 				</button>
-				<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>
-					Generator
-				</button>
+				{/*<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>*/}
+				{/*	Generator*/}
+				{/*</button>*/}
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
