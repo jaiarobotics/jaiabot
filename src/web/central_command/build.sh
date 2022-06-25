@@ -46,5 +46,10 @@ then
 fi
 
 echo "🟢 Building app package"
+
+pushd client/icons
+  make
+popd
+
 webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
 echo "✅ Done"
