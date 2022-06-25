@@ -111,7 +111,7 @@ def generate_map(h5_fileset):
 
 @dataclass
 class Field:
-    y_datapath: str
+    y_datapath_re: str
     y_axis_label: str
 
 
@@ -130,7 +130,12 @@ def generate_webpage(fields, data_filenames, bdr_file):
     fig.update_layout(title=f'JaiaData - {display_filenames}', hovermode="closest")
 
     for series_index, field in enumerate(fields):
-        trunk_path = '/'.join(field.y_datapath.split('/')[:2])
+        y_datapath = h5_fileset.find_datapath_re(field.y_datapath_re)
+
+        if y_datapath is None:
+            continue
+
+        trunk_path = '/'.join(y_datapath.split('/')[:2])
         scheme_path = trunk_path + '/_scheme_'
         x_datapath = trunk_path + '/_utime_'
 
@@ -140,7 +145,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
         series_scheme = h5_fileset[scheme_path].data
         series_x = deepcopy(h5_fileset[x_datapath])
-        series_y = deepcopy(h5_fileset[field.y_datapath])
+        series_y = deepcopy(h5_fileset[y_datapath])
 
         # Die if we don't have a series
         if series_x is None or series_y is None:
@@ -152,7 +157,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
         # If we're dealing with an enum, we need a hovertext list
         try:
-            enum_dict = h5_fileset.check_enum_dtype(field.y_datapath)
+            enum_dict = h5_fileset.check_enum_dtype(y_datapath)
         except KeyError:
             continue
 
@@ -202,49 +207,49 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
 
 available_fields = [
-    Field(y_datapath=PIDControl_throttle, y_axis_label='Manual Throttle (%)'),
-    Field(y_datapath=PIDControl_speed, y_axis_label='Target Speed (m/s)'),
-    Field(y_datapath=PIDControl_depth, y_axis_label='Target Depth (m)'),
-    Field(y_datapath=PIDControl_rudder, y_axis_label='Manual Rudder'),
-    Field(y_datapath=PIDControl_heading, y_axis_label='Target Heading (°)'),
-    Field(y_datapath=PIDControl_timeout, y_axis_label='Timeout (s)'),
+    Field(y_datapath_re=PIDControl_throttle, y_axis_label='Manual Throttle (%)'),
+    Field(y_datapath_re=PIDControl_speed, y_axis_label='Target Speed (m/s)'),
+    Field(y_datapath_re=PIDControl_depth, y_axis_label='Target Depth (m)'),
+    Field(y_datapath_re=PIDControl_rudder, y_axis_label='Manual Rudder'),
+    Field(y_datapath_re=PIDControl_heading, y_axis_label='Target Heading (°)'),
+    Field(y_datapath_re=PIDControl_timeout, y_axis_label='Timeout (s)'),
 
-    Field(y_datapath=LowControl_motor, y_axis_label='Motor (%)'),
-    Field(y_datapath=LowControl_rudder, y_axis_label='Rudder'),
+    Field(y_datapath_re=LowControl_motor, y_axis_label='Motor (%)'),
+    Field(y_datapath_re=LowControl_rudder, y_axis_label='Rudder'),
 
-    Field(y_datapath=PressureTemperature_pressure, y_axis_label='Pressure (mbar)'),
-    Field(y_datapath=PressureTemperature_temperature, y_axis_label='Temperature (℃)'),
+    Field(y_datapath_re=PressureTemperature_pressure, y_axis_label='Pressure (mbar)'),
+    Field(y_datapath_re=PressureTemperature_temperature, y_axis_label='Temperature (℃)'),
 
-    Field(y_datapath=BotStatus_speed_over_ground, y_axis_label='Speed over ground (m/s)'),
-    Field(y_datapath=BotStatus_attitude_heading, y_axis_label='Heading (°)'),
-    Field(y_datapath=BotStatus_course_over_ground, y_axis_label='Course over ground (°)'),
-    Field(y_datapath=BotStatus_depth, y_axis_label='Depth (m)'),
-    Field(y_datapath=BotStatus_salinity, y_axis_label='Salinity'),
-    Field(y_datapath=BotStatus_mission_state, y_axis_label='Mission state'),
-    Field(y_datapath=BotStatus_latitude, y_axis_label='BotStatus latitude (°)'),
-    Field(y_datapath=BotStatus_longitude, y_axis_label='BotStatus longitude (°)'),
+    Field(y_datapath_re=BotStatus_speed_over_ground, y_axis_label='Speed over ground (m/s)'),
+    Field(y_datapath_re=BotStatus_attitude_heading, y_axis_label='Heading (°)'),
+    Field(y_datapath_re=BotStatus_course_over_ground, y_axis_label='Course over ground (°)'),
+    Field(y_datapath_re=BotStatus_depth, y_axis_label='Depth (m)'),
+    Field(y_datapath_re=BotStatus_salinity, y_axis_label='Salinity'),
+    Field(y_datapath_re=BotStatus_mission_state, y_axis_label='Mission state'),
+    Field(y_datapath_re=BotStatus_latitude, y_axis_label='BotStatus latitude (°)'),
+    Field(y_datapath_re=BotStatus_longitude, y_axis_label='BotStatus longitude (°)'),
 
-    Field(y_datapath=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
-    Field(y_datapath=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
+    Field(y_datapath_re=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
+    Field(y_datapath_re=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
 
-    Field(y_datapath=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
-    Field(y_datapath=DesiredSetpoints_type, y_axis_label='Desired Setpoint Type'),
+    Field(y_datapath_re=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
+    Field(y_datapath_re=DesiredSetpoints_type, y_axis_label='Desired Setpoint Type'),
 
-    Field(y_datapath=PIDControl_depth_Kp, y_axis_label='Depth P gain'),
-    Field(y_datapath=PIDControl_depth_Ki, y_axis_label='Depth I gain'),
-    Field(y_datapath=PIDControl_depth_Kd, y_axis_label='Depth D gain'),
+    Field(y_datapath_re=PIDControl_depth_Kp, y_axis_label='Depth P gain'),
+    Field(y_datapath_re=PIDControl_depth_Ki, y_axis_label='Depth I gain'),
+    Field(y_datapath_re=PIDControl_depth_Kd, y_axis_label='Depth D gain'),
 
-    Field(y_datapath=TPV_lat, y_axis_label='Latitude (°)'),
-    Field(y_datapath=TPV_lon, y_axis_label='Longitude (°)'),
-    Field(y_datapath=TPV_epx, y_axis_label='Longitude Error 95% (m)'),
-    Field(y_datapath=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
-    Field(y_datapath=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
+    Field(y_datapath_re=TPV_lat, y_axis_label='Latitude (°)'),
+    Field(y_datapath_re=TPV_lon, y_axis_label='Longitude (°)'),
+    Field(y_datapath_re=TPV_epx, y_axis_label='Longitude Error 95% (m)'),
+    Field(y_datapath_re=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
+    Field(y_datapath_re=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
 
-    Field(y_datapath=Engineering_flag, y_axis_label='Flag Event'),
+    Field(y_datapath_re=Engineering_flag, y_axis_label='Flag Event'),
 
-    Field(y_datapath=ArduinoCommand_motor, y_axis_label='Arduino motor (microsec)'),
+    Field(y_datapath_re=ArduinoCommand_motor, y_axis_label='Arduino motor (microsec)'),
 
-    Field(y_datapath=HUBCommand_type, y_axis_label='HUB Command type')
+    Field(y_datapath_re=HUBCommand_type, y_axis_label='HUB Command type')
 ]
 
 
@@ -285,6 +290,12 @@ class MainWindow(QWidget):
         self.reload_file_list_button.clicked.connect(self.load_file_list)
         file_selector_layout.addWidget(self.reload_file_list_button)
 
+        layout.addLayout(file_selector_layout)
+        layout.addLayout(self.checkbox_layout())
+
+        self.setLayout(layout)
+
+    def checkbox_layout(self):
         checkbox_layout = QVBoxLayout()
 
         self.field_checkboxes = []
@@ -292,6 +303,7 @@ class MainWindow(QWidget):
             field_checkbox = QCheckBox(field.y_axis_label)
             field_checkbox.setChecked(field.y_axis_label in selectedFields)
             field_checkbox.field = field
+            
             self.field_checkboxes.append(field_checkbox)
             checkbox_layout.addWidget(field_checkbox)
 
@@ -300,10 +312,7 @@ class MainWindow(QWidget):
         open_button.clicked.connect(self.open_files)
         checkbox_layout.addWidget(open_button)
 
-        layout.addLayout(file_selector_layout)
-        layout.addLayout(checkbox_layout)
-
-        self.setLayout(layout)
+        return checkbox_layout
 
     def open_files(self):
         global selectedFields

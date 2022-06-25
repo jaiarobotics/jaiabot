@@ -47,10 +47,6 @@ def JSONResponse(obj):
     return Response(json.dumps(obj), mimetype='application/json')
 
 
-@app.route('/jaia/getStatus', methods=['GET'])
-def getABStatus():
-    return JSONResponse(jaia_interface.get_ab_status())
-
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())

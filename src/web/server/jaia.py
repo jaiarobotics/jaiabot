@@ -66,12 +66,7 @@ class Interface:
 
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
-                    if botStatus.bot_id in self.bots:
-                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                    else:
-                        self.bots[botStatus.bot_id] = botStatus
-
-                logging.debug(f'Received BotStatus:\n{botStatus}')
+                    self.bots[botStatus.bot_id] = botStatus
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -98,43 +93,6 @@ class Interface:
 
         if self.pingCount > 1:
             self.messages['error'] = 'No response from jaiabot_web_portal app'
-
-    def get_ab_status(self):
-        bots = []
-
-        for bot in self.bots.values():
-            bots.append({
-                    "botID": bot.bot_id,
-                    "location": {
-                        "lat": bot.location.lat,
-                        "lon": bot.location.lon
-                    },
-                    "heading": bot.attitude.heading,
-                    "velocity": bot.speed.over_ground,
-                    "time": {
-                        "time": 42,
-                    },
-                    "sensorData": [
-                        {
-                            "sensorName": "depth",
-                            "sensorValue": bot.depth,
-                        }
-                    ]
-                })
-
-        return {
-            "dialog": {
-                "dialogType": 0,
-                "manual_bot_id": 1,
-                "messageHTML": "",
-                "serialNumber": 0,
-                "browser_id": 0,
-                "message": "",
-                "manualStatus": 3,
-                "windowTitle": ""
-            },
-            "bots": bots
-        }
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())

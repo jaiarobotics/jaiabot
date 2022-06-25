@@ -12,7 +12,9 @@ import React from 'react'
 import { Settings } from './Settings'
 import { PIDGainsPanel } from './PIDGainsPanel'
 import * as DiveParameters from './DiveParameters'
+import * as Icons from '../icons/Icons'
 import { missions, demo_mission, Missions } from './Missions'
+import { GoalSettingsPanel } from './GoalSettings'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -115,6 +117,9 @@ import '../style/AXUI.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/home.svg'
+import startIcon from '../icons/start.svg'
+import stopIcon from '../icons/stop.svg'
+import waypointIcon from '../icons/waypoint.svg'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -140,6 +145,8 @@ const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
+
+const POLLING_INTERVAL_MS = 500
 
 function saveVisibleLayers() {
 	Settings.write("visibleLayers", visibleLayers)
@@ -188,6 +195,7 @@ export default class AXUI extends React.Component {
 		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
+		this.undoMissions = {}
 
 		this.flagNumber = 1
 
@@ -228,7 +236,8 @@ export default class AXUI extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			surveyPolygonFeature: null,
-			surveyPolygonActive: false
+			surveyPolygonActive: false,
+			goalSettingsPanel: <GoalSettingsPanel />
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -402,34 +411,34 @@ export default class AXUI extends React.Component {
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
-		const graticule = new OlGraticule({
-			// the style to use for the lines, optional.
-			// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
-			strokeStyle: new OlStroke({
-				color: 'black',
-				width: 1
-			}),
-			showLabels: true,
-			latLabelStyle: new OlText({
-				font: '16px sans-serif',
-				fill: new OlFillStyle({
-					color: 'maroon'
-				}),
-				textAlign: 'end',
-				offsetX: -4,
-				offsetY: -10,
-			}),
-			lonLabelStyle: new OlText({
-				font: '16px sans-serif',
-				fill: new OlFillStyle({
-					color: 'maroon'
-				}),
-				textBaseline: 'bottom',
-			}),
-			targetSize: 150,
-		});
+		// const graticule = new OlGraticule({
+		// 	// the style to use for the lines, optional.
+		// 	// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
+		// 	strokeStyle: new OlStroke({
+		// 		color: 'black',
+		// 		width: 1
+		// 	}),
+		// 	showLabels: true,
+		// 	latLabelStyle: new OlText({
+		// 		font: '16px sans-serif',
+		// 		fill: new OlFillStyle({
+		// 			color: 'maroon'
+		// 		}),
+		// 		textAlign: 'end',
+		// 		offsetX: -4,
+		// 		offsetY: -10,
+		// 	}),
+		// 	lonLabelStyle: new OlText({
+		// 		font: '16px sans-serif',
+		// 		fill: new OlFillStyle({
+		// 			color: 'maroon'
+		// 		}),
+		// 		textBaseline: 'bottom',
+		// 	}),
+		// 	targetSize: 150,
+		// });
 
-		graticule.setMap(map);
+		// graticule.setMap(map);
 
 		this.geolocation = new OlGeolocation({
 			trackingOptions: {
@@ -656,7 +665,7 @@ export default class AXUI extends React.Component {
 		map.getView().on('change:rotation', function() {
 			Settings.write('rotation', map.getView().getRotation())
 		})
-
+		
 	}
 
 	createLayers() {
@@ -689,7 +698,7 @@ export default class AXUI extends React.Component {
 		const us = this;
 
 
-		this.timerID = setInterval(() => this.pollPodStatus(), 2500);
+		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
 		$('#leftSidebar').resizable({
 			containment: 'parent',
@@ -764,6 +773,17 @@ export default class AXUI extends React.Component {
 
 		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
+
+
+		// Undo button
+		function KeyPress(e) {
+			var evtobj = window.event? event : e
+			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
+				this.restoreUndo()
+			}
+		}
+		
+		document.onkeydown = KeyPress.bind(this)
 
 		info('Welcome to Central Command!');
 	}
@@ -868,9 +888,17 @@ export default class AXUI extends React.Component {
 	}
 
 	centerOn(coords, stopTracking = false, firstMove = false) {
+		console.log('coords = ', coords)
+
+		if (isNaN(coords[0]) || isNaN(coords[1])) {
+			return
+		}
+		console.log('centering')
+
 		if (stopTracking) {
 			this.trackBot('');
 		}
+
 		const floatCoords = [parseFloat(coords[0]), parseFloat(coords[1])];
 		const { viewportPadding } = this.state;
 		const size = map.getSize();
@@ -887,6 +915,10 @@ export default class AXUI extends React.Component {
 	}
 
 	fit(geom, opts, stopTracking = false, firstMove = false) {
+		if (isNaN(geom[0]) || isNaN(geom[1]) || isNaN(geom[2]) || isNaN(geom[3])) {
+			return
+		}
+
 		if (stopTracking) {
 			this.trackBot('');
 		}
@@ -912,6 +944,139 @@ export default class AXUI extends React.Component {
 		// map.render();
 	}
 
+	updateBotsLayer() {
+		const { selectedBotsFeatureCollection } = this.state;
+		let bots = this.podStatus.bots
+
+		let faultLevel0Count = 0;
+		let faultLevel1Count = 0;
+		let faultLevel2Count = 0;
+
+		const { trackingTarget } = this.state;
+
+		const botExtents = {};
+		// This needs to be synchronized somehow?
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			// ID
+			const bot_id = bot.botId
+			// Geometry
+			const botLatitude = bot.location?.lat
+			const botLongitude = bot.location?.lon
+			// Properties
+			const botHeading = bot.attitude?.heading
+			const botSpeed = bot.speed?.overGround
+			const botTimestamp = new Date(null)
+			botTimestamp.setSeconds(bot.time / 1e6)
+
+			const botLayer = this.getLiveLayerFromBotId(bot_id);
+
+			const botFeature = new OlFeature({});
+
+			botFeature.setId(bot_id);
+
+			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
+
+			var faultLevel = 0
+
+			switch(bot.healthState) {
+				case "HEALTH__OK":
+					faultLevel = 0
+					faultLevel0Count ++
+					break;
+				case "HEALTH__DEGRADED":
+					faultLevel = 1
+					faultLevel1Count ++
+					break;
+				default:
+					faultLevel = 2
+					faultLevel2Count ++
+					break;
+			}
+
+			botFeature.setGeometry(new OlPoint(coordinate));
+			botFeature.setProperties({
+				heading: botHeading,
+				speed: botSpeed,
+				lastUpdated: parseFloat(bot.time),
+				lastUpdatedString: botTimestamp.toISOString(),
+				missionState: bot.missionState,
+				healthState: bot.healthState,
+				faultLevel: faultLevel
+			});
+
+			const zoomExtentWidth = 0.001; // Degrees
+
+			// An array of numbers representing an extent: [minx, miny, maxx, maxy].
+			botExtents[bot_id] = [
+				botLongitude - zoomExtentWidth / 2,
+				botLatitude - zoomExtentWidth / 2,
+				botLongitude + zoomExtentWidth / 2,
+				botLatitude + zoomExtentWidth / 2
+			];
+
+			botFeature.set('selected', false);
+			botFeature.set('controlled', false);
+			botFeature.set('tracked', false);
+			botFeature.set('completed', false);
+
+			// Update feature in selected set
+			if (selectedBotsFeatureCollection.getLength() !== 0) {
+				for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
+					const feature = selectedBotsFeatureCollection.item(i);
+					if (feature.getId() === bot_id) {
+						botFeature.set('selected', true);
+						selectedBotsFeatureCollection.setAt(i, botFeature);
+						break;
+					}
+				}
+			}
+
+			if (trackingTarget === bot_id) {
+				botFeature.set('tracked', true);
+			}
+
+			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
+
+			botLayer.getSource().clear();
+			botLayer.getSource().addFeature(botFeature);
+
+			if (trackingTarget === bot_id) {
+				this.centerOn(botFeature.getGeometry().getCoordinates());
+			}
+
+			if (botFeature.get('controlled')) {
+				botLayer.setZIndex(3);
+			} else if (botFeature.get('selected')) {
+				botLayer.setZIndex(2);
+			} else if (botFeature.get('tracked')) {
+				botLayer.setZIndex(1);
+			} else {
+				botLayer.setZIndex(0);
+			}
+
+			botLayer.changed();
+		} // end foreach bot
+		const { lastBotCount } = this.state;
+		const botCount = bots.length;
+		if (botCount > lastBotCount) {
+			this.zoomToAllBots(true);
+		} else if (trackingTarget === 'pod') {
+			this.zoomToAllBots();
+		} else if (trackingTarget === 'all') {
+			this.zoomToAll();
+		}
+		this.setState({
+			botExtents,
+			selectedBotsFeatureCollection,
+			faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
+			lastBotCount: botCount
+		});
+		// map.render();
+		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
+	}
+
 	// POLL THE BOTS
 	pollPodStatus() {
 		clearInterval(this.timerID);
@@ -919,7 +1084,6 @@ export default class AXUI extends React.Component {
 
 		this.sna.getStatus().then(
 			(result) => {
-				console.log(result)
 				if (result instanceof Error) {
 					error('Cannot connect to the Jaia Central Command web server (app.py)')
 					console.error(result)
@@ -952,6 +1116,7 @@ export default class AXUI extends React.Component {
                         }
                     }
 
+					this.updateBotsLayer()
 				}
 			},
 			(err) => {
@@ -962,173 +1127,6 @@ export default class AXUI extends React.Component {
 				error('Cannot connect to the Jaia Central Command web server (app.py)')
 			}
 		)
-
-		this.sna.getOldStatus().then(
-			(result) => {
-				const { selectedBotsFeatureCollection } = this.state;
-
-				if (!Array.isArray(result.bots)) {
-					// No bots connected to hub
-					return;
-				}
-
-				let faultLevel0Count = 0;
-				let faultLevel1Count = 0;
-				let faultLevel2Count = 0;
-
-				const { trackingTarget } = this.state;
-
-				const botExtents = {};
-				// This needs to be synchronized somehow?
-				result.bots.forEach((bot) => {
-					// ID
-					const bot_id = bot.botID.toString();
-					// Geometry
-					const botLatitude = bot.location.lat;
-					const botLongitude = bot.location.lon;
-					// Properties
-					const botHeading = bot.heading;
-					const botSpeed = bot.velocity;
-					const botTimestamp = new Date(null);
-					botTimestamp.setSeconds(bot.time.time);
-
-					const botLayer = this.getLiveLayerFromBotId(bot_id);
-
-					const botFeature = new OlFeature({});
-
-					botFeature.setId(bot_id);
-
-					const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
-
-					// Emits changed:geometry event?
-					botFeature.setGeometry(new OlPoint(coordinate));
-					botFeature.setProperties({
-						heading: botHeading,
-						speed: botSpeed,
-						lastUpdated: parseFloat(bot.time.time),
-						lastUpdatedString: botTimestamp.toISOString()
-						// rawData: bot
-					});
-
-					Object.getOwnPropertyNames(bot).forEach((property) => {
-						if (typeof bot[property] !== 'object' && bot[property] !== null) {
-							botFeature.set(property, bot[property].toString());
-						}
-					});
-
-					if (Array.isArray(bot.sensorData)) {
-						bot.sensorData.forEach((sensor) => {
-							botFeature.set(sensor.sensorName, sensor.sensorValue);
-						});
-					}
-
-					let faultLevel = 0;
-
-					const rfState = parseInt(botFeature.get('commState') || 0, 10);
-					const faultState = parseInt(botFeature.get('faultState') || 0, 10);
-					// const commandState = parseInt(botFeature.get('commandState') || 0, 10);
-					const batteryState = parseInt(botFeature.get('batteryState') || 0, 10);
-
-					if (rfState >= 2 || faultState === 6) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if (rfState === 1) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if ((faultState >= 4 && faultState !== 7) || batteryState >= 7) {
-						faultLevel = 2;
-						faultLevel2Count += 1;
-					} else if ((faultState >= 1 && faultState !== 7) || batteryState >= 3) {
-						faultLevel = 1;
-						faultLevel1Count += 1;
-					} else {
-						faultLevel0Count += 1;
-					}
-
-					botFeature.set('faultLevel', faultLevel);
-
-					const zoomExtentWidth = 0.001; // Degrees
-
-					// An array of numbers representing an extent: [minx, miny, maxx, maxy].
-					botExtents[bot_id] = [
-						botLongitude - zoomExtentWidth / 2,
-						botLatitude - zoomExtentWidth / 2,
-						botLongitude + zoomExtentWidth / 2,
-						botLatitude + zoomExtentWidth / 2
-					];
-
-					botFeature.set('selected', false);
-					botFeature.set('controlled', false);
-					botFeature.set('tracked', false);
-					botFeature.set('completed', false);
-
-					// Update feature in selected set
-					if (selectedBotsFeatureCollection.getLength() !== 0) {
-						for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-							const feature = selectedBotsFeatureCollection.item(i);
-							if (feature.getId() === bot_id) {
-								botFeature.set('selected', true);
-								selectedBotsFeatureCollection.setAt(i, botFeature);
-								break;
-							}
-						}
-					}
-
-					if (trackingTarget === bot_id) {
-						botFeature.set('tracked', true);
-					}
-
-					let newBotStatus = this.podStatus?.bots[bot_id]
-					botFeature.set('remoteControlled', newBotStatus?.missionState?.includes('REMOTE_CONTROL') || false)
-
-					botLayer.getSource().clear();
-					botLayer.getSource().addFeature(botFeature);
-
-					if (trackingTarget === bot_id) {
-						us.centerOn(botFeature.getGeometry().getCoordinates());
-					}
-
-					if (botFeature.get('controlled')) {
-						botLayer.setZIndex(3);
-					} else if (botFeature.get('selected')) {
-						botLayer.setZIndex(2);
-					} else if (botFeature.get('tracked')) {
-						botLayer.setZIndex(1);
-					} else {
-						botLayer.setZIndex(0);
-					}
-
-					botLayer.changed();
-				}); // end foreach bot
-				const { lastBotCount } = this.state;
-				const botCount = result.bots.length;
-				if (botCount > lastBotCount) {
-					this.zoomToAllBots(true);
-				} else if (trackingTarget === 'pod') {
-					this.zoomToAllBots();
-				} else if (trackingTarget === 'all') {
-					this.zoomToAll();
-				}
-				this.setState({
-					botExtents,
-					selectedBotsFeatureCollection,
-					faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
-					lastBotCount: botCount
-				});
-				// map.render();
-				this.timerID = setInterval(() => this.pollPodStatus(), 250);
-			},
-			// Note: it's important to handle errors here
-			// instead of a catch() block so that we don't swallow
-			// exceptions from actual bugs in components.
-			(err) => {
-				this.setState({
-					error: err
-				});
-				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)');
-			}
-		);
 	}
 
 	disconnectPod() {
@@ -1170,6 +1168,8 @@ export default class AXUI extends React.Component {
 	}
 
 	selectBots(bot_ids) {
+		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
+
 		const { botsLayerCollection, selectedBotsFeatureCollection } = this.state;
 		selectedBotsFeatureCollection.clear();
 		botsLayerCollection.getArray().forEach((layer) => {
@@ -1178,10 +1178,8 @@ export default class AXUI extends React.Component {
 				if (bot_ids.includes(feature.getId())) {
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
-					console.log("Setting bot ", feature.getId(), " to selected")
 				} else {
 					feature.set('selected', false);
-					console.log("Setting bot ", feature.getId(), " to unselected")
 				}
 			}
 		});
@@ -1196,7 +1194,7 @@ export default class AXUI extends React.Component {
 	isBotSelected(bot_id) {
 		const { selectedBotsFeatureCollection } = this.state;
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-			if (selectedBotsFeatureCollection.item(i).getId() === bot_id) {
+			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
 				return true;
 			}
 		}
@@ -1240,6 +1238,30 @@ export default class AXUI extends React.Component {
 			info('Stopped following you');
 		} else {
 			info(`Stopped following bot ${trackingTarget}`);
+		}
+	}
+
+	changeMissions(func) {
+		// Save a backup of the current mission set
+		let oldMissions = deepcopy(this.missions)
+
+		// Do any alterations to the mission set
+		func(this.missions)
+
+		// If something was changed, then place the old mission set into the undoMissions
+		if (oldMissions != this.missions) {
+			this.undoMissions = deepcopy(oldMissions)
+
+			// Update the mission layer to reflect changes that were made
+			this.updateMissionLayer()
+		}
+	}
+
+	restoreUndo() {
+		if (this.undoMissions != null) {
+			this.missions = deepcopy(this.undoMissions)
+			this.updateMissionLayer()
+			this.undoMissions = null
 		}
 	}
 
@@ -1292,6 +1314,11 @@ export default class AXUI extends React.Component {
 		} = this.state;
 
 		let bots = this.podStatus?.bots
+
+		var goalSettingsPanel = ''
+		if (this.state.goalBeingEdited != null) {
+			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
+		}
 
 		return (
 			<div id="axui_container">
@@ -1539,6 +1566,8 @@ export default class AXUI extends React.Component {
 					</div>
 				</div>
 
+				{goalSettingsPanel}
+
 				{this.commandDrawer()}
 
 			</div>
@@ -1557,27 +1586,29 @@ export default class AXUI extends React.Component {
 	addWaypointAt(location) {
 		let botId = this.selectedBotIds().at(-1)
 
-		if (!botId) {
+		if (botId == null) {
 			return
 		}
 
-		if (!(botId in this.missions)) {
-			this.missions[botId] = {
-				botId: botId,
-				time: '1642891753471247',
-				type: 'MISSION_PLAN',
-				plan: {
-					start: 'START_IMMEDIATELY',
-					movement: 'TRANSIT',
-					goal: [],
-					recovery: {recoverAtFinalGoal: true}
+		this.changeMissions((missions) => {
+
+			if (!(botId in missions)) {
+				missions[botId] = {
+					botId: botId,
+					time: '1642891753471247',
+					type: 'MISSION_PLAN',
+					plan: {
+						start: 'START_IMMEDIATELY',
+						movement: 'TRANSIT',
+						goal: [],
+						recovery: {recoverAtFinalGoal: true}
+					}
 				}
 			}
-		}
+	
+			missions[botId].plan.goal.push({location: location})
 
-		this.missions[botId].plan.goal.push({location: location})
-
-		this.updateMissionLayer()
+		})
 	}
 
 	updateMissionLayer() {
@@ -1588,22 +1619,6 @@ export default class AXUI extends React.Component {
 
 		let selectedColor = '#34d2eb'
 		let unselectedColor = '#5ec957'
-
-		let selectedWaypointStyle = new OlStyle({
-			image: new OlCircleStyle({
-				fill: new OlFillStyle({color: selectedColor}),
-				stroke: new OlStrokeStyle({color: '#eeeeee'}),
-				radius: 5,
-			})
-		})
-
-		let defaultWaypointStyle = new OlStyle({
-			image: new OlCircleStyle({
-				fill: new OlFillStyle({color: unselectedColor}),
-				stroke: new OlStrokeStyle({color: '#eeeeee'}),
-				radius: 3,
-			})
-		})
 
 		let homeStyle = new OlStyle({
 			image: new OlIcon({ src: homeIcon })
@@ -1621,26 +1636,76 @@ export default class AXUI extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			var waypointStyle, lineStyle
-			if (this.isBotSelected(botId)) {
-				waypointStyle = selectedWaypointStyle
+			var waypointIcon, lineStyle, color
+
+			let selected = this.isBotSelected(botId)
+
+			if (selected) {
+				waypointIcon = Icons.waypointSelected
 				lineStyle = selectedLineStyle
+				color = selectedColor
 			}
 			else {
-				waypointStyle = defaultWaypointStyle
+				waypointIcon = Icons.waypointUnselected
 				lineStyle = defaultLineStyle
+				color = unselectedColor
 			}
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let transformed_pts = goals.map(goal => {
+			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
 
-			for (let pt of transformed_pts) {
+			for (let [pt_index, goal] of goals.entries()) {
+				let pt = transformed_pts[pt_index]
+
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
-				pointFeature.setStyle(waypointStyle)
+
+				var icon
+
+				if (pt_index === 0) {
+					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
+				}
+				else if (pt_index === goals.length - 1) {
+					icon = selected ? Icons.stopSelectedStyle : Icons.stopUnselectedStyle
+				}
+				else {
+					let previous_pt = transformed_pts[pt_index - 1]
+					let rotation = Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0])
+
+					icon = new OlStyle({
+						image: new OlIcon({
+							src: waypointIcon,
+							rotateWithView: true,
+							rotation: rotation
+						})
+					})
+				}
+
+				pointFeature.setStyle(icon)
+				pointFeature.goal = missions[botId]?.plan?.goal?.[pt_index]
 				features.push(pointFeature)
+
+				// Dive annotation feature
+				switch(goal.task?.type) {
+					case 'DIVE':
+						let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						diveFeature.setStyle(selected ? Icons.diveSelectedStyle : Icons.diveUnselectedStyle)
+						features.push(diveFeature)
+						break;
+					case 'SURFACE_DRIFT':
+						let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						driftFeature.setStyle(selected ? Icons.driftSelectedStyle : Icons.driftUnselectedStyle)
+						features.push(driftFeature)
+						break;
+					case 'STATION_KEEP':
+						let stationkeepFeature = new OlFeature({ geometry: new OlPoint(pt) })
+						stationkeepFeature.setStyle(selected ? Icons.stationkeepSelectedStyle : Icons.stationkeepUnselectedStyle)
+						features.push(stationkeepFeature)
+						break;
+				}
+
 			}
 
 			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
@@ -1652,6 +1717,7 @@ export default class AXUI extends React.Component {
 		if (this.homeLocation) {
 			let pt = equirectangular_to_mercator([this.homeLocation.lon, this.homeLocation.lat])
 			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
+			// homeFeature.setStyle(homeStyle)
 			homeFeature.setStyle(homeStyle)
 			features.push(homeFeature)
 		}
@@ -1808,6 +1874,14 @@ export default class AXUI extends React.Component {
 		});
 
 		if (feature) {
+
+			// Clicked on a goal / waypoint
+			if (feature.goal != null) {
+				this.state.goalBeingEdited = feature.goal
+				return false
+			}
+
+			// Clicked on a bot
 			if (this.isBotSelected(feature.getId())) {
 				this.selectBots([])
 			}
@@ -1862,10 +1936,10 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
-				<button type="button" className="globalCommand" id="setHome" title="Run Home" onClick={this.setHomeClicked.bind(this)}>
+				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
 					Set<br />Home
 				</button>
-				<button type="button" className="globalCommand" id="goHome" title="Run Home" onClick={this.goHomeClicked.bind(this)}>
+				<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
 				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
@@ -1895,12 +1969,19 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
+				{ this.undoButton() }
 			</div>
 		</div>
 
 		)
 
 		return element
+	}
+
+	undoButton() {
+		let disabled = (this.undoMissions == null)
+		let inactive = disabled ? " inactive" : ""
+		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
 	}
 
 	setHomeClicked(evt) {
@@ -1974,19 +2055,32 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="botsList">
 			{botIds.map((botId) => {
+				let bot = bots[botId]
+
+				let faultLevel = {
+					'HEALTH__OK': 0,
+					'HEALTH__DEGRADED': 1,
+					'HEALTH__FAILED': 2
+				}[bot.healthState] ?? 0
+
+				let faultLevelClass = 'faultLevel' + faultLevel
+				let selected = this.isBotSelected(botId) ? 'selected' : ''
+				let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
+
 				return (
 					<div
 						key={botId}
 						onClick={
-								this.isBotSelected(botId)
-									? this.selectBots.bind(this, [])
-									: this.selectBot.bind(this, botId)
+								() => {
+									if (this.isBotSelected(botId)) {
+										this.selectBots([])
+									}
+									else {
+										this.selectBot(botId)
+									}
+								}
 							}
-						className={`bot-item faultLevel0 ${
-							this.isBotSelected(botId) ? 'selected' : ''
-						}${
-							botId === this.state.trackingTarget ? ' tracked' : ''
-						}`}
+						className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
 					>
 						{botId}
 					</div>
