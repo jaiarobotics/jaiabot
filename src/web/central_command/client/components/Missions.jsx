@@ -4,6 +4,7 @@
 /* eslint-disable no-unused-vars */
 
 import * as DiveParameters from "./DiveParameters"
+import JsonAPI from '../../common/JsonAPI';
 
 const hardcoded_goals = [
     [
@@ -132,5 +133,4 @@ export class Missions {
             4: _mission(4, demo_goals(4))
         }
     }
-    
 }

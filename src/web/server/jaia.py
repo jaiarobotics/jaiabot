@@ -13,8 +13,13 @@ from math import *
 
 import logging
 
+
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
+
+
+def utcnow():
+    return int(datetime.datetime.utcnow().timestamp() * 1e6)
 
 
 def floatFrom(obj):
