@@ -4,7 +4,7 @@ set -e
 
 # Build Central Command
 pushd central_command
-    ./build.sh
+    make
 popd
 
 # Build messages and start server
