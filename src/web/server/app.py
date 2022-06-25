@@ -96,14 +96,14 @@ def init_mission_database():
 
 @app.route('/missionfiles/create', methods=['POST'])
 def get_mission_list():
-    print(request.json[0])
+    print(request.json)
     mission_gdf, mission_dict = missions.create_mission_plan(
-        deploy_lat=41.47,
-        deploy_lon=-71.3,
-        boundary_points=request.json[0],
+        deploy_lat=request.json['home_lat'],
+        deploy_lon=request.json['home_lon'],
+        boundary_points=request.json['survey_polygon'][0],
         mission_type=None,
-        spacing_meters=100,
-        number_of_bots=2
+        spacing_meters=int(request.json['sample_spacing']),
+        number_of_bots=int(request.json['num_bots'])
     )
     return JSONResponse(mission_dict)
 
@@ -128,4 +128,4 @@ def pidRoot():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=True)
+    app.run(host='0.0.0.0', port=40001, debug=False)
