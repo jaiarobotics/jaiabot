@@ -235,9 +235,9 @@ export default class AXUI extends React.Component {
 			selectedMissionAction: -1,
 			measureFeature: null,
 			measureActive: false,
+			goalSettingsPanel: <GoalSettingsPanel />,
 			surveyPolygonFeature: null,
-			surveyPolygonActive: false,
-			goalSettingsPanel: <GoalSettingsPanel />
+			surveyPolygonActive: false
 		};
 
 		this.missionPlanMarkers = new Map();
