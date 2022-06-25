@@ -190,7 +190,7 @@ export default class AXUI extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.sna = new JaiaAPI("/jaia", false);
+		this.sna = new JaiaAPI("/", false);
 
 		this.mapTilesAPI = JsonAPI('/tiles');
 
@@ -1912,19 +1912,18 @@ export default class AXUI extends React.Component {
 		console.log('hitting mission_generator');
 		console.log(this.homeLocation);
 
-		fetch('http://localhost:40001/missionfiles/create', {
-			method: 'POST',
-			headers: {
-				'Accept': 'application/json',
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({"num_bots": 2, "sample_spacing": 100, "home_lon": this.homeLocation['lon'], "home_lat": this.homeLocation['lat'], "survey_polygon": surveyPolygonGeoCoords})
-		}).then(response => response.json())
-            .then(data => {
-                console.log('got inside')
-                console.log(data);
-                this.loadMissions(data);
-            });
+		this.sna.postMissionFilesCreate({
+			"num_bots": 2, 
+			"sample_spacing": 100, 
+			"home_lon": this.homeLocation['lon'], 
+			"home_lat": this.homeLocation['lat'], 
+			"survey_polygon": surveyPolygonGeoCoords
+		}).then(data => {
+			console.log('got inside')
+			console.log(data);
+			this.loadMissions(data);
+		});
+
 	}
 
 	// Command Drawer
