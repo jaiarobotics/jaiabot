@@ -3,7 +3,7 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 module.exports = class JaiaAPI {
-  constructor(url = 'http://192.168.42.1:5000/jaia', debug = false) {
+  constructor(url = 'http://192.168.42.1:5000', debug = false) {
     this.url = url;
 
     this.debug = debug;
@@ -24,49 +24,44 @@ module.exports = class JaiaAPI {
 
   hit(method, endpoint, requestBody) {
     if (this.debug) {
-      console.log(`Request endpoint: ${method} ${this.url}/${endpoint}`);
+      console.log(`Request endpoint: ${method} ${this.url}${endpoint}`);
       console.log(`Request body: ${JSON.stringify(requestBody)}`);
     }
-    return fetch(`${this.url}/${endpoint}`, {
-      method,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8'
-      },
-      body: JSON.stringify(requestBody)
-    })
-      .then(
-        (response) => {
-          if (response.ok) {
-            try {
-              return response.json();
-            } catch (error) {
-              console.error('Error parsing response json');
-              console.error(error);
-              return response.text();
-            }
-          }
-          if (this.debug) {
-            console.error(`Error from ${method} to JaiaAPI: ${
-                response.status} ${response.statusText}`);
-          }
-          return Promise.reject(
-            new Error(`Error from ${method} to JaiaAPI: ${response.status} ${response.statusText}`)
-          );
-        },
-        (reason) => {
-          console.error(`Failed to ${method} JSON request: ${reason}`);
-          console.error('Request body:');
-          console.error(requestBody);
-          return Promise.reject(new Error('Response parse fail'));
-        }
-      )
-      .then(
-        (res) => {
-          if (this.debug) console.log(`JaiaAPI Response: ${res.code} ${res.msg}`);
+    return fetch(`${this.url}${endpoint}`, {
+             method,
+             headers : {'Content-Type' : 'application/json; charset=utf-8'},
+             body : JSON.stringify(requestBody)
+           })
+        .then(
+            (response) => {
+              if (response.ok) {
+                try {
+                  return response.json();
+                } catch (error) {
+                  console.error('Error parsing response json');
+                  console.error(error);
+                  return response.text();
+                }
+              }
+              if (this.debug) {
+                console.error(`Error from ${method} to JaiaAPI: ${
+                    response.status} ${response.statusText}`);
+              }
+              return Promise.reject(
+                  new Error(`Error from ${method} to JaiaAPI: ${
+                      response.status} ${response.statusText}`));
+            },
+            (reason) => {
+              console.error(`Failed to ${method} JSON request: ${reason}`);
+              console.error('Request body:');
+              console.error(requestBody);
+              return Promise.reject(new Error('Response parse fail'));
+            })
+        .then((res) => {
+          if (this.debug)
+            console.log(`JaiaAPI Response: ${res.code} ${res.msg}`);
           return res;
-        },
-        reason => reason
-      );
+        }, reason => reason);
   }
 
   post(endpoint, body) {
@@ -77,17 +72,17 @@ module.exports = class JaiaAPI {
     return this.hit('GET', endpoint, body);
   }
 
-  getStatus() {
-    return this.get('status')
-  }
+  getStatus() { return this.get('jaia/status') }
 
-  allStop() { return this.post('allStop', null) }
+  allStop() { return this.post('jaia/allStop', null) }
 
-  postCommand(command) {
-    return this.post('command', command)
-  }
+  postCommand(command) { return this.post('jaia/command', command) }
 
   postEngineering(engineeringCommand) {
-    return this.post('pid-command', engineeringCommand)
+    return this.post('jaia/pid-command', engineeringCommand)
+  }
+
+  postMissionFilesCreate(descriptor) {
+    return this.post('missionfiles/create', descriptor)
   }
 }

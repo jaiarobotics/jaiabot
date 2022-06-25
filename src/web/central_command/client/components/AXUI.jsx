@@ -31,6 +31,7 @@ import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
+import { doubleClick } from 'ol/events/condition';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -86,6 +87,7 @@ import {
 	faMapPin,
 	faMapMarkedAlt,
 	faRuler,
+	faEdit,
 	faLayerGroup
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -188,7 +190,7 @@ export default class AXUI extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.sna = new JaiaAPI("/jaia", false);
+		this.sna = new JaiaAPI("/", false);
 
 		this.mapTilesAPI = JsonAPI('/tiles');
 
@@ -233,6 +235,8 @@ export default class AXUI extends React.Component {
 			selectedMissionAction: -1,
 			measureFeature: null,
 			measureActive: false,
+			surveyPolygonFeature: null,
+			surveyPolygonActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />
 		};
 
@@ -346,7 +350,7 @@ export default class AXUI extends React.Component {
 
 		// Measure tool
 
-		const measureSource = new OlVectorSource();
+		let measureSource = new OlVectorSource();
 
 		this.measureLayer = new OlVectorLayer({
 			source: measureSource,
@@ -512,7 +516,7 @@ export default class AXUI extends React.Component {
 		});
 
 		this.measureInteraction = new OlDrawInteraction({
-			source: this.measureSource,
+			source: measureSource,
 			type: 'LineString',
 			style: new OlStyle({
 				fill: new OlFillStyle({
@@ -560,6 +564,77 @@ export default class AXUI extends React.Component {
 			},
 			this
 		);
+
+		let surveyPolygonSource = new OlVectorSource({ wrapX: false });
+
+		this.surveyPolygonInteraction = new OlDrawInteraction({
+			source: surveyPolygonSource,
+			stopClick: true,
+			minPoints: 3,
+			clickTolerance: 10,
+			finishCondition: event => {
+				console.log(event);
+				return this.surveyPolygonInteraction.finishCoordinate_ === this.surveyPolygonInteraction.sketchCoords_[0][0];
+			},
+			type: 'Polygon',
+			style: new OlStyle({
+				fill: new OlFillStyle({
+					color: 'rgba(255, 255, 255, 0.2)'
+				}),
+				stroke: new OlStrokeStyle({
+					color: 'rgba(0, 0, 0, 0.5)',
+					lineDash: [10, 10],
+					width: 2
+				}),
+				image: new OlCircleStyle({
+					radius: 5,
+					stroke: new OlStrokeStyle({
+						color: 'rgba(0, 0, 0, 0.7)'
+					}),
+					fill: new OlFillStyle({
+						color: 'rgba(255, 255, 255, 0.2)'
+					})
+				})
+			})
+		});
+
+		let surveyPolygonlistener;
+		this.surveyPolygonInteraction.on(
+			'drawstart',
+			(evt) => {
+				this.setState({ surveyPolygonFeature: evt.feature });
+
+				surveyPolygonlistener = evt.feature.getGeometry().on('change', (evt2) => {
+					console.log(evt);
+					const geom = evt2.target;
+
+					// tooltipCoord = geom.getLastCoordinate();
+					$('#surveyPolygonResult').text(AXUI.formatLength(geom));
+				});
+			},
+			this
+		);
+
+		this.surveyPolygonInteraction.on(
+			'drawend',
+			(evt) => {
+				// console.log(evt.feature.getGeometry());
+				let geo_geom = evt.feature.getGeometry();
+				geo_geom.transform("EPSG:3857", "EPSG:4326")
+				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+				console.log(surveyPolygonGeoCoords);
+				this.generateMissions(surveyPolygonGeoCoords);
+				// console.log(geom);
+				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
+				// OlUnobserveByKey(surveyPolygonlistener);
+				// this.changeInteraction();
+			},
+			this
+		);
+
+
+
+
 
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
@@ -1235,6 +1310,7 @@ export default class AXUI extends React.Component {
 			faultCounts,
 			botsDrawerOpen,
 			measureActive,
+			surveyPolygonActive
 		} = this.state;
 
 		let bots = this.podStatus?.bots
@@ -1354,6 +1430,38 @@ export default class AXUI extends React.Component {
 							)}
 						</div>
 					)}
+
+					{surveyPolygonActive ? (
+						<div>
+							<div id="surveyPolygonResult" />
+							<button
+								type="button"
+								className="active"
+								title="Edit Survey Plan"
+								onClick={() => {
+									this.changeInteraction();
+									this.setState({ surveyPolygonActive: false });
+								}}
+							>
+								<FontAwesomeIcon icon={faEdit} />
+							</button>
+						</div>
+					) : (
+						<button
+							type="button"
+							title="Edit Survey Plan"
+							className="inactive"
+							onClick={() => {
+								this.setState({ surveyPolygonActive: true });
+								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
+								info('Touch map to set first polygon point');
+							}}
+						>
+							<FontAwesomeIcon icon={faEdit} />
+						</button>
+					)}
+
+
 				</div>
 
 				<div
@@ -1759,6 +1867,8 @@ export default class AXUI extends React.Component {
 			return false // Not a drag event
 		}
 
+
+
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
 			return feature
 		});
@@ -1798,6 +1908,24 @@ export default class AXUI extends React.Component {
 		return false
 	}
 
+	generateMissions(surveyPolygonGeoCoords) {
+		console.log('hitting mission_generator');
+		console.log(this.homeLocation);
+
+		this.sna.postMissionFilesCreate({
+			"num_bots": 2, 
+			"sample_spacing": 100, 
+			"home_lon": this.homeLocation['lon'], 
+			"home_lat": this.homeLocation['lat'], 
+			"survey_polygon": surveyPolygonGeoCoords
+		}).then(data => {
+			console.log('got inside')
+			console.log(data);
+			this.loadMissions(data);
+		});
+
+	}
+
 	// Command Drawer
 
 	commandDrawer() {
@@ -1831,6 +1959,9 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
 					Demo
 				</button>
+				{/*<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>*/}
+				{/*	Generator*/}
+				{/*</button>*/}
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
