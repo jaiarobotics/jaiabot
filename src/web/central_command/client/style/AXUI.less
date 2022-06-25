@@ -852,8 +852,6 @@ textarea {
     }
   }
   #commandsDrawer {
-    // width: ((@command-button-size + (@command-button-margin * 2)) * 3) + 350px;
-    width: auto;
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
     bottom: 0;
@@ -865,7 +863,7 @@ textarea {
     flex-flow: row nowrap;
 
     #globalCommandBox {
-      width: ((@command-button-size + (@command-button-margin * 2)) * 12);
+      // width: ((@command-button-size + (@command-button-margin * 2)) * 12);
       height: ((@command-button-size + (@command-button-margin * 2)) * 12);
       display: flex;
       flex-flow: row wrap;
@@ -1870,4 +1868,51 @@ textarea {
 .ui-tooltip {
   padding: @layout-margin;
   border-radius: @panel-corner-radius;
+}
+
+.GoalSettingsPanel {
+  background-color: #000000c0;
+  color: #eeeeeeee;
+  position: absolute;
+  right: 46pt;
+  top: 0pt;
+  padding: 8pt;
+  border-radius: 8pt;
+}
+
+#GoalType {
+  color: #111111ff;
+  margin: 8pt;
+  border-radius: 4pt;
+}
+
+.NumberInput {
+  color: #111111ff;
+  text-align: right;
+  border-radius: 4pt;
+  padding: 2pt;
+  max-width: 75pt;
+}
+
+table.DiveParametersTable > tbody > tr > td {
+  padding: 4pt;
+}
+
+.HorizontalFlexbox {
+  margin: 8pt;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.healthOK {
+  color: lightgreen;
+}
+
+.healthDegraded {
+  color: yellow;
+}
+
+.healthFailed {
+  color: red;
 }

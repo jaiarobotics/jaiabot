@@ -18,11 +18,11 @@ message PIDControl {
             units { derived_dimensions: "plane_angle" system: "angle::degree" }
         }];
         optional double Kp = 2
-            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+            [(dccl.field) = { min: 0 max: 100 precision: 8 }];
         optional double Ki = 3
-            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+            [(dccl.field) = { min: 0 max: 100 precision: 8 }];
         optional double Kd = 4
-            [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+            [(dccl.field) = { min: 0 max: 100 precision: 8 }];
     }
 
     optional uint32 timeout = 3 [(dccl.field) = {

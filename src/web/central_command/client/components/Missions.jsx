@@ -18,7 +18,8 @@ const hardcoded_goals = [
     ],
     // M2
     [
-        {location: {lat: 41.661992, lon: -71.273560}}
+        {location: {lat: 41.660882, lon: -71.275198}},
+        {location: {lat: 41.662176, lon: -71.274467}}
     ],
     // M3
     [

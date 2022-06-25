@@ -77,10 +77,6 @@ module.exports = class JaiaAPI {
     return this.hit('GET', endpoint, body);
   }
 
-  getOldStatus() {
-    return this.get('getStatus');
-  }
-
   getStatus() {
     return this.get('status')
   }

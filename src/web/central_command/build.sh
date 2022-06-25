@@ -41,6 +41,8 @@ if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
 then
 	echo "Installing dependencies"
 	npm install --no-audit
+  # Touch, in case no modules had to be installed
+  touch "$DIR/node_modules"
 fi
 
 echo "🟢 Building app package"
