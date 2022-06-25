@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import argparse
 from flask import Flask, send_from_directory, Response, request
 import json
-import sys
-import jaia
-import argparse
 import logging
+
+# Internal Imports
+import jaia
+import missions
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -84,9 +86,29 @@ def getTilesIndex():
 
 ######## Mission files
 
+@app.route('/missionfiles/initdb', methods=['GET'])
+def init_mission_database():
+    return JSONResponse([])
 
-@app.route('/missionfiles/list', methods=['GET'])
-def getMissionFilesList():
+@app.route('/missionfiles/create', methods=['POST'])
+def get_mission_list():
+    print(request.json)
+    mission_gdf, mission_dict = missions.create_mission_plan(
+        deploy_lat=request.json['home_lat'],
+        deploy_lon=request.json['home_lon'],
+        boundary_points=request.json['survey_polygon'][0],
+        mission_type=None,
+        spacing_meters=int(request.json['sample_spacing']),
+        number_of_bots=int(request.json['num_bots'])
+    )
+    return JSONResponse(mission_dict)
+
+@app.route('/missionfiles/save', methods=['POST'])
+def save_mission_list():
+    return JSONResponse([])
+
+@app.route('/missionfiles/update', methods=['POST'])
+def update_mission_list():
     return JSONResponse([])
 
 
@@ -102,4 +124,4 @@ def pidRoot():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001)
+    app.run(host='0.0.0.0', port=40001, debug=False)
