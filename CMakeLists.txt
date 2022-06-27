@@ -203,6 +203,7 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot_checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
 # for use by Docker build install
+file(MAKE_DIRECTORY ${project_BIN_DIR})
 configure_file(${project_SCRIPTS_DIR}/jaiabot_checkloadavg.py ${project_BIN_DIR} COPYONLY)
 
 
