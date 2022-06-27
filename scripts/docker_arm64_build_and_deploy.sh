@@ -13,7 +13,7 @@
 
 set -e
 
-botuser=jaia
+botuser=ubuntu
 
 script_dir=$(dirname $0)
 
