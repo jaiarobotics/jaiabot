@@ -99,7 +99,7 @@ def get_mission_list():
         boundary_points=request.json['survey_polygon'][0],
         mission_type=None,
         spacing_meters=int(request.json['sample_spacing']),
-        number_of_bots=int(request.json['num_bots'])
+        bot_list=request.json['bot_list']
     )
     return JSONResponse(mission_dict)
 
