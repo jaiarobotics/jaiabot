@@ -52,7 +52,7 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
 try:
     control_surfaces_driver_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
 except FileNotFoundError:
-    control_surfaces_driver_bounds = ''
+    control_surfaces_driver_bounds = 'bounds {}'
 
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
