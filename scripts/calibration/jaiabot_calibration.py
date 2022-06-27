@@ -434,6 +434,7 @@ while begin == True:
         records.close()
         records = open("bounds.pb.cfg", "a")
         records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+        records.close()
         os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         begin = False
@@ -442,6 +443,5 @@ while begin == True:
 print("calibration complete!")
 
 #cleaning up and closing everything
-records.close()
 arduino.close()
 os.system('sudo systemctl start jaiabot')
