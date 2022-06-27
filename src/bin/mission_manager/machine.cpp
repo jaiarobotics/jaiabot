@@ -536,3 +536,12 @@ void jaiabot::statechart::inmission::underway::movement::remotecontrol::Setpoint
     *setpoint_msg.mutable_remote_control() = rc_setpoint_;
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
+
+jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+}

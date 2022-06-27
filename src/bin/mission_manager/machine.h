@@ -914,7 +914,7 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
                  Notify<Stopped, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STOPPED>
 {
     using StateBase = boost::statechart::state<Stopped, Recovery>;
-    Stopped(typename StateBase::my_context c) : StateBase(c) {}
+    Stopped(typename StateBase::my_context c);
     ~Stopped() {}
 };
 } // namespace recovery
