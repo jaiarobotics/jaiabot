@@ -202,7 +202,8 @@ void jaiabot::apps::WebPortal::send_message_to_client(const jaiabot::protobuf::P
         return;
     }
 
-    glog.is_debug1() && glog << group("main") << "Sending message to client: " << message.ShortDebugString() << endl;
+    glog.is_debug2() && glog << group("main")
+                             << "Sending message to client: " << message.ShortDebugString() << endl;
 
     auto io_data = make_shared<goby::middleware::protobuf::IOData>();
     io_data->mutable_udp_dest()->set_addr(dest.addr());
