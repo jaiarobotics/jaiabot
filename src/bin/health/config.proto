@@ -24,14 +24,22 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "dccl/option_extensions.proto";
 
 package jaiabot.config;
 
 message Health
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     optional bool auto_restart = 10 [default = true];
-    optional int32 auto_restart_sec = 11 [default = 10];
+    optional int32 auto_restart_timeout = 11
+        [default = 20, (dccl.field).units = { base_dimensions: "T" }];
+    optional int32 auto_restart_init_grace_period = 12
+        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 }

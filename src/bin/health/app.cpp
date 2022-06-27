@@ -40,6 +40,13 @@ class Health : public ApplicationBase
 {
   public:
     Health();
+
+  private:
+    void loop() override;
+    void restart_services() { system("systemctl restart jaiabot"); }
+
+  private:
+    goby::time::SteadyClock::time_point next_check_time_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -51,6 +58,10 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::Health::Health()
+    : ApplicationBase(1.0 * boost::units::si::hertz),
+      next_check_time_(goby::time::SteadyClock::now() +
+                       goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                           cfg().auto_restart_init_grace_period_with_units()))
 {
     // handle restart/reboot commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::hub_command>([this](
@@ -66,8 +77,33 @@ jaiabot::apps::Health::Health()
                 break;
             case protobuf::Command::RESTART_ALL_SERVICES:
                 glog.is_verbose() && glog << "Commanded to restart jaiabot services. " << std::endl;
-                system("systemctl restart jaiabot");
+                restart_services();
                 break;
         }
     });
+
+    interprocess().subscribe<goby::middleware::groups::health_report>(
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+            {
+                // increase next check time every time we get an report where it's not FAILED
+                next_check_time_ += goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                    cfg().auto_restart_timeout_with_units());
+            }
+        });
+}
+
+void jaiabot::apps::Health::loop()
+{
+    if (cfg().auto_restart())
+    {
+        auto now = goby::time::SteadyClock::now();
+        if (now > next_check_time_)
+        {
+            glog.is_warn() && glog << "Auto-restarting jaiabot services due to no HEALTH__OK "
+                                      "or HEALTH__DEGRADED report in the last "
+                                   << cfg().auto_restart_timeout() << " seconds" << std::endl;
+            restart_services();
+        }
+    }
 }
