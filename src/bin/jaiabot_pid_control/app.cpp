@@ -606,7 +606,7 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
     // No dive PID for now... set to -60% throttle
     setThrottleMode(MANUAL);
-    throttle = -60.0;
+    throttle = -45.0;
 
     // Set rudder to center
     rudder = 0.0;
