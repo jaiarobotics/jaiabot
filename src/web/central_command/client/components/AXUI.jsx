@@ -1798,6 +1798,8 @@ export default class AXUI extends React.Component {
 	}
 
 	leftPanelSidebar() {
+		let self = this
+
 		return (
 			<div id="leftSidebar" className="column-left">
 				<div id="leftPanelsContainer" className="panelsContainerVertical">
@@ -1820,6 +1822,24 @@ export default class AXUI extends React.Component {
 					{
 						DiveParameters.panel()
 					}
+
+					<button type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "RESTART_ALL_SERVICES"
+						})
+					}}>
+						Restart Services
+					</button>
+
+					<button type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "REBOOT_COMPUTER"
+						})
+					}}>
+						Reboot Bot
+					</button>
 				</div>
 				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
 					<FontAwesomeIcon icon={faGripVertical} />
