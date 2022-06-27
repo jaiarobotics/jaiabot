@@ -1,0 +1,5 @@
+$app_block
+$interprocess_block
+
+auto_restart: true  #  (optional) (default=true)
+auto_restart_sec: 10  #  (optional) (default=10)
