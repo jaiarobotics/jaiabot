@@ -16,6 +16,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import pyproj
+import random
 from shapely.geometry import MultiPoint, Point, Polygon, LineString
 from shapely.ops import transform
 import shutil
@@ -187,7 +188,7 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, number_of_bots):
+def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, bot_list):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
@@ -196,7 +197,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     geo_epsg = 4326
     proj_epsg = 26919
 
-    plot_it = False
+    plot_it = True
     if plot_it:
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
@@ -213,10 +214,9 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
             (-71.33414666, 41.49966858),
             (-71.32337250, 41.49850826)
         ]
-    print(boundary_points)
 
-    # Create 0 index list of bots
-    bot_list = list(np.arange(number_of_bots))
+    # Number of bots in bot_list
+    number_of_bots = len(bot_list)
 
     # Get a unique color per bot
     point_colors = pick_point_colors(number_of_bots)
@@ -224,7 +224,6 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     # Define the deployment points
     deployment_point_geo = Point(deploy_lon, deploy_lat)
     deployment_point_proj = change_shapely_projection(deployment_point_geo, geo_epsg, proj_epsg)
-    print('z')
     if plot_it:
         gpd.GeoSeries(deployment_point_geo).plot(ax=ax, marker='p', color='black', markersize=40)
 
@@ -245,10 +244,14 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     xmin, ymin, xmax, ymax = p.bounds
 
     # Generate Points
-    n = spacing_meters
-    x = np.arange(np.floor(xmin * n) / n, np.ceil(xmax * n) / n, n)
-    y = np.arange(np.floor(ymin * n) / n, np.ceil(ymax * n) / n, n)
-    points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
+    if spacing_meters and spacing_meters > 0:
+        n = spacing_meters
+        x = np.arange(np.floor(xmin * n) / n, np.ceil(xmax * n) / n, n)
+        y = np.arange(np.floor(ymin * n) / n, np.ceil(ymax * n) / n, n)
+        points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
+    else:
+        # Random distribution of 14 goals within the survey polygon
+        points = MultiPoint(distribute_num_points(p, number_of_bots * 14))
 
     # Find Points inside the Polygon
     inside_points_all = points.intersection(p)
@@ -262,7 +265,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
             inside_points_all = inside_points_all - xp
 
     # Assign points to bots
-    bot_multipoint_dict = assign_points_to_bots(inside_points_all, number_of_bots)
+    bot_multipoint_dict = assign_points_to_bots(inside_points_all, bot_list)
 
     # Iterate through each bot's points and sort for execution order using TSP
     bot_gdf_dict_ordered = {}
@@ -275,24 +278,19 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         ordered_points_df = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings")
         # Add deployment location to start and end of point list in GeoDataFrame
         r = pd.DataFrame(columns=['eastings', 'northings'])
-        print('a')
         r = r.append({'eastings': deployment_point_proj.x, 'northings': deployment_point_proj.y}, ignore_index=True)
-        print('b')
         r = r.append(ordered_points_df, ignore_index=True)
-        print('c')
         r = r.append({'eastings': deployment_point_proj.x, 'northings': deployment_point_proj.y}, ignore_index=True)
-        print('d')
         ordered_points_gdf = gpd.GeoDataFrame(r, geometry=gpd.points_from_xy(r.eastings.array, r.northings.array), crs=proj_epsg)
-        print('e')
         bot_gdf_dict_ordered[bot] = ordered_points_gdf.to_crs(epsg=geo_epsg)
 
     if plot_it:
         for bot in bot_list:
             line_string_obj = LineString([[a.x, a.y] for a in bot_gdf_dict_ordered[bot].geometry.values])
             gpd.GeoSeries(line_string_obj).plot(ax=ax, color='blue')
-            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[0]]).plot(ax=ax, marker='D', color=point_colors[bot], markersize=20)
-            gpd.GeoDataFrame(bot_gdf_dict_ordered[bot]).plot(ax=ax, marker='o', color=point_colors[bot], markersize=5)
-            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[-1]]).plot(ax=ax, marker='X', color=point_colors[bot], markersize=20)
+            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[0]]).plot(ax=ax, marker='D', color='red', markersize=20)
+            gpd.GeoDataFrame(bot_gdf_dict_ordered[bot]).plot(ax=ax, marker='o', color='blue', markersize=5)
+            gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[-1]]).plot(ax=ax, marker='X', color='black', markersize=20)
 
     # Create mission dict
     mission_dict_list = create_mission_dict(bot_gdf_dict_ordered, bot_list)
@@ -301,6 +299,25 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         plt.show()
 
     return bot_gdf_dict_ordered, mission_dict_list
+
+
+def distribute_num_points(poly, num_points):
+    """
+    Using the survey polygon and a number of points, randomly distribute them inside the polygon.
+    """
+    min_x, min_y, max_x, max_y = poly.bounds
+    # This buffer is on the inside of the polygon to keep points away from the edge
+    buffer_size = np.mean([(max_y - min_y) * 0.05, (max_x - min_x) * 0.05]) * -1.0
+    # This is an ugly way to find a 'grid'
+    point_buffer_size = np.mean([(max_y - min_y) / num_points, (max_x - min_x) / num_points]) * 1.0
+    points = []
+
+    while len(points) < num_points:
+        random_point = Point([random.uniform(min_x, max_x), random.uniform(min_y, max_y)])
+        if random_point.within(poly.buffer(buffer_size, 10)) and not random_point.within(MultiPoint(points).buffer(point_buffer_size, 10)):
+            points.append(random_point)
+
+    return points
 
 
 def pick_point_colors(number_of_bots):
@@ -312,22 +329,25 @@ def pick_point_colors(number_of_bots):
     return list(np.random.choice(list_of_colors, number_of_bots, replace=False))
 
 
-def assign_points_to_bots(survey_points, number_of_bots):
+def assign_points_to_bots(survey_points, bot_list):
     """
     Split points by simple west-east slicing per bot
     :return: List of MultiPoint
     """
-    num_survey_points = len(survey_points)
+    number_of_bots = len(bot_list)
+    # TODO: Only allow 14 points per bot, change to setting somewhere if goals maximum of 14 is changed
+    survey_points_restricted = survey_points[0:number_of_bots*14]
+    num_survey_points = len(survey_points_restricted)
     point_break = floor(num_survey_points / number_of_bots)
-    bot_list = list(np.arange(number_of_bots))
+    bot_list_zero = list(np.arange(number_of_bots))
     bot_multipoint_dict = {}
-    for bot in bot_list:
+    for bot in bot_list_zero:
         start = point_break*bot
-        if bot == len(bot_list) - 1:
+        if bot == number_of_bots - 1:
             end = None
         else:
             end = point_break*(bot+1)
-        bot_multipoint_dict[bot] = survey_points[start:end]
+        bot_multipoint_dict[bot_list[bot]] = survey_points_restricted[start:end]
     return bot_multipoint_dict
 
 
