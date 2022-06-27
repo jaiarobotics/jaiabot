@@ -115,6 +115,12 @@ jaiabot_apps=[
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOTH},
+    {'exe': 'jaiabot_health',
+     'description': 'JaiaBot Health Reporting and Management',
+     'template': 'goby-app.service.in',
+     'user': 'root', # must run as root to allow restart/reboot
+     'group': 'root',
+     'runs_on': Type.BOTH},
     {'exe': 'jaiabot_metadata',
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
