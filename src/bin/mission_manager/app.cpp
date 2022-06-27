@@ -307,6 +307,11 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::REMOTE_CONTROL_RESUME_MOVEMENT:
             machine_->process_event(statechart::EvResumeMovement());
+            break;
+
+            // handled by jaiabot_health
+        case protobuf::Command::REBOOT_COMPUTER:
+        case protobuf::Command::RESTART_ALL_SERVICES: break;
     }
 }
 
