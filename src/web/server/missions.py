@@ -464,9 +464,15 @@ def create_mission_dict(bot_multipoint_dict, bot_list):
                     "location": {
                         "lat": p.y,
                         "lon": p.x
-                    }
+                    },
+                    "task": {"type": "DIVE",
+                            "dive": {"max_depth": 100,
+                                    "depth_interval": 100,
+                                    "hold_time": 1}
+                            }
                 }
             )
+            
         mission_dict = {
             "botId": int(bot),
             "time": str(utcnow()),
