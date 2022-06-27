@@ -130,9 +130,11 @@ def generate_webpage(fields, data_filenames, bdr_file):
     fig.update_layout(title=f'JaiaData - {display_filenames}', hovermode="closest")
 
     for series_index, field in enumerate(fields):
+        print(f'  Plotting dataset: {field.y_datapath_re}')
         y_datapath = h5_fileset.find_datapath_re(field.y_datapath_re)
 
         if y_datapath is None:
+            print('  no y_datapath!')
             continue
 
         trunk_path = '/'.join(y_datapath.split('/')[:2])
@@ -141,6 +143,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
         # Pass if we don't have this series
         if h5_fileset[scheme_path] is None:
+            print('  no series!')
             continue
 
         series_scheme = h5_fileset[scheme_path].data
@@ -149,6 +152,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
 
         # Die if we don't have a series
         if series_x is None or series_y is None:
+            print('  no x series!')
             continue
 
         series_x_data = []
@@ -156,10 +160,7 @@ def generate_webpage(fields, data_filenames, bdr_file):
         hovertext = None
 
         # If we're dealing with an enum, we need a hovertext list
-        try:
-            enum_dict = h5_fileset.check_enum_dtype(y_datapath)
-        except KeyError:
-            continue
+        enum_dict = h5_fileset.check_enum_dtype(y_datapath)
 
         if enum_dict:
             hovertext = []
@@ -191,6 +192,8 @@ def generate_webpage(fields, data_filenames, bdr_file):
                 hovertext.append(enum_dict[series_y.data[i]])
             
         yaxis_title = field.y_axis_label
+
+        print('  Success')
 
         fig.append_trace(go.Scatter(x=series_x_data, y=series_y_data, mode='lines+markers', name=series_y.name, connectgaps=False, hovertext=hovertext), series_index + 1, 1)
         fig.update_yaxes(title_text=yaxis_title, row=series_index + 1)
@@ -229,11 +232,13 @@ available_fields = [
     Field(y_datapath_re=BotStatus_latitude, y_axis_label='BotStatus latitude (°)'),
     Field(y_datapath_re=BotStatus_longitude, y_axis_label='BotStatus longitude (°)'),
 
-    Field(y_datapath_re=DesiredCourse_speed, y_axis_label='Desired speed (m/s)'),
-    Field(y_datapath_re=DesiredCourse_heading, y_axis_label='Desired heading (°)'),
+    Field(y_datapath_re=DesiredCourse_speed, y_axis_label='DesiredCourse/speed (m/s)'),
+    Field(y_datapath_re=DesiredCourse_heading, y_axis_label='DesiredCourse/heading (°)'),
 
     Field(y_datapath_re=DesiredSetpoints_dive_depth, y_axis_label='Dive depth (m)'),
-    Field(y_datapath_re=DesiredSetpoints_type, y_axis_label='Desired Setpoint Type'),
+    Field(y_datapath_re=DesiredSetpoints_type, y_axis_label='DesiredSetpoint/type'),
+    Field(y_datapath_re=DesiredSetpoints_helm_course_speed, y_axis_label='DesiredSetpoint/speed (m/s)'),
+    Field(y_datapath_re=DesiredSetpoints_helm_course_heading, y_axis_label='DesiredSetpoint/heading (°)'),
 
     Field(y_datapath_re=PIDControl_depth_Kp, y_axis_label='Depth P gain'),
     Field(y_datapath_re=PIDControl_depth_Ki, y_axis_label='Depth I gain'),
@@ -248,8 +253,11 @@ available_fields = [
     Field(y_datapath_re=Engineering_flag, y_axis_label='Flag Event'),
 
     Field(y_datapath_re=ArduinoCommand_motor, y_axis_label='Arduino motor (microsec)'),
+    Field(y_datapath_re=ArduinoCommand_rudder, y_axis_label='Arduino rudder (microsec)'),
 
-    Field(y_datapath_re=HUBCommand_type, y_axis_label='HUB Command type')
+    Field(y_datapath_re=HUBCommand_type, y_axis_label='HUB Command type'),
+
+    Field(y_datapath_re=IMU_euler_angles_alpha, y_axis_label='IMUData/euler_angles/alpha (°)')
 ]
 
 

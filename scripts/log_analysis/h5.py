@@ -4,6 +4,7 @@ import re
 
 ArduinoCommand = 'jaiabot::arduino/jaiabot.protobuf.ArduinoCommand/'
 ArduinoCommand_motor = ArduinoCommand + 'motor'
+ArduinoCommand_rudder = ArduinoCommand + 'rudder'
 
 BotStatus = 'jaiabot::bot_status;.+/jaiabot.protobuf.BotStatus/'
 BotStatus_time = BotStatus + '_utime_'
@@ -15,6 +16,9 @@ BotStatus_course_over_ground = BotStatus + 'attitude/course_over_ground'
 BotStatus_depth = BotStatus + 'depth'
 BotStatus_salinity = BotStatus + 'salinity'
 BotStatus_mission_state = BotStatus + 'mission_state'
+
+IMU = 'jaiabot::imu/jaiabot.protobuf.IMUData/'
+IMU_euler_angles_alpha = IMU + 'euler_angles/alpha'
 
 PressureTemperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/'
 PressureTemperature_pressure = PressureTemperature + 'pressure'
@@ -44,6 +48,8 @@ DesiredCourse_speed = 'goby::middleware::frontseat::desired_course/goby.middlewa
 DesiredSetpoints = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/'
 DesiredSetpoints_dive_depth = DesiredSetpoints + 'dive_depth'
 DesiredSetpoints_type = DesiredSetpoints + 'type'
+DesiredSetpoints_helm_course_speed = DesiredSetpoints + 'helm_course/speed'
+DesiredSetpoints_helm_course_heading = DesiredSetpoints + 'helm_course/heading'
 
 HUBCommand = 'jaiabot::hub_command;.+/jaiabot.protobuf.Command/'
 HUBCommand_type = HUBCommand + 'type'
@@ -104,13 +110,16 @@ class H5FileSet:
             return series
 
     def check_enum_dtype(self, dataset_name):
-        dataset = self.h5_files[0][dataset_name]
-        try:
-            enum_names = dataset.attrs['enum_names']
-            enum_values = dataset.attrs['enum_values']
-            return { enum_values[index]: enum_names[index] for index in range(0, len(enum_values))}
-        except KeyError:
-            return None
+        for h5_file in self.h5_files:
+            try:
+                dataset = h5_file[dataset_name]
+                enum_names = dataset.attrs['enum_names']
+                enum_values = dataset.attrs['enum_values']
+                return { enum_values[index]: enum_names[index] for index in range(0, len(enum_values))}
+            except KeyError:
+                continue
+        
+        return None
 
     # Finds a datapath, given a regular expression for that datapath
     def find_datapath_re(self, regex):
