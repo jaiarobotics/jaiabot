@@ -354,7 +354,7 @@ while begin == True:
         print("Surface Calibration Complete")
         f = True
         calibrate = ""
-        while x is True:
+        while f is True:
             calibrate = input("do you want to calibrate the motor? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
