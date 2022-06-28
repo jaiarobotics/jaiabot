@@ -155,14 +155,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "improve-python-install"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "improve-python-install"
         
 ## Begin actual config
 version: 2
