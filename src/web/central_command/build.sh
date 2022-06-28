@@ -5,6 +5,9 @@ set -e
 
 pushd "$DIR"
 
+output_path='dist/client'
+[[ ! -z "$1" ]] && output_path="$1"
+
 cat <<EOM > common/version.js
 module.exports = "${AXSERVER_VERSION}"
 EOM
@@ -44,5 +47,5 @@ then
 fi
 
 echo "🟢 Building app package"
-webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  # --display errors-only --output-path '.'
+webpack --mode development --display "errors-only" --display-error-details --optimize-minimize --bail  --output-path $output_path # --display errors-only 
 echo "✅ Done"
