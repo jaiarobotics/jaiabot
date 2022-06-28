@@ -21,15 +21,15 @@ write_bounds = bounds_pb2.SurfaceBounds()
 
 os.system('sudo systemctl stop jaiabot')
 #tries to open the bounds config and inserts the values to the check_bounds object
-try:
-    os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
-    boundsCFG = open("bounds.pb.cfg","r")
-    boundsCFG = boundsCFG.read()
-    print("Current bounds are:", boundsCFG)
-    google.protobuf.text_format.Parse(boundsCFG, check_bounds)
-    boundsCFG.close()
-except:
-    print("First Jaiabot Calibration")
+#try:
+os.system('cd /etc/jaiabot/; sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/; cd ~/jaiabot/scripts/calibration')
+boundsCFG = open("bounds.pb.cfg","r")
+boundsCFG = boundsCFG.read()
+print("Current bounds are:", boundsCFG)
+google.protobuf.text_format.Parse(boundsCFG, check_bounds)
+boundsCFG.close()
+#except:
+#    print("First Jaiabot Calibration")
 
 #opens the arduino for use
 #arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
