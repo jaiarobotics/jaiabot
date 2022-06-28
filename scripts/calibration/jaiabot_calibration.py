@@ -24,11 +24,23 @@ os.system('sudo systemctl stop jaiabot')
 try:
     os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
     boundsCFG = open("bounds.pb.cfg","r")
+    print(boundsCFG)
     boundsCFG = boundsCFG.read()
     google.protobuf.text_format.Parse(boundsCFG, check_bounds)
     boundsCFG.close()
 except:
-    pass
+    print("nothing here")
+
+printed = True
+while printed is True:
+    ask = input("did anything print? yes or no")
+    ask = ask.upper()
+    if ask == "YES":
+        printed = False
+    if ask =="NO":
+        os.system("^C")
+
+
 
 #opens the arduino for use
 #arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
@@ -247,6 +259,29 @@ def calibrateMotor():
 
     return
 
+#write bounds to a .pb.cfg file and moves it to /etc/jaiabot
+def WriteBounds():
+    content = True
+    while content is True:
+        permission = input("would you like to upload these values? Yes/No")
+        permission = permission.upper()
+        if permission == "YES":
+            records = open("bounds.pb.cfg", "w")
+            records.write(str(check_bounds))
+            records.close()
+            records = open("bounds.pb.cfg", "a")
+            records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
+            records.close()
+            #os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
+            content = False
+        elif permission == "NO":
+            print("Then the Jaiabot will need to be recalibrated")
+            return content
+        else:
+            print("Please enter Yes or No")
+
+
+
 #actual running loop for calibration
 begin = True
 while begin == True:
@@ -268,14 +303,14 @@ while begin == True:
                 print("please enter Yes or No")
 
         #ask the user to calibrate bounds
-        x = True
-        while x is True:
+        a = True
+        while a is True:
             calibrate = input("do you want to calibrate the starboard elevator? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 check_bounds.strb.CopyFrom(calibrateWingSurface())
                 print(str(check_bounds.strb))
-                x = False
+                a = False
             elif calibrate == "NO":
                 if check_bounds.strb.upper == 0:
                     check_bounds.strb.upper = 1000
@@ -284,18 +319,18 @@ while begin == True:
                 if check_bounds.strb.center == 0:
                     check_bounds.strb.center = 1500
                 skipWing()
-                x = False
+                a = False
             else:
                 print("please enter Yes or No")
-        x = True
+        s = True
         calibrate = ""
-        while x is True:
+        while s is True:
             calibrate = input("do you want to calibrate the port elevator? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 check_bounds.port.CopyFrom(calibrateWingSurface())
                 print(str(check_bounds.port))
-                x = False
+                s = False
             elif calibrate == "NO":
                 if check_bounds.port.upper == 0:
                     check_bounds.port.upper = 1000
@@ -304,18 +339,18 @@ while begin == True:
                 if check_bounds.port.center == 0:
                     check_bounds.port.center = 1500
                 skipWing()
-                x = False
+                s = False
             else:
                 print("please enter Yes or No")
-        x = True
+        d = True
         calibrate = ""
-        while x is True:
+        while d is True:
             calibrate = input("do you want to calibrate the rudder? Yes/No ")
             calibrate = calibrate.upper()
             if calibrate == "YES":
                 check_bounds.rudder.CopyFrom(calibrateWingSurface())
                 print(str(check_bounds.rudder))
-                x = False
+                d = False
             elif calibrate == "NO":
                 if check_bounds.rudder.upper == 0:
                     check_bounds.rudder.upper = 1000
@@ -324,11 +359,11 @@ while begin == True:
                 if check_bounds.rudder.center == 0:
                     check_bounds.rudder.center = 1500
                 skipWing()
-                x = False
+                d = False
             else:
                 print("please enter Yes or No")
         print("Surface Calibration Complete")
-        x = True
+        f = True
         calibrate = ""
         while x is True:
             calibrate = input("do you want to calibrate the motor? Yes/No ")
@@ -336,7 +371,7 @@ while begin == True:
             if calibrate == "YES":
                 calibrateMotor()
                 print(str(check_bounds.motor))
-                x = False
+                f = False
             elif calibrate == "NO":
                 if check_bounds.motor.reverseStart == 0:
                     check_bounds.motor.reverseStart = 1400
@@ -347,21 +382,12 @@ while begin == True:
                 if check_bounds.motor.reverseHalt == 0:
                     check_bounds.motor.reverseHalt = 1401
                 skipMotor()
-                x = False
+                f = False
             else:
                 print("please enter Yes or No")
         print("Motor Calibration Complete")
 
         print(str(check_bounds))
-
-        #write bounds to a .pb.cfg file and moves it to /etc/jaiabot
-        records = open("bounds.pb.cfg", "w")
-        records.write(str(check_bounds))
-        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
-        records.close()
-        records = open("bounds.pb.cfg", "a")
-        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
-        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
 
         #ask the user to upload jaiabot_runtime and finish calibration
         please = True
@@ -381,7 +407,7 @@ while begin == True:
             else:
                 print("Please enter Yes or No")
 
-        begin = False
+        begin = WriteBounds()
         
     #if you skip calibration, will write some generic bounds that mostly work          
     elif permission == "NO":
@@ -429,15 +455,7 @@ while begin == True:
         if check_bounds.motor.reverseHalt == 0:
             check_bounds.motor.reverseHalt = 1401
 
-        records = open("bounds.pb.cfg", "w")
-        records.write(str(check_bounds))
-        records.close()
-        records = open("bounds.pb.cfg", "a")
-        records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
-        records.close()
-        os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
-
-        begin = False
+        begin = WriteBounds()
     else:
         print("Please enter Yes or No")
 print("calibration complete!")
