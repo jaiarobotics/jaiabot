@@ -13,6 +13,8 @@
 
 set -e
 
+botuser=ubuntu
+
 script_dir=$(dirname $0)
 
 # install clang-format hook if not installed
@@ -38,24 +40,25 @@ else
     for var in "$@"
     do
     	echo "🟢 Uploading to "$var
-	rsync -zaP --delete --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ubuntu@"$var":/home/ubuntu/jaiabot/
+	rsync -zaP --delete --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ${botuser}@"$var":/home/${botuser}/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
-            ssh ubuntu@"$var" "bash -c 'cd /home/ubuntu/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
-            ssh ubuntu@"$var" "bash -c 'sudo cp /home/ubuntu/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
-            ssh ubuntu@"$var" "bash -c 'sudo cp /home/ubuntu/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
+            ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
+            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
+            ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
+            ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /usr/share/jaiabot/python/requirements.txt'"          
         fi
 
     	echo "🟢 Creating and setting permissons on log dir"
-        ssh ubuntu@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ubuntu:ubuntu /var/log/jaiabot"
+        ssh ${botuser}@"$var" "sudo mkdir -p /var/log/jaiabot && sudo chown -R ${botuser}:${botuser} /var/log/jaiabot"
         
         if [ ! -z "$jaiabot_arduino_type" ]; then
             echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
-            ssh ubuntu@"$var" "/home/ubuntu/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
+            ssh ${botuser}@"$var" "/home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
         fi
 
-        echo "When you're ready, ssh ubuntu@${var} and run 'sudo systemctl start jaiabot'"
+        echo "When you're ready, ssh ${botuser}@${var} and run 'sudo systemctl start jaiabot'"
     done
 fi
 
