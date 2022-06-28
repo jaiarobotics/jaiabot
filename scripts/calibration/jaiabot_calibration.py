@@ -10,7 +10,7 @@ import time
 import os
 
 #helps with protobuf processing
-import google.protobuf.json_format
+import google.protobuf.text_format
 
 #the actual protobuf format
 import bounds_pb2
@@ -19,17 +19,19 @@ import bounds_pb2
 check_bounds = bounds_pb2.Bounds()
 write_bounds = bounds_pb2.SurfaceBounds()
 
+#stops the app daemon on the bot so that the arduino is open to write on
 os.system('sudo systemctl stop jaiabot')
+
 #tries to open the bounds config and inserts the values to the check_bounds object
-#try:
-os.system('cd /etc/jaiabot/; sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/; cd ~/jaiabot/scripts/calibration')
-boundsCFG = open("bounds.pb.cfg","r")
-boundsCFG = boundsCFG.read()
-print("Current bounds are:", boundsCFG)
-google.protobuf.text_format.Parse(boundsCFG, check_bounds)
-boundsCFG.close()
-#except:
-#    print("First Jaiabot Calibration")
+try:
+    os.system('cd /etc/jaiabot/; sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/; cd ~/jaiabot/scripts/calibration')
+    boundsCFG = open("bounds.pb.cfg","r")
+    boundscfg = boundsCFG.read()
+    print("Current bounds are:", boundscfg)
+    google.protobuf.text_format.Parse(boundscfg, check_bounds)
+    boundsCFG.close()
+except:
+    print("First Jaiabot Calibration")
 
 #opens the arduino for use
 #arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
@@ -149,27 +151,31 @@ def skipWing():
     write("0")
     write("Y")
     write("X")
-    print("current bounds are:")
-    print(rd())
+    output = rd()
+    output = str(output)
+    output = output.split()
+    print("current upper bound is", output[0])
+    print("current lower bound is", output[1])
+    print("current center bound is", output[2])
 
 #skips motor calibration for user
 def skipMotor():
     write("Y")
     write("J")
     rd()
-    print("current bound is 1600")
+    print("current forward start threshold is is 1600 microseconds")
     write("Y")
     write("J")
     rd()
-    print("current bound is 1400")
+    print("current reverse start threshold is is 1400 microseconds")
     write("Y")
     write("J")
     rd()
-    print("current bound is 1599")
+    print("current forward stop threshold is 1599 microseconds")
     write("Y")
     write("J")
     rd()
-    print("current bound is 1401")
+    print("current reverse stop threshold is 1401 microseconds")
     write("C")
     
             
@@ -200,6 +206,8 @@ def inputMotorCommand(comfirmation1, comfirmation2):
                         x = False
                     elif completion == "NO":
                         write("K")
+                        x = False
+                        z = False
                     else:
                         print("Please enter yes or no")
             elif confirmation == "NO":
@@ -252,6 +260,7 @@ def calibrateMotor():
 def WriteBounds():
     content = True
     while content is True:
+        print(str(check_bounds))
         permission = input("would you like to upload these values? Yes/No ")
         permission = permission.upper()
         if permission == "YES":
@@ -377,6 +386,7 @@ while begin == True:
                 print("please enter Yes or No")
         print("Motor Calibration Complete")
 
+        print("current bounds are:")
         print(str(check_bounds))
 
         #ask the user to upload jaiabot_runtime and finish calibration
