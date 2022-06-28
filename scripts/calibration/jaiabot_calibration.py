@@ -261,13 +261,14 @@ def WriteBounds():
             records = open("bounds.pb.cfg", "a")
             records.write("# on the JAIABOT, upper means STARBOARD on rudder and UP on the flaps")
             records.close()
-            #os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
+            os.system('sudo mv bounds.pb.cfg /etc/jaiabot/')
             content = False
         elif permission == "NO":
             print("Then the Jaiabot will need to be recalibrated")
             return content
         else:
             print("Please enter Yes or No")
+    return content
 
 
 
