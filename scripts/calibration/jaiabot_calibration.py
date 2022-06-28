@@ -252,7 +252,7 @@ def calibrateMotor():
 def WriteBounds():
     content = True
     while content is True:
-        permission = input("would you like to upload these values? Yes/No")
+        permission = input("would you like to upload these values? Yes/No ")
         permission = permission.upper()
         if permission == "YES":
             records = open("bounds.pb.cfg", "w")
