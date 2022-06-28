@@ -73,7 +73,7 @@ int Bounds(int l, int m, int n, Servo servo){
   Serial.print(m);
   Serial.print(" ");
   Serial.print(n);
-  Serial.println(" ");
+  Serial.print(" ");
 }
 
 //for accelerating/decelerating the motor
@@ -88,7 +88,7 @@ int motor_speed(int microseconds, Servo servo, int Direction){
   }
   do{ 
     servo.writeMicroseconds(microseconds);
-    Serial.println(microseconds);
+    Serial.print(microseconds);
     bool confirmation = Serial.findUntil("Y","N");
     if (confirmation == true){
       bool completion = Serial.findUntil("J","K");
