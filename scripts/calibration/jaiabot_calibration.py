@@ -24,23 +24,12 @@ os.system('sudo systemctl stop jaiabot')
 try:
     os.system('cd /etc/jaiabot/','sudo mv bounds.pb.cfg ~/jaiabot/scripts/calibration/')
     boundsCFG = open("bounds.pb.cfg","r")
-    print(boundsCFG)
     boundsCFG = boundsCFG.read()
+    print("Current bounds are:", boundsCFG)
     google.protobuf.text_format.Parse(boundsCFG, check_bounds)
     boundsCFG.close()
 except:
-    print("nothing here")
-
-printed = True
-while printed is True:
-    ask = input("did anything print? yes or no")
-    ask = ask.upper()
-    if ask == "YES":
-        printed = False
-    if ask =="NO":
-        os.system("^C")
-
-
+    print("First Jaiabot Calibration")
 
 #opens the arduino for use
 #arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
