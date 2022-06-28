@@ -3,6 +3,7 @@
 #include <pb_encode.h>
 #include <Servo.h>
 #include <stdio.h>
+#include <Adafruit_MAX31855.h>
 
 #ifdef UENUM
 #undef UENUM
@@ -22,11 +23,18 @@ static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN
 
 Servo rudder_servo, port_elevator_servo, stbd_elevator_servo, motor_servo;
 
+<<<<<<< HEAD
 constexpr int STBD_ELEVATOR_PIN = 2;
 constexpr int RUDDER_PIN = 3;
 constexpr int PORT_ELEVATOR_PIN = 4;
 constexpr int MOTOR_PIN = 6;
 const int LED_PIN = 10;
+=======
+constexpr int STBD_ELEVATOR_PIN = 6;
+constexpr int RUDDER_PIN = 5;
+constexpr int PORT_ELEVATOR_PIN = 9;
+constexpr int MOTOR_PIN = 3;
+>>>>>>> 1.y
 
 // The timeout
 unsigned long t_last_command = 0;
@@ -39,6 +47,19 @@ int motor_neutral = 1500;
 int stbd_elevator_neutral = 1500;
 int port_elevator_neutral = 1500;
 int rudder_neutral = 1500;
+
+// The thermocouple
+constexpr int CLOCK_PIN = 7;
+constexpr int SELECT_PIN = 4;
+constexpr int DATA_PIN = A4;
+
+bool thermocouple_is_present = false;
+
+Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
+
+// Power Pin
+constexpr int POWER_PIN = A1;
+
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -80,6 +101,15 @@ void send_ack(AckCode code, char message[])
   callback.arg = NULL;
   ack.message = callback;
 
+  if (thermocouple_is_present) {
+    // Get the thermocouple temperature
+    ack.thermocouple_temperature_C = thermocouple.readCelsius();
+    ack.has_thermocouple_temperature_C = true;
+  }
+  else {
+    ack.has_thermocouple_temperature_C = false;
+  }
+
   if (message != NULL) {
     strncpy(ack_message, message, 250);
   }
@@ -102,6 +132,8 @@ void send_ack(AckCode code, char message[])
 
 void setup()
 {
+  // Make sure the power pin isn't in the off mode
+  digitalWrite(POWER_PIN, LOW);
 
   Serial.begin(115200);
   while (!Serial) {
@@ -110,12 +142,22 @@ void setup()
 
   delay(100);
 
-  pinMode(LED_PIN, OUTPUT);
+  
+
 
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
+
+  // Begin thermocouple, but abandon after 5 second
+  for (int i = 0; i < 500; i++) {
+    if (thermocouple.begin()) {
+      thermocouple_is_present = true;
+      break;
+    }
+    delay(10);
+  }
 
   // Send startup code
   send_ack(STARTUP, NULL);
@@ -179,12 +221,8 @@ void loop()
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
 
-            if (command.LED_on == true){
-              digitalWrite(LED_PIN, HIGH);
-            }
-            else if (command.LED_on == false){
-              digitalWrite(LED_PIN, LOW);
-            }
+
+
             
 
             // Set the timeout vars

@@ -1,6 +1,9 @@
 import h5py
 import datetime
 
+ArduinoCommand = 'jaiabot::arduino/jaiabot.protobuf.ArduinoCommand/'
+ArduinoCommand_motor = ArduinoCommand + 'motor'
+
 BotStatus = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/'
 BotStatus_time = BotStatus + '_utime_'
 BotStatus_latitude = BotStatus + 'location/lat'
@@ -16,7 +19,8 @@ PressureTemperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTe
 PressureTemperature_pressure = PressureTemperature + 'pressure'
 PressureTemperature_temperature = PressureTemperature + 'temperature'
 
-PIDControl = 'jaiabot::engineering_command;0/jaiabot.protobuf.Engineering/pid_control/'
+Engineering = 'jaiabot::engineering_command;0/jaiabot.protobuf.Engineering/'
+PIDControl = Engineering + 'pid_control/'
 PIDControl_throttle = PIDControl + 'throttle'
 PIDControl_heading = PIDControl + 'heading/target'
 PIDControl_rudder = PIDControl + 'rudder'
@@ -28,7 +32,7 @@ PIDControl_depth_Kp = PIDControl + 'depth/Kp'
 PIDControl_depth_Ki = PIDControl + 'depth/Ki'
 PIDControl_depth_Kd = PIDControl + 'depth/Kd'
 
-Engineering_flag = 'jaiabot::engineering_command;0/jaiabot.protobuf.Engineering/flag'
+Engineering_flag = Engineering + 'flag'
 
 LowControl_motor = 'jaiabot::low_control/jaiabot.protobuf.LowControl/control_surfaces/motor'
 LowControl_rudder = 'jaiabot::low_control/jaiabot.protobuf.LowControl/control_surfaces/rudder'
@@ -39,6 +43,9 @@ DesiredCourse_speed = 'goby::middleware::frontseat::desired_course/goby.middlewa
 DesiredSetpoints = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/'
 DesiredSetpoints_dive_depth = DesiredSetpoints + 'dive_depth'
 DesiredSetpoints_type = DesiredSetpoints + 'type'
+
+HUBCommand = 'jaiabot::hub_command;0/jaiabot.protobuf.Command/'
+HUBCommand_type = HUBCommand + 'type'
 
 TPV = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/'
 TPV_time = TPV + '_utime_'
@@ -54,9 +61,10 @@ def date_from_micros(micros):
 
 
 class Series:
-    def __init__(self, name, data) -> None:
+    def __init__(self, name, data, dtype) -> None:
         self.name = name
         self.data = data
+        self.dtype = dtype
 
 
 class H5FileSet:
@@ -73,10 +81,13 @@ class H5FileSet:
             name = dataset_name.split('.')[-1]
 
             all_data = []
+            dtype = None
 
             for h5_file in self.h5_files:
                 try:
-                    data = list(h5_file[dataset_name])
+                    dataset = h5_file[dataset_name]
+                    dtype = dataset.dtype
+                    data = list(dataset)
                     if '_utime_' in dataset_name:
                         data = [ date_from_micros(micros) for micros in data ]
                         name = name.replace('_utime_', 'time')
@@ -88,7 +99,7 @@ class H5FileSet:
                 # Sentinel nil value, to prevent connection of multiple series
                 all_data.append(None)
 
-            series = Series(name, all_data)
+            series = Series(name, all_data, dtype)
             self.series[dataset_name] = series
             return series
 

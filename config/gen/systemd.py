@@ -57,7 +57,7 @@ subprocess.run('bash -ic "' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
-              'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > ' + args.env_file + '"',
+              'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
 common_macros=dict()
@@ -70,8 +70,8 @@ common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
 common_macros['extra_unit']=''
 common_macros['extra_flags']=''
-common_macros['bhv_file']='/tmp/jaiabot_' + str(args.bot_index) + '.bhv'
-common_macros['moos_file']='/tmp/jaiabot_' + str(args.bot_index) + '.moos'
+common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
+common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
 common_macros['user']=os.getlogin()
 common_macros['group']=os.getlogin()
 

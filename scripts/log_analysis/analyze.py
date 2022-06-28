@@ -21,6 +21,7 @@ from h5 import *
 import random
 import json
 from string import Template
+import numpy as np
 import glob
 
 from copy import deepcopy
@@ -158,12 +159,23 @@ def generate_webpage(fields, data_filenames, bdr_file):
         if enum_dict:
             hovertext = []
 
+        # Get the maximum value for this field, (which will represent a missing value)
+        try:
+            MISSING = np.iinfo(series_y.dtype).max
+        except ValueError:
+            MISSING = np.finfo(series_y.dtype).max
+
+
         for i in range(0, len(series_x.data)):
             # Keep it to scheme == 1
             if series_scheme and series_scheme[i] != 1:
                 continue
 
-            # Ensure the enum is a value value
+            # Throw out missing values
+            if series_y.data[i] == MISSING:
+                continue
+
+            # Ensure the enum is a valid value
             if enum_dict and series_y.data[i] not in enum_dict:
                 continue
 
@@ -228,7 +240,11 @@ available_fields = [
     Field(y_datapath=TPV_epy, y_axis_label='Latitude Error 95% (m)'),
     Field(y_datapath=TPV_epv, y_axis_label='Vertical Error 95% (m)'),
 
-    Field(y_datapath=Engineering_flag, y_axis_label='Flag Event')
+    Field(y_datapath=Engineering_flag, y_axis_label='Flag Event'),
+
+    Field(y_datapath=ArduinoCommand_motor, y_axis_label='Arduino motor (microsec)'),
+
+    Field(y_datapath=HUBCommand_type, y_axis_label='HUB Command type')
 ]
 
 

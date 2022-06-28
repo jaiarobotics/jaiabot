@@ -96,6 +96,8 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
     : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(4 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
+    glog.add_group("command", goby::util::Colors::green);
+    glog.add_group("arduino", goby::util::Colors::blue);
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
@@ -108,9 +110,9 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
         [this](const jaiabot::protobuf::LowControl& low_control) {
             if (low_control.has_control_surfaces())
             {
-                glog.is_verbose() && glog << group("main")
-                                          << "Received command: " << low_control.ShortDebugString()
-                                          << std::endl;
+                glog.is_debug1() && glog << group("command")
+                                         << "Received command: " << low_control.ShortDebugString()
+                                         << std::endl;
 
                 handle_control_surfaces(low_control.control_surfaces());
             }
@@ -122,15 +124,16 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
 
-            glog.is_debug1() && glog << group("main") << "Received from Arduino: "
+            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
 
-            if (arduino_response.has_message())
+            if (arduino_response.has_message() && arduino_response.message().length() > 0)
             {
-                glog.is_warn() && glog << group("main") << arduino_response.message() << std::endl;
+                glog.is_warn() && glog << group("arduino") << arduino_response.message()
+                                       << std::endl;
             }
 
-            interprocess().publish<groups::arduino_response>(arduino_response);
+            interprocess().publish<groups::arduino>(arduino_response);
         });
 }
 
@@ -151,7 +154,7 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
 {
     if (control_surfaces.has_motor())
     {
-        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
+        target_motor = 1500 - (control_surfaces.motor() / 100.0) * 400;
     }
 
     if (control_surfaces.has_rudder())
@@ -195,6 +198,9 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
         arduino_cmd.set_stbd_elevator(bounds.strb().center());
         arduino_cmd.set_port_elevator(bounds.port().center());
 
+        // Publish interthread, so we can log it
+        interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
+
         // Send the command to the Arduino
         auto raw_output = lora::serialize(arduino_cmd);
         interthread().publish<serial_out>(raw_output);
@@ -209,23 +215,23 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     {
         current_motor += min(target_motor - current_motor, motor_max_step);
 
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().forwardstart());
+        if (current_motor < 1500)
+            corrected_motor = min(current_motor, bounds.motor().forwardstart());
         if (current_motor == 1500)
             corrected_motor = current_motor;
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().reversehalt());
+        if (current_motor > 1500)
+            corrected_motor = max(current_motor, bounds.motor().reversehalt());
     }
     else
     {
         current_motor -= min(current_motor - target_motor, motor_max_step);
 
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().forwardhalt());
+        if (current_motor < 1500)
+            corrected_motor = min(current_motor, bounds.motor().forwardhalt());
         if (current_motor == 1500)
             corrected_motor = current_motor;
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().reversestart());
+        if (current_motor > 1500)
+            corrected_motor = max(current_motor, bounds.motor().reversestart());
     }
 
     arduino_cmd.set_motor(corrected_motor);
@@ -233,6 +239,11 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
+
+    glog.is_debug1() && glog << group("arduino")
+                             << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
+
+    interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
 
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);

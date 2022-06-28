@@ -36,7 +36,7 @@ template <typename Derived> class AppMethodsAccess
 
     goby::middleware::InterThreadTransporter& interthread() { return app().interthread(); }
 
-    const config::MissionManager& cfg() const { return this->app().active_cfg(); }
+    const config::MissionManager& cfg() const { return this->app().cfg(); }
 
     MissionManagerStateMachine& machine()
     {

@@ -38,5 +38,5 @@ message ControlSurfacesDriver
 
     required goby.middleware.protobuf.SerialConfig serial_arduino = 11;
 
-    optional jaiabot.protobuf.Bounds bounds = 20;
+    required jaiabot.protobuf.Bounds bounds = 20;
 }

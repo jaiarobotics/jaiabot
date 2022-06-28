@@ -197,6 +197,7 @@ option(install_motd "Install MOTD script" ON)
 if(install_motd)
   install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 endif()
+install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
 # add the code
 add_subdirectory(src)

@@ -7,7 +7,7 @@ sudo apt update
 # install the required dependencies
 sudo apt install libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb python3-protobuf
 # install the build tools necessary
-sudo apt install cmake g++
+sudo apt install cmake g++ npm clang-format
 # install packages to allow apt to use a repository over HTTPS:
 sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
 # Add Docker’s official GPG key:

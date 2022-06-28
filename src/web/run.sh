@@ -10,8 +10,5 @@ popd
 # Build messages and start server
 pushd server
     ./build_messages.sh
-    if [ ! -z $1 ]
-    then
-        ./app.py $1
-    fi
+    ./app.py $1
 popd server

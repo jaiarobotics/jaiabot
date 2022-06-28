@@ -89,9 +89,6 @@ jaiabot::apps::MissionManager::MissionManager()
     glog.add_group("movement", goby::util::Colors::lt_green);
     glog.add_group("task", goby::util::Colors::lt_blue);
 
-    // Set a mutable config, so we can adjust outer_speed and transit_speed
-    _active_cfg = cfg();
-
     interthread().subscribe<jaiabot::groups::state_change>(
         [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
@@ -194,7 +191,6 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->process_event(ev);
         });
 
-    publish_settings();
 }
 
 jaiabot::apps::MissionManager::~MissionManager()
@@ -322,36 +318,3 @@ void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
         machine_->process_event(statechart::EvSelfTestFails());
 }
 
-const jaiabot::config::MissionManager& jaiabot::apps::MissionManager::active_cfg() const
-{
-    return _active_cfg;
-}
-
-void jaiabot::apps::MissionManager::handle_settings(
-    const jaiabot::protobuf::MissionManagerSettings& settings)
-{
-    glog.is_debug1() && glog << "Received settings: " << settings.ShortDebugString() << std::endl;
-
-    if (settings.has_stationkeep_outer_speed())
-    {
-        _active_cfg.set_stationkeep_outer_speed_with_units(
-            settings.stationkeep_outer_speed_with_units());
-    }
-
-    if (settings.has_transit_speed())
-    {
-        _active_cfg.set_transit_speed_with_units(settings.transit_speed_with_units());
-    }
-
-    publish_settings();
-}
-
-void jaiabot::apps::MissionManager::publish_settings()
-{
-    auto settings = jaiabot::protobuf::MissionManagerSettings();
-    settings.set_transit_speed_with_units(active_cfg().transit_speed_with_units());
-    settings.set_stationkeep_outer_speed_with_units(
-        active_cfg().stationkeep_outer_speed_with_units());
-
-    interprocess().publish<jaiabot::groups::engineering_status>(settings);
-}

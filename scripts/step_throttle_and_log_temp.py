@@ -33,12 +33,15 @@ start_value = int(input('Start at what throttle percentage?'))
 # step_value = int(input('How big is the step?'))
 throttle = start_value
 microseconds = translate(throttle)
+
 file = open('/home/ubuntu/temperature_logs/' + time_start.replace(microsecond=0).isoformat() + '.csv', "a")
+
 file.write(f'time, temp, throttle\n')
 file.close()
 print('time, temp, throttle, microseconds')
 
 while True:
+
     file = open('/home/ubuntu/temperature_logs/' + time_start.replace(microsecond=0).isoformat() + '.csv', "a")
     time_now = datetime.datetime.now()
     time_diff = time_now - time_start
