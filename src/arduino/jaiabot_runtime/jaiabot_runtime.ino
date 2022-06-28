@@ -135,6 +135,8 @@ void setup()
   // Make sure the power pin isn't in the off mode
   digitalWrite(POWER_PIN, LOW);
 
+  pinMode(LED_PIN, OUTPUT);
+
   Serial.begin(115200);
   while (!Serial) {
     delay(1);
@@ -220,7 +222,13 @@ void loop()
             rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
-
+            
+            if (command.LED_on == true){
+              digitalWrite(LED_PIN, HIGH);
+            }
+            else if (command.LED_on == false){
+              digitalWrite(LED_PIN, LOW);
+            }
 
 
             
