@@ -79,6 +79,18 @@ export function BotDetailsComponent(bot) {
                     <td>Thermocouple</td>
                     <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
                 </tr>
+                <tr>
+                    <td>5v Current</td>
+                    <td>{bot.VvCurrent?.toFixed(prec)}Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Current</td>
+                    <td>{bot.VccCurrent?.toFixed(prec)}Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Voltage</td>
+                    <td>{bot.VccVoltage?.toFixed(prec)}Volts</td>
+                </tr>
             </tbody>
         </table>
     </div>
