@@ -107,6 +107,8 @@ elif common.app == 'jaiabot_hub_manager':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common, managed_bot_ids=all_bot_ids))
+elif common.app == 'log_file':
+    print(log_file_dir)
 else:
     print(config.template_substitute(templates_dir + f'/hub/{common.app}.pb.cfg.in',
                                      app_block=app_common,
