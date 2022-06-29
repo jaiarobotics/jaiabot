@@ -19,6 +19,9 @@ BotStatus_mission_state = BotStatus + 'mission_state'
 
 IMU = 'jaiabot::imu/jaiabot.protobuf.IMUData/'
 IMU_euler_angles_alpha = IMU + 'euler_angles/alpha'
+IMU_linear_acceleration_x = IMU + 'linear_acceleration/x'
+IMU_linear_acceleration_y = IMU + 'linear_acceleration/y'
+IMU_linear_acceleration_z = IMU + 'linear_acceleration/z'
 
 PressureTemperature = 'jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData/'
 PressureTemperature_pressure = PressureTemperature + 'pressure'

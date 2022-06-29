@@ -15,10 +15,13 @@ import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
 import { missions, demo_mission, Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
+import { MissionLibraryLocalStorage } from './MissionLibrary'
+
+console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared())
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
 
 import OlMap from 'ol/Map';
 import {
@@ -120,6 +123,8 @@ import homeIcon from '../icons/home.svg'
 import startIcon from '../icons/start.svg'
 import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
+import { LoadMissionPanel } from './LoadMissionPanel'
+import { SaveMissionPanel } from './SaveMissionPanel'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1570,6 +1575,9 @@ export default class AXUI extends React.Component {
 
 				{this.commandDrawer()}
 
+				{this.state.loadMissionPanel}
+
+				{this.state.saveMissionPanel}
 			</div>
 		);
 	}
@@ -1652,6 +1660,8 @@ export default class AXUI extends React.Component {
 			}
 
 			let goals = missions[botId]?.plan?.goal || []
+
+			console.log('goals: ', goals)
 
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
@@ -1751,8 +1761,17 @@ export default class AXUI extends React.Component {
 	// Loads the set of missions, and updates the GUI
 	loadMissions(missions) {
 		this.missions = deepcopy(missions)
+
+		// selectedBotId is a placeholder for the currently selected botId
+		if ('selectedBotId' in this.missions) {
+			let selectedBotId = this.selectedBotId() ?? 0
+			
+			this.missions[selectedBotId] = this.missions['selectedBotId']
+			this.missions[selectedBotId].botId = selectedBotId
+			delete this.missions['selectedBotId']
+		}
+
 		this.updateMissionLayer()
-		info("Loaded mission")
 		console.log('Loaded mission: ', this.missions)
 	}
 
@@ -1963,23 +1982,17 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
-					M 1
+				<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMission.bind(this, 2)}>
-					M 2
-				</button>
-				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
-					M 3
+				<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+					<Icon path={mdiContentSave} title="Save Mission"/>
 				</button>
 				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
 					RC
 				</button>
 				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
 					Dive
-				</button>
-				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
-					Demo
 				</button>
 				{/*<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>*/}
 				{/*	Generator*/}
@@ -1997,6 +2010,25 @@ export default class AXUI extends React.Component {
 		)
 
 		return element
+	}
+
+	loadMissionButtonClicked() {
+		let panel = <LoadMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} selectedMission={(mission) => {
+			this.loadMissions(mission)
+			this.setState({loadMissionPanel: null})
+		}} onCancel={() => {
+			this.setState({loadMissionPanel: null})
+		}}></LoadMissionPanel>
+
+		this.setState({loadMissionPanel: panel})
+	}
+
+	saveMissionButtonClicked() {
+		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} missions={this.missions} onDone={() => {
+			this.setState({saveMissionPanel: null})
+		}}></SaveMissionPanel>
+
+		this.setState({saveMissionPanel: panel})
 	}
 
 	undoButton() {
