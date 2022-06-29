@@ -154,6 +154,26 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
+
+    optional double VccVoltage = 54 [(dccl.field) = {
+        min: 0
+        max: 25
+        precision: 2
+        units { derived_dimensions: "voltage" system: "volts" }
+    }];
+
+    optional double VccCurrent = 55 [(dccl.field) = {
+        min: 0 
+        max: 30
+        precision: 2
+        units { derived_dimensions: "amperage" system: "amperes"}
+    }];
+    optional double Vvcurrent = 56 [(dccl.field) = {
+        min: 0
+        max: 0 
+        precision: 2
+        units { derived_dimensions: "amperage" system: "amperes"}
+    }];
 }
 
 message DivePacket
