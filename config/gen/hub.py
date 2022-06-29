@@ -20,7 +20,6 @@ except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/hub'
-os.makedirs(log_file_dir, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 
 vehicle_id = 0 

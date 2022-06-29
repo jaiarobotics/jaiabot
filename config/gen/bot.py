@@ -26,7 +26,6 @@ except:
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 debug_log_file_dir=log_file_dir 
-os.makedirs(log_file_dir, exist_ok=True)
 templates_dir=common.jaia_templates_dir
 
 vehicle_id=common.vehicle.bot_index_to_vehicle_id(bot_index)
