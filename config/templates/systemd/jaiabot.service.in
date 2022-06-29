@@ -11,6 +11,10 @@ Group=$group
 
 Type=oneshot
 RemainAfterExit=true
+
+EnvironmentFile=$env_file
+# make the log directory first so that we don't end up with it root only read/write
+ExecStartPre=/bin/bash -c "/bin/mkdir -p `$gen log_file`"
 ExecStart=/bin/echo "Starting Jaia"
 
 [Install]
