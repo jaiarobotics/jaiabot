@@ -112,18 +112,18 @@ int motor_speed(int microseconds, Servo servo, int Direction){
 
 //overall motor calibration
 int MotorBounds(int microseconds, Servo servo){
-  servo.writeMicroseconds(1500);
+  servo.writeMicroseconds(g);
   int on = 0;
   
   do{ 
   
-  int startup = motor_speed(1500, motor_servo, 1);
+  int startup = motor_speed(g, servo, 1);
   Serial.println(startup);
-  int startdown = motor_speed(1500, motor_servo, 0);
+  int startdown = motor_speed(g, servo, 0);
   Serial.println(startdown);
-  int haltup = motor_speed(startup, motor_servo, 0);
+  int haltup = motor_speed(startup, servo, 0);
   Serial.println(haltup);
-  int haltdown = motor_speed(startdown, motor_servo, 1);
+  int haltdown = motor_speed(startdown, servo, 1);
   Serial.println(haltdown);
   bool completion = Serial.findUntil("C","Z");
       if (completion == true){
@@ -149,6 +149,8 @@ void setup() {
   pinMode(FAULT_ACTS, INPUT);
   
   Serial.setTimeout(500000);
+
+  motor_servo.writeMicroseconds(g);
 
   Bounds(a, b, c, starboard_servo);
   Bounds(d, e, f, port_servo);
