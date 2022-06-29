@@ -257,7 +257,10 @@ available_fields = [
 
     Field(y_datapath_re=HUBCommand_type, y_axis_label='HUB Command type'),
 
-    Field(y_datapath_re=IMU_euler_angles_alpha, y_axis_label='IMUData/euler_angles/alpha (°)')
+    Field(y_datapath_re=IMU_euler_angles_alpha, y_axis_label='IMUData/euler_angles/alpha (°)'),
+    Field(y_datapath_re=IMU_linear_acceleration_x, y_axis_label='Acceleration x (m/s^2)'),
+    Field(y_datapath_re=IMU_linear_acceleration_y, y_axis_label='Acceleration y (m/s^2)'),
+    Field(y_datapath_re=IMU_linear_acceleration_z, y_axis_label='Acceleration z (m/s^2)')
 ]
 
 
