@@ -55,6 +55,11 @@ constexpr int POWER_PIN = A1;
 // LED
 constexpr int LED_D1_PIN = A5;
 
+// VOltage and Current
+const int VvCurrent = A3;
+const int VccCurrent = A2;
+const int VccVoltage = A0;
+
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 enum AckCode {
@@ -104,6 +109,10 @@ void send_ack(AckCode code, char message[])
     ack.has_thermocouple_temperature_C = false;
   }
 
+  ack.VccVoltage = analogRead(VccVoltage)*.0306;
+  ack.VccCurrent = analogRead(VccCurrent);
+  ack.VvCurrent = analogRead(VvCurrent);
+
   if (message != NULL) {
     strncpy(ack_message, message, 250);
   }
@@ -136,6 +145,11 @@ void setup()
 
   delay(100);
 
+  pinMode(VccCurrent, INPUT);
+  pinMode(VccVoltage, INPUT);
+  pinMode(VvCurrent, INPUT);
+  pinMode(LED_D1_PIN, OUTPUT);
+  
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
@@ -211,6 +225,13 @@ void loop()
             rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
+
+            if (command.LED_on == true){
+              analogWrite(LED_D1_PIN, 255);
+            }
+            else if (command.LED_on == false){
+              digitalWrite(LED_D1_PIN, 0);
+            }
 
             // Set the timeout vars
             t_last_command = millis();
