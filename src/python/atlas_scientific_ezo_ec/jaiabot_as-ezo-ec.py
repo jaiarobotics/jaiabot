@@ -6,6 +6,7 @@ import sys
 import argparse
 import socket
 from AtlasI2C import *
+import logging
 
 parser = argparse.ArgumentParser(description=\
     '''Read salinity from an Atlas Scientific EC EZO sensor, and publish over UDP port.  The data is published as a comma-separated series on one line.  These are the fields, in the order they will appear:
@@ -17,8 +18,13 @@ parser = argparse.ArgumentParser(description=\
 5) SG:  specific gravity''')
 parser.add_argument('-a', dest='address', type=int, default=100, help='I2C address of the sensor, defaults to 100 (0x64)')
 parser.add_argument('port', metavar='port', type=int, help='port to publish salinity')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('salinity')
+log.setLevel(args.logging_level)
 
 
 class SensorError(Exception):
@@ -87,11 +93,11 @@ while True:
     try:
         data = sensor.read()
     except Exception as e:
-        print(e)
+        log.warning(e)
         continue
 
     now = datetime.utcnow()
     line = '%s,%9.2f,%9.2f,%9.2f,%9.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), data[0], data[1], data[2], data[3])
 
     sock.sendto(line.encode('utf8'), addr)
-    print(f'Sent: {line}')
+    log.debug(f'Sent: {line}')
