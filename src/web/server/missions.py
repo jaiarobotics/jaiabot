@@ -197,7 +197,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     geo_epsg = 4326
     proj_epsg = 26919
 
-    plot_it = True
+    plot_it = False
     if plot_it:
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
