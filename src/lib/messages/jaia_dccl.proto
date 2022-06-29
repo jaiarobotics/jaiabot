@@ -168,6 +168,7 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "amperage" system: "amperes"}
     }];
+    
     optional double Vvcurrent = 56 [(dccl.field) = {
         min: 0
         max: 0 
