@@ -1931,7 +1931,8 @@ export default class AXUI extends React.Component {
 	generateMissions(surveyPolygonGeoCoords) {
 		console.log('hitting mission_generator');
 		console.log(this.homeLocation);
-		let bot_list = this.selectedBotIds();
+		// let bot_list = this.selectedBotIds();
+		let bot_list = [0, 1, 2, 3];
 
 		this.sna.postMissionFilesCreate({
 			"bot_list": bot_list,
