@@ -110,8 +110,11 @@ void send_ack(AckCode code, char message[])
   }
 
   ack.VccVoltage = analogRead(VccVoltage)*.0306;
+  ack.has_VccVoltage = true;
   ack.VccCurrent = analogRead(VccCurrent);
+  ack.has_VccCurrent = true;
   ack.VvCurrent = analogRead(VvCurrent);
+  ack.has_VvCurrent = true;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
