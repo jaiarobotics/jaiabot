@@ -57,6 +57,12 @@ class Interface:
 
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
+
+            try:
+                del(self.messages['error'])
+            except KeyError:
+                pass
+
             msg = PortalToClientMessage()
             byteCount = msg.ParseFromString(data)
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
@@ -119,7 +125,11 @@ class Interface:
             'messages': self.messages
         }
 
-        self.messages = {}
+        try:
+            del(self.messages['info'])
+            del(self.messages['warning'])
+        except KeyError:
+            pass
 
         return status
 

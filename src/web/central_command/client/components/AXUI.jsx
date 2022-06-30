@@ -21,7 +21,7 @@ console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
 
 import OlMap from 'ol/Map';
 import {
@@ -1090,7 +1090,7 @@ export default class AXUI extends React.Component {
 		this.sna.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
-					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 					return
@@ -1098,7 +1098,7 @@ export default class AXUI extends React.Component {
 
 				if (!("bots" in result)) {
 					this.podStatus = {}
-					error("Web server status response doesn't include bots field")
+					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -1115,11 +1115,14 @@ export default class AXUI extends React.Component {
                         if (messages.warning) {
                             warning(messages.warning)
                         }
-
-                        if (messages.error) {
-                            error(messages.error)
-                        }
                     }
+
+					if (messages?.error) {
+						this.setState({disconnectionMessage: messages.error})
+					}
+					else {
+						this.setState({disconnectionMessage: null})
+					}
 
 					this.updateBotsLayer()
 				}
@@ -1129,7 +1132,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)')
+				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 			}
 		)
 	}
@@ -1578,6 +1581,8 @@ export default class AXUI extends React.Component {
 				{this.state.loadMissionPanel}
 
 				{this.state.saveMissionPanel}
+
+				{this.disconnectionPanel()}
 			</div>
 		);
 	}
@@ -2141,6 +2146,18 @@ export default class AXUI extends React.Component {
 				})}
 			</div>
 		)
+	}
+
+	disconnectionPanel() {
+		let msg = this.state.disconnectionMessage
+		if (msg == null) {
+			return null
+		}
+
+		return <div class="disconnection shadowed rounded">
+			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
+			{msg}
+		</div>
 	}
 
 }
