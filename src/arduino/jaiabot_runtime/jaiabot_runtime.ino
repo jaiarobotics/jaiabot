@@ -109,12 +109,12 @@ void send_ack(AckCode code, char message[])
     ack.has_thermocouple_temperature_C = false;
   }
 
-  ack.VccVoltage = analogRead(VccVoltage)*.0306;
-  ack.has_VccVoltage = true;
-  ack.VccCurrent = analogRead(VccCurrent);
-  ack.has_VccCurrent = true;
-  ack.VvCurrent = analogRead(VvCurrent);
-  ack.has_VvCurrent = true;
+  ack.vccvoltage = analogRead(VccVoltage)*.0306;
+  ack.has_vccvoltage = true;
+  ack.vcccurrent = analogRead(VccCurrent);
+  ack.has_vcccurrent = true;
+  ack.vvcurrent = analogRead(VvCurrent);
+  ack.has_vvcurrent = true;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
@@ -229,11 +229,11 @@ void loop()
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
 
-            if (command.LED_on == true){
+            if (command.LEDSwitchON == true){
               analogWrite(LED_D1_PIN, 255);
             }
-            else if (command.LED_on == false){
-              digitalWrite(LED_D1_PIN, 0);
+            else if (command.LEDSwitchON == false){
+              analogWrite(LED_D1_PIN, 0);
             }
 
             // Set the timeout vars
