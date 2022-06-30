@@ -54,6 +54,7 @@ constexpr int POWER_PIN = A1;
 
 // LED
 constexpr int LED_D1_PIN = A5;
+const int LED_D2_PIN = A6;
 
 // VOltage and Current
 const int VvCurrent = A3;
@@ -231,9 +232,11 @@ void loop()
 
             if (command.LEDSwitchON == true){
               analogWrite(LED_D1_PIN, 255);
+              analogWrite(LED_D2_PIN, 255);
             }
             else if (command.LEDSwitchON == false){
               analogWrite(LED_D1_PIN, 0);
+              analogWrite(LED_D2_PIN, 0);
             }
 
             // Set the timeout vars

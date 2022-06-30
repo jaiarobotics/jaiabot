@@ -712,6 +712,7 @@ function getVisibleCommand() {
         Kd : el("pitch_Kd").value
       };
       break;
+      pid_control.LEDSwitchON = LEDSwitchON
   }
 
   let engineering_command = {
