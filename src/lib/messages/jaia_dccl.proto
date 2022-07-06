@@ -154,12 +154,12 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
-
-    optional double vccvoltage = 54 [(dccl.field) = {
+    
+    optional double vvcurrent = 54 [(dccl.field) = {
         min: 0
-        max: 25
+        max: 0 
         precision: 2
-        units { derived_dimensions: "electric_potential" system: "si" }
+        units { derived_dimensions: "current"}
     }];
 
     optional double vcccurrent = 55 [(dccl.field) = {
@@ -168,12 +168,12 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "current"}
     }];
-    
-    optional double vvcurrent = 56 [(dccl.field) = {
+
+    optional double vccvoltage = 56 [(dccl.field) = {
         min: 0
-        max: 0 
+        max: 25
         precision: 2
-        units { derived_dimensions: "current"}
+        units { derived_dimensions: "electric_potential" system: "si" }
     }];
 }
 
