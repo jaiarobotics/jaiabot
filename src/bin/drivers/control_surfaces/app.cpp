@@ -79,6 +79,9 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
     // timeout
     int arduino_timeout = 5;
+
+    //LED
+    bool LEDSwitchON = false;
 };
 
 } // namespace apps
@@ -182,7 +185,10 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
         arduino_timeout = control_surfaces.timeout();
     }
 
-    LEDSwitchON = control_surfaces.LEDSwitchON();
+    if (control_surfaces.has_LEDSwitchON())
+    {
+        LEDSwitchON = control_surfaces.LEDSwitchON();
+    }
 
     _time_last_command_received = now_microseconds();
 }
