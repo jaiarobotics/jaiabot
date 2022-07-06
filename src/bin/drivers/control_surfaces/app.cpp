@@ -185,9 +185,10 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
         arduino_timeout = control_surfaces.timeout();
     }
 
-    if (control_surfaces.has_ledswitchon())
+    //pulls the data from on message to another
+    if (control_surfaces.has_led_switch_on())
     {
-        LEDSwitchON = control_surfaces.ledswitchon();
+        LEDSwitchON = control_surfaces.led_switch_on();
     }
 
     _time_last_command_received = now_microseconds();
@@ -247,6 +248,8 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
+    //this is the actual command format
+    arduino_cmd.set_ledswitchon(LEDSwitchON);
 
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
