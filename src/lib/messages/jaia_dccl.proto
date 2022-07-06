@@ -158,14 +158,14 @@ message BotStatus
     optional double vvcurrent = 54 [(dccl.field) = {
         min: 0
         max: 0 
-        precision: 2
+        precision: 4
         units { derived_dimensions: "current"}
     }];
 
     optional double vcccurrent = 55 [(dccl.field) = {
         min: 0 
         max: 30
-        precision: 2
+        precision: 4
         units { derived_dimensions: "current"}
     }];
 

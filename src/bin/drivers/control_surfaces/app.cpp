@@ -185,9 +185,9 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
         arduino_timeout = control_surfaces.timeout();
     }
 
-    if (control_surfaces.has_LEDSwitchON())
+    if (control_surfaces.has_ledswitchon())
     {
-        LEDSwitchON = control_surfaces.LEDSwitchON();
+        LEDSwitchON = control_surfaces.ledswitchon();
     }
 
     _time_last_command_received = now_microseconds();
