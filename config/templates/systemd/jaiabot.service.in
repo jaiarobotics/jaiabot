@@ -4,6 +4,8 @@ Description=Jaia Base Service
 Requires=network-online.target
 After=network-online.target
 
+After=var-log.mount
+
 [Service]
 User=$user
 Group=$group
