@@ -139,3 +139,14 @@ MacOS has a GUI wireguard that requires a slightly different approach summarized
 - click save
 - follow the steps above to add your public key to the server
 
+
+### Fleet specific VPNs
+
+We are rolling out fleet specific VPN connections that follow this pattern:
+
+- Server: `vpn.jaia.tech`, UDP port `51821 + fleet id` (e.g. `51821` for fleet 0, `51822` for fleet 1, etc.). 
+- Subnet: `172.23.xxx.0/24` where xxx is the fleet id. The server will always be `172.23.xxx.1`.
+- Bot address: `172.23.xxx.yyy/24` where xxx is the fleet id, and yyy is 100 + bot_id (e.g. `172.23.1.101` for bot 1 on fleet 1).
+- Hub address: `172.23.xxx.zzz/24` where xxx is the fleet id, and zzz is 10 + bot_id (e.g. 172.23.2.10 for hub 0 on fleet 2).
+
+The existing VPN on vpn.jaia.tech:51820 (subnet `172.20.11.0/24`) will continue to maintained for testing.
