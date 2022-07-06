@@ -31,6 +31,7 @@ def floatFrom(obj):
 
 class Interface:
     bots = {}
+    bots_engineering = {}
 
     def __init__(self, goby_host=('optiplex', 40000)):
         self.goby_host = goby_host
@@ -73,6 +74,10 @@ class Interface:
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
                     self.bots[botStatus.bot_id] = botStatus
+
+            if msg.HasField('engineering_status'):
+                botEngineering = msg.engineering_status
+                self.bots_engineering[botEngineering.bot_id] = botEngineering
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -119,6 +124,11 @@ class Interface:
 
     def get_status(self):
         bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
+
+        # Add the engineering status data
+        for botId, botEngineering in self.bots_engineering.items():
+            if botId in bots:
+                bots[botId]['engineering'] = google.protobuf.json_format.MessageToDict(botEngineering)
 
         status = {
             'bots': bots,
