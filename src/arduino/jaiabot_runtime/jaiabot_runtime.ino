@@ -56,7 +56,7 @@ constexpr int POWER_PIN = A1;
 constexpr int LED_D1_PIN = A5;
 const int LED_D2_PIN = A6;
 
-// VOltage and Current
+// Voltage and Current
 const int VvCurrent = A3;
 const int VccCurrent = A2;
 const int VccVoltage = A0;
@@ -153,6 +153,7 @@ void setup()
   pinMode(VccVoltage, INPUT);
   pinMode(VvCurrent, INPUT);
   pinMode(LED_D1_PIN, OUTPUT);
+  pinMode(LED_D2_PIN, OUTPUT);
   
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
