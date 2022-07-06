@@ -65,6 +65,7 @@ message LoRaMessage
         required sint32 port_elevator = 2;
         required sint32 stbd_elevator = 3;
         required sint32 rudder = 4;
+        optional bool LEDSwitchON = 5;
     }
 
 
