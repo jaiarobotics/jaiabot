@@ -91,6 +91,8 @@ export function BotDetailsComponent(bot) {
                     <td>Vcc Voltage</td>
                     <td>{bot.vccvoltage?.toFixed(prec)}Volts</td>
                 </tr>
+
+                {console.log(bot)}
             </tbody>
         </table>
     </div>
