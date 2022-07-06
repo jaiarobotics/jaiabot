@@ -81,15 +81,15 @@ export function BotDetailsComponent(bot) {
                 </tr>
                 <tr>
                     <td>5v Current</td>
-                    <td>{bot.vvcurrent?.toFixed(prec)}Amps</td>
+                    <td>{bot.vv_current?.toFixed(prec)}Amps</td>
                 </tr>
                 <tr>
                     <td>Vcc Current</td>
-                    <td>{bot.vcccurrent?.toFixed(prec)}Amps</td>
+                    <td>{bot.vcc_current?.toFixed(prec)}Amps</td>
                 </tr>
                 <tr>
                     <td>Vcc Voltage</td>
-                    <td>{bot.vccvoltage?.toFixed(prec)}Volts</td>
+                    <td>{bot.vcc_voltage?.toFixed(prec)}Volts</td>
                 </tr>
 
                 {console.log(bot)}

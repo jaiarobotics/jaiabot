@@ -3,7 +3,7 @@
 #talks to the serial moniter
 import serial
 
-#this might be important, so it's staying
+#important for serial moniter
 import time
 
 #talks to the terminal
@@ -15,7 +15,7 @@ import google.protobuf.text_format
 #the actual protobuf format
 import bounds_pb2
 
-#makes protobuf objects to have fun with
+#makes protobuf objects 
 check_bounds = bounds_pb2.Bounds()
 write_bounds = bounds_pb2.SurfaceBounds()
 
@@ -34,7 +34,6 @@ except:
     print("First Jaiabot Calibration")
 
 #opens the arduino for use
-#arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
 arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
 
 #reads from the arduino serial moniter
@@ -43,7 +42,7 @@ def rd():
     data = data.decode()
     return data
 
-#writes to the serail moniter and sends the command - \n is the newline command
+#writes to the serial moniter and sends the command - \n is the newline command
 def write(command):
     command = str(command)
     command = command+'\n'
@@ -111,8 +110,8 @@ def calibrateWingSurface():
         print("setting center")
         inputcommand()
 
-        letitend = True
-        while letitend == True:
+        end = True
+        while end == True:
             finish = input("Would you like to stop calibrating this surface? Yes/No ")
             finish = finish.upper()
             if finish == "YES":
@@ -130,14 +129,14 @@ def calibrateWingSurface():
                 return(write_bounds)
 
                 #releases from the answer loop and ends calibration
-                letitend = False
+                end = False
                 y = False
                 
             elif finish == "NO":
 
                 #releases from the answer loop and restarts calibration
                 write("Z")
-                letitend = False
+                end = False
                 
             else:
                 print("Please enter Yes or No")
