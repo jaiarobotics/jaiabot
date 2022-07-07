@@ -55,7 +55,6 @@ message PIDControl {
     optional PIDSettings depth = 12;
 
     optional bool LEDSwitchON = 13;
-
 }
 
 message Engineering
