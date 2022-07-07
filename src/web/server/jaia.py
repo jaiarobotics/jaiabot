@@ -33,10 +33,14 @@ class Interface:
     bots = {}
     bots_engineering = {}
 
-    def __init__(self, goby_host=('optiplex', 40000)):
+    def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(5)
+
+        self.read_only = read_only
+        if read_only:
+            logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
         self.messages = {}
 
@@ -85,7 +89,11 @@ class Interface:
 
             self.pingCount = 0
 
-    def send_message_to_portal(self, msg):
+    def send_message_to_portal(self, msg, force=False):
+        if self.read_only and not force:
+            logging.warning('This client is READ-ONLY.  Refusing to send command.')
+            return
+
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
@@ -97,7 +105,7 @@ class Interface:
         logging.warning('🏓 Pinging server')
         msg = ClientToPortalMessage()
         msg.ping = True
-        self.send_message_to_portal(msg)
+        self.send_message_to_portal(msg, True)
 
         # Display warning if more than one ping required
         self.pingCount += 1
