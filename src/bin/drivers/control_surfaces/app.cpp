@@ -31,6 +31,7 @@ using namespace std;
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -120,7 +121,6 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                 handle_control_surfaces(low_control.control_surfaces());
             }
         });
-
     // Get an ArduinoResponse
     interthread().subscribe<serial_in>(
         [this](const goby::middleware::protobuf::IOData& io)
