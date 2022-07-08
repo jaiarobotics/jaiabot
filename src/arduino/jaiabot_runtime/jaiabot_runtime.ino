@@ -112,7 +112,7 @@ void send_ack(AckCode code, char message[])
 
   ack.vccvoltage = analogRead(VccVoltage)*.0306;
   ack.has_vccvoltage = true;
-  ack.vcccurrent = ((analogRead(VccCurrent)*.0049)-.5)*.1;
+  ack.vcccurrent = ((analogRead(VccCurrent)-100)*.0049)*10;
   ack.has_vcccurrent = true;
   ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
   ack.has_vvcurrent = true;
