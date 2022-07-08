@@ -158,21 +158,21 @@ message BotStatus
     optional double vv_current = 54 [(dccl.field) = {
         min: 0
         max: 5
-        precision: 4
+        precision: 2
         units { derived_dimensions: "current"}
     }];
 
     optional double vcc_current = 55 [(dccl.field) = {
         min: 0 
         max: 5
-        precision: 4
+        precision: 2
         units { derived_dimensions: "current"}
     }];
 
     optional double vcc_voltage = 56 [(dccl.field) = {
         min: 0
         max: 25
-        precision: 4
+        precision: 2
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 }
