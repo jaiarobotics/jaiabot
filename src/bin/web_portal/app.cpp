@@ -46,14 +46,20 @@ namespace middleware = goby::middleware;
 using UDPEndPoint = goby::middleware::protobuf::UDPEndPoint;
 
 // We need to define a comparison operator, so we can build a set of UDPEndPoint
-namespace std
+namespace goby
+{
+namespace middleware
+{
+namespace protobuf
 {
 bool operator==(const goby::middleware::protobuf::UDPEndPoint a,
                 const goby::middleware::protobuf::UDPEndPoint b)
 {
     return a.addr() == b.addr() && a.port() == b.port();
 }
-} // namespace std
+} // namespace protobuf
+} // namespace middleware
+} // namespace goby
 
 // Define a hash for unordered_map
 class UDPEndPointHash
