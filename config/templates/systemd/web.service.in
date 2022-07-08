@@ -1,0 +1,15 @@
+[Unit]
+Description=$description
+
+BindsTo=jaiabot.service
+After=jaiabot.service
+
+[Service]
+User=$user
+Group=$group
+
+EnvironmentFile=$env_file
+ExecStart=$jaiabot_share_dir/jaiabot/web/server/app.py
+
+[Install]
+WantedBy=jaiabot.service
