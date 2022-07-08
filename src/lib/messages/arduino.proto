@@ -27,5 +27,6 @@ message ArduinoResponse
     optional float vccvoltage = 3;
     optional float vcccurrent = 4;
     optional float vvcurrent = 5;
+
     optional string message = 20;
 }
