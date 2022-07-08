@@ -29,3 +29,8 @@ if(build_arduino)
   include(ArduinoCompile)
   add_subdirectory(arduino)
 endif()
+
+if(build_web)
+  add_subdirectory(web)
+endif()
+

@@ -123,6 +123,9 @@ else()
   option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
 endif()
 
+option(build_web "Build web ui code (requires npm)" ON)
+
+
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
