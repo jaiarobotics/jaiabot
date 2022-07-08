@@ -197,6 +197,8 @@ export default class AXUI extends React.Component {
 
 		this.sna = new JaiaAPI("/", false);
 
+		this.podStatus = {}
+
 		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
@@ -636,10 +638,6 @@ export default class AXUI extends React.Component {
 			},
 			this
 		);
-
-
-
-
 
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
@@ -1839,9 +1837,7 @@ export default class AXUI extends React.Component {
 						</button>
 					</div>
 
-					{
-						PIDGainsPanel(this.podStatus?.bots)
-					}
+					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
 
 					{
 						DiveParameters.panel()

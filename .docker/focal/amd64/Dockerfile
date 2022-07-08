@@ -22,6 +22,9 @@ RUN apt-get update && \
             python3-protobuf:amd64 \
             wget:amd64 \
             curl:amd64 \
+            nodejs:amd64 \
+            webpack:amd64 \
+            npm:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 
