@@ -1,3 +1,0 @@
-[submodule "src/python/venv"]
-	path = src/python/venv
-	url = git@github.com:jaiarobotics/jaiabot-python-venv.git
