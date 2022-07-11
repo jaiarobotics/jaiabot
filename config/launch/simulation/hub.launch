@@ -2,12 +2,14 @@
 
 gobyd <(../../gen/hub.py gobyd) -zzz -n
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
+goby_logger <(../../gen/hub.py goby_logger)
+
 jaiabot_hub_manager <(../../gen/hub.py jaiabot_hub_manager) -v
 jaiabot_web_portal <(../../gen/hub.py jaiabot_web_portal) -v
-goby_logger <(../../gen/hub.py goby_logger)
 jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 
-goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
-[kill=SIGTERM] socat tcp:localhost:30100 pty,link=/tmp/pty_jaiahub,raw,echo=0
+# Uncomment the following 2 lines to use opencpn
+# goby_opencpn_interface <(../../gen/hub.py goby_opencpn_interface)
+# [kill=SIGTERM] socat tcp:localhost:30100 pty,link=/tmp/pty_jaiahub,raw,echo=0
 
 goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_hub_manager --expected_name jaiabot_web_portal --expected_name jaiabot_metadata
