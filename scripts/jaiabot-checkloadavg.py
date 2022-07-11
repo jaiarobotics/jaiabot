@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Script waits until 1min load average goes below value provided as first argument
-# e.g. 'jaiabot_checkloadavg.py 3.0' waits until the 1min load average drops below 3.0
+# e.g. 'jaiabot-checkloadavg.py 3.0' waits until the 1min load average drops below 3.0
 import os
 import time
 import sys

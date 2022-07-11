@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 LOG_DIR=/var/log/jaiabot/journals
 DATE=$(date '+%Y-%m-%d_%H:%M:%S')
