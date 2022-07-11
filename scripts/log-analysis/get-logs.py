@@ -13,6 +13,6 @@ def system(cmd):
     os.system(cmd)
 
 # Get all remote goby file paths
-system(f'ssh jaia@optiplex jaia-logs/convert_goby_to_h5.sh "-{args.age_string}" > files.txt')
+system(f'ssh jaia@optiplex jaia-logs/convert-goby-to-h5.sh "-{args.age_string}" > files.txt')
 system(f'rsync -zaP --files-from=files.txt --no-relative jaia@optiplex:/ ~/jaia-logs/')
 system('rm files.txt')

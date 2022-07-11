@@ -1,15 +1,23 @@
-# add packages.gobysoft.org to your apt sources
+#!/usr/bin/env bash
+
+# Add packages.gobysoft.org to your apt sources
 echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
-# install the public key for packages.gobysoft.org
+# Install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-# update apt
-sudo apt update
-# install the required dependencies
-sudo apt install libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb python3-protobuf
-# install the build tools necessary
-sudo apt install cmake g++ npm clang-format clang graphviz
-# install packages to allow apt to use a repository over HTTPS:
+# Update apt
+sudo apt-get update
+# Install the required dependencies
+sudo apt-get install libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb python3-protobuf
+# Install the build tools necessary
+sudo apt-get install cmake g++ npm clang-format clang graphviz
+# Install packages to allow apt to use a repository over HTTPS:
 sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+# Install Arduino command line interface for local compilation of ino files into hex
+echo asjshdfkjhdkf
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \
+    arduino-cli config init && \
+    arduino-cli core update-index && \
+    arduino-cli core install arduino:avr
 # Add Docker’s official GPG key:
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 # Use the following command to set up the stable repository.
@@ -30,5 +38,5 @@ sudo systemctl enable containerd.service
 # Build the container
 cd ../.docker/focal/arm64
 docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
-# optionally, push to docker hub
+# Optionally, push to docker hub
 docker push gobysoft/jaiabot-ubuntu-arm64:20.04.1

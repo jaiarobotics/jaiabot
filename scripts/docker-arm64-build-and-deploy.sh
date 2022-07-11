@@ -1,9 +1,8 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 
 ##
 ## Usage:
-## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker_arm64_build_and_deploy.sh 172.20.11.102
+## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
@@ -30,7 +29,7 @@ then
 fi
 
 echo "🟢 Building jaiabot apps"
-docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t build_system bash -c "./scripts/arm64_build.sh"
+docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
 
 if [ -z "$1" ]
 then

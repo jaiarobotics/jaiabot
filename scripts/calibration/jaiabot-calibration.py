@@ -13,7 +13,7 @@ import os
 import google.protobuf.text_format
 
 #the actual protobuf format
-import bounds_pb2
+import bounds-pb2
 
 #makes protobuf objects to have fun with
 check_bounds = bounds_pb2.Bounds()
