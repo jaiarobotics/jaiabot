@@ -100,6 +100,7 @@ Then, `jaiabot_gobyd` and `jaiabot_moosdb` are bound to `jaiabot` and start thei
 
 ![](../figures/systemd.png)
 
+The `jaiabot.service` waits for the system clock to be synchronized via NTP (via the GPS using `gpsd`) or until 120 seconds has elapsed.
 
 ### Generation
 
