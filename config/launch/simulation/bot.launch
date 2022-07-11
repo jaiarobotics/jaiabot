@@ -36,13 +36,11 @@ goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --exp
 # Need to confirm the below lines included from engineering launch, but commented to match standard
 
 # Pressure sensor
-# ~/jaiabot/src/python/pressure_sensor/jaiabot_pressure_sensor.py
 jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
 
 # IMU sensor
 # ~/jaiabot/src/python/adafruit_BNO055/jaiabot_imu.py 20000
-# jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
+jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
 
 # Salinity sensor
-# ~/jaiabot/src/python/atlas_scientific_ezo_ec/jaiabot_as-ezo-ec.py 20002
-# jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
+jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
