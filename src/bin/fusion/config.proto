@@ -35,4 +35,6 @@ message Fusion
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required int32 bot_id = 10;
+
+    optional int32 health_report_timeout_seconds = 11 [default = 20];
 }

@@ -3,7 +3,8 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import * as DiveParameters from "./DiveParameters"
+import * as DiveParameters from './DiveParameters'
+import JsonAPI from '../../common/JsonAPI';
 
 const hardcoded_goals = [
     [
@@ -17,7 +18,8 @@ const hardcoded_goals = [
     ],
     // M2
     [
-        {location: {lat: 41.661992, lon: -71.273560}}
+        {location: {lat: 41.660882, lon: -71.275198}},
+        {location: {lat: 41.662176, lon: -71.274467}}
     ],
     // M3
     [
@@ -40,17 +42,13 @@ function _mission(botId, goals) {
     return mission
 }
 
-const hardcoded_missions = [
-
-]
-
 function demo_goals(botId) {
+        const home = {location: {lat: 41.66260,  lon: -71.27310 }}
         const origin = { lon: -71.27382208146715, lat: 41.66 }
         const waypoint_delta = { lon: -0.0015, lat: -0.000225 }
         const bot_delta = { lon: 0.000225, lat: -0.0015 }
 
-        let P0 = hardcoded_goals[0]
-        var goals = [P0]
+        var goals = [home]
         for (let waypoint_index = 0; waypoint_index < 5; waypoint_index ++) {
                 goals.push({location: {
                         lon: origin.lon + botId * bot_delta.lon + waypoint_index * waypoint_delta.lon,
@@ -58,15 +56,27 @@ function demo_goals(botId) {
                 }})
         }
 
-        goals.push(P0)
+        goals.push(home)
 
         return goals
 }
 
 export class Missions {
 
-    static hardcoded(index) {
-        return hardcoded_missions[index]
+    static defaultMissions() {
+        let missions = {}
+
+        for (let [index, goals] of hardcoded_goals.entries()) {
+            let mission = _mission('selectedBotId', goals)
+            missions['Mission ' + index] = {
+                'selectedBotId': mission
+            }
+        }
+
+        missions['Demo'] = Missions.demo_mission()
+
+        console.log('defaultMissions = ', missions)
+        return missions
     }
 
     static RCMode(botId) {
@@ -117,11 +127,6 @@ export class Missions {
         return _mission(botId, goals)
     }
 
-    static hardcoded(botId, index) {
-        let goals = hardcoded_goals[index]
-        return _mission(botId, goals)
-    }
-
     static demo_mission() {
         return {
             0: _mission(0, demo_goals(0)),
@@ -131,5 +136,4 @@ export class Missions {
             4: _mission(4, demo_goals(4))
         }
     }
-    
 }
