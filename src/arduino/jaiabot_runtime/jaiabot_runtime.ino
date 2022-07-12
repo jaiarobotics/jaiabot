@@ -171,6 +171,7 @@ void loop()
 
   while (Serial.available() >= prefix_size) {
     handle_timeout();
+    delay(5);
     
     // read bytes until the next magic word start (hopefully)
     while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
