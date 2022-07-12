@@ -3,7 +3,7 @@
 #talks to the serial moniter
 import serial
 
-#this might be important, so it's staying
+#this makes serial lib work
 import time
 
 arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
