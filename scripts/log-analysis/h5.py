@@ -16,6 +16,7 @@ BotStatus_course_over_ground = BotStatus + 'attitude/course_over_ground'
 BotStatus_depth = BotStatus + 'depth'
 BotStatus_salinity = BotStatus + 'salinity'
 BotStatus_mission_state = BotStatus + 'mission_state'
+BotStatus_thermocouple = BotStatus + 'thermocouple_temperature'
 
 IMU = 'jaiabot::imu/jaiabot.protobuf.IMUData/'
 IMU_euler_angles_alpha = IMU + 'euler_angles/alpha'
