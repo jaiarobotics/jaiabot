@@ -56,7 +56,7 @@ export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 
 ## CI/CD
 
-Continuous integration (CI) and continuous deployment (CD) are software best practices to ensure that code is quickly and easily integrated and tested. The CI part is managed by a standard Git workflow of committing regularly, pushing changes to Github.com, and integrating back to the `1.y` "master" branch using the pull request feature on Github.
+Continuous integration (CI) and continuous deployment (CD) are software best practices to ensure that code is quickly and easily integrated and tested. The CI part is managed by a standard Git workflow of committing regularly, pushing changes to Github.com, and integrating back to the `1.y` "main" branch using the pull request feature on Github.
 
 The CD part is managed by [CircleCI](https://circleci.com/), which is a cloud-based configurable build and test system. The `.circleci/config.yml` file configures the actions ("workflow") performed by the CircleCI servers. Open source projects get four parallel free build servers from CircleCI.
 
@@ -78,7 +78,7 @@ When the developer is working on a new feature or fixing a bug, he or she *branc
 
 ### After the pull request is merged
 
-Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "master" branch (`1.y` in our case). After review (using the Github UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.gobysoft.org. At this point, they can be installed using `apt` onto any system with that repository installed:
+Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "main" branch (`1.y` in our case). After review (using the GitHub UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.gobysoft.org. At this point, they can be installed using `apt` onto any system with that repository installed:
 
 ```
 # add packages.gobysoft.org to your apt sources
