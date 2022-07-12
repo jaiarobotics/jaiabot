@@ -5,9 +5,7 @@ import 'jquery-ui/themes/base/tooltip.css';
 export default function (container = '') {
   const selector = `${container} button[title], ${container} span[title]`;
   $(selector).mousedown((evt) => {
-    console.debug('mousedown');
     const timeout = window.setTimeout(() => {
-      console.debug('timeout');
       evt.stopPropagation();
       evt.preventDefault();
       $(evt.currentTarget).tooltip('enable');
@@ -22,7 +20,6 @@ export default function (container = '') {
       });
     }, 1000);
     $(evt.currentTarget).mouseup(() => {
-      console.debug('mouseup');
       // clear timeout for this element
       window.clearTimeout(timeout);
       // reset mouse up event handler

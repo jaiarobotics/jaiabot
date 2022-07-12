@@ -37,10 +37,6 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
-    - run: &run-submodules
-        name: Sync and Update Git Submodules
-        command: |
-          git submodule sync && git submodule update --init
     - run: &run-add-packages-key
         name: Install packages.gobysoft.org key
         command: |
@@ -155,14 +151,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "improve-python-install"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "improve-python-install"
         
 ## Begin actual config
 version: 2
@@ -215,7 +211,6 @@ jobs:
       <<: *environment-template-amd64
     steps:
       - checkout
-      - run: *run-submodules
       - run:
           name: Get original source tarball
           command: |

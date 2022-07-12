@@ -1,0 +1,25 @@
+[Interface]
+# from /etc/wireguard/privatekey on client
+PrivateKey = $privatekey
+
+# this client's VPN IP address
+# Address = 172.23.xxx.yyy
+# xxx = fleet id
+# yyy = 10 + hub_id or 100 + bot_id
+Address = $address
+
+[Peer]
+# Server public key (from /etc/wireguard/publickey on server)
+PublicKey = quIp0ErbKXgzbws0juC0YaI2FLmLHVpo8j4ChgTmjXI=
+# Allowed private IPs
+# AllowedIPs = 172.23.xxx.0/24
+# xxx = fleet id
+AllowedIPs = $subnet
+
+# Server IP and port
+# Endpoint = vpn.jaia.tech:zzz
+# zzz = 51821 + fleet_id
+Endpoint = vpn.jaia.tech:$vpnport
+
+# Keep connection alive (required for behind NAT routers)
+PersistentKeepalive = 25
