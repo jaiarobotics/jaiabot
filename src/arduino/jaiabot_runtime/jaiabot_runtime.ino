@@ -49,8 +49,10 @@ bool thermocouple_is_present = false;
 
 Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
-// Power Pin
+// Power Pins
 constexpr int POWER_PIN = A1;
+const int CTRL_ACTS = 10;
+const int FAULT_ACTS = 8;
 
 // LED
 constexpr int LED_D1_PIN = A5;
@@ -60,6 +62,17 @@ const int LED_D2_PIN = A6;
 const int VvCurrent = A3;
 const int VccCurrent = A2;
 const int VccVoltage = A0;
+
+//for rolling average
+const int capacity = 20;
+int amps[capacity]{0};
+int rewrite = 0;
+int fullness = 0;
+double vcccurrent = 0;
+const double arduino_units = 0.0049;
+const double half_volt = 102;
+const double amp_volt_conversion = 10;
+
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -112,10 +125,23 @@ void send_ack(AckCode code, char message[])
 
   ack.vccvoltage = analogRead(VccVoltage)*.0306;
   ack.has_vccvoltage = true;
-  ack.vcccurrent = ((analogRead(VccCurrent)-100)*.0049)*10;
-  ack.has_vcccurrent = true;
   ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
   ack.has_vvcurrent = true;
+  if (rewrite>= capacity){
+    rewrite = 0;
+  }
+  if (fullness < capacity){
+    ++fullness;
+  }
+  amps[rewrite++] = (analogRead(VccCurrent));
+
+  vcccurrent = 0;
+  for (int j = 0; j < capacity; ++j){
+    vcccurrent += amps[j]/fullness;
+  }
+
+  ack.vcccurrent = vcccurrent;
+  ack.has_vcccurrent = true;
 
   if (message != NULL) {
     strncpy(ack_message, message, 250);
@@ -141,6 +167,10 @@ void setup()
 {
   // Make sure the power pin isn't in the off mode
   digitalWrite(POWER_PIN, LOW);
+  pinMode(CTRL_ACTS, OUTPUT);
+  digitalWrite(CTRL_ACTS, LOW);
+
+  pinMode(FAULT_ACTS, INPUT);
 
   Serial.begin(115200);
   while (!Serial) {
