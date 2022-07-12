@@ -190,7 +190,6 @@ jaiabot::apps::MissionManager::MissionManager()
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
         });
-
 }
 
 jaiabot::apps::MissionManager::~MissionManager()
@@ -307,6 +306,11 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::REMOTE_CONTROL_RESUME_MOVEMENT:
             machine_->process_event(statechart::EvResumeMovement());
+            break;
+
+            // handled by jaiabot_health
+        case protobuf::Command::REBOOT_COMPUTER:
+        case protobuf::Command::RESTART_ALL_SERVICES: break;
     }
 }
 
@@ -317,4 +321,3 @@ void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
     else
         machine_->process_event(statechart::EvSelfTestFails());
 }
-

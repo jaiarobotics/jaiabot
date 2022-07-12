@@ -35,7 +35,6 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
   private:
     std::unique_ptr<statechart::MissionManagerStateMachine> machine_;
-
 };
 
 } // namespace apps

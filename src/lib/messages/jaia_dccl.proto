@@ -43,6 +43,10 @@ message Command
         // post mission
         REDEPLOY = 30;
         SHUTDOWN = 31;
+
+        // debugging
+        RESTART_ALL_SERVICES = 40;
+        REBOOT_COMPUTER = 41;
     }
 
     required CommandType type = 10;

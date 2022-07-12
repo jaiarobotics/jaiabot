@@ -38,6 +38,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `jaiabot_mission_manager`: Keeps a state machine of the overall mission state and switches from pHelmIvP control to profile mode as required.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 
+
 #### In the MOOS-IvP project
 
 - `pHelmIvP`: Pluggable behavior based autonomy.

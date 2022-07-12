@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+
+auto_restart: false
+auto_restart_timeout: 20
+auto_restart_init_grace_period: 60
+

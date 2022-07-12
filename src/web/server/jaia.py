@@ -13,8 +13,13 @@ from math import *
 
 import logging
 
+
 def now():
     return int(datetime.datetime.now().timestamp() * 1e6)
+
+
+def utcnow():
+    return int(datetime.datetime.utcnow().timestamp() * 1e6)
 
 
 def floatFrom(obj):
@@ -26,11 +31,16 @@ def floatFrom(obj):
 
 class Interface:
     bots = {}
+    bots_engineering = {}
 
-    def __init__(self, goby_host=('optiplex', 40000)):
+    def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(5)
+
+        self.read_only = read_only
+        if read_only:
+            logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
         self.messages = {}
 
@@ -52,6 +62,12 @@ class Interface:
 
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
+
+            try:
+                del(self.messages['error'])
+            except KeyError:
+                pass
+
             msg = PortalToClientMessage()
             byteCount = msg.ParseFromString(data)
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
@@ -61,12 +77,11 @@ class Interface:
 
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
-                    if botStatus.bot_id in self.bots:
-                        self.bots[botStatus.bot_id].MergeFrom(botStatus)
-                    else:
-                        self.bots[botStatus.bot_id] = botStatus
+                    self.bots[botStatus.bot_id] = botStatus
 
-                logging.debug(f'Received BotStatus:\n{botStatus}')
+            if msg.HasField('engineering_status'):
+                botEngineering = msg.engineering_status
+                self.bots_engineering[botEngineering.bot_id] = botEngineering
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -74,7 +89,11 @@ class Interface:
 
             self.pingCount = 0
 
-    def send_message_to_portal(self, msg):
+    def send_message_to_portal(self, msg, force=False):
+        if self.read_only and not force:
+            logging.warning('This client is READ-ONLY.  Refusing to send command.')
+            return
+
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
@@ -86,50 +105,13 @@ class Interface:
         logging.warning('🏓 Pinging server')
         msg = ClientToPortalMessage()
         msg.ping = True
-        self.send_message_to_portal(msg)
+        self.send_message_to_portal(msg, True)
 
         # Display warning if more than one ping required
         self.pingCount += 1
 
         if self.pingCount > 1:
             self.messages['error'] = 'No response from jaiabot_web_portal app'
-
-    def get_ab_status(self):
-        bots = []
-
-        for bot in self.bots.values():
-            bots.append({
-                    "botID": bot.bot_id,
-                    "location": {
-                        "lat": bot.location.lat,
-                        "lon": bot.location.lon
-                    },
-                    "heading": bot.attitude.heading,
-                    "velocity": bot.speed.over_ground,
-                    "time": {
-                        "time": 42,
-                    },
-                    "sensorData": [
-                        {
-                            "sensorName": "depth",
-                            "sensorValue": bot.depth,
-                        }
-                    ]
-                })
-
-        return {
-            "dialog": {
-                "dialogType": 0,
-                "manual_bot_id": 1,
-                "messageHTML": "",
-                "serialNumber": 0,
-                "browser_id": 0,
-                "message": "",
-                "manualStatus": 3,
-                "windowTitle": ""
-            },
-            "bots": bots
-        }
 
     def post_command(self, command_dict):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
@@ -151,12 +133,21 @@ class Interface:
     def get_status(self):
         bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
 
+        # Add the engineering status data
+        for botId, botEngineering in self.bots_engineering.items():
+            if botId in bots:
+                bots[botId]['engineering'] = google.protobuf.json_format.MessageToDict(botEngineering)
+
         status = {
             'bots': bots,
             'messages': self.messages
         }
 
-        self.messages = {}
+        try:
+            del(self.messages['info'])
+            del(self.messages['warning'])
+        except KeyError:
+            pass
 
         return status
 
