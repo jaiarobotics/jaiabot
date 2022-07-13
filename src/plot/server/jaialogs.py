@@ -7,6 +7,9 @@ import json
 import re
 import math
 import copy
+import datetime
+
+import numpy
 
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
@@ -54,6 +57,11 @@ def h5_get_series(dataset):
     return [proc(x) for x in raw]
 
 
+def h5_get_string(dataset):
+    s = ''.join([chr(a) for a in list(list(dataset)[0])])
+    return s
+
+
 def h5_get_hovertext(dataset):
     '''Get the hovertext for an h5 dataset'''
 
@@ -98,7 +106,21 @@ def get_title_from_path(path):
 
 def get_logs():
     '''Get list of available logs'''
-    return glob.glob(LOG_DIR + '/*.h5')
+    results = []
+    for filename in glob.glob(LOG_DIR + '/*_*_*.h5'):
+        date_string = filename.split('_')[2].split('.')[0]
+
+        try:
+            date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
+        except ValueError:
+            date = datetime.datetime.fromtimestamp(0)
+
+        results.append({
+            'timestamp': date.timestamp(),
+            'filename': filename
+        })
+
+    return results
 
 
 def get_fields(log_names, root_path='/'):
