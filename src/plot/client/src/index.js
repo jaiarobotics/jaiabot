@@ -4,7 +4,6 @@ import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 
 var plot_div_element
-var select_log
 var select_path
 var path_div
 
@@ -48,7 +47,7 @@ var logs
 
 function log_was_selected(evt) {
   logs = [ evt.target.value ]
-  LogApi.get_paths(logs, '').then(update_paths) // Get the root paths
+  LogApi.get_paths(logs, '').then(update_paths)
   LogApi.get_map(logs).then(update_map)
 }
 
@@ -96,23 +95,13 @@ function refresh_plots() {
                 layout.height = data.length * 300 // in pixels
 
   Plotly.newPlot(plot_div_element, data, layout)
-}
-
-var map
-
-function update_map(points) {
-  if (path_polyline) {
-    map.removeLayer(path_polyline)
-  }
-
-  let path = points.map(pt => [pt[1], pt[2]])
-  path_polyline = L.polyline(path, {color : 'red'}).addTo(map)
-
-  map.fitBounds(path_polyline.getBounds())
-
+  
+  // Get the nearest map_point to a particular point in time
   function point_at_time(t) {
+    console.log('map_points = ', map_points)
+    console.log('t = ', t)
 
-    let start = 0, end = points.length - 1
+    let start = 0, end = map_points.length - 1
 
     // Iterate while start not meets end
     while (start <= end) {
@@ -120,10 +109,10 @@ function update_map(points) {
       let mid = Math.floor((start + end) / 2)
 
       // If element is present at mid, return True
-      if (t >= points[mid][0] && t <= points[mid + 1][0]) return points[mid]
+      if (t >= map_points[mid][0] && t <= map_points[mid + 1][0]) return map_points[mid]
 
           // Else look in left or right half accordingly
-          else if (points[mid][0] < t)
+          else if (map_points[mid][0] < t)
       start = mid + 1
       else end = mid - 1
     }
@@ -131,8 +120,44 @@ function update_map(points) {
     return null
   }
 
-  let marker = L.marker([ 0, 0 ])
+  // Setup the map pin on hover
+  let marker = L.marker([0, 0])
   marker.addTo(map)
+
+  console.log('plot_div_element = ', plot_div_element)
+
+  plot_div_element.on('plotly_hover', function(data) {
+    let dateString =
+        data.points[0].data.x[data.points[0].pointIndex]
+        let date_timestamp_micros =
+            Date.parse(dateString) * 1e3
+    let point = point_at_time(date_timestamp_micros)
+
+    console.log('hover, point = ', point)
+
+    // Plot point on the map
+    if (point) {
+      marker.setLatLng(new L.LatLng(point[1], point[2]))
+    }
+  })
+
+  plot_div_element.on('plotly_unhover',
+          function(data) { marker.setLatLng(new L.LatLng(0, 0)) })
+}
+
+var map
+var map_points
+
+function update_map(points) {
+  if (path_polyline) {
+    map.removeLayer(path_polyline)
+  }
+
+  map_points = points
+  let path = points.map(pt => [pt[1], pt[2]])
+  path_polyline = L.polyline(path, {color : 'red'}).addTo(map)
+
+  map.fitBounds(path_polyline.getBounds())
 }
 
 
@@ -164,9 +189,9 @@ class LogApp extends React.Component {
           <LogSelector logs={this.state.logs} log_was_selected={log_was_selected} />
 
           <div>
-            <label className="label padded">Path</label>
+            <label className="label padded">Plot</label>
             <div id="path_div"></div>
-            <select name="path" id="path" onChange={path_was_selected}>
+            <select name="path" id="path" className="padded" onChange={path_was_selected}>
             </select>
           </div>
         </div>
@@ -196,24 +221,6 @@ class LogApp extends React.Component {
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map)
   
-    // let plot = document.getElementsByClassName("plotly-graph-div")[0]
-  
-    // plot.on('plotly_hover', function(data) {
-    //   let dateString =
-    //       data.points[0].data.x[data.points[0].pointIndex] 
-    //       let date_timestamp_ms =
-    //           Date.parse(dateString)
-    //   let date_timestamp_s = date_timestamp_ms / 1000.0
-    //   let point = point_at_time(date_timestamp_s)
-  
-    //   // Plot point on the map
-    //   if (point) {
-    //     marker.setLatLng(new L.LatLng(point[1], point[2]))
-    //   }
-    // })
-  
-    // plot.on('plotly_unhover',
-    //         function(data) { marker.setLatLng(new L.LatLng(0, 0)) })
   }
 
   getElements() {
