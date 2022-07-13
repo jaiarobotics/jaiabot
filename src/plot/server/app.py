@@ -21,7 +21,7 @@ logging.getLogger('werkzeug').setLevel('WARN')
 app = Flask(__name__)
 
 ####### Static files
-root = '../client/build'
+root = '../client/dist'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):

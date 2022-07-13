@@ -98,7 +98,18 @@ def jaia_get_description(path):
 
 def get_title_from_path(path):
     components = path.split('/')
+    if len(components) < 2:
+        logging.warning(f'Not enough components in path: {path}')
+        return ''
+
     components = components[1:]
+
+    message_type_components = components[0].split('.')
+
+    if len(message_type_components) < 1:
+        logging.warning(f'Invalid path: {path}')
+        return ''
+
     components[0] = components[0].split('.')[-1]
     return '/'.join(components)
 
@@ -178,7 +189,10 @@ class Series:
         return r
 
     def sort(self):
-        self.utime, self.y_values = zip(*sorted(zip(self.utime, self.y_values)))
+        if len(self.utime) > 0 and len(self.y_values) > 0:
+            self.utime, self.y_values = zip(*sorted(zip(self.utime, self.y_values)))
+        else:
+            logging.warning(f'Not enough values to sort.  len(utime) = {len(self.utime)}, len(y_values) = {len(self.y_values)}')
 
 
 def get_series(log_names, paths):

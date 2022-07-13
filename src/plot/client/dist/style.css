@@ -1,0 +1,86 @@
+* {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.padded {
+    margin: 4pt;
+    padding: 4pt;
+}
+
+.label {
+    display: inline-block;
+    width: 100pt;
+}
+
+#path_div {
+    padding: 4pt;
+    background-color: #eeeeeeff;
+    border-color: #111111ff;
+    border-radius: 4pt;
+    display: inline;
+}
+
+.plotcontainer {
+    position: absolute;
+    overflow: auto;
+    left: 0%;
+    top: 0%;
+    width: 49%;
+    height: 100%;
+}
+
+.map {
+    position: absolute;
+    left: 50%;
+    top: 0%;
+    width: 49%;
+    height: 100%;
+}
+
+.plot {
+    left: 10pt;
+    right: 10pt;
+}
+
+.flexbox {
+    display: flex;
+    justify-content: stretch;
+}
+
+.vertical {
+    flex-direction: column;
+}
+
+.horizontal {
+    flex-direction: row;
+}
+
+.maximized {
+    position: absolute;
+    top: 0pt;
+    bottom: 0pt;
+    left: 0pt;
+    right: 0pt;
+}
+
+.equal {
+    flex: 1 1 0;
+}
+
+.top_pane {
+    background-color: #eeeeeeff;
+}
+
+.bottom_pane {
+    position: absolute;
+    top: 180px;
+    bottom: 0pt;
+    left: 0pt;
+    right: 0pt;
+}
+
+.jaia-icon {
+    display: "inline-block";
+    border: 1pt solid black;
+    border-radius: 4pt;
+}
