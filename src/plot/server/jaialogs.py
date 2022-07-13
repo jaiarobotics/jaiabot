@@ -119,7 +119,8 @@ def get_logs():
     '''Get list of available logs'''
     results = []
     for filename in glob.glob(LOG_DIR + '/*_*_*.h5'):
-        date_string = filename.split('_')[2].split('.')[0]
+        components = re.match(r'.*/(.+)_(.+)_(.+)\.h5$', filename)
+        bot, fleet, date_string = components.groups()
 
         try:
             date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
@@ -127,6 +128,8 @@ def get_logs():
             date = datetime.datetime.fromtimestamp(0)
 
         results.append({
+            'bot': bot,
+            'fleet': fleet,
             'timestamp': date.timestamp(),
             'filename': filename
         })
