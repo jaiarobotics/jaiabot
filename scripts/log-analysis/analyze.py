@@ -231,6 +231,7 @@ available_fields = [
     Field(y_datapath_re=BotStatus_mission_state, y_axis_label='Mission state'),
     Field(y_datapath_re=BotStatus_latitude, y_axis_label='BotStatus latitude (°)'),
     Field(y_datapath_re=BotStatus_longitude, y_axis_label='BotStatus longitude (°)'),
+    Field(y_datapath_re=BotStatus_thermocouple, y_axis_label='thermocouple_temperature (°C)'),
 
     Field(y_datapath_re=DesiredCourse_speed, y_axis_label='DesiredCourse/speed (m/s)'),
     Field(y_datapath_re=DesiredCourse_heading, y_axis_label='DesiredCourse/heading (°)'),
