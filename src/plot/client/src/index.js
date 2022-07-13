@@ -98,23 +98,22 @@ function refresh_plots() {
   
   // Get the nearest map_point to a particular point in time
   function point_at_time(t) {
-    console.log('map_points = ', map_points)
-    console.log('t = ', t)
-
     let start = 0, end = map_points.length - 1
 
     // Iterate while start not meets end
     while (start <= end) {
+      if (end - start <= 1) return map_points[start]
+
       // Find the mid index
       let mid = Math.floor((start + end) / 2)
 
-      // If element is present at mid, return True
-      if (t >= map_points[mid][0] && t <= map_points[mid + 1][0]) return map_points[mid]
-
-          // Else look in left or right half accordingly
-          else if (map_points[mid][0] < t)
-      start = mid + 1
-      else end = mid - 1
+      // Find which half we're in
+      if (t < map_points[mid][0]) {
+        end = mid
+      }
+      else {
+        start = mid
+      }
     }
 
     return null
@@ -124,16 +123,12 @@ function refresh_plots() {
   let marker = L.marker([0, 0])
   marker.addTo(map)
 
-  console.log('plot_div_element = ', plot_div_element)
-
   plot_div_element.on('plotly_hover', function(data) {
     let dateString =
         data.points[0].data.x[data.points[0].pointIndex]
         let date_timestamp_micros =
             Date.parse(dateString) * 1e3
     let point = point_at_time(date_timestamp_micros)
-
-    console.log('hover, point = ', point)
 
     // Plot point on the map
     if (point) {

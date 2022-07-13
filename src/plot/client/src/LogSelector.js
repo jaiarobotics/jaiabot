@@ -33,21 +33,20 @@ export default class LogSelector extends React.Component {
         )
     }
 
-    componentWillReceiveProps(props) {
-        let log_dict = this.log_dict(props.logs)
-        this.setState({
+    static getDerivedStateFromProps(props) {
+        let log_dict = LogSelector.log_dict(props.logs)
+        var state = {
             log_dict: log_dict
-        })
+        }
 
         if (Object.keys(log_dict).length == 1) {
-            this.setState({
-                fleet: Object.keys(log_dict)[0]
-            })
-            console.log(this.state)
+            state.fleet = Object.keys(log_dict)[0]
         }
+
+        return state
     }
 
-    log_dict(logs) {
+    static log_dict(logs) {
         var log_dict = {}
 
         for (let log of logs) {
