@@ -1272,8 +1272,14 @@ export default class AXUI extends React.Component {
 	}
 
 	sendStop() {
-        info("Sent STOP")
-		this.sna.allStop()
+		this.sna.allStop().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent STOP")
+			}
+		})
 	}
 
 	returnToHome() {
@@ -1744,8 +1750,11 @@ export default class AXUI extends React.Component {
 
 	// Runs a mission
 	_runMission(bot_mission) {
-		console.log('Running mission: ', bot_mission)
-		this.sna.postCommand(bot_mission)
+		this.sna.postCommand(bot_mission).then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+		})
 	}
 
 	// Runs a set of missions, and updates the GUI
@@ -1756,8 +1765,8 @@ export default class AXUI extends React.Component {
 				this.missions[mission.bot_id] = deepcopy(mission)
 				this._runMission(mission)
 			}
+			info("Submitted missions")
 			this.updateMissionLayer()
-			info("Running mission")
 		}
 	}
 
@@ -1809,7 +1818,7 @@ export default class AXUI extends React.Component {
 					error('No mission set for bot ' + bot_id)
 				}
 			}
-			info("Running mission")
+			info('Submitted missions for ' + botIds.length + ' bots')
 		}
 	}
 
@@ -1847,8 +1856,14 @@ export default class AXUI extends React.Component {
 						self.sna.postCommand({
 							botId: self.selectedBotId(),
 							type: "RESTART_ALL_SERVICES"
+						}).then(response => {
+							if (response.message) {
+								error(response.message)
+							}
+							else {
+								info('Restarting Services on bot ' + self.selectedBotId())
+							}
 						})
-						info('Restarting Services on bot ' + self.selectedBotId())
 					}}>
 						Restart Services
 					</button>
@@ -1857,8 +1872,14 @@ export default class AXUI extends React.Component {
 						self.sna.postCommand({
 							botId: self.selectedBotId(),
 							type: "REBOOT_COMPUTER"
+						}).then(response => {
+							if (response.message) {
+								error(response.message)
+							}
+							else {
+								info('Rebooting bot ' + self.selectedBotId())
+							}
 						})
-						info('Rebooting bot ' + self.selectedBotId())
 					}}>
 						Reboot Bot
 					</button>
