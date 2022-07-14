@@ -1,8 +1,4 @@
-try:
-    import smbus
-except:
-    print('Could not import smbus')
-    exit(1)
+import smbus
     
 from time import sleep
 
