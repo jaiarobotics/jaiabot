@@ -17,6 +17,15 @@ export function BotDetailsComponent(bot) {
     let statusTime = bot.time
     let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
+    var statusAgeClassName = ''
+    if (statusAge > 30) {
+        statusAgeClassName = 'red'
+    }
+    else if (statusAge > 10) {
+        statusAgeClassName = 'yellow'
+    }
+
+    // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
     var activeGoalRow = (
         <tr>
@@ -45,7 +54,7 @@ export function BotDetailsComponent(bot) {
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
                 {activeGoalRow}
-                <tr>
+                <tr className={statusAgeClassName}>
                     <td>Status Age</td>
                     <td>{statusAge} sec</td>
                 </tr>
