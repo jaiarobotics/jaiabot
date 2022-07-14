@@ -6,7 +6,7 @@ python_outdir='.'
 [[ ! -z "$1" ]] && python_outdir="$1"
 mkdir -p $python_outdir
 
-PROTO_INCLUDE=proto_include
+PROTO_INCLUDE=/etc/jaiabot/proto_include/
 [[ ! -z "$1" ]] && PROTO_INCLUDE="$2"
 
 if [ ! -d ${PROTO_INCLUDE} ]
