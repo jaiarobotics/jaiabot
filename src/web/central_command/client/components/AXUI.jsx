@@ -1848,6 +1848,7 @@ export default class AXUI extends React.Component {
 							botId: self.selectedBotId(),
 							type: "RESTART_ALL_SERVICES"
 						})
+						info('Restarting Services on bot ' + self.selectedBotId())
 					}}>
 						Restart Services
 					</button>
@@ -1857,6 +1858,7 @@ export default class AXUI extends React.Component {
 							botId: self.selectedBotId(),
 							type: "REBOOT_COMPUTER"
 						})
+						info('Rebooting bot ' + self.selectedBotId())
 					}}>
 						Reboot Bot
 					</button>
