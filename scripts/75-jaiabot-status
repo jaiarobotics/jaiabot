@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)
 

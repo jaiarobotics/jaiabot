@@ -200,7 +200,16 @@ option(install_motd "Install MOTD script" ON)
 if(install_motd)
   install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 endif()
+
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
+
+
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
+# for use by Docker build install
+file(MAKE_DIRECTORY ${project_BIN_DIR})
+configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR} COPYONLY)
+
+
 
 # add the code
 add_subdirectory(src)
@@ -210,8 +219,8 @@ if(export_goby_interfaces)
   set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
 endif()
 
 # configuration export - installed version

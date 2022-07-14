@@ -159,11 +159,13 @@ public:
         }
     }
 
+    float sampletime_sec() { return ((float)sampletime) / 1000.0; }
+
     float get_Kp() { return Kp; }
 
-    float get_Ki() { return Ki; }
+    float get_Ki() { return Ki / sampletime_sec(); }
 
-    float get_Kd() { return Kd; }
+    float get_Kd() { return Kd * sampletime_sec(); }
 
     float get_setpoint() { return *setpoint; }
 

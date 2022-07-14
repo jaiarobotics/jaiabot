@@ -5,7 +5,4 @@ bot_id: $bot_id
 
 use_rpm_table_for_speed: true
 rpm_table { speed: 0 rpm: 0 }
-rpm_table { speed: 1 rpm: 25 }
-rpm_table { speed: 2 rpm: 50 }
-rpm_table { speed: 3 rpm: 75 }
-rpm_table { speed: 4 rpm: 100 }
+rpm_table { speed: 5 rpm: 100 }
