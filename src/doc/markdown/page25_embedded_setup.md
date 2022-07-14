@@ -12,10 +12,11 @@ The RP bootloader on older CM4 boards does not boot from all the USB ports autom
 
 - Once, to set up your developer machine (e.g. Ubuntu computer), follow the steps to [build the usbboot repository](https://www.raspberrypi.com/documentation/computers/compute-module.html#compute-module-4-bootloader). At the time of writing, this repository was at [commit 70b14a](https://github.com/raspberrypi/usbboot/commit/70b14a2a4fdad7caf7a614d299cb6f6b1c1b3f56).
 - For each CM4, follow the steps to
-	1. [setup the CMIO board](https://www.raspberrypi.com/documentation/computers/compute-module.html#setting-up-the-cmio-board) J2 jumper and micro USB cable.
-	2. [update the CM4 bootloader](https://www.raspberrypi.com/documentation/computers/compute-module.html#cm4bootloader). When editing the `boot.conf` file, check that the `BOOT_ORDER` line is set to `BOOT_ORDER=0xf25641`. For more detail on reading the value, see the [BOOT_ORDER documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER). Older CM4s were omitting the 0x5 value (which corresponds to the USB-A port on the CM4 IO board).
+	1. [setup the CMIO board](https://www.raspberrypi.com/documentation/computers/compute-module.html#setting-up-the-cmio-board) by fitting with the J2 jumper and micro USB cable. (do not power up yet)
+	2. [update the CM4 bootloader](https://www.raspberrypi.com/documentation/computers/compute-module.html#cm4bootloader). These files are in the usbboot folder. When editing the `boot.conf` file, check that the `BOOT_ORDER` line is set to `BOOT_ORDER=0xf25641`. For more detail on reading the value, see the [BOOT_ORDER documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#BOOT_ORDER). Older CM4s were omitting the 0x5 value (which corresponds to the USB-A port on the CM4 IO board).
 		- In the last step (`../rpiboot -d . `), I had to use `sudo ../rpiboot -d .`
 		- After running that step (`sudo ../rpiboot -d . `), power on the CM4 IO board. The script should detect the board at this point and upload the configuration changes. It will provide some verbose output to this effect.
+	3. run `sudo ./rpiboot -d recovery` in the terminal line, and once it begins `Waiting for BCM2835/6/7/2711`, power on the pi
 
 
 ### Generation of the filesystem image
@@ -34,6 +35,8 @@ The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 
       # assuming USB thumb drive is on /dev/sdd
       sudo dd if=jaiabot_img-1.0.0~alpha1+5+g90e72a3.img of=/dev/sdd bs=1M status=progress
+
+- The Rapberry Pi Imager (https://www.raspberrypi.com/software/) will also work
 
 - If you have access to a LAN connection to the internet (DHCP) do so and power up the Pi. You will need to find the ip address from your router. Otherwise, connect a keyboard and monitor.
 

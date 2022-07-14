@@ -126,6 +126,8 @@ On the client (jaiabot, dev machines, etc.) side, we need to configure:
 
       sudo systemctl enable wg-quick@wg_jaia
 
+- (optional) - to add a bot or hub, follow the steps above, but replace wg_jaia.conf with wg_fleet(x), where x is the fleet number
+
 
 ### Client - MacOS (Optional)
 
