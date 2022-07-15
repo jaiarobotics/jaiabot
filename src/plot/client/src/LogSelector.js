@@ -1,5 +1,27 @@
 import React from "react"
 
+function duration_string_from_seconds(duration_seconds) {
+    var components = []
+
+    if (duration_seconds >= 3600) {
+        let hours = Math.floor(duration_seconds / 3600)
+        components.push(`${hours} hr`)
+        duration_seconds -= (hours * 3600)
+    }
+
+    if (duration_seconds >= 60) {
+        let minutes = Math.floor(duration_seconds / 60)
+        components.push(`${minutes} min`)
+        duration_seconds -= (minutes * 60)
+    }
+
+    if (duration_seconds >= 1) {
+        components.push(`${duration_seconds.toFixed(0)} sec`)
+    }
+    
+    return components.join(', ')
+}
+
 // Dropdown menu showing all of the available logs to choose from
 export default class LogSelector extends React.Component {
 
@@ -123,8 +145,10 @@ export default class LogSelector extends React.Component {
                     dateStyle : 'medium',
                     timeStyle : 'short',
                 })
+
+                let duration_string = "[ " + duration_string_from_seconds(log.duration / 1e6) + " ]"
             
-                option_elements.push(<option value={log.filename} key={log.filename}>{date_string}</option>)
+                option_elements.push(<option value={log.filename} key={log.filename}>{date_string} {duration_string}</option>)
             }
 
             return option_elements
