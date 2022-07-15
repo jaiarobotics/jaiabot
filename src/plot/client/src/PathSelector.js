@@ -61,6 +61,14 @@ export default class PathSelector extends React.Component {
                 return
             }
 
+            // Only one option, so select it and go to the nexxt level
+            if (paths.length == 1) {
+                let chosen_path = this.state.chosen_path + '/' + paths[0]
+                this.setState({chosen_path}, this.update_path_options.bind(this))
+                return
+            }
+
+            // More than one option
             this.setState({next_path_segments: paths})
         })
     }
