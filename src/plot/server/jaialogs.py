@@ -8,6 +8,7 @@ import re
 import math
 import copy
 import datetime
+import os
 
 import numpy
 
@@ -17,6 +18,12 @@ UINT32_MAX = (2 << 31) - 1
 LOG_DIR='logs'
 
 # Utility functions
+
+def set_directory(directory):
+    global LOG_DIR
+    LOG_DIR = directory
+    logging.info(f'Log directory: {directory}')
+    os.makedirs(directory, exist_ok=True)
 
 def get_root_item_path(path, root_item=''):
     '''Get the path to a root_item associated with that path'''
@@ -118,6 +125,7 @@ def get_title_from_path(path):
 def get_logs():
     '''Get list of available logs'''
     results = []
+    logging.warning('log_dir = ' + LOG_DIR)
     for filename in glob.glob(LOG_DIR + '/*_*_*.h5'):
         components = re.match(r'.*/(.+)_(.+)_(.+)\.h5$', filename)
         bot, fleet, date_string = components.groups()
@@ -130,7 +138,7 @@ def get_logs():
 
         # Get duration of this log
         try:
-            path = 'goby::zeromq::_internal_manager_request/goby.zeromq.protobuf.ManagerRequest/_utime_'
+            path = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
             h5_file = h5py.File(filename)
             start = h5_file[path][0]
             end = h5_file[path][-1]
