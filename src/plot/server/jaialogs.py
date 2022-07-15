@@ -125,12 +125,25 @@ def get_logs():
         try:
             date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            date = datetime.datetime.fromtimestamp(0)
+            logging.warning(f'No date in file {filename}')
+            continue
+
+        # Get duration of this log
+        try:
+            path = 'goby::zeromq::_internal_manager_request/goby.zeromq.protobuf.ManagerRequest/_utime_'
+            h5_file = h5py.File(filename)
+            start = h5_file[path][0]
+            end = h5_file[path][-1]
+            duration = int(end - start)
+        except (OSError, KeyError):
+            logging.warning(f'No duration in file {filename}')
+            continue
 
         results.append({
             'bot': bot,
             'fleet': fleet,
             'timestamp': date.timestamp(),
+            'duration': duration,
             'filename': filename
         })
 
