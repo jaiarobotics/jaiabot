@@ -12,12 +12,11 @@
     width: 100pt;
 }
 
-#path_div {
+.path {
     padding: 4pt;
-    background-color: #eeeeeeff;
-    border-color: #111111ff;
+    background-color: #ddddddff;
     border-radius: 4pt;
-    display: inline;
+    display: inline-block;
 }
 
 .plotcontainer {
@@ -73,7 +72,7 @@
 
 .bottom_pane {
     position: absolute;
-    top: 180px;
+    top: 220px;
     bottom: 0pt;
     left: 0pt;
     right: 0pt;
@@ -91,4 +90,13 @@ select.log {
 
 select.time {
     width: 200pt;
+}
+
+div.inline {
+    display: inline;
+}
+
+button {
+    display: inline;
+    width: 100pt;
 }
