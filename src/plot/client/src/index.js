@@ -2,66 +2,22 @@ import React from "react"
 import ReactDOM from "react-dom/client"
 import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
+import PathSelector from "./PathSelector.js"
 
 var plot_div_element
 var select_path
 var path_div
-
-// Selecting logs
-
-var path = ''
-
-function update_paths(paths) {
-  // This path is a dataset, with no children.  So, get and plot it
-  if (paths.length == 0 && path != '') {
-      LogApi.get_series(logs, [ path ])
-      .then(series => {
-          plots = plots.concat(series)
-          refresh_plots()
-      })
-
-      // Reset to the root of the file
-      path = ''
-      path_div.innerHTML = path
-      LogApi.get_paths(logs, path).then(update_paths)
-
-      return
-  }
-
-  // This path is a group, with children, so drill down
-  while (select_path.firstChild) {
-    select_path.removeChild(select_path.firstChild);
-  }
-
-  paths = [ '...' ].concat(paths)
-
-  for (let path of paths) {
-    let option = document.createElement('option')
-    option.text = path
-    option.selected = false
-    select_path.add(option)
-  }
-}
-
-var logs
-
-function log_was_selected(evt) {
-  logs = [ evt.target.value ]
-  LogApi.get_paths(logs, '').then(update_paths)
-  LogApi.get_map(logs).then(update_map)
-}
-
-function path_was_selected(evt) {
-  path = path + '/' + evt.target.value
-  path_div.innerHTML = path
-  LogApi.get_paths(logs, path).then(update_paths)
-}
 
 // Plots
 
 var plots = [];
 
 function refresh_plots() {
+  if (plots.length == 0) {
+    Plotly.purge(plot_div_element)
+    return
+  }
+
   var data = [];
   var layout = {showlegend : false};
 
@@ -87,15 +43,15 @@ function refresh_plots() {
       mode : 'lines+markers'
     }
 
-                data.push(trace)
+    data.push(trace)
   }
 
   layout.grid = {rows : data.length, columns : 1, pattern : 'coupled'}
 
-                layout.height = data.length * 300 // in pixels
+  layout.height = data.length * 300 + 1 // in pixels
 
   Plotly.newPlot(plot_div_element, data, layout)
-  
+
   // Get the nearest map_point to a particular point in time
   function point_at_time(t) {
     let start = 0, end = map_points.length - 1
@@ -165,7 +121,8 @@ class LogApp extends React.Component {
     super(props)
 
     this.state = {
-      logs: []
+      logs: [],
+      chosen_logs: []
     }
   }
 
@@ -181,16 +138,16 @@ class LogApp extends React.Component {
             </div>
           </div>
 
-          <LogSelector logs={this.state.logs} log_was_selected={log_was_selected} />
+          <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
 
-          <div>
-            <label className="label padded">Plot</label>
-            <div id="path_div"></div>
-            <select name="path" id="path" className="padded" onChange={path_was_selected}>
-            </select>
-          </div>
+          <PathSelector logs={this.state.chosen_logs} key={this.state.chosen_logs} on_select_path={this.path_was_selected.bind(this)} />
+
+          <button className="padded" onClick={() => {
+            plots = []
+            refresh_plots()
+          }}>Clear Plots</button>
         </div>
-
+        
         <div className="bottom_pane">
           <div className="plotcontainer">
             <div id="plot" className="plot"></div>
@@ -200,6 +157,12 @@ class LogApp extends React.Component {
         </div>
       </div>
     )
+  }
+
+  componentDidUpdate() {
+    if (this.state.chosen_logs.length > 0) {
+      LogApi.get_map(this.state.chosen_logs).then(update_map)
+    }
   }
 
   componentDidMount() {
@@ -229,6 +192,17 @@ class LogApp extends React.Component {
   update_log_dropdown() {
     LogApi.get_logs().then(logs => {
       this.setState({logs})
+    })
+  }
+
+  log_was_selected(evt) {
+    this.setState({chosen_logs: [ evt.target.value] })
+  }
+
+  path_was_selected(path) {
+    LogApi.get_series(this.state.chosen_logs, [ path ]).then((series) => {
+      plots = plots.concat(series)
+      refresh_plots()
     })
   }
 
