@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client"
 import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
+import PlotProfiles from "./PlotProfiles.js"
 
 var plot_div_element
 var select_path
@@ -142,10 +143,27 @@ class LogApp extends React.Component {
 
           <PathSelector logs={this.state.chosen_logs} key={this.state.chosen_logs} on_select_path={this.path_was_selected.bind(this)} />
 
-          <button className="padded" onClick={() => {
-            plots = []
-            refresh_plots()
-          }}>Clear Plots</button>
+          <div>
+            <button className="padded" onClick={() => {
+              plots = []
+              refresh_plots()
+            }}>Clear Plots</button>
+
+            <LoadProfile did_select_plot_set={(paths) => {
+              LogApi.get_series(this.state.chosen_logs, paths).then((series_array) => {
+                plots = series_array
+                refresh_plots()
+              })
+            }} />
+
+            <button className="padded" onClick={() => {
+              let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
+              let plot_profile = plots.map((series) => series.path)
+              PlotProfiles.save_profile(plot_profile_name, plot_profile)
+              this.forceUpdate()
+            }}>Save Profile</button>
+
+          </div>
         </div>
         
         <div className="bottom_pane">
@@ -211,3 +229,35 @@ class LogApp extends React.Component {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 const log_app = <LogApp />;
 root.render(log_app);
+
+function LoadProfile(props) {
+  let plot_profiles = PlotProfiles.plot_profiles()
+
+  var plot_profile_names = Object.keys(plot_profiles)
+  plot_profile_names.sort()
+
+  let option_elements = plot_profile_names.map((profile_name) => {
+    return <option value={profile_name} key={profile_name}>{profile_name}</option>
+  })
+
+  var first_option_element = [<option value="none">Load Profile</option>]
+
+  let all_option_elements = first_option_element.concat(option_elements)
+
+  console.log(all_option_elements)
+
+  return (
+    <select className="padded" onChange={(evt) => {
+      let plot_profile_name = evt.target.value
+
+      if (!plot_profile_name) {
+        return
+      }
+
+      let plot_set = plot_profiles[plot_profile_name]
+      props.did_select_plot_set?.(plot_set)
+
+      evt.target.value = "none"
+    }}>{all_option_elements}</select>
+  )
+}
