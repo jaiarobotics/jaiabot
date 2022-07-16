@@ -24,15 +24,15 @@
     overflow: auto;
     left: 0%;
     top: 0%;
-    width: 49%;
+    width: 59%;
     height: 100%;
 }
 
 .map {
     position: absolute;
-    left: 50%;
+    left: 60%;
     top: 0%;
-    width: 49%;
+    width: 39%;
     height: 100%;
 }
 

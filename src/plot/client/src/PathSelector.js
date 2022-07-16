@@ -21,7 +21,7 @@ export default class PathSelector extends React.Component {
     render() {
       return (
       <div>
-        <div className="inline padded">Plot</div>
+        <div className="inline padded">Add Series</div>
         <div className="path padded">
             {this.state.chosen_path}
         </div>
