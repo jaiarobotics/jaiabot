@@ -4,9 +4,6 @@ import common.comms
 def bot_index_to_vehicle_id(bot_index):
     return bot_index+common.comms.hub_vehicle_id+1
 
-def simulator_port(vehicle_i):
-    return 55000 + vehicle_id
-
 def moos_port(vehicle_id):
     return 9000 + vehicle_id
 

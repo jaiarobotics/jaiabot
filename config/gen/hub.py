@@ -7,7 +7,7 @@ import sys
 import os
 from common import config
 from common import is_simulation, is_runtime
-import common, common.hub, common.comms, common.sim, common.vehicle, common.udp
+import common, common.hub, common.comms, common.sim, common.bot, common.udp
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -101,8 +101,8 @@ elif common.app == 'goby_logger':
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir))
 elif common.app == 'jaiabot_hub_manager':
-    start_modem_id=common.comms.wifi_modem_id(common.vehicle.bot_index_to_vehicle_id(0))
-    end_modem_id=common.comms.wifi_modem_id(common.vehicle.bot_index_to_vehicle_id(number_of_bots))
+    start_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_vehicle_id(0))
+    end_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_vehicle_id(number_of_bots))
     all_bot_ids='managed_bot_modem_id: ' + str(list(range(start_modem_id, end_modem_id)))
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
