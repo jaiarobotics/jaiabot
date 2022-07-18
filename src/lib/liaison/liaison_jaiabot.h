@@ -47,7 +47,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void unfocus() override { timer_.stop(); }
 
     void vehicle_select(Wt::WString msg);
-    void check_add_vehicle(int vehicle_id);
+    void check_add_vehicle(int node_id);
     void key_press(Wt::WKeyEvent key);
     void key_release(Wt::WKeyEvent key);
 

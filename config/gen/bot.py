@@ -29,7 +29,7 @@ debug_log_file_dir=log_file_dir
 os.makedirs(log_file_dir, exist_ok=True)
 templates_dir=common.jaia_templates_dir
 
-vehicle_id=common.bot.bot_index_to_vehicle_id(bot_index)
+node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -57,16 +57,16 @@ except FileNotFoundError:
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.xbee_modem_id(vehicle_id),
-                                             mac_slots=common.comms.xbee_mac_slots(vehicle_id))
+                                             modem_id=common.comms.xbee_modem_id(node_id),
+                                             mac_slots=common.comms.xbee_mac_slots(node_id))
 
 if is_simulation():
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.wifi_modem_id(vehicle_id),
-                                             local_port=common.udp.wifi_udp_port(vehicle_id),
-                                             remotes=common.comms.wifi_remotes(vehicle_id, number_of_bots),
-                                             mac_slots=common.comms.wifi_mac_slots(vehicle_id))
+                                             modem_id=common.comms.wifi_modem_id(node_id),
+                                             local_port=common.udp.wifi_udp_port(node_id),
+                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots),
+                                             mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
@@ -94,28 +94,28 @@ elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     http_port=30000+vehicle_id,
+                                     http_port=30000+node_id,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=''))
 elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     moos_port=common.bot.moos_port(vehicle_id)))
+                                     moos_port=common.bot.moos_port(node_id)))
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     moos_port=common.bot.moos_simulator_port(vehicle_id),
-                                     gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(vehicle_id),
-                                     pressure_udp_port=common.udp.bar30_cpp_udp_port(vehicle_id),
-                                     salinity_udp_port=common.udp.atlas_ezo_cpp_udp_port(vehicle_id)))
+                                     moos_port=common.bot.moos_simulator_port(node_id),
+                                     gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
+                                     pressure_udp_port=common.udp.bar30_cpp_udp_port(node_id),
+                                     salinity_udp_port=common.udp.atlas_ezo_cpp_udp_port(node_id)))
 elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_bluerobotics_pressure_sensor_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bind_port=common.udp.bar30_cpp_udp_port(vehicle_id),
-                                     remote_port=common.udp.bar30_py_udp_port(vehicle_id)))
+                                     bind_port=common.udp.bar30_cpp_udp_port(node_id),
+                                     remote_port=common.udp.bar30_py_udp_port(node_id)))
 elif common.app == 'jaiabot_adafruit_BNO055_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
                                      app_block=app_common,
@@ -124,8 +124,8 @@ elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bind_port=common.udp.atlas_ezo_cpp_udp_port(vehicle_id),
-                                     remote_port=common.udp.atlas_ezo_py_udp_port(vehicle_id)))
+                                     bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
+                                     remote_port=common.udp.atlas_ezo_py_udp_port(node_id)))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,
@@ -144,13 +144,13 @@ elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.bot.gpsd_port(vehicle_id),
-                                     gpsd_device=common.bot.gpsd_device(vehicle_id)))
+                                     gpsd_port=common.bot.gpsd_port(node_id),
+                                     gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'gpsd':
-    print('-S {} -N {}'.format(common.bot.gpsd_port(vehicle_id), common.bot.gpsd_device(vehicle_id)))
+    print('-S {} -N {}'.format(common.bot.gpsd_port(node_id), common.bot.gpsd_device(node_id)))
 elif common.app == 'moos':
     print(config.template_substitute(templates_dir+'/bot/bot.moos.in',
-                                     moos_port=common.bot.moos_port(vehicle_id),
+                                     moos_port=common.bot.moos_port(node_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
                                      bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv'))
@@ -158,12 +158,12 @@ elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':
     print(config.template_substitute(templates_dir+'/bot/bot-sim.moos.in',
-                                     moos_port=common.bot.moos_simulator_port(vehicle_id),
+                                     moos_port=common.bot.moos_simulator_port(node_id),
                                      moos_community='SIM' + str(bot_index),
                                      warp=common.sim.warp))
 elif common.app == 'moos_pmv':
     print(config.template_substitute(templates_dir+'/bot/marineviewer.moos.in',
-                                     moos_port=common.bot.moos_port(vehicle_id),
+                                     moos_port=common.bot.moos_port(node_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp))
 else:
