@@ -1860,6 +1860,15 @@ export default class AXUI extends React.Component {
 					}}>
 						Reboot Bot
 					</button>
+
+					<button class="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "SHUTDOWN"
+						})
+					}}>
+						Shutdown Bot
+					</button>
 				</div>
 				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
 					<FontAwesomeIcon icon={faGripVertical} />
