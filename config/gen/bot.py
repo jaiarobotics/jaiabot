@@ -7,7 +7,7 @@ import sys
 import os
 from common import config
 from common import is_simulation, is_runtime
-import common, common.vehicle, common.comms, common.sim, common.udp
+import common, common.bot, common.comms, common.sim, common.udp
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -29,7 +29,7 @@ debug_log_file_dir=log_file_dir
 os.makedirs(log_file_dir, exist_ok=True)
 templates_dir=common.jaia_templates_dir
 
-vehicle_id=common.vehicle.bot_index_to_vehicle_id(bot_index)
+vehicle_id=common.bot.bot_index_to_vehicle_id(bot_index)
 
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -101,13 +101,13 @@ elif common.app == 'goby_moos_gateway':
     print(config.template_substitute(templates_dir+'/bot/goby_moos_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     moos_port=common.vehicle.moos_port(vehicle_id)))
+                                     moos_port=common.bot.moos_port(vehicle_id)))
 elif common.app == 'jaiabot_simulator':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     moos_port=common.vehicle.moos_simulator_port(vehicle_id),
-                                     gpsd_simulator_udp_port=common.vehicle.gpsd_simulator_udp_port(vehicle_id),
+                                     moos_port=common.bot.moos_simulator_port(vehicle_id),
+                                     gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(vehicle_id),
                                      pressure_udp_port=common.udp.bar30_cpp_udp_port(vehicle_id),
                                      salinity_udp_port=common.udp.atlas_ezo_cpp_udp_port(vehicle_id)))
 elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
@@ -144,13 +144,13 @@ elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.vehicle.gpsd_port(vehicle_id),
-                                     gpsd_device=common.vehicle.gpsd_device(vehicle_id)))
+                                     gpsd_port=common.bot.gpsd_port(vehicle_id),
+                                     gpsd_device=common.bot.gpsd_device(vehicle_id)))
 elif common.app == 'gpsd':
-    print('-S {} -N {}'.format(common.vehicle.gpsd_port(vehicle_id), common.vehicle.gpsd_device(vehicle_id)))
+    print('-S {} -N {}'.format(common.bot.gpsd_port(vehicle_id), common.bot.gpsd_device(vehicle_id)))
 elif common.app == 'moos':
     print(config.template_substitute(templates_dir+'/bot/bot.moos.in',
-                                     moos_port=common.vehicle.moos_port(vehicle_id),
+                                     moos_port=common.bot.moos_port(vehicle_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
                                      bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv'))
@@ -158,16 +158,14 @@ elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':
     print(config.template_substitute(templates_dir+'/bot/bot-sim.moos.in',
-                                     moos_port=common.vehicle.moos_simulator_port(vehicle_id),
+                                     moos_port=common.bot.moos_simulator_port(vehicle_id),
                                      moos_community='SIM' + str(bot_index),
                                      warp=common.sim.warp))
 elif common.app == 'moos_pmv':
     print(config.template_substitute(templates_dir+'/bot/marineviewer.moos.in',
-                                     moos_port=common.vehicle.moos_port(vehicle_id),
+                                     moos_port=common.bot.moos_port(vehicle_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp))
-elif common.app == 'frontseat_sim':
-    print(common.vehicle.simulator_port(vehicle_id))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
