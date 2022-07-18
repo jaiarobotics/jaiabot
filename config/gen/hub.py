@@ -23,8 +23,8 @@ log_file_dir = common.jaia_log_dir+ '/hub'
 os.makedirs(log_file_dir, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 
-vehicle_id = 0 
-wifi_modem_id = common.comms.wifi_modem_id(vehicle_id)
+node_id = 0 
+wifi_modem_id = common.comms.wifi_modem_id(node_id)
 vehicle_type= 'HUB'
 
 templates_dir=common.jaia_templates_dir
@@ -50,16 +50,16 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.xbee_modem_id(vehicle_id),
-                                             mac_slots=common.comms.xbee_mac_slots(vehicle_id))
+                                             modem_id=common.comms.xbee_modem_id(node_id),
+                                             mac_slots=common.comms.xbee_mac_slots(node_id))
 
 if is_simulation():
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.wifi_modem_id(vehicle_id),
-                                             local_port=common.udp.wifi_udp_port(vehicle_id),
-                                             remotes=common.comms.wifi_remotes(vehicle_id, number_of_bots),
-                                             mac_slots=common.comms.wifi_mac_slots(vehicle_id))
+                                             modem_id=common.comms.wifi_modem_id(node_id),
+                                             local_port=common.udp.wifi_udp_port(node_id),
+                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots),
+                                             mac_slots=common.comms.wifi_mac_slots(node_id))
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
 
@@ -86,23 +86,23 @@ elif common.app == 'goby_liaison':
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     http_port=30000+vehicle_id,
+                                     http_port=30000+node_id,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     gpsd_port=common.hub.gpsd_port(vehicle_id),
-                                     gpsd_device=common.hub.gpsd_device(vehicle_id)))   
+                                     gpsd_port=common.hub.gpsd_port(node_id),
+                                     gpsd_device=common.hub.gpsd_device(node_id)))   
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir))
 elif common.app == 'jaiabot_hub_manager':
-    start_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_vehicle_id(0))
-    end_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_vehicle_id(number_of_bots))
+    start_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(0))
+    end_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(number_of_bots))
     all_bot_ids='managed_bot_modem_id: ' + str(list(range(start_modem_id, end_modem_id)))
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
