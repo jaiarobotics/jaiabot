@@ -16,8 +16,6 @@ export default function LoadProfile(props) {
   
     let all_option_elements = first_option_element.concat(option_elements)
   
-    console.log(all_option_elements)
-  
     return (
       <select className="padded" onChange={(evt) => {
         let plot_profile_name = evt.target.value
