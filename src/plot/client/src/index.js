@@ -6,26 +6,7 @@ import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
-
-// Plots
-var map
-var map_points
-
-function update_map(points) {
-  if (path_polyline) {
-    map.removeLayer(path_polyline)
-  }
-
-  map_points = points
-  let path = points.map(pt => [pt[1], pt[2]])
-  path_polyline = L.polyline(path, {color : 'red'}).addTo(map)
-
-  map.fitBounds(path_polyline.getBounds())
-}
-
-
-// points is in the form [[timestamp, lat, lon]]
-var path_polyline
+import Map from "./Map.js"
 
 class LogApp extends React.Component {
 
@@ -67,8 +48,6 @@ class LogApp extends React.Component {
               this.setState({plots: []})
             }}>Clear Plots</button>
 
-            Hello
-
         <LoadProfile did_select_plot_set =
          {
            (paths) => {
@@ -100,29 +79,17 @@ class LogApp extends React.Component {
 
   componentDidUpdate() {
     if (this.state.chosen_logs.length > 0) {
-      LogApi.get_map(this.state.chosen_logs).then(update_map)
+      LogApi.get_map(this.state.chosen_logs).then((points) => {
+        this.map.updateWithPoints(points)
+      })
     }
     this.refresh_plots()
   }
 
   componentDidMount() {
     this.getElements()
-    this.init_map()
+    this.map = new Map('map')
     this.update_log_dropdown()
-  }
-
-  init_map() {
-    map = L.map('map').setView([ 0, 0 ], 10)
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution :
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map)
-  
-    // Setup the map pin on hover
-    this.marker = L.marker([ 0, 0 ])
-    this.marker.addTo(map)
-
   }
 
   getElements() {
@@ -197,41 +164,11 @@ class LogApp extends React.Component {
     })
 
     this.plot_div_element.on('plotly_unhover',
-                        function(data) { self.marker.setLatLng(new L.LatLng(0, 0)) })
+                        function(data) { self.map.removeMarker() })
   }
 
   did_hover_on_timestamp_micros(timestamp_micros) {
-
-    // Get the nearest map_point to a particular point in time
-    function point_at_time(t) {
-      let start = 0, end = map_points.length - 1
-
-      // Iterate while start not meets end
-      while (start <= end) {
-        if (end - start <= 1)
-          return map_points[start]
-
-          // Find the mid index
-          let mid = Math.floor((start + end) / 2)
-
-          // Find which half we're in
-          if (t < map_points[mid][0]) {
-            end = mid
-          }
-        else {
-          start = mid
-        }
-      }
-
-      return null
-    }
-    
-    let point = point_at_time(timestamp_micros)
-
-    // Plot point on the map
-    if (point) {
-      this.marker.setLatLng(new L.LatLng(point[1], point[2]))
-    }
+    this.map.putMarkerAtTimestamp(timestamp_micros)
   }
 
 }
