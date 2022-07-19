@@ -123,6 +123,10 @@ class LogApp extends React.Component {
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map)
   
+    // Setup the map pin on hover
+    this.marker = L.marker([ 0, 0 ])
+    this.marker.addTo(map)
+
   }
 
   getElements() {
@@ -191,6 +195,19 @@ class LogApp extends React.Component {
 
     Plotly.newPlot(plot_div_element, data, layout)
 
+    let self = this
+    plot_div_element.on('plotly_hover', function(data) {
+      let dateString = data.points[0].data.x[data.points[0].pointIndex] 
+      let date_timestamp_micros = Date.parse(dateString) * 1e3
+      self.did_hover_on_timestamp_micros(date_timestamp_micros)
+    })
+
+    plot_div_element.on('plotly_unhover',
+                        function(data) { self.marker.setLatLng(new L.LatLng(0, 0)) })
+  }
+
+  did_hover_on_timestamp_micros(timestamp_micros) {
+
     // Get the nearest map_point to a particular point in time
     function point_at_time(t) {
       let start = 0, end = map_points.length - 1
@@ -200,8 +217,8 @@ class LogApp extends React.Component {
         if (end - start <= 1)
           return map_points[start]
 
-                 // Find the mid index
-                 let mid = Math.floor((start + end) / 2)
+          // Find the mid index
+          let mid = Math.floor((start + end) / 2)
 
           // Find which half we're in
           if (t < map_points[mid][0]) {
@@ -214,25 +231,15 @@ class LogApp extends React.Component {
 
       return null
     }
+    
+    let point = point_at_time(timestamp_micros)
 
-    // Setup the map pin on hover
-    let marker = L.marker([ 0, 0 ])
-    marker.addTo(map)
-
-    plot_div_element.on('plotly_hover', function(data) {
-      let dateString = data.points[0].data.x[data.points[0].pointIndex] 
-      let date_timestamp_micros = Date.parse(dateString) * 1e3
-      let point = point_at_time(date_timestamp_micros)
-
-      // Plot point on the map
-      if (point) {
-        marker.setLatLng(new L.LatLng(point[1], point[2]))
-      }
-    })
-
-    plot_div_element.on('plotly_unhover',
-                        function(data) { marker.setLatLng(new L.LatLng(0, 0)) })
+    // Plot point on the map
+    if (point) {
+      this.marker.setLatLng(new L.LatLng(point[1], point[2]))
+    }
   }
+
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
