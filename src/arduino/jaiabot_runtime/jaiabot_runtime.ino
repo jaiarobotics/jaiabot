@@ -64,13 +64,13 @@ const int VccCurrent = A2;
 const int VccVoltage = A0;
 
 //for rolling average
-const int capacity = 20;
+const int capacity = 50;
 int amps[capacity]{0};
 int rewrite = 0;
 int fullness = 0;
 double vcccurrent = 0;
 const double arduino_units = 0.0049;
-const double half_volt = 102;
+const double half_volt = .5;
 const double amp_volt_conversion = 10;
 
 
@@ -137,10 +137,11 @@ void send_ack(AckCode code, char message[])
 
   vcccurrent = 0;
   for (int j = 0; j < capacity; ++j){
-    vcccurrent += amps[j]/fullness;
+    vcccurrent += amps[j];
   }
+  vcccurrent = vcccurrent/fullness;
 
-  ack.vcccurrent = vcccurrent;
+  ack.vcccurrent = ((vcccurrent*arduino_units)-half_volt)*10;
   ack.has_vcccurrent = true;
 
   if (message != NULL) {
