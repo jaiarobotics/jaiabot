@@ -7,10 +7,6 @@ import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 
-var plot_div_element
-var select_path
-var path_div
-
 // Plots
 var map
 var map_points
@@ -131,10 +127,8 @@ class LogApp extends React.Component {
 
   getElements() {
     // Get global element names for the functions that are still using them
-    plot_div_element = document.getElementById('plot');
+    this.plot_div_element = document.getElementById('plot');
     this.log_select_element = document.getElementById('log')
-    select_path = document.getElementById('path')
-    path_div = document.getElementById('path_div')
   }
 
   update_log_dropdown() {
@@ -157,7 +151,7 @@ class LogApp extends React.Component {
 
   refresh_plots() {
     if (this.state.plots.length == 0) {
-      Plotly.purge(plot_div_element)
+      Plotly.purge(this.plot_div_element)
       return
     }
 
@@ -193,16 +187,16 @@ class LogApp extends React.Component {
 
                   layout.height = data.length * 300 + 1 // in pixels
 
-    Plotly.newPlot(plot_div_element, data, layout)
+    Plotly.newPlot(this.plot_div_element, data, layout)
 
     let self = this
-    plot_div_element.on('plotly_hover', function(data) {
+    this.plot_div_element.on('plotly_hover', function(data) {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = Date.parse(dateString) * 1e3
       self.did_hover_on_timestamp_micros(date_timestamp_micros)
     })
 
-    plot_div_element.on('plotly_unhover',
+    this.plot_div_element.on('plotly_unhover',
                         function(data) { self.marker.setLatLng(new L.LatLng(0, 0)) })
   }
 
