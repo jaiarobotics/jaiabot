@@ -94,8 +94,7 @@ class LogApp extends React.Component {
 
   getElements() {
     // Get global element names for the functions that are still using them
-    this.plot_div_element = document.getElementById('plot');
-    this.log_select_element = document.getElementById('log')
+    this.plot_div_element = document.getElementById('plot')
   }
 
   update_log_dropdown() {
@@ -160,15 +159,11 @@ class LogApp extends React.Component {
     this.plot_div_element.on('plotly_hover', function(data) {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = Date.parse(dateString) * 1e3
-      self.did_hover_on_timestamp_micros(date_timestamp_micros)
+      self.map.putMarkerAtTimestamp(date_timestamp_micros)
     })
 
     this.plot_div_element.on('plotly_unhover',
                         function(data) { self.map.removeMarker() })
-  }
-
-  did_hover_on_timestamp_micros(timestamp_micros) {
-    this.map.putMarkerAtTimestamp(timestamp_micros)
   }
 
 }
