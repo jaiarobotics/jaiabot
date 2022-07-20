@@ -22,15 +22,16 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include <goby/zeromq/application/single_thread.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "system_thread.h"
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Health>;
+using ApplicationBase = goby::zeromq::MultiThreadApplication<jaiabot::config::Health>;
 
 namespace jaiabot
 {
@@ -113,6 +114,9 @@ jaiabot::apps::Health::Health()
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             process_coroner_report(vehicle_health);
         });
+
+    launch_thread<LinuxHardwareThread>(cfg().linux_hw());
+    launch_thread<NTPStatusThread>(cfg().ntp());
 }
 
 void jaiabot::apps::Health::process_coroner_report(
@@ -126,8 +130,6 @@ void jaiabot::apps::Health::process_coroner_report(
     }
 
     last_health_.Clear();
-    auto& jaiabot_health = *last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread);
-
     for (const auto& proc : vehicle_health.process())
     {
         if (proc.main().has_error() &&
@@ -137,7 +139,8 @@ void jaiabot::apps::Health::process_coroner_report(
                 process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())
             {
-                jaiabot_health.add_error(it->second);
+                last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                    ->add_error(it->second);
             }
             else
             {
@@ -145,7 +148,8 @@ void jaiabot::apps::Health::process_coroner_report(
                     glog << "App: " << proc.main().name()
                          << " is not responding but has not been mapped to an ERROR enumeration"
                          << std::endl;
-                jaiabot_health.add_error(protobuf::ERROR__NOT_RESPONDING__UNKNOWN_APP);
+                last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                    ->add_error(protobuf::ERROR__NOT_RESPONDING__UNKNOWN_APP);
             }
         }
     }
@@ -168,9 +172,7 @@ void jaiabot::apps::Health::loop()
 
 void jaiabot::apps::Health::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    health = last_health_;
+    health.MergeFrom(last_health_);
     health.set_name(this->app_name());
-
-    // track
     health.set_state(goby::middleware::protobuf::HEALTH__OK);
 }

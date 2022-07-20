@@ -4,12 +4,16 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.p
 
 add_executable(${APP}
   app.cpp
+  linux_hardware_thread.cpp
+  time_thread.cpp 
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}
   goby
   goby_zeromq
-  jaiabot_messages)
+  jaiabot_messages
+  boost_filesystem
+  )
 
 if(export_goby_interfaces)
   generate_interfaces(${APP})
