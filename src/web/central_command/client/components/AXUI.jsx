@@ -1602,6 +1602,8 @@ export default class AXUI extends React.Component {
 		this.changeMissions((missions) => {
 
 			if (!(botId in missions)) {
+				let speeds = Settings.read('mission.plan.speeds')
+
 				missions[botId] = {
 					botId: botId,
 					time: '1642891753471247',
@@ -1613,8 +1615,12 @@ export default class AXUI extends React.Component {
 						recovery: {recoverAtFinalGoal: true}
 					}
 				}
+
+				if (speeds != null) {
+					missions[botId].speeds = speeds
+				}
 			}
-	
+
 			missions[botId].plan.goal.push({location: location})
 
 		})
