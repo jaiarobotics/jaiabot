@@ -217,11 +217,12 @@ void loop()
 
   constexpr int prefix_size = SERIAL_MAGIC_BYTES + SIZE_BYTES;
 
-  handle_timeout();
+  handle_timeout()
 
   while (Serial.available() >= prefix_size) {
     handle_timeout();
-    
+    delay(100);
+
     // read bytes until the next magic word start (hopefully)
     while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
       handle_timeout();
@@ -277,7 +278,7 @@ void loop()
 
             // char message[256];
             // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK, NULL);
+            send_ack(ACK, "Sanity Check - 'you were insane the whole time'");
           }
           else
           {
