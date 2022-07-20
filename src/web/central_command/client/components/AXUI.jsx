@@ -10,14 +10,11 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
-import { missions, demo_mission, Missions } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
-
-console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared())
+import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -1329,9 +1326,7 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="axui_container">
 
-				{
-					this.leftPanelSidebar()
-				}
+				<EngineeringPanel api={this.sna} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -1817,73 +1812,6 @@ export default class AXUI extends React.Component {
 	clearMissions() {
 		this.missions = {}
 		this.updateMissionLayer()
-	}
-
-	leftPanelSidebar() {
-		let self = this
-
-		return (
-			<div id="leftSidebar" className="column-left">
-				<div id="leftPanelsContainer" className="panelsContainerVertical">
-					<div className="panel">
-						JaiaBot Central Command<br />
-						Version 1.1.0
-					</div>
-					<div className="panel">
-						<button type="button" onClick={function() {
-							window.location.assign('/pid/')
-						} }>
-							Jaia Engineering
-						</button>
-					</div>
-
-					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
-
-					{
-						DiveParameters.panel()
-					}
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "RESTART_ALL_SERVICES"
-						})
-					}}>
-						Restart Services
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "REBOOT_COMPUTER"
-						})
-					}}>
-						Reboot Bot
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "RECOVERED"
-						})
-					}}>
-						Recover Bot
-					</button>
-
-					<button className="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "SHUTDOWN"
-						})
-					}}>
-						Shutdown Bot
-					</button>
-				</div>
-				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
-					<FontAwesomeIcon icon={faGripVertical} />
-				</div>
-			</div>
-		)
 	}
 
 	selectedBotIds() {
