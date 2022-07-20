@@ -71,7 +71,7 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    const int motor_max_step = 100;
+    const int motor_max_step = 25;
 
     // Control surfaces
     int rudder = 1500;
@@ -157,7 +157,7 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
 {
     if (control_surfaces.has_motor())
     {
-        target_motor = 1500 - (control_surfaces.motor() / 100.0) * 400;
+        target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
     }
 
     if (control_surfaces.has_rudder())
@@ -218,30 +218,25 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     }
 
     // Motor
-    int corrected_motor;
-
+    // Move toward target_motor
     if (target_motor > current_motor)
     {
         current_motor += min(target_motor - current_motor, motor_max_step);
-
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().forwardstart());
-        if (current_motor == 1500)
-            corrected_motor = current_motor;
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().reversehalt());
     }
     else
     {
         current_motor -= min(current_motor - target_motor, motor_max_step);
-
-        if (current_motor < 1500)
-            corrected_motor = min(current_motor, bounds.motor().forwardhalt());
-        if (current_motor == 1500)
-            corrected_motor = current_motor;
-        if (current_motor > 1500)
-            corrected_motor = max(current_motor, bounds.motor().reversestart());
     }
+
+    // Don't use motor values of less power than the start bounds
+    int corrected_motor;
+
+    if (current_motor > 1500)
+        corrected_motor = max(current_motor, bounds.motor().forwardstart());
+    if (current_motor == 1500)
+        corrected_motor = current_motor;
+    if (current_motor < 1500)
+        corrected_motor = min(current_motor, bounds.motor().reversestart());
 
     arduino_cmd.set_motor(corrected_motor);
 

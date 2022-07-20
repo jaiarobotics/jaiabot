@@ -70,6 +70,13 @@ class Fusion : public ApplicationBase
 
         latest_bot_status_.set_time_with_units(unwarped_time);
 
+        if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+        {
+            glog.is_warn() && glog << "Timeout on health report" << std::endl;
+            latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+        }
+
         if (latest_bot_status_.IsInitialized())
         {
             glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
@@ -81,6 +88,7 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
+    goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 
     WMM wmm;
 };
@@ -246,8 +254,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::arduino>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
-        {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             if (arduino_response.has_thermocouple_temperature_c())
             {
                 latest_bot_status_.set_thermocouple_temperature(
@@ -287,8 +294,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { latest_bot_status_.set_health_state(vehicle_health.state()); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            last_health_report_time_ = goby::time::SteadyClock::now();
+            latest_bot_status_.set_health_state(vehicle_health.state());
+        });
 
     // subscribe for commands, to set last_command_time
     interprocess().subscribe<jaiabot::groups::engineering_command>(

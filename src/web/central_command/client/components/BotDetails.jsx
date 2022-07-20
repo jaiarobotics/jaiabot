@@ -17,7 +17,7 @@ export function BotDetailsComponent(bot) {
     let statusTime = bot.time
     let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
-    let activeGoal = bot.activeGoal || "None"
+    let activeGoal = bot.activeGoal ?? "None"
     var activeGoalRow = (
         <tr>
             <td>Active Goal</td>
@@ -25,11 +25,21 @@ export function BotDetailsComponent(bot) {
         </tr>
     )
 
+    let healthClassName = {
+        "HEALTH__OK": "healthOK",
+        "HEALTH__DEGRADED": "healthDegraded",
+        "HEALTH__FAILED": "healthFailed"
+    }[bot.healthState] ?? "healthOK"
+
     return (
     <div>
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
         <table>
             <tbody>
+                <tr>
+                    <td>Health</td>
+                    <td className={healthClassName}>{bot.healthState}</td>
+                </tr>
                 <tr>
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
