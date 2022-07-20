@@ -62,7 +62,7 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_SINGLE_THREAD_PATTERN = 119;
     ERROR__NOT_RESPONDING__JAIABOT_MULTI_THREAD_PATTERN = 120;
     ERROR__NOT_RESPONDING__JAIABOT_SIMULATOR = 121;
-    
+
     // TODO: IMPLEMENT
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_POSITION = 201;
@@ -82,13 +82,22 @@ enum Error
     ERROR__MOOS__HELMIVP_NO_DESIRED_DATA = 401;
     ERROR__MOOS__NO_DATA = 402;
 
-    // TODO: IMPLEMENT
     // from jaiabot_health
-    ERROR__SYSTEM__LOW_MEMORY = 500;
-    ERROR__SYSTEM__LOW_DISK = 501;
-    ERROR__SYSTEM__HIGH_CPU = 502;
-    ERROR__SYSTEM__NO_NTP_TIME_SYNC = 503;
+    ERROR__SYSTEM__CANNOT_READ_MEMINFO = 500;
+    ERROR__SYSTEM__RAM_SPACE_CRITICAL = 501;
+    
+    ERROR__SYSTEM__CANNOT_READ_SYSINFO = 502;
+    ERROR__SYSTEM__CPU_LOAD_FACTOR_CRITICAL = 503;
+    
+    ERROR__SYSTEM__CANNOT_READ_DISK_USAGE = 504;
+    ERROR__SYSTEM__ROOTFS_DISK_SPACE_CRITICAL = 505;
+    ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL = 506;
+    
+    ERROR__SYSTEM__NTP_PEERS_QUERY_FAILED = 510;
+    ERROR__SYSTEM__NTP_STATUS_QUERY_FAILED = 511;
+    ERROR__SYSTEM__NTP_NOT_SYNCHRONIZED = 512;
 
+    // TODO: IMPLEMENT
     ERROR__VEHICLE__VERY_LOW_BATTERY = 600;
 };
 
@@ -111,6 +120,168 @@ enum Warning
     // TODO: IMPLEMENT
     // from jaiabot_health
     WARNING__VEHICLE__LOW_BATTERY = 400;
+
+    WARNING__SYSTEM__NTP_OFFSET_HIGH = 500;
+    WARNING__SYSTEM__NTP_JITTER_HIGH = 501;
+    WARNING__SYSTEM__RAM_SPACE_LOW = 502;
+    WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = 503;
+    WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 504;
+    WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 505;
+
+}
+
+message LinuxHardwareStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    message Processor
+    {
+        // from sysinfo
+        message LoadAverages
+        {
+            required float one_min = 1;
+            required float five_min = 2;
+            required float fifteen_min = 3;
+        }
+        optional LoadAverages loads = 10;
+
+        optional int32 num_processes = 15;
+
+        // from nproc
+        optional int32 num_processors = 20;
+    }
+
+    message Information
+    {
+        required uint64 total = 1 [(dccl.field) = {
+            units { prefix: "kilo" unit: "information::byte" }
+        }];
+        required uint64 available = 2 [(dccl.field) = {
+            units { prefix: "kilo" unit: "information::byte" }
+        }];
+        required float use_percent = 3;
+    }
+
+    message Memory
+    {
+        // from sysinfo
+        required Information ram = 1;
+        required Information swap = 2;
+    }
+
+    message Disk
+    {
+        // from boost filesystem
+        optional Information rootfs = 1;
+        optional Information data = 2;
+    }
+
+    optional int32 uptime = 10
+        [(dccl.field) = { units { base_dimensions: "T" } }];
+    optional Processor processor = 20;
+    optional Memory memory = 30;
+    optional Disk disk = 40;
+}
+
+message NTPStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    // from ntpq -c rv 0
+    enum SyncSource
+    {
+        SYNC_UNKNOWN = -1;
+        SYNC_UNSPECIFIED = 0;
+        SYNC_PPS = 1;
+        SYNC_LF_RADIO = 2;
+        SYNC_HF_RADIO = 3;
+        SYNC_UHF_RADIO = 4;
+        SYNC_LOCAL = 5;
+        SYNC_NTP = 6;
+        SYNC_OTHER = 7;
+        SYNC_WRISTWATCH = 8;
+        SYNC_TELEPHONE = 9;
+    }
+
+    optional SyncSource sync_source = 10 [default = SYNC_UNKNOWN];
+
+    enum LeapIndicator
+    {
+        LEAP_UNKNOWN = -1;
+        LEAP_NONE = 0x00;
+        LEAP_LAST_MINUTE_HAS_61_SECONDS = 0x01;
+        LEAP_LAST_MINUTE_HAS_59_SECONDS = 0x02;
+        LEAP_CLOCK_NOT_SYNCHRONIZED = 0x03;
+    }
+    optional LeapIndicator leap_indicator = 11 [default = LEAP_UNKNOWN];
+    optional int32 system_event_counter = 12 [default = 0];
+    enum NTPSystemEvent
+    {
+        NTP_SYSTEM_EVENT_UNKNOWN = -1;
+        NTP_SYSTEM_EVENT_UNSPECIFIED = 0x0;
+        NTP_SYSTEM_FREQ_NOT_SET = 0x1;
+        NTP_SYSTEM_FREQ_SET = 0x2;
+        NTP_SYSTEM_SPIKE_DETECT = 0x3;
+        NTP_SYSTEM_FREQ_MODE = 0x4;
+        NTP_SYSTEM_CLOCK_SYNC = 0x5;
+        NTP_SYSTEM_RESTART = 0x6;
+        NTP_SYSTEM_PANIC_STOP = 0x7;
+        NTP_SYSTEM_NO_SYSTEM_PEER = 0x8;
+        NTP_SYSTEM_LEAP_ARMED = 0x9;
+        NTP_SYSTEM_LEAP_DISARMED = 0xa;
+        NTP_SYSTEM_LEAP_EVENT = 0xb;
+        NTP_SYSTEM_CLOCK_STEP = 0xc;
+        NTP_SYSTEM_KERNEL_INFO = 0xd;
+        NTP_SYSTEM_LEAPSECOND_VALUES_UPDATE_FROM_FILE = 0xe;
+        NTP_SYSTEM_STALE_LEAPSECOND_VALUES = 0xf;
+    }
+    optional NTPSystemEvent last_system_event = 13
+        [default = NTP_SYSTEM_EVENT_UNKNOWN];
+
+    // from ntpq -p
+    message NTPPeer
+    {
+        enum TallyCode
+        {
+            PEER_CODE_UNKNOWN = -1;
+            PEER_NOT_VALID = 0x20;                       // ' '
+            PEER_DISCARDED_BY_INTERSECTION = 0x78;       // 'x'
+            PEER_DISCARDED_BY_TABLE_OVERFLOW = 0x2E;     // '.'
+            PEER_DISCARDED_BY_CLUSTER_ALGORITHM = 0x2D;  // '-'
+            PEER_INCLUDED_IN_COMBINE = 0x2B;             // '+'
+            PEER_ALTERNATIVE_BACKUP = 0x23;              // '#'
+            PEER_SYSTEM_SYNC_SOURCE = 0x2A;              // '*'
+            PEER_PPS_SYNC = 0x6F;                        // 'o'
+        }
+
+        required TallyCode tally_code = 1 [default = PEER_CODE_UNKNOWN];
+        required string remote = 2;
+        required string refid = 3;
+        optional int32 stratum = 4 [default = 16];
+        optional int32 when = 5
+            [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
+        optional int32 poll = 6
+            [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
+        // bitmask
+        optional int32 reach = 7 [default = 0];
+        optional float delay = 8 [
+            default = nan,
+            (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+        ];
+        optional float offset = 9 [
+            default = nan,
+            (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+        ];
+        optional float jitter = 10 [
+            default = nan,
+            (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+        ];
+    }
+    optional NTPPeer system_sync_peer = 20;
+    repeated NTPPeer peer = 21;
 }
 
 message ThreadHealth
