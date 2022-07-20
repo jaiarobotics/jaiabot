@@ -133,7 +133,8 @@ void jaiabot::apps::Health::process_coroner_report(
         if (proc.main().has_error() &&
             proc.main().error() == goby::middleware::protobuf::ERROR__PROCESS_DIED)
         {
-            auto it = process_to_not_responding_error_.find(proc.main().name());
+            auto it =
+                process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())
             {
                 jaiabot_health.add_error(it->second);
