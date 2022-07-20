@@ -28,6 +28,10 @@ constexpr int RUDDER_PIN = 5;
 constexpr int PORT_ELEVATOR_PIN = 9;
 constexpr int MOTOR_PIN = 3;
 
+// Actuator control
+constexpr int CTRL_ACTS = 10;
+constexpr int FAULT_ACTS = 8;
+
 // The timeout
 unsigned long t_last_command = 0;
 int32_t command_timeout = -1; 
@@ -128,6 +132,12 @@ void setup()
 {
   // Make sure the power pin isn't in the off mode
   digitalWrite(POWER_PIN, LOW);
+
+  // Enable power to actuators. In the future, we can durn off based on FAULT_ACTS
+  pinMode(CTRL_ACTS, OUTPUT);
+  digitalWrite(CTRL_ACTS, LOW);
+
+  pinMode(FAULT_ACTS, INPUT);
 
   Serial.begin(115200);
   while (!Serial) {
