@@ -35,7 +35,7 @@ Different apps set the enumerations that are appropriate for that app's function
 - `ERROR|WARNING__COMMS__*`  (*not yet implemented*): Communications related errors or warnings.
 - `ERROR__MOOS__*`  (*not yet implemented*): MOOS app related errors
 - `ERROR|WARNING__SYSTEM__*`  (*not yet implemented*): System related errors or warnings (memory, disk, cpu, etc.)
-- `ERROR|WARNING__VEHICLE__*`  (*not yet implemented*)`: Vehicle level errors or warnings (low battery, thruster, etc.)
+- `ERROR|WARNING__VEHICLE__*`  (*not yet implemented*): Vehicle level errors or warnings (low battery, thruster, etc.)
 
 ### Restart functionality 
 
