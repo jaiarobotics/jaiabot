@@ -5,14 +5,24 @@ import random
 import sys
 import argparse
 import socket
-import ms5837
+import logging
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
 parser.add_argument('-p', '--port', metavar='port', default=20001, type=int, help='port to publish T & P')
+parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('--simulator', action='store_true')
 args = parser.parse_args()
 
-print(args)
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('pressure')
+log.setLevel(args.logging_level)
+
+
+try:
+    import ms5837
+except ModuleNotFoundError as e:
+    log.warning(e)
+    log.warning('So, no physical device will be available')
 
 
 class SensorError(Exception):
@@ -48,10 +58,10 @@ class Sensor:
             ATM = 1013.25
 
             if abs(p_bar30 - ATM) < abs(p_bar02 - ATM):
-                print('Auto-detected bar30 sensor')
+                log.info('Auto-detected bar30 sensor')
                 self.sensor = ms5837.MS5837_30BA()
             else:
-                print('Auto-detected bar02 sensor')
+                log.info('Auto-detected bar02 sensor')
                 self.sensor = ms5837.MS5837_02BA()
 
             if self.sensor.init():
@@ -72,7 +82,7 @@ class Sensor:
                 return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
                 
             else:
-                print('Sensor read fail')
+                log.warning('Sensor read fail')
                 self.is_setup = False
         except OSError as e:
             self.is_setup = False
@@ -111,11 +121,11 @@ while True:
     try:
         p_mbar, t_celsius = sensor.read()
     except Exception as e:
-        print(e)
+        log.warning(e)
         continue
 
     now = datetime.utcnow()
     line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
 
-    print('Send: ', line)
+    log.debug(f'Send: {line}')
     sock.sendto(line.encode('utf8'), addr)

@@ -41,7 +41,11 @@ verbosities = \
   'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}},
+<<<<<<< HEAD
   'jaiabot_control_surfaces_driver':              { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'}, 'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
+=======
+  'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
+>>>>>>> 1.y
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')
@@ -52,7 +56,7 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
 try:
     control_surfaces_driver_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
 except FileNotFoundError:
-    control_surfaces_driver_bounds = ''
+    control_surfaces_driver_bounds = 'bounds {}'
 
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
@@ -79,6 +83,10 @@ if common.app == 'gobyd':
                                      persist_subscriptions='persist_subscriptions { name: "bot" dir: "' + debug_log_file_dir + '" }'))
 elif common.app == 'goby_coroner':    
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common))
+elif common.app == 'jaiabot_health':    
+    print(config.template_substitute(templates_dir+'/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
 elif common.app == 'goby_logger':    
