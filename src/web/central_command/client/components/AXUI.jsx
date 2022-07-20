@@ -17,8 +17,6 @@ import { missions, demo_mission, Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 
-console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared())
-
 // Material Design Icons
 import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
@@ -29,20 +27,16 @@ import {
 	defaults as defaultInteractions,
   } from 'ol/interaction';
 import OlView from 'ol/View';
-import OlText from 'ol/style/Text';
 import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
-import { doubleClick } from 'ol/events/condition';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
 import OlTileLayer from 'ol/layer/Tile';
-import { click } from 'ol/events/condition';
-import OlSelect from 'ol/interaction/Select';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
 import OlMousePosition from 'ol/control/MousePosition';
@@ -58,8 +52,6 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import OlGraticule from 'ol/Graticule';
-import OlStroke from 'ol/style/Stroke';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
 import { deepcopy } from './Utilities';
@@ -1670,8 +1662,6 @@ export default class AXUI extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			console.log('goals: ', goals)
-
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
@@ -1759,13 +1749,16 @@ export default class AXUI extends React.Component {
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions) {
-		if (confirm("Click the OK button to run this mission.")) {
+		let botIds = Object.keys(missions)
+		botIds.sort()
+
+		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
 			for (let bot_id in missions) {
 				let mission = missions[bot_id]
 				this.missions[mission.bot_id] = deepcopy(mission)
 				this._runMission(mission)
 			}
-			info("Submitted missions")
+			success("Submitted missions")
 			this.updateMissionLayer()
 		}
 	}
@@ -1823,9 +1816,19 @@ export default class AXUI extends React.Component {
 	}
 
 	// Clears the currently active mission
-	clearMissions() {
-		this.missions = {}
-		this.updateMissionLayer()
+	deleteClicked() {
+		let selectedBotId = this.selectedBotId()
+		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
+
+		if (confirm('Delete mission for ' + botString + '?')) {
+			if (selectedBotId != null) {
+				delete this.missions[selectedBotId]
+			}
+			else {
+				this.missions = {}
+			}
+			this.updateMissionLayer()
+		}
 	}
 
 	leftPanelSidebar() {
@@ -2024,7 +2027,7 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
-				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
+				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
 				{ this.undoButton() }
@@ -2173,7 +2176,7 @@ export default class AXUI extends React.Component {
 			return null
 		}
 
-		return <div class="disconnection shadowed rounded">
+		return <div className="disconnection shadowed rounded">
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
