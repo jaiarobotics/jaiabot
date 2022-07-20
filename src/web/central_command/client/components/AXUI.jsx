@@ -35,6 +35,7 @@ import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
+import OlTileWMS from 'ol/source/TileWMS';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -151,7 +152,7 @@ function saveVisibleLayers() {
 var visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA CHarts'])
 }
 
 function makeLayerSavable(layer) {
@@ -318,7 +319,12 @@ export default class AXUI extends React.Component {
 			new OlTileLayer({
 				title: 'NOAA Charts',
 				type: 'base',
-				source: new OlSourceXYZ({ url: 'http://tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png' })
+				source: new OlTileWMS({
+					url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/WMSServer',
+					// params: {'LAYERS': 'topp:states', 'TILED': true},
+					serverType: 'geoserver',
+					transition: 0,
+				}),
 			}),
 			new OlTileLayer({
 				title: 'Google Satellite & Roads',
