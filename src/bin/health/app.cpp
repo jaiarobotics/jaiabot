@@ -63,24 +63,33 @@ jaiabot::apps::Health::Health()
                        goby::time::convert_duration<goby::time::SteadyClock::duration>(
                            cfg().auto_restart_init_grace_period_with_units()))
 {
-    // handle restart/reboot commands since we run this app as root
-    interprocess().subscribe<jaiabot::groups::hub_command>([this](
-                                                               const protobuf::Command& command) {
-        switch (command.type())
+    // handle restart/reboot/shutdown commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const protobuf::Command& command)
         {
-            // most commands handled by jaiabot_mission_manager
-            default: break;
+            switch (command.type())
+            {
+                // most commands handled by jaiabot_mission_manager
+                default: break;
 
-            case protobuf::Command::REBOOT_COMPUTER:
-                glog.is_verbose() && glog << "Commanded to reboot computer. " << std::endl;
-                system("systemctl reboot");
-                break;
-            case protobuf::Command::RESTART_ALL_SERVICES:
-                glog.is_verbose() && glog << "Commanded to restart jaiabot services. " << std::endl;
-                restart_services();
-                break;
-        }
-    });
+                case protobuf::Command::REBOOT_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to reboot computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl reboot");
+                    break;
+                case protobuf::Command::RESTART_ALL_SERVICES:
+                    glog.is_verbose() && glog << "Commanded to restart jaiabot services. "
+                                              << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        restart_services();
+                    break;
+                case protobuf::Command::SHUTDOWN_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl poweroff");
+                    break;
+            }
+        });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {

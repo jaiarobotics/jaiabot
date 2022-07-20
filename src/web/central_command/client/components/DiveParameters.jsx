@@ -3,9 +3,7 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import $ from "jquery"
 import React from 'react'
-import { debug } from "../libs/notifications"
 import { Settings } from './Settings'
 
 export var currentParameters = Settings.read('diveParameters') || {
