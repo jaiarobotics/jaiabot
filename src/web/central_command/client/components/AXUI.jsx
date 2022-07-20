@@ -1861,7 +1861,16 @@ export default class AXUI extends React.Component {
 						Reboot Bot
 					</button>
 
-					<button class="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
+					<button type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "RECOVERED"
+						})
+					}}>
+						Recover Bot
+					</button>
+
+					<button className="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
 						self.sna.postCommand({
 							botId: self.selectedBotId(),
 							type: "SHUTDOWN"
@@ -2159,7 +2168,7 @@ export default class AXUI extends React.Component {
 			return null
 		}
 
-		return <div class="disconnection shadowed rounded">
+		return <div className="disconnection shadowed rounded">
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
