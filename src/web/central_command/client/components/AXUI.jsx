@@ -10,12 +10,11 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
-import { missions, demo_mission, Missions } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
+import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -1327,9 +1326,7 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="axui_container">
 
-				{
-					this.leftPanelSidebar()
-				}
+				<EngineeringPanel api={this.sna} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -1602,8 +1599,6 @@ export default class AXUI extends React.Component {
 		this.changeMissions((missions) => {
 
 			if (!(botId in missions)) {
-				let speeds = Settings.read('mission.plan.speeds')
-
 				missions[botId] = {
 					botId: botId,
 					time: '1642891753471247',
@@ -1746,6 +1741,14 @@ export default class AXUI extends React.Component {
 
 	// Runs a mission
 	_runMission(bot_mission) {
+		// Set the speed values
+		let speeds = Settings.read('mission.plan.speeds')
+		if (speeds != null && bot_mission.plan != null) {
+			bot_mission.plan.speeds = speeds
+		}
+
+		console.debug(bot_mission)
+
 		this.sna.postCommand(bot_mission).then(response => {
 			if (response.message) {
 				error(response.message)
@@ -1835,69 +1838,6 @@ export default class AXUI extends React.Component {
 			}
 			this.updateMissionLayer()
 		}
-	}
-
-	leftPanelSidebar() {
-		let self = this
-
-		return (
-			<div id="leftSidebar" className="column-left">
-				<div id="leftPanelsContainer" className="panelsContainerVertical">
-					<div className="panel">
-						JaiaBot Central Command<br />
-						Version 1.1.0
-					</div>
-					<div className="panel">
-						<button type="button" onClick={function() {
-							window.location.assign('/pid/')
-						} }>
-							Jaia Engineering
-						</button>
-					</div>
-
-					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
-
-					{
-						DiveParameters.panel()
-					}
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "RESTART_ALL_SERVICES"
-						}).then(response => {
-							if (response.message) {
-								error(response.message)
-							}
-							else {
-								info('Restarting Services on bot ' + self.selectedBotId())
-							}
-						})
-					}}>
-						Restart Services
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "REBOOT_COMPUTER"
-						}).then(response => {
-							if (response.message) {
-								error(response.message)
-							}
-							else {
-								info('Rebooting bot ' + self.selectedBotId())
-							}
-						})
-					}}>
-						Reboot Bot
-					</button>
-				</div>
-				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
-					<FontAwesomeIcon icon={faGripVertical} />
-				</div>
-			</div>
-		)
 	}
 
 	selectedBotIds() {
