@@ -68,9 +68,8 @@ job-template-amd64: &job-template-amd64
           fi
 
           # export these for later use
-          echo 'export JAIABOT_APT_REPO=${repo}' >> $BASH_ENV
-          echo 'export JAIABOT_APT_VERSION=${version}' >> $BASH_ENV
-          source $BASH_ENV
+          echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
+          echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
     - run: &run-add-jaia-packages-list
         name: Add correct packages.jaia.tech sources.list
         command: |          
