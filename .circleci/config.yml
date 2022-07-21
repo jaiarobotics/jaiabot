@@ -90,7 +90,7 @@ job-template-amd64: &job-template-amd64
 
 job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
-  resource_class: large
+  resource_class: xlarge
   steps:
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
