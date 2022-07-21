@@ -12,13 +12,13 @@ environment-template-common: &environment-template-common
   
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
-  DEB_BUILD_OPTIONS: "parallel=2"
+  DEB_BUILD_OPTIONS: "parallel=4"
   # one job only must do the source build for each distro
   DO_SOURCE_BUILD: "true"
 
 environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
-  DEB_BUILD_OPTIONS: "parallel=2 nocheck"
+  DEB_BUILD_OPTIONS: "parallel=4 nocheck"
   
 environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
@@ -45,8 +45,8 @@ job-template-amd64: &job-template-amd64
         name: Install packages.jaia.tech key
         command: |
           apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
-    - run: &run-add-jaia-packages-list
-        name: Add correct packages.jaia.tech sources.list
+    - run: &run-set-deb-repo-and-version
+        name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
           if [[ "$CIRCLE_TAG" == *"_"* ]]; then
             repo="beta";
@@ -71,7 +71,9 @@ job-template-amd64: &job-template-amd64
           echo 'export JAIABOT_APT_REPO=${repo}' >> $BASH_ENV
           echo 'export JAIABOT_APT_VERSION=${version}' >> $BASH_ENV
           source $BASH_ENV
-          
+    - run: &run-add-jaia-packages-list
+        name: Add correct packages.jaia.tech sources.list
+        command: |          
           echo "deb http://52.38.143.8/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
@@ -88,6 +90,7 @@ job-template-amd64: &job-template-amd64
 
 job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
+  resource_class: large
   steps:
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
@@ -220,6 +223,7 @@ jobs:
   get-orig-source:
     <<: *job-template-deb-amd64
     docker: *docker-base-focal
+    resource_class: small
     environment:
       <<: *environment-template-common
       <<: *environment-template-focal
@@ -280,6 +284,7 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-amd64
+    resource_class: small
     steps: &steps-upload
       - checkout
       - add_ssh_keys:
@@ -292,7 +297,8 @@ jobs:
       - run:
           name: Move original source into output directory
           command: mv /root/src/* /root/deb
-      - run:
+      - run: *run-set-deb-repo-and-version
+      - run:      
           name: Upload packages to packages.jaia.tech
           command: |
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
