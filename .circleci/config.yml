@@ -66,8 +66,12 @@ job-template-amd64: &job-template-amd64
             # updated to the latest (e.g. to 2.y when 2.y exists)
             version="1.y";
           fi
+
+          # export these for later use
           echo 'export JAIABOT_APT_REPO=${repo}' >> $BASH_ENV
           echo 'export JAIABOT_APT_VERSION=${version}' >> $BASH_ENV
+          source $BASH_ENV
+          
           echo "deb http://52.38.143.8/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
