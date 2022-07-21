@@ -217,7 +217,7 @@ void loop()
 
   constexpr int prefix_size = SERIAL_MAGIC_BYTES + SIZE_BYTES;
 
-  handle_timeout();
+  handle_timeout()
 
   while (Serial.available() >= prefix_size) {
     handle_timeout();
