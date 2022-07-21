@@ -38,6 +38,7 @@ The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 - If you have access to a LAN connection to the internet (DHCP) do so and power up the Pi. You will need to find the ip address from your router. Otherwise, connect a keyboard and monitor.
 
 - ssh or login as `jaia` / `jaia` and follow the prompts to configure the new system.
+- Add the bot or hub to the appropriate fleet VPN on vpn.jaia.tech (using the public key in `/etc/wireguard/publickey`). See the [VPN documentation](page55_vpn.md) for more details.
 
 ## Systemd
 
@@ -73,6 +74,7 @@ Then, `jaiabot_gobyd` and `jaiabot_moosdb` are bound to `jaiabot` and start thei
 
 ![](../figures/systemd.png)
 
+The `jaiabot.service` waits for the system clock to be synchronized via NTP (via the GPS using `gpsd`) or until 120 seconds has elapsed.
 
 ### Generation
 
