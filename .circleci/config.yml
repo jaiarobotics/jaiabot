@@ -45,9 +45,10 @@ job-template-amd64: &job-template-amd64
         name: Install packages.jaia.tech key
         command: |
           apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
-    - run: &run-set-deb-repo-and-version
+    - run: &run-create-script-deb-repo-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
+          cat << EOF > /tmp/jaiaenvvars
           if [[ "$CIRCLE_TAG" == *"_"* ]]; then
             repo="beta";
           elif [ ! -z "$CIRCLE_TAG" ]; then
@@ -68,11 +69,13 @@ job-template-amd64: &job-template-amd64
           fi
 
           # export these for later use
-          echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
-          echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
+          export JAIABOT_APT_REPO=${repo}
+          export JAIABOT_APT_VERSION=${version}
+          EOF
     - run: &run-add-jaia-packages-list
         name: Add correct packages.jaia.tech sources.list
         command: |
+          source /tmp/jaiaenvvars
           echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
           echo "deb http://52.38.143.8/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
@@ -297,10 +300,11 @@ jobs:
       - run:
           name: Move original source into output directory
           command: mv /root/src/* /root/deb
-      - run: *run-set-deb-repo-and-version
+      - run: *run-create-script-deb-repo-and-version
       - run:      
           name: Upload packages to packages.jaia.tech
           command: |
+            source /tmp/jaiaenvvars
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
             echo '|1|9RchnEFla3QPfB/e6SRKnbW2J/w=|CJUupZ8pnOVQOpk/vj3uQdGeyjI= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIz46MTlT0H1Z9P4Msh32nhdbQ9D/CEfnIavB+pRtHZZ3oKrS6ZWKxTOUHTKgw+KKUMSKzdW7XtPaBKb0Qndahw=' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
