@@ -72,7 +72,8 @@ job-template-amd64: &job-template-amd64
           echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
     - run: &run-add-jaia-packages-list
         name: Add correct packages.jaia.tech sources.list
-        command: |          
+        command: |
+          echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
           echo "deb http://52.38.143.8/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
