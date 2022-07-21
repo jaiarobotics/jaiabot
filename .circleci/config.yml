@@ -31,6 +31,10 @@ docker-base-focal: &docker-base-focal
   - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
 docker-arm64-focal: &docker-arm64-focal
   - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
+docker-base-light: &docker-base-light
+  - image: gobysoft/ubuntu-build-base:20.04.1
+
+
     
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
@@ -168,10 +172,9 @@ job-template-deb-amd64: &job-template-deb-amd64
 job-template-deb-cross: &job-template-deb-cross
   <<: *job-template-deb-amd64
 
-# Base upload off Focal build
 job-template-upload: &job-template-upload
   <<: *job-template-amd64
-  docker: *docker-base-focal
+  docker: *docker-base-light
 
   
 # which branches to run the Debian build and upload on
@@ -223,7 +226,7 @@ jobs:
 
   get-orig-source:
     <<: *job-template-deb-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-light
     resource_class: small
     environment:
       <<: *environment-template-common
