@@ -218,6 +218,11 @@ workflows:
             
       # always do the upload if we did the deb builds
       - upload:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
           requires:
             - amd64-focal-deb-build
             - arm64-focal-deb-build
