@@ -311,8 +311,7 @@ jobs:
           name: Upload packages to packages.jaia.tech
           command: |
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
-            echo '|1|OX0vdRrGPWjPOTrl5R/joY37TX0=|teBg0IDnMu36QiR2UL4usur+XyY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIz46MTlT0H1Z9P4Msh32nhdbQ9D/CEfnIavB+pRtHZZ3oKrS6ZWKxTOUHTKgw+KKUMSKzdW7XtPaBKb0Qndahw=
-' >> ~/.ssh/known_hosts
+            echo '|1|OX0vdRrGPWjPOTrl5R/joY37TX0=|teBg0IDnMu36QiR2UL4usur+XyY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIz46MTlT0H1Z9P4Msh32nhdbQ9D/CEfnIavB+pRtHZZ3oKrS6ZWKxTOUHTKgw+KKUMSKzdW7XtPaBKb0Qndahw=' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
