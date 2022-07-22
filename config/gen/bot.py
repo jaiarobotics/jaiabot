@@ -41,11 +41,8 @@ verbosities = \
   'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}},
-<<<<<<< HEAD
   'jaiabot_control_surfaces_driver':              { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'}, 'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
-=======
   'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'DEBUG1', 'log': 'DEBUG2'}}
->>>>>>> 1.y
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir, geodesy='')

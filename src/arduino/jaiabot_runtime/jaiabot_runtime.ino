@@ -263,11 +263,11 @@ void loop()
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
 
-            if (command.LEDSwitchON == true){
+            if (command.led_switch_on == true){
               analogWrite(LED_D1_PIN, 255);
               analogWrite(LED_D2_PIN, 255);
             }
-            else if (command.LEDSwitchON == false){
+            else if (command.led_switch_on == false){
               analogWrite(LED_D1_PIN, 0);
               analogWrite(LED_D2_PIN, 0);
             }

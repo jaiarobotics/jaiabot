@@ -10,23 +10,13 @@ const int CTRL_ACTS = 10;
 const int FAULT_ACTS = 8;
 const int POWER_PIN = A1;
 
-//designate the starting ranges (starboard)
-int a = 2000;
-int b = 1000;
-int c = 1500;
-
-//designate the starting ranges (port)
-int d = 2000;
-int e = 1000;
-int f = 1500;
-
-//designate the starting ranges (rudder)
-int x = 2000;
-int y = 1000;
-int z = 1500;
+//designate the starting range (flaps)
+int flaps_upper = 2000;
+int flaps_lower = 1000;
+int flaps_center = 1500;
 
 //designate the starting range (motor)
-int g = 1500;
+int motor_center = 1500;
 
 //function for  steering bounds creation 
 int BoundsCreation(int microseconds, Servo servo){
@@ -152,10 +142,10 @@ void setup() {
 
   motor_servo.writeMicroseconds(g);
 
-  Bounds(a, b, c, starboard_servo);
-  Bounds(d, e, f, port_servo);
-  Bounds(x, y, z, rudder_servo);
-  MotorBounds(g, motor_servo);
+  Bounds(flaps_upper, flaps_lower, flaps_center, starboard_servo);
+  Bounds(flaps_upper, flaps_lower, flaps_center, port_servo);
+  Bounds(flaps_upper, flaps_lower, flaps_center, rudder_servo);
+  MotorBounds(motor_center, motor_servo);
 }
 
 void loop() {
