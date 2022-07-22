@@ -5,6 +5,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update apt-key (out of date in goby3-ubuntu-build-arm64)
 RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
+# Add packages.jaia.tech
+RUN apt-get update && apt-get -y install dirmngr && \
+    echo "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+
 # Install jaiabot dependencies
 RUN apt-get update && \
     apt-get -y upgrade && \
@@ -19,6 +24,9 @@ RUN apt-get update && \
             python3-protobuf:amd64 \
             wget:amd64 \
             curl:amd64 \
+            nodejs:amd64 \
+            webpack:amd64 \
+            npm:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 

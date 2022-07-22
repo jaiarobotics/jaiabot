@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
-set(PROJECT_VERSION_MAJOR "1")
-set(PROJECT_VERSION_MINOR "0")
-set(PROJECT_VERSION_PATCH "0~alpha1")
+set(PROJECT_VERSION_MAJOR "0")
+set(PROJECT_VERSION_MINOR "1")
+set(PROJECT_VERSION_PATCH "0~beta1")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
@@ -123,6 +123,9 @@ else()
   option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
 endif()
 
+option(build_web "Build web ui code (requires npm)" ON)
+
+
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
@@ -164,6 +167,10 @@ install(DIRECTORY ${project_INC_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 # bin
 macro(project_install_bin target_bin)
   install(TARGETS ${target_bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  # set the macros required for jaiabot_health to map this app name to the appropriate ERROR__NOT_RESPONDING enum
+  list(APPEND PROJECT_APP_LIST ${target_bin})
+  set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
 endmacro()
 
 # lib
@@ -187,6 +194,7 @@ install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/shar
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
+unset(PROJECT_APP_LIST CACHE)
  
 # share
 # install config
@@ -201,10 +209,10 @@ endif()
 install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot_checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py DESTINATION ${CMAKE_INSTALL_BINDIR})
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
-configure_file(${project_SCRIPTS_DIR}/jaiabot_checkloadavg.py ${project_BIN_DIR} COPYONLY)
+configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR} COPYONLY)
 
 
 
@@ -216,8 +224,8 @@ if(export_goby_interfaces)
   set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
-  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/dev_deployment.yml ${YML_OUT_DIR} dev_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
+  generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
 endif()
 
 # configuration export - installed version

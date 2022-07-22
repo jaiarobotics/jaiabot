@@ -45,6 +45,33 @@ namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 using UDPEndPoint = goby::middleware::protobuf::UDPEndPoint;
 
+// We need to define a comparison operator, so we can build a set of UDPEndPoint
+namespace goby
+{
+namespace middleware
+{
+namespace protobuf
+{
+bool operator==(const goby::middleware::protobuf::UDPEndPoint a,
+                const goby::middleware::protobuf::UDPEndPoint b)
+{
+    return a.addr() == b.addr() && a.port() == b.port();
+}
+} // namespace protobuf
+} // namespace middleware
+} // namespace goby
+
+// Define a hash for unordered_map
+class UDPEndPointHash
+{
+  public:
+    size_t operator()(const UDPEndPoint& p) const
+    {
+        string key = p.addr() + to_string(p.port());
+        return hash<string>()(key);
+    }
+};
+
 namespace jaiabot
 {
 namespace apps
@@ -59,7 +86,7 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     WebPortal();
 
   private:
-    UDPEndPoint dest;
+    unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
 
     jaiabot::protobuf::BotStatus hub_status;
 
@@ -98,17 +125,12 @@ jaiabot::apps::WebPortal::WebPortal()
         auto command = jaiabot::protobuf::ClientToPortalMessage();
         if (command.ParseFromString(io_data.data())) {
             process_client_message(command);
-
-            dest.set_addr(io_data.udp_src().addr());
-            dest.set_port(io_data.udp_src().port());
+            client_endpoints.insert(io_data.udp_src());
         }
         else {
             glog.is_warn() && glog << group("main") << "Could not parse incoming message from client: " << io_data.ShortDebugString() << endl;
         }
     });
-
-    dest.set_addr("");
-    dest.set_port(0);
 
     // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
@@ -197,25 +219,28 @@ void jaiabot::apps::WebPortal::loop()
     send_message_to_client(message);
 }
 
-void jaiabot::apps::WebPortal::send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message) {
-    if (dest.addr() == "") {
-        return;
+void jaiabot::apps::WebPortal::send_message_to_client(
+    const jaiabot::protobuf::PortalToClientMessage& message)
+{
+    for (auto dest : client_endpoints)
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "Sending message to client: " << message.ShortDebugString()
+                                 << endl;
+
+        auto io_data = make_shared<goby::middleware::protobuf::IOData>();
+        io_data->mutable_udp_dest()->set_addr(dest.addr());
+        io_data->mutable_udp_dest()->set_port(dest.port());
+
+        // Serialize for the UDP packet
+        string data;
+        message.SerializeToString(&data);
+        io_data->set_data(data);
+
+        // Send it
+        interthread().publish<web_portal_udp_out>(io_data);
+
+        glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString()
+                                 << endl;
     }
-
-    glog.is_debug2() && glog << group("main")
-                             << "Sending message to client: " << message.ShortDebugString() << endl;
-
-    auto io_data = make_shared<goby::middleware::protobuf::IOData>();
-    io_data->mutable_udp_dest()->set_addr(dest.addr());
-    io_data->mutable_udp_dest()->set_port(dest.port());
-
-    // Serialize for the UDP packet
-    string data;
-    message.SerializeToString(&data);
-    io_data->set_data(data);
-
-    // Send it
-    interthread().publish<web_portal_udp_out>(io_data);
-
-    glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString() << endl;
 }

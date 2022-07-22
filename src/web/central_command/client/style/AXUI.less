@@ -1899,7 +1899,6 @@ table.DiveParametersTable > tbody > tr > td {
 }
 
 .HorizontalFlexbox {
-  margin: 8pt;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -1915,4 +1914,103 @@ table.DiveParametersTable > tbody > tr > td {
 
 .healthFailed {
   color: red;
+}
+
+.centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* bring your own prefixes */
+  transform: translate(-50%, -50%);
+}
+
+.rounded {
+  border-radius: 5pt;
+}
+
+.shadowed {
+  box-shadow: 2px 2px 10px #222222ff;
+}
+
+div.hoverable:hover {
+  background-color: lightblue;
+  color: black;
+}
+
+.LoadMissionPanel {
+  padding: 5pt;
+  background-color: lightgray;
+}
+
+.LoadMissionPanel .title {
+  padding: 5pt;
+
+  font-size: medium;
+
+  color: black;
+}
+
+.LoadMissionPanel .missionList {
+  width: 300pt;
+  height: 200pt;
+  overflow: auto;
+
+  background-color: whitesmoke;
+}
+
+.LoadMissionPanel .row {
+  padding: 5pt;
+
+  font-size: small;
+
+  background-color: whitesmoke;
+  color: black;
+}
+
+.LoadMissionPanel .selected, .LoadMissionPanel .selected:hover {
+  background-color: rgb(73, 122, 255);
+  color: #eeeeeeff;
+}
+
+.textInput {
+  padding: 4pt;
+  margin-top: 4pt;
+  margin-bottom: 4pt;
+
+  border-width: 0pt;
+
+  background-color: whitesmoke;
+}
+
+.flexSpacer {
+  flex-grow: 1;
+}
+
+.disconnection {
+  display: flex;
+  align-items: center;
+
+  top: 10pt;
+  right: 70pt;
+  width: 240pt;
+
+  position: absolute;
+
+  padding: 4pt;
+
+  background-color: red;
+  color: whitesmoke;
+}
+
+.icon {
+  width: 60pt;
+  height: 60pt;
+}
+
+.padded {
+  padding: 8pt;
+}
+
+#axui_container button.danger {
+  background-color: red;
 }
