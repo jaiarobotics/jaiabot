@@ -40,4 +40,4 @@ else:
     warp=1
 EOF
 
-echo "Generated all.launch with ${n_bots} AUVS. Set warp to ${warp}"
+echo "Generated all.launch with ${n_bots} bots. Set warp to ${warp}"

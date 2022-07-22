@@ -10,14 +10,11 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
-import { missions, demo_mission, Missions } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
-
-console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared())
+import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -1329,9 +1326,7 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="axui_container">
 
-				{
-					this.leftPanelSidebar()
-				}
+				<EngineeringPanel api={this.sna} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -1833,7 +1828,7 @@ export default class AXUI extends React.Component {
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Jaia Engineering
+							Engineering Panel
 						</button>
 					</div>
 
@@ -1859,15 +1854,6 @@ export default class AXUI extends React.Component {
 						})
 					}}>
 						Reboot Bot
-					</button>
-
-					<button class="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "SHUTDOWN"
-						})
-					}}>
-						Shutdown Bot
 					</button>
 				</div>
 				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
@@ -2159,7 +2145,7 @@ export default class AXUI extends React.Component {
 			return null
 		}
 
-		return <div class="disconnection shadowed rounded">
+		return <div className="disconnection shadowed rounded">
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
