@@ -101,15 +101,15 @@ int motor_speed(int microseconds, Servo servo, int Direction){
 }
 
 //overall motor calibration
-int MotorBounds(int microseconds, Servo servo){
-  servo.writeMicroseconds(g);
+int MotorBounds(int micro, Servo servo){
+  servo.writeMicroseconds(micro);
   int on = 0;
   
   do{ 
   
-  int startup = motor_speed(g, servo, 1);
+  int startup = motor_speed(micro, servo, 1);
   Serial.println(startup);
-  int startdown = motor_speed(g, servo, 0);
+  int startdown = motor_speed(micro, servo, 0);
   Serial.println(startdown);
   int haltup = motor_speed(startup, servo, 0);
   Serial.println(haltup);
@@ -140,7 +140,7 @@ void setup() {
   
   Serial.setTimeout(500000);
 
-  motor_servo.writeMicroseconds(g);
+  motor_servo.writeMicroseconds(motor_center);
 
   Bounds(flaps_upper, flaps_lower, flaps_center, starboard_servo);
   Bounds(flaps_upper, flaps_lower, flaps_center, port_servo);
