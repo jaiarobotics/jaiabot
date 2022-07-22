@@ -10,7 +10,7 @@ message ArduinoCommand
     optional sint32 stbd_elevator = 3;
     optional sint32 rudder = 4;
     optional sint32 timeout = 5;
-    optional bool LEDSwitchON = 6;
+    optional bool led_switch_on = 6;
 
     // For neutral / center values
     optional sint32 motor_neutral = 20;

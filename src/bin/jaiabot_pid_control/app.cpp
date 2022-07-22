@@ -40,7 +40,7 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-bool LEDSwitchON = false;
+bool led_switch_on = false;
 
 int main(int argc, char* argv[])
 {
@@ -357,7 +357,7 @@ void jaiabot::apps::BotPidControl::loop()
     control_surfaces.set_stbd_elevator(stbd_elevator);
     control_surfaces.set_rudder(rudder);
     control_surfaces.set_motor(throttle);
-    control_surfaces.set_led_switch_on(LEDSwitchON);
+    control_surfaces.set_led_switch_on(led_switch_on);
 
     glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString()
                              << std::endl;
@@ -523,9 +523,9 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         }
     }
 
-    if (command.has_ledswitchon())
+    if (command.has_led_switch_on())
     {
-        LEDSwitchON = command.ledswitchon();
+        led_switch_on = command.led_switch_on();
     }
 }
 
