@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # kate: replace-tabs on; indent-width 4;
 
 from __future__ import unicode_literals

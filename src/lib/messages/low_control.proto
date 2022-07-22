@@ -17,7 +17,7 @@ message LowControl
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
 
-    optional ControlSurfaces control_surfaces = 6;
+    optional ControlSurfaces control_surfaces = 5;
 }
 
 message LowControlAck
