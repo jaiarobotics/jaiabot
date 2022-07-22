@@ -3,7 +3,7 @@
 #talks to the serial moniter
 import serial
 
-#important for serial moniter
+#this might be important, so it's staying
 import time
 
 #talks to the terminal
@@ -15,7 +15,7 @@ import google.protobuf.text_format
 #the actual protobuf format
 import bounds-pb2
 
-#makes protobuf objects 
+#makes protobuf objects to have fun with
 check_bounds = bounds_pb2.Bounds()
 write_bounds = bounds_pb2.SurfaceBounds()
 
@@ -34,6 +34,7 @@ except:
     print("First Jaiabot Calibration")
 
 #opens the arduino for use
+#arduino = serial.Serial('/dev/cu.usbserial-143230', 19200,timeout = .1)
 arduino = serial.Serial('/etc/jaiabot/dev/arduino', 19200,timeout = .1)
 
 #reads from the arduino serial moniter
@@ -42,7 +43,7 @@ def rd():
     data = data.decode()
     return data
 
-#writes to the serial moniter and sends the command - \n is the newline command
+#writes to the serail moniter and sends the command - \n is the newline command
 def write(command):
     command = str(command)
     command = command+'\n'
@@ -110,8 +111,8 @@ def calibrateWingSurface():
         print("setting center")
         inputcommand()
 
-        end = True
-        while end == True:
+        letitend = True
+        while letitend == True:
             finish = input("Would you like to stop calibrating this surface? Yes/No ")
             finish = finish.upper()
             if finish == "YES":
@@ -129,14 +130,14 @@ def calibrateWingSurface():
                 return(write_bounds)
 
                 #releases from the answer loop and ends calibration
-                end = False
+                letitend = False
                 y = False
                 
             elif finish == "NO":
 
                 #releases from the answer loop and restarts calibration
                 write("Z")
-                end = False
+                letitend = False
                 
             else:
                 print("Please enter Yes or No")
@@ -153,9 +154,9 @@ def skipWing():
     output = rd()
     output = str(output)
     output = output.split()
-    print("current upper bound is 1900")
-    print("current lower bound is 1100")
-    print("current center bound is 1500")
+    print("current upper bound is", output[0])
+    print("current lower bound is", output[1])
+    print("current center bound is", output[2])
 
 #skips motor calibration for user
 def skipMotor():
@@ -170,11 +171,11 @@ def skipMotor():
     write("Y")
     write("J")
     rd()
-    print("current forward stop threshold is 1575 microseconds")
+    print("current forward stop threshold is 1599 microseconds")
     write("Y")
     write("J")
     rd()
-    print("current reverse stop threshold is 1425 microseconds")
+    print("current reverse stop threshold is 1401 microseconds")
     write("C")
     
             
@@ -311,9 +312,9 @@ while begin == True:
                 a = False
             elif calibrate == "NO":
                 if check_bounds.strb.upper == 0:
-                    check_bounds.strb.upper = 1100
+                    check_bounds.strb.upper = 1000
                 if check_bounds.strb.lower == 0:
-                    check_bounds.strb.lower = 1900
+                    check_bounds.strb.lower = 2000
                 if check_bounds.strb.center == 0:
                     check_bounds.strb.center = 1500
                 skipWing()
@@ -325,15 +326,15 @@ while begin == True:
         while s is True:
             calibrate = input("do you want to calibrate the port elevator? Yes/No ")
             calibrate = calibrate.upper()
-            if calibrate == "YES":9
+            if calibrate == "YES":
                 check_bounds.port.CopyFrom(calibrateWingSurface())
                 print(str(check_bounds.port))
                 s = False
             elif calibrate == "NO":
                 if check_bounds.port.upper == 0:
-                    check_bounds.port.upper = 1100
+                    check_bounds.port.upper = 1000
                 if check_bounds.port.lower == 0:
-                    check_bounds.port.lower = 1900
+                    check_bounds.port.lower = 2000
                 if check_bounds.port.center == 0:
                     check_bounds.port.center = 1500
                 skipWing()
@@ -351,9 +352,9 @@ while begin == True:
                 d = False
             elif calibrate == "NO":
                 if check_bounds.rudder.upper == 0:
-                    check_bounds.rudder.upper = 1100
+                    check_bounds.rudder.upper = 1000
                 if check_bounds.rudder.lower == 0:
-                    check_bounds.rudder.lower = 1900
+                    check_bounds.rudder.lower = 2000
                 if check_bounds.rudder.center == 0:
                     check_bounds.rudder.center = 1500
                 skipWing()
@@ -376,9 +377,9 @@ while begin == True:
                 if check_bounds.motor.forwardStart == 0:
                     check_bounds.motor.forwardStart = 1600
                 if check_bounds.motor.forwardHalt == 0:
-                    check_bounds.motor.forwardHalt = 1575
+                    check_bounds.motor.forwardHalt = 1599
                 if check_bounds.motor.reverseHalt == 0:
-                    check_bounds.motor.reverseHalt = 1425
+                    check_bounds.motor.reverseHalt = 1401
                 skipMotor()
                 f = False
             else:
@@ -425,23 +426,23 @@ while begin == True:
                 print("Please enter Yes or No")
 
         if check_bounds.strb.upper == 0:
-            check_bounds.strb.upper = 1100
+            check_bounds.strb.upper = 1000
         if check_bounds.strb.lower == 0:
-            check_bounds.strb.lower = 1900
+            check_bounds.strb.lower = 2000
         if check_bounds.strb.center == 0:
             check_bounds.strb.center = 1500
 
         if check_bounds.rudder.upper == 0:
-            check_bounds.rudder.upper = 1100
+            check_bounds.rudder.upper = 1000
         if check_bounds.rudder.lower == 0:
-            check_bounds.rudder.lower = 1900
+            check_bounds.rudder.lower = 2000
         if check_bounds.rudder.center == 0:
             check_bounds.rudder.center = 1500
 
         if check_bounds.port.upper == 0:
-            check_bounds.port.upper = 1100
+            check_bounds.port.upper = 1000
         if check_bounds.port.lower == 0:
-            check_bounds.port.lower = 1900
+            check_bounds.port.lower = 2000
         if check_bounds.port.center == 0:
             check_bounds.port.center = 1500
 
@@ -450,9 +451,9 @@ while begin == True:
         if check_bounds.motor.forwardStart == 0:
             check_bounds.motor.forwardStart = 1600
         if check_bounds.motor.forwardHalt == 0:
-            check_bounds.motor.forwardHalt = 1575
+            check_bounds.motor.forwardHalt = 1599
         if check_bounds.motor.reverseHalt == 0:
-            check_bounds.motor.reverseHalt = 1425
+            check_bounds.motor.reverseHalt = 1401
 
         begin = WriteBounds()
     else:
