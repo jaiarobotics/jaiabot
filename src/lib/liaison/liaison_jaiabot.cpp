@@ -74,18 +74,17 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
     set_name("JaiaBot");
 
-    for (auto vehicle_id : cfg_.load_vehicle()) check_add_vehicle(vehicle_id);
+    for (auto node_id : cfg_.load_vehicle()) check_add_vehicle(node_id);
 }
 
-void jaiabot::LiaisonJaiabot::check_add_vehicle(int vehicle_id)
+void jaiabot::LiaisonJaiabot::check_add_vehicle(int node_id)
 {
-    auto it = vehicle_data_.find(vehicle_id);
+    auto it = vehicle_data_.find(node_id);
     if (it == vehicle_data_.end())
     {
-        it = vehicle_data_.insert(std::make_pair(vehicle_id, VehicleData(vehicle_stack_, cfg_)))
-                 .first;
+        it = vehicle_data_.insert(std::make_pair(node_id, VehicleData(vehicle_stack_, cfg_))).first;
 
-        vehicle_combo_->addItem(std::to_string(vehicle_id));
+        vehicle_combo_->addItem(std::to_string(node_id));
         vehicle_combo_->model()->sort(0);
     }
 
