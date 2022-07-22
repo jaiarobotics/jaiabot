@@ -72,8 +72,8 @@ common_macros['extra_unit']=''
 common_macros['extra_flags']=''
 common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
 common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
-common_macros['user']=os.getlogin()
-common_macros['group']=os.getlogin()
+common_macros['user']=root
+common_macros['group']=root
 
 class Type(Enum):
      BOT = 'bot'
