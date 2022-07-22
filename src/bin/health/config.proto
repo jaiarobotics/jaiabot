@@ -42,4 +42,6 @@ message Health
         [default = 20, (dccl.field).units = { base_dimensions: "T" }];
     optional int32 auto_restart_init_grace_period = 12
         [default = 60, (dccl.field).units = { base_dimensions: "T" }];
+
+    optional bool ignore_powerstate_changes = 20 [default = false];
 }

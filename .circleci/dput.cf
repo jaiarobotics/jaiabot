@@ -1,16 +1,23 @@
-[gobysoft-continuous]
-login = continuous_upload
-fqdn = packages.gobysoft.org
+[jaiabot-continuous-1.y]
+login = dput
+fqdn = packages.jaia.tech
 method = scp
-incoming = /var/cache/archive/continuous/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/continuous/1.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh continuous_upload@packages.gobysoft.org /usr/bin/mini-dinstall --batch
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/continuous/1.y
 
-[gobysoft-release]
-login = release_upload
-fqdn = packages.gobysoft.org
+[jaiabot-beta-1.y]
+login = dput
+fqdn = packages.jaia.tech
 method = scp
-incoming = /var/cache/archive/release/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/beta/1.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh release_upload@packages.gobysoft.org /usr/bin/mini-dinstall --batch
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/beta/1.y
 
+[jaiabot-release-1.y]
+login = dput
+fqdn = packages.jaia.tech
+method = scp
+incoming = /var/www/html/ubuntu/release/1.y/mini-dinstall/incoming
+allow_unsigned_uploads = 0
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/release/1.y
