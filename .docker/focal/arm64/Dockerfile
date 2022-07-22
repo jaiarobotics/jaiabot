@@ -7,7 +7,7 @@ RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
 # Add packages.jaia.tech
 RUN apt-get update && apt-get -y install dirmngr && \
-    echo "deb http://52.38.143.8/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+    echo "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
 
 # Install jaiabot dependencies
