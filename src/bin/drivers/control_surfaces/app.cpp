@@ -243,7 +243,6 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
-    //this is the actual command format
     arduino_cmd.set_led_switch_on(led_switch_on);
 
     glog.is_debug1() && glog << group("arduino")
