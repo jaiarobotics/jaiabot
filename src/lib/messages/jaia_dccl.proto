@@ -41,12 +41,14 @@ message Command
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
         // post mission
+        RECOVERED = 29;
         REDEPLOY = 30;
         SHUTDOWN = 31;
 
-        // debugging
+        // debugging low level commands
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
+        SHUTDOWN_COMPUTER = 42;
     }
 
     required CommandType type = 10;
