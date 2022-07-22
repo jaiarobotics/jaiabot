@@ -10,23 +10,13 @@ const int CTRL_ACTS = 10;
 const int FAULT_ACTS = 8;
 const int POWER_PIN = A1;
 
-//designate the starting ranges (starboard)
-int a = 2000;
-int b = 1000;
-int c = 1500;
-
-//designate the starting ranges (port)
-int d = 2000;
-int e = 1000;
-int f = 1500;
-
-//designate the starting ranges (rudder)
-int x = 2000;
-int y = 1000;
-int z = 1500;
+//designate the starting range (flaps)
+int flaps_upper = 2000;
+int flaps_lower = 1000;
+int flaps_center = 1500;
 
 //designate the starting range (motor)
-int g = 1500;
+int motor_center = 1500;
 
 //function for  steering bounds creation 
 int BoundsCreation(int microseconds, Servo servo){
@@ -111,19 +101,19 @@ int motor_speed(int microseconds, Servo servo, int Direction){
 }
 
 //overall motor calibration
-int MotorBounds(int microseconds, Servo servo){
-  servo.writeMicroseconds(1500);
+int MotorBounds(int micro, Servo servo){
+  servo.writeMicroseconds(micro);
   int on = 0;
   
   do{ 
   
-  int startup = motor_speed(1500, motor_servo, 1);
+  int startup = motor_speed(micro, servo, 1);
   Serial.println(startup);
-  int startdown = motor_speed(1500, motor_servo, 0);
+  int startdown = motor_speed(micro, servo, 0);
   Serial.println(startdown);
-  int haltup = motor_speed(startup, motor_servo, 0);
+  int haltup = motor_speed(startup, servo, 0);
   Serial.println(haltup);
-  int haltdown = motor_speed(startdown, motor_servo, 1);
+  int haltdown = motor_speed(startdown, servo, 1);
   Serial.println(haltdown);
   bool completion = Serial.findUntil("C","Z");
       if (completion == true){
@@ -150,10 +140,12 @@ void setup() {
   
   Serial.setTimeout(500000);
 
-  Bounds(a, b, c, starboard_servo);
-  Bounds(d, e, f, port_servo);
-  Bounds(x, y, z, rudder_servo);
-  MotorBounds(g, motor_servo);
+  motor_servo.writeMicroseconds(motor_center);
+
+  Bounds(flaps_upper, flaps_lower, flaps_center, starboard_servo);
+  Bounds(flaps_upper, flaps_lower, flaps_center, port_servo);
+  Bounds(flaps_upper, flaps_lower, flaps_center, rudder_servo);
+  MotorBounds(motor_center, motor_servo);
 }
 
 void loop() {
