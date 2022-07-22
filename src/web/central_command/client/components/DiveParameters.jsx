@@ -22,7 +22,7 @@ function setParameter(parameterName, event) {
 export function panel() {
     return (
         <div className="panel">
-            <label>Dive Parameters</label>
+            <label>RC Dive Parameters</label>
             <table>
                 <tbody>
                     <tr key="max_depth">
