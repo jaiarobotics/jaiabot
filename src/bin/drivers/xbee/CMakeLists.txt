@@ -25,4 +25,4 @@ if(export_goby_interfaces)
   generate_interfaces(${APP})
 endif()
 
-project_install_bin(${APP})
+# project_install_bin(${APP})
