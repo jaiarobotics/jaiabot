@@ -14,10 +14,10 @@
 
 @layout-margin: 0.5vw;
 @layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
-@stop-width: 25vw;
+@stop-width: 20vw;
 
 // Logo blue
-@ax-blue: #2073ba;
+@ax-blue: #5e2d2d;
 
 // Other
 @ax-tan1: #f7d596;
@@ -85,9 +85,9 @@
 @mission-color: @ab-brown1;
 @mission-goal-color: @ab-orange3;
 
-@good-color: #00cc00;
-@warning-color: #ffff00;
-@error-color: #ff0000;
+@good-color: #ccff91;
+@warning-color: #fddc00;
+@error-color: #c20000;
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
@@ -197,14 +197,14 @@ textarea {
     top: 0;
     left: 50%;
     width: @stop-width;
-    height: 70px;
+    height: 50px;
     margin-left: -@stop-width / 2;
     padding: 0;
     z-index: 1000;
     button {
       width: 100%;
       height: 100%;
-      background: red;
+      background: #c20000;
       color: white;
       overflow: hidden;
       font-size: 48px;
@@ -1913,7 +1913,7 @@ table.DiveParametersTable > tbody > tr > td {
 }
 
 .healthFailed {
-  color: red;
+  color: #c20000;
 }
 
 .centered {
@@ -1998,7 +1998,7 @@ div.hoverable:hover {
 
   padding: 4pt;
 
-  background-color: red;
+  background-color: #c20000;
   color: whitesmoke;
 }
 

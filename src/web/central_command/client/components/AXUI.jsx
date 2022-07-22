@@ -1338,7 +1338,7 @@ export default class AXUI extends React.Component {
 				<div id="mapLayers" />
 
 				<div id="eStop">
-					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
+					<button type="button" onClick={this.sendStop.bind(this)} title="Stop All">
 						STOP
 					</button>
 				</div>
