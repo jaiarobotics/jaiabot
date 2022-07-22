@@ -54,6 +54,11 @@ constexpr goby::middleware::Group mission_ivp_behavior_update{
     "jaiabot::mission_ivp_behavior_update"};
 constexpr goby::middleware::Group mission_ivp_behavior_report{
     "jaiabot::mission_ivp_behavior_report"};
+constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
+
+// health
+constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware_status"};
+constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
 
 // DCCL (intervehicle)
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
@@ -63,9 +68,9 @@ constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
 constexpr goby::middleware::Group dive_packet{"jaiabot::dive_packet",
                                               goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_command",
-                                              goby::middleware::Group::broadcast_group};
+                                                      goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_status",
-                                              goby::middleware::Group::broadcast_group};
+                                                     goby::middleware::Group::broadcast_group};
 
 // Arduino
 constexpr goby::middleware::Group arduino{"jaiabot::arduino"};

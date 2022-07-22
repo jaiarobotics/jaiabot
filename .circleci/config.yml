@@ -12,13 +12,13 @@ environment-template-common: &environment-template-common
   
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
-  DEB_BUILD_OPTIONS: "parallel=2"
+  DEB_BUILD_OPTIONS: "parallel=4"
   # one job only must do the source build for each distro
   DO_SOURCE_BUILD: "true"
 
 environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
-  DEB_BUILD_OPTIONS: "parallel=2 nocheck"
+  DEB_BUILD_OPTIONS: "parallel=4 nocheck"
   
 environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
@@ -31,26 +31,54 @@ docker-base-focal: &docker-base-focal
   - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
 docker-arm64-focal: &docker-arm64-focal
   - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
+docker-base-light: &docker-base-light
+  - image: gobysoft/ubuntu-build-base:20.04.1
+
+
     
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
-    - run: &run-submodules
-        name: Sync and Update Git Submodules
-        command: |
-          git submodule sync && git submodule update --init
-    - run: &run-add-packages-key
+    - run: &run-add-gobysoft-packages-key
         name: Install packages.gobysoft.org key
         command: |
           apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-    - run: &run-add-continuous-packages
-        name: Add continuous build package sources.list (if not a tagged release)
+    - run: &run-add-jaia-packages-key
+        name: Install packages.jaia.tech key
         command: |
-          [ -z "${CIRCLE_TAG}" ] &&
-          echo "deb http://packages.gobysoft.org/ubuntu/continuous/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/gobysoft_continuous.list ||
-          true
+          apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+    - run: &run-set-deb-rep-and-version
+        name: Set environmental variables for which packages.jaia.tech repo to use
+        command: |
+          if [[ "$CIRCLE_TAG" == *"_"* ]]; then
+            repo="beta";
+          elif [ ! -z "$CIRCLE_TAG" ]; then
+            repo="release";
+          else
+            repo="continuous";
+          fi
+
+          # placeholder for future version branches
+          if [[ "$CIRCLE_BRANCH" == "1.y" ]]; then
+            version="1.y";
+          # elif [[ "$CIRCLE_BRANCH" == "2.y" ]]; then
+          #  version="2.y";
+          else
+            # default to 1.y on non-standard branches - this should probably be
+            # updated to the latest (e.g. to 2.y when 2.y exists)
+            version="1.y";
+          fi
+
+          # export these for later use
+          echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
+          echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
+    - run: &run-add-jaia-packages-list
+        name: Add correct packages.jaia.tech sources.list
+        command: |
+          echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
+          echo "deb http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
         command: |
@@ -66,9 +94,12 @@ job-template-amd64: &job-template-amd64
 
 job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
+  resource_class: large
   steps:
-    - run: *run-add-packages-key
-    - run: *run-add-continuous-packages
+    - run: *run-add-gobysoft-packages-key
+    - run: *run-add-jaia-packages-key
+    - run: *run-set-deb-rep-and-version
+    - run: *run-add-jaia-packages-list
     - run: *run-update-apt
     - run: &run-import-gpg
         name: Import GPG key
@@ -112,7 +143,7 @@ job-template-deb-amd64: &job-template-deb-amd64
           export DPKG_BUILDPACKAGE_BUILD_TYPE="-B"
           # default is to do source and binary build
           [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""        
-          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k19478082E2F8D3FE -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE}
+          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE}
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |
@@ -141,10 +172,9 @@ job-template-deb-amd64: &job-template-deb-amd64
 job-template-deb-cross: &job-template-deb-cross
   <<: *job-template-deb-amd64
 
-# Base upload off Focal build
 job-template-upload: &job-template-upload
   <<: *job-template-amd64
-  docker: *docker-base-focal
+  docker: *docker-base-light
 
   
 # which branches to run the Debian build and upload on
@@ -155,14 +185,15 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "packages"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "cmakify-ui-and-arduino"
+        - "packages"
+
         
 ## Begin actual config
 version: 2
@@ -184,45 +215,39 @@ workflows:
           <<: *filter-template-master-only
           requires:
             - get-orig-source
-
-
             
-      # always do the continuous upload if we did the deb builds
-      - continuous-upload:
-          requires:
-            - amd64-focal-deb-build
-            - arm64-focal-deb-build
-
-      # only do the release upload on tagged builds
-      - release-upload:
+      # always do the upload if we did the deb builds
+      - upload:
           filters:
             tags:
               only: /.*/
             branches:
-              ignore: /.*/
+              only: /.*/
           requires:
             - amd64-focal-deb-build
             - arm64-focal-deb-build
-          
+
 jobs:
 
   get-orig-source:
     <<: *job-template-deb-amd64
-    docker: *docker-base-focal
+    docker: *docker-base-light
+    resource_class: small
     environment:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-amd64
     steps:
       - checkout
-      - run: *run-submodules
       - run:
           name: Get original source tarball
           command: |
-            export NEWVERSION="$(git describe --tags HEAD | sed 's/_/~/' | sed 's/-/+/g')"          
+            # use long format for continuous builds so they always rank after release builds
+            [ -z "${CIRCLE_TAG}" ] && export DESCRIBE_ARGS="--long" || export DESCRIBE_ARGS=""
+            export NEWVERSION="$(git describe --tags HEAD ${DESCRIBE_ARGS} | sed 's/_/~/' | sed 's/-/+/g')"
+            git config tar.tar.xz.command "xz -c" &&
             mkdir -p /root/src &&
-            ${CIRCLE_WORKING_DIRECTORY}/scripts/git-archive-all.sh --prefix jaiabot-${NEWVERSION}/ /root/src/jaiabot_${NEWVERSION}.orig.tar &&
-            xz /root/src/jaiabot_${NEWVERSION}.orig.tar
+            git archive --prefix=jaiabot-${NEWVERSION}/ -o /root/src/jaiabot_${NEWVERSION}.orig.tar.xz HEAD;
       - run:
           name: Add changelog entry 
           command: |
@@ -262,18 +287,18 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-arm64
-  continuous-upload:
+  upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-amd64
-      UPLOAD_DESTINATION: "gobysoft-continuous"
+    resource_class: small
     steps: &steps-upload
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "cd:15:c9:43:48:20:c9:56:58:9e:91:01:74:0d:fe:d2"
+            - "5a:bc:88:89:21:a2:a0:cd:68:07:b5:26:f0:64:28:e9"
       - run: *run-import-gpg
       - attach-workspace:
           at: /root/deb
@@ -281,21 +306,12 @@ jobs:
       - run:
           name: Move original source into output directory
           command: mv /root/src/* /root/deb
-      - run:
-          name: Upload packages to packages.gobysoft.org
+      - run: *run-set-deb-rep-and-version
+      - run:      
+          name: Upload packages to packages.jaia.tech
           command: |
-            echo 'trusted-key 19478082E2F8D3FE' >> ~/.gnupg/gpg.conf
-            echo '|1|HjIjI40ko7XtgqXNK8DNuiVcy4Q=|7PEGcXNRmsj1tzGeRjb9UgWIWwE= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK8LmTLyo7inmKCa28F2JZBSpQFT1VrwnFpeV1v6PlQE' >> ~/.ssh/known_hosts
+            echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
+            echo '|1|OX0vdRrGPWjPOTrl5R/joY37TX0=|teBg0IDnMu36QiR2UL4usur+XyY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIz46MTlT0H1Z9P4Msh32nhdbQ9D/CEfnIavB+pRtHZZ3oKrS6ZWKxTOUHTKgw+KKUMSKzdW7XtPaBKb0Qndahw=' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
-            do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf ${UPLOAD_DESTINATION} $change_file;
+            do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
-          
-
-  release-upload:
-    <<: *job-template-upload
-    environment:
-      <<: *environment-template-common
-      <<: *environment-template-focal
-      <<: *environment-template-amd64
-      UPLOAD_DESTINATION: "gobysoft-release"
-    steps: *steps-upload

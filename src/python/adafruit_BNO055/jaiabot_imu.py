@@ -5,18 +5,25 @@ import random
 import sys
 import argparse
 import socket
+import logging
+
+parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
+parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
+parser.add_argument('--simulator', action='store_true')
+args = parser.parse_args()
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('jaiabot_imu')
+log.setLevel(args.logging_level)
 
 try:
     import adafruit_bno055
     import board
+except ModuleNotFoundError:
+    log.warning('ModuleNotFoundError, so physical device not available')
 except NotImplementedError:
-    print('Warning:  physical device not available')
-
-
-parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
-parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
-parser.add_argument('--simulator', action='store_true')
-args = parser.parse_args()
+    log.warning('NotImplementedError, so physical device not available')
 
 
 class IMU:
@@ -81,7 +88,7 @@ while True:
     try:
         data = imu.getData()
     except Exception as e:
-        print(e)
+        log.error(e)
         continue
 
     now = datetime.utcnow()
@@ -94,8 +101,8 @@ while True:
             euler[0], euler[1], euler[2], 
             linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
             gravity[0], gravity[1], gravity[2])
-        print('Sent: ', line)
+        log.debug('Sent: ' + line)
 
         sock.sendto(line.encode('utf8'), addr)
     except TypeError as e:
-        print(e)
+        log.error(e)

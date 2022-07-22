@@ -10,15 +10,15 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
-import { missions, demo_mission, Missions } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
+import { MissionLibraryLocalStorage } from './MissionLibrary'
+import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
 
 import OlMap from 'ol/Map';
 import {
@@ -120,6 +120,8 @@ import homeIcon from '../icons/home.svg'
 import startIcon from '../icons/start.svg'
 import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
+import { LoadMissionPanel } from './LoadMissionPanel'
+import { SaveMissionPanel } from './SaveMissionPanel'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -191,6 +193,8 @@ export default class AXUI extends React.Component {
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
 		this.sna = new JaiaAPI("/", false);
+
+		this.podStatus = {}
 
 		this.mapTilesAPI = JsonAPI('/tiles');
 
@@ -631,10 +635,6 @@ export default class AXUI extends React.Component {
 			},
 			this
 		);
-
-
-
-
 
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
@@ -1085,7 +1085,7 @@ export default class AXUI extends React.Component {
 		this.sna.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
-					error('Cannot connect to the Jaia Central Command web server (app.py)')
+					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 					return
@@ -1093,7 +1093,7 @@ export default class AXUI extends React.Component {
 
 				if (!("bots" in result)) {
 					this.podStatus = {}
-					error("Web server status response doesn't include bots field")
+					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -1110,11 +1110,14 @@ export default class AXUI extends React.Component {
                         if (messages.warning) {
                             warning(messages.warning)
                         }
-
-                        if (messages.error) {
-                            error(messages.error)
-                        }
                     }
+
+					if (messages?.error) {
+						this.setState({disconnectionMessage: messages.error})
+					}
+					else {
+						this.setState({disconnectionMessage: null})
+					}
 
 					this.updateBotsLayer()
 				}
@@ -1124,7 +1127,7 @@ export default class AXUI extends React.Component {
 					error: err
 				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				error('Cannot connect to the Jaia Central Command web server (app.py)')
+				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 			}
 		)
 	}
@@ -1323,9 +1326,7 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="axui_container">
 
-				{
-					this.leftPanelSidebar()
-				}
+				<EngineeringPanel api={this.sna} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -1570,6 +1571,11 @@ export default class AXUI extends React.Component {
 
 				{this.commandDrawer()}
 
+				{this.state.loadMissionPanel}
+
+				{this.state.saveMissionPanel}
+
+				{this.disconnectionPanel()}
 			</div>
 		);
 	}
@@ -1652,6 +1658,8 @@ export default class AXUI extends React.Component {
 			}
 
 			let goals = missions[botId]?.plan?.goal || []
+
+			console.log('goals: ', goals)
 
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
@@ -1751,8 +1759,17 @@ export default class AXUI extends React.Component {
 	// Loads the set of missions, and updates the GUI
 	loadMissions(missions) {
 		this.missions = deepcopy(missions)
+
+		// selectedBotId is a placeholder for the currently selected botId
+		if ('selectedBotId' in this.missions) {
+			let selectedBotId = this.selectedBotId() ?? 0
+			
+			this.missions[selectedBotId] = this.missions['selectedBotId']
+			this.missions[selectedBotId].botId = selectedBotId
+			delete this.missions['selectedBotId']
+		}
+
 		this.updateMissionLayer()
-		info("Loaded mission")
 		console.log('Loaded mission: ', this.missions)
 	}
 
@@ -1811,13 +1828,11 @@ export default class AXUI extends React.Component {
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Jaia Engineering
+							Engineering Panel
 						</button>
 					</div>
 
-					{
-						PIDGainsPanel(this.podStatus?.bots)
-					}
+					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
 
 					{
 						DiveParameters.panel()
@@ -1931,7 +1946,8 @@ export default class AXUI extends React.Component {
 	generateMissions(surveyPolygonGeoCoords) {
 		console.log('hitting mission_generator');
 		console.log(this.homeLocation);
-		let bot_list = this.selectedBotIds();
+		// let bot_list = this.selectedBotIds();
+		let bot_list = [0, 1, 2, 3];
 
 		this.sna.postMissionFilesCreate({
 			"bot_list": bot_list,
@@ -1962,23 +1978,17 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 					Go<br />Home
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 1" onClick={this.loadHardcodedMission.bind(this, 1)}>
-					M 1
+				<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</button>
-				<button type="button" className="globalCommand" title="Run Mission 2" onClick={this.loadHardcodedMission.bind(this, 2)}>
-					M 2
-				</button>
-				<button type="button" className="globalCommand" title="Run Mission 3" onClick={this.loadHardcodedMission.bind(this, 3)}>
-					M 3
+				<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+					<Icon path={mdiContentSave} title="Save Mission"/>
 				</button>
 				<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
 					RC
 				</button>
 				<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
 					Dive
-				</button>
-				<button type="button" className="globalCommand" title="Demo" onClick={this.loadMissions.bind(this, Missions.demo_mission())}>
-					Demo
 				</button>
 				{/*<button type="button" className="globalCommand" title="Generator" onClick={this.generateMissions.bind(this)}>*/}
 				{/*	Generator*/}
@@ -1996,6 +2006,25 @@ export default class AXUI extends React.Component {
 		)
 
 		return element
+	}
+
+	loadMissionButtonClicked() {
+		let panel = <LoadMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} selectedMission={(mission) => {
+			this.loadMissions(mission)
+			this.setState({loadMissionPanel: null})
+		}} onCancel={() => {
+			this.setState({loadMissionPanel: null})
+		}}></LoadMissionPanel>
+
+		this.setState({loadMissionPanel: panel})
+	}
+
+	saveMissionButtonClicked() {
+		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} missions={this.missions} onDone={() => {
+			this.setState({saveMissionPanel: null})
+		}}></SaveMissionPanel>
+
+		this.setState({saveMissionPanel: panel})
 	}
 
 	undoButton() {
@@ -2108,6 +2137,18 @@ export default class AXUI extends React.Component {
 				})}
 			</div>
 		)
+	}
+
+	disconnectionPanel() {
+		let msg = this.state.disconnectionMessage
+		if (msg == null) {
+			return null
+		}
+
+		return <div className="disconnection shadowed rounded">
+			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
+			{msg}
+		</div>
 	}
 
 }

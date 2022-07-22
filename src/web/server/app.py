@@ -12,6 +12,7 @@ import missions
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("hostname", type=str, nargs="?", help="goby hostname to send and receive protobuf messages")
+parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
 parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 args = parser.parse_args()
@@ -25,7 +26,7 @@ if args.hostname is None:
     logging.warning('no ip specified, using localhost')
     args.hostname = "localhost"
 
-jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port))
+jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
 
 app = Flask(__name__)
 
