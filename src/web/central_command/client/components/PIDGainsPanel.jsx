@@ -15,11 +15,19 @@ export class PIDGainsPanel extends React.Component {
     constructor(props) {
         super(props)
 
-        this.getBots = props.getBots
+        this.state = {
+            bots: props.bots
+        }
+    }
+
+    static getDerivedStateFromProps(props) {
+        return {
+            bots: props.bots
+        }
     }
 
     render() {
-        let bots = this.getBots()
+        let bots = this.state.bots
 
         // No bots in list
         if (bots == null || Object.keys(bots).length == 0) {

@@ -3,9 +3,7 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import $ from "jquery"
 import React from 'react'
-import { debug } from "../libs/notifications"
 import { Settings } from './Settings'
 
 export var currentParameters = Settings.read('diveParameters') || {
@@ -22,7 +20,7 @@ function setParameter(parameterName, event) {
 export function panel() {
     return (
         <div className="panel">
-            <label>Dive Parameters</label>
+            <label>RC Dive Parameters</label>
             <table>
                 <tbody>
                     <tr key="max_depth">

@@ -84,7 +84,9 @@ elif common.app == 'goby_coroner':
 elif common.app == 'jaiabot_health':    
     print(config.template_substitute(templates_dir+'/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     # do not power off or restart the simulator computer
+                                     ignore_powerstate_changes=is_simulation()))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
