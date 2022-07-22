@@ -167,6 +167,10 @@ install(DIRECTORY ${project_INC_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 # bin
 macro(project_install_bin target_bin)
   install(TARGETS ${target_bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  # set the macros required for jaiabot_health to map this app name to the appropriate ERROR__NOT_RESPONDING enum
+  list(APPEND PROJECT_APP_LIST ${target_bin})
+  set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
 endmacro()
 
 # lib
@@ -190,6 +194,7 @@ install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/shar
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
+unset(PROJECT_APP_LIST CACHE)
  
 # share
 # install config
