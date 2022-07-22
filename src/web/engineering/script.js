@@ -494,6 +494,19 @@ window.onblur = function() {
 
 DeadMansSwitch.setOn(false)
 
+////////// LED code //////////
+let LEDSwitchON = false
+
+function LEDButtonOnClick(e) {
+  LEDSwitchON = true
+  return
+}
+
+function LEDButtoffOnClick(e) {
+  LEDSwitchON = false
+  return
+}
+
 ////////// Setup hotkeys /////////
 
 function keyDown(e) {
@@ -700,6 +713,8 @@ function getVisibleCommand() {
       };
       break;
   }
+
+  pid_control.LEDSwitchON = LEDSwitchON
 
   let engineering_command = {
     botId : getSelectedBotId(),
