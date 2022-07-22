@@ -1833,7 +1833,7 @@ export default class AXUI extends React.Component {
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Jaia Engineering
+							Engineering Panel
 						</button>
 					</div>
 

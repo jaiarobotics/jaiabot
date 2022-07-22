@@ -1,7 +1,0 @@
-#! /bin/bash
-cd ~/jaiabot/src/arduino/control_surfaces
-make
-
-cd ~/jaiabot/config/launch/engineering
-./bot.launch
-
