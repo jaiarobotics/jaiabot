@@ -21,7 +21,7 @@ try:
     jaia_log_dir=os.environ['jaia_log_dir']
     os.makedirs(jaia_log_dir, exist_ok=True)
 except:    
-    config.fail('Must set jaia_log_dir environmental variable.')
+    config.fail('Must set jaia_log_dir environmental variable and must be able to create log directory.')
 
 
 jaia_templates_dir=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) +  '/../../templates')

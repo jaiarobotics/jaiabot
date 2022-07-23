@@ -1,0 +1,10 @@
+[Unit]
+Description=jaiabot_plot_web
+
+[Service]
+User=${user}
+WorkingDirectory=${working_directory}
+ExecStart=${working_directory}/jaia_goby_converter.py
+
+[Install]
+WantedBy=multi-user.target
