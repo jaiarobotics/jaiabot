@@ -23,10 +23,9 @@ try:
     fleet_index=int(os.environ['jaia_fleet_index'])
 except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
-    
+
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 debug_log_file_dir=log_file_dir 
-os.makedirs(log_file_dir, exist_ok=True)
 templates_dir=common.jaia_templates_dir
 
 vehicle_id=common.vehicle.bot_index_to_vehicle_id(bot_index)
@@ -170,6 +169,8 @@ elif common.app == 'moos_pmv':
                                      warp=common.sim.warp))
 elif common.app == 'frontseat_sim':
     print(common.vehicle.simulator_port(vehicle_id))
+elif common.app == 'log_file':
+    print(log_file_dir)
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
