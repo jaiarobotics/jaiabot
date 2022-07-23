@@ -39,6 +39,7 @@ class Sensor:
     def setup(self):
         if not self.is_setup:
             self.device = AtlasOEM_EC.AtlasOEM_EC(address=args.address)
+            self.device.write_active_hibernate(1)
             self.is_setup = True
             log.info(f'Salinity sensor I2C address: 0x{args.address:02x}')
 
