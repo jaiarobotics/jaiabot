@@ -182,7 +182,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal) {
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
@@ -190,7 +191,8 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        {
             if (vehicle_health.state() == goby::middleware::protobuf::HEALTH__OK)
             {
                 // TODO make SelfTest include more information?

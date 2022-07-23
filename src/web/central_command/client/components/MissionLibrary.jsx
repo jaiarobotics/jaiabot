@@ -16,7 +16,6 @@ export class MissionLibraryLocalStorage {
 
     constructor() {
         this.savedMissions = Settings.read(KEY) || Missions.defaultMissions()
-        console.debug('Loaded saved missions: ', this.savedMissions)
     }
 
     missionNames() {

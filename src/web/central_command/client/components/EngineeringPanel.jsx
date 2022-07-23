@@ -3,6 +3,7 @@ import { PIDGainsPanel } from './PIDGainsPanel'
 import * as DiveParameters from './DiveParameters'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
 
 export default class EngineeringPanel extends React.Component {
 
@@ -44,6 +45,8 @@ export default class EngineeringPanel extends React.Component {
 					{
 						DiveParameters.panel()
 					}
+
+                    <MissionSpeedSettingsPanel />
 
 					<button type="button" style={{"margin": "4pt"}} onClick={function() {
 						self.sna.postCommand({

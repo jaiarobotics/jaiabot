@@ -26,20 +26,17 @@ import {
 	defaults as defaultInteractions,
   } from 'ol/interaction';
 import OlView from 'ol/View';
-import OlText from 'ol/style/Text';
 import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
-import { doubleClick } from 'ol/events/condition';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
+import OlTileWMS from 'ol/source/TileWMS';
 import OlTileLayer from 'ol/layer/Tile';
-import { click } from 'ol/events/condition';
-import OlSelect from 'ol/interaction/Select';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
 import OlMousePosition from 'ol/control/MousePosition';
@@ -55,8 +52,6 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import OlGraticule from 'ol/Graticule';
-import OlStroke from 'ol/style/Stroke';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
 import { deepcopy } from './Utilities';
@@ -157,7 +152,7 @@ function saveVisibleLayers() {
 var visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA CHarts'])
 }
 
 function makeLayerSavable(layer) {
@@ -324,7 +319,12 @@ export default class AXUI extends React.Component {
 			new OlTileLayer({
 				title: 'NOAA Charts',
 				type: 'base',
-				source: new OlSourceXYZ({ url: 'http://tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png' })
+				source: new OlTileWMS({
+					url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/WMSServer',
+					// params: {'LAYERS': 'topp:states', 'TILED': true},
+					serverType: 'geoserver',
+					transition: 0,
+				}),
 			}),
 			new OlTileLayer({
 				title: 'Google Satellite & Roads',
@@ -1269,8 +1269,14 @@ export default class AXUI extends React.Component {
 	}
 
 	sendStop() {
-        info("Sent STOP")
-		this.sna.allStop()
+		this.sna.allStop().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent STOP")
+			}
+		})
 	}
 
 	returnToHome() {
@@ -1610,8 +1616,12 @@ export default class AXUI extends React.Component {
 						recovery: {recoverAtFinalGoal: true}
 					}
 				}
+
+				if (speeds != null) {
+					missions[botId].speeds = speeds
+				}
 			}
-	
+
 			missions[botId].plan.goal.push({location: location})
 
 		})
@@ -1658,8 +1668,6 @@ export default class AXUI extends React.Component {
 			}
 
 			let goals = missions[botId]?.plan?.goal || []
-
-			console.log('goals: ', goals)
 
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
@@ -1739,20 +1747,34 @@ export default class AXUI extends React.Component {
 
 	// Runs a mission
 	_runMission(bot_mission) {
-		console.log('Running mission: ', bot_mission)
-		this.sna.postCommand(bot_mission)
+		// Set the speed values
+		let speeds = Settings.read('mission.plan.speeds')
+		if (speeds != null && bot_mission.plan != null) {
+			bot_mission.plan.speeds = speeds
+		}
+
+		console.debug(bot_mission)
+
+		this.sna.postCommand(bot_mission).then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+		})
 	}
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions) {
-		if (confirm("Click the OK button to run this mission.")) {
+		let botIds = Object.keys(missions)
+		botIds.sort()
+
+		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
 			for (let bot_id in missions) {
 				let mission = missions[bot_id]
 				this.missions[mission.bot_id] = deepcopy(mission)
 				this._runMission(mission)
 			}
+			success("Submitted missions")
 			this.updateMissionLayer()
-			info("Running mission")
 		}
 	}
 
@@ -1804,14 +1826,24 @@ export default class AXUI extends React.Component {
 					error('No mission set for bot ' + bot_id)
 				}
 			}
-			info("Running mission")
+			info('Submitted missions for ' + botIds.length + ' bots')
 		}
 	}
 
 	// Clears the currently active mission
-	clearMissions() {
-		this.missions = {}
-		this.updateMissionLayer()
+	deleteClicked() {
+		let selectedBotId = this.selectedBotId()
+		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
+
+		if (confirm('Delete mission for ' + botString + '?')) {
+			if (selectedBotId != null) {
+				delete this.missions[selectedBotId]
+			}
+			else {
+				this.missions = {}
+			}
+			this.updateMissionLayer()
+		}
 	}
 
 	leftPanelSidebar() {
@@ -1996,7 +2028,7 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
-				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
+				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
 				{ this.undoButton() }
