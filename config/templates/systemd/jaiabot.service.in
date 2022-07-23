@@ -4,7 +4,11 @@ Description=Jaia Base Service
 Requires=network-online.target
 After=network-online.target
 
+Requires=var-log.mount
 After=var-log.mount
+
+Requires=ntp.service
+After=ntp.service
 
 [Service]
 User=$user
@@ -13,6 +17,15 @@ Group=$group
 
 Type=oneshot
 RemainAfterExit=true
+
+
+EnvironmentFile=$env_file
+# make the log directory first so that we don't end up with it root only read/write
+ExecStartPre=/bin/bash -c "/bin/mkdir -p `$gen log_file`"
+
+# Try for 120 seconds for NTP to synchronize
+ExecStartPre=/bin/bash -c "for i in {1..12}; do ntpstat && break; echo 'Waiting for NTP sync'; sleep 10; done"
+
 ExecStart=/bin/echo "Starting Jaia"
 
 [Install]

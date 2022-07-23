@@ -1,0 +1,51 @@
+[
+    {
+        "path_regex": "jaiabot::bot_status;[0-9]+/jaiabot.protobuf.BotStatus/mission_state"
+    },
+    {
+        "units": "°C",
+        "path_regex": ".+temperature$"
+    },
+    {
+        "units": "m",
+        "path_regex": ".+/depth$"
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/location/lat$",
+        "invalid_values": [0.0]
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/location/lon$",
+        "invalid_values": [0.0]
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/attitude/course_over_ground$"
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/attitude/heading$"
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/attitude/pitch$"
+    },
+    {
+        "units": "°",
+        "path_regex": ".+/attitude/roll$"
+    },
+    {
+        "units": "m/s",
+        "path_regex": ".+/speed/.+$"
+    },
+    {
+        "units": "sec",
+        "path_regex": ".+/timeout$"
+    },
+    {
+        "units": "μsec",
+        "path_regex": ".+/ArduinoCommand/.+$"
+    }
+]

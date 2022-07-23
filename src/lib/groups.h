@@ -56,6 +56,10 @@ constexpr goby::middleware::Group mission_ivp_behavior_report{
     "jaiabot::mission_ivp_behavior_report"};
 constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
 
+// health
+constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware_status"};
+constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
+
 // DCCL (intervehicle)
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
                                              goby::middleware::Group::broadcast_group};
