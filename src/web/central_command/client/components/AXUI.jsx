@@ -1659,8 +1659,6 @@ export default class AXUI extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			console.log('goals: ', goals)
-
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
