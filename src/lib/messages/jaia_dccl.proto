@@ -5,7 +5,7 @@ import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
-
+import "jaiabot/messages/health.proto";
 
 package jaiabot.protobuf;
 
@@ -83,6 +83,8 @@ message BotStatus
     }];
 
     optional goby.middleware.protobuf.HealthState health_state = 4;
+    repeated Error error = 5 [(dccl.field).max_repeat = 5];
+    repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
 
     optional GeographicCoordinate location = 10;
 
@@ -142,7 +144,7 @@ message BotStatus
     optional MissionState mission_state = 40;
 
     // bounds should match MissionPlan.goal max_repeat value
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }]; 
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];

@@ -1845,6 +1845,55 @@ export default class AXUI extends React.Component {
 		}
 	}
 
+	leftPanelSidebar() {
+		let self = this
+
+		return (
+			<div id="leftSidebar" className="column-left">
+				<div id="leftPanelsContainer" className="panelsContainerVertical">
+					<div className="panel">
+						JaiaBot Central Command<br />
+						Version 1.1.0
+					</div>
+					<div className="panel">
+						<button type="button" onClick={function() {
+							window.location.assign('/pid/')
+						} }>
+							Engineering Panel
+						</button>
+					</div>
+
+					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
+
+					{
+						DiveParameters.panel()
+					}
+
+					<button type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "RESTART_ALL_SERVICES"
+						})
+					}}>
+						Restart Services
+					</button>
+
+					<button type="button" style={{"margin": "4pt"}} onClick={function() {
+						self.sna.postCommand({
+							botId: self.selectedBotId(),
+							type: "REBOOT_COMPUTER"
+						})
+					}}>
+						Reboot Bot
+					</button>
+				</div>
+				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
+					<FontAwesomeIcon icon={faGripVertical} />
+				</div>
+			</div>
+		)
+	}
+
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
 		var botIds = []

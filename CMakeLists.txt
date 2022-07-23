@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
-set(PROJECT_VERSION_MAJOR "1")
-set(PROJECT_VERSION_MINOR "0")
-set(PROJECT_VERSION_PATCH "0~alpha1")
+set(PROJECT_VERSION_MAJOR "0")
+set(PROJECT_VERSION_MINOR "1")
+set(PROJECT_VERSION_PATCH "0~beta1")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
@@ -167,6 +167,10 @@ install(DIRECTORY ${project_INC_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 # bin
 macro(project_install_bin target_bin)
   install(TARGETS ${target_bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+  # set the macros required for jaiabot_health to map this app name to the appropriate ERROR__NOT_RESPONDING enum
+  list(APPEND PROJECT_APP_LIST ${target_bin})
+  set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
 endmacro()
 
 # lib
@@ -190,6 +194,7 @@ install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/shar
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
+unset(PROJECT_APP_LIST CACHE)
  
 # share
 # install config
