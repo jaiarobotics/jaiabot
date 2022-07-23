@@ -194,7 +194,7 @@ export default class AXUI extends React.Component {
 		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
-		this.undoMissions = {}
+		this.undoMissionsStack = []
 
 		this.flagNumber = 1
 
@@ -1253,7 +1253,7 @@ export default class AXUI extends React.Component {
 
 		// If something was changed, then place the old mission set into the undoMissions
 		if (oldMissions != this.missions) {
-			this.undoMissions = deepcopy(oldMissions)
+			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
 			this.updateMissionLayer()
@@ -1261,10 +1261,9 @@ export default class AXUI extends React.Component {
 	}
 
 	restoreUndo() {
-		if (this.undoMissions != null) {
-			this.missions = deepcopy(this.undoMissions)
+		if (this.undoMissionsStack.length > 1) {
+			this.missions = this.undoMissionsStack.pop()
 			this.updateMissionLayer()
-			this.undoMissions = null
 		}
 	}
 
@@ -2011,7 +2010,7 @@ export default class AXUI extends React.Component {
 	}
 
 	undoButton() {
-		let disabled = (this.undoMissions == null)
+		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
 		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
 	}
