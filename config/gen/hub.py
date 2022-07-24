@@ -20,7 +20,6 @@ except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/hub'
-os.makedirs(log_file_dir, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 
 vehicle_id = 0 
@@ -81,7 +80,9 @@ elif common.app == 'goby_coroner':
 elif common.app == 'jaiabot_health':    
     print(config.template_substitute(templates_dir+'/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     # do not power off or restart the simulator computer
+                                     ignore_powerstate_changes=is_simulation()))
 elif common.app == 'goby_liaison':
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
@@ -107,6 +108,8 @@ elif common.app == 'jaiabot_hub_manager':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common, managed_bot_ids=all_bot_ids))
+elif common.app == 'log_file':
+    print(log_file_dir)
 else:
     print(config.template_substitute(templates_dir + f'/hub/{common.app}.pb.cfg.in',
                                      app_block=app_common,
