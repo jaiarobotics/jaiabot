@@ -75,6 +75,8 @@ class Fusion : public ApplicationBase
         {
             glog.is_warn() && glog << "Timeout on health report" << std::endl;
             latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+            latest_bot_status_.clear_error();
+            latest_bot_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
         }
 
         if (latest_bot_status_.IsInitialized())
@@ -281,6 +283,53 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             last_health_report_time_ = goby::time::SteadyClock::now();
             latest_bot_status_.set_health_state(vehicle_health.state());
+            latest_bot_status_.clear_error();
+            latest_bot_status_.clear_warning();
+
+            if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__OK)
+            {
+                auto add_errors_and_warnings =
+                    [this](const goby::middleware::protobuf::ThreadHealth& health)
+                {
+                    const auto& jaiabot_health =
+                        health.GetExtension(jaiabot::protobuf::jaiabot_thread);
+                    for (auto error : jaiabot_health.error())
+                        latest_bot_status_.add_error(static_cast<jaiabot::protobuf::Error>(error));
+                    for (auto warning : jaiabot_health.warning())
+                        latest_bot_status_.add_warning(
+                            static_cast<jaiabot::protobuf::Warning>(warning));
+                };
+
+                for (const auto& proc : vehicle_health.process())
+                {
+                    add_errors_and_warnings(proc.main());
+                    for (const auto& thread : proc.main().child()) add_errors_and_warnings(thread);
+                }
+
+                const int max_errors = protobuf::BotStatus::descriptor()
+                                           ->FindFieldByName("error")
+                                           ->options()
+                                           .GetExtension(dccl::field)
+                                           .max_repeat();
+
+                const int max_warnings = protobuf::BotStatus::descriptor()
+                                             ->FindFieldByName("warning")
+                                             ->options()
+                                             .GetExtension(dccl::field)
+                                             .max_repeat();
+
+                if (latest_bot_status_.error_size() > max_errors)
+                {
+                    latest_bot_status_.mutable_error()->Truncate(max_errors - 1);
+                    latest_bot_status_.add_error(protobuf::ERROR__TOO_MANY_ERRORS_TO_REPORT_ALL);
+                }
+                if (latest_bot_status_.warning_size() > max_warnings)
+                {
+                    latest_bot_status_.mutable_warning()->Truncate(max_warnings - 1);
+                    latest_bot_status_.add_warning(
+                        protobuf::WARNING__TOO_MANY_WARNINGS_TO_REPORT_ALL);
+                }
+            }
         });
 
     // subscribe for commands, to set last_command_time

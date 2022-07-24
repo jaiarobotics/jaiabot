@@ -24,6 +24,7 @@ export default class EngineeringPanel extends React.Component {
     }
 
     render() {
+		let self = this
 
 		return (
 			<div id="leftSidebar" className="column-left">
@@ -40,7 +41,7 @@ export default class EngineeringPanel extends React.Component {
 						</button>
 					</div>
 
-					<PIDGainsPanel bots={this.state.bots} />
+					<PIDGainsPanel bots={self.state.bots} />
 
 					{
 						DiveParameters.panel()
@@ -49,8 +50,8 @@ export default class EngineeringPanel extends React.Component {
                     <MissionSpeedSettingsPanel />
 
 					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: this.getSelectedBotId(),
+						self.api.postCommand({
+							botId: self.getSelectedBotId(),
 							type: "RESTART_ALL_SERVICES"
 						})
 					}}>
@@ -58,8 +59,8 @@ export default class EngineeringPanel extends React.Component {
 					</button>
 
 					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: this.getSelectedBotId(),
+						self.api.postCommand({
+							botId: self.getSelectedBotId(),
 							type: "REBOOT_COMPUTER"
 						})
 					}}>
@@ -67,8 +68,8 @@ export default class EngineeringPanel extends React.Component {
 					</button>
 
 					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: this.getSelectedBotId(),
+						self.api.postCommand({
+							botId: self.getSelectedBotId(),
 							type: "RECOVERED"
 						})
 					}}>
@@ -76,8 +77,8 @@ export default class EngineeringPanel extends React.Component {
 					</button>
 
 					<button className="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: this.getSelectedBotId(),
+						self.api.postCommand({
+							botId: self.getSelectedBotId(),
 							type: "SHUTDOWN"
 						})
 					}}>
