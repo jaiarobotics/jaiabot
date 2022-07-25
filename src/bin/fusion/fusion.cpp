@@ -150,7 +150,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             using boost::units::degree::degrees;
 
             // This produces a heading that is off by 180 degrees, so we need to rotate it
-            auto heading = euler_angles.alpha_with_units() + 180 * degrees;
+            auto heading = euler_angles.alpha_with_units() + 270 * degrees;
             if (heading > 360 * degrees)
             {
                 heading -= (360 * degrees);
