@@ -53,6 +53,38 @@ function commandOptions(missionState) {
     return commandOptionElements
 }
 
+// Get the table row for the health of the vehicle
+function healthRow(bot) {
+    let healthClassName = {
+        "HEALTH__OK": "healthOK",
+        "HEALTH__DEGRADED": "healthDegraded",
+        "HEALTH__FAILED": "healthFailed"
+    }[bot.healthState] ?? "healthOK"
+
+    let healthStateElement = <div className={healthClassName}>{bot.healthState}</div>
+
+    let errors = bot.error ?? ['TestError', 'TestError2']
+    let errorElements = errors.map((error) => {
+        return <div className='healthFailed'>{error}</div>
+    })
+    
+    let warnings = bot.warning ?? ['TestWarning', 'TestWarning2']
+    let warningElements = warnings.map((warning) => {
+        return <div className='healthDegraded'>{warning}</div>
+    })
+
+    return (
+        <tr>
+            <td>Health</td>
+            <td>
+                {healthStateElement}
+                {errorElements}
+                {warningElements}
+            </td>
+        </tr>
+    )
+}
+
 export function BotDetailsComponent(bot, api) {
     if (bot == null) {
         return (<div></div>)
@@ -79,11 +111,6 @@ export function BotDetailsComponent(bot, api) {
         </tr>
     )
 
-    let healthClassName = {
-        "HEALTH__OK": "healthOK",
-        "HEALTH__DEGRADED": "healthDegraded",
-        "HEALTH__FAILED": "healthFailed"
-    }[bot.healthState] ?? "healthOK"
 
     return (
     <div id="botDetailsComponent">
@@ -99,10 +126,7 @@ export function BotDetailsComponent(bot, api) {
                         </select>
                     </td>
                 </tr>
-                <tr>
-                    <td>Health</td>
-                    <td className={healthClassName}>{bot.healthState}</td>
-                </tr>
+                {healthRow(bot)}
                 <tr>
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
