@@ -111,9 +111,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
-            process_coroner_report(vehicle_health);
-        });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        { process_coroner_report(vehicle_health); });
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
