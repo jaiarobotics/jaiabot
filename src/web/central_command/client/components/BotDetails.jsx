@@ -8,7 +8,84 @@ import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilitie
 
 let prec = 2
 
-export function BotDetailsComponent(bot) {
+let commandDescriptions = {
+    RESTART_ALL_SERVICES: "Restart Services",
+    REBOOT_COMPUTER: "Reboot Bot",
+    RECOVERED: "Recover Bot",
+    SHUTDOWN: "Shutdown Bot"
+}
+
+function commandOptionElement(command) {
+    return <option value={command} key={command}>{commandDescriptions[command]}</option>
+}
+
+function issueCommand(api, botId, commandType) {
+    if (confirm("Are you sure you'd like to " + commandDescriptions[commandType] + " (" + commandType + ")?")) {
+        let command = {
+            botId: botId,
+            type: commandType
+        }
+
+        api.postCommand(command)
+    }
+}
+
+function commandOptions(missionState) {
+    var commands = [
+        "",
+        "RESTART_ALL_SERVICES",
+        "REBOOT_COMPUTER",
+        "RECOVERED"
+    ]
+
+    switch(missionState) {
+        case "POST_DEPLOYMENT__IDLE":
+            commands = commands.concat([
+                "SHUTDOWN",
+            ])
+            break;
+    }
+
+    let commandOptionElements = commands.map((command) => {
+        return commandOptionElement(command)
+    })
+
+    return commandOptionElements
+}
+
+// Get the table row for the health of the vehicle
+function healthRow(bot) {
+    let healthClassName = {
+        "HEALTH__OK": "healthOK",
+        "HEALTH__DEGRADED": "healthDegraded",
+        "HEALTH__FAILED": "healthFailed"
+    }[bot.healthState] ?? "healthOK"
+
+    let healthStateElement = <div className={healthClassName}>{bot.healthState}</div>
+
+    let errors = bot.error ?? []
+    let errorElements = errors.map((error) => {
+        return <div className='healthFailed'>{error}</div>
+    })
+    
+    let warnings = bot.warning ?? []
+    let warningElements = warnings.map((warning) => {
+        return <div className='healthDegraded'>{warning}</div>
+    })
+
+    return (
+        <tr>
+            <td>Health</td>
+            <td>
+                {healthStateElement}
+                {errorElements}
+                {warningElements}
+            </td>
+        </tr>
+    )
+}
+
+export function BotDetailsComponent(bot, api) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -17,6 +94,15 @@ export function BotDetailsComponent(bot) {
     let statusTime = bot.time
     let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
 
+    var statusAgeClassName = ''
+    if (statusAge > 30) {
+        statusAgeClassName = 'red'
+    }
+    else if (statusAge > 10) {
+        statusAgeClassName = 'yellow'
+    }
+
+    // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
     var activeGoalRow = (
         <tr>
@@ -25,27 +111,28 @@ export function BotDetailsComponent(bot) {
         </tr>
     )
 
-    let healthClassName = {
-        "HEALTH__OK": "healthOK",
-        "HEALTH__DEGRADED": "healthDegraded",
-        "HEALTH__FAILED": "healthFailed"
-    }[bot.healthState] ?? "healthOK"
 
     return (
-    <div>
+    <div id="botDetailsComponent">
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
-        <table>
+        <div className='horizontal flexbox'>
+        <table id="botDetailsTable">
             <tbody>
                 <tr>
-                    <td>Health</td>
-                    <td className={healthClassName}>{bot.healthState}</td>
+                    <td>Command</td>
+                    <td>
+                        <select onChange={(evt) => { issueCommand(api, bot.botId, evt.target.value); evt.target.selectedIndex = 0 }} value={-1}>
+                            {commandOptions(bot.missionState)}
+                        </select>
+                    </td>
                 </tr>
+                {healthRow(bot)}
                 <tr>
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
                 {activeGoalRow}
-                <tr>
+                <tr className={statusAgeClassName}>
                     <td>Status Age</td>
                     <td>{statusAge} sec</td>
                 </tr>
@@ -105,6 +192,7 @@ export function BotDetailsComponent(bot) {
                 {console.log(bot)}
             </tbody>
         </table>
+        </div>
     </div>
     )
 }
