@@ -63,12 +63,12 @@ function healthRow(bot) {
 
     let healthStateElement = <div className={healthClassName}>{bot.healthState}</div>
 
-    let errors = bot.error ?? ['TestError', 'TestError2']
+    let errors = bot.error ?? []
     let errorElements = errors.map((error) => {
         return <div className='healthFailed'>{error}</div>
     })
     
-    let warnings = bot.warning ?? ['TestWarning', 'TestWarning2']
+    let warnings = bot.warning ?? []
     let warningElements = warnings.map((warning) => {
         return <div className='healthDegraded'>{warning}</div>
     })
