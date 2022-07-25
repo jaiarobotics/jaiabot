@@ -111,9 +111,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
-            process_coroner_report(vehicle_health);
-        });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        { process_coroner_report(vehicle_health); });
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
@@ -172,6 +171,7 @@ void jaiabot::apps::Health::loop()
 
 void jaiabot::apps::Health::health(goby::middleware::protobuf::ThreadHealth& health)
 {
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.MergeFrom(last_health_);
     health.set_name(this->app_name());
     health.set_state(goby::middleware::protobuf::HEALTH__OK);
