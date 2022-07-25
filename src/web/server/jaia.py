@@ -92,13 +92,15 @@ class Interface:
     def send_message_to_portal(self, msg, force=False):
         if self.read_only and not force:
             logging.warning('This client is READ-ONLY.  Refusing to send command.')
-            return
+            return False
 
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
         logging.info(f'Sent {len(data)} bytes')
+
+        return True
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
@@ -119,9 +121,16 @@ class Interface:
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
-        self.send_message_to_portal(msg)
+        
+        if self.send_message_to_portal(msg):
+            return {'status': 'ok'}
+        else:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
     def post_all_stop(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
         for bot in self.bots.values():
             cmd = {
                 'botId': bot.bot_id,
@@ -129,6 +138,8 @@ class Interface:
                 'type': 'STOP', 
             }
             self.post_command(cmd)
+
+        return {'status': 'ok'}
 
     def get_status(self):
         bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
