@@ -28,10 +28,6 @@ constexpr int RUDDER_PIN = 5;
 constexpr int PORT_ELEVATOR_PIN = 9;
 constexpr int MOTOR_PIN = 3;
 
-// Actuator control
-constexpr int CTRL_ACTS = 10;
-constexpr int FAULT_ACTS = 8;
-
 // The timeout
 unsigned long t_last_command = 0;
 int32_t command_timeout = -1; 
@@ -53,11 +49,30 @@ bool thermocouple_is_present = false;
 
 Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
-// Power Pin
+// Power Pins
 constexpr int POWER_PIN = A1;
+const int CTRL_ACTS = 10;
+const int FAULT_ACTS = 8;
 
 // LED
 constexpr int LED_D1_PIN = A5;
+const int LED_D2_PIN = A6;
+
+// Voltage and Current
+const int VvCurrent = A3;
+const int VccCurrent = A2;
+const int VccVoltage = A0;
+
+//for rolling average
+const int capacity = 50;
+int amps[capacity]{0};
+int rewrite = 0;
+int fullness = 0;
+double vcccurrent = 0;
+const double arduino_units = 0.0049;
+const double half_volt = .5;
+const double amp_volt_conversion = 10;
+
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -108,6 +123,27 @@ void send_ack(AckCode code, char message[])
     ack.has_thermocouple_temperature_C = false;
   }
 
+  ack.vccvoltage = analogRead(VccVoltage)*.0306;
+  ack.has_vccvoltage = true;
+  ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
+  ack.has_vvcurrent = true;
+  if (rewrite>= capacity){
+    rewrite = 0;
+  }
+  if (fullness < capacity){
+    ++fullness;
+  }
+  amps[rewrite++] = (analogRead(VccCurrent));
+
+  vcccurrent = 0;
+  for (int j = 0; j < capacity; ++j){
+    vcccurrent += amps[j];
+  }
+  vcccurrent = vcccurrent/fullness;
+
+  ack.vcccurrent = ((vcccurrent*arduino_units)-half_volt)*10;
+  ack.has_vcccurrent = true;
+
   if (message != NULL) {
     strncpy(ack_message, message, 250);
   }
@@ -146,6 +182,12 @@ void setup()
 
   delay(100);
 
+  pinMode(VccCurrent, INPUT);
+  pinMode(VccVoltage, INPUT);
+  pinMode(VvCurrent, INPUT);
+  pinMode(LED_D1_PIN, OUTPUT);
+  pinMode(LED_D2_PIN, OUTPUT);
+  
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
   stbd_elevator_servo.attach(STBD_ELEVATOR_PIN);
@@ -224,13 +266,22 @@ void loop()
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
 
+            if (command.led_switch_on == true){
+              analogWrite(LED_D1_PIN, 255);
+              analogWrite(LED_D2_PIN, 255);
+            }
+            else if (command.led_switch_on == false){
+              analogWrite(LED_D1_PIN, 0);
+              analogWrite(LED_D2_PIN, 0);
+            }
+
             // Set the timeout vars
             t_last_command = millis();
             command_timeout = command.timeout * 1000;
 
             // char message[256];
             // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK, NULL);
+            send_ack(ACK, "Sanity Check - 'you were insane the whole time'");
           }
           else
           {
