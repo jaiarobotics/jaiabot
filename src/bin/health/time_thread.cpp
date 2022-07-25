@@ -263,7 +263,8 @@ bool jaiabot::apps::NTPStatusThread::read_ntpq_peers()
         peer.set_remote(remote);
         peer.set_refid(parts[PEER_REFID]);
 
-        auto try_convert_to_int = [](const std::string& s, int& i, int base = 10) -> bool {
+        auto try_convert_to_int = [](const std::string& s, int& i, int base = 10) -> bool
+        {
             try
             {
                 i = std::stoi(s, nullptr, base);
@@ -275,7 +276,8 @@ bool jaiabot::apps::NTPStatusThread::read_ntpq_peers()
             }
         };
 
-        auto try_convert_to_float = [](const std::string& s, float& f) -> bool {
+        auto try_convert_to_float = [](const std::string& s, float& f) -> bool
+        {
             try
             {
                 f = std::stof(s);
