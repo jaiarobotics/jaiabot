@@ -69,8 +69,6 @@ void jaiabot::apps::MissionManager::initialize()
 {
     machine_.reset(new statechart::MissionManagerStateMachine(*this));
     machine_->initiate();
-
-    machine_->process_event(statechart::EvTurnOn());
 }
 
 void jaiabot::apps::MissionManager::finalize()
@@ -191,10 +189,14 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
-            if (vehicle_health.state() == goby::middleware::protobuf::HEALTH__OK)
+            if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
             {
                 // TODO make SelfTest include more information?
                 machine_->process_event(statechart::EvSelfTestSuccessful());
+            }
+            else
+            {
+                machine_->process_event(statechart::EvSelfTestFails());
             }
         });
 }
@@ -303,7 +305,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::RECOVERED:
             machine_->process_event(statechart::EvRecovered());
             break;
-        case protobuf::Command::REDEPLOY: machine_->process_event(statechart::EvRedeploy()); break;
+        case protobuf::Command::ACTIVATE: machine_->process_event(statechart::EvActivate()); break;
         case protobuf::Command::SHUTDOWN: machine_->process_event(statechart::EvShutdown()); break;
 
         case protobuf::Command::REMOTE_CONTROL_SETPOINT:

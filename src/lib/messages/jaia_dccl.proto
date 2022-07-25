@@ -28,7 +28,8 @@ message Command
     {
         // pre mission
         MISSION_PLAN = 1;
-        START_MISSION = 2;
+        ACTIVATE = 2;
+        START_MISSION = 3;
 
         // during any mission
         NEXT_TASK = 10;
@@ -41,8 +42,7 @@ message Command
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
         // post mission
-        RECOVERED = 29;
-        REDEPLOY = 30;
+        RECOVERED = 30;
         SHUTDOWN = 31;
 
         // debugging low level commands
