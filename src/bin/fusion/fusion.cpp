@@ -289,16 +289,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__OK)
             {
                 auto add_errors_and_warnings =
-                    [this](const goby::middleware::protobuf::ThreadHealth& health) {
-                        const auto& jaiabot_health =
-                            health.GetExtension(jaiabot::protobuf::jaiabot_thread);
-                        for (auto error : jaiabot_health.error())
-                            latest_bot_status_.add_error(
-                                static_cast<jaiabot::protobuf::Error>(error));
-                        for (auto warning : jaiabot_health.warning())
-                            latest_bot_status_.add_warning(
-                                static_cast<jaiabot::protobuf::Warning>(warning));
-                    };
+                    [this](const goby::middleware::protobuf::ThreadHealth& health)
+                {
+                    const auto& jaiabot_health =
+                        health.GetExtension(jaiabot::protobuf::jaiabot_thread);
+                    for (auto error : jaiabot_health.error())
+                        latest_bot_status_.add_error(static_cast<jaiabot::protobuf::Error>(error));
+                    for (auto warning : jaiabot_health.warning())
+                        latest_bot_status_.add_warning(
+                            static_cast<jaiabot::protobuf::Warning>(warning));
+                };
 
                 for (const auto& proc : vehicle_health.process())
                 {
