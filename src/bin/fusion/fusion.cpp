@@ -262,22 +262,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.set_thermocouple_temperature(
                     arduino_response.thermocouple_temperature_c());
             }
-
-            //takes data from one message to the next (clarified by different names)
-            if (arduino_response.has_vccvoltage())
-            {
-                latest_bot_status_.set_vcc_voltage(arduino_response.vccvoltage());
-            }
-
-            if (arduino_response.has_vcccurrent())
-            {
-                latest_bot_status_.set_vcc_current(arduino_response.vcccurrent());
-            }
-
-            if (arduino_response.has_vvcurrent())
-            {
-                latest_bot_status_.set_vv_current(arduino_response.vvcurrent());
-            }
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
@@ -305,16 +289,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__OK)
             {
                 auto add_errors_and_warnings =
-                    [this](const goby::middleware::protobuf::ThreadHealth& health) {
-                        const auto& jaiabot_health =
-                            health.GetExtension(jaiabot::protobuf::jaiabot_thread);
-                        for (auto error : jaiabot_health.error())
-                            latest_bot_status_.add_error(
-                                static_cast<jaiabot::protobuf::Error>(error));
-                        for (auto warning : jaiabot_health.warning())
-                            latest_bot_status_.add_warning(
-                                static_cast<jaiabot::protobuf::Warning>(warning));
-                    };
+                    [this](const goby::middleware::protobuf::ThreadHealth& health)
+                {
+                    const auto& jaiabot_health =
+                        health.GetExtension(jaiabot::protobuf::jaiabot_thread);
+                    for (auto error : jaiabot_health.error())
+                        latest_bot_status_.add_error(static_cast<jaiabot::protobuf::Error>(error));
+                    for (auto warning : jaiabot_health.warning())
+                        latest_bot_status_.add_warning(
+                            static_cast<jaiabot::protobuf::Warning>(warning));
+                };
 
                 for (const auto& proc : vehicle_health.process())
                 {

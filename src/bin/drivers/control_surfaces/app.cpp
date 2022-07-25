@@ -31,7 +31,6 @@ using namespace std;
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/arduino.pb.h"
-#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -80,9 +79,6 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
     // timeout
     int arduino_timeout = 5;
-
-    //LED
-    bool led_switch_on = false;
 };
 
 } // namespace apps
@@ -121,6 +117,7 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                 handle_control_surfaces(low_control.control_surfaces());
             }
         });
+
     // Get an ArduinoResponse
     interthread().subscribe<serial_in>(
         [this](const goby::middleware::protobuf::IOData& io)
@@ -185,12 +182,6 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
         arduino_timeout = control_surfaces.timeout();
     }
 
-    //pulls the data from on message to another
-    if (control_surfaces.has_led_switch_on())
-    {
-        led_switch_on = control_surfaces.led_switch_on();
-    }
-
     _time_last_command_received = now_microseconds();
 }
 
@@ -243,7 +234,6 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
-    arduino_cmd.set_led_switch_on(led_switch_on);
 
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
