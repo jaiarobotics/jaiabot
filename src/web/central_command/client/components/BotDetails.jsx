@@ -8,7 +8,51 @@ import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilitie
 
 let prec = 2
 
-export function BotDetailsComponent(bot) {
+let commandDescriptions = {
+    RESTART_ALL_SERVICES: "Restart Services",
+    REBOOT_COMPUTER: "Reboot Bot",
+    RECOVERED: "Recover Bot",
+    SHUTDOWN: "Shutdown Bot"
+}
+
+function commandOptionElement(command) {
+    return <option value={command} key={command}>{commandDescriptions[command]}</option>
+}
+
+function issueCommand(api, botId, commandType) {
+    if (confirm("Are you sure you'd like to " + commandDescriptions[commandType] + " (" + commandType + ")?")) {
+        let command = {
+            botId: botId,
+            type: commandType
+        }
+
+        api.postCommand(command)
+    }
+}
+
+function commandOptions(missionState) {
+    var commands = [
+        "RESTART_ALL_SERVICES",
+        "REBOOT_COMPUTER",
+        "RECOVERED"
+    ]
+
+    switch(missionState) {
+        case "POST_DEPLOYMENT__IDLE":
+            commands = commands.concat([
+                "SHUTDOWN",
+            ])
+            break;
+    }
+
+    let commandOptionElements = commands.map((command) => {
+        return commandOptionElement(command)
+    })
+
+    return commandOptionElements
+}
+
+export function BotDetailsComponent(bot, api) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -41,10 +85,19 @@ export function BotDetailsComponent(bot) {
     }[bot.healthState] ?? "healthOK"
 
     return (
-    <div>
+    <div id="botDetailsComponent">
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
-        <table>
+        <div className='horizontal flexbox'>
+        <table id="botDetailsTable">
             <tbody>
+                <tr>
+                    <td>Command</td>
+                    <td>
+                        <select onChange={(evt) => { issueCommand(api, bot.botId, evt.target.value) }}>
+                            {commandOptions(bot.missionState)}
+                        </select>
+                    </td>
+                </tr>
                 <tr>
                     <td>Health</td>
                     <td className={healthClassName}>{bot.healthState}</td>
@@ -100,6 +153,7 @@ export function BotDetailsComponent(bot) {
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
     )
 }

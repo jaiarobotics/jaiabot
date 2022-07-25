@@ -187,7 +187,7 @@ export default class AXUI extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.sna = new JaiaAPI("/", false);
+		this.api = new JaiaAPI("/", false);
 
 		this.podStatus = {}
 
@@ -478,7 +478,7 @@ export default class AXUI extends React.Component {
 					map.getView().setRotation(-heading);
 				}
 			}
-			this.sna
+			this.api
 				.sendClientLocation(
 					this.clientLocation.accuracy < 10,
 					this.clientLocation.position[1],
@@ -1082,7 +1082,7 @@ export default class AXUI extends React.Component {
 		clearInterval(this.timerID);
 		const us = this;
 
-		this.sna.getStatus().then(
+		this.api.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
 					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
@@ -1268,7 +1268,7 @@ export default class AXUI extends React.Component {
 	}
 
 	sendStop() {
-		this.sna.allStop().then(response => {
+		this.api.allStop().then(response => {
 			if (response.message) {
 				error(response.message)
 			}
@@ -1331,7 +1331,7 @@ export default class AXUI extends React.Component {
 		return (
 			<div id="axui_container">
 
-				<EngineeringPanel api={this.sna} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
+				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -1533,7 +1533,8 @@ export default class AXUI extends React.Component {
 									key={feature.getId()}
 									className=''
 								>
-									{BotDetailsComponent(this.podStatus?.bots?.[feature.getId()])}
+
+									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api)}
 									<div id="botContextCommandBox">
 										{/* Leader-based commands and manual control go here */}
 											<button
@@ -1754,7 +1755,7 @@ export default class AXUI extends React.Component {
 
 		console.debug(bot_mission)
 
-		this.sna.postCommand(bot_mission).then(response => {
+		this.api.postCommand(bot_mission).then(response => {
 			if (response.message) {
 				error(response.message)
 			}
@@ -1931,7 +1932,7 @@ export default class AXUI extends React.Component {
 		// let bot_list = this.selectedBotIds();
 		let bot_list = [0, 1, 2, 3];
 
-		this.sna.postMissionFilesCreate({
+		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
 			"sample_spacing": 100, 
 			"home_lon": this.homeLocation['lon'], 
@@ -2053,7 +2054,7 @@ export default class AXUI extends React.Component {
 			flag: this.flagNumber
 		}
 
-		this.sna.postEngineering(engineeringCommand)
+		this.api.postEngineering(engineeringCommand)
 		info("Posted Flag " + this.flagNumber + " to bot " + botId)
 
 		// Increment the flag number

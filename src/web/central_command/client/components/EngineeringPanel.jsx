@@ -49,41 +49,6 @@ export default class EngineeringPanel extends React.Component {
 
                     <MissionSpeedSettingsPanel />
 
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.api.postCommand({
-							botId: self.getSelectedBotId(),
-							type: "RESTART_ALL_SERVICES"
-						})
-					}}>
-						Restart Services
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.api.postCommand({
-							botId: self.getSelectedBotId(),
-							type: "REBOOT_COMPUTER"
-						})
-					}}>
-						Reboot Bot
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.api.postCommand({
-							botId: self.getSelectedBotId(),
-							type: "RECOVERED"
-						})
-					}}>
-						Recover Bot
-					</button>
-
-					<button className="danger" type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.api.postCommand({
-							botId: self.getSelectedBotId(),
-							type: "SHUTDOWN"
-						})
-					}}>
-						Shutdown Bot
-					</button>
 				</div>
 				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
 					<FontAwesomeIcon icon={faGripVertical} />

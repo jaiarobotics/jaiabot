@@ -150,9 +150,6 @@ textarea {
     line-height: 1;
     cursor: pointer;
 
-    &:last-child {
-      margin-right: 0;
-    }
     &.inactive {
       background: @inactive-color;
       // Going for low contrast here
@@ -2007,8 +2004,9 @@ div.hoverable:hover {
   height: 60pt;
 }
 
-.padded {
-  padding: 8pt;
+#botDetailsComponent .botCommand {
+  padding: 4pt;
+  margin: 4pt
 }
 
 .yellow {
@@ -2021,4 +2019,21 @@ div.hoverable:hover {
 
 #axui_container button.danger {
   background-color: red;
+}
+
+.horizontal.flexbox {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.vertical.flexbox {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+#botDetailsTable {
+  width: 250pt;
+  table-layout: fixed;
 }
