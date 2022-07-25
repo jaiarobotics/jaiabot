@@ -714,7 +714,7 @@ function getVisibleCommand() {
       break;
   }
 
-  pid_control.LEDSwitchON = LEDSwitchON
+  pid_control.led_switch_on = LEDSwitchON
 
   let engineering_command = {
     botId : getSelectedBotId(),
