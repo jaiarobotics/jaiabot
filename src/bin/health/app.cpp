@@ -66,6 +66,7 @@ class Health : public ApplicationBase
     goby::time::SteadyClock::time_point next_check_time_;
     goby::middleware::protobuf::ThreadHealth last_health_;
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
+    std::set<jaiabot::protobuf::Error> failed_services_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -111,8 +112,24 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { process_coroner_report(vehicle_health); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            process_coroner_report(vehicle_health);
+        });
+
+    interprocess().subscribe<jaiabot::groups::systemd_report>(
+        [this](const protobuf::SystemdStartReport& start_report) {
+            glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
+                                     << std::endl;
+            failed_services_.erase(start_report.clear_error());
+        });
+
+    interprocess().subscribe<jaiabot::groups::systemd_report>(
+        [this](const protobuf::SystemdStopReport& stop_report) {
+            glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
+                                     << std::endl;
+            if (stop_report.has_error())
+                failed_services_.insert(stop_report.error());
+        });
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
@@ -129,6 +146,9 @@ void jaiabot::apps::Health::process_coroner_report(
     }
 
     last_health_.Clear();
+    for (auto error : failed_services_)
+        last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
+
     for (const auto& proc : vehicle_health.process())
     {
         if (proc.main().has_error() &&
