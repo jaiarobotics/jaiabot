@@ -262,6 +262,22 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.set_thermocouple_temperature(
                     arduino_response.thermocouple_temperature_c());
             }
+
+            //takes data from one message to the next (clarified by different names)
+            if (arduino_response.has_vccvoltage())
+            {
+                latest_bot_status_.set_vcc_voltage(arduino_response.vccvoltage());
+            }
+
+            if (arduino_response.has_vcccurrent())
+            {
+                latest_bot_status_.set_vcc_current(arduino_response.vcccurrent());
+            }
+
+            if (arduino_response.has_vvcurrent())
+            {
+                latest_bot_status_.set_vv_current(arduino_response.vvcurrent());
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
