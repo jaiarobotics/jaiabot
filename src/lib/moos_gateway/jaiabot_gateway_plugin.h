@@ -5,10 +5,13 @@
 #include <goby/moos/protobuf/moos_gateway_config.pb.h>
 
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/moos.pb.h"
+//#include "jaiabot/messages/health.pb.h"
 
 #include "config.pb.h"
+
 namespace jaiabot
 {
 namespace moos
@@ -57,7 +60,31 @@ class IvPHelmTranslation : public goby::moos::Translator
                 goby().interprocess().publish<jaiabot::groups::mission_ivp_behavior_report>(report);
             }
         });
+
+        /*interprocess().subscribe<jaiabot::groups::moos>(
+        [this](const protobuf::MOOSMessage& moos_msg) {
+            if(moos_msg.key() == "IVPHELM_STATE")
+            {
+                goby::glog.is_debug1() && goby::glog << "Received IVPHELM_STATE: " << moos_msg.svalue()
+                                     << std::endl;
+                if (moos_msg.svalue() != "PARK")
+                {
+                    error_ivp_state_.push_back(protobuf::ERROR__MOOS__HELMIVP_STATE_NOT_DRIVE);
+                    goby::middleware::protobuf::VehicleHealth vehicle_health;
+                    vehicle_health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                    interprocess().publish<goby::middleware::groups::health_report>(vehicle_health);
+                }
+            }
+        });*/
     }
+    // sets current_state to check_state if check_state is worse (e.g. OK -> FAILED)
+    // does not update current_state if check_state is better (e.g. FAILED -/-> OK)
+    /*void demote_health(goby::middleware::protobuf::HealthState& current_state,
+                       goby::middleware::protobuf::HealthState check_state)
+    {
+        if (current_state < check_state)
+            current_state = check_state;
+    }*/
 
   private:
     void publish_bhv_update(const protobuf::IvPBehaviorUpdate& update);
@@ -65,6 +92,8 @@ class IvPHelmTranslation : public goby::moos::Translator
   private:
     bool pending_datum_update_{false};
     std::unique_ptr<protobuf::IvPBehaviorUpdate> pending_bhv_update_;
+    std::vector<protobuf::Error> error_ivp_state_;
+    jaiabot::protobuf::BotStatus latest_bot_status_;
 
 }; // namespace moos
 

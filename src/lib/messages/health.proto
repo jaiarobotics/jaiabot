@@ -284,6 +284,14 @@ message NTPStatus
     repeated NTPPeer peer = 21;
 }
 
+message IVPHelmStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional string ivp_helm_expected_state = 1 [default = "DRIVE"];
+}
+
 message ThreadHealth
 {
     repeated Error error = 1;

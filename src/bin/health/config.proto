@@ -51,6 +51,13 @@ message NTPStatusConfig
     optional float high_jitter_threshold = 11 [default = 100, (dccl.field).units = { prefix: "milli" base_dimensions: "T"}];
 }
 
+message IVPHelmStatusConfig
+{
+    option (dccl.msg) = { unit_system: "si" };
+
+    optional string ivp_helm_expected_state = 10 [default = "DRIVE"];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -70,5 +77,6 @@ message Health
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
+    optional IVPHelmStatusConfig helm = 41;
     
 }

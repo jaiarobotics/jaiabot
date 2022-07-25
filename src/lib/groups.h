@@ -80,6 +80,7 @@ constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
 
 // MOOS
 constexpr goby::middleware::Group moos{"jaiabot::moos"};
+constexpr goby::middleware::Group ivp_helm{"jaiabot::ivp_helm"};
 
 } // namespace groups
 } // namespace jaiabot

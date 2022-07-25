@@ -6,6 +6,7 @@ add_executable(${APP}
   app.cpp
   linux_hardware_thread.cpp
   time_thread.cpp 
+  ivp_helm_thread.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}
