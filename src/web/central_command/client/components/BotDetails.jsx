@@ -32,6 +32,7 @@ function issueCommand(api, botId, commandType) {
 
 function commandOptions(missionState) {
     var commands = [
+        "",
         "RESTART_ALL_SERVICES",
         "REBOOT_COMPUTER",
         "RECOVERED"
