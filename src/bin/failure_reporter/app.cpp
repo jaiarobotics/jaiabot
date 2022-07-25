@@ -40,6 +40,14 @@ class FailureReporter : public ApplicationBase
 {
   public:
     FailureReporter();
+
+  private:
+    void loop() override;
+
+    void send_report();
+
+  private:
+    int attempts_{0};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -50,7 +58,23 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::FailureReporter>(argc, argv));
 }
 
-jaiabot::apps::FailureReporter::FailureReporter()
+jaiabot::apps::FailureReporter::FailureReporter() : ApplicationBase(0.5 * boost::units::si::hertz)
+{
+    interprocess().subscribe<groups::systemd_report_ack>(
+        [this](const protobuf::SystemdReportAck& ack) {
+            if (ack.error_ack() == cfg().error_code())
+            {
+                glog.is_debug1() && glog << "Got ack. quitting" << std::endl;
+                quit();
+            }
+        });
+
+    send_report();
+}
+
+void jaiabot::apps::FailureReporter::loop() { send_report(); }
+
+void jaiabot::apps::FailureReporter::send_report()
 {
     auto error = cfg().error_code();
 
@@ -84,11 +108,24 @@ jaiabot::apps::FailureReporter::FailureReporter()
                                              cfg().service_name() + " > " +
                                              report.journal_dump_file();
                 system(journalctl_cmd.c_str());
+
+                // only publish failures
+                interprocess().publish<groups::systemd_report>(report);
+            }
+            else
+            {
+                quit();
             }
 
-            interprocess().publish<groups::systemd_report>(report);
             break;
         }
     }
-    quit();
+
+    ++attempts_;
+    if (attempts_ >= cfg().num_attempts())
+    {
+        glog.is_warn() && glog << "No ack after " << attempts_ << " attempts. quitting."
+                               << std::endl;
+        quit();
+    }
 }

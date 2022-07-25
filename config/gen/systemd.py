@@ -124,7 +124,7 @@ jaiabot_apps=[
      'runs_on': Type.BOTH},
     {'exe': 'jaiabot_health',
      'description': 'JaiaBot Health Reporting and Management',
-     'template': 'goby-app.service.in',
+     'template': 'health-app.service.in', # no failure_reporter start/stop since it would be meaningless
      'user': 'root', # must run as root to allow restart/reboot
      'group': 'root',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HEALTH',

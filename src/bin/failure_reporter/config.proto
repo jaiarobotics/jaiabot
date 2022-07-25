@@ -39,9 +39,10 @@ message FailureReporter
         STOP = 2;
     }
     required string log_dir = 9;
-    
+
     required State state = 10;
     required protobuf.Error error_code = 11;
     required string service_name = 12;
     optional string service_result = 13;
+    optional int32 num_attempts = 14 [default = 3];
 }

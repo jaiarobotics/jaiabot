@@ -45,8 +45,13 @@ std::map<std::string, jaiabot::protobuf::Error> create_process_to_not_responding
             protobuf::ERROR__NOT_RESPONDING__##APP_UCASE \
     }
     // only explicitly list external apps; apps built in this repo are added via -DJAIABOT_HEALTH_PROCESS_MAP_ENTRIES
-    return {MAKE_ENTRY(GOBYD),       MAKE_ENTRY(GOBY_LIAISON), MAKE_ENTRY(GOBY_GPS),
-            MAKE_ENTRY(GOBY_LOGGER), MAKE_ENTRY(GOBY_CORONER), JAIABOT_HEALTH_PROCESS_MAP_ENTRIES};
+    return {MAKE_ENTRY(GOBYD),
+            MAKE_ENTRY(GOBY_LIAISON),
+            MAKE_ENTRY(GOBY_GPS),
+            MAKE_ENTRY(GOBY_LOGGER),
+            MAKE_ENTRY(GOBY_CORONER),
+            MAKE_ENTRY(GOBY_MOOS_GATEWAY),
+            JAIABOT_HEALTH_PROCESS_MAP_ENTRIES};
 #undef MAKE_ENTRY
 }
 
@@ -121,6 +126,9 @@ jaiabot::apps::Health::Health()
             glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
                                      << std::endl;
             failed_services_.erase(start_report.clear_error());
+            protobuf::SystemdReportAck ack;
+            ack.set_error_ack(start_report.clear_error());
+            interprocess().publish<groups::systemd_report_ack>(ack);
         });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
@@ -128,7 +136,12 @@ jaiabot::apps::Health::Health()
             glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
                                      << std::endl;
             if (stop_report.has_error())
+            {
                 failed_services_.insert(stop_report.error());
+                protobuf::SystemdReportAck ack;
+                ack.set_error_ack(stop_report.error());
+                interprocess().publish<groups::systemd_report_ack>(ack);
+            }
         });
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());

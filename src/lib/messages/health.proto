@@ -86,17 +86,16 @@ enum Error
     // from jaiabot_health
     ERROR__SYSTEM__CANNOT_READ_MEMINFO = 500;
     ERROR__SYSTEM__RAM_SPACE_CRITICAL = 501;
-    
+
     ERROR__SYSTEM__CANNOT_READ_SYSINFO = 502;
     ERROR__SYSTEM__CPU_LOAD_FACTOR_CRITICAL = 503;
-    
+
     ERROR__SYSTEM__CANNOT_READ_DISK_USAGE = 504;
     ERROR__SYSTEM__ROOTFS_DISK_SPACE_CRITICAL = 505;
     ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL = 506;
-    
+
     ERROR__SYSTEM__NTP_PEERS_QUERY_FAILED = 510;
     ERROR__SYSTEM__NTP_STATUS_QUERY_FAILED = 511;
-    ERROR__SYSTEM__NTP_NOT_SYNCHRONIZED = 512;
 
     // TODO: IMPLEMENT
     ERROR__VEHICLE__VERY_LOW_BATTERY = 600;
@@ -122,13 +121,13 @@ enum Warning
     // from jaiabot_health
     WARNING__VEHICLE__LOW_BATTERY = 400;
 
-    WARNING__SYSTEM__NTP_OFFSET_HIGH = 500;
-    WARNING__SYSTEM__NTP_JITTER_HIGH = 501;
-    WARNING__SYSTEM__RAM_SPACE_LOW = 502;
-    WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = 503;
-    WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 504;
-    WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 505;
-
+    WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED = 500;
+    WARNING__SYSTEM__NTP_OFFSET_HIGH = 501;
+    WARNING__SYSTEM__NTP_JITTER_HIGH = 502;
+    WARNING__SYSTEM__RAM_SPACE_LOW = 503;
+    WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = 504;
+    WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505;
+    WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506;
 }
 
 message LinuxHardwareStatus
@@ -305,9 +304,9 @@ extend goby.middleware.protobuf.VehicleHealth
 
 message SystemdStartReport
 {
-    required Error clear_error = 1; // the corresponding ERROR__FAILED__* to clear (if exists)
+    required Error clear_error =
+        1;  // the corresponding ERROR__FAILED__* to clear (if exists)
 }
-
 
 message SystemdStopReport
 {
@@ -325,6 +324,12 @@ message SystemdStopReport
         SERVICE_RESULT_RESOURCES = 9;
     }
     required ServiceResult result = 1;
-    optional Error error = 2; // the corresponding ERROR__FAILED__* if relevant
-    optional string journal_dump_file = 3; // if failed, the journal snippet from last boot was written here
+    required Error error = 2;  // the corresponding ERROR__FAILED__* 
+    optional string journal_dump_file =
+        3;  // if failed, the journal snippet from last boot was written here
+}
+
+message SystemdReportAck
+{
+    required Error error_ack = 1;  // which app this relates to, by its corresponding error value
 }

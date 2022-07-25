@@ -1,8 +1,8 @@
 [Unit]
 Description=$description
 
-BindsTo=jaiabot_gobyd.service
-After=jaiabot_gobyd.service
+BindsTo=jaiabot_health.service
+After=jaiabot_health.service
 $extra_unit
 
 [Service]
@@ -17,4 +17,4 @@ ExecStopPost=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_
 $extra_service
 
 [Install]
-WantedBy=jaiabot_gobyd.service
+WantedBy=jaiabot_health.service
