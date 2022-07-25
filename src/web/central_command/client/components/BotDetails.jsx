@@ -94,7 +94,7 @@ export function BotDetailsComponent(bot, api) {
                 <tr>
                     <td>Command</td>
                     <td>
-                        <select onChange={(evt) => { issueCommand(api, bot.botId, evt.target.value) }}>
+                        <select onChange={(evt) => { issueCommand(api, bot.botId, evt.target.value); evt.target.selectedIndex = 0 }} value={-1}>
                             {commandOptions(bot.missionState)}
                         </select>
                     </td>
