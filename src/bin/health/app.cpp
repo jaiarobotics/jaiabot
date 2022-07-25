@@ -172,6 +172,7 @@ void jaiabot::apps::Health::loop()
 
 void jaiabot::apps::Health::health(goby::middleware::protobuf::ThreadHealth& health)
 {
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.MergeFrom(last_health_);
     health.set_name(this->app_name());
     health.set_state(goby::middleware::protobuf::HEALTH__OK);
