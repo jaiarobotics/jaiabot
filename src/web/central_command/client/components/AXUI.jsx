@@ -152,7 +152,7 @@ function saveVisibleLayers() {
 var visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA CHarts'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA Charts'])
 }
 
 function makeLayerSavable(layer) {
