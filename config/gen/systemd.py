@@ -113,7 +113,7 @@ jaiabot_apps=[
      'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service'},
     {'exe': 'goby_logger',
      'description': 'Goby Logger',
-     'template': 'goby-app.service.in',
+     'template': 'logger-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
      'runs_on': Type.BOTH,
     'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount'},

@@ -8,10 +8,15 @@ load_shared_library: "libjaiabot_config.so.1"
 load_shared_library: "libjaiabot_liaison.so.1"
 
 start_paused: false
-update_freq: 1
+update_freq: 10
 
 pb_commander_config {
     $load_protobufs
 }
+
+pb_scope_config {
+    group_regex_filter_expression: "(?!.*_internal|.*intervehicle)(.*)"  #  (optional) 
+}
+
 
 $jaiabot_config
