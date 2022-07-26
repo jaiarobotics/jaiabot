@@ -112,6 +112,7 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
     bool helm_ivp_desired_speed_{false};
     bool helm_ivp_desired_heading_{false};
     bool helm_ivp_desired_depth_{false};
+    bool helm_ivp_data_{false};
 };
 
 } // namespace apps

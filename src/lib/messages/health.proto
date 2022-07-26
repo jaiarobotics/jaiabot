@@ -292,7 +292,7 @@ message HelmIVPStatus
     optional bool helm_ivp_desired_speed = 2 [default = false];
     optional bool helm_ivp_desired_heading = 3 [default = false];
     optional bool helm_ivp_desired_depth = 4 [default = false];
-    optional bool helm_ivp_nav_data = 5 [default = false];
+    optional bool helm_ivp_data = 5 [default = false];
 }
 
 message ThreadHealth
