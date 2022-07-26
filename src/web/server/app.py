@@ -54,13 +54,13 @@ def getStatus():
 
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
-    jaia_interface.post_command(request.json)
-    return JSONResponse({"status": "ok"})
+    response = jaia_interface.post_command(request.json)
+    return JSONResponse(response)
 
 @app.route('/jaia/allStop', methods=['POST'])
 def postAllStop():
-    jaia_interface.post_all_stop()
-    return JSONResponse({'status': 'ok'})
+    response = jaia_interface.post_all_stop()
+    return JSONResponse(response)
 
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
