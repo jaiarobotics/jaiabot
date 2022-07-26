@@ -20,10 +20,31 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
             {
                 helm_ivp_status_successful_ = false;
             }
+        }
+
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
             else
             {
-                helm_ivp_status_successful_ = true;
+                helm_ivp_in_mission_ = false;
             }
+        }
+
+        if (moos_msg.key() == "DESIRED_SPEED")
+        {
+            status_.set_helm_ivp_desired_speed(helm_ivp_desired_speed_);
+        }
+        else if (moos_msg.key() == "DESIRED_HEADING")
+        {
+            status_.set_helm_ivp_desired_heading(helm_ivp_desired_heading_);
+        }
+        else if (moos_msg.key() == "DESIRED_SPEED")
+        {
+            status_.set_helm_ivp_desired_depth(helm_ivp_desired_depth_);
         }
     });
 }
@@ -44,6 +65,17 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MOOS__HELMIVP_STATE_NOT_DRIVE);
+    }
+
+    if (helm_ivp_in_mission_)
+    {
+        if (!status_.helm_ivp_desired_speed() && !status_.helm_ivp_desired_heading() &&
+            !status_.helm_ivp_desired_depth())
+        {
+            demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__MOOS__HELMIVP_NO_DESIRED_DATA);
+        }
     }
 
     health.set_state(health_state);

@@ -289,6 +289,10 @@ message HelmIVPStatus
         unit_system: "si"
     };
     optional string helm_ivp_state = 1 [default = "DRIVE"];
+    optional bool helm_ivp_desired_speed = 2 [default = false];
+    optional bool helm_ivp_desired_heading = 3 [default = false];
+    optional bool helm_ivp_desired_depth = 4 [default = false];
+    optional bool helm_ivp_nav_data = 5 [default = false];
 }
 
 message ThreadHealth
