@@ -129,7 +129,18 @@ void jaiabot::apps::LinuxHardwareThread::set_use_fraction(
         boost::units::quantity<protobuf::LinuxHardwareStatus::Information::available_unit, float>;
     auto total = info.total_with_units<quant_float_bytes>();
     auto available = info.available_with_units<quant_float_bytes>();
-    info.set_use_percent(100.0f * (total - available) / total);
+
+    //On the bot swap cache and swap total are 0
+    //Adding logical statement to prevent dividing by zero
+    if (total.value() != 0)
+    {
+        info.set_use_percent(100.0f * (total - available) / total);
+    }
+    else
+    {
+        //Set use percent to 0 if total is zero
+        info.set_use_percent(0);
+    }
 }
 
 bool jaiabot::apps::LinuxHardwareThread::read_disk_usage()
