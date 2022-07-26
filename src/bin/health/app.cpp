@@ -66,7 +66,6 @@ class Health : public ApplicationBase
     goby::time::SteadyClock::time_point next_check_time_;
     goby::middleware::protobuf::ThreadHealth last_health_;
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
-    std::vector<protobuf::Error> error_ivp_state_;
 };
 } // namespace apps
 } // namespace jaiabot

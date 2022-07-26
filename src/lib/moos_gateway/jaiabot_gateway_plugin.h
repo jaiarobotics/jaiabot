@@ -5,12 +5,10 @@
 #include <goby/moos/protobuf/moos_gateway_config.pb.h>
 
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/moos.pb.h"
 
 #include "config.pb.h"
-
 namespace jaiabot
 {
 namespace moos

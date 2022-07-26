@@ -79,6 +79,9 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
             ->add_error(protobuf::ERROR__MOOS__HELMIVP_STATE_NOT_DRIVE);
     }
 
+    // Only check for these vars if
+    // the bot is in this state:
+    // IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
     if (helm_ivp_in_mission_)
     {
         if (!helm_ivp_desired_speed_ && !helm_ivp_desired_speed_ && !helm_ivp_desired_depth_)
