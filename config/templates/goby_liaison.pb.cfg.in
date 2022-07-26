@@ -7,6 +7,9 @@ load_shared_library: "libjaiabot_messages.so.1"
 load_shared_library: "libjaiabot_config.so.1"
 load_shared_library: "libjaiabot_liaison.so.1"
 
+start_paused: false
+update_freq: 1
+
 pb_commander_config {
     $load_protobufs
 }
