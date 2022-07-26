@@ -95,21 +95,19 @@ class NTPStatusThread : public HealthMonitorThread<jaiabot::config::NTPStatusCon
     bool ntpq_peers_successful_{true};
 };
 
-class IVPHelmStatusThread : public HealthMonitorThread<jaiabot::config::IVPHelmStatusConfig>
+class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPStatusConfig>
 {
   public:
-    IVPHelmStatusThread(const jaiabot::config::IVPHelmStatusConfig& cfg);
-    ~IVPHelmStatusThread() {}
+    HelmIVPStatusThread(const jaiabot::config::HelmIVPStatusConfig& cfg);
+    ~HelmIVPStatusThread() {}
 
   private:
     void issue_status_summary() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    bool read_ivp_helm_state();
-
   private:
-    jaiabot::protobuf::IVPHelmStatus status_;
-    bool ivp_helm_status_successful_{true};
+    jaiabot::protobuf::HelmIVPStatus status_;
+    bool helm_ivp_status_successful_{true};
 };
 
 } // namespace apps

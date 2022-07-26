@@ -27,7 +27,6 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
-#include "jaiabot/messages/moos.pb.h"
 #include "system_thread.h"
 
 using goby::glog;
@@ -117,23 +116,9 @@ jaiabot::apps::Health::Health()
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
         { process_coroner_report(vehicle_health); });
 
-    /*interprocess().subscribe<jaiabot::groups::moos>(
-        [this](const protobuf::MOOSMessage& moos_msg) {
-            if(moos_msg.key() == "IVPHELM_STATE")
-            {
-                glog.is_verbose() && glog << "Received IVPHELM_STATE: " << moos_msg.svalue()
-                                     << std::endl;
-                if (moos_msg.svalue() != "PARK")
-                {
-                    error_ivp_state_.clear();
-                    error_ivp_state_.push_back(protobuf::ERROR__MOOS__HELMIVP_STATE_NOT_DRIVE);
-                }
-            }
-        });*/
-
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
-    launch_thread<IVPHelmStatusThread>(cfg().helm());
+    launch_thread<HelmIVPStatusThread>(cfg().helm());
 }
 
 void jaiabot::apps::Health::process_coroner_report(
@@ -147,10 +132,6 @@ void jaiabot::apps::Health::process_coroner_report(
     }
 
     last_health_.Clear();
-
-    // Get all errors for IvP_HELM
-    //for (auto error : error_ivp_state_)
-    //    last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
 
     for (const auto& proc : vehicle_health.process())
     {

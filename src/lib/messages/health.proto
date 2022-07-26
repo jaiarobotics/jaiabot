@@ -76,7 +76,6 @@ enum Error
     // from xbee driver
     ERROR__COMMS__NO_XBEE = 300;
 
-    // TODO: IMPLEMENT
     // from goby_moos_gateway
     ERROR__MOOS__HELMIVP_STATE_NOT_DRIVE = 400;
     ERROR__MOOS__HELMIVP_NO_DESIRED_DATA = 401;
@@ -284,12 +283,12 @@ message NTPStatus
     repeated NTPPeer peer = 21;
 }
 
-message IVPHelmStatus
+message HelmIVPStatus
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
-    optional string ivp_helm_expected_state = 1 [default = "DRIVE"];
+    optional string helm_ivp_state = 1 [default = "DRIVE"];
 }
 
 message ThreadHealth
