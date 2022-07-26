@@ -85,7 +85,8 @@ jaiabot::apps::Health::Health()
 {
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::Command& command) {
+        [this](const protobuf::Command& command)
+        {
             switch (command.type())
             {
                 // most commands handled by jaiabot_mission_manager
@@ -171,6 +172,7 @@ void jaiabot::apps::Health::loop()
 
 void jaiabot::apps::Health::health(goby::middleware::protobuf::ThreadHealth& health)
 {
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.MergeFrom(last_health_);
     health.set_name(this->app_name());
     health.set_state(goby::middleware::protobuf::HEALTH__OK);

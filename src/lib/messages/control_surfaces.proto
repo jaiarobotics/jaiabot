@@ -9,4 +9,5 @@ message ControlSurfaces
     optional sint32 stbd_elevator = 3;
     optional sint32 rudder = 4;
     optional sint32 timeout = 5;
+    optional bool led_switch_on = 6;
 }
