@@ -51,17 +51,17 @@ Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
 // Power Pins
 constexpr int POWER_PIN = A1;
-const int CTRL_ACTS = 10;
-const int FAULT_ACTS = 8;
+constexpr int CTRL_ACTS = 10;
+constexpr int FAULT_ACTS = 8;
 
 // LED
 constexpr int LED_D1_PIN = A5;
-const int LED_D2_PIN = A6;
+constexpr int LED_D2_PIN = A6;
 
 // Voltage and Current
-const int VvCurrent = A3;
-const int VccCurrent = A2;
-const int VccVoltage = A0;
+constexpr int VvCurrent = A3;
+constexpr int VccCurrent = A2;
+constexpr int VccVoltage = A0;
 
 //for rolling average
 const int capacity = 50;
@@ -80,7 +80,7 @@ enum AckCode {
   STARTUP = 0,
   ACK = 1,
   TIMEOUT = 2,
-  DEBUG=3
+  DEBUG = 3
 };
 
 char ack_message[256] = {0};
@@ -123,25 +123,26 @@ void send_ack(AckCode code, char message[])
     ack.has_thermocouple_temperature_C = false;
   }
 
-  ack.vccvoltage = analogRead(VccVoltage)*.0306;
+  ack.vccvoltage = analogRead(VccVoltage) * .0306;
   ack.has_vccvoltage = true;
-  ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
+  ack.vvcurrent = ((analogRead(VvCurrent) * .0049) - 5) * -.05;
   ack.has_vvcurrent = true;
-  if (rewrite>= capacity){
-    rewrite = 0;
-  }
-  if (fullness < capacity){
-    ++fullness;
-  }
-  amps[rewrite++] = (analogRead(VccCurrent));
+  // if (rewrite >= capacity){
+  //   rewrite = 0;
+  // }
+  // if (fullness < capacity){
+  //   fullness++;
+  // }
+  // amps[rewrite++] = (analogRead(VccCurrent));
 
-  vcccurrent = 0;
-  for (int j = 0; j < capacity; ++j){
-    vcccurrent += amps[j];
-  }
-  vcccurrent = vcccurrent/fullness;
+  // vcccurrent = 0;
+  // for (int j = 0; j < fullness; j++){
+  //   vcccurrent += amps[j];
+  // }
+  // vcccurrent = vcccurrent/fullness;
 
-  ack.vcccurrent = ((vcccurrent*arduino_units)-half_volt)*10;
+  // ack.vcccurrent = ((vcccurrent * arduino_units) - half_volt) * 10;
+  ack.vcccurrent = 1;
   ack.has_vcccurrent = true;
 
   if (message != NULL) {
@@ -261,7 +262,7 @@ void loop()
               send_ack(DEBUG, PB_GET_ERROR(&stream));
             }
 
-            motor_servo.writeMicroseconds (command.motor);
+            motor_servo.writeMicroseconds(command.motor);
             rudder_servo.writeMicroseconds(command.rudder);
             stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
             port_elevator_servo.writeMicroseconds(command.port_elevator);
@@ -281,7 +282,7 @@ void loop()
 
             // char message[256];
             // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK, "Sanity Check - 'you were insane the whole time'");
+            send_ack(ACK, "Success");
           }
           else
           {
@@ -292,7 +293,6 @@ void loop()
         {
           send_ack(DEBUG, "Message size is wrong (too big)");
         }
-
       }
       else
       {
@@ -304,7 +304,6 @@ void loop()
       send_ack(DEBUG, "Read wrong number of bytes for prefix");
     }
   }
-
 }
 
 void handle_timeout() {
