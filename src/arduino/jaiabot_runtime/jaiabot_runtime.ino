@@ -63,17 +63,6 @@ const int VvCurrent = A3;
 const int VccCurrent = A2;
 const int VccVoltage = A0;
 
-//for rolling average
-const int capacity = 50;
-int amps[capacity]{0};
-int rewrite = 0;
-int fullness = 0;
-double vcccurrent = 0;
-const double arduino_units = 0.0049;
-const double half_volt = .5;
-const double amp_volt_conversion = 10;
-
-
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 enum AckCode {
@@ -93,6 +82,34 @@ bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *a
 
     return pb_encode_string(stream, (uint8_t*)ack_message, strlen(ack_message));
 }
+
+double Vcccurrent_rolling_average() {
+  //for rolling average
+  const int capacity = 50;
+
+  static int amps[capacity]{0};
+  static int rewrite = 0;
+  static int fullness = 0;
+
+  const double arduino_units = 0.0049;
+  const double half_volt = .5;
+  const double amp_volt_conversion = 10;
+
+  amps[rewrite] = (analogRead(VccCurrent));
+  fullness = max(rewrite + 1, fullness);
+
+  rewrite = (rewrite + 1) % capacity;
+
+  double vcccurrent = 0;
+  for (int j = 0; j < fullness; ++j){
+    vcccurrent += amps[j];
+  }
+  vcccurrent = vcccurrent / fullness;
+
+  return ((vcccurrent * arduino_units) - half_volt) * 10;
+
+}
+
 
 // Send a response message back to the RasPi
 void send_ack(AckCode code, char message[])
@@ -127,21 +144,9 @@ void send_ack(AckCode code, char message[])
   ack.has_vccvoltage = true;
   ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
   ack.has_vvcurrent = true;
-  if (rewrite>= capacity){
-    rewrite = 0;
-  }
-  if (fullness < capacity){
-    ++fullness;
-  }
-  amps[rewrite++] = (analogRead(VccCurrent));
 
-  vcccurrent = 0;
-  for (int j = 0; j < capacity; ++j){
-    vcccurrent += amps[j];
-  }
-  vcccurrent = vcccurrent/fullness;
-
-  ack.vcccurrent = ((vcccurrent*arduino_units)-half_volt)*10;
+  // Vcccurrent
+  ack.vcccurrent = Vcccurrent_rolling_average();
   ack.has_vcccurrent = true;
 
   if (message != NULL) {
