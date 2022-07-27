@@ -54,6 +54,7 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
                 helm_ivp_desired_speed_ = false;
                 helm_ivp_desired_heading_ = false;
                 helm_ivp_desired_depth_ = false;
+                helm_ivp_data_ = false;
             }
         }
         else if (moos_msg.key() == "DESIRED_SPEED")
