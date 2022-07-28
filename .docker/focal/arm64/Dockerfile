@@ -33,7 +33,7 @@ RUN apt-get update && \
 
 
 # Allow compilation of this directory, even if it's owned by someone else, not root
-RUN git config --global --add safe.directory /home/ubuntu/jaiabot
+RUN git config --global --add safe.directory /home/jaia/jaiabot
 
 # arduino-cli install
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh && \
