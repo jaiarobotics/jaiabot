@@ -146,6 +146,7 @@ jaiabot::apps::Health::Health()
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
+    launch_thread<HelmIVPStatusThread>(cfg().helm());
 }
 
 void jaiabot::apps::Health::process_coroner_report(
@@ -159,6 +160,7 @@ void jaiabot::apps::Health::process_coroner_report(
     }
 
     last_health_.Clear();
+
     for (auto error : failed_services_)
         last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
 

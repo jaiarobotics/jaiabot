@@ -95,6 +95,21 @@ class NTPStatusThread : public HealthMonitorThread<jaiabot::config::NTPStatusCon
     bool ntpq_peers_successful_{true};
 };
 
+class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPStatusConfig>
+{
+  public:
+    HelmIVPStatusThread(const jaiabot::config::HelmIVPStatusConfig& cfg);
+    ~HelmIVPStatusThread() {}
+
+  private:
+    void issue_status_summary() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+
+  private:
+    jaiabot::protobuf::HelmIVPStatus status_;
+    bool helm_ivp_in_mission_{false};
+};
+
 } // namespace apps
 } // namespace jaiabot
 
