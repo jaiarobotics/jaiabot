@@ -494,6 +494,19 @@ window.onblur = function() {
 
 DeadMansSwitch.setOn(false)
 
+////////// LED code //////////
+let LEDSwitchON = false
+
+function LEDButtonOnClick(e) {
+  LEDSwitchON = true
+  return
+}
+
+function LEDButtoffOnClick(e) {
+  LEDSwitchON = false
+  return
+}
+
 ////////// Setup hotkeys /////////
 
 function keyDown(e) {
@@ -701,6 +714,8 @@ function getVisibleCommand() {
       break;
   }
 
+  pid_control.led_switch_on = LEDSwitchON
+
   let engineering_command = {
     botId : getSelectedBotId(),
     pid_control : pid_control
@@ -742,6 +757,7 @@ function sendVisibleCommand() {
 const interval = setInterval(sendVisibleCommand, 1000);
 
 var hub_location = null
+let previous_status_time = Date.now() * 1e3
 
 // Updates the status element with a status response object
 function updateStatus(status) {
@@ -751,8 +767,8 @@ function updateStatus(status) {
 
   table = el("statusTable")
   innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance (m)</th><th>Speed</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Course (°)</th><th>Depth (m)</th><th>Salinity</th><th>Temperature (℃)</th><th>Status Age (s)</th><th>Command Age (s)</th>"
-  
-  let now_us = Date.now() * 1000
+
+  let now_us = Date.now() * 1e3
 
   for (const [botId, bot] of Object.entries(bots)) {
     if (bot.botId == 255) {
@@ -782,7 +798,8 @@ function updateStatus(status) {
 
     innerHTML += "<td>" + (bot?.temperature?.toFixed(1) || "?") + "</td>"
 
-    innerHTML += "<td>" + ((now_us - bot.time) / 1e6).toFixed(1) + "</td>"
+    innerHTML +=
+        "<td>" + ((now_us - previous_status_time) / 1e6).toFixed(1) + "</td>"
 
     lastCommandTime = bot.lastCommandTime ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(1) : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
@@ -792,6 +809,8 @@ function updateStatus(status) {
 
   table.innerHTML = innerHTML
 
+  // Set the previous status with now us
+  previous_status_time = now_us
 }
 
 function getSelectedBotId() { return $("#botSelect")[0].value || "0" }

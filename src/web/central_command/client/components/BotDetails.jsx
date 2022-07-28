@@ -7,6 +7,7 @@ import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 
 let prec = 2
+let previous_status_time = Date.now() * 1e3
 
 let commandList = [
     {
@@ -151,9 +152,13 @@ export function BotDetailsComponent(bot, api) {
         return (<div></div>)
     }
 
-    // Get the status age
-    let statusTime = bot.time
-    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+    // Get the current status time
+    let current_status_time = Date.now() * 1e3
+
+    let statusAge = Math.max(0.0, (current_status_time - previous_status_time) / 1e6).toFixed(0)
+
+    // Set the previous status time with current status time
+    previous_status_time = current_status_time
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
@@ -235,6 +240,20 @@ export function BotDetailsComponent(bot, api) {
                     <td>Thermocouple</td>
                     <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
                 </tr>
+                <tr>
+                    <td>5v Current</td>
+                    <td>{bot.vvCurrent?.toFixed(prec)} Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Current</td>
+                    <td>{bot.vccCurrent?.toFixed(prec)} Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Voltage</td>
+                    <td>{bot.vccVoltage?.toFixed(prec)} Volts</td>
+                </tr>
+
+                {console.log(bot)}
             </tbody>
         </table>
         </div>
