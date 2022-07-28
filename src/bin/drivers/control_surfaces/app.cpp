@@ -129,9 +129,6 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
             if (arduino_response.status_code() > 1)
             {
-                glog.is_warn() && glog << "status_code = " << int(arduino_response.status_code())
-                                       << "  vccvoltage: " << arduino_response.vccvoltage()
-                                       << std::endl;
                 glog.is_warn() && glog << group("arduino")
                                        << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
@@ -139,12 +136,6 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
-
-            // if (arduino_response.has_message() && arduino_response.message().length() > 0)
-            // {
-            //     glog.is_warn() && glog << group("arduino") << arduino_response.message()
-            //                            << std::endl;
-            // }
 
             interprocess().publish<groups::arduino>(arduino_response);
         });

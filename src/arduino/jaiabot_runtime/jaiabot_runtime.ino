@@ -9,6 +9,7 @@
 #undef UENUM
 #endif
 #include "jaiabot/messages/nanopb/arduino.pb.h"
+#include "crc16.h"
 
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
@@ -17,6 +18,8 @@ constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
 using serial_size_type = uint16_t;
+
+using crc_type = uint16_t;
 
 constexpr int BITS_IN_BYTE = 8;
 static_assert(jaiabot_protobuf_ArduinoCommand_size < (1ul << (SIZE_BYTES*BITS_IN_BYTE)), "ArduinoCommand is too large, must fit in SIZE_BYTES word");
@@ -73,7 +76,8 @@ enum AckCode {
   MAGIC_WRONG = 4,
   MESSAGE_TOO_BIG = 5,
   MESSAGE_WRONG_SIZE = 6,
-  MESSAGE_DECODE_ERROR = 7
+  MESSAGE_DECODE_ERROR = 7,
+  CRC_ERROR = 8
 };
 
 double Vcccurrent_rolling_average() {
@@ -106,7 +110,7 @@ double Vcccurrent_rolling_average() {
 
 
 // Send a response message back to the RasPi
-void send_ack(AckCode code)
+void send_ack(AckCode code, uint32_t crc=0, uint32_t calculated_crc=0)
 {
   const size_t max_ack_size = 256;
 
@@ -118,6 +122,11 @@ void send_ack(AckCode code)
 
   // Copy code and message
   jaiabot_protobuf_ArduinoResponse ack = jaiabot_protobuf_ArduinoResponse_init_default;
+  ack.crc = crc;
+  ack.has_crc = true;
+  ack.calculated_crc = calculated_crc;
+  ack.has_calculated_crc = true;
+
   ack.status_code = code;
 
   if (thermocouple_is_present) {
@@ -189,6 +198,8 @@ void setup()
     delay(10);
   }
 
+  init_crc16_tab();
+
   // Send startup code
   send_ack(STARTUP);
 }
@@ -212,84 +223,92 @@ void loop()
     handle_timeout();
     // Attempt to ghost bust, delay 100 milliseconds
     delay(100); 
-    
+
     // read bytes until the next magic word start (hopefully)
     while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
       handle_timeout();
       Serial.read();
     }
 
+    // Get prefix
     uint8_t prefix[prefix_size] = {0};
-    if (Serial.readBytes(prefix, prefix_size) == prefix_size)
-    {
-      // If the magic is correct
-      if (memcmp(SERIAL_MAGIC, prefix, SERIAL_MAGIC_BYTES) == 0)
-      {
-        // Read the message size
-        serial_size_type size = 0;
-        size |= prefix[SERIAL_MAGIC_BYTES];
-        size << BITS_IN_BYTE;
-        size |= prefix[SERIAL_MAGIC_BYTES + 1];
-
-        if (size <= jaiabot_protobuf_ArduinoCommand_size)
-        {
-          uint8_t pb_binary_data[jaiabot_protobuf_ArduinoCommand_size] = {0};
-
-          // Read the protobuf binary-encoded message
-          if (Serial.readBytes(pb_binary_data, size) == size)
-          {
-            pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
-
-            // Decode the protobuf command message
-            bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
-            if (!status)
-            {
-              send_ack(MESSAGE_DECODE_ERROR);
-              // send_ack(DEBUG, PB_GET_ERROR(&stream));
-            }
-
-            motor_servo.writeMicroseconds (command.motor);
-            rudder_servo.writeMicroseconds(command.rudder);
-            stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
-            port_elevator_servo.writeMicroseconds(command.port_elevator);
-
-            if (command.led_switch_on == true){
-              analogWrite(LED_D1_PIN, 255);
-              analogWrite(LED_D2_PIN, 255);
-            }
-            else if (command.led_switch_on == false){
-              analogWrite(LED_D1_PIN, 0);
-              analogWrite(LED_D2_PIN, 0);
-            }
-
-            // Set the timeout vars
-            t_last_command = millis();
-            command_timeout = command.timeout * 1000;
-
-            // char message[256];
-            // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK);
-          }
-          else
-          {
-            send_ack(MESSAGE_WRONG_SIZE);
-          }
-        }
-        else
-        {
-          send_ack(MESSAGE_TOO_BIG);
-        }
-
-      }
-      else
-      {
-        send_ack(MAGIC_WRONG);
-      }
-    }
-    else
-    {
+    if (Serial.readBytes(prefix, prefix_size) != prefix_size) {
       send_ack(PREFIX_READ_ERROR);
+      continue;
     }
+
+    // Check magic
+    if (memcmp(SERIAL_MAGIC, prefix, SERIAL_MAGIC_BYTES) != 0) {
+      send_ack(MAGIC_WRONG);
+      continue;
+    }
+
+    // Read the message size
+    serial_size_type size = 0;
+    size |= prefix[SERIAL_MAGIC_BYTES];
+    size << BITS_IN_BYTE;
+    size |= prefix[SERIAL_MAGIC_BYTES + 1];
+
+    if (size > jaiabot_protobuf_ArduinoCommand_size) {
+      send_ack(MESSAGE_TOO_BIG);
+      continue;
+    }
+
+    uint8_t pb_binary_data[jaiabot_protobuf_ArduinoCommand_size] = {0};
+
+    // Read the protobuf binary-encoded message
+    if (Serial.readBytes(pb_binary_data, size) != size) {
+      send_ack(MESSAGE_WRONG_SIZE);
+      continue;
+    }
+
+    // // Read the CRC
+    crc_type crc;
+
+    if (Serial.readBytes((char *) &crc, sizeof(crc)) != sizeof(crc)) {
+      send_ack(CRC_ERROR);
+      continue;
+    }
+
+    // Check the CRC
+    crc_type calculated_crc = crc16(pb_binary_data, size);
+
+    if (calculated_crc != crc) {
+      send_ack(CRC_ERROR, crc, calculated_crc);
+      continue;
+    }
+
+    // Decode the protobuf command message
+    pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
+
+    bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
+    if (!status)
+    {
+      send_ack(MESSAGE_DECODE_ERROR);
+      // send_ack(DEBUG, PB_GET_ERROR(&stream));
+    }
+
+    motor_servo.writeMicroseconds (command.motor);
+    rudder_servo.writeMicroseconds(command.rudder);
+    stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
+    port_elevator_servo.writeMicroseconds(command.port_elevator);
+
+    if (command.led_switch_on == true){
+      analogWrite(LED_D1_PIN, 255);
+      analogWrite(LED_D2_PIN, 255);
+    }
+    else if (command.led_switch_on == false){
+      analogWrite(LED_D1_PIN, 0);
+      analogWrite(LED_D2_PIN, 0);
+    }
+
+    // Set the timeout vars
+    t_last_command = millis();
+    command_timeout = command.timeout * 1000;
+
+    // char message[256];
+    // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
+    send_ack(ACK);
   }
 
 }

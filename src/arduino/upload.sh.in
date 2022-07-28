@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sharedir=../../
+sharedir=@sharedir@
 sketch=@sketchname@
 hex=@hex@
 nickname=@nickname@
