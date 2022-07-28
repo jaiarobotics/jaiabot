@@ -43,7 +43,6 @@ struct MissionManagerStateMachine;
     };
 
 // events
-STATECHART_EVENT(EvTurnOn)
 STATECHART_EVENT(EvSelfTestSuccessful)
 STATECHART_EVENT(EvSelfTestFails)
 struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
@@ -74,7 +73,7 @@ STATECHART_EVENT(EvBeginDataProcessing)
 STATECHART_EVENT(EvDataProcessingComplete)
 STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvShutdown)
-STATECHART_EVENT(EvRedeploy)
+STATECHART_EVENT(EvActivate)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
@@ -132,7 +131,7 @@ struct Notify : public AppMethodsAccess<Derived>
 struct PreDeployment;
 namespace predeployment
 {
-struct Off;
+struct Idle;
 struct SelfTest;
 struct Failed;
 struct WaitForMissionPlan;
@@ -262,7 +261,7 @@ struct MissionManagerStateMachine
 
   private:
     apps::MissionManager& app_;
-    jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__OFF};
+    jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
     jaiabot::protobuf::MissionPlan plan_;
     jaiabot::protobuf::SetpointType setpoint_type_{jaiabot::protobuf::SETPOINT_STOP};
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
@@ -271,11 +270,11 @@ struct MissionManagerStateMachine
 struct PreDeployment
     : boost::statechart::state<PreDeployment,              // (CRTP)
                                MissionManagerStateMachine, // Parent state (or machine)
-                               predeployment::Off          // Initial child substate
+                               predeployment::Idle         // Initial child substate
                                >
 {
     using StateBase =
-        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Off>;
+        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Idle>;
 
     // entry action
     PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
@@ -288,14 +287,14 @@ struct PreDeployment
 
 namespace predeployment
 {
-struct Off : boost::statechart::state<Off, PreDeployment>,
-             Notify<Off, protobuf::PRE_DEPLOYMENT__OFF>
+struct Idle : boost::statechart::state<Idle, PreDeployment>,
+              Notify<Idle, protobuf::PRE_DEPLOYMENT__IDLE>
 {
-    using StateBase = boost::statechart::state<Off, PreDeployment>;
-    Off(typename StateBase::my_context c) : StateBase(c) {}
-    ~Off() {}
+    using StateBase = boost::statechart::state<Idle, PreDeployment>;
+    Idle(typename StateBase::my_context c) : StateBase(c) {}
+    ~Idle() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvTurnOn, SelfTest>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
 };
 
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
@@ -1005,7 +1004,7 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
-                         boost::statechart::transition<EvRedeploy, predeployment::SelfTest>>;
+                         boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 
 struct ShuttingDown : boost::statechart::state<ShuttingDown, PostDeployment>,
