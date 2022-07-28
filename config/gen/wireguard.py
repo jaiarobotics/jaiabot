@@ -59,7 +59,7 @@ with open(script_dir + '/../templates/etc/wg_jaia.conf.in', 'r') as file:
     if args.enable:
         print('Enabling ' + service)
         subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        subprocess.run('systemctl start ' + service, check=True, shell=True)
+        subprocess.run('systemctl restart ' + service, check=True, shell=True)
     if args.disable:
         print('Disabling ' + service)
         subprocess.run('systemctl stop ' + service, check=True, shell=True)
