@@ -82,6 +82,7 @@ constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
 
 // MOOS
 constexpr goby::middleware::Group moos{"jaiabot::moos"};
+constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 
 } // namespace groups
 } // namespace jaiabot
