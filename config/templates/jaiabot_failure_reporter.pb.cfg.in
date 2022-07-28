@@ -1,0 +1,4 @@
+$app_block
+$interprocess_block
+
+log_dir: "$goby_logger_dir"
