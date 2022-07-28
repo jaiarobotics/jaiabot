@@ -110,6 +110,22 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
     bool helm_ivp_in_mission_{false};
 };
 
+class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoStatusConfig>
+{
+  public:
+    ArduinoStatusThread(const jaiabot::config::ArduinoStatusConfig& cfg);
+    ~ArduinoStatusThread() {}
+
+  private:
+    void issue_status_summary() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+
+  private:
+    jaiabot::protobuf::ArduinoStatus status_;
+    bool arduino_is_responding_{false};
+    goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
+};
+
 } // namespace apps
 } // namespace jaiabot
 

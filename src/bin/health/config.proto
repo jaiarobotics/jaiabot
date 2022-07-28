@@ -56,6 +56,12 @@ message HelmIVPStatusConfig
     option (dccl.msg) = { unit_system: "si" };
 }
 
+message ArduinoStatusConfig
+{
+    option (dccl.msg) = { unit_system: "si" };
+    optional int32 arduino_report_timeout_seconds = 10 [default = 10];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -76,5 +82,6 @@ message Health
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
+    optional ArduinoStatusConfig arduino = 42;
     
 }
