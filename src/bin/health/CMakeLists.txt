@@ -6,6 +6,7 @@ add_executable(${APP}
   app.cpp
   linux_hardware_thread.cpp
   time_thread.cpp 
+  helm_ivp_thread.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}
@@ -27,3 +28,4 @@ foreach(JAIABOT_APP ${PROJECT_APP_LIST})
   string(APPEND HEALTH_PROCESS_MAP_ENTRIES "MAKE_ENTRY\(${JAIABOT_APP_UCASE}\),")
 endforeach()
 target_compile_definitions(${APP} PRIVATE JAIABOT_HEALTH_PROCESS_MAP_ENTRIES=${HEALTH_PROCESS_MAP_ENTRIES})
+

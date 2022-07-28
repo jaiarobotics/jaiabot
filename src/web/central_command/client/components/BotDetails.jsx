@@ -7,50 +7,112 @@ import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 
 let prec = 2
+let previous_status_time = Date.now() * 1e3
 
-let commandDescriptions = {
-    RESTART_ALL_SERVICES: "Restart Services",
-    REBOOT_COMPUTER: "Reboot Bot",
-    RECOVERED: "Recover Bot",
-    SHUTDOWN: "Shutdown Bot"
-}
+let commandList = [
+    {
+        enumString: 'ACTIVATE',
+        description: 'Activate Bot',
+        statesAvailable: [
+            /^.+__IDLE$/
+        ]
+    },
+    {
+        enumString: 'NEXT_TASK',
+        description: 'Next Task',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'RETURN_TO_HOME',
+        description: 'Return to Home',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'STOP',
+        description: 'Stop',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'RECOVERED',
+        description: 'Recover Bot',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'SHUTDOWN',
+        description: 'Shutdown Bot',
+        statesAvailable: [
+            /^POST_DEPLOYMENT__IDLE$/,
+            /^PRE_DEPLOYMENT__.+$/
+        ]
+    },
+    {
+        enumString: 'RESTART_ALL_SERVICES',
+        description: 'Restart Services'
+    },
+    {
+        enumString: 'REBOOT_COMPUTER',
+        description: 'Reboot Bot'
+    },
+    {
+        enumString: 'SHUTDOWN_COMPUTER',
+        description: 'Force Shutdown'
+    }
+]
 
-function commandOptionElement(command) {
-    return <option value={command} key={command}>{commandDescriptions[command]}</option>
-}
-
-function issueCommand(api, botId, commandType) {
-    if (confirm("Are you sure you'd like to " + commandDescriptions[commandType] + " (" + commandType + ")?")) {
-        let command = {
-            botId: botId,
-            type: commandType
+function getAvailableCommands(missionState) {
+    return commandList.filter((command) => {
+        let statesAvailable = command.statesAvailable
+        if (statesAvailable == null) {
+            return true
         }
 
-        api.postCommand(command)
+        for (let stateAvailable of statesAvailable) {
+            if (stateAvailable.test(missionState)) return true;
+        }
+
+        return false;
+    })
+}
+
+function issueCommand(api, botId, command) {
+    if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
+        let c = {
+            botId: botId,
+            type: command.enumString
+        }
+
+        console.log(c)
+        api.postCommand(c)
     }
 }
 
-function commandOptions(missionState) {
-    var commands = [
-        "",
-        "RESTART_ALL_SERVICES",
-        "REBOOT_COMPUTER",
-        "RECOVERED"
-    ]
+function getCommandSelectElement(api, bot) {
+    let availableCommands = getAvailableCommands(bot.missionState)
 
-    switch(missionState) {
-        case "POST_DEPLOYMENT__IDLE":
-            commands = commands.concat([
-                "SHUTDOWN",
-            ])
-            break;
-    }
+    return (
+        <select onChange={(evt) => { 
+            issueCommand(api, bot.botId, availableCommands[evt.target.value])
+            evt.target.selectedIndex = -1
+        }} value={-1}>
 
-    let commandOptionElements = commands.map((command) => {
-        return commandOptionElement(command)
-    })
+            <option value="-1" key="-1">...</option>
 
-    return commandOptionElements
+            {
+                availableCommands.map((command, index) => {
+                    return <option value={index} key={index}>{command.description}</option>
+                })            
+            }
+
+        </select>
+    )
 }
 
 // Get the table row for the health of the vehicle
@@ -90,9 +152,13 @@ export function BotDetailsComponent(bot, api) {
         return (<div></div>)
     }
 
-    // Get the status age
-    let statusTime = bot.time
-    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+    // Get the current status time
+    let current_status_time = Date.now() * 1e3
+
+    let statusAge = Math.max(0.0, (current_status_time - previous_status_time) / 1e6).toFixed(0)
+
+    // Set the previous status time with current status time
+    previous_status_time = current_status_time
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
@@ -121,9 +187,7 @@ export function BotDetailsComponent(bot, api) {
                 <tr>
                     <td>Command</td>
                     <td>
-                        <select onChange={(evt) => { issueCommand(api, bot.botId, evt.target.value); evt.target.selectedIndex = 0 }} value={-1}>
-                            {commandOptions(bot.missionState)}
-                        </select>
+                        { getCommandSelectElement(api, bot) }
                     </td>
                 </tr>
                 {healthRow(bot)}
