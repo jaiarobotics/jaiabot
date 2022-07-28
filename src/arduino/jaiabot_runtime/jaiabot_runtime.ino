@@ -69,23 +69,17 @@ enum AckCode {
   STARTUP = 0,
   ACK = 1,
   TIMEOUT = 2,
-  DEBUG=3
+  PREFIX_READ_ERROR = 3,
+  MAGIC_WRONG = 4,
+  MESSAGE_TOO_BIG = 5,
+  MESSAGE_WRONG_SIZE = 6,
+  MESSAGE_DECODE_ERROR = 7
 };
 
-char ack_message[256] = {0};
-
-// Callback for encoding the response message, if present
-bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
-{
-    if (!pb_encode_tag_for_field(stream, field))
-        return false;
-
-    return pb_encode_string(stream, (uint8_t*)ack_message, strlen(ack_message));
-}
-
 double Vcccurrent_rolling_average() {
+
   //for rolling average
-  const int capacity = 50;
+  const int capacity = 25;
 
   static int amps[capacity]{0};
   static int rewrite = 0;
@@ -101,7 +95,7 @@ double Vcccurrent_rolling_average() {
   rewrite = (rewrite + 1) % capacity;
 
   double vcccurrent = 0;
-  for (int j = 0; j < fullness; ++j){
+  for (int j = 0; j < fullness; j++){
     vcccurrent += amps[j];
   }
   vcccurrent = vcccurrent / fullness;
@@ -112,7 +106,7 @@ double Vcccurrent_rolling_average() {
 
 
 // Send a response message back to the RasPi
-void send_ack(AckCode code, char message[])
+void send_ack(AckCode code)
 {
   const size_t max_ack_size = 256;
 
@@ -124,12 +118,7 @@ void send_ack(AckCode code, char message[])
 
   // Copy code and message
   jaiabot_protobuf_ArduinoResponse ack = jaiabot_protobuf_ArduinoResponse_init_default;
-  ack.code = code;
-
-  pb_callback_t callback;
-  callback.funcs.encode = write_string;
-  callback.arg = NULL;
-  ack.message = callback;
+  ack.status_code = code;
 
   if (thermocouple_is_present) {
     // Get the thermocouple temperature
@@ -148,13 +137,6 @@ void send_ack(AckCode code, char message[])
   // Vcccurrent
   ack.vcccurrent = Vcccurrent_rolling_average();
   ack.has_vcccurrent = true;
-
-  if (message != NULL) {
-    strncpy(ack_message, message, 250);
-  }
-  else {
-    strncpy(ack_message, "", 250);
-  }
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
@@ -208,7 +190,7 @@ void setup()
   }
 
   // Send startup code
-  send_ack(STARTUP, NULL);
+  send_ack(STARTUP);
 }
 
 
@@ -262,8 +244,8 @@ void loop()
             bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
             if (!status)
             {
-              send_ack(DEBUG, "Decoding ArduinoCommand protobuf failed:");
-              send_ack(DEBUG, PB_GET_ERROR(&stream));
+              send_ack(MESSAGE_DECODE_ERROR);
+              // send_ack(DEBUG, PB_GET_ERROR(&stream));
             }
 
             motor_servo.writeMicroseconds (command.motor);
@@ -286,27 +268,27 @@ void loop()
 
             // char message[256];
             // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-            send_ack(ACK, "Sanity Check - 'you were insane the whole time'");
+            send_ack(ACK);
           }
           else
           {
-            send_ack(DEBUG, "Read wrong number of bytes for PB data");
+            send_ack(MESSAGE_WRONG_SIZE);
           }
         }
         else
         {
-          send_ack(DEBUG, "Message size is wrong (too big)");
+          send_ack(MESSAGE_TOO_BIG);
         }
 
       }
       else
       {
-        send_ack(DEBUG, "Serial magic is wrong");
+        send_ack(MAGIC_WRONG);
       }
     }
     else
     {
-      send_ack(DEBUG, "Read wrong number of bytes for prefix");
+      send_ack(PREFIX_READ_ERROR);
     }
   }
 
@@ -320,15 +302,15 @@ void handle_timeout() {
     command_timeout = -1;
     halt_all();
 
-    send_ack(TIMEOUT, NULL);
+    send_ack(TIMEOUT);
   }
 }
 
 void halt_all() {
-  const int motor_off = motor_neutral;
-  const int rudder_off = rudder_neutral;
-  const int stbd_elevator_off = stbd_elevator_neutral;
-  const int port_elevator_off = port_elevator_neutral;
+  command.motor = motor_neutral;
+  command.rudder = rudder_neutral;
+  command.stbd_elevator = stbd_elevator_neutral;
+  command.port_elevator = port_elevator_neutral;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
