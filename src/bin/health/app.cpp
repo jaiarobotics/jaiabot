@@ -45,8 +45,13 @@ std::map<std::string, jaiabot::protobuf::Error> create_process_to_not_responding
             protobuf::ERROR__NOT_RESPONDING__##APP_UCASE \
     }
     // only explicitly list external apps; apps built in this repo are added via -DJAIABOT_HEALTH_PROCESS_MAP_ENTRIES
-    return {MAKE_ENTRY(GOBYD),       MAKE_ENTRY(GOBY_LIAISON), MAKE_ENTRY(GOBY_GPS),
-            MAKE_ENTRY(GOBY_LOGGER), MAKE_ENTRY(GOBY_CORONER), JAIABOT_HEALTH_PROCESS_MAP_ENTRIES};
+    return {MAKE_ENTRY(GOBYD),
+            MAKE_ENTRY(GOBY_LIAISON),
+            MAKE_ENTRY(GOBY_GPS),
+            MAKE_ENTRY(GOBY_LOGGER),
+            MAKE_ENTRY(GOBY_CORONER),
+            MAKE_ENTRY(GOBY_MOOS_GATEWAY),
+            JAIABOT_HEALTH_PROCESS_MAP_ENTRIES};
 #undef MAKE_ENTRY
 }
 
@@ -66,6 +71,7 @@ class Health : public ApplicationBase
     goby::time::SteadyClock::time_point next_check_time_;
     goby::middleware::protobuf::ThreadHealth last_health_;
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
+    std::set<jaiabot::protobuf::Error> failed_services_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -85,8 +91,7 @@ jaiabot::apps::Health::Health()
 {
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::Command& command)
-        {
+        [this](const protobuf::Command& command) {
             switch (command.type())
             {
                 // most commands handled by jaiabot_mission_manager
@@ -112,8 +117,32 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { process_coroner_report(vehicle_health); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            process_coroner_report(vehicle_health);
+        });
+
+    interprocess().subscribe<jaiabot::groups::systemd_report>(
+        [this](const protobuf::SystemdStartReport& start_report) {
+            glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
+                                     << std::endl;
+            failed_services_.erase(start_report.clear_error());
+            protobuf::SystemdReportAck ack;
+            ack.set_error_ack(start_report.clear_error());
+            interprocess().publish<groups::systemd_report_ack>(ack);
+        });
+
+    interprocess().subscribe<jaiabot::groups::systemd_report>(
+        [this](const protobuf::SystemdStopReport& stop_report) {
+            glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
+                                     << std::endl;
+            if (stop_report.has_error())
+            {
+                failed_services_.insert(stop_report.error());
+                protobuf::SystemdReportAck ack;
+                ack.set_error_ack(stop_report.error());
+                interprocess().publish<groups::systemd_report_ack>(ack);
+            }
+        });
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
@@ -131,6 +160,9 @@ void jaiabot::apps::Health::process_coroner_report(
     }
 
     last_health_.Clear();
+
+    for (auto error : failed_services_)
+        last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(error);
 
     for (const auto& proc : vehicle_health.process())
     {

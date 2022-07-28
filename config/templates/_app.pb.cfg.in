@@ -2,11 +2,7 @@ app {
   name: "$app"
   glog_config {
       tty_verbosity: $tty_verbosity
-      file_log {
-          file_dir: "$log_file_dir"
-          verbosity: $log_file_verbosity
-      }
+      $file_log
   }
   $simulation
-  $geodesy 
 }

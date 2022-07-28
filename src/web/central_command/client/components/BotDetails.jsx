@@ -7,6 +7,7 @@ import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 
 let prec = 2
+let previous_status_time = Date.now() * 1e3
 
 let commandDescriptions = {
     RESTART_ALL_SERVICES: "Restart Services",
@@ -90,9 +91,13 @@ export function BotDetailsComponent(bot, api) {
         return (<div></div>)
     }
 
-    // Get the status age
-    let statusTime = bot.time
-    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+    // Get the current status time
+    let current_status_time = Date.now() * 1e3
+
+    let statusAge = Math.max(0.0, (current_status_time - previous_status_time) / 1e6).toFixed(0)
+
+    // Set the previous status time with current status time
+    previous_status_time = current_status_time
 
     var statusAgeClassName = ''
     if (statusAge > 30) {

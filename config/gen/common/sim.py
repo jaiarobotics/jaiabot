@@ -1,6 +1,10 @@
 from common import is_simulation, is_runtime
+import os
 
-if is_simulation():
-    warp=10
-else:
-    warp=1
+try:
+    warp=int(os.environ['jaia_warp'])
+except:
+    if is_simulation():
+        warp=10
+    else:
+        warp=1
