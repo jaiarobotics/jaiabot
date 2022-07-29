@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
 jaiabot::apps::FailureReporter::FailureReporter() : ApplicationBase(0.5 * boost::units::si::hertz)
 {
     interprocess().subscribe<groups::systemd_report_ack>(
-        [this](const protobuf::SystemdReportAck& ack) {
+        [this](const protobuf::SystemdReportAck& ack)
+        {
             if (ack.error_ack() == cfg().error_code())
             {
                 glog.is_debug1() && glog << "Got ack. quitting" << std::endl;
