@@ -301,12 +301,20 @@ message ArduinoStatus
     option (dccl.msg) = {
         unit_system: "si"
     };
-    optional sint32 code = 1;
-    optional float thermocouple_temperature_C = 2;
-    optional float vccvoltage = 3;
-    optional float vcccurrent = 4;
-    optional float vvcurrent = 5;
-    optional string message = 20;
+    optional sint32 code = 1 [default = 1];
+    optional float thermocouple_temperature = 2 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];;
+    optional float vccvoltage = 3 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "electric_potential" system: "si" }
+    }];
+    optional float vcccurrent = 4 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+    optional float vvcurrent = 5 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+    optional string message = 6 [default = ""];
 }
 
 message ThreadHealth
