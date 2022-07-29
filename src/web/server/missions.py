@@ -251,7 +251,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
     else:
         # Random distribution of 14 goals within the survey polygon
-        points = MultiPoint(distribute_num_points(p, number_of_bots * 14))
+        points = MultiPoint(distribute_num_points(p, number_of_bots * 12))
 
     # Find Points inside the Polygon
     inside_points_all = points.intersection(p)
@@ -336,7 +336,7 @@ def assign_points_to_bots(survey_points, bot_list):
     """
     number_of_bots = len(bot_list)
     # TODO: Only allow 14 points per bot, change to setting somewhere if goals maximum of 14 is changed
-    survey_points_restricted = survey_points[0:number_of_bots*14]
+    survey_points_restricted = survey_points[0:number_of_bots*12]
     num_survey_points = len(survey_points_restricted)
     point_break = floor(num_survey_points / number_of_bots)
     bot_list_zero = list(np.arange(number_of_bots))
