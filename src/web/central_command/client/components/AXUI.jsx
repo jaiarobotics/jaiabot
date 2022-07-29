@@ -1445,23 +1445,21 @@ export default class AXUI extends React.Component {
 							<FontAwesomeIcon icon={faCrosshairs} />
 						</button>
 					) : (
-						<div>
-							{this.clientLocation.isValid ? (
-								<button
-									type="button"
-									onClick={() => {
-										this.trackBot('user');
-									}}
-									title="Follow User"
-								>
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							) : (
-								<button type="button" className="inactive" title="Follow User">
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							)}
-						</div>
+						this.clientLocation.isValid ? (
+							<button
+								type="button"
+								onClick={() => {
+									this.trackBot('user');
+								}}
+								title="Follow User"
+							>
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						) : (
+							<button type="button" className="inactive" title="Follow User">
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						)
 					)}
 
 					{surveyPolygonActive ? (
