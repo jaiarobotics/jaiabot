@@ -155,7 +155,7 @@ function saveVisibleLayers() {
 let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA Charts'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -647,7 +647,7 @@ export default class AXUI extends React.Component {
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 				// console.log(surveyPolygonGeoCoords);
 				this.setState({surveyPolygonGeoCoords: surveyPolygonGeoCoords, surveyPolygonCoords: geo_geom, surveyPolygonChanged: true})
-				this.generateMissions(surveyPolygonGeoCoords);
+				//this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
 				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
 				// OlUnobserveByKey(surveyPolygonlistener);
@@ -686,6 +686,10 @@ export default class AXUI extends React.Component {
 			Settings.write('rotation', map.getView().getRotation())
 		})
 		
+	}
+
+	genMission() {
+		this.generateMissions(this.state.surveyPolygonGeoCoords);
 	}
 
 	createLayers() {
@@ -1351,7 +1355,7 @@ export default class AXUI extends React.Component {
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel = '';
 		if (this.state.surveyPolygonChanged) {
-			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onClose={() => { this.generateMissions(this.state.surveyPolygonGeoCoords); this.state.surveyPolygonChanged = false }} />
+			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
