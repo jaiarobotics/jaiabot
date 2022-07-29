@@ -33,41 +33,42 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
     const jaiabot::config::HelmIVPStatusConfig& cfg)
     : HealthMonitorThread(cfg, "helm_ivp_status", 4.0 / 60.0 * boost::units::si::hertz)
 {
-    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
-        if (moos_msg.key() == "IVPHELM_STATE")
+    interprocess().subscribe<jaiabot::groups::moos>(
+        [this](const protobuf::MOOSMessage& moos_msg)
         {
-            status_.set_helm_ivp_state(moos_msg.svalue());
-        }
-        else if (moos_msg.key() == "JAIABOT_MISSION_STATE")
-        {
-            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            if (moos_msg.key() == "IVPHELM_STATE")
             {
-                helm_ivp_in_mission_ = true;
+                status_.set_helm_ivp_state(moos_msg.svalue());
             }
-            else
+            else if (moos_msg.key() == "JAIABOT_MISSION_STATE")
             {
-                helm_ivp_in_mission_ = false;
+                if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+                {
+                    helm_ivp_in_mission_ = true;
+                }
+                else
+                {
+                    helm_ivp_in_mission_ = false;
+                }
             }
-        }
-        else if (moos_msg.key() == "DESIRED_SPEED")
-        {
-            status_.set_helm_ivp_desired_speed(true);
-        }
-        else if (moos_msg.key() == "DESIRED_HEADING")
-        {
-            status_.set_helm_ivp_desired_heading(true);
-        }
-        else if (moos_msg.key() == "DESIRED_DEPTH")
-        {
-            status_.set_helm_ivp_desired_depth(true);
-        }
-        // Use NAV_X to test for data as this is the trigger in jaiabot_gateway
-        else if (moos_msg.key() == "NAV_X")
-        {
-            status_.set_helm_ivp_data(true);
-        }
-
-    });
+            else if (moos_msg.key() == "DESIRED_SPEED")
+            {
+                status_.set_helm_ivp_desired_speed(true);
+            }
+            else if (moos_msg.key() == "DESIRED_HEADING")
+            {
+                status_.set_helm_ivp_desired_heading(true);
+            }
+            else if (moos_msg.key() == "DESIRED_DEPTH")
+            {
+                status_.set_helm_ivp_desired_depth(true);
+            }
+            // Use NAV_X to test for data as this is the trigger in jaiabot_gateway
+            else if (moos_msg.key() == "NAV_X")
+            {
+                status_.set_helm_ivp_data(true);
+            }
+        });
 }
 
 void jaiabot::apps::HelmIVPStatusThread::issue_status_summary()
