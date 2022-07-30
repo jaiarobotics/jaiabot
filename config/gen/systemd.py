@@ -147,7 +147,7 @@ jaiabot_apps=[
     {'exe': 'web_app.py',
      'description': 'JaiaBot Web Server',
      'template': 'web.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_PYTHON_WEB_APP',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_WEB_APP',
      'runs_on': Type.HUB},
     {'exe': 'jaiabot_fusion',
      'description': 'JaiaBot Data Fusion',
