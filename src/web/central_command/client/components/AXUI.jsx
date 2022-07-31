@@ -35,6 +35,7 @@ import OlTileWMS from 'ol/source/TileWMS';
 import {OSM, TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
 import OlGraticule from 'ol/layer/Graticule';
+import OlStroke from 'ol/style/Stroke';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -402,7 +403,7 @@ export default class AXUI extends React.Component {
 
 		this.graticuleLayer = new OlGraticule({
 			// the style to use for the lines, optional.
-			strokeStyle: new Stroke({
+			strokeStyle: new OlStrokeStyle({
 				color: 'rgba(255,120,0,0.9)',
 				width: 2,
 				lineDash: [0.5, 4],
