@@ -37,12 +37,13 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
             arduino_is_responding_ = true;
-            status_.set_code(arduino_response.code());
+            status_.set_code(arduino_response.status_code());
             status_.set_thermocouple_temperature(arduino_response.thermocouple_temperature_c());
             status_.set_vcccurrent(arduino_response.vcccurrent());
             status_.set_vccvoltage(arduino_response.vccvoltage());
             status_.set_vvcurrent(arduino_response.vvcurrent());
-            status_.set_message(arduino_response.message());
+            status_.set_crc(arduino_response.crc());
+            status_.set_calculated_crc(arduino_response.calculated_crc());
         });
 }
 

@@ -314,7 +314,9 @@ message ArduinoStatus
     optional float vvcurrent = 5 [default = 0, (dccl.field) = {
         units { derived_dimensions: "current" }
     }];
-    optional string message = 6 [default = ""];
+
+    optional uint32 crc = 50;
+    optional uint32 calculated_crc = 51;
 }
 
 message ThreadHealth
