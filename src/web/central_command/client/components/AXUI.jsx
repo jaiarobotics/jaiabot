@@ -34,6 +34,7 @@ import OlSourceXYZ from 'ol/source/XYZ';
 import OlTileWMS from 'ol/source/TileWMS';
 import {OSM, TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
+import OlGraticule from 'ol/layer/Graticule';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -331,20 +332,23 @@ export default class AXUI extends React.Component {
                                 opacity: 0.5,
                                 zIndex: 9,
                                 source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'OpenStreetMap',
                                 //type: 'base',
                                 zIndex: 9,
                                 opacity: 0.3,
-                                source: new OlSourceOsm()
+                                source: new OlSourceOsm(),
+							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'NOAA ENC Charts',
                                 //type: 'base',
                                 opacity: 0.8,
                                 zIndex: 2,
-                                source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+                                source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'GEBCO Bathymetry',
@@ -354,7 +358,8 @@ export default class AXUI extends React.Component {
                                         params: {'LAYERS': 'GEBCO_LATEST_SUB_ICE_TOPO', 'VERSION':'1.1.1','FORMAT': 'image/png'},
                                         serverType: 'mapserver',
                                         projection: 'EPSG:4326'
-                                })
+                                }),
+							wrapX: false
                         })
                 ].forEach((layer) => {
                         makeLayerSavable(layer);
@@ -393,6 +398,17 @@ export default class AXUI extends React.Component {
 					})
 				})
 			})
+		});
+
+		this.graticuleLayer = new OlGraticule({
+			// the style to use for the lines, optional.
+			strokeStyle: new Stroke({
+				color: 'rgba(255,120,0,0.9)',
+				width: 2,
+				lineDash: [0.5, 4],
+			}),
+			showLabels: true,
+			wrapX: false,
 		});
 
 		const {
@@ -703,6 +719,7 @@ export default class AXUI extends React.Component {
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.graticuleLayer,
 			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
