@@ -98,9 +98,7 @@ export default class LogSelector extends React.Component {
             return <option value={name} key={name}>{name}</option>
         })
 
-        if (elements.length > 1) {
-            elements = [first_option].concat(elements)
-        }
+        elements = [ first_option ].concat(elements)
 
         return elements
     }
