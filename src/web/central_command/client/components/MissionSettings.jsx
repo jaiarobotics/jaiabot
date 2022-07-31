@@ -12,6 +12,7 @@ export class MissionSettingsPanel extends React.Component {
         super(props)
 
         this.state = {
+            goal: props.goal,
             mission_params: props.mission_params
         }
 
@@ -27,22 +28,20 @@ export class MissionSettingsPanel extends React.Component {
     render() {
         self = this
 
-        // var taskOptionsPanel
-        // let taskType = this.state.goal.task?.type
-        //
-        // switch (taskType) {
-        //     case 'DIVE':
-        //         taskOptionsPanel = this.diveOptionsPanel()
-        //         break;
-        //     case 'SURFACE_DRIFT':
-        //         taskOptionsPanel = this.driftOptionsPanel()
-        //         break;
-        //     default:
-        //         taskOptionsPanel = <div></div>
-        //         break;
-        // }
+        let taskOptionsPanel
+        let taskType = this.state.goal.task?.type
 
-        let taskType = ""
+        switch (taskType) {
+            case 'DIVE':
+                taskOptionsPanel = this.diveOptionsPanel()
+                break;
+            case 'SURFACE_DRIFT':
+                taskOptionsPanel = this.driftOptionsPanel()
+                break;
+            default:
+                taskOptionsPanel = <div></div>
+                break;
+        }
 
         return (
             <div className="MissionSettingsPanel">
@@ -62,11 +61,15 @@ export class MissionSettingsPanel extends React.Component {
                                 <td>Mission Spacing</td>
                                 <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
+                            <tr>
+                                <td>Mission Orientation</td>
+                                <td><input type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /></td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    {/*{ taskOptionsPanel }*/}
+                    { taskOptionsPanel }
 
                     <div className='HorizontalFlexbox'>
                         <button onClick={this.closeClicked.bind(this)}>Close</button>

@@ -238,7 +238,8 @@ export default class AXUI extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
-			missionParams: {'spacing': 10},
+			missionParams: {'spacing': 10, 'orientation': 45},
+			missionBaseGoal: {},
 			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
 			surveyPolygonActive: false,
@@ -809,6 +810,15 @@ export default class AXUI extends React.Component {
 		
 		document.onkeydown = KeyPress.bind(this)
 
+		this.state.missionBaseGoal.task = {
+			type: "DIVE",
+			dive: {
+				max_depth: 10,
+				depth_interval: 10,
+				hold_time: 1
+			}
+		}
+
 		info('Welcome to Central Command!');
 	}
 
@@ -1355,7 +1365,7 @@ export default class AXUI extends React.Component {
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel = '';
 		if (this.state.surveyPolygonChanged) {
-			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
+			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
@@ -1995,6 +2005,8 @@ export default class AXUI extends React.Component {
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
 			"sample_spacing": this.state.missionParams.spacing,
+			"mission_type": this.state.missionBaseGoal.task,
+			"orientation": this.state.missionParams.orientation,
 			"home_lon": this.homeLocation['lon'], 
 			"home_lat": this.homeLocation['lat'], 
 			"survey_polygon": this.state.surveyPolygonGeoCoords

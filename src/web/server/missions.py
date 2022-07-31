@@ -19,6 +19,7 @@ import pyproj
 import random
 from shapely.geometry import MultiPoint, Point, Polygon, LineString
 from shapely.ops import transform
+from shapely import affinity
 import shutil
 import sqlite3
 from sqlite3 import OperationalError
@@ -188,7 +189,7 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, bot_list):
+def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, orientation, bot_list):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
@@ -233,7 +234,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     if plot_it:
         gpd.GeoSeries(user_polygon_geo).plot(ax=ax, figsize=(18, 12), color='white')
 
-    # Find the exclusion areas inside the user-defined polygon using external data sources
+    # TODO: Find the exclusion areas inside the user-defined polygon using external data sources
     exclusion_areas = get_exclusion_areas(p)
     exclusion_areas = []
     if plot_it:
@@ -243,6 +244,9 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
     # Find the Polygon rectangular boundary
     xmin, ymin, xmax, ymax = p.bounds
 
+    # Find the Polygon centroid
+    survey_polygon_centroid = p.centroid
+
     # Generate Points
     if spacing_meters and spacing_meters > 0:
         n = spacing_meters
@@ -250,8 +254,12 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         y = np.arange(np.floor(ymin * n) / n, np.ceil(ymax * n) / n, n)
         points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
     else:
-        # Random distribution of 14 goals within the survey polygon
+        # Random distribution of 12 goals within the survey polygon
         points = MultiPoint(distribute_num_points(p, number_of_bots * 12))
+
+    # TODO: Rotate the superset of points to align their orientation
+    if orientation and 0 <= orientation <= 360:
+        points = affinity.rotate(points, orientation, origin=survey_polygon_centroid)
 
     # Find Points inside the Polygon
     inside_points_all = points.intersection(p)
@@ -293,7 +301,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
             gpd.GeoSeries(bot_gdf_dict_ordered[bot].geometry[bot_gdf_dict_ordered[bot].index[-1]]).plot(ax=ax, marker='X', color='black', markersize=20)
 
     # Create mission dict
-    mission_dict_list = create_mission_dict(bot_gdf_dict_ordered, bot_list)
+    mission_dict_list = create_mission_dict(bot_gdf_dict_ordered, bot_list, base_task=mission_type)
 
     if plot_it:
         plt.show()
@@ -335,7 +343,7 @@ def assign_points_to_bots(survey_points, bot_list):
     :return: List of MultiPoint
     """
     number_of_bots = len(bot_list)
-    # TODO: Only allow 14 points per bot, change to setting somewhere if goals maximum of 14 is changed
+    # TODO: Only allow 12 points per bot, change to setting somewhere if goals maximum of 14 is changed
     survey_points_restricted = survey_points[0:number_of_bots*12]
     num_survey_points = len(survey_points_restricted)
     point_break = floor(num_survey_points / number_of_bots)
@@ -401,7 +409,7 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
     alfa = math.degrees(math.atan2(deltay, deltax))
     azimut = (90 - alfa) % 360
 
-    # If main directon is towards east (45°-135°), take westmost point as starting line.
+    # If main direction is towards east (45°-135°), take west-most point as starting line.
     if (azimut > 45 and azimut < 135):
         points_list = points_we
     elif azimut > 180:
@@ -451,9 +459,14 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
     return ordered_points_df
 
 
-def create_mission_dict(bot_multipoint_dict, bot_list):
+def create_mission_dict(bot_multipoint_dict, bot_list, base_task):
     """
     Create the mission dictionaries for each bot
+    {"type": "DIVE",
+                            "dive": {"max_depth": 100,
+                                    "depth_interval": 100,
+                                    "hold_time": 1}
+                            }
     """
     mission_dict_list = []
     for bot in bot_list:
@@ -465,11 +478,7 @@ def create_mission_dict(bot_multipoint_dict, bot_list):
                         "lat": p.y,
                         "lon": p.x
                     },
-                    "task": {"type": "DIVE",
-                            "dive": {"max_depth": 100,
-                                    "depth_interval": 100,
-                                    "hold_time": 1}
-                            }
+                    "task": base_task
                 }
             )
             
