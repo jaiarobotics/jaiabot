@@ -271,7 +271,7 @@ void loop()
     }
 
     // Check the CRC
-    crc_type calculated_crc = crc16(pb_binary_data, size);
+    crc_type calculated_crc = fletcher16(pb_binary_data, size);
 
     if (calculated_crc != crc) {
       send_ack(CRC_ERROR, crc, calculated_crc);
@@ -285,6 +285,7 @@ void loop()
     if (!status)
     {
       send_ack(MESSAGE_DECODE_ERROR);
+      continue;
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     }
 

@@ -94,3 +94,20 @@ static void init_crc16_tab(void)
     crc_tab16_init = true;
 
 } /* init_crc16_tab */
+
+uint16_t fletcher16(const void* input_str, size_t num_bytes)
+{
+    uint16_t sum = 0;
+    uint8_t* sum1 = (uint8_t*)&sum;
+    uint8_t* sum2 = sum1 + 1;
+
+    const uint8_t* buf = (uint8_t*)input_str;
+
+    for (int i = 0; i < num_bytes; i++)
+    {
+        (*sum1) += buf[i];
+        (*sum2) += (*sum1);
+    }
+
+    return sum;
+}
