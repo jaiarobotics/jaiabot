@@ -330,14 +330,14 @@ export default class AXUI extends React.Component {
                         new OlTileLayer({
                                 title: 'Google Satellite & Roads',
                                 type: 'base',
-                                zIndex: 9,
+                                zIndex: 1,
                                 source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
 							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'OpenStreetMap',
                                 type: 'base',
-                                zIndex: 9,
+                                zIndex: 1,
                                 source: new OlSourceOsm(),
 							wrapX: false
                         }),
@@ -345,13 +345,14 @@ export default class AXUI extends React.Component {
                                 title: 'NOAA ENC Charts',
                                 //type: 'base',
                                 opacity: 0.8,
-                                zIndex: 2,
+                                zIndex: 20,
                                 source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'GEBCO Bathymetry',
-                                zIndex: 1,
+                                zIndex: 10,
+								opactity: 0.7,
                                 source: new OlTileWMS({
                                         url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
                                         params: {'LAYERS': 'GEBCO_LATEST_SUB_ICE_TOPO', 'VERSION':'1.1.1','FORMAT': 'image/png'},
