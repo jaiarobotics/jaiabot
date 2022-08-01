@@ -840,10 +840,10 @@ export default class AXUI extends React.Component {
 		}
 
 		map.on('singleclick', function (evt) {
-			console.log(this.state.baseLayerCollection);
+			console.log(this.state.chartLayerCollection);
 			// document.getElementById('info').innerHTML = '';
 			const viewResolution = /** @type {number} */ (view.getResolution());
-			let theSource = this.state.baseLayerCollection.find(x => x.title=="GEBCO Bathymetry");
+			let theSource = this.state.chartLayerCollection.find(x => x.title=="GEBCO Bathymetry");
 			console.log(theSource);
 			const url = theSource.getFeatureInfoUrl(
 				evt.coordinate,
