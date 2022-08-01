@@ -329,17 +329,15 @@ export default class AXUI extends React.Component {
                 [
                         new OlTileLayer({
                                 title: 'Google Satellite & Roads',
-                                //type: 'base',
-                                opacity: 0.5,
+                                type: 'base',
                                 zIndex: 9,
                                 source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
 							wrapX: false
                         }),
                         new OlTileLayer({
                                 title: 'OpenStreetMap',
-                                //type: 'base',
+                                type: 'base',
                                 zIndex: 9,
-                                opacity: 0.3,
                                 source: new OlSourceOsm(),
 							wrapX: false
                         }),
