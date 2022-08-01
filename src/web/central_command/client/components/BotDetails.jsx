@@ -155,7 +155,7 @@ export function BotDetailsComponent(bot, api) {
     // Get the current status time
     let current_status_time = Date.now() * 1e3
 
-    let statusAge = Math.max(0.0, (current_status_time - previous_status_time) / 1e6).toFixed(0)
+    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0)
 
     // Set the previous status time with current status time
     previous_status_time = current_status_time
@@ -253,7 +253,6 @@ export function BotDetailsComponent(bot, api) {
                     <td>{bot.vccVoltage?.toFixed(prec)} Volts</td>
                 </tr>
 
-                {console.log(bot)}
             </tbody>
         </table>
         </div>
