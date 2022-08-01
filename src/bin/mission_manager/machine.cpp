@@ -546,6 +546,70 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
+jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    bool offload_success = false;
+
+    FILE* pipe = popen(cfg().data_offload_command().c_str(), "r");
+    if (!pipe)
+    {
+        glog.is_warn() && glog << "Error opening pipe to data offload command: " << strerror(errno)
+                               << std::endl;
+    }
+    else
+    {
+        std::string stdout;
+        std::array<char, 256> buffer;
+        while (auto bytes_read = fread(buffer.data(), sizeof(char), buffer.size(), pipe))
+            stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+
+        if (!feof(pipe))
+        {
+            pclose(pipe);
+            glog.is_warn() && glog << "Error reading output while executing data offload command"
+                                   << std::endl;
+        }
+        else
+        {
+            int status = pclose(pipe);
+            if (status < 0)
+            {
+                glog.is_warn() && glog
+                                      << "Error executing data offload command: " << strerror(errno)
+                                      << ", output: " << stdout << std::endl;
+            }
+            else
+            {
+                if (WIFEXITED(status))
+                {
+                    int exit_status = WEXITSTATUS(status);
+                    if (exit_status == 0)
+                        offload_success = true;
+                    else
+                        glog.is_warn() &&
+                            glog << "Error: Offload command returned normally but with "
+                                    "non-zero exit code "
+                                 << exit_status << ", output: " << stdout << std::endl;
+                }
+
+                else
+                {
+                    glog.is_warn() && glog << "Error: Offload command exited abnormally. output: "
+                                           << stdout << std::endl;
+                }
+            }
+        }
+    }
+
+    if (!offload_success)
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+    else // clear any previous offload failed warning
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
+
+    post_event(EvDataOffloadComplete());
+}
+
 jaiabot::statechart::postdeployment::ShuttingDown::ShuttingDown(typename StateBase::my_context c)
     : StateBase(c)
 {

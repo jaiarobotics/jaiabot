@@ -40,7 +40,7 @@ verbosities = \
   'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'},  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -149,7 +149,8 @@ elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index))
+                                     bot_id=bot_index,
+                                     log_dir=log_file_dir))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

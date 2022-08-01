@@ -188,8 +188,7 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        {
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
             {
                 // TODO make SelfTest include more information?
@@ -237,6 +236,16 @@ void jaiabot::apps::MissionManager::loop()
     machine_->process_event(statechart::EvLoop());
 }
 
+void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    health.set_state(goby::middleware::protobuf::HEALTH__OK);
+    // add warnings that the state machine keeps track of and possible downgrade health state
+    machine_->health(health);
+    glog.is_debug1() && glog << "health(): " << health.ShortDebugString() << std::endl;
+}
+
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
@@ -256,26 +265,34 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 glog.is_warn() && glog << "Infeasible mission: Must have at least one goal in "
                                           "a TRANSIT mission"
                                        << std::endl;
+                machine_->insert_warning(
+                    jaiabot::protobuf::
+                        WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL);
                 mission_is_feasible = false;
             }
-
             // cannot recover at final goal if there isn't one
-            if (command.plan().recovery().recover_at_final_goal() &&
-                command.plan().goal_size() == 0)
+            else if (command.plan().recovery().recover_at_final_goal() &&
+                     command.plan().goal_size() == 0)
             {
                 glog.is_warn() && glog << "Infeasible mission: Must have at least one goal to have "
                                           "recover_at_final_goal: true"
                                        << std::endl;
+                machine_->insert_warning(
+                    jaiabot::protobuf::
+                        WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL);
                 mission_is_feasible = false;
             }
-
             // must have a location if !recover_at_final_goal
-            if (!command.plan().recovery().recover_at_final_goal() &&
-                !command.plan().recovery().has_location())
+            else if (!command.plan().recovery().recover_at_final_goal() &&
+                     !command.plan().recovery().has_location())
             {
                 glog.is_warn() && glog << "Infeasible mission: Must have recovery location if not "
                                           "recovering at final goal"
                                        << std::endl;
+                machine_->insert_warning(
+                    jaiabot::protobuf::
+                        WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL);
+
                 mission_is_feasible = false;
             }
 
@@ -283,6 +300,8 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             {
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
                 machine_->process_event(statechart::EvMissionFeasible(command.plan()));
+                // these are left over from the last mission command, erase them
+                machine_->erase_infeasible_mission_warnings();
             }
             else
             {

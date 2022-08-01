@@ -213,6 +213,27 @@ struct MissionManagerStateMachine
     void set_state(jaiabot::protobuf::MissionState state) { state_ = state; }
     jaiabot::protobuf::MissionState state() const { return state_; }
 
+    void insert_warning(jaiabot::protobuf::Warning warning) { warnings_.insert(warning); }
+    void erase_warning(jaiabot::protobuf::Warning warning) { warnings_.erase(warning); }
+    void erase_infeasible_mission_warnings()
+    {
+        for (auto it = warnings_.begin(); it != warnings_.end();)
+        {
+            if (jaiabot::protobuf::Warning_Name(*it).find("INFEASIBLE_MISSION") !=
+                std::string::npos)
+                it = warnings_.erase(it);
+            else
+                ++it;
+        }
+    }
+    void health(goby::middleware::protobuf::ThreadHealth& health)
+    {
+        for (auto warning : warnings_)
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(warning);
+        if (!warnings_.empty() && health.state() == goby::middleware::protobuf::HEALTH__OK)
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+    }
+
     void set_setpoint_type(jaiabot::protobuf::SetpointType setpoint_type)
     {
         setpoint_type_ = setpoint_type;
@@ -265,6 +286,7 @@ struct MissionManagerStateMachine
     jaiabot::protobuf::MissionPlan plan_;
     jaiabot::protobuf::SetpointType setpoint_type_{jaiabot::protobuf::SETPOINT_STOP};
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
+    std::set<jaiabot::protobuf::Warning> warnings_;
 };
 
 struct PreDeployment
@@ -972,7 +994,7 @@ struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>
     using StateBase = boost::statechart::state<DataProcessing, PostDeployment>;
     DataProcessing(typename StateBase::my_context c) : StateBase(c)
     {
-        // TODO - implement any data processing required
+        // currently we do not do any data processing on the bot
         post_event(EvDataProcessingComplete());
     }
     ~DataProcessing() {}
@@ -985,11 +1007,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
                      Notify<DataOffload, protobuf::POST_DEPLOYMENT__DATA_OFFLOAD>
 {
     using StateBase = boost::statechart::state<DataOffload, PostDeployment>;
-    DataOffload(typename StateBase::my_context c) : StateBase(c)
-    {
-        // TODO - implement data offload (or if this is going to done out-of-band, notify it here)
-        post_event(EvDataOffloadComplete());
-    }
+    DataOffload(typename StateBase::my_context c);
     ~DataOffload() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>>;

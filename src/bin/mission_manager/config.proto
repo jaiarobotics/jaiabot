@@ -37,4 +37,7 @@ message MissionManager
         RC_SETPOINT_ENDS_IN_SURFACE_DRIFT = 2;
     }
     optional RemoteControlSetpointEnd rc_setpoint_end = 50 [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
+
+    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/ jaia@hub0:/var/log/jaiabot/bot_offload
+    required string data_offload_command = 60;
 }
