@@ -404,10 +404,11 @@ export default class AXUI extends React.Component {
 		this.graticuleLayer = new OlGraticule({
 			// the style to use for the lines, optional.
 			strokeStyle: new OlStrokeStyle({
-				color: 'rgba(255,120,0,0.9)',
+				color: 'rgb(0,0,0)',
 				width: 2,
 				lineDash: [0.5, 4],
 			}),
+			opacity: 0.8,
 			showLabels: true,
 			wrapX: false,
 		});
@@ -2042,7 +2043,7 @@ export default class AXUI extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 			<div id="globalCommandBox">
-				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
 				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
