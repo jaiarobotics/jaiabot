@@ -408,6 +408,7 @@ export default class AXUI extends React.Component {
 				width: 2,
 				lineDash: [0.5, 4],
 			}),
+			zIndex: 30,
 			opacity: 0.8,
 			showLabels: true,
 			wrapX: false,
@@ -837,6 +838,27 @@ export default class AXUI extends React.Component {
 				hold_time: 1
 			}
 		}
+
+		map.on('singleclick', function (evt) {
+			console.log(this.state.baseLayerCollection);
+			// document.getElementById('info').innerHTML = '';
+			const viewResolution = /** @type {number} */ (view.getResolution());
+			let theSource = this.state.baseLayerCollection.find(x => x.title=="GEBCO Bathymetry");
+			console.log(theSource);
+			const url = theSource.getFeatureInfoUrl(
+				evt.coordinate,
+				viewResolution,
+				'EPSG:4326',
+				{'INFO_FORMAT': 'text/html'}
+			);
+			if (url) {
+				fetch(url)
+					.then((response) => response.text())
+					.then((html) => {
+						document.getElementById('layerinfo').innerHTML = html;
+					});
+			}
+		});
 
 		info('Welcome to Central Command!');
 	}
@@ -1396,6 +1418,8 @@ export default class AXUI extends React.Component {
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
+
+				<div id="layerinfo">&nbsp;</div>
 
 				<div id="eStop">
 					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
