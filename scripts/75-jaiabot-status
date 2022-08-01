@@ -15,6 +15,7 @@ export SYSTEMD_COLORS=1
 systemctl list-units -all "jaia*"
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 echo
-echo "jaiabot-embedded version: " && apt info jaiabot-embedded | grep -i version
+cat /etc/jaiabot/version
 echo
+echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 
