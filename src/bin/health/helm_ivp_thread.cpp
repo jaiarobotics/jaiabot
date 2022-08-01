@@ -73,9 +73,12 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
 
 void jaiabot::apps::HelmIVPStatusThread::issue_status_summary()
 {
-    glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
+    glog.is_debug2() && glog << group(thread_name()) << "Status: " << previous_status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::helm_ivp>(status_);
+    interprocess().publish<jaiabot::groups::helm_ivp>(previous_status_);
+
+    // Set previous status to current status
+    previous_status_ = status_;
 
     // Reset values for logging.
     // If these values no longer get updates
@@ -91,7 +94,7 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    if (status_.helm_ivp_state() != "DRIVE")
+    if (previous_status_.helm_ivp_state() != "DRIVE")
     {
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
@@ -103,15 +106,16 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
     // IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
     if (helm_ivp_in_mission_)
     {
-        if (!status_.helm_ivp_desired_speed() && !status_.helm_ivp_desired_heading() &&
-            !status_.helm_ivp_desired_depth())
+        if (!previous_status_.helm_ivp_desired_speed() &&
+            !previous_status_.helm_ivp_desired_heading() &&
+            !previous_status_.helm_ivp_desired_depth())
         {
             demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                 ->add_error(protobuf::ERROR__MOOS__HELMIVP_NO_DESIRED_DATA);
         }
 
-        if (!status_.helm_ivp_data())
+        if (!previous_status_.helm_ivp_data())
         {
             demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)

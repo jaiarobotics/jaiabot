@@ -107,6 +107,7 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
 
   private:
     jaiabot::protobuf::HelmIVPStatus status_;
+    jaiabot::protobuf::HelmIVPStatus previous_status_;
     bool helm_ivp_in_mission_{false};
 };
 
