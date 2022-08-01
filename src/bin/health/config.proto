@@ -72,6 +72,7 @@ message Health
         [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 
     optional bool ignore_powerstate_changes = 20 [default = false];
+    optional bool check_helm_ivp_status = 21 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
