@@ -6,7 +6,7 @@ import sys
 import argparse
 import socket
 import logging
-import AtlasOEM_EC
+import atlas_oem
 
 parser = argparse.ArgumentParser(description=\
     '''Read salinity from an Atlas Scientific EC EZO sensor, and publish over UDP port.  The data is published as a comma-separated series on one line.  These are the fields, in the order they will appear:
@@ -38,8 +38,8 @@ class Sensor:
 
     def setup(self):
         if not self.is_setup:
-            self.device = AtlasOEM_EC.AtlasOEM_EC(address=args.address)
-            self.device.write_active_hibernate(1)
+            self.device = atlas_oem.AtlasOEM(address=args.address)
+            self.device.setActiveHibernate(1)
             self.is_setup = True
             log.info(f'Salinity sensor I2C address: 0x{args.address:02x}')
 
@@ -47,11 +47,11 @@ class Sensor:
         if not self.is_setup:
             self.setup()
 
-        if self.device.read_new_reading_available():
-            EC = self.device.read_EC_reading()
-            TDS = self.device.read_TDS_reading()
-            S = self.device.read_salinitiy_reading()
-            SG = 0.0        
+        if self.device.newReadingAvailable():
+            EC = self.device.EC()
+            TDS = self.device.TDS()
+            S = self.device.salinity()
+            SG = 0.0
 
             return [EC, TDS, S, SG]
         else:
