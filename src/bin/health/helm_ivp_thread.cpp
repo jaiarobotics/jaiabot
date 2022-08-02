@@ -38,6 +38,7 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
         {
             if (moos_msg.key() == "IVPHELM_STATE")
             {
+                helm_ivp_state_last_updated_ = goby::time::SteadyClock::now();
                 status_.set_helm_ivp_state(moos_msg.svalue());
             }
             else if (moos_msg.key() == "JAIABOT_MISSION_STATE")
@@ -53,19 +54,23 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
             }
             else if (moos_msg.key() == "DESIRED_SPEED")
             {
+                helm_ivp_desired_last_updated_ = goby::time::SteadyClock::now();
                 status_.set_helm_ivp_desired_speed(true);
             }
             else if (moos_msg.key() == "DESIRED_HEADING")
             {
+                helm_ivp_desired_last_updated_ = goby::time::SteadyClock::now();
                 status_.set_helm_ivp_desired_heading(true);
             }
             else if (moos_msg.key() == "DESIRED_DEPTH")
             {
+                helm_ivp_desired_last_updated_ = goby::time::SteadyClock::now();
                 status_.set_helm_ivp_desired_depth(true);
             }
             // Use NAV_X to test for data as this is the trigger in jaiabot_gateway
             else if (moos_msg.key() == "NAV_X")
             {
+                helm_ivp_data_last_updated_ = goby::time::SteadyClock::now();
                 status_.set_helm_ivp_data(true);
             }
         });
@@ -75,19 +80,7 @@ void jaiabot::apps::HelmIVPStatusThread::issue_status_summary()
 {
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << previous_status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::helm_ivp>(previous_status_);
-
-    // Set previous status to current status
-    previous_status_ = status_;
-
-    // Reset values for logging.
-    // If these values no longer get updates
-    // these values will be posted.
-    status_.set_helm_ivp_state("UNKNOWN");
-    status_.set_helm_ivp_desired_speed(false);
-    status_.set_helm_ivp_desired_heading(false);
-    status_.set_helm_ivp_desired_depth(false);
-    status_.set_helm_ivp_data(false);
+    interprocess().publish<jaiabot::groups::helm_ivp>(status_);
 }
 
 void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -106,9 +99,8 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
     // IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
     if (helm_ivp_in_mission_)
     {
-        if (!previous_status_.helm_ivp_desired_speed() &&
-            !previous_status_.helm_ivp_desired_heading() &&
-            !previous_status_.helm_ivp_desired_depth())
+        if (!status_.helm_ivp_desired_speed() && !status_.helm_ivp_desired_heading() &&
+            !status_.helm_ivp_desired_depth())
         {
             demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
@@ -121,6 +113,26 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                 ->add_error(protobuf::ERROR__MOOS__NO_DATA);
         }
+    }
+
+    // Reset ivp helm state if we have not
+    // Received an update in a certain time frame
+    if ((helm_ivp_state_last_updated_ + std::chrono::seconds(cfg().time_out_helm_status()) <
+         goby::time::SteadyClock::now()))
+    {
+        status_.set_helm_ivp_state("UNKNOWN");
+    }
+    if ((helm_ivp_desired_last_updated_ + std::chrono::seconds(cfg().time_out_helm_status()) <
+         goby::time::SteadyClock::now()))
+    {
+        status_.set_helm_ivp_desired_speed(false);
+        status_.set_helm_ivp_desired_heading(false);
+        status_.set_helm_ivp_desired_depth(false);
+    }
+    if ((helm_ivp_data_last_updated_ + std::chrono::seconds(cfg().time_out_helm_status()) <
+         goby::time::SteadyClock::now()))
+    {
+        status_.set_helm_ivp_data(false);
     }
 
     health.set_state(health_state);
