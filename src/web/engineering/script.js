@@ -757,7 +757,6 @@ function sendVisibleCommand() {
 const interval = setInterval(sendVisibleCommand, 1000);
 
 var hub_location = null
-let previous_status_time = Date.now() * 1e3
 
 // Updates the status element with a status response object
 function updateStatus(status) {
@@ -799,7 +798,7 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot?.temperature?.toFixed(1) || "?") + "</td>"
 
     innerHTML +=
-        "<td>" + ((now_us - previous_status_time) / 1e6).toFixed(1) + "</td>"
+        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
 
     lastCommandTime = bot.lastCommandTime ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(1) : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
@@ -808,9 +807,6 @@ function updateStatus(status) {
   }
 
   table.innerHTML = innerHTML
-
-  // Set the previous status with now us
-  previous_status_time = now_us
 }
 
 function getSelectedBotId() { return $("#botSelect")[0].value || "0" }
