@@ -116,8 +116,11 @@ std::shared_ptr<goby::middleware::protobuf::IOData> serialize(const ProtobufMess
     auto header_and_data = jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded;
 
     // Add CRC32
-    auto crc = crc16(&pb_encoded[0], pb_encoded.size());
+    auto crc = fletcher16(&pb_encoded[0], pb_encoded.size());
     std::string crc_data = std::string((const char*)&crc, sizeof(crc));
+
+    // FAKE NOISE
+    // header_and_data[std::rand() % header_and_data.size()] = std::rand() % 256;
 
     io->set_data(header_and_data + crc_data);
 
