@@ -356,7 +356,7 @@ export default class AXUI extends React.Component {
 				opacity: 0.7,
 				source: new OlTileWMS({
 					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_SUB_ICE_TOPO', 'VERSION':'1.1.1','FORMAT': 'image/png'},
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
 					serverType: 'mapserver',
 					projection: 'EPSG:4326'
 				}),
@@ -839,17 +839,20 @@ export default class AXUI extends React.Component {
 			}
 		}
 
-		map.on('singleclick', function (evt) {
-			console.log(this.state.chartLayerCollection);
-			// document.getElementById('info').innerHTML = '';
-			const viewResolution = /** @type {number} */ (view.getResolution());
-			let theSource = this.state.chartLayerCollection.find(x => x.title=="GEBCO Bathymetry");
-			console.log(theSource);
+		map.on('doubleclick', function (evt) {
+			document.getElementById('layerinfo').innerHTML = '';
+			const viewResolution = /** @type {number} */ (map.getView().getResolution());
+			let layer_array = us.state.baseLayerCollection.getArray();
+			let theSource = layer_array.find(x => x.values_.title==="GEBCO Bathymetry");
 			const url = theSource.getFeatureInfoUrl(
 				evt.coordinate,
 				viewResolution,
 				'EPSG:4326',
-				{'INFO_FORMAT': 'text/html'}
+				{
+					'INFO_FORMAT': 'text/html',
+					'VERSION': '1.3.0',
+					'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo'
+				}
 			);
 			if (url) {
 				fetch(url)
