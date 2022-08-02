@@ -29,7 +29,7 @@ then
 fi
 
 echo "🟢 Building jaiabot apps"
-docker run -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
 
 if [ -z "$1" ]
 then
