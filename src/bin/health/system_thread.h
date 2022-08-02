@@ -108,6 +108,9 @@ class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPS
   private:
     jaiabot::protobuf::HelmIVPStatus status_;
     bool helm_ivp_in_mission_{false};
+    goby::time::SteadyClock::time_point helm_ivp_state_last_updated_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point helm_ivp_desired_last_updated_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point helm_ivp_data_last_updated_{std::chrono::seconds(0)};
 };
 
 } // namespace apps
