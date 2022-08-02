@@ -7,7 +7,6 @@ import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 
 let prec = 2
-let previous_status_time = Date.now() * 1e3
 
 let commandList = [
     {
@@ -152,13 +151,7 @@ export function BotDetailsComponent(bot, api) {
         return (<div></div>)
     }
 
-    // Get the current status time
-    let current_status_time = Date.now() * 1e3
-
     let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0)
-
-    // Set the previous status time with current status time
-    previous_status_time = current_status_time
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
