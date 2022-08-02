@@ -12,11 +12,13 @@ export class MissionSettingsPanel extends React.Component {
         super(props)
 
         this.state = {
+            goal: props.goal,
             mission_params: props.mission_params
         }
 
         this.onClose = props.onClose
         this.onChange = props.onChange
+        this.onMissionApply = props.onMissionApply
     }
 
     componentDidUpdate() {
@@ -26,51 +28,55 @@ export class MissionSettingsPanel extends React.Component {
     render() {
         self = this
 
-        // var taskOptionsPanel
-        // let taskType = this.state.goal.task?.type
-        //
-        // switch (taskType) {
-        //     case 'DIVE':
-        //         taskOptionsPanel = this.diveOptionsPanel()
-        //         break;
-        //     case 'SURFACE_DRIFT':
-        //         taskOptionsPanel = this.driftOptionsPanel()
-        //         break;
-        //     default:
-        //         taskOptionsPanel = <div></div>
-        //         break;
-        // }
+        let taskOptionsPanel
+        let taskType = this.state.goal.task?.type
 
-        let taskType = ""
+        switch (taskType) {
+            case 'DIVE':
+                taskOptionsPanel = this.diveOptionsPanel()
+                break;
+            case 'SURFACE_DRIFT':
+                taskOptionsPanel = this.driftOptionsPanel()
+                break;
+            default:
+                taskOptionsPanel = <div></div>
+                break;
+        }
 
         return (
-        <div className="MissionSettingsPanel">
-            Mission Settings
-            <div>
-                Task
-                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value) } defaultValue={taskType ?? "NONE"}>
-                    <option value="NONE">None</option>
-                    <option value="DIVE">Dive</option>
-                    <option value="SURFACE_DRIFT">Surface Drift</option>
-                    <option value="STATION_KEEP">Station Keep</option>
-                </select>
+            <div className="MissionSettingsPanel">
+                Mission Settings
                 <div>
-                    <table>
-                        <tr>
-                            <td>Mission Spacing</td>
-                            <td><input type="number" className="NumberInput" name="mission_spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} m/></td>
-                        </tr>
-                    </table>
+                    Task
+                    <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value) } defaultValue={taskType ?? "NONE"}>
+                        <option value="NONE">None</option>
+                        <option value="DIVE">Dive</option>
+                        <option value="SURFACE_DRIFT">Surface Drift</option>
+                        <option value="STATION_KEEP">Station Keep</option>
+                    </select>
+                    <div>
+                        <table>
+                            <tbody>
+                            <tr>
+                                <td>Mission Spacing</td>
+                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /></td>
+                            </tr>
+                            <tr>
+                                <td>Mission Orientation</td>
+                                <td><input type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    { taskOptionsPanel }
+
+                    <div className='HorizontalFlexbox'>
+                        <button onClick={this.closeClicked.bind(this)}>Close</button>
+                        <button onClick={this.applyMissionClicked.bind(this)}>Apply</button>
+                    </div>
                 </div>
-
-                {/*{ taskOptionsPanel }*/}
-
-                <div className='HorizontalFlexbox'>
-                    <button onClick={this.closeClicked.bind(this)}>Close</button>
-                </div>
-
             </div>
-        </div>
         )
     }
 
@@ -131,18 +137,18 @@ export class MissionSettingsPanel extends React.Component {
             <div>
                 <table className="DiveParametersTable">
                     <tbody>
-                        <tr>
-                            <td>Max Depth</td>
-                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={this.changeDiveParameter.bind(this)} /> m</td>
-                        </tr>
-                        <tr>
-                            <td>Depth Interval</td>
-                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
-                        </tr>
-                        <tr>
-                            <td>Hold Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
-                        </tr>
+                    <tr>
+                        <td>Max Depth</td>
+                        <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                    </tr>
+                    <tr>
+                        <td>Depth Interval</td>
+                        <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                    </tr>
+                    <tr>
+                        <td>Hold Time</td>
+                        <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -167,10 +173,10 @@ export class MissionSettingsPanel extends React.Component {
             <div>
                 <table className="DiveParametersTable">
                     <tbody>
-                        <tr>
-                            <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
-                        </tr>
+                    <tr>
+                        <td>Drift Time</td>
+                        <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -190,6 +196,10 @@ export class MissionSettingsPanel extends React.Component {
 
     closeClicked() {
         this.onClose?.()
+    }
+
+    applyMissionClicked() {
+        this.onMissionApply?.()
     }
 
     applyClicked() {
