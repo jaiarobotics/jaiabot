@@ -78,7 +78,7 @@ jaiabot::apps::HelmIVPStatusThread::HelmIVPStatusThread(
 
 void jaiabot::apps::HelmIVPStatusThread::issue_status_summary()
 {
-    glog.is_debug2() && glog << group(thread_name()) << "Status: " << previous_status_.DebugString()
+    glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::helm_ivp>(status_);
 }
@@ -87,7 +87,7 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    if (previous_status_.helm_ivp_state() != "DRIVE")
+    if (status_.helm_ivp_state() != "DRIVE")
     {
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
@@ -107,7 +107,7 @@ void jaiabot::apps::HelmIVPStatusThread::health(goby::middleware::protobuf::Thre
                 ->add_error(protobuf::ERROR__MOOS__HELMIVP_NO_DESIRED_DATA);
         }
 
-        if (!previous_status_.helm_ivp_data())
+        if (!status_.helm_ivp_data())
         {
             demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
