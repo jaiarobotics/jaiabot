@@ -22,7 +22,7 @@ const optimizationConfig = {
 					comments: false,
 				},
 			},
-			cache: true,
+			// cache: true,
 			parallel: true,
 		})
 	],
@@ -32,8 +32,9 @@ const optimizationConfig = {
 module.exports = (env, argv) => [
   // Client ================================================================
   {
-		// name: 'client',
+    // name: 'client',
     target: 'web',
+    stats: 'errors-only',
     devtool: 'eval-source-map',
     entry: ['babel-polyfill', './client/index.js'],
     output: {
@@ -68,7 +69,14 @@ module.exports = (env, argv) => [
         },
         {
           test: /\.(png|woff|woff2|eot|ttf|svg)$/,
-          loader: 'url-loader?limit=100000'
+          use: [
+            {
+              loader: 'url-loader',
+              options: {
+                limit: 100000
+              }
+            }
+          ]
         },
         {
           test: /\.less$/,
@@ -78,7 +86,9 @@ module.exports = (env, argv) => [
             {
               loader: 'less-loader',
               options: {
-                javascriptEnabled: true // Less version > 3.0.0
+                lessOptions: {
+                  javascriptEnabled: true
+                }
               }
             }
           ]
