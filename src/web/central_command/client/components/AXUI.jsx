@@ -34,6 +34,8 @@ import OlSourceXYZ from 'ol/source/XYZ';
 import OlTileWMS from 'ol/source/TileWMS';
 import {OSM, TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
+import OlGraticule from 'ol/layer/Graticule';
+import OlStroke from 'ol/style/Stroke';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -155,7 +157,7 @@ function saveVisibleLayers() {
 let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA Charts'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -238,7 +240,8 @@ export default class AXUI extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
-			missionParams: {'spacing': 10},
+			missionParams: {'spacing': 10, 'orientation': 45},
+			missionBaseGoal: {},
 			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
 			surveyPolygonActive: false,
@@ -323,42 +326,46 @@ export default class AXUI extends React.Component {
 
 		const { baseLayerCollection } = this.state;
 
-                [
-                        new OlTileLayer({
-                                title: 'Google Satellite & Roads',
-                                //type: 'base',
-                                opacity: 0.5,
-                                zIndex: 9,
-                                source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-                        }),
-                        new OlTileLayer({
-                                title: 'OpenStreetMap',
-                                //type: 'base',
-                                zIndex: 9,
-                                opacity: 0.3,
-                                source: new OlSourceOsm()
-                        }),
-                        new OlTileLayer({
-                                title: 'NOAA ENC Charts',
-                                //type: 'base',
-                                opacity: 0.8,
-                                zIndex: 2,
-                                source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
-                        }),
-                        new OlTileLayer({
-                                title: 'GEBCO Bathymetry',
-                                zIndex: 1,
-                                source: new OlTileWMS({
-                                        url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-                                        params: {'LAYERS': 'GEBCO_LATEST_SUB_ICE_TOPO', 'VERSION':'1.1.1','FORMAT': 'image/png'},
-                                        serverType: 'mapserver',
-                                        projection: 'EPSG:4326'
-                                })
-                        })
-                ].forEach((layer) => {
-                        makeLayerSavable(layer);
-                        baseLayerCollection.push(layer);
-                });
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'Google Satellite & Roads',
+				type: 'base',
+				zIndex: 1,
+				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'OpenStreetMap',
+				type: 'base',
+				zIndex: 1,
+				source: new OlSourceOsm(),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
+			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			baseLayerCollection.push(layer);
+		});
 
 		this.clientAccuracyFeature = new OlFeature();
 
@@ -392,6 +399,19 @@ export default class AXUI extends React.Component {
 					})
 				})
 			})
+		});
+
+		this.graticuleLayer = new OlGraticule({
+			// the style to use for the lines, optional.
+			strokeStyle: new OlStrokeStyle({
+				color: 'rgb(0,0,0)',
+				width: 2,
+				lineDash: [0.5, 4],
+			}),
+			zIndex: 30,
+			opacity: 0.8,
+			showLabels: true,
+			wrapX: false,
 		});
 
 		const {
@@ -647,7 +667,7 @@ export default class AXUI extends React.Component {
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 				// console.log(surveyPolygonGeoCoords);
 				this.setState({surveyPolygonGeoCoords: surveyPolygonGeoCoords, surveyPolygonCoords: geo_geom, surveyPolygonChanged: true})
-				this.generateMissions(surveyPolygonGeoCoords);
+				//this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
 				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
 				// OlUnobserveByKey(surveyPolygonlistener);
@@ -688,6 +708,10 @@ export default class AXUI extends React.Component {
 		
 	}
 
+	genMission() {
+		this.generateMissions(this.state.surveyPolygonGeoCoords);
+	}
+
 	createLayers() {
 		this.missionLayer = new OlVectorLayer()
 
@@ -698,6 +722,7 @@ export default class AXUI extends React.Component {
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.graticuleLayer,
 			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
@@ -804,6 +829,39 @@ export default class AXUI extends React.Component {
 		}
 		
 		document.onkeydown = KeyPress.bind(this)
+
+		this.state.missionBaseGoal.task = {
+			type: "DIVE",
+			dive: {
+				max_depth: 10,
+				depth_interval: 10,
+				hold_time: 1
+			}
+		}
+
+		map.on('doubleclick', function (evt) {
+			document.getElementById('layerinfo').innerHTML = '';
+			const viewResolution = /** @type {number} */ (map.getView().getResolution());
+			let layer_array = us.state.baseLayerCollection.getArray();
+			let theSource = layer_array.find(x => x.values_.title==="GEBCO Bathymetry");
+			const url = theSource.getFeatureInfoUrl(
+				evt.coordinate,
+				viewResolution,
+				'EPSG:4326',
+				{
+					'INFO_FORMAT': 'text/html',
+					'VERSION': '1.3.0',
+					'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo'
+				}
+			);
+			if (url) {
+				fetch(url)
+					.then((response) => response.text())
+					.then((html) => {
+						document.getElementById('layerinfo').innerHTML = html;
+					});
+			}
+		});
 
 		info('Welcome to Central Command!');
 	}
@@ -1351,7 +1409,7 @@ export default class AXUI extends React.Component {
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel = '';
 		if (this.state.surveyPolygonChanged) {
-			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onClose={() => { this.generateMissions(this.state.surveyPolygonGeoCoords); this.state.surveyPolygonChanged = false }} />
+			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
@@ -1363,6 +1421,8 @@ export default class AXUI extends React.Component {
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
+
+				<div id="layerinfo">&nbsp;</div>
 
 				<div id="eStop">
 					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
@@ -1991,6 +2051,8 @@ export default class AXUI extends React.Component {
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
 			"sample_spacing": this.state.missionParams.spacing,
+			"mission_type": this.state.missionBaseGoal.task,
+			"orientation": this.state.missionParams.orientation,
 			"home_lon": this.homeLocation['lon'], 
 			"home_lat": this.homeLocation['lat'], 
 			"survey_polygon": this.state.surveyPolygonGeoCoords
@@ -2008,7 +2070,7 @@ export default class AXUI extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 			<div id="globalCommandBox">
-				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
 				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
