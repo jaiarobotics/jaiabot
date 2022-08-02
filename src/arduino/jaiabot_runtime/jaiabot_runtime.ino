@@ -3,7 +3,7 @@
 #include <pb_encode.h>
 #include <Servo.h>
 #include <stdio.h>
-#include <Adafruit_MAX31855.h>
+//#include <Adafruit_MAX31855.h>
 
 #ifdef UENUM
 #undef UENUM
@@ -44,13 +44,13 @@ int port_elevator_neutral = 1500;
 int rudder_neutral = 1500;
 
 // The thermocouple
-constexpr int CLOCK_PIN = 7;
-constexpr int SELECT_PIN = 4;
-constexpr int DATA_PIN = A4;
+//constexpr int CLOCK_PIN = 7;
+//constexpr int SELECT_PIN = 4;
+//constexpr int DATA_PIN = A4;
 
 bool thermocouple_is_present = false;
 
-Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
+//Adafruit_MAX31855 thermocouple(CLOCK_PIN, SELECT_PIN, DATA_PIN);
 
 // Power Pins
 constexpr int POWER_PIN = A1;
@@ -131,7 +131,7 @@ void send_ack(AckCode code, uint32_t crc=0, uint32_t calculated_crc=0)
 
   if (thermocouple_is_present) {
     // Get the thermocouple temperature
-    ack.thermocouple_temperature_C = thermocouple.readCelsius();
+    //ack.thermocouple_temperature_C = thermocouple.readCelsius();
     ack.has_thermocouple_temperature_C = true;
   }
   else {
@@ -190,13 +190,13 @@ void setup()
   port_elevator_servo.attach(PORT_ELEVATOR_PIN);
 
   // Begin thermocouple, but abandon after 5 second
-  for (int i = 0; i < 500; i++) {
+  /*for (int i = 0; i < 500; i++) {
     if (thermocouple.begin()) {
       thermocouple_is_present = true;
       break;
     }
     delay(10);
-  }
+  }*/
 
   init_crc16_tab();
 
@@ -271,7 +271,7 @@ void loop()
     }
 
     // Check the CRC
-    crc_type calculated_crc = crc16(pb_binary_data, size);
+    crc_type calculated_crc = fletcher16(pb_binary_data, size);
 
     if (calculated_crc != crc) {
       send_ack(CRC_ERROR, crc, calculated_crc);
@@ -285,6 +285,7 @@ void loop()
     if (!status)
     {
       send_ack(MESSAGE_DECODE_ERROR);
+      continue;
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     }
 
