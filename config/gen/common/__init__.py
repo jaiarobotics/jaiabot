@@ -21,7 +21,7 @@ try:
     jaia_log_dir=os.environ['jaia_log_dir']
     os.makedirs(jaia_log_dir, exist_ok=True)
 except:    
-    config.fail('Must set jaia_log_dir environmental variable.')
+    config.fail('Must set jaia_log_dir environmental variable and must be able to create log directory.')
 
 
 jaia_templates_dir=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) +  '/../../templates')
@@ -45,8 +45,9 @@ def is_runtime():
     return jaia_mode == Mode.RUNTIME
 
 
-def app_block(verbosities, debug_log_file_dir, geodesy):
-    default_verbosities = {'runtime': {'tty': 'WARN', 'log': 'WARN'}, 'simulation': {'tty': 'QUIET', 'log': 'QUIET'}}
+def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):
+    # placeholder for non-Goby apps to avoid having to define in verbosities when not used.
+    default_verbosities = {'runtime': {'tty': 'MUST_SET_IN_BOT/HUB.PY', 'log': 'MUST_SET_IN_BOT/HUB.PY'}, 'simulation': {'tty': 'MUST_SET_IN_BOT/HUB.PY', 'log': 'MUST_SET_IN_BOT/HUB.PY'}}
     app_verbosity = verbosities.get(app, default_verbosities)
 
     if is_simulation():
@@ -58,11 +59,16 @@ def app_block(verbosities, debug_log_file_dir, geodesy):
         simulation_block = ""
         tty_verbosity = app_verbosity['runtime']['tty']
         log_verbosity = app_verbosity['runtime']['log']
-    
+
+
+    if omit_debug_log or log_verbosity == 'QUIET':
+        file_log=''
+    else:
+        file_log='file_log { file_dir: "' + debug_log_file_dir + '" verbosity: ' + log_verbosity + ' }'
+
+        
     return config.template_substitute(jaia_templates_dir+'/_app.pb.cfg.in',
-                                           app=app,
-                                           tty_verbosity = tty_verbosity,
-                                           log_file_dir = debug_log_file_dir,
-                                           log_file_verbosity = log_verbosity,
-                                           simulation=simulation_block,
-                                           geodesy=geodesy)
+                                      app=app,
+                                      tty_verbosity = tty_verbosity,
+                                      file_log=file_log,
+                                      simulation=simulation_block)

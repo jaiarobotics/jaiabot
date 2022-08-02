@@ -1,9 +1,10 @@
 build/*
 arm64_build/*
-.vscode/*
+.vscode
 *~
 cmake_install.cmake
 CMakeFiles
 CMakeCache.txt
 __pycache__
 .DS_Store
+.idea

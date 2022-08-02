@@ -5,6 +5,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update apt-key (out of date in goby3-ubuntu-build-arm64)
 RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
+# Add packages.jaia.tech
+RUN apt-get update && apt-get -y install dirmngr && \
+    echo "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+
 # Install jaiabot dependencies
 RUN apt-get update && \
     apt-get -y upgrade && \
@@ -28,7 +33,7 @@ RUN apt-get update && \
 
 
 # Allow compilation of this directory, even if it's owned by someone else, not root
-RUN git config --global --add safe.directory /home/ubuntu/jaiabot
+RUN git config --global --add safe.directory /home/jaia/jaiabot
 
 # arduino-cli install
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh && \

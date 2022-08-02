@@ -7,7 +7,7 @@ package jaiabot.protobuf;
 
 enum MissionState
 {
-    PRE_DEPLOYMENT__OFF = 1;
+    PRE_DEPLOYMENT__IDLE = 1;
     PRE_DEPLOYMENT__SELF_TEST = 2;
     PRE_DEPLOYMENT__FAILED = 3;
     PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4;

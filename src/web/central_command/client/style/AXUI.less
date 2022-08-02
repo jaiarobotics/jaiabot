@@ -150,9 +150,6 @@ textarea {
     line-height: 1;
     cursor: pointer;
 
-    &:last-child {
-      margin-right: 0;
-    }
     &.inactive {
       background: @inactive-color;
       // Going for low contrast here
@@ -358,6 +355,10 @@ textarea {
       td {
         padding: 5px 0.5em;
         font-size: 0.8em;
+      }
+
+      select {
+        color: black;
       }
     }
   }
@@ -1870,6 +1871,16 @@ textarea {
   border-radius: @panel-corner-radius;
 }
 
+.MissionSettingsPanel {
+  background-color: #000000c0;
+  color: #eeeeeeee;
+  position: absolute;
+  right: 46pt;
+  top: 0pt;
+  padding: 8pt;
+  border-radius: 8pt;
+}
+
 .GoalSettingsPanel {
   background-color: #000000c0;
   color: #eeeeeeee;
@@ -2007,6 +2018,36 @@ div.hoverable:hover {
   height: 60pt;
 }
 
-.padded {
-  padding: 8pt;
+#botDetailsComponent .botCommand {
+  padding: 4pt;
+  margin: 4pt
+}
+
+.yellow {
+  color: yellow;
+}
+
+.red {
+  color: red;
+}
+
+#axui_container button.danger {
+  background-color: red;
+}
+
+.horizontal.flexbox {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.vertical.flexbox {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+#botDetailsTable {
+  width: 250pt;
+  table-layout: fixed;
 }

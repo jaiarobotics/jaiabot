@@ -31,6 +31,7 @@ using namespace std;
 #include "jaiabot/groups.h"
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -79,6 +80,9 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
     // timeout
     int arduino_timeout = 5;
+
+    //LED
+    bool led_switch_on = false;
 };
 
 } // namespace apps
@@ -117,21 +121,21 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                 handle_control_surfaces(low_control.control_surfaces());
             }
         });
-
     // Get an ArduinoResponse
     interthread().subscribe<serial_in>(
         [this](const goby::middleware::protobuf::IOData& io)
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
 
-            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
-                                     << arduino_response.ShortDebugString() << std::endl;
-
-            if (arduino_response.has_message() && arduino_response.message().length() > 0)
+            if (arduino_response.status_code() > 1)
             {
-                glog.is_warn() && glog << group("arduino") << arduino_response.message()
+                glog.is_warn() && glog << group("arduino")
+                                       << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
             }
+
+            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino>(arduino_response);
         });
@@ -180,6 +184,12 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
     if (control_surfaces.has_timeout())
     {
         arduino_timeout = control_surfaces.timeout();
+    }
+
+    //pulls the data from on message to another
+    if (control_surfaces.has_led_switch_on())
+    {
+        led_switch_on = control_surfaces.led_switch_on();
     }
 
     _time_last_command_received = now_microseconds();
@@ -234,6 +244,7 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
+    arduino_cmd.set_led_switch_on(led_switch_on);
 
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;

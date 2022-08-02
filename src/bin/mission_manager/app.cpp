@@ -69,11 +69,6 @@ void jaiabot::apps::MissionManager::initialize()
 {
     machine_.reset(new statechart::MissionManagerStateMachine(*this));
     machine_->initiate();
-
-    machine_->process_event(statechart::EvTurnOn());
-
-    // TODO: remove placeholder when actual subscriptions are added
-    handle_self_test_results(true);
 }
 
 void jaiabot::apps::MissionManager::finalize()
@@ -185,10 +180,26 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal) {
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
+        });
+
+    // subscribe for health data
+    interprocess().subscribe<goby::middleware::groups::health_report>(
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        {
+            if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+            {
+                // TODO make SelfTest include more information?
+                machine_->process_event(statechart::EvSelfTestSuccessful());
+            }
+            else
+            {
+                machine_->process_event(statechart::EvSelfTestFails());
+            }
         });
 }
 
@@ -293,7 +304,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvReturnToHome());
             break;
         case protobuf::Command::STOP: machine_->process_event(statechart::EvStop()); break;
-        case protobuf::Command::REDEPLOY: machine_->process_event(statechart::EvRedeploy()); break;
+        case protobuf::Command::RECOVERED:
+            machine_->process_event(statechart::EvRecovered());
+            break;
+        case protobuf::Command::ACTIVATE: machine_->process_event(statechart::EvActivate()); break;
         case protobuf::Command::SHUTDOWN: machine_->process_event(statechart::EvShutdown()); break;
 
         case protobuf::Command::REMOTE_CONTROL_SETPOINT:
@@ -309,15 +323,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
             // handled by jaiabot_health
+        case protobuf::Command::SHUTDOWN_COMPUTER:
         case protobuf::Command::REBOOT_COMPUTER:
-        case protobuf::Command::RESTART_ALL_SERVICES: break;
+        case protobuf::Command::RESTART_ALL_SERVICES:
+            interprocess().publish<jaiabot::groups::powerstate_command>(command);
+            break;
     }
-}
-
-void jaiabot::apps::MissionManager::handle_self_test_results(bool result)
-{
-    if (result)
-        machine_->process_event(statechart::EvSelfTestSuccessful());
-    else
-        machine_->process_event(statechart::EvSelfTestFails());
 }

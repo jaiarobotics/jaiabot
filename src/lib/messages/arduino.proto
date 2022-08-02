@@ -10,6 +10,7 @@ message ArduinoCommand
     optional sint32 stbd_elevator = 3;
     optional sint32 rudder = 4;
     optional sint32 timeout = 5;
+    optional bool led_switch_on = 6;
 
     // For neutral / center values
     optional sint32 motor_neutral = 20;
@@ -18,9 +19,15 @@ message ArduinoCommand
     optional sint32 rudder_neutral = 23;
 }
 
+
 message ArduinoResponse
 {
-    required sint32 code = 1;
+    required sint32 status_code = 1;
     optional float thermocouple_temperature_C = 2;
-    optional string message = 20;
+    optional float vccvoltage = 3;
+    optional float vcccurrent = 4;
+    optional float vvcurrent = 5;
+
+    optional uint32 crc = 50;
+    optional uint32 calculated_crc = 51;
 }
