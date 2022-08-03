@@ -173,7 +173,7 @@ export default {
       const remoteControlled = feature.get('remoteControlled') === true
 
       // SVG icon
-      let rotation = (feature.get('heading') || 180) * (Math.PI / 180.0)
+      let rotation = (feature.get('heading') ?? 180) * (Math.PI / 180.0)
       var icon = botIcon
 
       if (selected) {

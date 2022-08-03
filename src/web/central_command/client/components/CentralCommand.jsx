@@ -250,36 +250,6 @@ export default class CentralCommand extends React.Component {
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
 
-		const getChartLayerXYZ = (chart) => {
-			const sourceOpts = {
-				transitionEffect: 'resize',
-				transition: 0,
-				projection: chart.projection || 'EPSG:3857',
-				wrapX: false,
-				maxZoom: chart.maxZoom || 19
-			};
-			if (chart.getUrl) {
-				sourceOpts.tileUrlFunction = chart.getUrl;
-			} else {
-				sourceOpts.url = chart.url
-					|| `/tiles/${chart.id}/{z}/{x}/{${chart.invertY ? '-' : ''}y}${chart.extension ? `.${chart.extension}` : ''}`;
-			}
-			let layer = new OlTileLayer({
-				title: chart.name,
-				source: new OlSourceXYZ(sourceOpts),
-				type: "base",
-				visible: visibleLayers.has(chart.name),
-				// preload: 5, // Lowest number that works at whatever our max zoom level is for the NOAA chart of Fall River
-				preload: Infinity,
-				useInterimTilesOnError: false
-			});
-
-			makeLayerSavable(layer)
-
-			return layer
-		};
-
-
 		const { chartLayerCollection } = this.state;
 
 		this.chartLayerGroup = new OlLayerGroup({
