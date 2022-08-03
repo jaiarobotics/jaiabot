@@ -30,7 +30,13 @@ def floatFrom(obj):
 
 
 class Interface:
+    # Dict from botId => botStatus
     bots = {}
+
+    # Dict from botId => last timestamp that a status was received
+    lastStatusReceivedTime = {}
+
+    # Dict from botId => engineeringStatus
     bots_engineering = {}
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
@@ -42,6 +48,7 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
+        # Messages to display on the client end
         self.messages = {}
 
         self.pingCount = 0
@@ -74,6 +81,9 @@ class Interface:
             
             if msg.HasField('bot_status'):
                 botStatus = msg.bot_status
+
+                # Set the time of last status to now
+                self.lastStatusReceivedTime[botStatus.bot_id] = now()
 
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
@@ -142,7 +152,15 @@ class Interface:
         return {'status': 'ok'}
 
     def get_status(self):
-        bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
+
+        # Get the bots dictionaries from the stored protobuf messages
+        bots = {}
+        for bot in self.bots.values():
+            bots[bot.bot_id] = google.protobuf.json_format.MessageToDict(bot)
+
+            # Add the time since last status
+            bots[bot.bot_id]['portalStatusAge'] = now() - self.lastStatusReceivedTime[bot.bot_id]
+
 
         # Add the engineering status data
         for botId, botEngineering in self.bots_engineering.items():
