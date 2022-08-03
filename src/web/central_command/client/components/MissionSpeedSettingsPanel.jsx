@@ -8,7 +8,12 @@ export default class MissionSpeedSettingsPanel extends React.Component {
     constructor(props) {
         super(props)
 
-        this.speeds = Settings.read(SPEED_SETTING_KEY) ?? {}
+        const SPEED_DEFAULTS = {
+            transit: 5.0,
+            stationkeep_outer: 2.0
+        }
+
+        this.speeds = Settings.read(SPEED_SETTING_KEY) ?? SPEED_DEFAULTS
     }
 
     render() {

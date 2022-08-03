@@ -54,6 +54,7 @@ message NTPStatusConfig
 message HelmIVPStatusConfig
 {
     option (dccl.msg) = { unit_system: "si" };
+    optional int32 time_out_helm_status = 10 [default = 20];
 }
 
 message ArduinoStatusConfig
@@ -78,6 +79,7 @@ message Health
         [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 
     optional bool ignore_powerstate_changes = 20 [default = false];
+    optional bool check_helm_ivp_status = 21 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;

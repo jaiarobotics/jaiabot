@@ -83,7 +83,7 @@ elif common.app == 'goby_coroner':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common))
 elif common.app == 'jaiabot_health':    
-    print(config.template_substitute(templates_dir+'/jaiabot_health.pb.cfg.in',
+    print(config.template_substitute(templates_dir+'/hub/jaiabot_health.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
