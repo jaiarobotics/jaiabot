@@ -155,9 +155,9 @@ class AtlasOEM:
         print(f'Temperature Compensation: {self.temperatureCompensation():0.2f}')
         print(f'Temperature Confirmation: {self.temperatureConfirmation():0.2f}')
 
-        print(f'EC:                       {self.EC():0.2f}')
-        print(f'TDS:                      {self.TDS():0.2f}')
-        print(f'Salinity:                 {self.salinity():0.2f}')
+        print(f'EC (μS/cm)                {self.EC():0.2f}')
+        print(f'TDS (ppm):                {self.TDS():0.2f}')
+        print(f'Salinity (PSU (ppt)):     {self.salinity():0.2f}')
 
 
 if __name__ == '__main__':
