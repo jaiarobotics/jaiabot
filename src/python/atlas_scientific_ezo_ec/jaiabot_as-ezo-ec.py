@@ -90,7 +90,7 @@ while True:
     try:
         data = sensor.read()
     except Exception as e:
-        log.warning(f'Exception on sensor.read(): e')
+        log.warning(f'Exception on sensor.read(): {e}')
         continue
 
     now = datetime.utcnow()
