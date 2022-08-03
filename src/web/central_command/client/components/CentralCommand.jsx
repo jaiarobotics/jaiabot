@@ -113,7 +113,7 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
-import '../style/AXUI.less';
+import '../style/CentralCommand.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/home.svg'
@@ -126,7 +126,7 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CentralCommand.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
 
@@ -185,7 +185,7 @@ loadVisibleLayers()
 
 // ===========================================================================================================================
 
-export default class AXUI extends React.Component {
+export default class CentralCommand extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -592,7 +592,7 @@ export default class AXUI extends React.Component {
 				listener = evt.feature.getGeometry().on('change', (evt2) => {
 					const geom = evt2.target;
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#measureResult').text(AXUI.formatLength(geom));
+					$('#measureResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this
@@ -652,7 +652,7 @@ export default class AXUI extends React.Component {
 					const geom = evt2.target;
 
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#surveyPolygonResult').text(AXUI.formatLength(geom));
+					$('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this

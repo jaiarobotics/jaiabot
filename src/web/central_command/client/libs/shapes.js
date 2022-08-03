@@ -16,7 +16,7 @@ import botIcon from '../icons/bot-unselected.svg'
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CentralCommand.less');
 
 const COLOR_STATUS_GOOD = lessVars.goodColor;
 
