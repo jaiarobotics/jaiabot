@@ -3,6 +3,7 @@
 import atlas_oem
 
 probe = atlas_oem.AtlasOEM()
+probe.setActiveHibernate(1)
 
 
 def clearScreen():
