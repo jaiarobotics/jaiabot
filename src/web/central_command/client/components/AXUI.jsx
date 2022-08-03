@@ -10,14 +10,12 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
 import * as Icons from '../icons/Icons'
-import { missions, demo_mission, Missions } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
+import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
-
-console.debug('missionLibraryLocalStorage = ', MissionLibraryLocalStorage.shared())
+import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -29,20 +27,21 @@ import {
 	defaults as defaultInteractions,
   } from 'ol/interaction';
 import OlView from 'ol/View';
-import OlText from 'ol/style/Text';
 import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
+import OlTileWMS from 'ol/source/TileWMS';
+import {OSM, TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
+import OlGraticule from 'ol/layer/Graticule';
+import OlStroke from 'ol/style/Stroke';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
 import OlTileLayer from 'ol/layer/Tile';
-import { click } from 'ol/events/condition';
-import OlSelect from 'ol/interaction/Select';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
 import OlMousePosition from 'ol/control/MousePosition';
@@ -58,8 +57,6 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import OlGraticule from 'ol/Graticule';
-import OlStroke from 'ol/style/Stroke';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
 import { deepcopy } from './Utilities';
@@ -157,10 +154,10 @@ function saveVisibleLayers() {
 	Settings.write("visibleLayers", visibleLayers)
 }
 
-var visibleLayers = new Set()
+let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -195,14 +192,14 @@ export default class AXUI extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.sna = new JaiaAPI("/", false);
+		this.api = new JaiaAPI("/", false);
 
 		this.podStatus = {}
 
 		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
-		this.undoMissions = {}
+		this.undoMissionsStack = []
 
 		this.flagNumber = 1
 
@@ -243,8 +240,14 @@ export default class AXUI extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
+			missionParams: {'spacing': 10, 'orientation': 45},
+			missionBaseGoal: {},
+			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
-			surveyPolygonActive: false
+			surveyPolygonActive: false,
+			surveyPolygonGeoCoords: null,
+			surveyPolygonCoords: null,
+			surveyPolygonChanged: false
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -264,7 +267,7 @@ export default class AXUI extends React.Component {
 				sourceOpts.url = chart.url
 					|| `/tiles/${chart.id}/{z}/{x}/{${chart.invertY ? '-' : ''}y}${chart.extension ? `.${chart.extension}` : ''}`;
 			}
-			var layer = new OlTileLayer({
+			let layer = new OlTileLayer({
 				title: chart.name,
 				source: new OlSourceXYZ(sourceOpts),
 				type: "base",
@@ -323,21 +326,41 @@ export default class AXUI extends React.Component {
 
 		const { baseLayerCollection } = this.state;
 
+		// Configure the basemap layers
 		[
-			new OlTileLayer({
-				title: 'NOAA Charts',
-				type: 'base',
-				source: new OlSourceXYZ({ url: 'http://tileservice.charts.noaa.gov/tiles/50000_1/{z}/{x}/{y}.png' })
-			}),
 			new OlTileLayer({
 				title: 'Google Satellite & Roads',
 				type: 'base',
+				zIndex: 1,
 				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+				wrapX: false
 			}),
 			new OlTileLayer({
 				title: 'OpenStreetMap',
 				type: 'base',
-				source: new OlSourceOsm()
+				zIndex: 1,
+				source: new OlSourceOsm(),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
 			})
 		].forEach((layer) => {
 			makeLayerSavable(layer);
@@ -376,6 +399,19 @@ export default class AXUI extends React.Component {
 					})
 				})
 			})
+		});
+
+		this.graticuleLayer = new OlGraticule({
+			// the style to use for the lines, optional.
+			strokeStyle: new OlStrokeStyle({
+				color: 'rgb(0,0,0)',
+				width: 2,
+				lineDash: [0.5, 4],
+			}),
+			zIndex: 30,
+			opacity: 0.8,
+			showLabels: true,
+			wrapX: false,
 		});
 
 		const {
@@ -481,7 +517,7 @@ export default class AXUI extends React.Component {
 					map.getView().setRotation(-heading);
 				}
 			}
-			this.sna
+			this.api
 				.sendClientLocation(
 					this.clientLocation.accuracy < 10,
 					this.clientLocation.position[1],
@@ -609,10 +645,10 @@ export default class AXUI extends React.Component {
 		this.surveyPolygonInteraction.on(
 			'drawstart',
 			(evt) => {
-				this.setState({ surveyPolygonFeature: evt.feature });
+				this.setState({ surveyPolygonFeature: evt.feature, surveyPolygonChanged: false });
 
 				surveyPolygonlistener = evt.feature.getGeometry().on('change', (evt2) => {
-					console.log(evt);
+					// console.log(evt);
 					const geom = evt2.target;
 
 					// tooltipCoord = geom.getLastCoordinate();
@@ -629,8 +665,9 @@ export default class AXUI extends React.Component {
 				let geo_geom = evt.feature.getGeometry();
 				geo_geom.transform("EPSG:3857", "EPSG:4326")
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-				console.log(surveyPolygonGeoCoords);
-				this.generateMissions(surveyPolygonGeoCoords);
+				// console.log(surveyPolygonGeoCoords);
+				this.setState({surveyPolygonGeoCoords: surveyPolygonGeoCoords, surveyPolygonCoords: geo_geom, surveyPolygonChanged: true})
+				//this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
 				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
 				// OlUnobserveByKey(surveyPolygonlistener);
@@ -671,6 +708,10 @@ export default class AXUI extends React.Component {
 		
 	}
 
+	genMission() {
+		this.generateMissions(this.state.surveyPolygonGeoCoords);
+	}
+
 	createLayers() {
 		this.missionLayer = new OlVectorLayer()
 
@@ -681,6 +722,7 @@ export default class AXUI extends React.Component {
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.graticuleLayer,
 			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
@@ -780,13 +822,46 @@ export default class AXUI extends React.Component {
 
 		// Undo button
 		function KeyPress(e) {
-			var evtobj = window.event? event : e
+			let evtobj = window.event? event : e
 			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
 				this.restoreUndo()
 			}
 		}
 		
 		document.onkeydown = KeyPress.bind(this)
+
+		this.state.missionBaseGoal.task = {
+			type: "DIVE",
+			dive: {
+				max_depth: 10,
+				depth_interval: 10,
+				hold_time: 1
+			}
+		}
+
+		map.on('doubleclick', function (evt) {
+			document.getElementById('layerinfo').innerHTML = '';
+			const viewResolution = /** @type {number} */ (map.getView().getResolution());
+			let layer_array = us.state.baseLayerCollection.getArray();
+			let theSource = layer_array.find(x => x.values_.title==="GEBCO Bathymetry");
+			const url = theSource.getFeatureInfoUrl(
+				evt.coordinate,
+				viewResolution,
+				'EPSG:4326',
+				{
+					'INFO_FORMAT': 'text/html',
+					'VERSION': '1.3.0',
+					'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo'
+				}
+			);
+			if (url) {
+				fetch(url)
+					.then((response) => response.text())
+					.then((html) => {
+						document.getElementById('layerinfo').innerHTML = html;
+					});
+			}
+		});
 
 		info('Welcome to Central Command!');
 	}
@@ -799,7 +874,7 @@ export default class AXUI extends React.Component {
 		/* Need to detect when an input field is rendered, then call this on it:
 				This will make the keyboard "go" button close the keyboard instead of doing nothing.
 		$('input').keypress(function(e) {
-				var code = (e.keyCode ? e.keyCode : e.which);
+				let code = (e.keyCode ? e.keyCode : e.which);
 				if ( (code==13) || (code==10))
 						{
 						jQuery(this).blur();
@@ -981,7 +1056,7 @@ export default class AXUI extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
-			var faultLevel = 0
+			let faultLevel = 0
 
 			switch(bot.healthState) {
 				case "HEALTH__OK":
@@ -1050,13 +1125,13 @@ export default class AXUI extends React.Component {
 			}
 
 			if (botFeature.get('controlled')) {
-				botLayer.setZIndex(3);
+				botLayer.setZIndex(103);
 			} else if (botFeature.get('selected')) {
-				botLayer.setZIndex(2);
+				botLayer.setZIndex(102);
 			} else if (botFeature.get('tracked')) {
-				botLayer.setZIndex(1);
+				botLayer.setZIndex(101);
 			} else {
-				botLayer.setZIndex(0);
+				botLayer.setZIndex(100);
 			}
 
 			botLayer.changed();
@@ -1085,7 +1160,7 @@ export default class AXUI extends React.Component {
 		clearInterval(this.timerID);
 		const us = this;
 
-		this.sna.getStatus().then(
+		this.api.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
 					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
@@ -1256,7 +1331,7 @@ export default class AXUI extends React.Component {
 
 		// If something was changed, then place the old mission set into the undoMissions
 		if (oldMissions != this.missions) {
-			this.undoMissions = deepcopy(oldMissions)
+			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
 			this.updateMissionLayer()
@@ -1264,16 +1339,21 @@ export default class AXUI extends React.Component {
 	}
 
 	restoreUndo() {
-		if (this.undoMissions != null) {
-			this.missions = deepcopy(this.undoMissions)
+		if (this.undoMissionsStack.length > 1) {
+			this.missions = this.undoMissionsStack.pop()
 			this.updateMissionLayer()
-			this.undoMissions = null
 		}
 	}
 
 	sendStop() {
-        info("Sent STOP")
-		this.sna.allStop()
+		this.api.allStop().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent STOP")
+			}
+		})
 	}
 
 	returnToHome() {
@@ -1321,21 +1401,28 @@ export default class AXUI extends React.Component {
 
 		let bots = this.podStatus?.bots
 
-		var goalSettingsPanel = ''
+		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
 			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
+		}
+
+		// Add mission generation form to UI if the survey polygon has changed.
+		let missionSettingsPanel = '';
+		if (this.state.surveyPolygonChanged) {
+			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
+			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
 		return (
 			<div id="axui_container">
 
-				{
-					this.leftPanelSidebar()
-				}
+				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
+
+				<div id="layerinfo">&nbsp;</div>
 
 				<div id="eStop">
 					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
@@ -1418,23 +1505,21 @@ export default class AXUI extends React.Component {
 							<FontAwesomeIcon icon={faCrosshairs} />
 						</button>
 					) : (
-						<div>
-							{this.clientLocation.isValid ? (
-								<button
-									type="button"
-									onClick={() => {
-										this.trackBot('user');
-									}}
-									title="Follow User"
-								>
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							) : (
-								<button type="button" className="inactive" title="Follow User">
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							)}
-						</div>
+						this.clientLocation.isValid ? (
+							<button
+								type="button"
+								onClick={() => {
+									this.trackBot('user');
+								}}
+								title="Follow User"
+							>
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						) : (
+							<button type="button" className="inactive" title="Follow User">
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						)
 					)}
 
 					{surveyPolygonActive ? (
@@ -1533,7 +1618,8 @@ export default class AXUI extends React.Component {
 									key={feature.getId()}
 									className=''
 								>
-									{BotDetailsComponent(this.podStatus?.bots?.[feature.getId()])}
+
+									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api)}
 									<div id="botContextCommandBox">
 										{/* Leader-based commands and manual control go here */}
 											<button
@@ -1573,6 +1659,8 @@ export default class AXUI extends React.Component {
 				</div>
 
 				{goalSettingsPanel}
+
+				{missionSettingsPanel}
 
 				{this.commandDrawer()}
 
@@ -1615,8 +1703,12 @@ export default class AXUI extends React.Component {
 						recovery: {recoverAtFinalGoal: true}
 					}
 				}
+
+				if (speeds != null) {
+					missions[botId].speeds = speeds
+				}
 			}
-	
+
 			missions[botId].plan.goal.push({location: location})
 
 		})
@@ -1630,6 +1722,7 @@ export default class AXUI extends React.Component {
 
 		let selectedColor = '#34d2eb'
 		let unselectedColor = '#5ec957'
+		let surveyPolygonColor = '#051d61'
 
 		let homeStyle = new OlStyle({
 			image: new OlIcon({ src: homeIcon })
@@ -1645,9 +1738,14 @@ export default class AXUI extends React.Component {
 			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
 		})
 
+		let surveyPolygonLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: surveyPolygonColor}),
+			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 3.0}),
+		})
+
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			var waypointIcon, lineStyle, color
+			let waypointIcon, lineStyle, color
 
 			let selected = this.isBotSelected(botId)
 
@@ -1662,20 +1760,22 @@ export default class AXUI extends React.Component {
 				color = unselectedColor
 			}
 
-			let goals = missions[botId]?.plan?.goal || []
 
-			console.log('goals: ', goals)
+			let goals = missions[botId]?.plan?.goal || []
 
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
+
+			// console.log('transformed_pts');
+			// console.log(transformed_pts);
 
 			for (let [pt_index, goal] of goals.entries()) {
 				let pt = transformed_pts[pt_index]
 
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
-				var icon
+				let icon
 
 				if (pt_index === 0) {
 					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
@@ -1735,29 +1835,61 @@ export default class AXUI extends React.Component {
 			features.push(homeFeature)
 		}
 
-		var vectorSource = new OlVectorSource({
-				features: features
+		if (this.state.surveyPolygonChanged) {
+			console.log('inside surveyPolygonCoords');
+			// console.log(this.state.surveyPolygonCoords);
+			let pts = this.state.surveyPolygonCoords.getCoordinates()[0];
+			let transformed_survey_pts = pts.map((pt) => {
+				return equirectangular_to_mercator([pt[0], pt[1]])
+			})
+			let surveyPolygonFeature = new OlFeature(
+				{
+					geometry: new OlLineString(transformed_survey_pts),
+					name: "Survey Bounds"
+				}
+			)
+			surveyPolygonFeature.setStyle(surveyPolygonLineStyle);
+			features.push(surveyPolygonFeature);
+		}
+
+		let vectorSource = new OlVectorSource({
+			features: features
 		})
 
 		this.missionLayer.setSource(vectorSource)
+		this.missionLayer.setZIndex(1000)
 	}
 
 	// Runs a mission
 	_runMission(bot_mission) {
-		console.log('Running mission: ', bot_mission)
-		this.sna.postCommand(bot_mission)
+		// Set the speed values
+		let speeds = Settings.read('mission.plan.speeds')
+		if (speeds != null && bot_mission.plan != null) {
+			bot_mission.plan.speeds = speeds
+		}
+
+		console.debug(bot_mission)
+
+		this.api.postCommand(bot_mission).then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+		})
 	}
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions) {
-		if (confirm("Click the OK button to run this mission.")) {
+		let botIds = Object.keys(missions)
+		botIds.sort()
+
+		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
 			for (let bot_id in missions) {
 				let mission = missions[bot_id]
 				this.missions[mission.bot_id] = deepcopy(mission)
 				this._runMission(mission)
 			}
+			success("Submitted missions")
 			this.updateMissionLayer()
-			info("Running mission")
 		}
 	}
 
@@ -1809,68 +1941,29 @@ export default class AXUI extends React.Component {
 					error('No mission set for bot ' + bot_id)
 				}
 			}
-			info("Running mission")
+			info('Submitted missions for ' + botIds.length + ' bots')
 		}
 	}
 
 	// Clears the currently active mission
-	clearMissions() {
-		this.missions = {}
-		this.updateMissionLayer()
-	}
+	deleteClicked() {
+		let selectedBotId = this.selectedBotId()
+		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
 
-	leftPanelSidebar() {
-		let self = this
-
-		return (
-			<div id="leftSidebar" className="column-left">
-				<div id="leftPanelsContainer" className="panelsContainerVertical">
-					<div className="panel">
-						JaiaBot Central Command<br />
-						Version 1.1.0
-					</div>
-					<div className="panel">
-						<button type="button" onClick={function() {
-							window.location.assign('/pid/')
-						} }>
-							Engineering Panel
-						</button>
-					</div>
-
-					<PIDGainsPanel getBots={() => { return this.podStatus?.bots }} />
-
-					{
-						DiveParameters.panel()
-					}
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "RESTART_ALL_SERVICES"
-						})
-					}}>
-						Restart Services
-					</button>
-
-					<button type="button" style={{"margin": "4pt"}} onClick={function() {
-						self.sna.postCommand({
-							botId: self.selectedBotId(),
-							type: "REBOOT_COMPUTER"
-						})
-					}}>
-						Reboot Bot
-					</button>
-				</div>
-				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
-					<FontAwesomeIcon icon={faGripVertical} />
-				</div>
-			</div>
-		)
+		if (confirm('Delete mission for ' + botString + '?')) {
+			if (selectedBotId != null) {
+				delete this.missions[selectedBotId]
+			}
+			else {
+				this.missions = {}
+			}
+			this.updateMissionLayer()
+		}
 	}
 
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
-		var botIds = []
+		let botIds = []
 
 		// Update feature in selected set
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
@@ -1937,7 +2030,7 @@ export default class AXUI extends React.Component {
 	}
 
 	placeHomeAtCoordinate(coordinate) {
-		var lonlat = mercator_to_equirectangular(coordinate)
+		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.homeLocation = location
 
@@ -1952,14 +2045,17 @@ export default class AXUI extends React.Component {
 		console.log('hitting mission_generator');
 		console.log(this.homeLocation);
 		// let bot_list = this.selectedBotIds();
-		let bot_list = [0, 1, 2, 3];
+		let bot_dict_length = Object.keys(this.podStatus.bots).length
+		let bot_list = Array.from(Array(bot_dict_length).keys());
 
-		this.sna.postMissionFilesCreate({
+		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
-			"sample_spacing": 100, 
+			"sample_spacing": this.state.missionParams.spacing,
+			"mission_type": this.state.missionBaseGoal.task,
+			"orientation": this.state.missionParams.orientation,
 			"home_lon": this.homeLocation['lon'], 
 			"home_lat": this.homeLocation['lat'], 
-			"survey_polygon": surveyPolygonGeoCoords
+			"survey_polygon": this.state.surveyPolygonGeoCoords
 		}).then(data => {
 			console.log('got inside')
 			console.log(data);
@@ -1971,10 +2067,10 @@ export default class AXUI extends React.Component {
 	// Command Drawer
 
 	commandDrawer() {
-		var element = (
+		let element = (
 			<div id="commandsDrawer">
 			<div id="globalCommandBox">
-				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
 				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
@@ -2001,7 +2097,7 @@ export default class AXUI extends React.Component {
 				<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
 					Flag
 				</button>
-				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.clearMissions.bind(this)}>
+				<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
 				{ this.undoButton() }
@@ -2033,7 +2129,7 @@ export default class AXUI extends React.Component {
 	}
 
 	undoButton() {
-		let disabled = (this.undoMissions == null)
+		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
 		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
 	}
@@ -2076,7 +2172,7 @@ export default class AXUI extends React.Component {
 			flag: this.flagNumber
 		}
 
-		this.sna.postEngineering(engineeringCommand)
+		this.api.postEngineering(engineeringCommand)
 		info("Posted Flag " + this.flagNumber + " to bot " + botId)
 
 		// Increment the flag number
@@ -2150,7 +2246,7 @@ export default class AXUI extends React.Component {
 			return null
 		}
 
-		return <div class="disconnection shadowed rounded">
+		return <div className="disconnection shadowed rounded">
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>

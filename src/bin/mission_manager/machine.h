@@ -43,7 +43,6 @@ struct MissionManagerStateMachine;
     };
 
 // events
-STATECHART_EVENT(EvTurnOn)
 STATECHART_EVENT(EvSelfTestSuccessful)
 STATECHART_EVENT(EvSelfTestFails)
 struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
@@ -74,7 +73,7 @@ STATECHART_EVENT(EvBeginDataProcessing)
 STATECHART_EVENT(EvDataProcessingComplete)
 STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvShutdown)
-STATECHART_EVENT(EvRedeploy)
+STATECHART_EVENT(EvActivate)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
@@ -132,7 +131,7 @@ struct Notify : public AppMethodsAccess<Derived>
 struct PreDeployment;
 namespace predeployment
 {
-struct Off;
+struct Idle;
 struct SelfTest;
 struct Failed;
 struct WaitForMissionPlan;
@@ -262,7 +261,7 @@ struct MissionManagerStateMachine
 
   private:
     apps::MissionManager& app_;
-    jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__OFF};
+    jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
     jaiabot::protobuf::MissionPlan plan_;
     jaiabot::protobuf::SetpointType setpoint_type_{jaiabot::protobuf::SETPOINT_STOP};
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
@@ -271,11 +270,11 @@ struct MissionManagerStateMachine
 struct PreDeployment
     : boost::statechart::state<PreDeployment,              // (CRTP)
                                MissionManagerStateMachine, // Parent state (or machine)
-                               predeployment::Off          // Initial child substate
+                               predeployment::Idle         // Initial child substate
                                >
 {
     using StateBase =
-        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Off>;
+        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Idle>;
 
     // entry action
     PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
@@ -288,21 +287,24 @@ struct PreDeployment
 
 namespace predeployment
 {
-struct Off : boost::statechart::state<Off, PreDeployment>,
-             Notify<Off, protobuf::PRE_DEPLOYMENT__OFF>
+struct Idle : boost::statechart::state<Idle, PreDeployment>,
+              Notify<Idle, protobuf::PRE_DEPLOYMENT__IDLE>
 {
-    using StateBase = boost::statechart::state<Off, PreDeployment>;
-    Off(typename StateBase::my_context c) : StateBase(c) {}
-    ~Off() {}
+    using StateBase = boost::statechart::state<Idle, PreDeployment>;
+    Idle(typename StateBase::my_context c) : StateBase(c) {}
+    ~Idle() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvTurnOn, SelfTest>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
 };
 
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
                   Notify<SelfTest, protobuf::PRE_DEPLOYMENT__SELF_TEST>
 {
     using StateBase = boost::statechart::state<SelfTest, PreDeployment>;
-    SelfTest(typename StateBase::my_context c) : StateBase(c) {}
+    SelfTest(typename StateBase::my_context c) : StateBase(c)
+    {
+        // TODO add timeout on SelfTest and then post Fails if timeout passes
+    }
     ~SelfTest() {}
 
     using reactions =
@@ -418,7 +420,8 @@ struct InMission
     void set_mission_complete() { mission_complete_ = true; }
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>>;
+        boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
+                         boost::statechart::transition<EvRecovered, PostDeployment>>;
 
   private:
     int goal_index_{0};
@@ -952,7 +955,11 @@ struct Recovered : boost::statechart::state<Recovered, PostDeployment>,
                    Notify<Recovered, protobuf::POST_DEPLOYMENT__RECOVERED>
 {
     using StateBase = boost::statechart::state<Recovered, PostDeployment>;
-    Recovered(typename StateBase::my_context c) : StateBase(c) {}
+    Recovered(typename StateBase::my_context c) : StateBase(c)
+    {
+        // automatically go into data procesing
+        post_event(EvBeginDataProcessing());
+    }
     ~Recovered() {}
 
     using reactions =
@@ -963,7 +970,11 @@ struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>
                         Notify<DataProcessing, protobuf::POST_DEPLOYMENT__DATA_PROCESSING>
 {
     using StateBase = boost::statechart::state<DataProcessing, PostDeployment>;
-    DataProcessing(typename StateBase::my_context c) : StateBase(c) {}
+    DataProcessing(typename StateBase::my_context c) : StateBase(c)
+    {
+        // TODO - implement any data processing required
+        post_event(EvDataProcessingComplete());
+    }
     ~DataProcessing() {}
 
     using reactions =
@@ -974,7 +985,11 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
                      Notify<DataOffload, protobuf::POST_DEPLOYMENT__DATA_OFFLOAD>
 {
     using StateBase = boost::statechart::state<DataOffload, PostDeployment>;
-    DataOffload(typename StateBase::my_context c) : StateBase(c) {}
+    DataOffload(typename StateBase::my_context c) : StateBase(c)
+    {
+        // TODO - implement data offload (or if this is going to done out-of-band, notify it here)
+        post_event(EvDataOffloadComplete());
+    }
     ~DataOffload() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>>;
@@ -987,14 +1002,16 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
     Idle(typename StateBase::my_context c) : StateBase(c) {}
     ~Idle() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
+                         boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 
 struct ShuttingDown : boost::statechart::state<ShuttingDown, PostDeployment>,
                       Notify<ShuttingDown, protobuf::POST_DEPLOYMENT__SHUTTING_DOWN>
 {
     using StateBase = boost::statechart::state<ShuttingDown, PostDeployment>;
-    ShuttingDown(typename StateBase::my_context c) : StateBase(c) {}
+    ShuttingDown(typename StateBase::my_context c);
     ~ShuttingDown() {}
 };
 

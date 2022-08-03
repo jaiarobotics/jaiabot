@@ -5,7 +5,7 @@ import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
-
+import "jaiabot/messages/health.proto";
 
 package jaiabot.protobuf;
 
@@ -28,7 +28,8 @@ message Command
     {
         // pre mission
         MISSION_PLAN = 1;
-        START_MISSION = 2;
+        ACTIVATE = 2;
+        START_MISSION = 3;
 
         // during any mission
         NEXT_TASK = 10;
@@ -41,12 +42,13 @@ message Command
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
         // post mission
-        REDEPLOY = 30;
+        RECOVERED = 30;
         SHUTDOWN = 31;
 
-        // debugging
+        // debugging low level commands
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
+        SHUTDOWN_COMPUTER = 42;
     }
 
     required CommandType type = 10;
@@ -81,6 +83,8 @@ message BotStatus
     }];
 
     optional goby.middleware.protobuf.HealthState health_state = 4;
+    repeated Error error = 5 [(dccl.field).max_repeat = 5];
+    repeated Warning warning = 6 [(dccl.field).max_repeat = 5];
 
     optional GeographicCoordinate location = 10;
 
@@ -140,7 +144,7 @@ message BotStatus
     optional MissionState mission_state = 40;
 
     // bounds should match MissionPlan.goal max_repeat value
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }]; 
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -157,6 +161,27 @@ message BotStatus
         max: 100
         precision: 2
         units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+    
+    optional double vv_current = 54 [(dccl.field) = {
+        min: -5
+        max: 1000
+        precision: 2
+        units { derived_dimensions: "current"}
+    }];
+
+    optional double vcc_current = 55 [(dccl.field) = {
+        min: -5 
+        max: 1000
+        precision: 2
+        units { derived_dimensions: "current"}
+    }];
+
+    optional double vcc_voltage = 56 [(dccl.field) = {
+        min: 0
+        max: 25
+        precision: 2
+        units { derived_dimensions: "electric_potential" system: "si" }
     }];
 }
 

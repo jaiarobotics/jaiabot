@@ -3,10 +3,13 @@
 #define JAIABOT_LORA_SERIAL_H
 
 #include <boost/asio.hpp>
+#include <string>
 
 #include "goby/middleware/io/detail/io_interface.h"     // for PubSubLayer
 #include "goby/middleware/io/detail/serial_interface.h" // for SerialThread
 #include "jaiabot/messages/nanopb/feather.pb.h"
+
+#include "crc16.h"
 
 namespace goby
 {
@@ -36,6 +39,7 @@ constexpr int SIZE_BYTES = 2;
 constexpr int BITS_IN_BYTE = 8;
 constexpr auto SERIAL_MAX_SIZE =
     SERIAL_MAGIC_BYTES + SIZE_BYTES + (1ul << (SIZE_BYTES * BITS_IN_BYTE));
+constexpr auto CRC_SIZE = 4;
 
 /// \brief Reads/Writes LoRa Adafruit feather message packages from/to serial port
 /// \tparam line_in_group goby::middleware::Group to publish to after receiving data from the serial port
@@ -85,6 +89,15 @@ ProtobufMessage parse(const goby::middleware::protobuf::IOData& io)
     auto& data = io.data();
     ProtobufMessage pb_msg;
     constexpr auto prefix_size = jaiabot::lora::SERIAL_MAGIC_BYTES + jaiabot::lora::SIZE_BYTES;
+
+    // Check CRC32
+    // auto calculated_crc = crc32(&data[0] + prefix_size, data.size() - prefix_size - CRC_SIZE);
+    // auto crc = *((uint32_t *) (&data[0] + data.size() - CRC_SIZE));
+
+    // if (calculated_crc != crc) {
+    //     throw std::string("CRC mismatch!");
+    // }
+
     pb_msg.ParseFromArray(&data[0] + prefix_size, data.size() - prefix_size);
     return pb_msg;
 }
@@ -100,7 +113,16 @@ std::shared_ptr<goby::middleware::protobuf::IOData> serialize(const ProtobufMess
     std::string size_str = {static_cast<char>((size >> jaiabot::lora::BITS_IN_BYTE) & 0xFF),
                             static_cast<char>(size & 0xFF)};
 
-    io->set_data(jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded);
+    auto header_and_data = jaiabot::lora::SERIAL_MAGIC + size_str + pb_encoded;
+
+    // Add CRC32
+    auto crc = fletcher16(&pb_encoded[0], pb_encoded.size());
+    std::string crc_data = std::string((const char*)&crc, sizeof(crc));
+
+    // FAKE NOISE
+    // header_and_data[std::rand() % header_and_data.size()] = std::rand() % 256;
+
+    io->set_data(header_and_data + crc_data);
 
     return io;
 }

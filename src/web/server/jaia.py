@@ -30,7 +30,13 @@ def floatFrom(obj):
 
 
 class Interface:
+    # Dict from botId => botStatus
     bots = {}
+
+    # Dict from botId => last timestamp that a status was received
+    lastStatusReceivedTime = {}
+
+    # Dict from botId => engineeringStatus
     bots_engineering = {}
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
@@ -42,6 +48,7 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
+        # Messages to display on the client end
         self.messages = {}
 
         self.pingCount = 0
@@ -75,6 +82,9 @@ class Interface:
             if msg.HasField('bot_status'):
                 botStatus = msg.bot_status
 
+                # Set the time of last status to now
+                self.lastStatusReceivedTime[botStatus.bot_id] = now()
+
                 # Discard the status, if it's a base station
                 if botStatus.bot_id < 255:
                     self.bots[botStatus.bot_id] = botStatus
@@ -92,13 +102,15 @@ class Interface:
     def send_message_to_portal(self, msg, force=False):
         if self.read_only and not force:
             logging.warning('This client is READ-ONLY.  Refusing to send command.')
-            return
+            return False
 
         logging.debug('🟢 SENDING')
         logging.debug(msg)
         data = msg.SerializeToString()
         self.sock.sendto(data, self.goby_host)
         logging.info(f'Sent {len(data)} bytes')
+
+        return True
 
     '''Send empty message to portal, to get it to start sending statuses back to us'''
     def ping_portal(self):
@@ -119,9 +131,16 @@ class Interface:
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
-        self.send_message_to_portal(msg)
+        
+        if self.send_message_to_portal(msg):
+            return {'status': 'ok'}
+        else:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
     def post_all_stop(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
         for bot in self.bots.values():
             cmd = {
                 'botId': bot.bot_id,
@@ -130,8 +149,18 @@ class Interface:
             }
             self.post_command(cmd)
 
+        return {'status': 'ok'}
+
     def get_status(self):
-        bots = {bot.bot_id: google.protobuf.json_format.MessageToDict(bot) for bot in self.bots.values()}
+
+        # Get the bots dictionaries from the stored protobuf messages
+        bots = {}
+        for bot in self.bots.values():
+            bots[bot.bot_id] = google.protobuf.json_format.MessageToDict(bot)
+
+            # Add the time since last status
+            bots[bot.bot_id]['portalStatusAge'] = now() - self.lastStatusReceivedTime[bot.bot_id]
+
 
         # Add the engineering status data
         for botId, botEngineering in self.bots_engineering.items():

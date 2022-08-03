@@ -8,15 +8,160 @@ import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilitie
 
 let prec = 2
 
-export function BotDetailsComponent(bot) {
+let commandList = [
+    {
+        enumString: 'ACTIVATE',
+        description: 'Activate Bot',
+        statesAvailable: [
+            /^.+__IDLE$/
+        ]
+    },
+    {
+        enumString: 'NEXT_TASK',
+        description: 'Next Task',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'RETURN_TO_HOME',
+        description: 'Return to Home',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'STOP',
+        description: 'Stop',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'RECOVERED',
+        description: 'Recover Bot',
+        statesAvailable: [
+            /^IN_MISSION__.+$/
+        ]
+    },
+    {
+        enumString: 'SHUTDOWN',
+        description: 'Shutdown Bot',
+        statesAvailable: [
+            /^POST_DEPLOYMENT__IDLE$/,
+            /^PRE_DEPLOYMENT__.+$/
+        ]
+    },
+    {
+        enumString: 'RESTART_ALL_SERVICES',
+        description: 'Restart Services'
+    },
+    {
+        enumString: 'REBOOT_COMPUTER',
+        description: 'Reboot Bot'
+    },
+    {
+        enumString: 'SHUTDOWN_COMPUTER',
+        description: 'Force Shutdown'
+    }
+]
+
+function getAvailableCommands(missionState) {
+    return commandList.filter((command) => {
+        let statesAvailable = command.statesAvailable
+        if (statesAvailable == null) {
+            return true
+        }
+
+        for (let stateAvailable of statesAvailable) {
+            if (stateAvailable.test(missionState)) return true;
+        }
+
+        return false;
+    })
+}
+
+function issueCommand(api, botId, command) {
+    if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
+        let c = {
+            botId: botId,
+            type: command.enumString
+        }
+
+        console.log(c)
+        api.postCommand(c)
+    }
+}
+
+function getCommandSelectElement(api, bot) {
+    let availableCommands = getAvailableCommands(bot.missionState)
+
+    return (
+        <select onChange={(evt) => { 
+            issueCommand(api, bot.botId, availableCommands[evt.target.value])
+            evt.target.selectedIndex = -1
+        }} value={-1}>
+
+            <option value="-1" key="-1">...</option>
+
+            {
+                availableCommands.map((command, index) => {
+                    return <option value={index} key={index}>{command.description}</option>
+                })            
+            }
+
+        </select>
+    )
+}
+
+// Get the table row for the health of the vehicle
+function healthRow(bot) {
+    let healthClassName = {
+        "HEALTH__OK": "healthOK",
+        "HEALTH__DEGRADED": "healthDegraded",
+        "HEALTH__FAILED": "healthFailed"
+    }[bot.healthState] ?? "healthOK"
+
+    let healthStateElement = <div className={healthClassName}>{bot.healthState}</div>
+
+    let errors = bot.error ?? []
+    let errorElements = errors.map((error) => {
+        return <div className='healthFailed'>{error}</div>
+    })
+    
+    let warnings = bot.warning ?? []
+    let warningElements = warnings.map((warning) => {
+        return <div className='healthDegraded'>{warning}</div>
+    })
+
+    return (
+        <tr>
+            <td>Health</td>
+            <td>
+                {healthStateElement}
+                {errorElements}
+                {warningElements}
+            </td>
+        </tr>
+    )
+}
+
+export function BotDetailsComponent(bot, api) {
     if (bot == null) {
         return (<div></div>)
     }
 
-    // Get the status age
-    let statusTime = bot.time
-    let statusAge = Math.max(0.0, (Date.now() * 1e3 - bot.time) / 1e6).toFixed(0)
+    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0)
 
+    var statusAgeClassName = ''
+    if (statusAge > 30) {
+        statusAgeClassName = 'red'
+    }
+    else if (statusAge > 10) {
+        statusAgeClassName = 'yellow'
+    }
+
+    // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
     var activeGoalRow = (
         <tr>
@@ -25,27 +170,26 @@ export function BotDetailsComponent(bot) {
         </tr>
     )
 
-    let healthClassName = {
-        "HEALTH__OK": "healthOK",
-        "HEALTH__DEGRADED": "healthDegraded",
-        "HEALTH__FAILED": "healthFailed"
-    }[bot.healthState] ?? "healthOK"
 
     return (
-    <div>
+    <div id="botDetailsComponent">
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
-        <table>
+        <div className='horizontal flexbox'>
+        <table id="botDetailsTable">
             <tbody>
                 <tr>
-                    <td>Health</td>
-                    <td className={healthClassName}>{bot.healthState}</td>
+                    <td>Command</td>
+                    <td>
+                        { getCommandSelectElement(api, bot) }
+                    </td>
                 </tr>
+                {healthRow(bot)}
                 <tr>
                     <td>Status</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
                 {activeGoalRow}
-                <tr>
+                <tr className={statusAgeClassName}>
                     <td>Status Age</td>
                     <td>{statusAge} sec</td>
                 </tr>
@@ -89,8 +233,22 @@ export function BotDetailsComponent(bot) {
                     <td>Thermocouple</td>
                     <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
                 </tr>
+                <tr>
+                    <td>5v Current</td>
+                    <td>{bot.vvCurrent?.toFixed(prec)} Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Current</td>
+                    <td>{bot.vccCurrent?.toFixed(prec)} Amps</td>
+                </tr>
+                <tr>
+                    <td>Vcc Voltage</td>
+                    <td>{bot.vccVoltage?.toFixed(prec)} Volts</td>
+                </tr>
+
             </tbody>
         </table>
+        </div>
     </div>
     )
 }
