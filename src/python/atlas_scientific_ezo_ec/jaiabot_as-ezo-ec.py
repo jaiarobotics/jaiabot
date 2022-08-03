@@ -5,8 +5,8 @@ import random
 import sys
 import argparse
 import socket
-from AtlasI2C import *
 import logging
+import atlas_oem
 
 parser = argparse.ArgumentParser(description=\
     '''Read salinity from an Atlas Scientific EC EZO sensor, and publish over UDP port.  The data is published as a comma-separated series on one line.  These are the fields, in the order they will appear:
@@ -38,27 +38,24 @@ class Sensor:
 
     def setup(self):
         if not self.is_setup:
-            self.device = AtlasI2C()
-            self.device.set_i2c_address(args.address)
-            if self.device.query('O,EC,1').error_code  == 1 and \
-               self.device.query('O,TDS,1').error_code == 1 and \
-               self.device.query('O,S,1').error_code   == 1 and \
-               self.device.query('O,SG,1').error_code  == 1:
-                self.is_setup = True
-            else:
-                raise SensorError()
+            self.device = atlas_oem.AtlasOEM(address=args.address)
+            self.device.setActiveHibernate(1)
+            self.is_setup = True
+            log.info(f'Salinity sensor I2C address: 0x{args.address:02x}')
 
     def read(self):
         if not self.is_setup:
             self.setup()
 
-        response = self.device.query('R')
-        if response.error_code != 1:
-            raise SensorError(f'response code = {response.error_code}')
+        if self.device.newReadingAvailable():
+            EC = self.device.EC()
+            TDS = self.device.TDS()
+            S = self.device.salinity()
+            SG = 0.0
 
-        data = [float(x) for x in response.response.split(',')]
-
-        return data
+            return [EC, TDS, S, SG]
+        else:
+            raise SensorError()
 
 
 class SensorSimulator:
@@ -93,7 +90,7 @@ while True:
     try:
         data = sensor.read()
     except Exception as e:
-        log.warning(e)
+        log.warning(f'Exception on sensor.read(): {e}')
         continue
 
     now = datetime.utcnow()
