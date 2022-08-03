@@ -32,10 +32,9 @@ import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
 import OlTileWMS from 'ol/source/TileWMS';
-import {OSM, TileArcGISRest} from 'ol/source';
+import { TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
 import OlGraticule from 'ol/layer/Graticule';
-import OlStroke from 'ol/style/Stroke';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -196,8 +195,6 @@ export default class CentralCommand extends React.Component {
 
 		this.podStatus = {}
 
-		this.mapTilesAPI = JsonAPI('/tiles');
-
 		this.missions = {}
 		this.undoMissionsStack = []
 
@@ -284,39 +281,6 @@ export default class CentralCommand extends React.Component {
 
 
 		const { chartLayerCollection } = this.state;
-
-		// Get custom map tile sets installed on base station into chartLayerCollection
-		this.mapTilesAPI.get('index').then(
-			(result) => {
-				if (result.ok) {
-					result.maps.reverse().forEach((chart) => {
-						if (chart.type === 'TileXYZ') {
-							chartLayerCollection.push(getChartLayerXYZ(chart));
-						} else if (chart.type === 'Group') {
-							const chartGroupLayerCollection = new OlCollection([], { unique: true });
-							const chartGroup = new OlLayerGroup({
-								title: chart.name,
-								layers: chartGroupLayerCollection,
-								fold: 'open'
-							});
-							chart.maps.reverse().forEach((subChart) => {
-								if (subChart.type === 'TileXYZ') {
-									chartGroupLayerCollection.push(getChartLayerXYZ(subChart));
-								}
-							});
-							chartLayerCollection.push(chartGroup);
-						}
-					});
-					// redraw layer list
-					OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-				} else {
-					error(`Failed to find charts: ${result.msg}`);
-				}
-			},
-			(failReason) => {
-				error(`Failed to connect to charts: ${failReason}`);
-			}
-		);
 
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
