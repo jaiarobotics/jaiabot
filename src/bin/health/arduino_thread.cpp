@@ -36,7 +36,6 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
     interprocess().subscribe<jaiabot::groups::arduino>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
-            arduino_is_responding_ = true;
             status_.set_code(arduino_response.status_code());
             status_.set_thermocouple_temperature(arduino_response.thermocouple_temperature_c());
             status_.set_vcccurrent(arduino_response.vcccurrent());
@@ -49,14 +48,6 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
 
 void jaiabot::apps::ArduinoStatusThread::issue_status_summary()
 {
-    //Check to see if the arduino is responding
-    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on arduino report" << std::endl;
-        arduino_is_responding_ = false;
-    }
-
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::arduino>(status_);
@@ -66,9 +57,11 @@ void jaiabot::apps::ArduinoStatusThread::issue_status_summary()
 void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
-
-    if (!arduino_is_responding_)
+    //Check to see if the arduino is responding
+    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
     {
+        glog.is_warn() && glog << "Timeout on arduino report" << std::endl;
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__NOT_RESPONDING__ARDUINO);
