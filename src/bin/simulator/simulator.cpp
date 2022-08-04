@@ -24,6 +24,7 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include "simulator_thread.h"
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/navigation/navigation.h>
@@ -39,6 +40,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
@@ -122,6 +124,8 @@ jaiabot::apps::Simulator::Simulator()
     using SalinityUDPThread =
         goby::middleware::io::UDPPointToPointThread<salinity_udp_in, salinity_udp_out>;
     launch_thread<SalinityUDPThread>(cfg().salinity_udp_config());
+
+    launch_thread<ArduinoSimThread>(cfg().arduino());
 
     goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
     *sim_cfg.mutable_app() = cfg().app();

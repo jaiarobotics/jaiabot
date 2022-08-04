@@ -75,4 +75,13 @@ message Simulator
         }
     }];
     optional double salinity_stdev = 42;
+
+    optional ArduinoSimThread arduino = 60;
+}
+
+message ArduinoSimThread
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
 }
