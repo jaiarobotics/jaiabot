@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './style/app.css';
-import AXUI from './components/AXUI';
+import CentralCommand from './components/CentralCommand';
 
 export default class App extends Component {
   // state = { username: null };
@@ -17,7 +17,7 @@ export default class App extends Component {
     // const { username } = this.state;
     return (
       <div>
-        <AXUI />
+        <CentralCommand />
         {/* {username ? <h1>{`Hello ${username}`}</h1> : <h1>Loading.. please wait!</h1>}   */}
       </div>
     );

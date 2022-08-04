@@ -32,10 +32,9 @@ import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
 import OlTileWMS from 'ol/source/TileWMS';
-import {OSM, TileArcGISRest} from 'ol/source';
+import { TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
 import OlGraticule from 'ol/layer/Graticule';
-import OlStroke from 'ol/style/Stroke';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -113,7 +112,7 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
-import '../style/AXUI.less';
+import '../style/CentralCommand.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/home.svg'
@@ -126,7 +125,7 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CentralCommand.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
 
@@ -185,7 +184,7 @@ loadVisibleLayers()
 
 // ===========================================================================================================================
 
-export default class AXUI extends React.Component {
+export default class CentralCommand extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -195,8 +194,6 @@ export default class AXUI extends React.Component {
 		this.api = new JaiaAPI("/", false);
 
 		this.podStatus = {}
-
-		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
 		this.undoMissionsStack = []
@@ -253,70 +250,7 @@ export default class AXUI extends React.Component {
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
 
-		const getChartLayerXYZ = (chart) => {
-			const sourceOpts = {
-				transitionEffect: 'resize',
-				transition: 0,
-				projection: chart.projection || 'EPSG:3857',
-				wrapX: false,
-				maxZoom: chart.maxZoom || 19
-			};
-			if (chart.getUrl) {
-				sourceOpts.tileUrlFunction = chart.getUrl;
-			} else {
-				sourceOpts.url = chart.url
-					|| `/tiles/${chart.id}/{z}/{x}/{${chart.invertY ? '-' : ''}y}${chart.extension ? `.${chart.extension}` : ''}`;
-			}
-			let layer = new OlTileLayer({
-				title: chart.name,
-				source: new OlSourceXYZ(sourceOpts),
-				type: "base",
-				visible: visibleLayers.has(chart.name),
-				// preload: 5, // Lowest number that works at whatever our max zoom level is for the NOAA chart of Fall River
-				preload: Infinity,
-				useInterimTilesOnError: false
-			});
-
-			makeLayerSavable(layer)
-
-			return layer
-		};
-
-
 		const { chartLayerCollection } = this.state;
-
-		// Get custom map tile sets installed on base station into chartLayerCollection
-		this.mapTilesAPI.get('index').then(
-			(result) => {
-				if (result.ok) {
-					result.maps.reverse().forEach((chart) => {
-						if (chart.type === 'TileXYZ') {
-							chartLayerCollection.push(getChartLayerXYZ(chart));
-						} else if (chart.type === 'Group') {
-							const chartGroupLayerCollection = new OlCollection([], { unique: true });
-							const chartGroup = new OlLayerGroup({
-								title: chart.name,
-								layers: chartGroupLayerCollection,
-								fold: 'open'
-							});
-							chart.maps.reverse().forEach((subChart) => {
-								if (subChart.type === 'TileXYZ') {
-									chartGroupLayerCollection.push(getChartLayerXYZ(subChart));
-								}
-							});
-							chartLayerCollection.push(chartGroup);
-						}
-					});
-					// redraw layer list
-					OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-				} else {
-					error(`Failed to find charts: ${result.msg}`);
-				}
-			},
-			(failReason) => {
-				error(`Failed to connect to charts: ${failReason}`);
-			}
-		);
 
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
@@ -592,7 +526,7 @@ export default class AXUI extends React.Component {
 				listener = evt.feature.getGeometry().on('change', (evt2) => {
 					const geom = evt2.target;
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#measureResult').text(AXUI.formatLength(geom));
+					$('#measureResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this
@@ -652,7 +586,7 @@ export default class AXUI extends React.Component {
 					const geom = evt2.target;
 
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#surveyPolygonResult').text(AXUI.formatLength(geom));
+					$('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this
