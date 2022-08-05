@@ -56,7 +56,12 @@ def getFields():
 def getSeries():
     log_names = request.args.get('log')
     series_names = request.args.get('path')
-    return JSONResponse(jaialogs.get_series(log_names, series_names))
+
+    try:
+        series = jaialogs.get_series(log_names, series_names)
+        return JSONResponse(series)
+    except Exception as e:
+        return JSONResponse({ 'error': str(e) })
 
 @app.route('/map', methods=['GET'])
 def getMap():

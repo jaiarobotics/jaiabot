@@ -11,6 +11,14 @@ export class LogApi {
     return fetch(request)
         .catch(err => {console.error(err)})
         .then(resp => resp.json())
+        .then(response_object => {
+          // If there's an error message in there, we need to throw it
+          if (response_object.error != null) {
+            throw new Error(response_object.error)
+          } else {
+            return response_object
+          }
+        })
   }
 
   // Get a series corresponding to a set of log files and paths
@@ -19,7 +27,7 @@ export class LogApi {
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('path', paths.join(','))
 
-    return this.get_json(url.toString()).catch(err => {console.error(err)});
+    return this.get_json(url.toString());
   }
 
   // Gets all of the logs and associated metadata for each

@@ -110,9 +110,13 @@ class LogApp extends React.Component {
   path_was_selected(path) {
     LogApi.get_series(this.state.chosen_logs, [ path ])
         .then((series) => {
-          let plots = this.state.plots 
-          this.setState({plots : plots.concat(series)})
+          if (series != null) {
+            let plots =
+                this.state.plots 
+                this.setState({plots : plots.concat(series)})
+          }
         })
+        .catch(err => {alert(err)})
   }
 
   refresh_plots() {
