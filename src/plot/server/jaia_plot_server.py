@@ -69,6 +69,12 @@ def getMap():
     return JSONResponse(jaialogs.get_map(log_names))
 
 
+@app.route('/commands', methods=['GET'])
+def getCommands():
+    log_names = request.args.get('log')
+    return JSONResponse(jaialogs.get_commands(log_names))
+
+
 if __name__ == '__main__':
     logging.warning(f'Serving on port {args.port}')
     app.run(host='0.0.0.0', port=args.port, debug=False)

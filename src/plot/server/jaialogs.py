@@ -1,3 +1,4 @@
+from cmath import isnan
 from dataclasses import dataclass, field
 from email.policy import default
 import glob
@@ -33,7 +34,7 @@ def get_root_item_path(path, root_item=''):
 
 
 def h5_get_series(dataset):
-    '''Get a JSON-serializable representation of an h5 dataset'''
+    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
     raw = list(dataset)
     dtype = dataset.dtype
 
@@ -296,3 +297,84 @@ def get_map(log_names):
         points.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
 
     return points
+
+
+# Gets a list of commands from the command group in a Jaia H5 file
+def get_commands_from_group(command_group):
+    _utime_ = command_group['_utime_']
+    _scheme_ = command_group['_scheme_']
+    type = command_group['type']
+    bot_id = command_group['bot_id']
+
+    commands = list()
+
+    for command_index in range(0, len(_utime_)):
+        if _scheme_[command_index] != 1:
+            continue
+
+        command = {
+            '_utime_': int(_utime_[command_index]),
+            'type': int(type[command_index]),
+            'bot_id': int(bot_id[command_index]),
+            'plan': {
+                'goals': []
+            }
+        }
+
+        plan_goal_location_lat = command_group['plan/goal/location/lat']
+        plan_goal_location_lon = command_group['plan/goal/location/lon']
+        
+        goals = command['plan']['goals']
+        for goal_index in range(0, len(plan_goal_location_lat[command_index])):
+            lat = plan_goal_location_lat[command_index][goal_index]
+
+            location = {
+                'lat': plan_goal_location_lat[command_index][goal_index],
+                'lon': plan_goal_location_lon[command_index][goal_index]
+            }
+
+            goal = {
+                'location': location
+            }
+
+            goals.append(goal)
+
+        commands.append(command)
+
+    return commands
+
+
+HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
+
+def get_commands(log_names):
+
+    if log_names is None:
+        return []
+
+    log_names = log_names.split(',')
+
+    # Open all our logs
+    log_files = [h5py.File(log_name) for log_name in log_names]
+
+    # A dictionary mapping bot_id to an array of mission dictionaries
+    results = {}
+
+    for log_file in log_files:
+        
+        # Search for Command items
+        for path in log_file.keys():
+
+            m = HUB_COMMAND_RE.match(path)
+            if m is not None:
+                bot_id = m.group(1)
+                hub_command_path = path
+
+                if bot_id not in results:
+                    results[bot_id] = []
+                
+                command_path = hub_command_path + '/jaiabot.protobuf.Command'
+                commands = get_commands_from_group(log_file[command_path])
+
+                results[bot_id] = commands
+
+    return results
