@@ -2,6 +2,7 @@ from cmath import isnan
 from dataclasses import dataclass, field
 from email.policy import default
 import glob
+from typing import Iterable, Type
 import h5py
 import logging
 import json
@@ -12,6 +13,8 @@ import datetime
 import os
 
 import numpy
+
+from .objects import *
 
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
@@ -35,7 +38,6 @@ def get_root_item_path(path, root_item=''):
 
 def h5_get_series(dataset):
     '''Get a filtered, JSON-serializable representation of an h5 dataset'''
-    raw = list(dataset)
     dtype = dataset.dtype
 
     def from_float(x):
@@ -60,9 +62,13 @@ def h5_get_series(dataset):
         'u': from_uint32
     }
 
-    proc = dtype_proc[dtype.kind]
+    proc = numpy.vectorize(dtype_proc[dtype.kind])
+    data_narray = numpy.array(dataset)
 
-    return [proc(x) for x in raw]
+    filtered_narray = proc(data_narray)
+    filtered_list = filtered_narray.tolist()
+
+    return filtered_list
 
 
 def h5_get_string(dataset):
@@ -299,50 +305,6 @@ def get_map(log_names):
     return points
 
 
-# Gets a list of commands from the command group in a Jaia H5 file
-def get_commands_from_group(command_group):
-    _utime_ = command_group['_utime_']
-    _scheme_ = command_group['_scheme_']
-    type = command_group['type']
-    bot_id = command_group['bot_id']
-
-    commands = list()
-
-    for command_index in range(0, len(_utime_)):
-        if _scheme_[command_index] != 1:
-            continue
-
-        command = {
-            '_utime_': int(_utime_[command_index]),
-            'type': int(type[command_index]),
-            'bot_id': int(bot_id[command_index]),
-            'plan': {
-                'goals': []
-            }
-        }
-
-        plan_goal_location_lat = command_group['plan/goal/location/lat']
-        plan_goal_location_lon = command_group['plan/goal/location/lon']
-        
-        goals = command['plan']['goals']
-        for goal_index in range(0, len(plan_goal_location_lat[command_index])):
-            lat = plan_goal_location_lat[command_index][goal_index]
-
-            location = {
-                'lat': plan_goal_location_lat[command_index][goal_index],
-                'lon': plan_goal_location_lon[command_index][goal_index]
-            }
-
-            goal = {
-                'location': location
-            }
-
-            goals.append(goal)
-
-        commands.append(command)
-
-    return commands
-
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
 
@@ -373,7 +335,7 @@ def get_commands(log_names):
                     results[bot_id] = []
                 
                 command_path = hub_command_path + '/jaiabot.protobuf.Command'
-                commands = get_commands_from_group(log_file[command_path])
+                commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
 
                 results[bot_id] = commands
 
