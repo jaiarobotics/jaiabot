@@ -98,9 +98,9 @@ while True:
     try:
         line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f\n' % \
             (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-            euler[0], euler[1], euler[2], 
-            linear_acceleration[0], linear_acceleration[1], linear_acceleration[2],
-            gravity[0], gravity[1], gravity[2])
+            euler[0], euler[2], euler[1], 
+            linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
+            gravity[0], gravity[2], gravity[1])
         log.debug('Sent: ' + line)
 
         sock.sendto(line.encode('utf8'), addr)

@@ -78,7 +78,7 @@ class Interface:
             msg = PortalToClientMessage()
             byteCount = msg.ParseFromString(data)
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
-            
+
             if msg.HasField('bot_status'):
                 botStatus = msg.bot_status
 
