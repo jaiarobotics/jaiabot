@@ -98,7 +98,7 @@
 
 body {
   overflow: hidden;
-  background: gray;
+  background: #ffffff;
   font-size: 16pt;
   margin: 0;
   font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
@@ -355,6 +355,10 @@ textarea {
       td {
         padding: 5px 0.5em;
         font-size: 0.8em;
+      }
+
+      select {
+        color: black;
       }
     }
   }
@@ -1865,6 +1869,16 @@ textarea {
 .ui-tooltip {
   padding: @layout-margin;
   border-radius: @panel-corner-radius;
+}
+
+.MissionSettingsPanel {
+  background-color: #000000c0;
+  color: #eeeeeeee;
+  position: absolute;
+  right: 46pt;
+  top: 0pt;
+  padding: 8pt;
+  border-radius: 8pt;
 }
 
 .GoalSettingsPanel {

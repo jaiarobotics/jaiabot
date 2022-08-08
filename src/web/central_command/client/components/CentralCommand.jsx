@@ -13,6 +13,7 @@ import { Settings } from './Settings'
 import * as Icons from '../icons/Icons'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
+import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 
@@ -30,12 +31,15 @@ import OlIcon from 'ol/style/Icon'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
+import OlTileWMS from 'ol/source/TileWMS';
+import { TileArcGISRest} from 'ol/source';
+import { doubleClick } from 'ol/events/condition';
+import OlGraticule from 'ol/layer/Graticule';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlFeature from 'ol/Feature';
-import OlTileWMS from 'ol/source/TileWMS';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -108,7 +112,7 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
-import '../style/AXUI.less';
+import '../style/CentralCommand.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/home.svg'
@@ -121,7 +125,7 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/AXUI.less');
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CentralCommand.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
 
@@ -149,10 +153,10 @@ function saveVisibleLayers() {
 	Settings.write("visibleLayers", visibleLayers)
 }
 
-var visibleLayers = new Set()
+let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['NOAA Charts'])
+	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -180,7 +184,7 @@ loadVisibleLayers()
 
 // ===========================================================================================================================
 
-export default class AXUI extends React.Component {
+export default class CentralCommand extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -190,8 +194,6 @@ export default class AXUI extends React.Component {
 		this.api = new JaiaAPI("/", false);
 
 		this.podStatus = {}
-
-		this.mapTilesAPI = JsonAPI('/tiles');
 
 		this.missions = {}
 		this.undoMissionsStack = []
@@ -235,77 +237,20 @@ export default class AXUI extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
+			missionParams: {'spacing': 10, 'orientation': 45},
+			missionBaseGoal: {},
+			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
-			surveyPolygonActive: false
+			surveyPolygonActive: false,
+			surveyPolygonGeoCoords: null,
+			surveyPolygonCoords: null,
+			surveyPolygonChanged: false
 		};
 
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
 
-		const getChartLayerXYZ = (chart) => {
-			const sourceOpts = {
-				transitionEffect: 'resize',
-				transition: 0,
-				projection: chart.projection || 'EPSG:3857',
-				wrapX: false,
-				maxZoom: chart.maxZoom || 19
-			};
-			if (chart.getUrl) {
-				sourceOpts.tileUrlFunction = chart.getUrl;
-			} else {
-				sourceOpts.url = chart.url
-					|| `/tiles/${chart.id}/{z}/{x}/{${chart.invertY ? '-' : ''}y}${chart.extension ? `.${chart.extension}` : ''}`;
-			}
-			var layer = new OlTileLayer({
-				title: chart.name,
-				source: new OlSourceXYZ(sourceOpts),
-				type: "base",
-				visible: visibleLayers.has(chart.name),
-				// preload: 5, // Lowest number that works at whatever our max zoom level is for the NOAA chart of Fall River
-				preload: Infinity,
-				useInterimTilesOnError: false
-			});
-
-			makeLayerSavable(layer)
-
-			return layer
-		};
-
-
 		const { chartLayerCollection } = this.state;
-
-		// Get custom map tile sets installed on base station into chartLayerCollection
-		this.mapTilesAPI.get('index').then(
-			(result) => {
-				if (result.ok) {
-					result.maps.reverse().forEach((chart) => {
-						if (chart.type === 'TileXYZ') {
-							chartLayerCollection.push(getChartLayerXYZ(chart));
-						} else if (chart.type === 'Group') {
-							const chartGroupLayerCollection = new OlCollection([], { unique: true });
-							const chartGroup = new OlLayerGroup({
-								title: chart.name,
-								layers: chartGroupLayerCollection,
-								fold: 'open'
-							});
-							chart.maps.reverse().forEach((subChart) => {
-								if (subChart.type === 'TileXYZ') {
-									chartGroupLayerCollection.push(getChartLayerXYZ(subChart));
-								}
-							});
-							chartLayerCollection.push(chartGroup);
-						}
-					});
-					// redraw layer list
-					OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-				} else {
-					error(`Failed to find charts: ${result.msg}`);
-				}
-			},
-			(failReason) => {
-				error(`Failed to connect to charts: ${failReason}`);
-			}
-		);
 
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
@@ -315,26 +260,41 @@ export default class AXUI extends React.Component {
 
 		const { baseLayerCollection } = this.state;
 
+		// Configure the basemap layers
 		[
-			new OlTileLayer({
-				title: 'NOAA Charts',
-				type: 'base',
-				source: new OlTileWMS({
-					url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/WMSServer',
-					// params: {'LAYERS': 'topp:states', 'TILED': true},
-					serverType: 'geoserver',
-					transition: 0,
-				}),
-			}),
 			new OlTileLayer({
 				title: 'Google Satellite & Roads',
 				type: 'base',
+				zIndex: 1,
 				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+				wrapX: false
 			}),
 			new OlTileLayer({
 				title: 'OpenStreetMap',
 				type: 'base',
-				source: new OlSourceOsm()
+				zIndex: 1,
+				source: new OlSourceOsm(),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
 			})
 		].forEach((layer) => {
 			makeLayerSavable(layer);
@@ -373,6 +333,19 @@ export default class AXUI extends React.Component {
 					})
 				})
 			})
+		});
+
+		this.graticuleLayer = new OlGraticule({
+			// the style to use for the lines, optional.
+			strokeStyle: new OlStrokeStyle({
+				color: 'rgb(0,0,0)',
+				width: 2,
+				lineDash: [0.5, 4],
+			}),
+			zIndex: 30,
+			opacity: 0.8,
+			showLabels: true,
+			wrapX: false,
 		});
 
 		const {
@@ -553,7 +526,7 @@ export default class AXUI extends React.Component {
 				listener = evt.feature.getGeometry().on('change', (evt2) => {
 					const geom = evt2.target;
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#measureResult').text(AXUI.formatLength(geom));
+					$('#measureResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this
@@ -606,14 +579,14 @@ export default class AXUI extends React.Component {
 		this.surveyPolygonInteraction.on(
 			'drawstart',
 			(evt) => {
-				this.setState({ surveyPolygonFeature: evt.feature });
+				this.setState({ surveyPolygonFeature: evt.feature, surveyPolygonChanged: false });
 
 				surveyPolygonlistener = evt.feature.getGeometry().on('change', (evt2) => {
-					console.log(evt);
+					// console.log(evt);
 					const geom = evt2.target;
 
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#surveyPolygonResult').text(AXUI.formatLength(geom));
+					$('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 				});
 			},
 			this
@@ -626,8 +599,9 @@ export default class AXUI extends React.Component {
 				let geo_geom = evt.feature.getGeometry();
 				geo_geom.transform("EPSG:3857", "EPSG:4326")
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-				console.log(surveyPolygonGeoCoords);
-				this.generateMissions(surveyPolygonGeoCoords);
+				// console.log(surveyPolygonGeoCoords);
+				this.setState({surveyPolygonGeoCoords: surveyPolygonGeoCoords, surveyPolygonCoords: geo_geom, surveyPolygonChanged: true})
+				//this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
 				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
 				// OlUnobserveByKey(surveyPolygonlistener);
@@ -668,6 +642,10 @@ export default class AXUI extends React.Component {
 		
 	}
 
+	genMission() {
+		this.generateMissions(this.state.surveyPolygonGeoCoords);
+	}
+
 	createLayers() {
 		this.missionLayer = new OlVectorLayer()
 
@@ -678,6 +656,7 @@ export default class AXUI extends React.Component {
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.graticuleLayer,
 			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
@@ -777,13 +756,46 @@ export default class AXUI extends React.Component {
 
 		// Undo button
 		function KeyPress(e) {
-			var evtobj = window.event? event : e
+			let evtobj = window.event? event : e
 			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
 				this.restoreUndo()
 			}
 		}
 		
 		document.onkeydown = KeyPress.bind(this)
+
+		this.state.missionBaseGoal.task = {
+			type: "DIVE",
+			dive: {
+				max_depth: 10,
+				depth_interval: 10,
+				hold_time: 1
+			}
+		}
+
+		map.on('doubleclick', function (evt) {
+			document.getElementById('layerinfo').innerHTML = '';
+			const viewResolution = /** @type {number} */ (map.getView().getResolution());
+			let layer_array = us.state.baseLayerCollection.getArray();
+			let theSource = layer_array.find(x => x.values_.title==="GEBCO Bathymetry");
+			const url = theSource.getFeatureInfoUrl(
+				evt.coordinate,
+				viewResolution,
+				'EPSG:4326',
+				{
+					'INFO_FORMAT': 'text/html',
+					'VERSION': '1.3.0',
+					'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo'
+				}
+			);
+			if (url) {
+				fetch(url)
+					.then((response) => response.text())
+					.then((html) => {
+						document.getElementById('layerinfo').innerHTML = html;
+					});
+			}
+		});
 
 		info('Welcome to Central Command!');
 	}
@@ -796,7 +808,7 @@ export default class AXUI extends React.Component {
 		/* Need to detect when an input field is rendered, then call this on it:
 				This will make the keyboard "go" button close the keyboard instead of doing nothing.
 		$('input').keypress(function(e) {
-				var code = (e.keyCode ? e.keyCode : e.which);
+				let code = (e.keyCode ? e.keyCode : e.which);
 				if ( (code==13) || (code==10))
 						{
 						jQuery(this).blur();
@@ -978,7 +990,7 @@ export default class AXUI extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
-			var faultLevel = 0
+			let faultLevel = 0
 
 			switch(bot.healthState) {
 				case "HEALTH__OK":
@@ -1047,13 +1059,13 @@ export default class AXUI extends React.Component {
 			}
 
 			if (botFeature.get('controlled')) {
-				botLayer.setZIndex(3);
+				botLayer.setZIndex(103);
 			} else if (botFeature.get('selected')) {
-				botLayer.setZIndex(2);
+				botLayer.setZIndex(102);
 			} else if (botFeature.get('tracked')) {
-				botLayer.setZIndex(1);
+				botLayer.setZIndex(101);
 			} else {
-				botLayer.setZIndex(0);
+				botLayer.setZIndex(100);
 			}
 
 			botLayer.changed();
@@ -1323,9 +1335,16 @@ export default class AXUI extends React.Component {
 
 		let bots = this.podStatus?.bots
 
-		var goalSettingsPanel = ''
+		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
 			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
+		}
+
+		// Add mission generation form to UI if the survey polygon has changed.
+		let missionSettingsPanel = '';
+		if (this.state.surveyPolygonChanged) {
+			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.state.surveyPolygonChanged = false }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
+			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
 		return (
@@ -1336,6 +1355,8 @@ export default class AXUI extends React.Component {
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
+
+				<div id="layerinfo">&nbsp;</div>
 
 				<div id="eStop">
 					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
@@ -1418,23 +1439,21 @@ export default class AXUI extends React.Component {
 							<FontAwesomeIcon icon={faCrosshairs} />
 						</button>
 					) : (
-						<div>
-							{this.clientLocation.isValid ? (
-								<button
-									type="button"
-									onClick={() => {
-										this.trackBot('user');
-									}}
-									title="Follow User"
-								>
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							) : (
-								<button type="button" className="inactive" title="Follow User">
-									<FontAwesomeIcon icon={faCrosshairs} />
-								</button>
-							)}
-						</div>
+						this.clientLocation.isValid ? (
+							<button
+								type="button"
+								onClick={() => {
+									this.trackBot('user');
+								}}
+								title="Follow User"
+							>
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						) : (
+							<button type="button" className="inactive" title="Follow User">
+								<FontAwesomeIcon icon={faCrosshairs} />
+							</button>
+						)
 					)}
 
 					{surveyPolygonActive ? (
@@ -1575,6 +1594,8 @@ export default class AXUI extends React.Component {
 
 				{goalSettingsPanel}
 
+				{missionSettingsPanel}
+
 				{this.commandDrawer()}
 
 				{this.state.loadMissionPanel}
@@ -1635,6 +1656,7 @@ export default class AXUI extends React.Component {
 
 		let selectedColor = '#34d2eb'
 		let unselectedColor = '#5ec957'
+		let surveyPolygonColor = '#051d61'
 
 		let homeStyle = new OlStyle({
 			image: new OlIcon({ src: homeIcon })
@@ -1650,9 +1672,14 @@ export default class AXUI extends React.Component {
 			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
 		})
 
+		let surveyPolygonLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: surveyPolygonColor}),
+			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 3.0}),
+		})
+
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			var waypointIcon, lineStyle, color
+			let waypointIcon, lineStyle, color
 
 			let selected = this.isBotSelected(botId)
 
@@ -1667,18 +1694,22 @@ export default class AXUI extends React.Component {
 				color = unselectedColor
 			}
 
+
 			let goals = missions[botId]?.plan?.goal || []
 
 			let transformed_pts = goals.map((goal) => {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
 
+			// console.log('transformed_pts');
+			// console.log(transformed_pts);
+
 			for (let [pt_index, goal] of goals.entries()) {
 				let pt = transformed_pts[pt_index]
 
 				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
-				var icon
+				let icon
 
 				if (pt_index === 0) {
 					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
@@ -1738,11 +1769,29 @@ export default class AXUI extends React.Component {
 			features.push(homeFeature)
 		}
 
-		var vectorSource = new OlVectorSource({
-				features: features
+		if (this.state.surveyPolygonChanged) {
+			console.log('inside surveyPolygonCoords');
+			// console.log(this.state.surveyPolygonCoords);
+			let pts = this.state.surveyPolygonCoords.getCoordinates()[0];
+			let transformed_survey_pts = pts.map((pt) => {
+				return equirectangular_to_mercator([pt[0], pt[1]])
+			})
+			let surveyPolygonFeature = new OlFeature(
+				{
+					geometry: new OlLineString(transformed_survey_pts),
+					name: "Survey Bounds"
+				}
+			)
+			surveyPolygonFeature.setStyle(surveyPolygonLineStyle);
+			features.push(surveyPolygonFeature);
+		}
+
+		let vectorSource = new OlVectorSource({
+			features: features
 		})
 
 		this.missionLayer.setSource(vectorSource)
+		this.missionLayer.setZIndex(1000)
 	}
 
 	// Runs a mission
@@ -1848,7 +1897,7 @@ export default class AXUI extends React.Component {
 
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
-		var botIds = []
+		let botIds = []
 
 		// Update feature in selected set
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
@@ -1915,7 +1964,7 @@ export default class AXUI extends React.Component {
 	}
 
 	placeHomeAtCoordinate(coordinate) {
-		var lonlat = mercator_to_equirectangular(coordinate)
+		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.homeLocation = location
 
@@ -1930,14 +1979,17 @@ export default class AXUI extends React.Component {
 		console.log('hitting mission_generator');
 		console.log(this.homeLocation);
 		// let bot_list = this.selectedBotIds();
-		let bot_list = [0, 1, 2, 3];
+		let bot_dict_length = Object.keys(this.podStatus.bots).length
+		let bot_list = Array.from(Array(bot_dict_length).keys());
 
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
-			"sample_spacing": 100, 
+			"sample_spacing": this.state.missionParams.spacing,
+			"mission_type": this.state.missionBaseGoal.task,
+			"orientation": this.state.missionParams.orientation,
 			"home_lon": this.homeLocation['lon'], 
 			"home_lat": this.homeLocation['lat'], 
-			"survey_polygon": surveyPolygonGeoCoords
+			"survey_polygon": this.state.surveyPolygonGeoCoords
 		}).then(data => {
 			console.log('got inside')
 			console.log(data);
@@ -1949,10 +2001,10 @@ export default class AXUI extends React.Component {
 	// Command Drawer
 
 	commandDrawer() {
-		var element = (
+		let element = (
 			<div id="commandsDrawer">
 			<div id="globalCommandBox">
-				<button type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
 				<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>

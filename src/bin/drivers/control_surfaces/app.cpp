@@ -71,7 +71,7 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    const int motor_max_step = 25;
+    const int motor_max_step = 20;
 
     // Control surfaces
     int rudder = 1500;
@@ -127,14 +127,15 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
 
-            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
-                                     << arduino_response.ShortDebugString() << std::endl;
-
-            if (arduino_response.has_message() && arduino_response.message().length() > 0)
+            if (arduino_response.status_code() > 1)
             {
-                glog.is_warn() && glog << group("arduino") << arduino_response.message()
+                glog.is_warn() && glog << group("arduino")
+                                       << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
             }
+
+            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino>(arduino_response);
         });

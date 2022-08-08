@@ -1,3 +1,4 @@
+  GNU nano 4.8                                /etc/update-motd.d/75-jaiabot-status                                          
 #!/usr/bin/env bash
 
 # Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)
@@ -9,8 +10,12 @@ echo "                         | /\ | /\ |__)/  \ |                    "
 echo "                       __)/--\|/--\|__)\__/ |                    "
 echo ""
 echo "                       https://www.jaia.tech/                    "
-echo "                   https://github.com/jaiarobotics/              " 
+echo "                   https://github.com/jaiarobotics/              "
 export SYSTEMD_COLORS=1
 systemctl list-units -all "jaia*"
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+echo
+cat /etc/jaiabot/version
+echo
+echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 

@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # Setup logging module
 logLevel = getattr(logging, args.logLevel.upper())
-logging.basicConfig(level=logLevel)
+logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 if args.hostname is None:
@@ -98,8 +98,9 @@ def get_mission_list():
         deploy_lat=request.json['home_lat'],
         deploy_lon=request.json['home_lon'],
         boundary_points=request.json['survey_polygon'][0],
-        mission_type=None,
+        mission_type=request.json['mission_type'],
         spacing_meters=int(request.json['sample_spacing']),
+        orientation=int(request.json["orientation"]),
         bot_list=request.json['bot_list']
     )
     return JSONResponse(mission_dict)

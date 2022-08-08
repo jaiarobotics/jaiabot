@@ -34,7 +34,7 @@ enum Error
     ERROR__FAILED__MOOS_PHELMIVP = 21;
     ERROR__FAILED__MOOS_UPROCESSWATCH = 22;
     ERROR__FAILED__MOOS_PNODEREPORTER = 23;
-    ERROR__FAILED__PYTHON_WEB_APP = 24;
+    ERROR__FAILED__PYTHON_JAIABOT_WEB_APP = 24;
     ERROR__FAILED__PYTHON_JAIABOT_IMU = 25;
     ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR = 26;
     ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC = 27;
@@ -63,6 +63,7 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_SINGLE_THREAD_PATTERN = 119;
     ERROR__NOT_RESPONDING__JAIABOT_MULTI_THREAD_PATTERN = 120;
     ERROR__NOT_RESPONDING__JAIABOT_SIMULATOR = 121;
+    ERROR__NOT_RESPONDING__ARDUINO = 122;
 
     // TODO: IMPLEMENT
     // from jaiabot_fusion
@@ -302,6 +303,29 @@ message HelmIVPStatus
     optional bool helm_ivp_desired_heading = 3 [default = false];
     optional bool helm_ivp_desired_depth = 4 [default = false];
     optional bool helm_ivp_data = 5 [default = false];
+}
+
+message ArduinoStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional sint32 code = 1 [default = 1];
+    optional float thermocouple_temperature = 2 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];;
+    optional float vccvoltage = 3 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "electric_potential" system: "si" }
+    }];
+    optional float vcccurrent = 4 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+    optional float vvcurrent = 5 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+
+    optional uint32 crc = 50;
+    optional uint32 calculated_crc = 51;
 }
 
 message ThreadHealth
