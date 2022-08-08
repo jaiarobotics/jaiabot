@@ -244,7 +244,6 @@ void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHea
     health.set_state(goby::middleware::protobuf::HEALTH__OK);
     // add warnings that the state machine keeps track of and possible downgrade health state
     machine_->health(health);
-    glog.is_debug1() && glog << "health(): " << health.ShortDebugString() << std::endl;
 }
 
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)

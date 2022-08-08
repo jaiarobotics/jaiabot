@@ -1010,7 +1010,18 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     DataOffload(typename StateBase::my_context c);
     ~DataOffload() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>>;
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvDataOffloadComplete, Idle>,
+        boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
+
+  private:
+    std::unique_ptr<std::thread> offload_thread_;
+    // used by offload_thread_
+    std::atomic<bool> offload_success_{false};
+    std::atomic<bool> offload_complete_{false};
+    const std::string offload_command_;
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,
