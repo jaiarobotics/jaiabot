@@ -39,8 +39,8 @@ On a server (e.g. cloud machine), we configure:
       
       # Note that this configuration uses NAT to make the VPN traffic appear to the rest of the Virtual Private Cloud (VPC) as if its coming from the VPN instance; this avoids the need for disabling the source/destination check or updating routing tables in EC2.
       # update eth0 to the actual internet interface
-      PostUp = iptables -A FORWARD -i wg_jaia -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-      PostDown = iptables -D FORWARD -i wg_jaia -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+      PostUp = iptables -w 60 -A FORWARD -i wg_jaia -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+      PostDown = iptables -w 60 -D FORWARD -i wg_jaia -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
 
 - Allow firewall on inbound UDP port 51820 (both UFW if installed and cloud provider firewall rules):
