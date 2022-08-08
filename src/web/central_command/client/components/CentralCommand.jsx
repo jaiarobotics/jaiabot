@@ -21,6 +21,10 @@ import EngineeringPanel from './EngineeringPanel'
 import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
 
+// TurfJS
+import * as turf from '@turf/turf';
+
+// Openlayers
 import OlMap from 'ol/Map';
 import {
 	Pointer as PointerInteraction,
@@ -39,7 +43,10 @@ import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
+import OlMultiPoint from 'ol/geom/MultiPoint';
+import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
+import GeoJSON from 'ol/format/GeoJSON';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -238,6 +245,8 @@ export default class CentralCommand extends React.Component {
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
 			missionParams: {'spacing': 10, 'orientation': 45},
+			missionPlanningGrid: null,
+			missionPlanningLines: null,
 			missionBaseGoal: {},
 			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
@@ -579,14 +588,96 @@ export default class CentralCommand extends React.Component {
 		this.surveyPolygonInteraction.on(
 			'drawstart',
 			(evt) => {
-				this.setState({ surveyPolygonFeature: evt.feature, surveyPolygonChanged: false });
+				this.setState({surveyPolygonChanged: true });
 
-				surveyPolygonlistener = evt.feature.getGeometry().on('change', (evt2) => {
-					// console.log(evt);
-					const geom = evt2.target;
+				surveyPolygonlistener = evt.feature.on('change', (evt2) => {
+					console.log('testing survey polygon change');
+					console.log(evt);
+					console.log(evt2);
 
-					// tooltipCoord = geom.getLastCoordinate();
-					$('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
+					const geom1 = evt2.target;
+					console.log(geom1);
+
+					const format = new GeoJSON();
+					const turfPolygon = format.writeFeatureObject(geom1);
+					console.log(turfPolygon);
+
+					if (turfPolygon.geometry.coordinates[0].length > 5) {
+
+						// var extent = [-70.823364, -33.553984, -70.473175, -33.302986];
+						let cellSide = this.state.missionParams.spacing;
+						// let options = {units: 'meters'};
+						let options = {units: 'meters', mask: turf.toWgs84(turfPolygon)};
+
+						let turfPolygonBbox = turf.bbox(turf.toWgs84(turfPolygon));
+
+						let missionPlanningGridTurf = turf.pointGrid(turfPolygonBbox, cellSide, options);
+						console.log('missionPlanningGridTurf');
+						console.log(missionPlanningGridTurf);
+
+						let missionPlanningGridTurfCentroid = turf.centroid(missionPlanningGridTurf);
+						let optionsRotate = {pivot: missionPlanningGridTurfCentroid};
+						let missionPlanningGridTurfRotated = turf.transformRotate(missionPlanningGridTurf, this.state.missionParams.orientation, optionsRotate);
+
+						if (missionPlanningGridTurfRotated.features.length > 0) {
+							// const missionPlanningGridOl = format.readFeatures(missionPlanningGridTurf, {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
+							let turfCombined = turf.combine(missionPlanningGridTurfRotated);
+							console.log('turfCombined');
+							console.log(turfCombined);
+
+							const missionPlanningGridOl = format.readFeature(turfCombined.features[0].geometry, {
+								dataProjection: 'EPSG:4326',
+								featureProjection: 'EPSG:3857'
+							});
+							console.log('missionPlanningGridOl');
+							console.log(missionPlanningGridOl);
+							// let missionPlanningGridOlm = missionPlanningGridTurf.features.map(m => m.getGeometry().transform('EPSG:4326', 'EPSG:3857'))
+							//missionPlanningGridOl.getGeometry().transform('EPSG:4326', 'EPSG:3857');
+							//format.writeFeatureObject(missionPlanningGridOl, {featureProjection: 'EPSG:3857'});
+							//console.log(missionPlanningGridOl);
+
+							// let missionOlPoints = [];
+							// missionPlanningGridOl.forEach(p => missionOlPoints.push(p.getGeometry()));
+
+							let optionsMissionLines = {units: 'meters'};
+							let bot_dict_length = Object.keys(this.podStatus.bots).length
+							let bot_list = Array.from(Array(bot_dict_length).keys());
+							let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, this.state.missionParams.spacing * bot_dict_length, this.state.missionParams.orientation, optionsMissionLines);
+							console.log('missionRhumbDestPoint');
+							console.log(missionRhumbDestPoint);
+							let centerLine = turf.lineString([missionPlanningGridTurfCentroid.geometry.coordinates, missionRhumbDestPoint.geometry.coordinates]);
+							console.log('centerLine');
+							console.log(centerLine);
+							let offsetLine = turf.lineOffset(centerLine, this.state.missionParams.spacing, {units: 'meters'});
+							console.log('offsetLine');
+							console.log(offsetLine);
+							let missionPlanningLinesTurf = turf.multiLineString([centerLine, offsetLine]);
+							console.log('missionPlanningLinesTurf');
+							console.log(missionPlanningLinesTurf);
+							// let missionPlanningLinesOl = format.readFeature(missionPlanningLinesTurf.geometry, {
+							// 	dataProjection: 'EPSG:4326',
+							// 	featureProjection: 'EPSG:3857'
+							// });
+							// console.log('missionPlanningLinesOl');
+							// console.log(missionPlanningLinesOl);
+
+							this.setState({
+								missionPlanningGrid: missionPlanningGridOl.getGeometry(),
+								// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
+								surveyPolygonChanged: true
+							});
+
+							this.updateMissionLayer();
+
+						}
+
+
+						$('#surveyPolygonResultArea').text(turf.area(turf.toWgs84(turfPolygon)) + ' m^2');
+						$('#surveyPolygonResultPerimeter').text(turf.length(turf.toWgs84(turfPolygon)) + ' km');
+
+						// tooltipCoord = geom.getLastCoordinate();
+						// $('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
+					}
 				});
 			},
 			this
@@ -595,12 +686,19 @@ export default class CentralCommand extends React.Component {
 		this.surveyPolygonInteraction.on(
 			'drawend',
 			(evt) => {
+				console.log('DRAWING ENDED...');
+				OlUnobserveByKey(surveyPolygonlistener);
 				// console.log(evt.feature.getGeometry());
 				let geo_geom = evt.feature.getGeometry();
 				geo_geom.transform("EPSG:3857", "EPSG:4326")
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 				// console.log(surveyPolygonGeoCoords);
-				this.setState({surveyPolygonGeoCoords: surveyPolygonGeoCoords, surveyPolygonCoords: geo_geom, surveyPolygonChanged: true})
+				this.setState({
+					surveyPolygonFeature: evt.feature,
+					surveyPolygonGeoCoords: surveyPolygonGeoCoords,
+					surveyPolygonCoords: geo_geom,
+					surveyPolygonChanged: true})
+				this.updateMissionLayer();
 				//this.generateMissions(surveyPolygonGeoCoords);
 				// console.log(geom);
 				// this.setState({ surveyPolgyonActive: false, surveyPolygonFeature: null });
@@ -1459,7 +1557,10 @@ export default class CentralCommand extends React.Component {
 
 					{surveyPolygonActive ? (
 						<div>
-							<div id="surveyPolygonResult" />
+							<div id="surveyPolygonResults">
+								<div id="surveyPolygonResultArea"></div>
+								<div id="surveyPolygonResultPerimeter"></div>
+							</div>
 							<button
 								type="button"
 								className="active"
@@ -1659,6 +1760,10 @@ export default class CentralCommand extends React.Component {
 			image: new OlIcon({ src: homeIcon })
 		})
 
+		let gridStyle = new OlStyle({
+			image: new OlIcon({ src: waypointIcon })
+		})
+
 		let selectedLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: selectedColor}),
 			stroke: new OlStrokeStyle({color: selectedColor, width: 2.5}),
@@ -1672,6 +1777,11 @@ export default class CentralCommand extends React.Component {
 		let surveyPolygonLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: surveyPolygonColor}),
 			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 3.0}),
+		})
+
+		let surveyPlanLineStyle = new OlStyle({
+			fill: new OlFillStyle({color: surveyPolygonColor}),
+			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 1.0}),
 		})
 
 		for (let botId in missions) {
@@ -1771,8 +1881,9 @@ export default class CentralCommand extends React.Component {
 			features.push(homeFeature)
 		}
 
-		if (this.state.surveyPolygonChanged) {
+		if (this.state.surveyPolygonCoords) {
 			console.log('inside surveyPolygonCoords');
+			console.log(this.state.surveyPolygonCoords);
 			// console.log(this.state.surveyPolygonCoords);
 			let pts = this.state.surveyPolygonCoords.getCoordinates()[0];
 			let transformed_survey_pts = pts.map((pt) => {
@@ -1786,7 +1897,33 @@ export default class CentralCommand extends React.Component {
 			)
 			surveyPolygonFeature.setStyle(surveyPolygonLineStyle);
 			features.push(surveyPolygonFeature);
+
+			console.log('this.state.missionPlanningGrid');
+			console.log(this.state.missionPlanningGrid);
+			if (this.state.missionPlanningGrid) {
+				let mpGridFeature = new OlFeature(
+					{
+						geometry: new OlMultiPoint(this.state.missionPlanningGrid.getCoordinates())
+					}
+				)
+				mpGridFeature.setStyle(gridStyle);
+				features.push(mpGridFeature);
+				// this.state.missionPlanningGrid.forEach(p => features.push(p));
+			}
+
+			if (this.state.missionPlanningLines) {
+				let mpLineFeatures = new OlFeature(
+					{
+						geometry: new OlMultiLineString(this.state.missionPlanningLines.getCoordinates())
+					}
+				)
+				mpLineFeatures.setStyle(surveyPlanLineStyle);
+				features.push(mpLineFeatures);
+			}
 		}
+
+		console.log('the features for the mission layer');
+		console.log(features);
 
 		let vectorSource = new OlVectorSource({
 			features: features
