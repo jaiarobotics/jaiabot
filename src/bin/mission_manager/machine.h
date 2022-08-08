@@ -78,6 +78,8 @@ STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
+STATECHART_EVENT(EvSurfaced)
+STATECHART_EVENT(EvGPSFix)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
@@ -85,6 +87,7 @@ struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
     EvVehicleDepth(boost::units::quantity<boost::units::si::length> d) : depth(d) {}
     boost::units::quantity<boost::units::si::length> depth;
 };
+
 struct EvMeasurement : boost::statechart::event<EvMeasurement>
 {
     boost::optional<
@@ -178,6 +181,7 @@ struct PoweredDescent;
 struct Hold;
 struct UnpoweredAscent;
 struct PoweredAscent;
+struct ReacquireGPS;
 } // namespace dive
 } // namespace task
 
@@ -841,6 +845,7 @@ struct UnpoweredAscent
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
+        boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
                                              &UnpoweredAscent::depth>>;
@@ -864,11 +869,31 @@ struct PoweredAscent
     void depth(const EvVehicleDepth& ev);
 
     using reactions = boost::mpl::list<
+        boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, PoweredAscent, &PoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+};
+
+struct ReacquireGPS
+    : boost::statechart::state<ReacquireGPS, Dive>,
+      Notify<ReacquireGPS, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
+    ReacquireGPS(typename StateBase::my_context c) : StateBase(c) {}
+    ~ReacquireGPS() {}
+
+    void gps(const EvGPSFix& ev)
+    {
+        goby::glog.is_debug1() && goby::glog << "GPS Fix acquired." << std::endl;
+        post_event(EvTaskComplete());
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvGPSFix, ReacquireGPS, &ReacquireGPS::gps>>;
 };
 
 } // namespace dive

@@ -381,8 +381,9 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth(
     const EvVehicleDepth& ev)
 {
-    if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
-        post_event(EvTaskComplete());
+    // within depth eps of the surface (or any negative value)
+    if (ev.depth < cfg().dive_depth_eps_with_units())
+        post_event(EvSurfaced());
 }
 
 // Task::Dive::PoweredAscent
@@ -405,8 +406,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
     const EvVehicleDepth& ev)
 {
-    if (boost::units::abs(ev.depth - 0 * si::meters) < cfg().dive_depth_eps_with_units())
-        post_event(EvTaskComplete());
+    if (ev.depth < cfg().dive_depth_eps_with_units())
+        post_event(EvSurfaced());
 }
 
 // Task::StationKeep
