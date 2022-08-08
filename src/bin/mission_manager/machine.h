@@ -72,6 +72,7 @@ STATECHART_EVENT(EvRecovered)
 STATECHART_EVENT(EvBeginDataProcessing)
 STATECHART_EVENT(EvDataProcessingComplete)
 STATECHART_EVENT(EvDataOffloadComplete)
+STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
 STATECHART_EVENT(EvDepthTargetReached)
@@ -1033,6 +1034,7 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
+                         boost::statechart::transition<EvRetryDataOffload, DataOffload>,
                          boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 

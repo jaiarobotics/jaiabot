@@ -180,8 +180,7 @@ jaiabot::apps::MissionManager::MissionManager()
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal)
-        {
+        [this](const jaiabot::protobuf::SalinityData& sal) {
             statechart::EvMeasurement ev;
             ev.salinity = sal.salinity();
             machine_->process_event(ev);
@@ -338,6 +337,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
         case protobuf::Command::REMOTE_CONTROL_RESUME_MOVEMENT:
             machine_->process_event(statechart::EvResumeMovement());
+            break;
+
+        case protobuf::Command::RETRY_DATA_OFFLOAD:
+            machine_->process_event(statechart::EvRetryDataOffload());
             break;
 
             // handled by jaiabot_health
