@@ -2,7 +2,7 @@
 
 if [ -z "$1" ]
 then
-      DEST_HOSTNAME='jaia@optiplex'
+      DEST_HOSTNAME='jaia@mercury'
 else
       DEST_HOSTNAME=$1
 fi
