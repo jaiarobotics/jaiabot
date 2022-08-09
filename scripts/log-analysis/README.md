@@ -1,3 +1,5 @@
-# Installing the log downloader
+# Uploading logs to the log analysis server
 
-The get-logs.sh script will download and remove the logs from the hostname parameter(s) that it's given.  I've installed it into the home directory of our log archive (currently on `jaia@optiplex`).
+The upload-logs.sh script will upload all .goby files in `/var/log/jaiabot` to a flat directory at `(SERVER):jaiaplot-logs`, where SERVER is the server provided at the command-line.  The default server is `jaia@mercury`.
+
+You can look at the logs by navigating to `(SERVER):40010` in your web browser.

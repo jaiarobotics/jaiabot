@@ -243,8 +243,9 @@ jobs:
           name: Get original source tarball
           command: |
             # use long format for continuous builds so they always rank after release builds
-            [ -z "${CIRCLE_TAG}" ] && export DESCRIBE_ARGS="--long" || export DESCRIBE_ARGS=""
-            export NEWVERSION="$(git describe --tags HEAD ${DESCRIBE_ARGS} | sed 's/_/~/' | sed 's/-/+/g')"
+            # use tag directly for release/beta builds
+            [ -z "${CIRCLE_TAG}" ] && export RAWVERSION="$(git describe --tags HEAD --long)" || export RAWVERSION="${CIRCLE_TAG}"
+            export NEWVERSION="$(echo ${RAWVERSION} | sed 's/_/~/' | sed 's/-/+/g')"
             git config tar.tar.xz.command "xz -c" &&
             mkdir -p /root/src &&
             git archive --prefix=jaiabot-${NEWVERSION}/ -o /root/src/jaiabot_${NEWVERSION}.orig.tar.xz HEAD;
