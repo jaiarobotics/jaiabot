@@ -14,3 +14,5 @@ jaiabot_metadata <(../../gen/hub.py jaiabot_metadata)
 
 goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_hub_manager --expected_name jaiabot_web_portal --expected_name jaiabot_metadata --expected_name jaiabot_health
 jaiabot_health <(../../gen/hub.py jaiabot_health)
+
+#[kill=SIGTERM] ../../../build/amd64/share/jaiabot/web/server/app.py
