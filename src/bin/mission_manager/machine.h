@@ -687,7 +687,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     {
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
 
-        if (current_task)
+        if (current_task && current_task->type() != protobuf::MissionTask::NONE)
         {
             goby::glog.is_verbose() && goby::glog << group("task") << "Starting task: "
                                                   << current_task.get().ShortDebugString()
