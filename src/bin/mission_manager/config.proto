@@ -19,11 +19,16 @@ message MissionManager
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
 
+    // timeout to allow all applications to report HEALTH__OK
+    optional double startup_timeout = 12
+        [default = 120, (dccl.field).units = { base_dimensions: "T" }];
+    
     // acceptable eps when dive depth is considered reached (in meters)
     optional double dive_depth_eps = 30
         [default = 0.1, (dccl.field).units = { base_dimensions: "L" }];
 
-    // bottoming timeout in seconds without depth change greater than dive_depth_eps before assuming the bottom has been hit
+    // bottoming timeout in seconds without depth change greater than
+    // dive_depth_eps before assuming the bottom has been hit
     optional double bottoming_timeout = 31
         [default = 5, (dccl.field).units = { base_dimensions: "T" }];
 
@@ -36,8 +41,12 @@ message MissionManager
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
         RC_SETPOINT_ENDS_IN_SURFACE_DRIFT = 2;
     }
-    optional RemoteControlSetpointEnd rc_setpoint_end = 50 [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
+    optional RemoteControlSetpointEnd rc_setpoint_end = 50
+        [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/ jaia@hub0:/var/log/jaiabot/bot_offload
+    // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
+    // jaia@hub0:/var/log/jaiabot/bot_offload
     required string data_offload_command = 60;
+
+    optional bool stop_logging_while_idle = 70 [default = true];
 }

@@ -191,6 +191,9 @@ jaiabot::apps::MissionManager::MissionManager()
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
             {
+                // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
+                machine_->process_event(statechart::EvStarted());
+
                 // TODO make SelfTest include more information?
                 machine_->process_event(statechart::EvSelfTestSuccessful());
             }

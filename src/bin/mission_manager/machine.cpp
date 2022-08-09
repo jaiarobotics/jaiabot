@@ -1,3 +1,6 @@
+#include <goby/middleware/log/groups.h>
+#include <goby/middleware/protobuf/logger.pb.h>
+
 #include "machine.h"
 #include "mission_manager.h"
 
@@ -67,6 +70,49 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
                               << "Sending update to pHelmIvP: " << update.ShortDebugString()
                               << std::endl;
     return update;
+}
+
+// PreDeployment::StartingUp
+jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
+
+    int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
+    goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
+    timeout_stop_ = timeout_start + timeout_duration;
+}
+
+jaiabot::statechart::predeployment::StartingUp::~StartingUp() {}
+
+void jaiabot::statechart::predeployment::StartingUp::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= timeout_stop_)
+        post_event(EvStartupTimeout());
+}
+
+// PreDeployment::Idle
+jaiabot::statechart::predeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
+{
+    if (cfg().stop_logging_while_idle())
+    {
+        glog.is_verbose() && glog << "Stop Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
+}
+
+jaiabot::statechart::predeployment::Idle::~Idle()
+{
+    if (cfg().stop_logging_while_idle())
+    {
+        glog.is_verbose() && glog << "Start Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
 }
 
 // Movement::Transit
@@ -546,6 +592,16 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
+// PostDeployment::DataProcessing
+jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    // currently we do not do any data processing on the bot
+    post_event(EvDataProcessingComplete());
+}
+
+// PostDeployment::DataOffload
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
     : StateBase(c), offload_command_(cfg().data_offload_command() + " 2>&1")
 {
@@ -630,6 +686,30 @@ void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
     }
 }
 
+// PostDeployment::Idle
+jaiabot::statechart::postdeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
+{
+    if (cfg().stop_logging_while_idle())
+    {
+        glog.is_verbose() && glog << "Stop Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
+}
+
+jaiabot::statechart::postdeployment::Idle::~Idle()
+{
+    if (cfg().stop_logging_while_idle())
+    {
+        glog.is_verbose() && glog << "Start Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
+}
+
+// PostDeployment::ShuttingDown
 jaiabot::statechart::postdeployment::ShuttingDown::ShuttingDown(typename StateBase::my_context c)
     : StateBase(c)
 {
