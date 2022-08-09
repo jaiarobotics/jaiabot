@@ -214,6 +214,9 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py DESTINATION ${CM
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR} COPYONLY)
 
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
+
 
 
 # add the code

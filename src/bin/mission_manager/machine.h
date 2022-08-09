@@ -43,6 +43,8 @@ struct MissionManagerStateMachine;
     };
 
 // events
+STATECHART_EVENT(EvStarted)
+STATECHART_EVENT(EvStartupTimeout)
 STATECHART_EVENT(EvSelfTestSuccessful)
 STATECHART_EVENT(EvSelfTestFails)
 struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
@@ -72,6 +74,7 @@ STATECHART_EVENT(EvRecovered)
 STATECHART_EVENT(EvBeginDataProcessing)
 STATECHART_EVENT(EvDataProcessingComplete)
 STATECHART_EVENT(EvDataOffloadComplete)
+STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
 STATECHART_EVENT(EvDepthTargetReached)
@@ -134,6 +137,7 @@ struct Notify : public AppMethodsAccess<Derived>
 struct PreDeployment;
 namespace predeployment
 {
+struct StartingUp;
 struct Idle;
 struct SelfTest;
 struct Failed;
@@ -217,6 +221,27 @@ struct MissionManagerStateMachine
     void set_state(jaiabot::protobuf::MissionState state) { state_ = state; }
     jaiabot::protobuf::MissionState state() const { return state_; }
 
+    void insert_warning(jaiabot::protobuf::Warning warning) { warnings_.insert(warning); }
+    void erase_warning(jaiabot::protobuf::Warning warning) { warnings_.erase(warning); }
+    void erase_infeasible_mission_warnings()
+    {
+        for (auto it = warnings_.begin(); it != warnings_.end();)
+        {
+            if (jaiabot::protobuf::Warning_Name(*it).find("INFEASIBLE_MISSION") !=
+                std::string::npos)
+                it = warnings_.erase(it);
+            else
+                ++it;
+        }
+    }
+    void health(goby::middleware::protobuf::ThreadHealth& health)
+    {
+        for (auto warning : warnings_)
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(warning);
+        if (!warnings_.empty() && health.state() == goby::middleware::protobuf::HEALTH__OK)
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+    }
+
     void set_setpoint_type(jaiabot::protobuf::SetpointType setpoint_type)
     {
         setpoint_type_ = setpoint_type;
@@ -269,16 +294,17 @@ struct MissionManagerStateMachine
     jaiabot::protobuf::MissionPlan plan_;
     jaiabot::protobuf::SetpointType setpoint_type_{jaiabot::protobuf::SETPOINT_STOP};
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
+    std::set<jaiabot::protobuf::Warning> warnings_;
 };
 
 struct PreDeployment
     : boost::statechart::state<PreDeployment,              // (CRTP)
                                MissionManagerStateMachine, // Parent state (or machine)
-                               predeployment::Idle         // Initial child substate
+                               predeployment::StartingUp   // Initial child substate
                                >
 {
-    using StateBase =
-        boost::statechart::state<PreDeployment, MissionManagerStateMachine, predeployment::Idle>;
+    using StateBase = boost::statechart::state<PreDeployment, MissionManagerStateMachine,
+                                               predeployment::StartingUp>;
 
     // entry action
     PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
@@ -291,12 +317,30 @@ struct PreDeployment
 
 namespace predeployment
 {
+struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
+                    Notify<StartingUp, protobuf::PRE_DEPLOYMENT__STARTING_UP>
+{
+    using StateBase = boost::statechart::state<StartingUp, PreDeployment>;
+    StartingUp(typename StateBase::my_context c);
+    ~StartingUp();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvStarted, Idle>,
+        boost::statechart::transition<EvStartupTimeout, Failed>,
+        boost::statechart::in_state_reaction<EvLoop, StartingUp, &StartingUp::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point timeout_stop_;
+};
+
 struct Idle : boost::statechart::state<Idle, PreDeployment>,
               Notify<Idle, protobuf::PRE_DEPLOYMENT__IDLE>
 {
     using StateBase = boost::statechart::state<Idle, PreDeployment>;
-    Idle(typename StateBase::my_context c) : StateBase(c) {}
-    ~Idle() {}
+    Idle(typename StateBase::my_context c);
+    ~Idle();
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
 };
@@ -995,11 +1039,7 @@ struct DataProcessing : boost::statechart::state<DataProcessing, PostDeployment>
                         Notify<DataProcessing, protobuf::POST_DEPLOYMENT__DATA_PROCESSING>
 {
     using StateBase = boost::statechart::state<DataProcessing, PostDeployment>;
-    DataProcessing(typename StateBase::my_context c) : StateBase(c)
-    {
-        // TODO - implement any data processing required
-        post_event(EvDataProcessingComplete());
-    }
+    DataProcessing(typename StateBase::my_context c);
     ~DataProcessing() {}
 
     using reactions =
@@ -1010,25 +1050,33 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
                      Notify<DataOffload, protobuf::POST_DEPLOYMENT__DATA_OFFLOAD>
 {
     using StateBase = boost::statechart::state<DataOffload, PostDeployment>;
-    DataOffload(typename StateBase::my_context c) : StateBase(c)
-    {
-        // TODO - implement data offload (or if this is going to done out-of-band, notify it here)
-        post_event(EvDataOffloadComplete());
-    }
+    DataOffload(typename StateBase::my_context c);
     ~DataOffload() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Idle>>;
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvDataOffloadComplete, Idle>,
+        boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
+
+  private:
+    std::unique_ptr<std::thread> offload_thread_;
+    // used by offload_thread_
+    std::atomic<bool> offload_success_{false};
+    std::atomic<bool> offload_complete_{false};
+    const std::string offload_command_;
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,
               Notify<Idle, protobuf::POST_DEPLOYMENT__IDLE>
 {
     using StateBase = boost::statechart::state<Idle, PostDeployment>;
-    Idle(typename StateBase::my_context c) : StateBase(c) {}
-    ~Idle() {}
+    Idle(typename StateBase::my_context c);
+    ~Idle();
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
+                         boost::statechart::transition<EvRetryDataOffload, DataOffload>,
                          boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 
