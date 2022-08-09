@@ -5,7 +5,6 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-Restart=never
 User=root
 ExecStart=$dir/gps-i2c-pipe.py /etc/jaiabot/dev/gps_i2c
 
