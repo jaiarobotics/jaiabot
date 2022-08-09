@@ -7,6 +7,7 @@ package jaiabot.protobuf;
 
 enum MissionState
 {
+    PRE_DEPLOYMENT__STARTING_UP = 0;
     PRE_DEPLOYMENT__IDLE = 1;
     PRE_DEPLOYMENT__SELF_TEST = 2;
     PRE_DEPLOYMENT__FAILED = 3;
@@ -59,11 +60,12 @@ message MissionTask
 
     enum TaskType
     {
+        NONE = 0;
         DIVE = 1;
         STATION_KEEP = 2;
         SURFACE_DRIFT = 3;
     }
-    required TaskType type = 1;
+    optional TaskType type = 1 [default = NONE];
 
     message DiveParameters
     {

@@ -26,6 +26,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void initialize() override;
     void finalize() override;
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
     void handle_command(const protobuf::Command& command);
 
