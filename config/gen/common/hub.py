@@ -5,7 +5,7 @@ def gpsd_device(node_id):
     if is_simulation():
         return '/dev/null'
     else:
-        return '/etc/jaiabot/dev/gps'
+        return '/dev/gps0'
 
 def gpsd_port(node_id):
     default_gpsd_port=2947
