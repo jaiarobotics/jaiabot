@@ -91,6 +91,16 @@ def getCommands():
     return JSONResponse(jaialogs.get_commands(log_names))
 
 
+@app.route('/active_goal', methods=['GET'])
+def getActiveGoals():
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    return JSONResponse(jaialogs.get_active_goals(log_names))
+
+
 if __name__ == '__main__':
     logging.warning(f'Serving on port {args.port}')
     app.run(host='0.0.0.0', port=args.port, debug=False)

@@ -335,3 +335,43 @@ def get_commands(log_filenames):
                 results[bot_id] = commands
 
     return results
+
+
+BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.BotStatus$')
+
+
+def get_active_goals(log_filenames):
+
+    # Open all our logs
+    log_files = [h5py.File(log_name) for log_name in log_filenames]
+
+    # A dictionary mapping bot_id to an array of active_goal dictionaries
+    results = {}
+
+    for log_file in log_files:
+
+        def visit_path(name, object):
+            m = BOT_STATUS_RE.match(name)
+
+            if m is not None:
+                bot_id = m.group(1)
+                if bot_id not in results:
+                    results[bot_id] = []
+
+                _utime_ = h5_get_series(log_file[name + '/_utime_'])
+                bot_ids = h5_get_series(log_file[name + '/bot_id'])
+                active_goals = h5_get_series(log_file[name + '/active_goal'])
+
+                last_active_goal = None
+                for i in range(len(_utime_)):
+                    if active_goals[i] != last_active_goal:
+                        results[bot_id].append({
+                            '_utime_': _utime_[i],
+                            'active_goal': active_goals[i]
+                        })
+                        
+                        last_active_goal = active_goals[i]
+
+        log_file.visititems(visit_path)
+
+    return results
