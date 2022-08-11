@@ -113,6 +113,18 @@ button {
     border-style: solid;
 }
 
-.waypoint.target {
-    background-color: cadetblue;
+.waypoint.active {
+    background-color: rgb(51, 161, 82);
+}
+
+.bot {
+    background-color: rgb(142, 0, 0);
+    color: rgb(0, 0, 0);
+    text-align: center;
+    width: 15pt;
+    height: 15pt;
+    border-radius: 0pt 5pt 5pt 5pt;
+    border-color: rgb(0, 0, 0);
+    border-width: 1pt;
+    border-style: solid;
 }

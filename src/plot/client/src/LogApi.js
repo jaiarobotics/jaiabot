@@ -56,4 +56,12 @@ export class LogApi {
 
     return this.get_json(url.toString())
   }
+
+  // Get active_goals
+  static get_active_goal(logs) {
+    var url = new URL('active_goal', window.location.origin)
+    url.searchParams.append('log', logs.join(','))
+
+    return this.get_json(url.toString())
+  }
 }

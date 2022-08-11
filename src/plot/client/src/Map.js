@@ -34,6 +34,8 @@ export default class Map {
       this.map = L.map(map_div_id).setView([ 0, 0 ], 10)
       this.points = []
       this.waypoint_markers = []
+      this.bot_markers = []
+      this.active_goal_dict = {}
 
       // points is in the form [[timestamp, lat, lon]]
       this.path_polyline = null
@@ -43,9 +45,6 @@ export default class Map {
               '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.map)
     
-      // Setup the map pin on hover
-      this.marker = L.marker([ 0, 0 ])
-      this.marker.addTo(this.map)
     }
   
     updateWithPoints(points) {
@@ -63,48 +62,57 @@ export default class Map {
     updateWithCommands(command_dict) {
       this.command_dict = command_dict
     }
+
+    updateWithActiveGoal(active_goal_dict) {
+      this.active_goal_dict = active_goal_dict
+    }
   
     updateToTimestamp(timestamp_micros) {
-      this.putBotMarkerAtTimestamp(timestamp_micros)
+      this.updateBotMarkers(timestamp_micros)
       this.updateWaypointMarkers(timestamp_micros)
     }
 
-    putBotMarkerAtTimestamp(timestamp_micros) {
-      this.marker.addTo(this.map)
-  
-      // Get the nearest map_point to a particular point in time
-      function point_at_time(points, t) {
-        let start = 0, end = points.length - 1
-  
-        // Iterate while start not meets end
-        while (start <= end) {
-          if (end - start <= 1)
-            return points[start]
-  
-            // Find the mid index
-            let mid = Math.floor((start + end) / 2)
-  
-            // Find which half we're in
-            if (t < points[mid][0]) {
-              end = mid
-            }
-          else {
-            start = mid
-          }
-        }
-  
-        return null
+    updateBotMarkers(timestamp_micros) {
+      this.bot_markers.forEach((bot_marker) => {
+        bot_marker.removeFrom(this.map)
+      })
+      this.bot_markers = []
+
+      if (timestamp_micros == null) {
+        return
       }
-      
-      let point = point_at_time(this.points, timestamp_micros)
-  
+
+      const point = bisect(this.points, (point) => {
+        return timestamp_micros - point[0]
+      })
+
+      const markerOptions = {
+        icon: new L.DivIcon({
+          className: 'bot',
+          html: 'Bot',
+          iconSize: 'auto'
+        })
+      }
+
       // Plot point on the map
       if (point) {
-        this.marker.setLatLng(new L.LatLng(point[1], point[2]))
+        const bot_marker = new L.Marker([point[1], point[2]], markerOptions)
+        this.bot_markers.push(bot_marker)
+        bot_marker.addTo(this.map)
       }
     }
 
     updateWaypointMarkers(timestamp_micros) {
+      this.waypoint_markers.forEach((waypoint_marker) => {
+        waypoint_marker.removeFrom(this.map)
+      })
+
+      this.waypoint_markers = []
+
+      if (timestamp_micros == null) {
+        return
+      }
+
       const botId_array = Object.keys(this.command_dict)
       if (botId_array.length == 0) {
         return
@@ -123,13 +131,17 @@ export default class Map {
         return
       }
 
-      // Add markers for each waypoint
-      this.waypoint_markers.forEach((waypoint_marker) => {
-        waypoint_marker.removeFrom(this.map)
+      // This assumes that we have an active_goal_dict with only one botId!
+      const active_goals_array = this.active_goal_dict[botId]
+
+      const active_goal = bisect(active_goals_array, (active_goal) => {
+        return timestamp_micros - active_goal._utime_
       })
 
-      this.waypoint_markers = []
+      const active_goal_index = active_goal?.active_goal
 
+
+      // Add markers for each waypoint
       for (const [goal_index, goal] of command.plan.goal.entries()) {
         const location = goal.location
 
@@ -137,10 +149,17 @@ export default class Map {
           continue
         }
 
+        // Style this waypoint
+        var waypointClasses = ['waypoint']
+
+        if (goal_index == active_goal_index) {
+          waypointClasses.push('active')
+        }
+
         const markerOptions = {
           icon: new L.DivIcon({
             title: 'Bot ' + botId,
-            className: 'waypoint',
+            className: waypointClasses.join(' '),
             html: goal_index,
             iconSize: 'auto'
           })
@@ -150,10 +169,6 @@ export default class Map {
         this.waypoint_markers.push(waypoint_marker)
       }
 
-    }
-  
-    removeMarker() {
-      this.marker.removeFrom(this.map)
     }
   
   }

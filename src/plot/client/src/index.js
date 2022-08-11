@@ -89,6 +89,11 @@ class LogApp extends React.Component {
         this.map.updateWithCommands(command_dict)
       })
 
+      // Get the active_goals
+      LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
+        this.map.updateWithActiveGoal(active_goal_dict)
+      })
+
     }
     this.refresh_plots()
   }
@@ -174,7 +179,7 @@ class LogApp extends React.Component {
     })
 
     this.plot_div_element.on('plotly_unhover',
-                        function(data) { self.map.removeMarker() })
+                        function(data) { self.map.updateToTimestamp(null) })
   }
 
 }
