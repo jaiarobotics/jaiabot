@@ -186,7 +186,7 @@ jaiabot_apps=[
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
      'runs_on': Type.BOT},
-    {'exe': 'jaiabot_control_surfaces_driver',
+    {'exe': 'jaiabot_arduino',
      'description': 'JaiaBot Control Surfaces Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_CONTROL_SURFACES_DRIVER',
