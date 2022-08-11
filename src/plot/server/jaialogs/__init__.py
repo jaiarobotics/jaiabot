@@ -308,15 +308,10 @@ def get_map(log_names):
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
 
-def get_commands(log_names):
-
-    if log_names is None:
-        return []
-
-    log_names = log_names.split(',')
+def get_commands(log_filenames):
 
     # Open all our logs
-    log_files = [h5py.File(log_name) for log_name in log_names]
+    log_files = [h5py.File(log_name) for log_name in log_filenames]
 
     # A dictionary mapping bot_id to an array of mission dictionaries
     results = {}

@@ -100,3 +100,19 @@ button {
     display: inline;
     width: 100pt;
 }
+
+.waypoint {
+    background-color: darkslategray;
+    color: white;
+    text-align: center;
+    width: 15pt;
+    height: 15pt;
+    border-radius: 0pt 5pt 5pt 5pt;
+    border-color: white;
+    border-width: 1pt;
+    border-style: solid;
+}
+
+.waypoint.target {
+    background-color: cadetblue;
+}

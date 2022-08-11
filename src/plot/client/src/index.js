@@ -79,9 +79,16 @@ class LogApp extends React.Component {
 
   componentDidUpdate() {
     if (this.state.chosen_logs.length > 0) {
+      // Get map data
       LogApi.get_map(this.state.chosen_logs).then((points) => {
         this.map.updateWithPoints(points)
       })
+
+      // Get the command dictionary (botId => [Command])
+      LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
+        this.map.updateWithCommands(command_dict)
+      })
+
     }
     this.refresh_plots()
   }
@@ -163,7 +170,7 @@ class LogApp extends React.Component {
     this.plot_div_element.on('plotly_hover', function(data) {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = Date.parse(dateString) * 1e3
-      self.map.putMarkerAtTimestamp(date_timestamp_micros)
+      self.map.updateToTimestamp(date_timestamp_micros)
     })
 
     this.plot_div_element.on('plotly_unhover',

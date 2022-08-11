@@ -48,4 +48,12 @@ export class LogApi {
 
     return this.get_json(url.toString())
   }
+
+  // Get commands
+  static get_commands(logs) {
+    var url = new URL('commands', window.location.origin)
+    url.searchParams.append('log', logs.join(','))
+
+    return this.get_json(url.toString())
+  }
 }

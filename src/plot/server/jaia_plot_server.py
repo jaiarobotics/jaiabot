@@ -25,6 +25,22 @@ jaialogs.set_directory(os.path.expanduser(args.directory))
 
 app = Flask(__name__)
 
+# Parsing the arguments
+def parse_log_filenames(input):
+    if input is None:
+        return None
+    else:
+        return input.split(',')
+
+####### Responses
+
+def JSONResponse(obj):
+    return Response(json.dumps(obj), mimetype='application/json')
+
+def JSONErrorResponse(msg):
+    obj = {"error": msg}
+    return JSONResponse(obj)
+
 ####### Static files
 root = '../client/dist'
 
@@ -37,10 +53,6 @@ def getRoot():
     return getStaticFile('index.html')
 
 ####### API endpoints
-
-def JSONResponse(obj):
-    return Response(json.dumps(obj), mimetype='application/json')
-
 
 @app.route('/logs', methods=['GET'])
 def getLogs():
@@ -61,7 +73,7 @@ def getSeries():
         series = jaialogs.get_series(log_names, series_names)
         return JSONResponse(series)
     except Exception as e:
-        return JSONResponse({ 'error': str(e) })
+        return JSONErrorResponse(str(e))
 
 @app.route('/map', methods=['GET'])
 def getMap():
@@ -71,7 +83,11 @@ def getMap():
 
 @app.route('/commands', methods=['GET'])
 def getCommands():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
     return JSONResponse(jaialogs.get_commands(log_names))
 
 
