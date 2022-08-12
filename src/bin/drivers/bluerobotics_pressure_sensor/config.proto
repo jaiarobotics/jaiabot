@@ -37,4 +37,6 @@ message BlueRoboticsPressureSensorDriver
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
+
+    optional int32 blue_robotics_pressure_report_timeout_seconds = 10 [default = 20];
 }

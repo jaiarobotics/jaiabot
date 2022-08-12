@@ -148,12 +148,16 @@ jaiabot::apps::Health::Health()
 
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
-    launch_thread<ArduinoStatusThread>(cfg().arduino());
 
     // Only run this on the bot
     if (cfg().check_helm_ivp_status())
     {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
+    }
+
+    if (cfg().check_arduino_status())
+    {
+        launch_thread<ArduinoStatusThread>(cfg().arduino());
     }
 }
 

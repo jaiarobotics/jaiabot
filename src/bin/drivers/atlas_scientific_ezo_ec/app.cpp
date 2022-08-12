@@ -32,6 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
 using goby::glog;
@@ -55,6 +56,8 @@ class AtlasSalinityPublisher : public zeromq::MultiThreadApplication<config::Atl
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    goby::time::SteadyClock::time_point last_atlas_salinity_report_time_{std::chrono::seconds(0)};
 
   private:
     dccl::Codec dccl_;
@@ -121,6 +124,7 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
       glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
 
       interprocess().publish<groups::salinity>(output);
+      last_atlas_salinity_report_time_ = goby::time::SteadyClock::now();
 
     });
 
@@ -132,4 +136,24 @@ void jaiabot::apps::AtlasSalinityPublisher::loop()
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
     interthread().publish<atlas_salinity_udp_out>(io_data);
+}
+
+void jaiabot::apps::AtlasSalinityPublisher::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.set_name(this->app_name());
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    //Check to see if the atlas_salinity is responding
+    if (last_atlas_salinity_report_time_ +
+            std::chrono::seconds(cfg().atlas_salinity_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+    }
+
+    health.set_state(health_state);
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
 }

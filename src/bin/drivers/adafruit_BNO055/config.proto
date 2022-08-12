@@ -38,4 +38,6 @@ message AdaFruitBNO055Publisher
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
+
+    optional int32 adafruit_bno055_report_timeout_seconds = 10 [default = 20];
 }

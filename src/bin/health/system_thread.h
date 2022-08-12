@@ -125,7 +125,6 @@ class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoS
 
   private:
     jaiabot::protobuf::ArduinoStatus status_;
-    bool arduino_is_responding_{false};
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
 };
 
