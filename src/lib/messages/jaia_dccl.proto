@@ -13,7 +13,7 @@ message Command
 {
     option (dccl.msg) = {
         id: 80
-        max_bytes: 302
+        max_bytes: 552
         codec_version: 3
         unit_system: "si"
     };
@@ -146,7 +146,7 @@ message BotStatus
     optional MissionState mission_state = 40;
 
     // bounds should match MissionPlan.goal max_repeat value
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }];
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 42 }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];

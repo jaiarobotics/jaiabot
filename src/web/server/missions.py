@@ -254,8 +254,8 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         y = np.arange(np.floor(ymin * n) / n, np.ceil(ymax * n) / n, n)
         points = MultiPoint(np.transpose([np.tile(x, len(y)), np.repeat(y, len(x))]))
     else:
-        # Random distribution of 12 goals within the survey polygon
-        points = MultiPoint(distribute_num_points(p, number_of_bots * 20))
+        # Random distribution of 42 goals within the survey polygon
+        points = MultiPoint(distribute_num_points(p, number_of_bots * 42))
 
     # TODO: Rotate the superset of points to align their orientation
     if orientation and 0 <= orientation <= 360:
@@ -343,8 +343,8 @@ def assign_points_to_bots(survey_points, bot_list):
     :return: List of MultiPoint
     """
     number_of_bots = len(bot_list)
-    # TODO: Only allow 12 points per bot, change to setting somewhere if goals maximum of 14 is changed
-    survey_points_restricted = survey_points[0:number_of_bots*20]
+    # TODO: Only allow 42 points per bot, change to setting somewhere if goals maximum of 42 is changed
+    survey_points_restricted = survey_points[0:number_of_bots*42]
     num_survey_points = len(survey_points_restricted)
     point_break = floor(num_survey_points / number_of_bots)
     bot_list_zero = list(np.arange(number_of_bots))

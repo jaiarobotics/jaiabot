@@ -147,7 +147,7 @@ message MissionPlan
         optional MissionTask task = 3;
     }
     // max_repeat should match BotStatus.active_goal bounds
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 20];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 42];
 
     message Recovery
     {

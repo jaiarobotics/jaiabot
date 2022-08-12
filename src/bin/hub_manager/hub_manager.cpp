@@ -224,25 +224,28 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     std::vector<Command> command_fragments;
     int goal_max_size = 14;
     int fragment_index = 0;
+    int goal_max_index = 0;
     int goal_index = 0;
 
     glog.is_debug1() && glog << group("main")
                              << "Received Full Command: " << input_command.ShortDebugString()
                              << std::endl;
 
+    // Check message type if it is Mission Plan then check the goal size
+    // if the goal size is less than the max -> handle as usual
+    // Otherwise create command fragments
     if (command.type() == Command::MISSION_PLAN && command.plan().goal_size() > goal_max_size)
     {
         double command_fragments_expected =
             std::ceil((double)command.plan().goal_size() / (double)goal_max_size);
 
-        glog.is_debug1() &&
-            glog << group("main") << "Expected: " << command_fragments_expected
-                 << ", Size: " << command.plan().goal_size() << ", Max Size: " << goal_max_size
-                 << ", Calc: " << (command.plan().goal_size() / goal_max_size) << std::endl;
+        glog.is_debug1() && glog << group("main") << "Expected: " << command_fragments_expected
+                                 << ", Size: " << command.plan().goal_size()
+                                 << ", Max Size: " << goal_max_size << std::endl;
 
         for (fragment_index = 0; fragment_index < command_fragments_expected; fragment_index++)
         {
-            glog.is_debug1() && glog << group("main") << "Fragment: " << fragment_index
+            glog.is_debug1() && glog << group("main") << "Fragment Index: " << fragment_index
                                      << ", Fragment Expected: " << command_fragments_expected
                                      << std::endl;
             Command command_fragment;
@@ -250,10 +253,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command_fragment.set_time(command.time());
             command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
 
-            glog.is_debug1() && glog << group("main")
-                                     << "Fragment: " << command_fragment.ShortDebugString()
-                                     << std::endl;
-
+            // The initial fragment is going to have more data
             if (command.plan().has_start() && fragment_index == 0)
             {
                 command_fragment.mutable_plan()->set_start(command.plan().start());
@@ -271,26 +271,27 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 command_fragment.mutable_plan()->set_allocated_recovery(recovery);
             }
 
-            command_fragment.mutable_plan()->set_fragment_index((uint8_t)fragment_index);
+            command_fragment.mutable_plan()->set_fragment_index(fragment_index);
 
-            command_fragment.mutable_plan()->set_expected_fragments(
-                (int)command_fragments_expected);
+            command_fragment.mutable_plan()->set_expected_fragments(command_fragments_expected);
 
-            goal_max_size = ((fragment_index + 1) * goal_max_size);
+            goal_max_index = goal_max_index + goal_max_size;
 
-            glog.is_debug1() && glog << group("main") << "Goal max size: " << goal_max_size
-                                     << ", fragment index: " << fragment_index
+            glog.is_debug1() && glog << group("main") << "Goal Index: " << goal_max_index
+                                     << ", max size: " << goal_max_size
                                      << ", Total goal size: " << command.plan().goal_size()
-                                     << std::endl;
+                                     << ", Goal index: " << goal_index << std::endl;
 
+            // Loop through goals and add to fragment
             for (; goal_index < command.plan().goal_size(); goal_index++)
             {
-                if (goal_index < goal_max_size)
+                if (goal_index < goal_max_index)
                 {
                     glog.is_debug1() && glog << group("main") << "Goal max size: " << goal_max_size
                                              << ", goal index: " << goal_index
                                              << ", Total goal size: " << command.plan().goal_size()
                                              << std::endl;
+
                     protobuf::MissionPlan::Goal* goal = command_fragment.mutable_plan()->add_goal();
                     if (command.plan().goal(goal_index).has_name())
                     {
@@ -311,10 +312,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 }
                 else
                 {
+                    // Break loop if we reach our max goal index
                     break;
                 }
             }
-            goal_index = +goal_max_size;
+            // Set the next starting index for the next fragment
+            goal_index = goal_max_index - 1;
+
+            // Save fragment in vector
             command_fragments.push_back(command_fragment);
         }
     }
@@ -326,11 +331,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
     if (!command_fragments.empty())
     {
+        // Loop through each fragment and send
         for (const auto& command_fragment : command_fragments)
         {
-            glog.is_debug2() && glog << group("main")
-                                     << "Sending command: " << command_fragment.ShortDebugString()
-                                     << std::endl;
+            glog.is_debug2() && glog << group("main") << "Sending command fragment: "
+                                     << command_fragment.ShortDebugString() << std::endl;
 
             intervehicle().publish_dynamic(
                 command_fragment,
