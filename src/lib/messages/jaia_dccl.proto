@@ -13,7 +13,7 @@ message Command
 {
     option (dccl.msg) = {
         id: 80
-        max_bytes: 200
+        max_bytes: 302
         codec_version: 3
         unit_system: "si"
     };
@@ -30,6 +30,7 @@ message Command
         MISSION_PLAN = 1;
         ACTIVATE = 2;
         START_MISSION = 3;
+        MISSION_PLAN_FRAGMENT = 4;
 
         // during any mission
         NEXT_TASK = 10;

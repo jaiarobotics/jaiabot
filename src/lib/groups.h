@@ -74,6 +74,9 @@ constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_comm
 constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_status",
                                                      goby::middleware::Group::broadcast_group};
 
+// DCCL (interprocess)
+constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
+
 // Arduino
 constexpr goby::middleware::Group arduino{"jaiabot::arduino"};
 

@@ -10,7 +10,7 @@ message ClientToPortalMessage
 {
     option (dccl.msg) = {
         id: 124
-        max_bytes: 250
+        max_bytes: 350
         codec_version: 3
         unit_system: "si"
     };
