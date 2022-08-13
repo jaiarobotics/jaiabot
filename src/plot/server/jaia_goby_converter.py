@@ -44,20 +44,26 @@ while True:
             for body in required_file_bodies:
                 goby_filename = body + '.goby'
 
-                # Skip symlinks
-                if os.path.islink(goby_filename):
-                    logging.info(f'Skipping symlink {goby_filename}')
-                    continue
+                try:
+                    # Skip symlinks
+                    if os.path.islink(goby_filename):
+                        logging.info(f'Skipping symlink {goby_filename}')
+                        continue
 
-                # Skip giant files
-                file_size = os.path.getsize(goby_filename)
-                if file_size > args.size_limit:
-                    logging.warning(f'Skipping file {goby_filename}, due to large size ({file_size} > {args.size_limit})')
-                    continue
+                    # Skip giant files
+                    file_size = os.path.getsize(goby_filename)
+                    if file_size > args.size_limit:
+                        logging.warning(f'Skipping file {goby_filename}, due to large size ({file_size} > {args.size_limit})')
+                        continue
 
-                # Convert
-                cmd = f'goby_log_tool --input_file {goby_filename} --output_file {body}.h5 --format HDF5'
-                os.system(cmd)
+                    # Convert
+                    cmd = f'goby_log_tool --input_file {goby_filename} --output_file {body}.h5 --format HDF5'
+                    logging.info(cmd)
+                    os.system(cmd)
+
+                except FileNotFoundError:
+                    logging.warning(f'File not found: {goby_filename}')
+                    continue
 
         old_mtime = mtime
 

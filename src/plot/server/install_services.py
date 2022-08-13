@@ -15,8 +15,8 @@ for template_file in template_files:
 
     # Substitution dictionary
     subst = {
-        'working_directory': os.path.abspath('.'),
-        'user': os.getlogin()
+        'working_directory': '/opt/jaiaplot/server',
+        'user': 'jaia'
     }
 
     output = template.substitute(subst)
