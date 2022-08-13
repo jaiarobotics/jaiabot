@@ -11,7 +11,8 @@ echo "🟢 Uploading logs to ${DEST_HOSTNAME}"
 
 set -ex
 
-find /var/log/jaiabot/ -name '*.goby' -print0 | xargs -0 -I'{}' rsync {} ${DEST_HOSTNAME}:jaiaplot-logs/
+shopt -s globstar
+rsync -zvP /var/log/jaiabot/**/*.goby ${DEST_HOSTNAME}:jaiaplot-logs/
 
 set +x
 
