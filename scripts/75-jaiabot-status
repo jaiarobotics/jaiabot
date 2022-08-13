@@ -1,4 +1,3 @@
-  GNU nano 4.8                                /etc/update-motd.d/75-jaiabot-status                                          
 #!/usr/bin/env bash
 
 # Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)

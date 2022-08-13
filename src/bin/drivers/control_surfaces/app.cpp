@@ -71,7 +71,7 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    const int motor_max_step = 25;
+    const int motor_max_step = 20;
 
     // Control surfaces
     int rudder = 1500;

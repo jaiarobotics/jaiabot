@@ -63,6 +63,7 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_SINGLE_THREAD_PATTERN = 119;
     ERROR__NOT_RESPONDING__JAIABOT_MULTI_THREAD_PATTERN = 120;
     ERROR__NOT_RESPONDING__JAIABOT_SIMULATOR = 121;
+    ERROR__NOT_RESPONDING__ARDUINO = 122;
 
     // TODO: IMPLEMENT
     // from jaiabot_fusion
@@ -127,6 +128,15 @@ enum Warning
     WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = 504;
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505;
     WARNING__SYSTEM__DATA_DISK_SPACE_LOW = 506;
+
+    // from jaiabot_mission_manager
+    WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL = 700;
+    WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL =
+        701;
+    WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL =
+        702;
+
+    WARNING__MISSION__DATA_OFFLOAD_FAILED = 720;
 }
 
 message LinuxHardwareStatus
@@ -295,6 +305,29 @@ message HelmIVPStatus
     optional bool helm_ivp_data = 5 [default = false];
 }
 
+message ArduinoStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional sint32 code = 1 [default = 1];
+    optional float thermocouple_temperature = 2 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];;
+    optional float vccvoltage = 3 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "electric_potential" system: "si" }
+    }];
+    optional float vcccurrent = 4 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+    optional float vvcurrent = 5 [default = 0, (dccl.field) = {
+        units { derived_dimensions: "current" }
+    }];
+
+    optional uint32 crc = 50;
+    optional uint32 calculated_crc = 51;
+}
+
 message ThreadHealth
 {
     repeated Error error = 1;
@@ -335,12 +368,13 @@ message SystemdStopReport
         SERVICE_RESULT_RESOURCES = 9;
     }
     required ServiceResult result = 1;
-    required Error error = 2;  // the corresponding ERROR__FAILED__* 
+    required Error error = 2;  // the corresponding ERROR__FAILED__*
     optional string journal_dump_file =
         3;  // if failed, the journal snippet from last boot was written here
 }
 
 message SystemdReportAck
 {
-    required Error error_ack = 1;  // which app this relates to, by its corresponding error value
+    required Error error_ack =
+        1;  // which app this relates to, by its corresponding error value
 }
