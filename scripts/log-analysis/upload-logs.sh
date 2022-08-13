@@ -11,8 +11,11 @@ echo "🟢 Uploading logs to ${DEST_HOSTNAME}"
 
 set -ex
 
-shopt -s globstar
-rsync -zvP /var/log/jaiabot/**/*.goby ${DEST_HOSTNAME}:jaiaplot-logs/
+# Link to staging for a flat directory structure
+mkdir -p staging
+find /var/log/jaiabot -name '*.goby' -size -50M -exec ln -sf {} staging/ \;
+
+rsync -zaLP staging/ ${DEST_HOSTNAME}:jaiaplot-logs/
 
 set +x
 
