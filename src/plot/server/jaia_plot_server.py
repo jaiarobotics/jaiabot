@@ -11,7 +11,7 @@ import jaialogs
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiaplot interface")
-parser.add_argument("-d", dest="directory", type=str, default="~/jaiaplot-logs/", help="Path to find the goby / h5 files")
+parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiaplot/", help="Path to find the goby / h5 files")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 args = parser.parse_args()
 

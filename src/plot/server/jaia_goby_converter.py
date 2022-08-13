@@ -5,11 +5,12 @@
 import argparse
 import logging
 import os
+from posixpath import islink
 import time
 import glob
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', dest="path", type=str, default="~/jaiaplot-logs/", help="Path to monitor for new goby files to convert")
+parser.add_argument('-d', dest="path", type=str, default="/var/log/jaiaplot", help="Path to monitor for new goby files to convert")
 parser.add_argument("-l", dest='logLevel', type=str, default='INFO', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument('-s', dest='size_limit', type=int, default='50000000', help='Maximum goby file size to convert')
 args = parser.parse_args()
@@ -41,15 +42,21 @@ while True:
         if len(required_file_bodies) > 0:
             logging.info(f'New files to convert: {required_file_bodies}')
             for body in required_file_bodies:
+                goby_filename = body + '.goby'
+
+                # Skip symlinks
+                if os.path.islink(goby_filename):
+                    logging.info(f'Skipping symlink {goby_filename}')
+                    continue
 
                 # Skip giant files
-                file_size = os.path.getsize(body + '.goby')
+                file_size = os.path.getsize(goby_filename)
                 if file_size > args.size_limit:
-                    logging.warning(f'Skipping file {body}.goby, due to large size ({file_size} > {args.size_limit})')
+                    logging.warning(f'Skipping file {goby_filename}, due to large size ({file_size} > {args.size_limit})')
                     continue
 
                 # Convert
-                cmd = f'goby_log_tool --input_file {body}.goby --output_file {body}.h5 --format HDF5'
+                cmd = f'goby_log_tool --input_file {goby_filename} --output_file {body}.h5 --format HDF5'
                 os.system(cmd)
 
         old_mtime = mtime

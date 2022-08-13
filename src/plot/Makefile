@@ -4,4 +4,8 @@ release:
 	cd client; npm install; npm run release
 
 install: all
-	cd server; sudo ./install_services.py
+	sudo mkdir -p /opt/jaiaplot
+	sudo chmod ugo+rwx /opt/jaiaplot
+
+	rsync -aP server client /opt/jaiaplot
+	cd /opt/jaiaplot/server; sudo ./install_services.py
