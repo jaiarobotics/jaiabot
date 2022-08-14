@@ -1,4 +1,4 @@
-set(APP jaiabot_arduino)
+set(APP jaiabot_driver_arduino)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
 

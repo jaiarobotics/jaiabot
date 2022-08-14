@@ -36,7 +36,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `jaiabot_as-ezo-ec_py`: Python driver for Atlas Scientific conductivity sensor.
 - `jaiabot_atlas_scientific_ezo_ec_driver`: Middleman between our `jaiabot_as-ezo-ec_py` driver and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
 - `jaiabot_bluerobotics_pressure_sensor_driver`: Middleman between our `jaiabot_pressure_sensor_py` driver and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
-- `jaiabot_arduino`: This is the driver for the Arduino which controls the elevators, rudder, motor, diagnostic LEDs, and power monitoring.
+- `jaiabot_driver_arduino`: This is the driver for the Arduino which controls the elevators, rudder, motor, diagnostic LEDs, and power monitoring.
 - `jaiabot_engineering`: Handles commands from the Engineering Interface web page to set and test low level functionality.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 - `jaiabot_health`: Overall system health using data from `goby_coroner` and eventually other sources.
