@@ -125,17 +125,20 @@ elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.bar30_cpp_udp_port(node_id),
-                                     remote_port=common.udp.bar30_py_udp_port(node_id)))
+                                     remote_port=common.udp.bar30_py_udp_port(node_id),
+                                     blue_robotics_pressure_report_in_simulation=is_simulation()))
 elif common.app == 'jaiabot_adafruit_BNO055_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     adafruit_bno055_report_in_simulation=is_simulation()))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
-                                     remote_port=common.udp.atlas_ezo_py_udp_port(node_id)))
+                                     remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
+                                     atlas_salinity_report_in_simulation=is_simulation()))
 elif common.app == 'salinity-subscriber':
     print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
                                      app_block=app_common,
