@@ -61,11 +61,14 @@ class BlueRoboticsPressureSensorDriver : public zeromq::MultiThreadApplication<c
   private:
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
   private:
     dccl::Codec dccl_;
     goby::time::SteadyClock::time_point last_blue_robotics_pressure_report_time_{
         std::chrono::seconds(0)};
+    bool helm_ivp_in_mission_{false};
 };
 
 } // namespace apps
@@ -143,21 +146,38 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(
     goby::middleware::protobuf::ThreadHealth& health)
 {
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     //Check to see if the blue_robotics_pressure is responding
+    if (cfg().blue_robotics_pressure_report_in_simulation())
+    {
+        if (helm_ivp_in_mission_)
+        {
+            glog.is_warn() && glog << "Simulation Timeout on blue_robotics_pressure" << std::endl;
+            check_last_report(health, health_state);
+        }
+    }
+    else
+    {
+        glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
+        check_last_report(health, health_state);
+    }
+
+    health.set_state(health_state);
+}
+
+void jaiabot::apps::BlueRoboticsPressureSensorDriver::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
     if (last_blue_robotics_pressure_report_time_ +
             std::chrono::seconds(cfg().blue_robotics_pressure_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(
-                protobuf::ERROR__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
     }
-
-    health.set_state(health_state);
-    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
 }

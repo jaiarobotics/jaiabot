@@ -40,4 +40,5 @@ message AtlasSalinityPublisher
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
     optional int32 atlas_salinity_report_timeout_seconds = 10 [default = 20];
+    optional bool atlas_salinity_report_in_simulation = 11 [default = true];
 }

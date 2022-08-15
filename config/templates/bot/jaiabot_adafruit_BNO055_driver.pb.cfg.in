@@ -6,3 +6,5 @@ udp_config {
     remote_address: "127.0.0.1"
     remote_port: 20000
 }
+
+adafruit_bno055_report_in_simulation: $adafruit_bno055_report_in_simulation

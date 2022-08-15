@@ -40,4 +40,5 @@ message AdaFruitBNO055Publisher
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
     optional int32 adafruit_bno055_report_timeout_seconds = 10 [default = 20];
+    optional bool adafruit_bno055_report_in_simulation = 11 [default = true];
 }
