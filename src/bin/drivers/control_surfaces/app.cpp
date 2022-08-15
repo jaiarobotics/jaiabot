@@ -123,11 +123,10 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
             }
         });
     // Get an ArduinoResponse
-    interthread().subscribe<serial_in>(
-        [this](const goby::middleware::protobuf::IOData& io)
+    interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
+        try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-
             if (arduino_response.status_code() > 1)
             {
                 glog.is_warn() && glog << group("arduino")
@@ -139,7 +138,20 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino>(arduino_response);
-        });
+        }
+        catch (const std::exception& e) //all exceptions thrown by the standard*  library
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught: "
+                                   << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught!"
+                                   << std::endl;
+        } // Catch all
+    });
 }
 
 int surfaceValueToMicroseconds(int input, int lower, int center, int upper)

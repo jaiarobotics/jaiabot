@@ -44,5 +44,5 @@ message FailureReporter
     required protobuf.Error error_code = 11;
     required string service_name = 12;
     optional string service_result = 13;
-    optional int32 num_attempts = 14 [default = 3];
+    optional int32 num_attempts = 14 [default = 5];
 }
