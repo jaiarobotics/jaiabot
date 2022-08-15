@@ -72,6 +72,7 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     int current_motor = 1500;
     int target_motor = 1500;
     const int motor_max_step = 20;
+    const int motor_max_reverse_step = 100;
 
     // Control surfaces
     int rudder = 1500;
@@ -222,11 +223,13 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
     // Move toward target_motor
     if (target_motor > current_motor)
     {
-        current_motor += min(target_motor - current_motor, motor_max_step);
+        const int max_step = current_motor > 0 ? motor_max_step : motor_max_reverse_step;
+        current_motor += min(target_motor - current_motor, max_step);
     }
     else
     {
-        current_motor -= min(current_motor - target_motor, motor_max_step);
+        const int max_step = current_motor < 0 ? motor_max_step : motor_max_reverse_step;
+        current_motor -= min(current_motor - target_motor, max_step);
     }
 
     // Don't use motor values of less power than the start bounds
