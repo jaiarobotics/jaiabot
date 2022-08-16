@@ -819,7 +819,9 @@ function updateStatus(status) {
     innerHTML +=
         "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
 
-    lastCommandTime = bot.lastCommandTime ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(1) : ""
+    lastCommandTime = bot.lastCommandTime
+                          ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(0)
+                          : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
 
     innerHTML += "</tr>"
