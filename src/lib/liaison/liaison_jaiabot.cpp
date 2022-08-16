@@ -16,6 +16,7 @@ using namespace Wt;
 using namespace std::chrono;
 
 bool jaiabot::LiaisonJaiabot::dive_start_ = false;
+bool led_switch_on = true;
 system_clock::time_point jaiabot::LiaisonJaiabot::dive_expire_ = system_clock::now();
 
 jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
@@ -146,6 +147,8 @@ void jaiabot::LiaisonJaiabot::loop()
         {
             cmd.set_motor(0);
         }
+
+        cmd.set_led_switch_on(led_switch_on);
 
         glog.is_debug1() && glog << cmd_msg.ShortDebugString() << std::endl;
 

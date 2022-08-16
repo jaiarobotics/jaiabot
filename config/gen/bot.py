@@ -58,9 +58,9 @@ interprocess_common = config.template_substitute(templates_dir+'/_interprocess.p
                                                  platform='bot'+str(bot_index)+'_fleet' + str(fleet_index))
 
 try:
-    control_surfaces_driver_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
+    jaiabot_driver_arduino_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
 except FileNotFoundError:
-    control_surfaces_driver_bounds = 'bounds {}'
+    jaiabot_driver_arduino_bounds = 'bounds {}'
 
 if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
@@ -196,4 +196,4 @@ else:
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     control_surfaces_driver_bounds=control_surfaces_driver_bounds))
+                                     jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds))
