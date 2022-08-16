@@ -334,6 +334,7 @@ void halt_all() {
   command.rudder = rudder_neutral;
   command.stbd_elevator = stbd_elevator_neutral;
   command.port_elevator = port_elevator_neutral;
+  command.led_switch_on = false;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch
