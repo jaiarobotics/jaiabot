@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/engineering.proto";
+import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 
 package jaiabot.protobuf;
@@ -9,9 +10,6 @@ package jaiabot.protobuf;
 message ClientToPortalMessage
 {
     option (dccl.msg) = {
-        id: 124
-        max_bytes: 250
-        codec_version: 3
         unit_system: "si"
     };
 
@@ -23,13 +21,10 @@ message ClientToPortalMessage
 message PortalToClientMessage
 {
     option (dccl.msg) = {
-        id: 125
-        max_bytes: 250
-        codec_version: 3
         unit_system: "si"
     };
 
     optional BotStatus bot_status = 1;
-
     optional Engineering engineering_status = 2;
+    optional HubStatus hub_status = 3;
 }

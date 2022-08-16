@@ -34,8 +34,12 @@ message HubManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
-    
+
     repeated int32 managed_bot_modem_id = 10;
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
-    required goby.middleware.protobuf.TransporterConfig dive_packet_sub_cfg = 12;
+    required goby.middleware.protobuf.TransporterConfig dive_packet_sub_cfg =
+        12;
+
+    optional int32 hub_id = 13 [default = 0];
+    optional int32 health_report_timeout_seconds = 14 [default = 20];
 }
