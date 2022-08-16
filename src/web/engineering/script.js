@@ -754,7 +754,7 @@ function sendVisibleCommand() {
   xhr.send(null);
 }
 
-const interval = setInterval(sendVisibleCommand, 1000);
+const interval = setInterval(sendVisibleCommand, 100);
 
 var hub_location = null
 
