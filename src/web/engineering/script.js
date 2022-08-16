@@ -766,6 +766,13 @@ function updateStatus(status) {
 
   table = el("statusTable")
   innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance (m)</th><th>Speed</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Course (°)</th><th>Depth (m)</th><th>Salinity</th><th>Temperature (℃)</th><th>Status Age (s)</th><th>Command Age (s)</th>"
+  loggingStatusInnerUp =
+      "<label style='color:black; display: inline-block;'>Bots: "
+  loggingStatusInnerDown =
+      "<label style='color:red; display: inline-block;'>Bots: "
+  loggingStatusInner = ""
+  isLogging = false
+  isNotLogging = false
 
   let now_us = Date.now() * 1e3
 
@@ -773,6 +780,18 @@ function updateStatus(status) {
     if (bot.botId == 255) {
       var hub = bot
       hub_location = hub.location
+    }
+
+    loggingStatus = el("loggingStatus")
+
+    // Alert user that data is not being logged
+    if (bot.missionState == "PRE_DEPLOYMENT__IDLE") {
+      loggingStatusInnerDown += bot.botId + ", "
+      isNotLogging = true;
+    }
+    else {
+      loggingStatusInnerUp += bot.botId + ", "
+      isLogging = true;
     }
 
     innerHTML += "<tr>"
@@ -805,7 +824,19 @@ function updateStatus(status) {
 
     innerHTML += "</tr>"
   }
+  loggingStatusInnerUp += "Logging Status: Logging</label>"
+  loggingStatusInnerDown +=
+      "Logging Status: Not Logging (Activate For Logging)</label>"
 
+  if (isNotLogging && isLogging) {
+    loggingStatusInner = loggingStatusInnerDown + "<br>" + loggingStatusInnerUp
+  }
+  else if (isNotLogging && !isLogging) {
+    loggingStatusInner = loggingStatusInnerDown
+  }
+  else {loggingStatusInner = loggingStatusInnerUp}
+
+  loggingStatus.innerHTML = loggingStatusInner;
   table.innerHTML = innerHTML
 }
 
