@@ -122,7 +122,7 @@ jaiabot::apps::WebPortal::WebPortal()
             glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString()
                                      << endl;
 
-            auto command = jaiabot::protobuf::ClientToPortalMessage();
+            jaiabot::protobuf::ClientToPortalMessage command;
             if (command.ParseFromString(io_data.data()))
             {
                 process_client_message(command);
