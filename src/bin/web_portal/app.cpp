@@ -22,10 +22,10 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include <goby/zeromq/application/multi_thread.h>
-#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -76,7 +76,6 @@ namespace jaiabot
 {
 namespace apps
 {
-
 constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
 constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
 
@@ -87,8 +86,6 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 
   private:
     unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
-
-    jaiabot::protobuf::BotStatus hub_status;
 
     void loop() override;
 
@@ -112,64 +109,69 @@ jaiabot::apps::WebPortal::WebPortal()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using UDPThread = goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
+    using UDPThread =
+        goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
     glog.is_debug1() && glog << group("main") << "Web Portal Started" << endl;
     glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << endl;
 
     ///////////// INPUT from Client
-    interthread().subscribe<web_portal_udp_in>([this](const goby::middleware::protobuf::IOData& io_data) {
-        glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString() << endl;
+    interthread().subscribe<web_portal_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& io_data) {
+            glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString()
+                                     << endl;
 
-        auto command = jaiabot::protobuf::ClientToPortalMessage();
-        if (command.ParseFromString(io_data.data())) {
-            process_client_message(command);
-            client_endpoints.insert(io_data.udp_src());
-        }
-        else {
-            glog.is_warn() && glog << group("main") << "Could not parse incoming message from client: " << io_data.ShortDebugString() << endl;
-        }
-    });
-
-    // Subscribe to bot statuses coming in over intervehicle
-    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>([this](const jaiabot::protobuf::BotStatus& dccl_nav) {
-        glog.is_debug2() && glog << group("main")
-                                 << "Received DCCL nav: " << dccl_nav.ShortDebugString() << endl;
-
-        auto message = jaiabot::protobuf::PortalToClientMessage();
-        message.set_allocated_bot_status(new jaiabot::protobuf::BotStatus(dccl_nav));
-
-        send_message_to_client(message);
-    });
-
-    // Subscribe to hub GPS updates
-    hub_status.set_bot_id(255);
-
-    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            glog.is_debug2() && glog << "Received TimePositionVelocity update: "
-                                     << tpv.ShortDebugString() << endl;
-
-            if (tpv.has_location())
+            auto command = jaiabot::protobuf::ClientToPortalMessage();
+            if (command.ParseFromString(io_data.data()))
             {
-                // Send "bot" status of bot_id == 255 for the hub
-                hub_status.mutable_location()->set_lat(tpv.location().lat());
-                hub_status.mutable_location()->set_lon(tpv.location().lon());
-                hub_status.mutable_speed()->set_over_ground(tpv.speed());
+                process_client_message(command);
+                client_endpoints.insert(io_data.udp_src());
+            }
+            else
+            {
+                glog.is_warn() && glog << group("main")
+                                       << "Could not parse incoming message from client: "
+                                       << io_data.ShortDebugString() << endl;
             }
         });
 
+    // Subscribe to bot statuses coming in over intervehicle
+    interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+        [this](const jaiabot::protobuf::BotStatus& dccl_nav) {
+            glog.is_debug2() && glog << group("main")
+                                     << "Received DCCL nav: " << dccl_nav.ShortDebugString()
+                                     << endl;
+
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_bot_status() = dccl_nav;
+
+            send_message_to_client(message);
+        });
+
+    // Subscribe to hub statuses from hub manager
+    interprocess().subscribe<jaiabot::groups::hub_status>(
+        [this](const jaiabot::protobuf::HubStatus& hub_status) {
+            glog.is_debug2() && glog << group("main")
+                                     << "Received Hub status: " << hub_status.ShortDebugString()
+                                     << endl;
+
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_hub_status() = hub_status;
+            send_message_to_client(message);
+        });
 
     // Subscribe to engineering status messages
-    interprocess().subscribe<jaiabot::groups::engineering_status>([this](const jaiabot::protobuf::Engineering& engineering_status) {
-        glog.is_debug1() && glog << "Sending engineering_status to client: " << engineering_status.ShortDebugString() << endl;
+    interprocess().subscribe<jaiabot::groups::engineering_status>(
+        [this](const jaiabot::protobuf::Engineering& engineering_status) {
+            glog.is_debug1() && glog << "Sending engineering_status to client: "
+                                     << engineering_status.ShortDebugString() << endl;
 
-        auto message = jaiabot::protobuf::PortalToClientMessage();
-        message.set_allocated_engineering_status(new jaiabot::protobuf::Engineering(engineering_status));
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_engineering_status() = engineering_status;
 
-        send_message_to_client(message);
-    });
+            send_message_to_client(message);
+        });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
@@ -177,21 +179,27 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     glog.is_verbose() && glog << group("main")
                               << "Received message from client: " << msg.ShortDebugString() << endl;
 
-    if (msg.has_engineering_command()) {
+    if (msg.has_engineering_command())
+    {
         auto engineering_command = msg.engineering_command();
 
-        glog.is_debug2() && glog << group("main") << "Sending engineering_command: " << engineering_command.ShortDebugString() << endl;
+        glog.is_debug2() && glog << group("main") << "Sending engineering_command: "
+                                 << engineering_command.ShortDebugString() << endl;
 
         goby::middleware::Publisher<jaiabot::protobuf::Engineering> command_publisher(
-            {}, [](jaiabot::protobuf::Engineering& cmd, const goby::middleware::Group& group)
-            { cmd.set_bot_id(group.numeric()); });
+            {}, [](jaiabot::protobuf::Engineering& cmd, const goby::middleware::Group& group) {
+                cmd.set_bot_id(group.numeric());
+            });
 
         intervehicle().publish_dynamic(
-            engineering_command, goby::middleware::DynamicGroup(jaiabot::groups::engineering_command, engineering_command.bot_id()),
+            engineering_command,
+            goby::middleware::DynamicGroup(jaiabot::groups::engineering_command,
+                                           engineering_command.bot_id()),
             command_publisher);
     }
 
-    if (msg.has_command()) {
+    if (msg.has_command())
+    {
         using jaiabot::protobuf::Command;
         auto command = msg.command();
 
@@ -199,8 +207,9 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
                                  << "Sending command: " << command.ShortDebugString() << endl;
 
         goby::middleware::Publisher<Command> command_publisher(
-            {}, [](Command& cmd, const goby::middleware::Group& group)
-            { cmd.set_bot_id(group.numeric()); });
+            {}, [](Command& cmd, const goby::middleware::Group& group) {
+                cmd.set_bot_id(group.numeric());
+            });
 
         intervehicle().publish_dynamic(
             command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
@@ -208,16 +217,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     }
 }
 
-void jaiabot::apps::WebPortal::loop()
-{
-    // Send hub status
-    hub_status.set_time_with_units(NOW);
-
-    auto message = jaiabot::protobuf::PortalToClientMessage();
-    message.set_allocated_bot_status(new jaiabot::protobuf::BotStatus(hub_status));
-
-    send_message_to_client(message);
-}
+void jaiabot::apps::WebPortal::loop() {}
 
 void jaiabot::apps::WebPortal::send_message_to_client(
     const jaiabot::protobuf::PortalToClientMessage& message)
