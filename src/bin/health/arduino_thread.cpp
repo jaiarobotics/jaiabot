@@ -64,7 +64,7 @@ void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::Thre
         glog.is_warn() && glog << "Timeout on arduino report" << std::endl;
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__ARDUINO);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_DRIVER_ARDUINO);
     }
 
     health.set_state(health_state);
