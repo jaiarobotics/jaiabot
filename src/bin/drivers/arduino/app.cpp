@@ -52,10 +52,10 @@ namespace jaiabot
 {
 namespace apps
 {
-class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::ControlSurfacesDriver>
+class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDriverConfig>
 {
   public:
-    ControlSurfacesDriver();
+    ArduinoDriver();
 
   private:
     void loop() override;
@@ -91,14 +91,14 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::ControlSurfacesDriver>(
-        goby::middleware::ProtobufConfigurator<config::ControlSurfacesDriver>(argc, argv));
+    return goby::run<jaiabot::apps::ArduinoDriver>(
+        goby::middleware::ProtobufConfigurator<config::ArduinoDriverConfig>(argc, argv));
 }
 
 // Main thread
 
-jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(4 * si::hertz)
+jaiabot::apps::ArduinoDriver::ArduinoDriver()
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -154,8 +154,7 @@ int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
     }
 }
 
-void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
-    const ControlSurfaces& control_surfaces)
+void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
     if (control_surfaces.has_motor())
     {
@@ -196,7 +195,8 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
     _time_last_command_received = now_microseconds();
 }
 
-void jaiabot::apps::ControlSurfacesDriver::loop() {
+void jaiabot::apps::ArduinoDriver::loop()
+{
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
     arduino_cmd.set_timeout(arduino_timeout);
 
