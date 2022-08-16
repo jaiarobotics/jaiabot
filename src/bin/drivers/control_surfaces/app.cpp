@@ -220,6 +220,7 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
         arduino_cmd.set_rudder(bounds.rudder().center());
         arduino_cmd.set_stbd_elevator(bounds.strb().center());
         arduino_cmd.set_port_elevator(bounds.port().center());
+        arduino_cmd.set_led_switch_on(true);
 
         // Publish interthread, so we can log it
         interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
