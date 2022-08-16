@@ -15,7 +15,7 @@ set -ex
 mkdir -p staging
 find /var/log/jaiabot -name '*.goby' -size -50M -exec ln -sf {} staging/ \;
 
-rsync -zaLP staging/ ${DEST_HOSTNAME}:jaiaplot-logs/
+rsync -zaLP staging/ ${DEST_HOSTNAME}:/var/log/jaiabot/bot_offload/
 
 set +x
 
