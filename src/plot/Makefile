@@ -7,8 +7,8 @@ install: all
 	sudo mkdir -p /opt/jaiaplot
 	sudo chmod ugo+rwx /opt/jaiaplot
 
-	sudo mkdir -p /var/log/jaiaplot
-	sudo chmod ugo+rwx /var/log/jaiaplot
+	sudo mkdir -p /var/log/jaiabot/bot_offload/jaiaplot
+	sudo chmod ugo+rwx /var/log/jaiabot/bot_offload/jaiaplot
 
 	rsync -aP server client /opt/jaiaplot
 	cd /opt/jaiaplot/server; sudo ./install_services.py
