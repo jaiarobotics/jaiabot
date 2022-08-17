@@ -29,7 +29,7 @@ import "jaiabot/messages/bounds.proto";
 
 package jaiabot.config;
 
-message ControlSurfacesDriver
+message ArduinoDriverConfig
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;

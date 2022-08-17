@@ -105,7 +105,7 @@ Running `./systemd-local.sh --help` will always show the defaults inferred from 
 	
 - To start (or stop, restart) a single application:
 	```
-	sudo systemctl start jaiabot_control_surfaces_driver
+	sudo systemctl start jaiabot_driver_arduino
 	```	
 - To get a quick summary of all the applications' status:
 	```
@@ -113,11 +113,11 @@ Running `./systemd-local.sh --help` will always show the defaults inferred from 
 	```
 - To get the full log from a particular service (stdout/stderr),
 	```
-	sudo journalctl -u jaiabot_control_surfaces_driver
+	sudo journalctl -u jaiabot_driver_arduino
 	```
 - To get a summary and the last few lines of the log,
 	```
-	sudo systemctl status jaiabot_control_surfaces_driver
+	sudo systemctl status jaiabot_driver_arduino
 	```
 	
 

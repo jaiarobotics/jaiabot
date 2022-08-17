@@ -91,8 +91,7 @@ jaiabot::apps::Health::Health()
 {
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::Command& command)
-        {
+        [this](const protobuf::Command& command) {
             switch (command.type())
             {
                 // most commands handled by jaiabot_mission_manager
@@ -118,12 +117,12 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { process_coroner_report(vehicle_health); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            process_coroner_report(vehicle_health);
+        });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStartReport& start_report)
-        {
+        [this](const protobuf::SystemdStartReport& start_report) {
             glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
                                      << std::endl;
             failed_services_.erase(start_report.clear_error());
@@ -133,8 +132,7 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStopReport& stop_report)
-        {
+        [this](const protobuf::SystemdStopReport& stop_report) {
             glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
                                      << std::endl;
             if (stop_report.has_error())
@@ -149,9 +147,8 @@ jaiabot::apps::Health::Health()
     launch_thread<LinuxHardwareThread>(cfg().linux_hw());
     launch_thread<NTPStatusThread>(cfg().ntp());
 
-    // Only run this on the bot
+    // Only run these on the bot
     if (cfg().check_helm_ivp_status())
-    {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
     }
 
