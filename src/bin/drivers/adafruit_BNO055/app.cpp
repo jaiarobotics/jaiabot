@@ -160,14 +160,13 @@ void jaiabot::apps::AdaFruitBNO055Publisher::health(
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Timeout on adafruit_BNO055" << std::endl;
+            glog.is_warn() && glog << "Simulation Check" << std::endl;
             //TODO: add simulation for this sensor
             //check_last_report(health, health_state);
         }
     }
     else
     {
-        glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
         check_last_report(health, health_state);
     }
 
@@ -182,6 +181,7 @@ void jaiabot::apps::AdaFruitBNO055Publisher::check_last_report(
             std::chrono::seconds(cfg().adafruit_bno055_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
+        glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO055_DRIVER);

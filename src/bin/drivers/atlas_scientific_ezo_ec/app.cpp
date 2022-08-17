@@ -168,13 +168,12 @@ void jaiabot::apps::AtlasSalinityPublisher::health(goby::middleware::protobuf::T
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Timeout on atlas_salinity" << std::endl;
+            glog.is_warn() && glog << "Simulation Check" << std::endl;
             check_last_report(health, health_state);
         }
     }
     else
     {
-        glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
         check_last_report(health, health_state);
     }
 
@@ -189,6 +188,7 @@ void jaiabot::apps::AtlasSalinityPublisher::check_last_report(
             std::chrono::seconds(cfg().atlas_salinity_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
+        glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);

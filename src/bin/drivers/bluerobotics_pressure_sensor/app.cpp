@@ -155,13 +155,12 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Timeout on blue_robotics_pressure" << std::endl;
+            glog.is_warn() && glog << "Simulation Check" << std::endl;
             check_last_report(health, health_state);
         }
     }
     else
     {
-        glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
         check_last_report(health, health_state);
     }
 
@@ -176,8 +175,9 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::check_last_report(
             std::chrono::seconds(cfg().blue_robotics_pressure_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
+        glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+            ->add_error(protobuf::ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
     }
 }
