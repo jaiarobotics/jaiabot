@@ -149,6 +149,7 @@ jaiabot::apps::Health::Health()
 
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())
+    {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
     }
 
