@@ -83,7 +83,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int arduino_timeout = 5;
 
     //LED
-    bool led_switch_on = false;
+    bool led_switch_on = true;
 };
 
 } // namespace apps
@@ -123,11 +123,10 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             }
         });
     // Get an ArduinoResponse
-    interthread().subscribe<serial_in>(
-        [this](const goby::middleware::protobuf::IOData& io)
+    interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
+        try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-
             if (arduino_response.status_code() > 1)
             {
                 glog.is_warn() && glog << group("arduino")
@@ -139,7 +138,20 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino>(arduino_response);
-        });
+        }
+        catch (const std::exception& e) //all exceptions thrown by the standard*  library
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught: "
+                                   << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught!"
+                                   << std::endl;
+        } // Catch all
+    });
 }
 
 int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
@@ -208,6 +220,7 @@ void jaiabot::apps::ArduinoDriver::loop()
         arduino_cmd.set_rudder(bounds.rudder().center());
         arduino_cmd.set_stbd_elevator(bounds.strb().center());
         arduino_cmd.set_port_elevator(bounds.port().center());
+        arduino_cmd.set_led_switch_on(false);
 
         // Publish interthread, so we can log it
         interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
