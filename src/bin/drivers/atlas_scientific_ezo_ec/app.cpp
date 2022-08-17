@@ -32,6 +32,8 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 
 using goby::glog;
@@ -55,9 +57,14 @@ class AtlasSalinityPublisher : public zeromq::MultiThreadApplication<config::Atl
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
   private:
     dccl::Codec dccl_;
+    goby::time::SteadyClock::time_point last_atlas_salinity_report_time_{std::chrono::seconds(0)};
+    bool helm_ivp_in_mission_{false};
 };
 
 } // namespace apps
@@ -99,31 +106,47 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
     using AtlasSalinityUDPThread = goby::middleware::io::UDPPointToPointThread<atlas_salinity_udp_in, atlas_salinity_udp_out>;
     launch_thread<AtlasSalinityUDPThread>(cfg().udp_config());
 
-    interprocess().subscribe<atlas_salinity_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-      auto s = std::string(data.data());
-      auto fields = split(s, ",");
-      if (fields.size() < 5) {
-        glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s << std::endl;
-        return;
-      }
+    interprocess().subscribe<atlas_salinity_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& data) {
+            auto s = std::string(data.data());
+            auto fields = split(s, ",");
+            if (fields.size() < 5)
+            {
+                glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s
+                                       << std::endl;
+                return;
+            }
 
-      int index = 0;
-      
-      auto date_string = fields[index++];
+            int index = 0;
 
-      jaiabot::protobuf::SalinityData output;
+            auto date_string = fields[index++];
 
-      output.set_conductivity(std::stod(fields[index++]));
-      output.set_total_dissolved_solids(std::stod(fields[index++]));
-      output.set_salinity(std::stod(fields[index++]));
-      output.set_specific_gravity(std::stod(fields[index++]));
+            jaiabot::protobuf::SalinityData output;
 
-      glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
+            output.set_conductivity(std::stod(fields[index++]));
+            output.set_total_dissolved_solids(std::stod(fields[index++]));
+            output.set_salinity(std::stod(fields[index++]));
+            output.set_specific_gravity(std::stod(fields[index++]));
 
-      interprocess().publish<groups::salinity>(output);
+            glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
 
+            interprocess().publish<groups::salinity>(output);
+            last_atlas_salinity_report_time_ = goby::time::SteadyClock::now();
+        });
+
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
+            else
+            {
+                helm_ivp_in_mission_ = false;
+            }
+        }
     });
-
 }
 
 void jaiabot::apps::AtlasSalinityPublisher::loop()
@@ -132,4 +155,42 @@ void jaiabot::apps::AtlasSalinityPublisher::loop()
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
     interthread().publish<atlas_salinity_udp_out>(io_data);
+}
+
+void jaiabot::apps::AtlasSalinityPublisher::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    //Check to see if the atlas_salinity is responding
+    if (cfg().atlas_salinity_report_in_simulation())
+    {
+        if (helm_ivp_in_mission_)
+        {
+            glog.is_warn() && glog << "Simulation Timeout on atlas_salinity" << std::endl;
+            check_last_report(health, health_state);
+        }
+    }
+    else
+    {
+        glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
+        check_last_report(health, health_state);
+    }
+
+    health.set_state(health_state);
+}
+
+void jaiabot::apps::AtlasSalinityPublisher::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (last_atlas_salinity_report_time_ +
+            std::chrono::seconds(cfg().atlas_salinity_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+    }
 }
