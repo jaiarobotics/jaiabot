@@ -71,8 +71,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    const int motor_max_step = 20;
-    const int motor_max_reverse_step = 100;
+    int motor_max_step = 20;
+    int motor_max_reverse_step = 100;
 
     // Control surfaces
     int rudder = 1500;
@@ -109,6 +109,16 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
     // Setup our bounds configuration
     bounds = cfg().bounds();
+
+    if (bounds.motor().has_motor_max_step())
+    {
+        motor_max_step = bounds.motor().motor_max_step();
+    }
+
+    if (bounds.motor().has_motor_max_reverse_step())
+    {
+        motor_max_reverse_step = bounds.motor().motor_max_reverse_step();
+    }
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(

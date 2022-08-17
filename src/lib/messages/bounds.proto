@@ -12,6 +12,8 @@ message MotorBounds {
 		optional int32 reverseStart = 2 [default = 1400];
 		optional int32 forwardHalt = 3  [default = 1575];
 		optional int32 reverseHalt = 4  [default = 1425];
+		optional int32 motor_max_step = 5 [default = 20];
+		optional int32 motor_max_reverse_step = 6 [default = 100];
 	}
 
 message Bounds{
