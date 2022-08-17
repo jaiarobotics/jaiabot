@@ -34,7 +34,7 @@ message LinuxHardwareConfig
 
     optional float disk_low_available_percentage = 11 [default = 10];
     optional float disk_critical_available_percentage = 12 [default = 2];
-    
+
     optional float ram_low_available_percentage = 20 [default = 10];
     optional float ram_critical_available_percentage = 21 [default = 1];
 
@@ -45,21 +45,33 @@ message LinuxHardwareConfig
 
 message NTPStatusConfig
 {
-    option (dccl.msg) = { unit_system: "si" };
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
 
-    optional float high_offset_threshold = 10 [default = 10, (dccl.field).units = { prefix: "milli" base_dimensions: "T"}];
-    optional float high_jitter_threshold = 11 [default = 100, (dccl.field).units = { prefix: "milli" base_dimensions: "T"}];
+    optional float high_offset_threshold = 10 [
+        default = 10,
+        (dccl.field).units = { prefix: "milli" base_dimensions: "T" }
+    ];
+    optional float high_jitter_threshold = 11 [
+        default = 100,
+        (dccl.field).units = { prefix: "milli" base_dimensions: "T" }
+    ];
 }
 
 message HelmIVPStatusConfig
 {
-    option (dccl.msg) = { unit_system: "si" };
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
     optional int32 time_out_helm_status = 10 [default = 20];
 }
 
 message ArduinoStatusConfig
 {
-    option (dccl.msg) = { unit_system: "si" };
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
     optional int32 arduino_report_timeout_seconds = 10 [default = 20];
 }
 
@@ -79,11 +91,11 @@ message Health
         [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 
     optional bool ignore_powerstate_changes = 20 [default = false];
-    optional bool check_helm_ivp_status = 21 [default = false];
+    optional bool check_helm_ivp_status = 21 [default = true];
+    optional bool check_arduino_status = 22 [default = true];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
     optional ArduinoStatusConfig arduino = 42;
-    
 }

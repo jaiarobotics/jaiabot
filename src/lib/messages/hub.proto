@@ -1,0 +1,29 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/health.proto";
+import "goby/middleware/protobuf/coroner.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+
+package jaiabot.protobuf;
+
+message HubStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required uint32 hub_id = 1;
+    required uint64 time = 2 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    optional goby.middleware.protobuf.HealthState health_state = 4;
+    repeated Error error = 5 [
+        (dccl.field).max_repeat = 255
+    ];  // set max_repeat to a high value as we're not sending this over DCCL
+        // for now, but populate_status_from_health uses this value
+    repeated Warning warning = 6 [(dccl.field).max_repeat = 255];
+
+    optional GeographicCoordinate location = 10;
+}

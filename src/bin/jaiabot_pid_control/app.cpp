@@ -40,7 +40,7 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-bool led_switch_on = false;
+bool led_switch_on = true;
 
 int main(int argc, char* argv[])
 {

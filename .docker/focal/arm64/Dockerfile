@@ -13,7 +13,9 @@ RUN apt-get update && apt-get -y install dirmngr && \
 # Install jaiabot dependencies
 RUN apt-get update && \
     apt-get -y upgrade && \
-    apt-get -y install libgoby3:arm64 \
+    apt-get -y install libdccl4:arm64 \
+            libdccl4-dev:arm64 \
+            libgoby3:arm64 \
             libgoby3-dev:arm64 \
             libgoby3-moos-dev:arm64 \
             libgoby3-moos:arm64 \
