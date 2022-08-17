@@ -34,6 +34,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -138,6 +139,19 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
     });
 
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
+            else
+            {
+                helm_ivp_in_mission_ = false;
+            }
+        }
+    });
 }
 
 void jaiabot::apps::AdaFruitBNO055Publisher::loop()
@@ -160,14 +174,15 @@ void jaiabot::apps::AdaFruitBNO055Publisher::health(
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Timeout on adafruit_BNO055" << std::endl;
+            glog.is_debug1() &&
+                glog << "Simulation Sensor Check (TODO: add simulation for this sensor)"
+                     << std::endl;
             //TODO: add simulation for this sensor
             //check_last_report(health, health_state);
         }
     }
     else
     {
-        glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
         check_last_report(health, health_state);
     }
 
@@ -182,6 +197,7 @@ void jaiabot::apps::AdaFruitBNO055Publisher::check_last_report(
             std::chrono::seconds(cfg().adafruit_bno055_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
+        glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO055_DRIVER);
