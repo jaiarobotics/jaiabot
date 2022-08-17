@@ -168,7 +168,7 @@ void jaiabot::apps::AtlasSalinityPublisher::health(goby::middleware::protobuf::T
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Check" << std::endl;
+            glog.is_debug1() && glog << "Simulation Sensor Check" << std::endl;
             check_last_report(health, health_state);
         }
     }

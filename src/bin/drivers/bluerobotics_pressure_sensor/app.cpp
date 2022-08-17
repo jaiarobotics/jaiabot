@@ -37,6 +37,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 
 using goby::glog;
@@ -133,6 +134,20 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
             interprocess().publish<groups::pressure_temperature>(data);
             last_blue_robotics_pressure_report_time_ = goby::time::SteadyClock::now();
         });
+
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
+            else
+            {
+                helm_ivp_in_mission_ = false;
+            }
+        }
+    });
 }
 
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
@@ -155,7 +170,7 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(
     {
         if (helm_ivp_in_mission_)
         {
-            glog.is_warn() && glog << "Simulation Check" << std::endl;
+            glog.is_debug1() && glog << "Simulation Sensor Check" << std::endl;
             check_last_report(health, health_state);
         }
     }
