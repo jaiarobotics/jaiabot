@@ -71,6 +71,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
+
+    // Motor Steps
     int motor_max_step_up = 20;
     int motor_max_step_down = 20;
     int motor_max_reverse_step_up = 100;
@@ -112,14 +114,24 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     // Setup our bounds configuration
     bounds = cfg().bounds();
 
-    if (bounds.motor().has_motor_max_step())
+    if (bounds.motor().has_motor_max_step_up())
     {
-        motor_max_step = bounds.motor().motor_max_step();
+        motor_max_step_up = bounds.motor().motor_max_step_up();
     }
 
-    if (bounds.motor().has_motor_max_reverse_step())
+    if (bounds.motor().has_motor_max_step_down())
     {
-        motor_max_reverse_step = bounds.motor().motor_max_reverse_step();
+        motor_max_step_down = bounds.motor().motor_max_step_down();
+    }
+
+    if (bounds.motor().has_motor_max_reverse_step_up())
+    {
+        motor_max_reverse_step_up = bounds.motor().motor_max_reverse_step_up();
+    }
+
+    if (bounds.motor().has_motor_max_reverse_step_down())
+    {
+        motor_max_reverse_step_down = bounds.motor().motor_max_reverse_step_down();
     }
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
