@@ -269,15 +269,15 @@ void jaiabot::apps::ArduinoDriver::loop()
     {
         current_motor -= min(std::abs(target_motor - current_motor), motor_max_step_down);
     }
-    // If we are going reverse and we are trying to increase speed
+    // If we are going reverse and we are trying to decrease reverse speed
     else if (current_motor < 1500 && target_motor > current_motor)
     {
-        current_motor += min(target_motor - current_motor, motor_max_reverse_step_up);
+        current_motor += min(target_motor - current_motor, motor_max_reverse_step_down);
     }
-    // If we are going reverse and we are trying to decrease speed
+    // If we are going reverse and we are trying to increase reverse speed
     else if (current_motor < 1500 && target_motor < current_motor)
     {
-        current_motor -= min(std::abs(target_motor - current_motor), motor_max_reverse_step_down);
+        current_motor -= min(std::abs(target_motor - current_motor), motor_max_reverse_step_up);
     }
 
     /*if (target_motor > current_motor)
