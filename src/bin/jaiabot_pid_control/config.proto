@@ -4,6 +4,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/bounds.proto";
 
 package jaiabot.config;
 
@@ -43,4 +44,5 @@ message BotPidControl
     }
     repeated RPMSpeedEntry rpm_table = 32;
 
+    optional jaiabot.protobuf.Bounds bounds = 80;
 }

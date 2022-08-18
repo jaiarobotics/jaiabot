@@ -16,6 +16,8 @@ message MotorBounds {
 		optional int32 motor_max_step_down = 6 [default = 20];
 		optional int32 motor_max_reverse_step_up = 7 [default = 100];
 		optional int32 motor_max_reverse_step_down = 8 [default = 100];
+		optional int32 throttle_dive = 9 [default = -45];
+		optional int32 throttle_ascent = 10 [default = 50];
 	}
 
 message Bounds{

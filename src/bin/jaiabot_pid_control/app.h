@@ -85,6 +85,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     jaiabot::protobuf::LowControl cmd_msg;
     std::atomic<int> id;
 
+    jaiabot::protobuf::Bounds bounds;
+
   private:
     void loop() override;
 
