@@ -282,12 +282,12 @@ void jaiabot::apps::ArduinoDriver::loop()
 
     /*if (target_motor > current_motor)
     {
-        const int max_step = current_motor > 0 ? motor_max_step_up : motor_max_reverse_step_up;
+        const int max_step = current_motor > 0 ? motor_max_step : motor_max_reverse_step;
         current_motor += min(target_motor - current_motor, max_step);
     }
     else
     {
-        const int max_step = current_motor < 0 ? motor_max_step_down : motor_max_reverse_step_down;
+        const int max_step = current_motor < 0 ? motor_max_step : motor_max_reverse_step;
         current_motor -= min(current_motor - target_motor, max_step);
     }*/
 
