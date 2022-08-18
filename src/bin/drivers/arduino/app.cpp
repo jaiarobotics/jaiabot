@@ -52,10 +52,10 @@ namespace jaiabot
 {
 namespace apps
 {
-class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::ControlSurfacesDriver>
+class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDriverConfig>
 {
   public:
-    ControlSurfacesDriver();
+    ArduinoDriver();
 
   private:
     void loop() override;
@@ -71,8 +71,8 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    const int motor_max_step = 20;
-    const int motor_max_reverse_step = 100;
+    int motor_max_step = 20;
+    int motor_max_reverse_step = 100;
 
     // Control surfaces
     int rudder = 1500;
@@ -83,7 +83,7 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
     int arduino_timeout = 5;
 
     //LED
-    bool led_switch_on = false;
+    bool led_switch_on = true;
 };
 
 } // namespace apps
@@ -91,14 +91,14 @@ class ControlSurfacesDriver : public zeromq::MultiThreadApplication<config::Cont
 
 int main(int argc, char* argv[])
 {
-    return goby::run<jaiabot::apps::ControlSurfacesDriver>(
-        goby::middleware::ProtobufConfigurator<config::ControlSurfacesDriver>(argc, argv));
+    return goby::run<jaiabot::apps::ArduinoDriver>(
+        goby::middleware::ProtobufConfigurator<config::ArduinoDriverConfig>(argc, argv));
 }
 
 // Main thread
 
-jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
-    : zeromq::MultiThreadApplication<config::ControlSurfacesDriver>(4 * si::hertz)
+jaiabot::apps::ArduinoDriver::ArduinoDriver()
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -109,6 +109,16 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
 
     // Setup our bounds configuration
     bounds = cfg().bounds();
+
+    if (bounds.motor().has_motor_max_step())
+    {
+        motor_max_step = bounds.motor().motor_max_step();
+    }
+
+    if (bounds.motor().has_motor_max_reverse_step())
+    {
+        motor_max_reverse_step = bounds.motor().motor_max_reverse_step();
+    }
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
@@ -123,11 +133,10 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
             }
         });
     // Get an ArduinoResponse
-    interthread().subscribe<serial_in>(
-        [this](const goby::middleware::protobuf::IOData& io)
+    interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
+        try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-
             if (arduino_response.status_code() > 1)
             {
                 glog.is_warn() && glog << group("arduino")
@@ -139,7 +148,20 @@ jaiabot::apps::ControlSurfacesDriver::ControlSurfacesDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino>(arduino_response);
-        });
+        }
+        catch (const std::exception& e) //all exceptions thrown by the standard*  library
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught: "
+                                   << e.what() << std::endl;
+        }
+        catch (...)
+        {
+            glog.is_warn() && glog << group("arduino")
+                                   << "Arduino Response Parsing Failed: Exception Was Caught!"
+                                   << std::endl;
+        } // Catch all
+    });
 }
 
 int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
@@ -154,8 +176,7 @@ int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
     }
 }
 
-void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
-    const ControlSurfaces& control_surfaces)
+void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)
 {
     if (control_surfaces.has_motor())
     {
@@ -196,7 +217,8 @@ void jaiabot::apps::ControlSurfacesDriver::handle_control_surfaces(
     _time_last_command_received = now_microseconds();
 }
 
-void jaiabot::apps::ControlSurfacesDriver::loop() {
+void jaiabot::apps::ArduinoDriver::loop()
+{
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
     arduino_cmd.set_timeout(arduino_timeout);
 
@@ -208,6 +230,7 @@ void jaiabot::apps::ControlSurfacesDriver::loop() {
         arduino_cmd.set_rudder(bounds.rudder().center());
         arduino_cmd.set_stbd_elevator(bounds.strb().center());
         arduino_cmd.set_port_elevator(bounds.port().center());
+        arduino_cmd.set_led_switch_on(false);
 
         // Publish interthread, so we can log it
         interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);

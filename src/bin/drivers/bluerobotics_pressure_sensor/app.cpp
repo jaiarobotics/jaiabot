@@ -36,6 +36,8 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 
 using goby::glog;
@@ -59,9 +61,15 @@ class BlueRoboticsPressureSensorDriver : public zeromq::MultiThreadApplication<c
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
   private:
     dccl::Codec dccl_;
+    goby::time::SteadyClock::time_point last_blue_robotics_pressure_report_time_{
+        std::chrono::seconds(0)};
+    bool helm_ivp_in_mission_{false};
 };
 
 } // namespace apps
@@ -124,7 +132,22 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
             data.set_temperature_with_units(t_celsius);
 
             interprocess().publish<groups::pressure_temperature>(data);
+            last_blue_robotics_pressure_report_time_ = goby::time::SteadyClock::now();
         });
+
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
+            else
+            {
+                helm_ivp_in_mission_ = false;
+            }
+        }
+    });
 }
 
 void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
@@ -133,4 +156,43 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::loop()
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
     interthread().publish<bar30_udp_out>(io_data);
+}
+
+void jaiabot::apps::BlueRoboticsPressureSensorDriver::health(
+    goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    //Check to see if the blue_robotics_pressure is responding
+    if (cfg().blue_robotics_pressure_report_in_simulation())
+    {
+        if (helm_ivp_in_mission_)
+        {
+            glog.is_debug1() && glog << "Simulation Sensor Check" << std::endl;
+            check_last_report(health, health_state);
+        }
+    }
+    else
+    {
+        check_last_report(health, health_state);
+    }
+
+    health.set_state(health_state);
+}
+
+void jaiabot::apps::BlueRoboticsPressureSensorDriver::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (last_blue_robotics_pressure_report_time_ +
+            std::chrono::seconds(cfg().blue_robotics_pressure_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
+    }
 }

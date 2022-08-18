@@ -32,7 +32,9 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/moos.pb.h"
 
 using goby::glog;
 using namespace std;
@@ -56,9 +58,14 @@ class AdaFruitBNO055Publisher : public zeromq::MultiThreadApplication<config::Ad
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
   private:
     dccl::Codec dccl_;
+    goby::time::SteadyClock::time_point last_adafruit_BNO055_report_time_{std::chrono::seconds(0)};
+    bool helm_ivp_in_mission_{false};
 };
 
 } // namespace apps
@@ -129,9 +136,22 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
 
       interprocess().publish<groups::imu>(output);
-
+      last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
     });
 
+    interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
+        if (moos_msg.key() == "JAIABOT_MISSION_STATE")
+        {
+            if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
+            {
+                helm_ivp_in_mission_ = true;
+            }
+            else
+            {
+                helm_ivp_in_mission_ = false;
+            }
+        }
+    });
 }
 
 void jaiabot::apps::AdaFruitBNO055Publisher::loop()
@@ -140,4 +160,46 @@ void jaiabot::apps::AdaFruitBNO055Publisher::loop()
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
     io_data->set_data("hello\n");
     interthread().publish<imu_udp_out>(io_data);
+}
+
+void jaiabot::apps::AdaFruitBNO055Publisher::health(
+    goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    //Check to see if the adafruit_BNO055 is responding
+    if (cfg().adafruit_bno055_report_in_simulation())
+    {
+        if (helm_ivp_in_mission_)
+        {
+            glog.is_debug1() &&
+                glog << "Simulation Sensor Check (TODO: add simulation for this sensor)"
+                     << std::endl;
+            //TODO: add simulation for this sensor
+            //check_last_report(health, health_state);
+        }
+    }
+    else
+    {
+        check_last_report(health, health_state);
+    }
+
+    health.set_state(health_state);
+}
+
+void jaiabot::apps::AdaFruitBNO055Publisher::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (last_adafruit_BNO055_report_time_ +
+            std::chrono::seconds(cfg().adafruit_bno055_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO055_DRIVER);
+    }
 }

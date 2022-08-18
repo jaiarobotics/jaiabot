@@ -5,18 +5,12 @@ package jaiabot.protobuf;
 message ArduinoCommand
 {
     // Values to control the motor, surfaces, etc.
-    optional sint32 motor = 1;
-    optional sint32 port_elevator = 2;
-    optional sint32 stbd_elevator = 3;
-    optional sint32 rudder = 4;
-    optional sint32 timeout = 5;
-    optional bool led_switch_on = 6;
-
-    // For neutral / center values
-    optional sint32 motor_neutral = 20;
-    optional sint32 port_elevator_neutral = 21;
-    optional sint32 stbd_elevator_neutral = 22;
-    optional sint32 rudder_neutral = 23;
+    required sint32 motor = 1;
+    required sint32 port_elevator = 2;
+    required sint32 stbd_elevator = 3;
+    required sint32 rudder = 4;
+    required sint32 timeout = 5;
+    required bool led_switch_on = 6;
 }
 
 

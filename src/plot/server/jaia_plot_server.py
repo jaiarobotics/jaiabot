@@ -11,7 +11,7 @@ import jaialogs
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiaplot interface")
-parser.add_argument("-d", dest="directory", type=str, default="~/jaiaplot-logs/", help="Path to find the goby / h5 files")
+parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 args = parser.parse_args()
 
@@ -25,6 +25,22 @@ jaialogs.set_directory(os.path.expanduser(args.directory))
 
 app = Flask(__name__)
 
+# Parsing the arguments
+def parse_log_filenames(input):
+    if input is None:
+        return None
+    else:
+        return input.split(',')
+
+####### Responses
+
+def JSONResponse(obj):
+    return Response(json.dumps(obj), mimetype='application/json')
+
+def JSONErrorResponse(msg):
+    obj = {"error": msg}
+    return JSONResponse(obj)
+
 ####### Static files
 root = '../client/dist'
 
@@ -37,10 +53,6 @@ def getRoot():
     return getStaticFile('index.html')
 
 ####### API endpoints
-
-def JSONResponse(obj):
-    return Response(json.dumps(obj), mimetype='application/json')
-
 
 @app.route('/logs', methods=['GET'])
 def getLogs():
@@ -56,12 +68,37 @@ def getFields():
 def getSeries():
     log_names = request.args.get('log')
     series_names = request.args.get('path')
-    return JSONResponse(jaialogs.get_series(log_names, series_names))
+
+    try:
+        series = jaialogs.get_series(log_names, series_names)
+        return JSONResponse(series)
+    except Exception as e:
+        return JSONErrorResponse(str(e))
 
 @app.route('/map', methods=['GET'])
 def getMap():
     log_names = request.args.get('log')
     return JSONResponse(jaialogs.get_map(log_names))
+
+
+@app.route('/commands', methods=['GET'])
+def getCommands():
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    return JSONResponse(jaialogs.get_commands(log_names))
+
+
+@app.route('/active_goal', methods=['GET'])
+def getActiveGoals():
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    return JSONResponse(jaialogs.get_active_goals(log_names))
 
 
 if __name__ == '__main__':
