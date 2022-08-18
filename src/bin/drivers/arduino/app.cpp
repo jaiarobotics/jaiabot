@@ -74,8 +74,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Motor Steps
     int motor_max_step_up = 20;
-    int motor_max_step_down = 20;
-    int motor_max_reverse_step_up = 100;
+    int motor_max_step_down = 100;
+    int motor_max_reverse_step_up = 20;
     int motor_max_reverse_step_down = 100;
 
     // Control surfaces
