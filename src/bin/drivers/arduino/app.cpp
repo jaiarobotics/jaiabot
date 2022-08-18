@@ -71,8 +71,10 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Motor
     int current_motor = 1500;
     int target_motor = 1500;
-    int motor_max_step = 20;
-    int motor_max_reverse_step = 100;
+    int motor_max_step_up = 20;
+    int motor_max_step_down = 20;
+    int motor_max_reverse_step_up = 100;
+    int motor_max_reverse_step_down = 100;
 
     // Control surfaces
     int rudder = 1500;
@@ -244,16 +246,38 @@ void jaiabot::apps::ArduinoDriver::loop()
 
     // Motor
     // Move toward target_motor
-    if (target_motor > current_motor)
+
+    // If we are going forward and we are trying to increase speed
+    if (current_motor >= 1500 && target_motor > current_motor)
     {
-        const int max_step = current_motor > 0 ? motor_max_step : motor_max_reverse_step;
+        current_motor += min(target_motor - current_motor, motor_max_step_up);
+    }
+    // If we are going forward and we are trying to decrease speed
+    else if (current_motor >= 1500 && target_motor < current_motor)
+    {
+        current_motor -= min(std::abs(target_motor - current_motor), motor_max_step_down);
+    }
+    // If we are going reverse and we are trying to increase speed
+    else if (current_motor < 1500 && target_motor > current_motor)
+    {
+        current_motor += min(target_motor - current_motor, motor_max_reverse_step_up);
+    }
+    // If we are going reverse and we are trying to decrease speed
+    else if (current_motor < 1500 && target_motor < current_motor)
+    {
+        current_motor -= min(std::abs(target_motor - current_motor), motor_max_reverse_step_down);
+    }
+
+    /*if (target_motor > current_motor)
+    {
+        const int max_step = current_motor > 0 ? motor_max_step_up : motor_max_reverse_step_up;
         current_motor += min(target_motor - current_motor, max_step);
     }
     else
     {
-        const int max_step = current_motor < 0 ? motor_max_step : motor_max_reverse_step;
+        const int max_step = current_motor < 0 ? motor_max_step_down : motor_max_reverse_step_down;
         current_motor -= min(current_motor - target_motor, max_step);
-    }
+    }*/
 
     // Don't use motor values of less power than the start bounds
     int corrected_motor;
