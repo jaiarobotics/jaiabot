@@ -236,7 +236,12 @@ jaiabot_apps=[
      'description': 'pNodeReporter MOOS data aggregator',
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
-     'runs_on': Type.BOT}
+     'runs_on': Type.BOT},
+    {'exe': 'pNodeReporter',
+     'description': 'pNodeReporter MOOS data aggregator',
+     'template': 'moos-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
+     'runs_on': Type.HUB}
 ]
 
 
