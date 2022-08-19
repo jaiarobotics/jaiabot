@@ -185,7 +185,7 @@ export function BotDetailsComponent(bot, api) {
                 </tr>
                 {healthRow(bot)}
                 <tr>
-                    <td>Status</td>
+                    <td>Mission State</td>
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
                 {activeGoalRow}
