@@ -23,48 +23,45 @@ logging.basicConfig(level=logLevel)
 path = os.path.expanduser(args.path)
 logging.info(f'Monitoring path: {path}')
 
-old_mtime = 0
-
 while True:
-    mtime = os.path.getmtime(path)
-    if mtime != old_mtime:
-        # Get all goby files
-        goby_files = glob.glob(f'{path}/**/*.goby', recursive=True)
-        goby_file_bodies = set([goby_file[:-5] for goby_file in goby_files])
+    # Get all goby files
+    goby_files = glob.glob(f'{path}/**/*.goby', recursive=True)
+    goby_file_bodies = [goby_file[:-5] for goby_file in goby_files]
 
-        # Get all h5 files
-        h5_files = set(glob.glob(f'{path}/**/*.h5', recursive=True))
-        h5_file_bodies = set([h5_file[:-3] for h5_file in h5_files])
+    # Go through each goby file, and see if the h5 file is older or nonexistent
+    for file_body in goby_file_bodies:
+        goby_filename = file_body + '.goby'
 
-        # Get difference
-        required_file_bodies = goby_file_bodies - h5_file_bodies
+        # Skip symlinks
+        if os.path.islink(goby_filename):
+            continue
 
-        if len(required_file_bodies) > 0:
-            logging.info(f'New files to convert: {required_file_bodies}')
-            for body in required_file_bodies:
-                goby_filename = body + '.goby'
+        # Skip giant files
+        file_size = os.path.getsize(goby_filename)
+        if file_size > args.size_limit:
+            continue
 
-                try:
-                    # Skip symlinks
-                    if os.path.islink(goby_filename):
-                        logging.info(f'Skipping symlink {goby_filename}')
-                        continue
+        goby_mtime = os.path.getmtime(goby_filename)
 
-                    # Skip giant files
-                    file_size = os.path.getsize(goby_filename)
-                    if file_size > args.size_limit:
-                        logging.warning(f'Skipping file {goby_filename}, due to large size ({file_size} > {args.size_limit})')
-                        continue
+        h5_filename = file_body + '.h5'
 
-                    # Convert
-                    cmd = f'goby_log_tool --input_file {goby_filename} --output_file {body}.h5 --format HDF5'
-                    logging.info(cmd)
-                    os.system(cmd)
+        try:
+            h5_mtime = os.path.getmtime(h5_filename)
+        except FileNotFoundError:
+            h5_mtime = 0
 
-                except FileNotFoundError:
-                    logging.warning(f'File not found: {goby_filename}')
-                    continue
+        if goby_mtime > h5_mtime:
+            try:
+                # Convert
+                cmd = f'goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5'
+                logging.info(cmd)
+                os.system(cmd)
 
-        old_mtime = mtime
+                os.system(f'chgrp jaiaplot {h5_filename}')
+                os.system(f'chmod ug+rw {h5_filename}')
+
+            except FileNotFoundError:
+                logging.warning(f'File not found: {goby_filename}')
+                continue
 
     time.sleep(5)
