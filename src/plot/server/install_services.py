@@ -6,8 +6,8 @@ import string
 import os
 
 template_files = [
-    'jaia_goby_converter.service.template',
-    'jaia_plot_server.service.template'
+    'jaiabot_log_converter.service.template',
+    'jaiabot_plot.service.template'
 ]
 
 for template_file in template_files:
@@ -15,7 +15,7 @@ for template_file in template_files:
 
     # Substitution dictionary
     subst = {
-        'working_directory': '/opt/jaiaplot/server',
+        'working_directory': '/opt/jaiabotplot/server',
         'user': 'jaia'
     }
 
