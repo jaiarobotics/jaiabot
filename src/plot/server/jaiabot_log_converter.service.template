@@ -4,7 +4,7 @@ Description=jaiabot_plot_web
 [Service]
 User=${user}
 WorkingDirectory=${working_directory}
-ExecStart=${working_directory}/jaiabot_log_converter.py -d /var/log/jaiabot/bot_offload
+ExecStart=${working_directory}/jaiabot_log_converter.py -d /var/log/jaiabot/bot_offload -l INFO
 
 [Install]
 WantedBy=multi-user.target
