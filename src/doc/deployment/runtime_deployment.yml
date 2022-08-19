@@ -16,6 +16,6 @@ platforms:
       - jaiabot_fusion_interface.yml
       - jaiabot_mission_manager_interface.yml
       - jaiabot_pid_control_interface.yml
-      - jaiabot_control_surfaces_driver_interface.yml
+      - jaiabot_driver_arduino_interface.yml
       - jaiabot_engineering_interface.yml
       

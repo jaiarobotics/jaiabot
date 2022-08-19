@@ -2,8 +2,8 @@ $app_block
 $interprocess_block
 
 serial_arduino {
-    port: "/etc/jaiabot/dev/arduino"
+    port: "/dev/arduino"
     baud: 115200
 }
 
-$control_surfaces_driver_bounds
+$jaiabot_driver_arduino_bounds

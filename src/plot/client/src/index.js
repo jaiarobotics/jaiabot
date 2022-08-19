@@ -79,9 +79,19 @@ class LogApp extends React.Component {
 
   componentDidUpdate() {
     if (this.state.chosen_logs.length > 0) {
+      // Get map data
       LogApi.get_map(this.state.chosen_logs).then((points) => {
         this.map.updateWithPoints(points)
       })
+
+      // Get the command dictionary (botId => [Command])
+      LogApi.get_commands(this.state.chosen_logs)
+          .then((command_dict) => {this.map.updateWithCommands(command_dict)})
+
+      // Get the active_goals
+      LogApi.get_active_goal(this.state.chosen_logs)
+          .then((active_goal_dict) => {
+                    this.map.updateWithActiveGoal(active_goal_dict)})
     }
     this.refresh_plots()
   }
@@ -110,9 +120,12 @@ class LogApp extends React.Component {
   path_was_selected(path) {
     LogApi.get_series(this.state.chosen_logs, [ path ])
         .then((series) => {
-          let plots = this.state.plots 
-          this.setState({plots : plots.concat(series)})
+          if (series != null) {
+            let plots =
+                this.state.plots this.setState({plots : plots.concat(series)})
+          }
         })
+        .catch(err => {alert(err)})
   }
 
   refresh_plots() {
@@ -155,15 +168,19 @@ class LogApp extends React.Component {
 
     Plotly.newPlot(this.plot_div_element, data, layout)
 
-    let self = this
-    this.plot_div_element.on('plotly_hover', function(data) {
-      let dateString = data.points[0].data.x[data.points[0].pointIndex] 
-      let date_timestamp_micros = Date.parse(dateString) * 1e3
-      self.map.putMarkerAtTimestamp(date_timestamp_micros)
-    })
+    let self =
+        this this.plot_div_element
+            .on('plotly_hover',
+                function(data) {
+                  let dateString =
+                      data.points[0].data.x[data.points[0].pointIndex] let
+                          date_timestamp_micros = Date.parse(dateString) * 1e3
+                  self.map.updateToTimestamp(date_timestamp_micros)
+                })
 
-    this.plot_div_element.on('plotly_unhover',
-                        function(data) { self.map.removeMarker() })
+                this.plot_div_element.on(
+                    'plotly_unhover',
+                    function(data) { self.map.updateToTimestamp(null) })
   }
 
 }

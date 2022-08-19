@@ -23,13 +23,17 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
+#include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/health/health.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 
@@ -48,9 +52,35 @@ class HubManager : public ApplicationBase
     ~HubManager();
 
   private:
+    void loop() override
+    {
+        latest_hub_status_.set_time_with_units(
+            goby::time::SystemClock::now<goby::time::MicroTime>());
+
+        if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+        {
+            glog.is_warn() && glog << "Timeout on health report" << std::endl;
+            latest_hub_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+            latest_hub_status_.clear_error();
+            latest_hub_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
+        }
+
+        if (latest_hub_status_.IsInitialized())
+        {
+            glog.is_debug1() && glog << "Publishing hub status: "
+                                     << latest_hub_status_.ShortDebugString() << std::endl;
+            interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
+        }
+    }
+
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
     void handle_dive_packet(const jaiabot::protobuf::DivePacket& dive_packet);
     void handle_command(const jaiabot::protobuf::Command& input_command);
+
+  private:
+    jaiabot::protobuf::HubStatus latest_hub_status_;
+    goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -61,8 +91,10 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::HubManager>(argc, argv));
 }
 
-jaiabot::apps::HubManager::HubManager()
+jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
 {
+    latest_hub_status_.set_hub_id(cfg().hub_id());
+
     for (auto id : cfg().managed_bot_modem_id())
     {
         {
@@ -91,8 +123,9 @@ jaiabot::apps::HubManager::HubManager()
             glog.is_debug1() && glog << "Subscribing to dive_packet" << std::endl;
 
             intervehicle().subscribe<jaiabot::groups::dive_packet, jaiabot::protobuf::DivePacket>(
-                [this](const jaiabot::protobuf::DivePacket& dive_packet)
-                { handle_dive_packet(dive_packet); },
+                [this](const jaiabot::protobuf::DivePacket& dive_packet) {
+                    handle_dive_packet(dive_packet);
+                },
                 subscriber);
         }
 
@@ -106,24 +139,49 @@ jaiabot::apps::HubManager::HubManager()
 
             glog.is_debug1() && glog << "Subscribing to engineering_status" << std::endl;
 
-            intervehicle().subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
-                    glog.is_debug1() && glog << "Received input_engineering_status: " << input_engineering_status.ShortDebugString() << std::endl;
+            intervehicle()
+                .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
+                    [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
+                        glog.is_debug1() && glog << "Received input_engineering_status: "
+                                                 << input_engineering_status.ShortDebugString()
+                                                 << std::endl;
 
-                    auto engineering_status = input_engineering_status;
+                        auto engineering_status = input_engineering_status;
 
-                    // rewarp the time if needed
-                    engineering_status.set_time_with_units(goby::time::convert<goby::time::MicroTime>(
-                    goby::time::SystemClock::warp(goby::time::convert<std::chrono::system_clock::time_point>(
-                    input_engineering_status.time_with_units()))));
+                        // rewarp the time if needed
+                        engineering_status.set_time_with_units(
+                            goby::time::convert<goby::time::MicroTime>(
+                                goby::time::SystemClock::warp(
+                                    goby::time::convert<std::chrono::system_clock::time_point>(
+                                        input_engineering_status.time_with_units()))));
 
-                    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
-                },
-                subscriber);
+                        interprocess().publish<jaiabot::groups::engineering_status>(
+                            engineering_status);
+                    },
+                    subscriber);
         }
     }
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
+
+    interprocess().subscribe<goby::middleware::groups::health_report>(
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            last_health_report_time_ = goby::time::SteadyClock::now();
+            jaiabot::health::populate_status_from_health(latest_hub_status_, vehicle_health);
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            glog.is_debug1() && glog << "Received TimePositionVelocity update: "
+                                     << tpv.ShortDebugString() << std::endl;
+
+            if (tpv.has_location())
+            {
+                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
+                latest_hub_status_.mutable_location()->set_lat_with_units(lat);
+                latest_hub_status_.mutable_location()->set_lon_with_units(lon);
+            }
+        });
 }
 
 jaiabot::apps::HubManager::~HubManager()
@@ -162,8 +220,9 @@ jaiabot::apps::HubManager::~HubManager()
 
             goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(subscriber_cfg);
 
-            intervehicle().unsubscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                subscriber);
+            intervehicle()
+                .unsubscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
+                    subscriber);
         }
     }
 }

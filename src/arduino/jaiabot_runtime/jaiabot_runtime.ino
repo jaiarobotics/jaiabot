@@ -282,12 +282,14 @@ void loop()
     pb_istream_t stream = pb_istream_from_buffer(pb_binary_data, size);
 
     bool status = pb_decode(&stream, jaiabot_protobuf_ArduinoCommand_fields, &command);
+
     if (!status)
     {
+      //Send Ack that we failed to decode command
       send_ack(MESSAGE_DECODE_ERROR);
       continue;
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
-    }
+    } 
 
     motor_servo.writeMicroseconds (command.motor);
     rudder_servo.writeMicroseconds(command.rudder);
@@ -309,6 +311,7 @@ void loop()
 
     // char message[256];
     // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
+    //Send Ack that we successfully received command
     send_ack(ACK);
   }
 
@@ -331,6 +334,7 @@ void halt_all() {
   command.rudder = rudder_neutral;
   command.stbd_elevator = stbd_elevator_neutral;
   command.port_elevator = port_elevator_neutral;
+  command.led_switch_on = false;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch

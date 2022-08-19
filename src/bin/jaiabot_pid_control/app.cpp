@@ -40,7 +40,7 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-bool led_switch_on = false;
+bool led_switch_on = true;
 
 int main(int argc, char* argv[])
 {
@@ -52,6 +52,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
     : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
 {
     auto app_config = cfg();
+
+    // Setup our bounds configuration
+    if (app_config.has_bounds())
+    {
+        bounds = app_config.bounds();
+    }
+
     glog.is_verbose() && glog << "BotPidControl starting" << std::endl;
     glog.is_verbose() && glog << "Config: " << app_config.ShortDebugString() << std::endl;
 
@@ -614,7 +621,15 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 {
     // No dive PID for now... set to -60% throttle
     setThrottleMode(MANUAL);
-    throttle = -45.0;
+
+    if (bounds.motor().has_throttle_dive())
+    {
+        throttle = bounds.motor().throttle_dive();
+    }
+    else
+    {
+        throttle = -45.0;
+    }
 
     // Set rudder to center
     rudder = 0.0;
@@ -624,7 +639,15 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
 void jaiabot::apps::BotPidControl::handle_powered_ascent()
 {
     setThrottleMode(MANUAL);
-    throttle = 50.0;
+
+    if (bounds.motor().has_throttle_ascent())
+    {
+        throttle = bounds.motor().throttle_ascent();
+    }
+    else
+    {
+        throttle = 50.0;
+    }
 }
 
 void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings) {

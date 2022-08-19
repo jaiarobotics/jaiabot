@@ -6,3 +6,5 @@ udp_config {
     remote_address: "127.0.0.1"
     remote_port: $remote_port
 }
+
+blue_robotics_pressure_report_in_simulation: $blue_robotics_pressure_report_in_simulation

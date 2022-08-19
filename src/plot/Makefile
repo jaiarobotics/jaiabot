@@ -1,10 +1,17 @@
-all: _client
+all: release
 
-_client:
+release:
 	cd client; npm install; npm run release
 
-test: _client
-	cd server; ./jaia_plot_server.py
-
 install: all
-	cd server; sudo ./install_services.py
+	sudo mkdir -p /opt/jaiaplot
+	sudo chmod ugo+rwx /opt/jaiaplot
+
+	sudo mkdir -p /var/log/jaiabot/bot_offload/jaiaplot
+	sudo chmod ugo+rwx /var/log/jaiabot/bot_offload/jaiaplot
+
+	rsync -aP server client /opt/jaiaplot
+	cd /opt/jaiaplot/server; sudo ./install_services.py
+
+	systemctl daemon-reload
+	sudo systemctl restart jaia_plot_server jaia_goby_converter
