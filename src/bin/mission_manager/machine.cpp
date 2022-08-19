@@ -472,8 +472,8 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
 {
     jaiabot::config::DiveDebug dive_debug;
 
-    // within depth eps of the surface (or any negative value)
-    if (ev.depth < cfg().dive_depth_eps_with_units())
+    // within surface eps of the surface (or any negative value)
+    if (ev.depth < cfg().dive_surface_eps_with_units())
     {
         post_event(EvSurfaced());
         dive_debug.set_surfaced(true);
@@ -507,7 +507,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
 {
     jaiabot::config::DiveDebug dive_debug;
 
-    if (ev.depth < cfg().dive_depth_eps_with_units())
+    // within surface eps of the surface (or any negative value)
+    if (ev.depth < cfg().dive_surface_eps_with_units())
     {
         post_event(EvSurfaced());
         dive_debug.set_surfaced(true);

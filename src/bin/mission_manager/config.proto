@@ -36,6 +36,10 @@ message MissionManager
     optional double surfacing_timeout = 32
         [default = 600, (dccl.field).units = { base_dimensions: "T" }];
 
+    // acceptable eps when dive surface is considered reached (in meters)
+    optional double dive_surface_eps = 33
+        [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
