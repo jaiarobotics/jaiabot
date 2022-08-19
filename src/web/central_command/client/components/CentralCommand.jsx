@@ -1132,6 +1132,7 @@ export default class CentralCommand extends React.Component {
 					}
 
 					this.updateBotsLayer()
+					this.updateMissionLayer()
 				}
 			},
 			(err) => {
@@ -1637,10 +1638,6 @@ export default class CentralCommand extends React.Component {
 						recovery: {recoverAtFinalGoal: true}
 					}
 				}
-
-				if (speeds != null) {
-					missions[botId].speeds = speeds
-				}
 			}
 
 			missions[botId].plan.goal.push({location: location})
@@ -1679,21 +1676,9 @@ export default class CentralCommand extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			let waypointIcon, lineStyle, color
+			let lineStyle, color
 
 			let selected = this.isBotSelected(botId)
-
-			if (selected) {
-				waypointIcon = Icons.waypointSelected
-				lineStyle = selectedLineStyle
-				color = selectedColor
-			}
-			else {
-				waypointIcon = Icons.waypointUnselected
-				lineStyle = defaultLineStyle
-				color = unselectedColor
-			}
-
 
 			let goals = missions[botId]?.plan?.goal || []
 
@@ -1701,63 +1686,80 @@ export default class CentralCommand extends React.Component {
 				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
 			})
 
-			// console.log('transformed_pts');
-			// console.log(transformed_pts);
+			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
 
-			for (let [pt_index, goal] of goals.entries()) {
-				let pt = transformed_pts[pt_index]
+			// Add our goals
+			for (let [goal_index, goal] of goals.entries()) {
+				let pt = transformed_pts[goal_index]
+				const olPoint = new OlPoint(pt)
 
-				let pointFeature = new OlFeature({ geometry: new OlPoint(pt) })
+				var waypointIconName
 
-				let icon
-
-				if (pt_index === 0) {
-					icon = selected ? Icons.startSelectedStyle : Icons.startUnselectedStyle
+				if (goal_index === 0) {
+					waypointIconName = "start"
 				}
-				else if (pt_index === goals.length - 1) {
-					icon = selected ? Icons.stopSelectedStyle : Icons.stopUnselectedStyle
+				else if (goal_index === goals.length - 1) {
+					waypointIconName = "stop"
 				}
 				else {
-					let previous_pt = transformed_pts[pt_index - 1]
-					let rotation = Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0])
+					waypointIconName = "waypoint"
+				}
 
-					icon = new OlStyle({
-						image: new OlIcon({
-							src: waypointIcon,
-							rotateWithView: true,
-							rotation: rotation
-						})
+				// Is this the bot's current target goal / waypoint?
+				const is_active = (goal_index == active_goal_index)
+
+				const waypointStyle = is_active ? "Active" : (selected ? "Selected" : "Unselected")
+
+				var style = new OlStyle({
+					image: new OlIcon({
+						src: Icons[waypointIconName + waypointStyle]
 					})
+				})
+
+				if (waypointIconName === "waypoint") {
+					let previous_pt = transformed_pts[goal_index - 1]
+					style.getImage().setRotation(Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0]))
+					style.getImage().setRotateWithView(true)
 				}
 
-				pointFeature.setStyle(icon)
-				pointFeature.goal = missions[botId]?.plan?.goal?.[pt_index]
-				features.push(pointFeature)
+				let waypointFeature = new OlFeature({ geometry: olPoint })
+				waypointFeature.setStyle(style)
+				waypointFeature.goal = missions[botId]?.plan?.goal?.[goal_index]
+				features.push(waypointFeature)
 
-				// Dive annotation feature
-				switch(goal.task?.type) {
-					case 'DIVE':
-						let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-						diveFeature.setStyle(selected ? Icons.diveSelectedStyle : Icons.diveUnselectedStyle)
-						features.push(diveFeature)
-						break;
-					case 'SURFACE_DRIFT':
-						let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
-						driftFeature.setStyle(selected ? Icons.driftSelectedStyle : Icons.driftUnselectedStyle)
-						features.push(driftFeature)
-						break;
-					case 'STATION_KEEP':
-						let stationkeepFeature = new OlFeature({ geometry: new OlPoint(pt) })
-						stationkeepFeature.setStyle(selected ? Icons.stationkeepSelectedStyle : Icons.stationkeepUnselectedStyle)
-						features.push(stationkeepFeature)
-						break;
+				// Annotation feature (if present)
+				const annotationNames = { DIVE: "dive", SURFACE_DRIFT: "drift", STATION_KEEP: "stationkeep" }
+				const annotationName = annotationNames[goal.task?.type]
+
+				if (annotationName != null) {
+					const annotationFeature = new OlFeature({
+						geometry: olPoint
+					})
+					annotationFeature.setStyle(new OlStyle({
+						image: new OlIcon({
+							src: Icons[annotationName + waypointStyle]
+						})
+					}))
+
+					features.push(annotationFeature)
 				}
 
+			}
+
+			// Draw lines between waypoints
+			if (selected) {
+				lineStyle = selectedLineStyle
+				color = selectedColor
+			}
+			else {
+				lineStyle = defaultLineStyle
+				color = unselectedColor
 			}
 
 			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
 			lineStringFeature.setStyle(lineStyle)
 			features.push(lineStringFeature)
+
 		}
 
 		// Add Home, if available
@@ -1802,6 +1804,7 @@ export default class CentralCommand extends React.Component {
 			bot_mission.plan.speeds = speeds
 		}
 
+		console.debug('Running Mission:')
 		console.debug(bot_mission)
 
 		this.api.postCommand(bot_mission).then(response => {
