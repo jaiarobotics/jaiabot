@@ -1,6 +1,6 @@
 #!/bin/bash
 
-server/jaia_plot_server.py -p 40011 -d ~/jaiaplot-logs/ > jaia_plot_server.log &
+server/jaiabot_plot.py -p 40011 -d ~/jaiabotplot-logs/ > jaiabot_plot.log &
 SERVER_PID=$!
 echo Server pid = ${SERVER_PID}
 

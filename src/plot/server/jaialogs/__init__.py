@@ -93,7 +93,7 @@ def h5_get_hovertext(dataset):
 # Path descriptions
 
 try:
-    path_descriptions = json.load(open('jaia_paths.json'))
+    path_descriptions = json.load(open('jaiabot_paths.json'))
 except FileNotFoundError:
     path_descriptions = {}
 
