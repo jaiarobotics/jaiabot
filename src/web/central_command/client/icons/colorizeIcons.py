@@ -5,25 +5,33 @@ variableColor = '#00ffff'
 colors = {
     'unselected': '#5ec957',
     'selected': '#34d2eb',
-    'remoteControl': '#ff9800'
+    'remoteControl': '#ff9800',
+    'active': '#d6382d'
 }
 
 jobs = [
     ['start', 'unselected'],
     ['start', 'selected'],
+    ['start', 'active'],
     ['waypoint', 'unselected'],
     ['waypoint', 'selected'],
+    ['waypoint', 'active'],
     ['stop', 'unselected'],
     ['stop', 'selected'],
+    ['stop', 'active'],
+    ['dive', 'selected'],
+    ['dive', 'unselected'],
+    ['dive', 'active'],
+    ['drift', 'selected'],
+    ['drift', 'unselected'],
+    ['drift', 'active'],
+    ['stationkeep', 'selected'],
+    ['stationkeep', 'unselected'],
+    ['stationkeep', 'active'],
+
     ['bot', 'selected'],
     ['bot', 'unselected'],
     ['bot', 'remoteControl'],
-    ['dive', 'selected'],
-    ['dive', 'unselected'],
-    ['drift', 'selected'],
-    ['drift', 'unselected'],
-    ['stationkeep', 'selected'],
-    ['stationkeep', 'unselected'],
 ]
 
 jsFile = open('Icons.jsx', 'w')
@@ -40,7 +48,10 @@ for job in jobs:
 
     # Build the JS file
     jsName = f"{baseName}{colorName[0].upper() + colorName[1:]}"
+
     jsFile.write(f'import {jsName} from "../icons/{outputFileName}"\n')
     jsFile.write(f'export {{{jsName}}}\n')
     jsFile.write(f'export const {jsName}Style = new OlStyle({{ image: new OlIcon({{ src: {jsName} }}) }})\n')
     jsFile.write('\n')
+
+jsFile.write('\n')
