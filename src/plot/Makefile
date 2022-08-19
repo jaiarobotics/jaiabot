@@ -4,14 +4,15 @@ release:
 	cd client; npm install; npm run release
 
 install: all
-	sudo mkdir -p /opt/jaiaplot
-	sudo chmod ugo+rwx /opt/jaiaplot
+	sudo mkdir -p /opt/jaiabotplot
+	sudo chmod ugo+rwx /opt/jaiabotplot
 
-	sudo mkdir -p /var/log/jaiabot/bot_offload/jaiaplot
-	sudo chmod ugo+rwx /var/log/jaiabot/bot_offload/jaiaplot
+	sudo mkdir -p /var/log/jaiabot/bot_offload
+	sudo chmod ugo+rwx /var/log/jaiabot/bot_offload
 
-	rsync -aP server client /opt/jaiaplot
-	cd /opt/jaiaplot/server; sudo ./install_services.py
+	rsync -aP server client /opt/jaiabotplot
+	cd /opt/jaiabotplot/server; sudo ./install_services.py
 
-	systemctl daemon-reload
-	sudo systemctl restart jaia_plot_server jaia_goby_converter
+	sudo systemctl daemon-reload
+	sudo systemctl enable jaiabot_plot jaiabot_log_converter
+	sudo systemctl restart jaiabot_plot jaiabot_log_converter
