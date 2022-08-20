@@ -33,7 +33,7 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
     const jaiabot::config::ArduinoStatusConfig& cfg)
     : HealthMonitorThread(cfg, "arduino_status", 4.0 / 60.0 * boost::units::si::hertz)
 {
-    interprocess().subscribe<jaiabot::groups::arduino>(
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
             status_.set_code(arduino_response.status_code());
@@ -50,7 +50,7 @@ void jaiabot::apps::ArduinoStatusThread::issue_status_summary()
 {
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::arduino>(status_);
+    interprocess().publish<jaiabot::groups::arduino_to_pi>(status_);
     status_.Clear();
 }
 
