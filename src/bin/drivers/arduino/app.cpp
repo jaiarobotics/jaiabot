@@ -116,22 +116,22 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
     if (bounds.motor().has_motor_max_step_forward_faster())
     {
-        has_motor_max_step_forward_faster = bounds.motor().has_motor_max_step_forward_faster();
+        motor_max_step_forward_faster = bounds.motor().motor_max_step_forward_faster();
     }
 
     if (bounds.motor().has_motor_max_step_forward_slower())
     {
-        motor_max_step_down = bounds.motor().motor_max_step_forward_slower();
+        motor_max_step_forward_slower = bounds.motor().motor_max_step_forward_slower();
     }
 
     if (bounds.motor().has_motor_max_step_reverse_faster())
     {
-        motor_max_reverse_step_up = bounds.motor().motor_max_step_reverse_faster();
+        motor_max_step_reverse_faster = bounds.motor().motor_max_step_reverse_faster();
     }
 
     if (bounds.motor().has_motor_max_step_reverse_slower())
     {
-        motor_max_reverse_step_down = bounds.motor().motor_max_step_reverse_slower();
+        motor_max_step_reverse_slower = bounds.motor().motor_max_step_reverse_slower();
     }
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
@@ -260,24 +260,26 @@ void jaiabot::apps::ArduinoDriver::loop()
     // Move toward target_motor
 
     // If we are going forward and we are trying to go faster
-    if (current_motor >= 1500 && target_motor > current_motor)
+    if (target_motor > 1500 && target_motor > current_motor)
     {
         current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
     }
     // If we are going forward and we are trying to go slower
-    else if (current_motor >= 1500 && target_motor < current_motor)
+    else if (target_motor > 1500 && target_motor < current_motor ||
+             target_motor == 1500 && current_motor > 1500)
     {
         current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
     }
     // If we are going reverse and we are trying to go slower
-    else if (current_motor < 1500 && target_motor > current_motor)
+    else if (target_motor < 1500 && target_motor > current_motor ||
+             target_motor == 1500 && current_motor < 1500)
     {
         current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
     }
     // If we are going reverse and we are trying to go faster
-    else if (current_motor < 1500 && target_motor < current_motor)
+    else if (target_motor < 1500 && target_motor < current_motor)
     {
-        current_motor -= min(current_motor - target_motor), motor_max_step_reverse_faster);
+        current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
     }
 
     /*if (target_motor > current_motor)
