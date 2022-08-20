@@ -189,17 +189,13 @@ export function BotDetailsComponent(bot, api) {
                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                 </tr>
                 {activeGoalRow}
-                <tr className={statusAgeClassName}>
-                    <td>Status Age</td>
-                    <td>{statusAge} sec</td>
-                </tr>
                 <tr>
                     <td>Latitude</td>
-                    <td>{formatLatitude(bot.location?.lat)}</td>
+                    <td>{formatLatitude(bot.location?.lat)}°</td>
                 </tr>
                 <tr>
                     <td>Longitude</td>
-                    <td>{formatLongitude(bot.location?.lon)}</td>
+                    <td>{formatLongitude(bot.location?.lon)}°</td>
                 </tr>
                 <tr>
                     <td>Depth</td>
@@ -210,40 +206,48 @@ export function BotDetailsComponent(bot, api) {
                     <td>{bot.speed?.overGround?.toFixed(prec)} m/s</td>
                 </tr>
                 <tr>
-                    <td>Heading</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
+                    <td>Course Over Ground</td>
+                    <td>{bot.attitude?.courseOverGround?.toFixed(prec)}°</td>
                 </tr>
                 <tr>
-                    <td>Roll</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
+                    <td>Heading</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.heading)}°</td>
                 </tr>
                 <tr>
                     <td>Pitch</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.pitch)}°</td>
                 </tr>
                 <tr>
-                    <td>Salinity</td>
-                    <td>{bot.salinity?.toFixed(prec)}</td>
+                    <td>Roll</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.roll)}°</td>
                 </tr>
                 <tr>
                     <td>Temperature</td>
-                    <td>{bot.temperature?.toFixed(prec)}°C</td>
+                    <td>{bot.temperature?.toFixed(prec)} °C</td>
                 </tr>
                 <tr>
+                    <td>Salinity</td>
+                    <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
+                </tr>
+                {/* <tr>
                     <td>Thermocouple</td>
                     <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
-                </tr>
+                </tr> */}
                 <tr>
-                    <td>5v Current</td>
-                    <td>{bot.vvCurrent?.toFixed(prec)} Amps</td>
+                    <td>Vcc Voltage</td>
+                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                 </tr>
                 <tr>
                     <td>Vcc Current</td>
-                    <td>{bot.vccCurrent?.toFixed(prec)} Amps</td>
+                    <td>{bot.vccCurrent?.toFixed(prec)} A</td>
                 </tr>
                 <tr>
-                    <td>Vcc Voltage</td>
-                    <td>{bot.vccVoltage?.toFixed(prec)} Volts</td>
+                    <td>5v Current</td>
+                    <td>{bot.vvCurrent?.toFixed(prec)} A</td>
+                </tr>
+                <tr className={statusAgeClassName}>
+                    <td>Status Age</td>
+                    <td>{statusAge} s</td>
                 </tr>
 
             </tbody>
