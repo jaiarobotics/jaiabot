@@ -190,7 +190,7 @@ void jaiabot::apps::AtlasSalinityPublisher::check_last_report(
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
                 protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
