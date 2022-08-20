@@ -73,10 +73,10 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int target_motor = 1500;
 
     // Motor Steps
-    int motor_max_step_up = 20;
-    int motor_max_step_down = 100;
-    int motor_max_reverse_step_up = 20;
-    int motor_max_reverse_step_down = 100;
+    int motor_max_step_forward_faster = 20;
+    int motor_max_step_forward_slower = 100;
+    int motor_max_step_reverse_faster = 20;
+    int motor_max_step_reverse_slower = 100;
 
     // Control surfaces
     int rudder = 1500;
@@ -114,24 +114,24 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     // Setup our bounds configuration
     bounds = cfg().bounds();
 
-    if (bounds.motor().has_motor_max_step_up())
+    if (bounds.motor().has_motor_max_step_forward_faster())
     {
-        motor_max_step_up = bounds.motor().motor_max_step_up();
+        has_motor_max_step_forward_faster = bounds.motor().has_motor_max_step_forward_faster();
     }
 
-    if (bounds.motor().has_motor_max_step_down())
+    if (bounds.motor().has_motor_max_step_forward_slower())
     {
-        motor_max_step_down = bounds.motor().motor_max_step_down();
+        motor_max_step_down = bounds.motor().motor_max_step_forward_slower();
     }
 
-    if (bounds.motor().has_motor_max_reverse_step_up())
+    if (bounds.motor().has_motor_max_step_reverse_faster())
     {
-        motor_max_reverse_step_up = bounds.motor().motor_max_reverse_step_up();
+        motor_max_reverse_step_up = bounds.motor().motor_max_step_reverse_faster();
     }
 
-    if (bounds.motor().has_motor_max_reverse_step_down())
+    if (bounds.motor().has_motor_max_step_reverse_slower())
     {
-        motor_max_reverse_step_down = bounds.motor().motor_max_reverse_step_down();
+        motor_max_reverse_step_down = bounds.motor().motor_max_step_reverse_slower();
     }
 
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
@@ -259,25 +259,25 @@ void jaiabot::apps::ArduinoDriver::loop()
     // Motor
     // Move toward target_motor
 
-    // If we are going forward and we are trying to increase speed
+    // If we are going forward and we are trying to go faster
     if (current_motor >= 1500 && target_motor > current_motor)
     {
-        current_motor += min(target_motor - current_motor, motor_max_step_up);
+        current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
     }
-    // If we are going forward and we are trying to decrease speed
+    // If we are going forward and we are trying to go slower
     else if (current_motor >= 1500 && target_motor < current_motor)
     {
-        current_motor -= min(std::abs(target_motor - current_motor), motor_max_step_down);
+        current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
     }
-    // If we are going reverse and we are trying to decrease reverse speed
+    // If we are going reverse and we are trying to go slower
     else if (current_motor < 1500 && target_motor > current_motor)
     {
-        current_motor += min(target_motor - current_motor, motor_max_reverse_step_down);
+        current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
     }
-    // If we are going reverse and we are trying to increase reverse speed
+    // If we are going reverse and we are trying to go faster
     else if (current_motor < 1500 && target_motor < current_motor)
     {
-        current_motor -= min(std::abs(target_motor - current_motor), motor_max_reverse_step_up);
+        current_motor -= min(current_motor - target_motor), motor_max_step_reverse_faster);
     }
 
     /*if (target_motor > current_motor)
@@ -296,9 +296,9 @@ void jaiabot::apps::ArduinoDriver::loop()
 
     if (current_motor > 1500)
         corrected_motor = max(current_motor, bounds.motor().forwardstart());
-    if (current_motor == 1500)
+    else if (current_motor == 1500)
         corrected_motor = current_motor;
-    if (current_motor < 1500)
+    else if (current_motor < 1500)
         corrected_motor = min(current_motor, bounds.motor().reversestart());
 
     arduino_cmd.set_motor(corrected_motor);
