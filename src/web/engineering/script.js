@@ -785,7 +785,8 @@ function updateStatus(status) {
     loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
-    if (bot.missionState == "PRE_DEPLOYMENT__IDLE" || "POST_DEPLOYMENT__IDLE") {
+    if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||
+        bot.missionState == "POST_DEPLOYMENT__IDLE") {
       loggingStatusInnerDown += bot.botId + ", "
       isNotLogging = true;
     }
