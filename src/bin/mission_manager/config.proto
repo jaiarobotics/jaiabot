@@ -119,14 +119,14 @@ message DiveHoldDebug
             }
         ];
     optional uint64 current_time = 2 [
-        (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" }
-    }];
+            (dccl.field) = {
+                codec: "dccl.time2"
+                units { prefix: "micro" derived_dimensions: "time" }
+        }];
     optional double hold_timeout = 3 [
-        default = 0, 
-        (dccl.field).units = { base_dimensions: "T" }
-    ];
+            default = 0, 
+            (dccl.field).units = { base_dimensions: "T" }
+        ];
     optional bool dive_complete = 4 [default = false];
 }
 
@@ -136,16 +136,16 @@ message DiveUnpoweredAscentDebug
         unit_system: "si"
     };
     optional double current_depth = 1 [
-        default = 0,
-        (dccl.field) = {
-            precision: 0
-            units { base_dimensions: "L" }
-        }
+            default = 0,
+            (dccl.field) = {
+                precision: 0
+                units { base_dimensions: "L" }
+            }
         ];
     optional uint64 current_time = 2 [
-        (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" }
+            (dccl.field) = {
+                codec: "dccl.time2"
+                units { prefix: "micro" derived_dimensions: "time" }
         }];
     optional double depth_eps = 3 [
             default = 0, 
@@ -153,8 +153,8 @@ message DiveUnpoweredAscentDebug
                 { base_dimensions: "L" }
         ];
     optional double unpowered_ascent_timeout = 4 [
-        default = 0, 
-        (dccl.field).units = { base_dimensions: "T" }
+            default = 0, 
+            (dccl.field).units = { base_dimensions: "T" }
         ];
     optional bool unpowered_ascent_timed_out = 5 [default = false];
     optional bool surfaced = 6 [default = false];
@@ -166,11 +166,11 @@ message DivePoweredAscentDebug
         unit_system: "si"
     };
     optional double current_depth = 1 [
-        default = 0,
-        (dccl.field) = {
-            precision: 0
-            units { base_dimensions: "L" }
-        }
+            default = 0,
+            (dccl.field) = {
+                precision: 0
+                units { base_dimensions: "L" }
+            }
         ];
     optional double depth_eps = 2 [
             default = 0, 
