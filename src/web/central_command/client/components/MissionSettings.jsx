@@ -75,6 +75,11 @@ export class MissionSettingsPanel extends React.Component {
                         <button onClick={this.closeClicked.bind(this)}>Close</button>
                         <button onClick={this.applyMissionClicked.bind(this)}>Apply</button>
                     </div>
+
+                    <div id="surveyPolygonResults">
+                        <div id="surveyPolygonResultArea"></div>
+                        <div id="surveyPolygonResultPerimeter"></div>
+                    </div>
                 </div>
             </div>
         )
