@@ -766,7 +766,7 @@ function updateStatus(status) {
 
   table = el("statusTable")
   innerHTML =
-      "<tr><th>Bot ID</th><th>Mission State</th><th>Latitude (°)</th><th>Longitude (°)</th><th>Distance (m)</th><th>Depth (m)</th><th>Ground Speed (m/s)</th><th>Course Over Ground (°)</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Temperature (℃)</th><th>Salinity (PSU(ppt))</th><th>Vcc Voltage (V)</th><th>Vcc Current (A)</th><th>5V Current (A)</th><th>Status Age (s)</th><th>Command Age (s)</th>"
+      "<tr><th>Bot ID</th><th>Mission State</th><th>Latitude (°)</th><th>Longitude (°)</th><th>Distance (m)</th><th>Depth (m)</th><th>Ground Speed (m/s)</th><th>Course Over Ground (°)</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Temperature (℃)</th><th>Salinity (PSU(ppt))</th><th>Vcc Voltage (V)</th><th>Vcc Current (A)</th><th>5V Current (A)</th><th>Status Age (s)</th><th>Command Age (s)</th></tr>"
   loggingStatusInnerUp =
       "<label style='color:black; display: inline-block;'>Bots: "
   loggingStatusInnerDown =
@@ -786,7 +786,7 @@ function updateStatus(status) {
     loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
-    if (bot.missionState? == "PRE_DEPLOYMENT__IDLE" || "POST_DEPLOYMENT__IDLE") {
+    if (bot.missionState == "PRE_DEPLOYMENT__IDLE" || "POST_DEPLOYMENT__IDLE") {
       loggingStatusInnerDown += bot.botId + ", "
       isNotLogging = true;
     }
@@ -798,7 +798,7 @@ function updateStatus(status) {
     innerHTML += "<tr>"
     innerHTML += "<td>" + bot.botId + "</td>"
 
-    innerHTML += "<td>" + bot.missionState ? +"</td>"
+    innerHTML += "<td>" + bot.missionState + "</td>"
 
     let bot_location = bot.location || null
     innerHTML += "<td>" + (bot.location?.lat?.toFixed(6) || "❌") + "</td>"
