@@ -161,7 +161,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
                                      << arduino_response.ShortDebugString() << std::endl;
 
-            interprocess().publish<groups::arduino>(arduino_response);
+            interprocess().publish<groups::arduino_to_pi>(arduino_response);
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -247,7 +247,7 @@ void jaiabot::apps::ArduinoDriver::loop()
         arduino_cmd.set_led_switch_on(false);
 
         // Publish interthread, so we can log it
-        interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
+        interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
 
         // Send the command to the Arduino
         auto raw_output = lora::serialize(arduino_cmd);
@@ -311,7 +311,7 @@ void jaiabot::apps::ArduinoDriver::loop()
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
 
-    interprocess().publish<jaiabot::groups::arduino>(arduino_cmd);
+    interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
 
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
