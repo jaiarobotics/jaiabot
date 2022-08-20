@@ -14,6 +14,7 @@
 #include <goby/util/debug_logger.h>
 #include <goby/util/linebasedcomms/nmea_sentence.h>
 
+#include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -844,6 +845,8 @@ struct PoweredDescent
     boost::units::quantity<boost::units::si::length> last_depth_;
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
+    //Keep track of dive information
+    jaiabot::config::DivePowerDescentDebug dive_pdescent_debug;
 };
 
 struct Hold
@@ -873,6 +876,8 @@ struct Hold
     std::vector<boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperatures_;
     std::vector<double> salinities_;
+    //Keep track of dive information
+    jaiabot::config::DiveHoldDebug dive_hold_debug;
 };
 
 struct UnpoweredAscent
@@ -898,6 +903,8 @@ struct UnpoweredAscent
     goby::time::SteadyClock::time_point timeout_stop_;
 
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    //Keep track of dive information
+    jaiabot::config::DiveUnpoweredAscentDebug dive_uascent_debug;
 };
 
 struct PoweredAscent
@@ -919,6 +926,8 @@ struct PoweredAscent
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    //Keep track of dive information
+    jaiabot::config::DivePoweredAscentDebug dive_pascent_debug;
 };
 
 struct ReacquireGPS
