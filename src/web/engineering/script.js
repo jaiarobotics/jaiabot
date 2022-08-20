@@ -765,7 +765,8 @@ function updateStatus(status) {
   updateBotSelectDropdown(bots)
 
   table = el("statusTable")
-  innerHTML = "<tr><th>Bot ID</th><th>Latitude</th><th>Longitude</th><th>Distance (m)</th><th>Speed</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Course (°)</th><th>Depth (m)</th><th>Salinity</th><th>Temperature (℃)</th><th>Status Age (s)</th><th>Command Age (s)</th>"
+  innerHTML =
+      "<tr><th>Bot ID</th><th>Mission State</th><th>Latitude (°)</th><th>Longitude (°)</th><th>Distance (m)</th><th>Depth (m)</th><th>Ground Speed (m/s)</th><th>Course Over Ground (°)</th><th>Heading (°)</th><th>Pitch (°)</th><th>Roll (°)</th><th>Temperature (℃)</th><th>Salinity (PSU(ppt))</th><th>Vcc Voltage (V)</th><th>Vcc Current (A)</th><th>5V Current (A)</th><th>Status Age (s)</th><th>Command Age (s)</th></tr>"
   loggingStatusInnerUp =
       "<label style='color:black; display: inline-block;'>Bots: "
   loggingStatusInnerDown =
@@ -798,24 +799,31 @@ function updateStatus(status) {
     innerHTML += "<tr>"
     innerHTML += "<td>" + bot.botId + "</td>"
 
-    let bot_location = bot?.location || null
-    innerHTML += "<td>" + (bot?.location?.lat?.toFixed(6) || "❌") + "</td>"
-    innerHTML += "<td>" + (bot?.location?.lon?.toFixed(6) || "❌") + "</td>"
+    innerHTML += "<td>" + bot.missionState + "</td>"
+
+    let bot_location = bot.location || null
+    innerHTML += "<td>" + (bot.location?.lat?.toFixed(6) || "❌") + "</td>"
+    innerHTML += "<td>" + (bot.location?.lon?.toFixed(6) || "❌") + "</td>"
 
     d = latlon_distance(bot_location, hub_location)
     innerHTML += "<td>" + d?.toFixed(1) || "?" + "</td>"
 
-    innerHTML += "<td>" + (bot?.speed?.overGround?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot?.attitude?.heading?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot?.attitude?.pitch?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot?.attitude?.roll?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot?.attitude?.courseOverGround?.toFixed(1) || "?") + "</td>"
-    
-    innerHTML += "<td>" + (bot?.depth?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.depth?.toFixed(1) || "?") + "</td>"
 
-    innerHTML += "<td>" + (bot?.salinity?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.speed?.overGround?.toFixed(1) || "?") + "</td>"
+    innerHTML +=
+        "<td>" + (bot.attitude?.courseOverGround?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.attitude?.heading?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.attitude?.pitch?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.attitude?.roll?.toFixed(1) || "?") + "</td>"
 
-    innerHTML += "<td>" + (bot?.temperature?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.temperature?.toFixed(1) || "?") + "</td>"
+
+    innerHTML += "<td>" + (bot.salinity?.toFixed(1) || "?") + "</td>"
+
+    innerHTML += "<td>" + (bot.vccVoltage?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.vccCurrent?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.vvCurrent?.toFixed(1) || "?") + "</td>"
 
     innerHTML +=
         "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
