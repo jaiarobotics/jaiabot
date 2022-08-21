@@ -385,11 +385,15 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
     {
         context<Dive>().pop_goal_depth();
         if (context<Dive>().dive_complete())
+        {
             post_event(EvDiveComplete());
+            dive_hold_debug.set_dive_complete(true);
+        }
         else
+        {
             post_event(EvHoldComplete());
-
-        dive_hold_debug.set_dive_complete(true);
+            dive_hold_debug.set_hold_complete(true);
+        }
     }
     interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug);
 }

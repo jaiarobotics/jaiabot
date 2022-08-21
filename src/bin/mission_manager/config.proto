@@ -128,6 +128,7 @@ message DiveHoldDebug
             (dccl.field).units = { base_dimensions: "T" }
         ];
     optional bool dive_complete = 4 [default = false];
+    optional bool dive_hold_complete = 4 [default = false];
 }
 
 message DiveUnpoweredAscentDebug

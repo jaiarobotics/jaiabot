@@ -6,3 +6,5 @@ bot_id: $bot_id
 use_rpm_table_for_speed: true
 rpm_table { speed: 0 rpm: 0 }
 rpm_table { speed: 5 rpm: 100 }
+
+$jaiabot_driver_arduino_bounds
