@@ -198,8 +198,8 @@ void jaiabot::apps::AdaFruitBNO055Publisher::check_last_report(
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on adafruit_BNO055" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO055_DRIVER);
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO055_DRIVER);
     }
 }

@@ -79,7 +79,8 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
                                                      goby::middleware::Group::broadcast_group};
 
 // Arduino
-constexpr goby::middleware::Group arduino{"jaiabot::arduino"};
+constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
+constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
