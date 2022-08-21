@@ -189,7 +189,7 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, orientation, bot_list):
+def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, orientation, bot_list, inside_points_all):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
@@ -283,7 +283,7 @@ def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, s
         northings = [x.y for x in inside_points]
         eastings_northings_dict = {'eastings': eastings, 'northings': northings}
         eastings_northings_df = pd.DataFrame(eastings_northings_dict)
-        ordered_points_df = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings")
+        ordered_points_df = autoroute_points_df(eastings_northings_df, x_col="eastings", y_col="northings", orientation=orientation)
         # Add deployment location to start and end of point list in GeoDataFrame
         r = pd.DataFrame(columns=['eastings', 'northings'])
         r = r.append({'eastings': deployment_point_proj.x, 'northings': deployment_point_proj.y}, ignore_index=True)
@@ -388,7 +388,7 @@ def change_shapely_projection(shapely_geom, from_epsg, to_epsg):
     return transform(project, shapely_geom)
 
 
-def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
+def autoroute_points_df(points_df, x_col="eastings", y_col="northings", orientation=None):
     '''
     Function, that converts a list of random points into ordered points, searching for the shortest possible distance between the points.
     Author: Marjan Moderc, 2016
@@ -407,12 +407,16 @@ def autoroute_points_df(points_df, x_col="eastings", y_col="northings"):
     deltay = eastmost_point[1] - westmost_point[1]
     deltax = eastmost_point[0] - westmost_point[0]
     alfa = math.degrees(math.atan2(deltay, deltax))
-    azimut = (90 - alfa) % 360
+    azimuth = (90 - alfa) % 360
+
+    # Use the supplied orientation
+    if orientation:
+        azimuth = orientation
 
     # If main direction is towards east (45°-135°), take west-most point as starting line.
-    if (azimut > 45 and azimut < 135):
+    if (azimuth > 45 and azimuth < 135):
         points_list = points_we
-    elif azimut > 180:
+    elif azimuth > 180:
         raise Exception(
             "Error while computing the azimuth! It cant be bigger then 180 since first point is west and second is east.")
     else:
