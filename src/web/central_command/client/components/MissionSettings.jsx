@@ -59,11 +59,11 @@ export class MissionSettingsPanel extends React.Component {
                             <tbody>
                             <tr>
                                 <td>Mission Spacing</td>
-                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
-                                <td><input type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
                             </tr>
                             </tbody>
                         </table>
@@ -74,6 +74,11 @@ export class MissionSettingsPanel extends React.Component {
                     <div className='HorizontalFlexbox'>
                         <button onClick={this.closeClicked.bind(this)}>Close</button>
                         <button onClick={this.applyMissionClicked.bind(this)}>Apply</button>
+                    </div>
+
+                    <div id="surveyPolygonResults">
+                        <div id="surveyPolygonResultArea"></div>
+                        <div id="surveyPolygonResultPerimeter"></div>
                     </div>
                 </div>
             </div>
