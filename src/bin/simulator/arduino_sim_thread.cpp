@@ -39,5 +39,5 @@ void jaiabot::apps::ArduinoSimThread::loop()
     // publish arduino status
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_status_code(1);
-    interprocess().publish<groups::arduino>(arduino_response);
+    interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }

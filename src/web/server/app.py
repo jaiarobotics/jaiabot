@@ -93,7 +93,6 @@ def init_mission_database():
 
 @app.route('/missionfiles/create', methods=['POST'])
 def get_mission_list():
-    print(request.json)
     mission_gdf, mission_dict = missions.create_mission_plan(
         deploy_lat=request.json['home_lat'],
         deploy_lon=request.json['home_lon'],
@@ -101,7 +100,8 @@ def get_mission_list():
         mission_type=request.json['mission_type'],
         spacing_meters=int(request.json['sample_spacing']),
         orientation=int(request.json["orientation"]),
-        bot_list=request.json['bot_list']
+        bot_list=request.json['bot_list'],
+        inside_points_all=request.json['inside_points_all']
     )
     return JSONResponse(mission_dict)
 

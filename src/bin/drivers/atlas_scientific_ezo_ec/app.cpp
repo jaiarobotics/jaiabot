@@ -131,6 +131,7 @@ jaiabot::apps::AtlasSalinityPublisher::AtlasSalinityPublisher()
             glog.is_debug1() && glog << "=> " << output.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::salinity>(output);
+
             last_atlas_salinity_report_time_ = goby::time::SteadyClock::now();
         });
 
@@ -189,8 +190,9 @@ void jaiabot::apps::AtlasSalinityPublisher::check_last_report(
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on atlas_salinity" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+            ->add_warning(
+                protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
     }
 }
