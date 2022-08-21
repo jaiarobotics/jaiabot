@@ -453,15 +453,15 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
             glog.is_warn() && glog << "context<Dive>().dive_complete() == true"
                                    << "\n post_event(EvDiveComplete())" << std::endl;
             post_event(EvDiveComplete());
+            dive_hold_debug.set_dive_complete(true);
         }
         else
         {
             glog.is_warn() && glog << "context<Dive>().dive_complete() == false"
                                    << "\n post_event(EvHoldComplete())" << std::endl;
             post_event(EvHoldComplete());
+            dive_hold_debug.set_hold_complete(true);
         }
-
-        dive_hold_debug.set_dive_complete(true);
     }
     interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug);
     glog.is_warn() &&
