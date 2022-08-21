@@ -263,7 +263,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::arduino>(
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             if (arduino_response.has_thermocouple_temperature_c())
             {

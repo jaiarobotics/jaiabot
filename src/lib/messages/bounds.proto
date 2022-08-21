@@ -3,19 +3,19 @@ syntax = "proto2";
 package jaiabot.protobuf;
 
 message SurfaceBounds {
-		optional int32 upper = 1  [default = 1900];
-		optional int32 lower = 2  [default = 1100];
+		optional int32 upper = 1  [default = 1100];
+		optional int32 lower = 2  [default = 1900];
 		optional int32 center = 3 [default = 1500];
 	}
 message MotorBounds {
 		optional int32 forwardStart = 1 [default = 1600];
 		optional int32 reverseStart = 2 [default = 1400];
-		optional int32 forwardHalt = 3  [default = 1575];
-		optional int32 reverseHalt = 4  [default = 1425];
-		optional int32 motor_max_step = 5 [default = 20];
-		optional int32 motor_max_reverse_step = 6 [default = 100];
-		optional int32 throttle_dive = 7 [default = -45];
-		optional int32 throttle_ascent = 8 [default = 50];
+		optional int32 motor_max_step_forward_faster = 5 [default = 20];
+		optional int32 motor_max_step_forward_slower = 6 [default = 100];
+		optional int32 motor_max_step_reverse_faster = 7 [default = 20];
+		optional int32 motor_max_step_reverse_slower = 8 [default = 100];
+		optional int32 throttle_dive = 9 [default = -45];
+		optional int32 throttle_ascent = 10 [default = 50];
 	}
 
 message Bounds{

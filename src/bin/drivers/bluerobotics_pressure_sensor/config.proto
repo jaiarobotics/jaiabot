@@ -38,6 +38,6 @@ message BlueRoboticsPressureSensorDriver
 
     required goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
-    optional int32 blue_robotics_pressure_report_timeout_seconds = 10 [default = 20];
+    optional int32 blue_robotics_pressure_report_timeout_seconds = 10 [default = 40];
     optional bool blue_robotics_pressure_report_in_simulation = 11 [default = true];
 }
