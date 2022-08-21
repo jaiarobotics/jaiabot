@@ -62,11 +62,8 @@ def h5_get_series(dataset):
         'u': from_uint32
     }
 
-    proc = numpy.vectorize(dtype_proc[dtype.kind])
-    data_narray = numpy.array(dataset)
-
-    filtered_narray = proc(data_narray)
-    filtered_list = filtered_narray.tolist()
+    map_proc = dtype_proc[dtype.kind]
+    filtered_list = [map_proc(x) for x in dataset]
 
     return filtered_list
 
@@ -228,6 +225,7 @@ class Series:
 
 def get_series(log_names, paths):
     '''Get a series'''
+
     if log_names is None or paths is None:
         return []
 
@@ -271,7 +269,6 @@ def get_series(log_names, paths):
             'hovertext': series.hovertext
         })
 
-    
     return series_list
 
 
