@@ -638,7 +638,7 @@ export default class CentralCommand extends React.Component {
 					const format = new GeoJSON();
 					const turfPolygon = format.writeFeatureObject(geom1);
 
-					if (turfPolygon.geometry.coordinates[0].length > 5) {
+					if (turfPolygon.geometry.coordinates[0].length > 50000) {
 
 						let cellSide = this.state.missionParams.spacing;
 
@@ -673,21 +673,6 @@ export default class CentralCommand extends React.Component {
 								let offsetLine = turf.lineOffset(centerLine, this.state.missionParams.spacing, {units: 'meters'});
 
 								let missionPlanningLinesTurf = turf.multiLineString([centerLine, offsetLine]);
-
-								let geo_geom = geom1.getGeometry();
-								geo_geom.transform("EPSG:3857", "EPSG:4326")
-								let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-
-								this.setState({
-									missionPlanningGrid: missionPlanningGridOl.getGeometry(),
-									// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
-									surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-									surveyPolygonCoords: geo_geom,
-									surveyPolygonChanged: true
-								});
-
-								this.updateMissionLayer();
-
 							}
 						}
 
@@ -697,6 +682,20 @@ export default class CentralCommand extends React.Component {
 						// tooltipCoord = geom.getLastCoordinate();
 						// $('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 					}
+
+					let geo_geom = geom1.getGeometry();
+					geo_geom.transform("EPSG:3857", "EPSG:4326")
+					let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+
+					this.setState({
+						// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
+						// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
+						surveyPolygonGeoCoords: surveyPolygonGeoCoords,
+						surveyPolygonCoords: geo_geom,
+						surveyPolygonChanged: true
+					});
+
+					this.updateMissionLayer();
 				});
 			},
 			this
@@ -2357,7 +2356,7 @@ export default class CentralCommand extends React.Component {
 			"home_lon": this.homeLocation['lon'],
 			"home_lat": this.homeLocation['lat'],
 			"survey_polygon": this.state.surveyPolygonGeoCoords,
-			"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
+			//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
 		}).then(data => {
 			this.loadMissions(data);
 		});

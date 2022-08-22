@@ -101,7 +101,7 @@ def get_mission_list():
         spacing_meters=int(request.json['sample_spacing']),
         orientation=int(request.json["orientation"]),
         bot_list=request.json['bot_list'],
-        inside_points_all=request.json['inside_points_all']
+        # inside_points_all=request.json['inside_points_all']
     )
     return JSONResponse(mission_dict)
 
