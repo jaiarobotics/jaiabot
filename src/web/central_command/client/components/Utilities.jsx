@@ -49,4 +49,4 @@ export function deepcopy(aObject) {
     }
   
     return bObject;
-  }
+}

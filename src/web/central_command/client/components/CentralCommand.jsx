@@ -1871,7 +1871,7 @@ export default class CentralCommand extends React.Component {
 									className=''
 								>
 
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api)}
+									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
 									<div id="botContextCommandBox">
 										{/* Leader-based commands and manual control go here */}
 										<button
