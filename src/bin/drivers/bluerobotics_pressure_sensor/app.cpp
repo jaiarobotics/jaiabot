@@ -191,8 +191,9 @@ void jaiabot::apps::BlueRoboticsPressureSensorDriver::check_last_report(
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on blue_robotics_pressure" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
+            ->add_warning(
+                protobuf::WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
     }
 }
