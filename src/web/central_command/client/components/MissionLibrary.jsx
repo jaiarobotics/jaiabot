@@ -35,7 +35,7 @@ export class MissionLibraryLocalStorage {
             return
         }
 
-        this.savedMissions[key] = mission
+        this.savedMissions[key] = JSON.parse(JSON.stringify(mission))
         Settings.write(KEY, this.savedMissions)
     }
 
