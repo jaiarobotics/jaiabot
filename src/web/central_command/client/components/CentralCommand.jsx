@@ -2249,6 +2249,12 @@ export default class CentralCommand extends React.Component {
 			else {
 				this.missions = {}
 			}
+			this.setState({
+				surveyPolygonFeature: null,
+				surveyPolygonGeoCoords: null,
+				surveyPolygonCoords: null,
+				surveyPolygonChanged: false
+			});
 			this.updateMissionLayer()
 		}
 	}
