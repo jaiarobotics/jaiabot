@@ -237,10 +237,15 @@ jaiabot_apps=[
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
      'runs_on': Type.BOT},
-    {'exe': 'pNodeReporter',
-     'description': 'pNodeReporter MOOS data aggregator',
-     'template': 'moos-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
+    {'exe': 'jaiabot_log_converter',
+     'description': 'jaiabot_log_converter converts goby files to h5',
+     'template': 'jaiabot_log_converter.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_LOG_CONVERTER',
+     'runs_on': Type.HUB},
+    {'exe': 'jaiabot_plot',
+     'description': 'jaiabot_plot visualize log data',
+     'template': 'jaiabot_plot.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_PLOT',
      'runs_on': Type.HUB}
 ]
 
