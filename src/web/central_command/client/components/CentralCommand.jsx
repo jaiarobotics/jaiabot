@@ -1861,6 +1861,7 @@ export default class CentralCommand extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
+
 					{this.botsList()}
 
 					<div id="botDetailsBox">
@@ -2494,45 +2495,71 @@ export default class CentralCommand extends React.Component {
 	}
 
 	botsList() {
-		let bots = this.podStatus?.bots
-		if (!bots) { return }
+		let self = this
 
-		let botIds = Object.keys(bots).sort()
+		let bots = Object.values(this.podStatus?.bots ?? {})
+		let hubs = Object.values(this.podStatus?.hubs ?? {})
+
+		function compare_by_hubId(hub1, hub2) {
+			return hub1.hubId - hub2.hubId
+		}
+
+		function compare_by_botId(bot1, bot2) {
+			return bot1.botId - bot2.botId
+		}
+
+		function bothub_to_div(bothub) {
+			let botId = bothub.botId
+			let hubId = bothub.hubId
+			
+			if (botId != null) {
+				var key = 'bot-' + botId
+				var bothubClass = 'bot-item'
+			}
+			else {
+				var key = 'hub-' + hubId
+				var bothubClass = 'hub-item'
+			}
+
+			let faultLevel = {
+				'HEALTH__OK': 0,
+				'HEALTH__DEGRADED': 1,
+				'HEALTH__FAILED': 2
+			}[bothub.healthState] ?? 0
+
+			let faultLevelClass = 'faultLevel' + faultLevel
+			let selected = self.isBotSelected(botId) ? 'selected' : ''
+			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
+
+			return (
+				<div
+					key={key}
+					onClick={
+						() => {
+							if (self.isBotSelected(botId)) {
+								self.selectBots([])
+							}
+							else {
+								self.selectBot(botId)
+							}
+						}
+					}
+					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
+				>
+					{botId ?? hubId}
+				</div>
+			);
+		}
+
 
 		return (
 			<div id="botsList">
-				{botIds.map((botId) => {
-					let bot = bots[botId]
-
-					let faultLevel = {
-						'HEALTH__OK': 0,
-						'HEALTH__DEGRADED': 1,
-						'HEALTH__FAILED': 2
-					}[bot.healthState] ?? 0
-
-					let faultLevelClass = 'faultLevel' + faultLevel
-					let selected = this.isBotSelected(botId) ? 'selected' : ''
-					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
-
-					return (
-						<div
-							key={botId}
-							onClick={
-								() => {
-									if (this.isBotSelected(botId)) {
-										this.selectBots([])
-									}
-									else {
-										this.selectBot(botId)
-									}
-								}
-							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
-						>
-							{botId}
-						</div>
-					);
-				})}
+				{
+					hubs.sort(compare_by_hubId).map(bothub_to_div)
+				}
+				{
+					bots.sort(compare_by_botId).map(bothub_to_div)
+				}
 			</div>
 		)
 	}
