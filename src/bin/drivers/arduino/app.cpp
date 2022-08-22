@@ -134,6 +134,9 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         motor_max_step_reverse_slower = bounds.motor().motor_max_step_reverse_slower();
     }
 
+    // Publish to meatadata group to record bounds file used
+    interprocess().publish<groups::metadata>(bounds);
+
     // Convert a ControlSurfaces command into an ArduinoCommand, and send to Arduino
     interprocess().subscribe<groups::low_control>(
         [this](const jaiabot::protobuf::LowControl& low_control) {
