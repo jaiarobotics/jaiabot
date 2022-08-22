@@ -762,6 +762,9 @@ export default class CentralCommand extends React.Component {
 	clearMissionPlanningState() {
 		this.setState({
 			mode: '',
+			surveyPolygonFeature: null,
+			surveyPolygonGeoCoords: null,
+			surveyPolygonCoords: null,
 			surveyPolygonChanged: false
 		});
 	}
