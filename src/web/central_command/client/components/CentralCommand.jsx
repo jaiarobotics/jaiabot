@@ -631,6 +631,7 @@ export default class CentralCommand extends React.Component {
 			'drawstart',
 			(evt) => {
 				this.setState({surveyPolygonChanged: true, mode: 'missionPlanning' });
+				this.updateMissionLayer();
 
 				surveyPolygonlistener = evt.feature.on('change', (evt2) => {
 					const geom1 = evt2.target;
@@ -719,8 +720,9 @@ export default class CentralCommand extends React.Component {
 					surveyPolygonGeoCoords: surveyPolygonGeoCoords,
 					surveyPolygonCoords: geo_geom,
 					surveyPolygonChanged: true})
-				this.updateMissionLayer();
+
 				OlUnobserveByKey(surveyPolygonlistener);
+				this.updateMissionLayer();
 			},
 			this
 		);
