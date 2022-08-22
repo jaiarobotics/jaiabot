@@ -288,7 +288,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                             ->options()
                             .GetExtension(dccl::field)
                             .max_repeat();
-    ;
     int fragment_index = 0;
     int goal_max_index = 0;
     int goal_index = 0;
