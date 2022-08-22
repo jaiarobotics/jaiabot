@@ -288,7 +288,7 @@ export default class CentralCommand extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
-			missionParams: {'spacing': 10, 'orientation': 45},
+			missionParams: {'spacing': 30, 'orientation': 0},
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			missionBaseGoal: {},
@@ -631,6 +631,7 @@ export default class CentralCommand extends React.Component {
 			'drawstart',
 			(evt) => {
 				this.setState({surveyPolygonChanged: true, mode: 'missionPlanning' });
+				this.updateMissionLayer();
 
 				surveyPolygonlistener = evt.feature.on('change', (evt2) => {
 					const geom1 = evt2.target;
@@ -638,7 +639,7 @@ export default class CentralCommand extends React.Component {
 					const format = new GeoJSON();
 					const turfPolygon = format.writeFeatureObject(geom1);
 
-					if (turfPolygon.geometry.coordinates[0].length > 5) {
+					if (turfPolygon.geometry.coordinates[0].length > 50000) {
 
 						let cellSide = this.state.missionParams.spacing;
 
@@ -673,21 +674,6 @@ export default class CentralCommand extends React.Component {
 								let offsetLine = turf.lineOffset(centerLine, this.state.missionParams.spacing, {units: 'meters'});
 
 								let missionPlanningLinesTurf = turf.multiLineString([centerLine, offsetLine]);
-
-								let geo_geom = geom1.getGeometry();
-								geo_geom.transform("EPSG:3857", "EPSG:4326")
-								let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-
-								this.setState({
-									missionPlanningGrid: missionPlanningGridOl.getGeometry(),
-									// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
-									surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-									surveyPolygonCoords: geo_geom,
-									surveyPolygonChanged: true
-								});
-
-								this.updateMissionLayer();
-
 							}
 						}
 
@@ -697,6 +683,23 @@ export default class CentralCommand extends React.Component {
 						// tooltipCoord = geom.getLastCoordinate();
 						// $('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 					}
+
+					// if (turfPolygon.geometry.coordinates[0].length > 5) {
+					// 	let geo_geom = geom1.getGeometry();
+					// 	geo_geom.transform("EPSG:3857", "EPSG:4326")
+					// 	let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+					//
+					// 	this.setState({
+					// 		// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
+					// 		// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
+					// 		surveyPolygonGeoCoords: surveyPolygonGeoCoords,
+					// 		surveyPolygonCoords: geo_geom,
+					// 		surveyPolygonChanged: true
+					// 	});
+					// 	this.updateMissionLayer();
+					// }
+
+
 				});
 			},
 			this
@@ -717,8 +720,9 @@ export default class CentralCommand extends React.Component {
 					surveyPolygonGeoCoords: surveyPolygonGeoCoords,
 					surveyPolygonCoords: geo_geom,
 					surveyPolygonChanged: true})
-				this.updateMissionLayer();
+
 				OlUnobserveByKey(surveyPolygonlistener);
+				this.updateMissionLayer();
 			},
 			this
 		);
@@ -1661,7 +1665,7 @@ export default class CentralCommand extends React.Component {
 
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel = '';
-		if (this.state.surveyPolygonChanged) {
+		if (this.state.mode === 'missionPlanning') {
 			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.clearMissionPlanningState() }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
@@ -1783,7 +1787,7 @@ export default class CentralCommand extends React.Component {
 								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
-									this.setState({ surveyPolygonActive: false });
+									this.setState({ surveyPolygonActive: false, mode: '' });
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
@@ -1795,7 +1799,7 @@ export default class CentralCommand extends React.Component {
 							title="Edit Survey Plan"
 							className="inactive"
 							onClick={() => {
-								this.setState({ surveyPolygonActive: true });
+								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
 								info('Touch map to set first polygon point');
 							}}
@@ -1871,7 +1875,7 @@ export default class CentralCommand extends React.Component {
 									className=''
 								>
 
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api)}
+									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
 									<div id="botContextCommandBox">
 										{/* Leader-based commands and manual control go here */}
 										<button
@@ -2113,28 +2117,28 @@ export default class CentralCommand extends React.Component {
 			features.push(surveyPolygonFeature);
 		}
 
-		if (this.state.mode === 'missionPlanning') {
-			if (this.state.missionPlanningGrid) {
-				let mpGridFeature = new OlFeature(
-					{
-						geometry: new OlMultiPoint(this.state.missionPlanningGrid.getCoordinates())
-					}
-				)
-				mpGridFeature.setStyle(gridStyle);
-				features.push(mpGridFeature);
-				// this.state.missionPlanningGrid.forEach(p => features.push(p));
-			}
-
-			if (this.state.missionPlanningLines) {
-				let mpLineFeatures = new OlFeature(
-					{
-						geometry: new OlMultiLineString(this.state.missionPlanningLines.getCoordinates())
-					}
-				)
-				mpLineFeatures.setStyle(surveyPlanLineStyle);
-				features.push(mpLineFeatures);
-			}
-		}
+		// if (this.state.mode === 'missionPlanning') {
+		// 	if (this.state.missionPlanningGrid) {
+		// 		let mpGridFeature = new OlFeature(
+		// 			{
+		// 				geometry: new OlMultiPoint(this.state.missionPlanningGrid.getCoordinates())
+		// 			}
+		// 		)
+		// 		mpGridFeature.setStyle(gridStyle);
+		// 		features.push(mpGridFeature);
+		// 		// this.state.missionPlanningGrid.forEach(p => features.push(p));
+		// 	}
+		//
+		// 	if (this.state.missionPlanningLines) {
+		// 		let mpLineFeatures = new OlFeature(
+		// 			{
+		// 				geometry: new OlMultiLineString(this.state.missionPlanningLines.getCoordinates())
+		// 			}
+		// 		)
+		// 		mpLineFeatures.setStyle(surveyPlanLineStyle);
+		// 		features.push(mpLineFeatures);
+		// 	}
+		// }
 
 		let vectorSource = new OlVectorSource({
 			features: features
@@ -2242,6 +2246,12 @@ export default class CentralCommand extends React.Component {
 			else {
 				this.missions = {}
 			}
+			this.setState({
+				surveyPolygonFeature: null,
+				surveyPolygonGeoCoords: null,
+				surveyPolygonCoords: null,
+				surveyPolygonChanged: false
+			});
 			this.updateMissionLayer()
 		}
 	}
@@ -2357,7 +2367,7 @@ export default class CentralCommand extends React.Component {
 			"home_lon": this.homeLocation['lon'],
 			"home_lat": this.homeLocation['lat'],
 			"survey_polygon": this.state.surveyPolygonGeoCoords,
-			"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
+			//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
 		}).then(data => {
 			this.loadMissions(data);
 		});
