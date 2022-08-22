@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
 set(PROJECT_VERSION_MAJOR "0")
-set(PROJECT_VERSION_MINOR "1")
-set(PROJECT_VERSION_PATCH "0~beta1")
+set(PROJECT_VERSION_MINOR "2")
+set(PROJECT_VERSION_PATCH "1~beta2")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
@@ -124,6 +124,7 @@ else()
 endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
+option(build_plot "Build plot ui code (requires npm)" ON)
 
 
 # configure the headers to build/include
