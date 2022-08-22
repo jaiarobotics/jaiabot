@@ -683,17 +683,19 @@ export default class CentralCommand extends React.Component {
 						// $('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
 					}
 
-					let geo_geom = geom1.getGeometry();
-					geo_geom.transform("EPSG:3857", "EPSG:4326")
-					let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+					if (turfPolygon.geometry.coordinates[0].length > 5) {
+						let geo_geom = geom1.getGeometry();
+						geo_geom.transform("EPSG:3857", "EPSG:4326")
+						let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 
-					this.setState({
-						// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
-						// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
-						surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-						surveyPolygonCoords: geo_geom,
-						surveyPolygonChanged: true
-					});
+						this.setState({
+							// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
+							// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
+							surveyPolygonGeoCoords: surveyPolygonGeoCoords,
+							surveyPolygonCoords: geo_geom,
+							surveyPolygonChanged: true
+						});
+					}
 
 					this.updateMissionLayer();
 				});
