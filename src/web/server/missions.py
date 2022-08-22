@@ -189,7 +189,7 @@ def drop_missions_table(jaia_db_file):
         return False
 
 
-def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, orientation, bot_list, inside_points_all):
+def create_mission_plan(deploy_lat, deploy_lon, boundary_points, mission_type, spacing_meters, orientation, bot_list):
     """
     Based on a user-defined rough boundary and mission type, create Points for the bots to sample
     :returns:
