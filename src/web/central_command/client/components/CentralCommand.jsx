@@ -762,9 +762,6 @@ export default class CentralCommand extends React.Component {
 	clearMissionPlanningState() {
 		this.setState({
 			mode: '',
-			surveyPolygonFeature: null,
-			surveyPolygonGeoCoords: null,
-			surveyPolygonCoords: null,
 			surveyPolygonChanged: false
 		});
 	}
@@ -1668,7 +1665,7 @@ export default class CentralCommand extends React.Component {
 
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel = '';
-		if (this.state.surveyPolygonChanged) {
+		if (this.state.mode === 'missionPlanning') {
 			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.clearMissionPlanningState() }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
@@ -2120,28 +2117,28 @@ export default class CentralCommand extends React.Component {
 			features.push(surveyPolygonFeature);
 		}
 
-		if (this.state.mode === 'missionPlanning') {
-			if (this.state.missionPlanningGrid) {
-				let mpGridFeature = new OlFeature(
-					{
-						geometry: new OlMultiPoint(this.state.missionPlanningGrid.getCoordinates())
-					}
-				)
-				mpGridFeature.setStyle(gridStyle);
-				features.push(mpGridFeature);
-				// this.state.missionPlanningGrid.forEach(p => features.push(p));
-			}
-
-			if (this.state.missionPlanningLines) {
-				let mpLineFeatures = new OlFeature(
-					{
-						geometry: new OlMultiLineString(this.state.missionPlanningLines.getCoordinates())
-					}
-				)
-				mpLineFeatures.setStyle(surveyPlanLineStyle);
-				features.push(mpLineFeatures);
-			}
-		}
+		// if (this.state.mode === 'missionPlanning') {
+		// 	if (this.state.missionPlanningGrid) {
+		// 		let mpGridFeature = new OlFeature(
+		// 			{
+		// 				geometry: new OlMultiPoint(this.state.missionPlanningGrid.getCoordinates())
+		// 			}
+		// 		)
+		// 		mpGridFeature.setStyle(gridStyle);
+		// 		features.push(mpGridFeature);
+		// 		// this.state.missionPlanningGrid.forEach(p => features.push(p));
+		// 	}
+		//
+		// 	if (this.state.missionPlanningLines) {
+		// 		let mpLineFeatures = new OlFeature(
+		// 			{
+		// 				geometry: new OlMultiLineString(this.state.missionPlanningLines.getCoordinates())
+		// 			}
+		// 		)
+		// 		mpLineFeatures.setStyle(surveyPlanLineStyle);
+		// 		features.push(mpLineFeatures);
+		// 	}
+		// }
 
 		let vectorSource = new OlVectorSource({
 			features: features
