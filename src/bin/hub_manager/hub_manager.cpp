@@ -281,7 +281,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     using protobuf::Command;
     auto command = input_command;
     std::vector<Command> command_fragments;
-    int goal_max_size = 14;
+
+    //Get the max repeat size from dccl field
+    int goal_max_size = protobuf::MissionPlan::descriptor()
+                            ->FindFieldByName("goal")
+                            ->options()
+                            .GetExtension(dccl::field)
+                            .max_repeat();
+    ;
     int fragment_index = 0;
     int goal_max_index = 0;
     int goal_index = 0;
@@ -325,9 +332,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
             if (command.plan().has_recovery() && fragment_index == 0)
             {
-                protobuf::MissionPlan_Recovery* recovery = new protobuf::MissionPlan_Recovery();
-                recovery->ParseFromString(command.plan().recovery().SerializeAsString());
-                command_fragment.mutable_plan()->set_allocated_recovery(recovery);
+                *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
             }
 
             command_fragment.mutable_plan()->set_fragment_index(fragment_index);
@@ -358,16 +363,9 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                     }
                     if (command.plan().goal(goal_index).has_task())
                     {
-                        protobuf::MissionTask* task = new protobuf::MissionTask();
-                        task->ParseFromString(
-                            command.plan().goal(goal_index).task().SerializeAsString());
-                        goal->set_allocated_task(task);
+                        *goal->mutable_task() = command.plan().goal(goal_index).task();
                     }
-
-                    protobuf::GeographicCoordinate* coord = new protobuf::GeographicCoordinate();
-                    coord->ParseFromString(
-                        command.plan().goal(goal_index).location().SerializeAsString());
-                    goal->set_allocated_location(coord);
+                    *goal->mutable_location() = command.plan().goal(goal_index).location();
                 }
                 else
                 {

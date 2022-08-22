@@ -412,7 +412,7 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
     else
     {
         glog.is_debug1() && glog << "New fragment time, clear map and add fragment: " << std::endl;
-        //Let's only track on multi-message
+        //Let's only track one multi-message
         track_command_fragments.clear();
         inner_map.insert(
             std::make_pair(input_command_fragment.plan().fragment_index(), input_command_fragment));
@@ -452,9 +452,8 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
 
             if (initial_fragment.plan().has_recovery())
             {
-                protobuf::MissionPlan_Recovery* recovery = new protobuf::MissionPlan_Recovery();
-                recovery->ParseFromString(initial_fragment.plan().recovery().SerializeAsString());
-                out_command.mutable_plan()->set_allocated_recovery(recovery);
+                *out_command.mutable_plan()->mutable_recovery() =
+                    initial_fragment.plan().recovery();
             }
 
             // Loop through fragments and all the waypoints in each
@@ -470,16 +469,9 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     }
                     if (fragment.second.plan().goal(goal_index).has_task())
                     {
-                        protobuf::MissionTask* task = new protobuf::MissionTask();
-                        task->ParseFromString(
-                            fragment.second.plan().goal(goal_index).task().SerializeAsString());
-                        goal->set_allocated_task(task);
+                        *goal->mutable_task() = fragment.second.plan().goal(goal_index).task();
                     }
-
-                    protobuf::GeographicCoordinate* coord = new protobuf::GeographicCoordinate();
-                    coord->ParseFromString(
-                        fragment.second.plan().goal(goal_index).location().SerializeAsString());
-                    goal->set_allocated_location(coord);
+                    *goal->mutable_location() = fragment.second.plan().goal(goal_index).location();
                 }
             }
             return true;
