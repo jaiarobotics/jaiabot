@@ -163,13 +163,14 @@ export function BotDetailsComponent(bot, api, mission) {
 
     // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
+    let distToGoal = "Not Available"
 
-    let distToNextWpt = "Not Available"
-    if(activeGoal != "None")
+    if(activeGoal != "None"
+        && mission != undefined)
     {
-        distToNextWpt = getDistanceFromLatLonInKm(bot.location.lat, bot.location.lon, 
+        distToGoal = getDistanceFromLatLonInKm(bot.location.lat, bot.location.lon, 
             mission.plan.goal[bot.activeGoal].location.lat, mission.plan.goal[bot.activeGoal].location.lon)
-        distToNextWpt = (distToNextWpt * 1000).toFixed(prec)
+        distToGoal = (distToGoal * 1000).toFixed(prec)
     }
     
     var activeGoalRow = (
@@ -182,7 +183,7 @@ export function BotDetailsComponent(bot, api, mission) {
     var activeGoalDistRow = (
         <tr>
             <td>Distance To Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{(distToNextWpt)} m</td>
+            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} m</td>
         </tr>
     )
     
