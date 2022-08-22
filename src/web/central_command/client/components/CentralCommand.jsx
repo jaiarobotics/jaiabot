@@ -288,7 +288,7 @@ export default class CentralCommand extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			goalSettingsPanel: <GoalSettingsPanel />,
-			missionParams: {'spacing': 10, 'orientation': 45},
+			missionParams: {'spacing': 30, 'orientation': 0},
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			missionBaseGoal: {},
@@ -1787,7 +1787,7 @@ export default class CentralCommand extends React.Component {
 								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
-									this.setState({ surveyPolygonActive: false });
+									this.setState({ surveyPolygonActive: false, mode: '' });
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
@@ -1799,7 +1799,7 @@ export default class CentralCommand extends React.Component {
 							title="Edit Survey Plan"
 							className="inactive"
 							onClick={() => {
-								this.setState({ surveyPolygonActive: true });
+								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
 								info('Touch map to set first polygon point');
 							}}
