@@ -163,12 +163,15 @@ export function BotDetailsComponent(bot, api, mission) {
         statusAgeClassName = 'yellow'
     }
 
+    // Make sure bot has location
+    let activelocation = bot.location ?? "None"
     // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
     let distToGoal = "Not Available"
 
     if(activeGoal != "None"
-        && mission != undefined)
+        && mission != undefined
+        && activelocation != "None")
     {
         var from = turf.point([bot.location.lon, bot.location.lat]);
         var to = turf.point([mission.plan.goal[bot.activeGoal].location.lon, mission.plan.goal[bot.activeGoal].location.lat]);
