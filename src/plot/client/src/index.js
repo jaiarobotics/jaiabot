@@ -174,8 +174,20 @@ class LogApp extends React.Component {
 
                   layout.height = data.length * 300 + 1 // in pixels
 
+    // Preserve current x axis range
+    const current_layout_xaxis = this.plot_div_element.layout?.xaxis
+    if (current_layout_xaxis != null) {
+      layout.xaxis = current_layout_xaxis
+    }
+
     Plotly.newPlot(this.plot_div_element, data, layout)
 
+    // Apply plot range to map path
+    const t0 = iso_date_to_micros(this.plot_div_element.layout.xaxis.range[0])
+    const t1 = iso_date_to_micros(this.plot_div_element.layout.xaxis.range[1])
+    this.map.timeRange = [t0, t1]
+
+    // Setup the triggers
     let self = this
     this.plot_div_element.on('plotly_hover', function(data) {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
@@ -191,14 +203,16 @@ class LogApp extends React.Component {
 
       // When autorange, zoom out to the whole set of points
       if (eventdata['xaxis.autorange']) {
-        self.map.updateToTimeRange()
+        self.map.timeRange = null
+        self.map.updatePath()
         return
       }
 
       const t0 = iso_date_to_micros(eventdata['xaxis.range[0]'])
       const t1 = iso_date_to_micros(eventdata['xaxis.range[1]'])
 
-      self.map.updateToTimeRange(t0, t1)
+      self.map.timeRange = [t0, t1]
+      self.map.updatePath()
     })
   }
 

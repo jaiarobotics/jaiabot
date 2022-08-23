@@ -58,28 +58,31 @@ export default class Map {
 
       // points is in the form [[timestamp, lat, lon]]
       this.path_polyline = null
-  
+
+      // Time range for the visible path
+      this.timeRange = null
     }
   
     // The bot path polyline
     updateWithPoints(points) {
       this.points = points
-
-      this.updateToTimeRange()
+      this.updatePath()
     }
 
-    updateToTimeRange(t0=0, t1=Number.MAX_SAFE_INTEGER) {
+    updatePath() {
+      let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
+
       if (this.path_polyline) {
         this.map.removeLayer(this.path_polyline)
       }
 
       var path = []
       for (const pt of this.points) {
-        if (pt[0] > t1) {
+        if (pt[0] > timeRange[1]) {
           break
         }
 
-        if (pt[0] > t0) {
+        if (pt[0] > timeRange[0]) {
           path.push([pt[1], pt[2]])
         }
       }
