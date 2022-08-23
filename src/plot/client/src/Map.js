@@ -31,7 +31,26 @@ function bisect(sorted_array, f) {
 export default class Map {
 
     constructor(map_div_id) {
-      this.map = L.map(map_div_id).setView([ 0, 0 ], 10)
+
+      // Map
+      const map_options = {
+        minZoom: 1,
+        maxZoom: 20
+      }
+
+      this.map = L.map(map_div_id, map_options).setView([ 0, 0 ], 10)
+      L.control.scale().addTo(this.map)
+
+      // TileLayer
+      const tile_layer_options = {
+        maxNativeZoom: 18,
+        maxZoom: 20,
+        attribution :
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', tile_layer_options).addTo(this.map)
+    
       this.points = []
       this.waypoint_markers = []
       this.bot_markers = []
@@ -40,11 +59,6 @@ export default class Map {
       // points is in the form [[timestamp, lat, lon]]
       this.path_polyline = null
   
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution :
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(this.map)
-    
     }
   
     // The bot path polyline
@@ -55,7 +69,6 @@ export default class Map {
     }
 
     updateToTimeRange(t0=0, t1=Number.MAX_SAFE_INTEGER) {
-      console.log('t0=' + t0 + ', t1=' + t1)
       if (this.path_polyline) {
         this.map.removeLayer(this.path_polyline)
       }
