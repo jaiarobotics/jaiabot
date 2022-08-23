@@ -8,6 +8,11 @@ import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import Map from "./Map.js"
 
+// Convert from an ISO date string to microsecond UNIX timestamp
+function iso_date_to_micros(iso_date_string) {
+  return Date.parse(iso_date_string) * 1e3
+}
+
 class LogApp extends React.Component {
 
   constructor(props) {
@@ -174,12 +179,27 @@ class LogApp extends React.Component {
     let self = this
     this.plot_div_element.on('plotly_hover', function(data) {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
-      let date_timestamp_micros = Date.parse(dateString) * 1e3
+      let date_timestamp_micros = iso_date_to_micros(dateString)
       self.map.updateToTimestamp(date_timestamp_micros)
     })
 
     this.plot_div_element.on('plotly_unhover',
                         function(data) { self.map.updateToTimestamp(null) })
+
+    // Zooming into plots
+    this.plot_div_element.on('plotly_relayout', function(eventdata) {
+
+      // When autorange, zoom out to the whole set of points
+      if (eventdata['xaxis.autorange']) {
+        self.map.updateToTimeRange()
+        return
+      }
+
+      const t0 = iso_date_to_micros(eventdata['xaxis.range[0]'])
+      const t1 = iso_date_to_micros(eventdata['xaxis.range[1]'])
+
+      self.map.updateToTimeRange(t0, t1)
+    })
   }
 
 }

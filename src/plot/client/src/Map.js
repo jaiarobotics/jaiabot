@@ -47,18 +47,36 @@ export default class Map {
     
     }
   
+    // The bot path polyline
     updateWithPoints(points) {
+      this.points = points
+
+      this.updateToTimeRange()
+    }
+
+    updateToTimeRange(t0=0, t1=Number.MAX_SAFE_INTEGER) {
+      console.log('t0=' + t0 + ', t1=' + t1)
       if (this.path_polyline) {
         this.map.removeLayer(this.path_polyline)
       }
-  
-      this.points = points
-      let path = points.map(pt => [pt[1], pt[2]])
+
+      var path = []
+      for (const pt of this.points) {
+        if (pt[0] > t1) {
+          break
+        }
+
+        if (pt[0] > t0) {
+          path.push([pt[1], pt[2]])
+        }
+      }
+      
       this.path_polyline = L.polyline(path, {color : 'red'}).addTo(this.map)
   
       this.map.fitBounds(this.path_polyline.getBounds())
     }
 
+    // Commands and markers for bot and goals
     updateWithCommands(command_dict) {
       this.command_dict = command_dict
     }
