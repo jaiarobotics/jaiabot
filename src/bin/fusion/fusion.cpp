@@ -41,6 +41,9 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
+#include <cmath>
+#include <math.h>
+#define earthRadiusKm 6371.0
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -87,6 +90,9 @@ class Fusion : public ApplicationBase
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
         }
     }
+    double deg2rad(const double& deg);
+    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
+                          const double& lon2d);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -295,6 +301,27 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 latest_bot_status_.set_active_goal(report.active_goal());
             else
                 latest_bot_status_.clear_active_goal();
+            if (report.has_active_goal_location())
+            {
+                if (latest_bot_status_.has_location())
+                {
+                    if (latest_bot_status_.location().has_lat() &&
+                        latest_bot_status_.location().has_lon())
+                    {
+                        double distance = distanceToGoal(report.active_goal_location().lat(),
+                                                         report.active_goal_location().lon(),
+                                                         latest_bot_status_.location().lat(),
+                                                         latest_bot_status_.location().lon());
+                        // Set distance in meters
+                        distance = distance * (1000);
+                        latest_bot_status_.set_distance_to_active_goal(distance);
+                    }
+                }
+            }
+            else
+            {
+                latest_bot_status_.clear_distance_to_active_goal();
+            }      
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
@@ -325,3 +352,28 @@ void jaiabot::apps::Fusion::init_node_status()
 }
 
 void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
+
+// This function converts decimal degrees to radians
+double jaiabot::apps::Fusion::deg2rad(const double& deg) { return (deg * M_PI / 180); }
+
+/**
+ * Returns the distance between two points on the Earth.
+ * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+ * @param lat1d Latitude of the first point in degrees
+ * @param lon1d Longitude of the first point in degrees
+ * @param lat2d Latitude of the second point in degrees
+ * @param lon2d Longitude of the second point in degrees
+ * @return The distance between the two points in kilometers
+ */
+double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& lon1d,
+                                             const double& lat2d, const double& lon2d)
+{
+    double lat1r, lon1r, lat2r, lon2r, u, v;
+    lat1r = deg2rad(lat1d);
+    lon1r = deg2rad(lon1d);
+    lat2r = deg2rad(lat2d);
+    lon2r = deg2rad(lon2d);
+    u = sin((lat2r - lat1r) / 2);
+    v = sin((lon2r - lon1r) / 2);
+    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
