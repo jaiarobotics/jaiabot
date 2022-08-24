@@ -146,6 +146,12 @@ message BotStatus
 
     // bounds should match MissionPlan.goal max_repeat value
     optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }];
+    optional double distance_to_active_goal = 42 [(dccl.field) = {
+        min: 0
+        max: 1000
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];

@@ -5,8 +5,6 @@
 
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
-// TurfJS
-import * as turf from '@turf/turf';
 
 let prec = 2
 
@@ -163,22 +161,9 @@ export function BotDetailsComponent(bot, api, mission) {
         statusAgeClassName = 'yellow'
     }
 
-    // Make sure bot has location
-    let activelocation = bot.location ?? "None"
     // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
-    let distToGoal = "Not Available"
-
-    if(activeGoal != "None"
-        && mission != undefined
-        && activelocation != "None")
-    {
-        var from = turf.point([bot.location.lon, bot.location.lat]);
-        var to = turf.point([mission.plan.goal[bot.activeGoal].location.lon, mission.plan.goal[bot.activeGoal].location.lat]);
-        var options = {units: 'meters'};
-
-        distToGoal = turf.rhumbDistance(from, to, options).toFixed(prec);
-    }
+    let distToGoal = bot.distanceToActiveGoal ?? "Not Available"
     
     var activeGoalRow = (
         <tr>
