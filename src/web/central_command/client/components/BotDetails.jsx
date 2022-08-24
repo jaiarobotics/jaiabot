@@ -163,7 +163,7 @@ export function BotDetailsComponent(bot, api, mission) {
 
     // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
-    let distToGoal = bot.distanceToActiveGoal ?? "Not Available"
+    let distToGoal = bot.distanceToActiveGoal ?? "No Active Goal"
     
     var activeGoalRow = (
         <tr>
@@ -175,7 +175,7 @@ export function BotDetailsComponent(bot, api, mission) {
     var activeGoalDistRow = (
         <tr>
             <td>Distance To Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} m</td>
+            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} (m)</td>
         </tr>
     )
     

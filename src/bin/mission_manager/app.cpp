@@ -246,7 +246,13 @@ void jaiabot::apps::MissionManager::loop()
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
         report.set_active_goal(in_mission->goal_index());
-        *report.mutable_active_goal_location() = in_mission->current_goal()->location();
+        if (in_mission->current_goal().has_value())
+        {
+            if (in_mission->current_goal()->has_location())
+            {
+                *report.mutable_active_goal_location() = in_mission->current_goal()->location();
+            }
+        }
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
