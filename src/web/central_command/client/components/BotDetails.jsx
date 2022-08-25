@@ -5,8 +5,6 @@
 
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
-// TurfJS
-import * as turf from '@turf/turf';
 
 let prec = 2
 
@@ -128,12 +126,12 @@ function healthRow(bot) {
 
     let errors = bot.error ?? []
     let errorElements = errors.map((error) => {
-        return <div className='healthFailed'>{error}</div>
+        return <div key={error} className='healthFailed'>{error}</div>
     })
     
     let warnings = bot.warning ?? []
     let warningElements = warnings.map((warning) => {
-        return <div className='healthDegraded'>{warning}</div>
+        return <div key={warning} className='healthDegraded'>{warning}</div>
     })
 
     return (
@@ -165,17 +163,7 @@ export function BotDetailsComponent(bot, api, mission) {
 
     // Active Goal
     let activeGoal = bot.activeGoal ?? "None"
-    let distToGoal = "Not Available"
-
-    if(activeGoal != "None"
-        && mission != undefined)
-    {
-        var from = turf.point([bot.location.lon, bot.location.lat]);
-        var to = turf.point([mission.plan.goal[bot.activeGoal].location.lon, mission.plan.goal[bot.activeGoal].location.lat]);
-        var options = {units: 'meters'};
-
-        distToGoal = turf.rhumbDistance(from, to, options).toFixed(prec);
-    }
+    let distToGoal = bot.distanceToActiveGoal ?? "No Active Goal"
     
     var activeGoalRow = (
         <tr>
@@ -187,7 +175,7 @@ export function BotDetailsComponent(bot, api, mission) {
     var activeGoalDistRow = (
         <tr>
             <td>Distance To Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} m</td>
+            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} (m)</td>
         </tr>
     )
     
