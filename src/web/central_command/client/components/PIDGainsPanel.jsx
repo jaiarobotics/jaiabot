@@ -74,7 +74,7 @@ export class PIDGainsPanel extends React.Component {
                                             let botId_pid_type_gain = self.botId + "_" + pid_type_gain
             
                                             return (
-                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={engineering?.pidControl[pid_type][pid_gain] ?? "-"} /></td>
+                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={engineering?.pidControl?.[pid_type]?.[pid_gain] ?? "-"} /></td>
                                             )
                                         })
                                     }
