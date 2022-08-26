@@ -1,5 +1,7 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
+import { BrowserRouter as Router, Routes, Route } 
+       from "react-router-dom"
 
 import LoadProfile from "./LoadProfile.js"
 import {LogApi} from "./LogApi.js"
@@ -12,6 +14,7 @@ import Map from "./Map.js"
 function iso_date_to_micros(iso_date_string) {
   return Date.parse(iso_date_string) * 1e3
 }
+
 
 class LogApp extends React.Component {
 
@@ -28,6 +31,7 @@ class LogApp extends React.Component {
 
   render() {
     return (
+      <Router>
         <div><div className = "vertical flexbox top_pane padded">
 
         <div className = "row"><div>
@@ -43,10 +47,10 @@ class LogApp extends React.Component {
           <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
 
         <PathSelector logs = {this.state.chosen_logs} key =
-             {this.state.chosen_logs} on_select_path =
-         {
-           this.path_was_selected.bind(this)
-         } />
+            {this.state.chosen_logs} on_select_path =
+        {
+          this.path_was_selected.bind(this)
+        } />
 
           <div>
             <button className="padded" onClick={() => {
@@ -54,13 +58,13 @@ class LogApp extends React.Component {
             }}>Clear Plots</button>
 
         <LoadProfile did_select_plot_set =
-         {
-           (paths) => {
-             LogApi.get_series(this.state.chosen_logs, paths)
-                 .then(
-                     (series_array) => {this.setState({plots : series_array})})
-           }
-         } />
+        {
+          (paths) => {
+            LogApi.get_series(this.state.chosen_logs, paths)
+                .then(
+                    (series_array) => {this.setState({plots : series_array})})
+          }
+        } />
 
             <button className="padded" onClick={() => {
               let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
@@ -68,6 +72,14 @@ class LogApp extends React.Component {
               PlotProfiles.save_profile(plot_profile_name, plot_profile)
               this.forceUpdate()
             }}>Save Profile</button>
+
+            <button className="padded" onClick={
+              () => {
+
+                const t_range = this.get_plot_range()
+                this.open_moos_messages(t_range)
+              }
+            }>Download MOOS Messages...</button>
 
         </div>
         </div>
@@ -79,7 +91,9 @@ class LogApp extends React.Component {
 
           <div className="map" id="map"></div>
         </div>
-      </div>)
+        </div>
+      </Router>
+    )
   }
 
   componentDidUpdate() {
@@ -136,6 +150,16 @@ class LogApp extends React.Component {
         .catch(err => {alert(err)})
   }
 
+  get_plot_range() {
+    const range = this.plot_div_element.layout?.xaxis?.range
+    if (range == null) {
+      return [0, 2**60]
+    }
+    else {
+      return range.map(iso_date_to_micros)
+    }
+  }
+
   refresh_plots() {
     if (this.state.plots.length == 0) {
       Plotly.purge(this.plot_div_element)
@@ -183,9 +207,7 @@ class LogApp extends React.Component {
     Plotly.newPlot(this.plot_div_element, data, layout)
 
     // Apply plot range to map path
-    const t0 = iso_date_to_micros(this.plot_div_element.layout.xaxis.range[0])
-    const t1 = iso_date_to_micros(this.plot_div_element.layout.xaxis.range[1])
-    this.map.timeRange = [t0, t1]
+    this.map.timeRange = this.get_plot_range()
 
     // Setup the triggers
     let self = this
@@ -214,6 +236,14 @@ class LogApp extends React.Component {
       self.map.timeRange = [t0, t1]
       self.map.updatePath()
     })
+  }
+
+  open_moos_messages(time_range) {
+    LogApi.get_moos(this.state.chosen_logs, time_range).then(
+      function(moos_messages) {
+        console.log(moos_messages)
+      }
+    )
   }
 
 }
