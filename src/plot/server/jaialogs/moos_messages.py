@@ -107,7 +107,7 @@ def get_moos_messages(log_filenames, t_start, t_end) -> str:
             source_aux = h5_get_string(moosmessage['source_aux'], moosmessage['source_aux_size'], moosmessage_index)
             community = h5_get_string(moosmessage['community'], moosmessage['community_size'], moosmessage_index)
 
-            date = datetime.datetime.fromtimestamp(_utime_ / 1e6).isoformat()
+            date = datetime.datetime.fromtimestamp(_utime_ / 1e6).isoformat('_')
 
             csv_writer.writerow({
                 'date': date,
