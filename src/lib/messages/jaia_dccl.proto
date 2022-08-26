@@ -90,7 +90,7 @@ message BotStatus
     optional GeographicCoordinate location = 10;
 
     optional double depth = 11 [(dccl.field) = {
-        min: 0
+        min: -1
         max: 100
         precision: 1
         units: { derived_dimensions: "length" }

@@ -32,9 +32,10 @@ message MissionManager
     optional double bottoming_timeout = 31
         [default = 5, (dccl.field).units = { base_dimensions: "T" }];
 
-    // surfacing timeout in seconds before switching to powered ascent
+    // surfacing timeout in seconds for unpowered ascent mode
+    // if timeout is reached then we switch to powered ascent
     optional double surfacing_timeout = 32
-        [default = 600, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 30, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)
     optional double dive_surface_eps = 33
