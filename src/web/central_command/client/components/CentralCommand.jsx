@@ -2380,6 +2380,9 @@ export default class CentralCommand extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
+					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
+						Act<br />All
+					</button>
 					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 						<Icon path={mdiPlay} title="Run Mission"/>
 					</button>
@@ -2451,6 +2454,17 @@ export default class CentralCommand extends React.Component {
 
 	playClicked(evt) {
 		this.runLoadedMissions(this.selectedBotIds())
+	}
+
+	activateAllClicked(evt) {
+		this.api.allActivate().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent Activate All")
+			}
+		})
 	}
 
 	runRCMode() {
