@@ -62,6 +62,11 @@ def postAllStop():
     response = jaia_interface.post_all_stop()
     return JSONResponse(response)
 
+@app.route('/jaia/allActivate', methods=['POST'])
+def postAllActivate():
+    response = jaia_interface.post_all_activate()
+    return JSONResponse(response)
+
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
     return JSONResponse(jaia_interface.get_mission_status())
