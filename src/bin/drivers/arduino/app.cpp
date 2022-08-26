@@ -73,10 +73,10 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int target_motor = 1500;
 
     // Motor Steps
-    int motor_max_step_forward_faster = 4;
-    int motor_max_step_forward_slower = 12;
-    int motor_max_step_reverse_faster = 4;
-    int motor_max_step_reverse_slower = 12;
+    int motor_max_step_forward_faster = 2;
+    int motor_max_step_forward_slower = 6;
+    int motor_max_step_reverse_faster = 2;
+    int motor_max_step_reverse_slower = 6;
 
     // Control surfaces
     int rudder = 1500;

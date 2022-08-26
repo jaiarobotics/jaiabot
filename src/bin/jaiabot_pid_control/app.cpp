@@ -628,7 +628,7 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
     }
     else
     {
-        throttle = -45.0;
+        throttle = -35.0;
     }
 
     // Set rudder to center
@@ -646,7 +646,7 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
     }
     else
     {
-        throttle = 50.0;
+        throttle = 25.0;
     }
 }
 
