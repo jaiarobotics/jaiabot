@@ -139,6 +139,7 @@ import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
+import SoundEffects from './SoundEffects'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1287,6 +1288,7 @@ export default class CentralCommand extends React.Component {
 		const { trackingTarget } = this.state;
 
 		const botExtents = {};
+
 		// This needs to be synchronized somehow?
 		for (let botId in bots) {
 			let bot = bots[botId]
@@ -1310,6 +1312,8 @@ export default class CentralCommand extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
+			// Fault Levels
+
 			let faultLevel = 0
 
 			switch(bot.healthState) {
@@ -1326,6 +1330,32 @@ export default class CentralCommand extends React.Component {
 					faultLevel2Count ++
 					break;
 			}
+
+
+			// Sounds for disconnect / reconnect
+			const disconnectThreshold = 30 * 1e6 // microseconds
+
+			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
+			console.log('oldPortalStatusAge = ', oldPortalStatusAge)
+
+			if (oldPortalStatusAge != null) {
+				// Bot disconnect
+				if (bot.portalStatusAge >= disconnectThreshold) {
+					if (oldPortalStatusAge < disconnectThreshold) {
+						SoundEffects.botDisconnect.play()
+					}
+					bot.disconnected = true
+				}
+
+				// Bot reconnect
+				if (bot.portalStatusAge < disconnectThreshold) {
+					if (oldPortalStatusAge >= disconnectThreshold) {
+						SoundEffects.botReconnect.play()
+					}
+					bot.disconnected = false
+				}
+			}
+
 
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
@@ -1430,6 +1460,8 @@ export default class CentralCommand extends React.Component {
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
 				else {
+					this.oldPodStatus = this.podStatus
+
 					this.podStatus = result
 
 					let messages = result.messages
@@ -2537,6 +2569,7 @@ export default class CentralCommand extends React.Component {
 					let faultLevelClass = 'faultLevel' + faultLevel
 					let selected = this.isBotSelected(botId) ? 'selected' : ''
 					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
+					let disconnected = bot.disconnected ? "disconnected" : ""
 
 					return (
 						<div
@@ -2551,7 +2584,7 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
+							className={`bot-item ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
 						>
 							{botId}
 						</div>
