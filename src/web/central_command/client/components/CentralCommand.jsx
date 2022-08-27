@@ -1336,15 +1336,15 @@ export default class CentralCommand extends React.Component {
 			const disconnectThreshold = 30 * 1e6 // microseconds
 
 			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
-			console.log('oldPortalStatusAge = ', oldPortalStatusAge)
+
+			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
 
 			if (oldPortalStatusAge != null) {
 				// Bot disconnect
-				if (bot.portalStatusAge >= disconnectThreshold) {
+				if (bot.isDisconnected) {
 					if (oldPortalStatusAge < disconnectThreshold) {
 						SoundEffects.botDisconnect.play()
 					}
-					bot.disconnected = true
 				}
 
 				// Bot reconnect
@@ -1352,10 +1352,8 @@ export default class CentralCommand extends React.Component {
 					if (oldPortalStatusAge >= disconnectThreshold) {
 						SoundEffects.botReconnect.play()
 					}
-					bot.disconnected = false
 				}
 			}
-
 
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
@@ -1365,7 +1363,8 @@ export default class CentralCommand extends React.Component {
 				lastUpdatedString: botTimestamp.toISOString(),
 				missionState: bot.missionState,
 				healthState: bot.healthState,
-				faultLevel: faultLevel
+				faultLevel: faultLevel,
+				isDisconnected: bot.isDisconnected
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -2569,7 +2568,7 @@ export default class CentralCommand extends React.Component {
 					let faultLevelClass = 'faultLevel' + faultLevel
 					let selected = this.isBotSelected(botId) ? 'selected' : ''
 					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
-					let disconnected = bot.disconnected ? "disconnected" : ""
+					let disconnected = bot.isDisconnected ? "disconnected" : ""
 
 					return (
 						<div
