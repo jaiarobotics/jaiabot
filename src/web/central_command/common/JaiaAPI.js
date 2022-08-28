@@ -76,6 +76,8 @@ module.exports = class JaiaAPI {
 
   allStop() { return this.post('jaia/allStop', null) }
 
+  allActivate() { return this.post('jaia/allActivate', null) }
+
   postCommand(command) { return this.post('jaia/command', command) }
 
   postEngineering(engineeringCommand) {
