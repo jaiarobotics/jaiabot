@@ -16,6 +16,7 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
+import { DivePackets } from './DivePackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -116,7 +117,7 @@ import jaiabot_icon from '../icons/jaiabot.png'
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent} from './BotDetails'
-import JaiaAPI from '../../common/JaiaAPI';
+import { jaiaAPI } from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
@@ -242,7 +243,7 @@ export default class CentralCommand extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.api = new JaiaAPI("/", false);
+		this.api = jaiaAPI
 
 		this.podStatus = {}
 

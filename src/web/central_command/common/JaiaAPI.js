@@ -2,7 +2,7 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-module.exports = class JaiaAPI {
+export class JaiaAPI {
   constructor(url = 'http://192.168.42.1:5000', debug = false) {
     this.url = url;
 
@@ -74,6 +74,8 @@ module.exports = class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
+  getDivePackets() { return this.get('jaia/dive-packets') }
+
   allStop() { return this.post('jaia/allStop', null) }
 
   allActivate() { return this.post('jaia/allActivate', null) }
@@ -88,3 +90,5 @@ module.exports = class JaiaAPI {
     return this.post('missionfiles/create', descriptor)
   }
 }
+
+export const jaiaAPI = new JaiaAPI('/', false)
