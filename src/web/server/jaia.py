@@ -39,6 +39,9 @@ class Interface:
     # Dict from botId => engineeringStatus
     bots_engineering = {}
 
+    # List of all DivePackets received, with last known location of that bot
+    dive_packets = []
+
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -92,6 +95,10 @@ class Interface:
             if msg.HasField('engineering_status'):
                 botEngineering = msg.engineering_status
                 self.bots_engineering[botEngineering.bot_id] = botEngineering
+
+            if msg.HasField('dive_packet'):
+                divePacket = msg.dive_packet
+                self.process_dive_packet(divePacket)
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -180,23 +187,26 @@ class Interface:
 
         return status
 
-    def get_mission_status(self):
-        return {
-            'missionStatus': {
-                'missionSegment': -1,
-                'missionComplete': False,
-                'isActive': False,
-            }
-        }
-
-    def set_manual_id(self):
-        return {
-            'code': 0
-        }
-
     def post_engineering_command(self, command):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
         cmd.time = now()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)
+
+    def process_dive_packet(self, dive_packet_message):
+        dive_packet = google.protobuf.json_format.MessageToDict(dive_packet_message)
+
+        # Let's attach the current position of the bot, if available
+        if dive_packet_message.bot_id in self.bots:
+            bot_location = self.bots[dive_packet_message.bot_id].location
+
+            dive_packet['location'] = {
+                'lon': bot_location.lon,
+                'lat': bot_location.lat
+            }
+
+        self.dive_packets.append(dive_packet)
+
+    def get_dive_packets(self):
+        return self.dive_packets

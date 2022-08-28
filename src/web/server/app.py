@@ -52,6 +52,10 @@ def JSONResponse(obj):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
+@app.route('/jaia/dive-packets', methods=['GET'])
+def getDivePackets():
+    return JSONResponse(jaia_interface.get_dive_packets())
+
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
     response = jaia_interface.post_command(request.json)
@@ -62,13 +66,10 @@ def postAllStop():
     response = jaia_interface.post_all_stop()
     return JSONResponse(response)
 
-@app.route('/mission/status', methods=['GET'])
-def getMissionStatus():
-    return JSONResponse(jaia_interface.get_mission_status())
-
-@app.route('/jaia/setManualID', methods=['POST'])
-def setManualID():
-    return JSONResponse(jaia_interface.set_manual_id())
+@app.route('/jaia/allActivate', methods=['POST'])
+def postAllActivate():
+    response = jaia_interface.post_all_activate()
+    return JSONResponse(response)
 
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
