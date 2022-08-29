@@ -12,7 +12,7 @@ gps_udp_config {
     remote_port: $gpsd_simulator_udp_port
 }
 start_location {
-    lat: 42.8826
+    lat: -42.8826
     lon: 147.3257
 }
 
