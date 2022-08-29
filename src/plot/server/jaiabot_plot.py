@@ -101,6 +101,19 @@ def getActiveGoals():
     return JSONResponse(jaialogs.get_active_goals(log_names))
 
 
+@app.route('/moos', methods=['GET'])
+def getMOOSMessages():
+    '''Get a CSV of all the MOOSMessage objects between t_start and t_end from the logs'''
+    log_names = parse_log_filenames(request.args.get('log'))
+    t_start = int(request.args.get('t_start'))
+    t_end = int(request.args.get('t_end'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    return Response(jaialogs.get_moos_messages(log_names, t_start, t_end), mimetype='text/csv')
+
+
 if __name__ == '__main__':
     logging.warning(f'Serving on port {args.port}')
     app.run(host='0.0.0.0', port=args.port, debug=False)
