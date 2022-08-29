@@ -2431,7 +2431,7 @@ export default class CentralCommand extends React.Component {
 
 		return (
 			<div id="botsList">
-				Bots
+				BOTS
 				{botIds.map((botId) => {
 					let bot = bots[botId]
 
