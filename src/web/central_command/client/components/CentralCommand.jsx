@@ -309,7 +309,7 @@ export default class CentralCommand extends React.Component {
 		const { chartLayerCollection } = this.state;
 
 		this.chartLayerGroup = new OlLayerGroup({
-			title: 'Charts and Imagery',
+			title: 'Overlays',
 			layers: chartLayerCollection,
 			fold: 'open'
 		});
@@ -852,7 +852,7 @@ export default class CentralCommand extends React.Component {
 
 		let layers = [
 			new OlLayerGroup({
-				title: 'Base Maps (internet connection required)',
+				title: 'Map',
 				fold: 'open',
 				layers: this.state.baseLayerCollection
 			}),
