@@ -115,7 +115,8 @@ jaiabot::apps::Simulator::Simulator()
     glog.add_group("main", goby::util::Colors::yellow);
 
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
-    launch_thread<GPSUDPThread>(cfg().gps_udp_config());
+    if (cfg().enable_gps())
+        launch_thread<GPSUDPThread>(cfg().gps_udp_config());
 
     using PressureUDPThread =
         goby::middleware::io::UDPPointToPointThread<pressure_udp_in, pressure_udp_out>;
@@ -160,8 +161,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         });
 
     interprocess().subscribe<groups::low_control>(
-        [this](const jaiabot::protobuf::LowControl& low_control)
-        {
+        [this](const jaiabot::protobuf::LowControl& low_control) {
             if (low_control.has_control_surfaces())
                 process_control_surfaces(low_control.control_surfaces());
         });
