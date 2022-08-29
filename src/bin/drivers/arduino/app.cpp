@@ -73,10 +73,10 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int target_motor = 1500;
 
     // Motor Steps
-    int motor_max_step_forward_faster = 20;
-    int motor_max_step_forward_slower = 100;
-    int motor_max_step_reverse_faster = 20;
-    int motor_max_step_reverse_slower = 100;
+    int motor_max_step_forward_faster = 2;
+    int motor_max_step_forward_slower = 6;
+    int motor_max_step_reverse_faster = 2;
+    int motor_max_step_reverse_slower = 6;
 
     // Control surfaces
     int rudder = 1500;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(32 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);

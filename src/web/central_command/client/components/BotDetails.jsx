@@ -5,6 +5,7 @@
 
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
+import SoundEffects from './SoundEffects'
 
 let prec = 2
 
@@ -126,12 +127,12 @@ function healthRow(bot) {
 
     let errors = bot.error ?? []
     let errorElements = errors.map((error) => {
-        return <div className='healthFailed'>{error}</div>
+        return <div key={error} className='healthFailed'>{error}</div>
     })
     
     let warnings = bot.warning ?? []
     let warningElements = warnings.map((warning) => {
-        return <div className='healthDegraded'>{warning}</div>
+        return <div key={warning} className='healthDegraded'>{warning}</div>
     })
 
     return (
