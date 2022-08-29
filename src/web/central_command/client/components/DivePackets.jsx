@@ -43,7 +43,7 @@ export class DiveData {
             // Get the depth range for plotting
 
             const depths = divePackets.map((divePacket) => divePacket.depthAchieved)
-            var min = depths.reduce((a, b) => Math.min(a, b), Infinity)
+            var min = 0
             var max = depths.reduce((a, b) => Math.max(a, b), -Infinity)
 
             if (min == max) {
@@ -54,8 +54,7 @@ export class DiveData {
             
             for (const divePacket of this.divePackets) {
                 var feature = new Feature({
-                    name: 'dive',
-                    // name: "bot" + divePacket.bot_id + "-" + divePacket.start_time,
+                    name: 'depthAchieved',
                     geometry: new Point(equirectangular_to_mercator([divePacket.location.lon, divePacket.location.lat]))
                 })
 
