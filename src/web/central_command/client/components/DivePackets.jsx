@@ -28,9 +28,13 @@ export class DiveData {
             source: new VectorSource({
                 features: this.collection
             }),
+            gradient: ['#00f', '#0ff', '#0f0', '#ff0', '#f00', '#f00', '#f00', '#f00', '#f00'],
+            radius: 16,
+            blur: 32,
             zIndex: 25,
             weight: (feature) => {
-                return (feature.get('depth') - this.depthRange[0]) / (this.depthRange[1] + 0.01)
+                const weight = (feature.get('depth') - this.depthRange[0]) / (this.depthRange[1])
+                return weight
             },
           })
     }
