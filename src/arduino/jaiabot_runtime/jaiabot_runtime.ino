@@ -221,9 +221,8 @@ void loop()
 
   while (Serial.available() >= prefix_size) {
     handle_timeout();
-    // Attempt to ghost bust, delay 100 milliseconds
-    // Do we still need this delay?
-    delay(100); 
+    // delay 63 milliseconds (16 Hz Loop)
+    delay(63); 
 
     // read bytes until the next magic word start (hopefully)
     while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
