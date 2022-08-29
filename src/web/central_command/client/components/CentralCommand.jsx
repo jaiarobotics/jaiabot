@@ -1498,9 +1498,6 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 		});
-		if (selectedBotsFeatureCollection.getLength() > 0) {
-			this.openBotsDrawer();
-		}
 		this.setState({ selectedBotsFeatureCollection });
 		this.updateMissionLayer()
 		map.render();
@@ -1781,6 +1778,7 @@ export default class CentralCommand extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
+					<img className="jaia-logo" src="/favicon.png"></img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
@@ -2433,6 +2431,7 @@ export default class CentralCommand extends React.Component {
 
 		return (
 			<div id="botsList">
+				Bots
 				{botIds.map((botId) => {
 					let bot = bots[botId]
 
@@ -2459,7 +2458,7 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
+							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked}`}
 						>
 							{botId}
 						</div>
