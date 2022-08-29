@@ -260,8 +260,6 @@ export default class CentralCommand extends React.Component {
 			controlSpeed: 0,
 			controlHeading: 0,
 			accelerationProfileIndex: 0,
-
-			botsDrawerOpen: false,
 			commandDrawerOpen: false,
 			// Map layers
 			botsLayerCollection: new OlCollection([], { unique: true }),
@@ -1070,7 +1068,6 @@ export default class CentralCommand extends React.Component {
 
 		tooltips();
 
-		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
@@ -1624,16 +1621,6 @@ export default class CentralCommand extends React.Component {
 		this.runMissions(returnToHomeMissions)
 	}
 
-	openBotsDrawer() {
-		$('#botsDrawer').show('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: true });
-	}
-
-	closeBotsDrawer() {
-		$('#botsDrawer').hide('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: false });
-	}
-
 	static formatLength(line) {
 		const length = OlGetLength(line, { projection: mercator });
 		if (length > 100) {
@@ -1651,7 +1638,6 @@ export default class CentralCommand extends React.Component {
 			botsLayerCollection,
 			trackingTarget,
 			faultCounts,
-			botsDrawerOpen,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
@@ -1811,63 +1797,12 @@ export default class CentralCommand extends React.Component {
 
 				</div>
 
-				<div
-					id="botsSummary"
-					onClick={botsDrawerOpen ? this.closeBotsDrawer.bind(this) : this.openBotsDrawer.bind(this)}
-				>
-					<h2>
-						<FontAwesomeIcon icon={faMapMarkerAlt} />
-					</h2>
-					<div id="faultCounts">
-						<span id="faultLevel0Count" title="Count of bots with no issues">
-							{faultCounts.faultLevel0Count}
-						</span>
-						<span id="faultLevel1Count" title="Count of bots with warnings">
-							{faultCounts.faultLevel1Count}
-						</span>
-						<span id="faultLevel2Count" title="Count of bots with errors">
-							{faultCounts.faultLevel2Count}
-						</span>
-					</div>
-					{trackingTarget
-					&& trackingTarget !== ''
-					&& trackingTarget !== 'all'
-					&& trackingTarget !== 'pod'
-					&& trackingTarget !== 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} className="active-track" title="Unfollow">
-							<FontAwesomeIcon icon={faMapPin} />
-							{trackingTarget.toString()}
-						</button>
-					) : (
-						''
-					)}
-					{botsDrawerOpen ? (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.closeBotsDrawer.bind(this)}
-							title="Close Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronDown} />
-						</button>
-					) : (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.openBotsDrawer.bind(this)}
-							title="Open Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronLeft} />
-						</button>
-					)}
-				</div>
-
 				<div id="botsDrawer">
 					{this.botsList()}
+					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
+				</div>
 
-					<div id="botDetailsBox">
+				<div id="botDetailsBox">
 						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
 							? selectedBotsFeatureCollection.getArray().map(feature => (
 								<div
@@ -1877,14 +1812,6 @@ export default class CentralCommand extends React.Component {
 
 									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
 									<div id="botContextCommandBox">
-										{/* Leader-based commands and manual control go here */}
-										<button
-											type="button"
-											className=""
-											title="Control Bot"
-										>
-											<FontAwesomeIcon icon={faDharmachakra} />
-										</button>
 										{trackingTarget === feature.getId() ? (
 											<button
 												type="button"
@@ -1912,8 +1839,6 @@ export default class CentralCommand extends React.Component {
 							: ''}
 
 					</div>
-					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
-				</div>
 
 				{goalSettingsPanel}
 
