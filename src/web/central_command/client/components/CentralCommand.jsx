@@ -2473,7 +2473,20 @@ export default class CentralCommand extends React.Component {
 			warning("No bots selected")
 			return
 		}
-		this.runMissions(Missions.RCMode(botId))
+
+		var datum_location = this.podStatus?.bots?.[botId]?.location 
+
+		if (datum_location == null) {
+			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+
+			if (!confirm(warning_string)) {
+				return
+			}
+
+			datum_location = {lat: 0, lon: 0}
+		}
+
+		this.runMissions(Missions.RCMode(botId, datum_location))
 	}
 
 	runRCDive() {
