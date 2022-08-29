@@ -14,7 +14,7 @@ Behavior = BHV_Waypoint
   lead = 8
   lead_damper = 1
   lead_to_start = true
-  capture_line = false
+  capture_line = true
   capture_radius = 5.0
   slip_radius = 15.0
   efficiency_measure = all
@@ -33,10 +33,10 @@ Behavior = BHV_StationKeep
    updates      = JAIABOT_STATIONKEEP_UPDATES
 
    center_activate = false   // default
-   hibernation_radius = -1      // default
-   inner_radius = 4       // default
-   outer_radius = 15      // default
-   swing_time = 0       // default
+   hibernation_radius = -1   // default
+   inner_radius = 5.0        // default 4.0
+   outer_radius = 10         // default
+   swing_time = 0            // default
 
    // set by updates
    // outer_speed  = ...
