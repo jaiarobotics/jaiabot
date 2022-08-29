@@ -48,6 +48,7 @@
     "html-webpack-plugin": "^4.5.2",
     "idb": "^7.0.2",
     "json-loader": "^0.5.7",
+    "jszip": "*3.10.1",
     "less": "^3.13.1",
     "less-loader": "^4.1.0",
     "less-vars-loader": "^1.1.0",
