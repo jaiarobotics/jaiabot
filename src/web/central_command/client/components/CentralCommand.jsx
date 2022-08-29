@@ -105,7 +105,8 @@ import {
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
-	faLayerGroup
+	faLayerGroup,
+	faWrench
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -997,27 +998,6 @@ export default class CentralCommand extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		$('#leftSidebar').resizable({
-			containment: 'parent',
-			handles: null,
-			maxWidth: sidebarMaxWidth,
-			minWidth: sidebarMinWidth,
-			resize(ui) {
-				us.setViewport([0, 0, 0, ui.size.width]);
-			}
-		});
-
-		let sidebarResizeHandle = document.getElementById('sidebarResizeHandle')
-		let leftSidebar = document.getElementById('leftSidebar')
-		sidebarResizeHandle.onclick = function() {
-			if (leftSidebar.style.width == "400px") {
-				leftSidebar.style.width = "0px"
-			}
-			else {
-				leftSidebar.style.width = "400px"
-			}
-		}
-
 		/*
 		$('.panelsContainerVertical').sortable({
 			handle: 'h2',
@@ -1026,7 +1006,7 @@ export default class CentralCommand extends React.Component {
 		*/
 		$('.panel > h2').disableSelection();
 		// } else {
-		//   $('#leftSidebar').hide();
+		//   $('#engineeringPanel').hide();
 		// }
 
 		/*
@@ -1794,6 +1774,9 @@ export default class CentralCommand extends React.Component {
 						</button>
 					)}
 
+					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+						<FontAwesomeIcon icon={faWrench} />
+					</button>
 
 				</div>
 
@@ -2496,6 +2479,16 @@ export default class CentralCommand extends React.Component {
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
+	}
+
+	toggleEngineeringPanel() {
+		let engineeringPanel = document.getElementById('engineeringPanel')
+		if (engineeringPanel.style.width == "400px") {
+			engineeringPanel.style.width = "0px"
+		}
+		else {
+			engineeringPanel.style.width = "400px"
+		}
 	}
 
 }
