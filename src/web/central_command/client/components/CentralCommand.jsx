@@ -33,9 +33,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
 
+import JSZip from 'jszip';
+
 // Openlayers
 import OlMap from 'ol/Map';
 import {
+	DragAndDrop as DragAndDropInteraction,
 	Select as SelectInteraction,
 	Translate as TranslateInteraction,
 	Pointer as PointerInteraction,
@@ -58,6 +61,7 @@ import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
+import {GPX, IGC, KML, TopoJSON} from 'ol/format';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -414,8 +418,63 @@ export default class CentralCommand extends React.Component {
 			layers: botsLayerCollection
 		});
 
+		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
+		const zip = new JSZip();
+
+		function getKMLData(buffer) {
+			let kmlData;
+			zip.load(buffer);
+			const kmlFile = zip.file(/\.kml$/i)[0];
+			if (kmlFile) {
+				kmlData = kmlFile.asText();
+			}
+			return kmlData;
+		}
+
+		function getKMLImage(href) {
+			const index = window.location.href.lastIndexOf('/');
+			if (index !== -1) {
+				const kmlFile = zip.file(href.slice(index + 1));
+				if (kmlFile) {
+					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
+				}
+			}
+			return href;
+		}
+
+		// Define a KMZ format class by subclassing ol/format/KML
+
+		class KMZ extends KML {
+			constructor(opt_options) {
+				const options = opt_options || {};
+				options.iconUrlFunction = getKMLImage;
+				super(options);
+			}
+
+			getType() {
+				return 'arraybuffer';
+			}
+
+			readFeature(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeature(kmlData, options);
+			}
+
+			readFeatures(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeatures(kmlData, options);
+			}
+		}
+
+		// Define DragAndDrop interaction
+		this.dragAndDropInteraction = new DragAndDropInteraction({
+			formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+		});
+
+		this.dragAndDropVectorLayer = new OlVectorLayer();
+
 		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction()]),
+			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -862,6 +921,7 @@ export default class CentralCommand extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
+			this.dragAndDropVectorLayer,
 		]
 
 		return layers
@@ -1116,6 +1176,20 @@ export default class CentralCommand extends React.Component {
 						document.getElementById('layerinfo').innerHTML = html;
 					});
 			}
+		});
+
+		// Set addFeatures interaction
+		this.dragAndDropInteraction.on('addfeatures', function (event) {
+			const vectorSource = new OlVectorSource({
+				features: event.features,
+			});
+			map.addLayer(
+				new OlVectorLayer({
+					source: vectorSource,
+					zIndex: 2000
+				})
+			);
+			map.getView().fit(vectorSource.getExtent());
 		});
 
 		info('Welcome to Central Command!');
@@ -2327,7 +2401,9 @@ export default class CentralCommand extends React.Component {
 		switch(evt.type) {
 			case 'click':
 				return this.clickEvent(evt)
-				break;
+				// break;
+			case 'dragging':
+				return
 		}
 		return true
 	}
