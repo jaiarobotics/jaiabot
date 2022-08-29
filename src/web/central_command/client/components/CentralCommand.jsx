@@ -334,7 +334,6 @@ export default class CentralCommand extends React.Component {
 			}),
 			new OlTileLayer({
 				title: 'NOAA ENC Charts',
-				//type: 'base',
 				opacity: 0.7,
 				zIndex: 20,
 				source: this.state.noaaEncSource,

@@ -400,6 +400,12 @@ textarea {
   }
 
   #mapLayers {
+
+    // This is to eliminate an annoying stray vanilla checkbox that gets rendered for some reason
+    input[type="checkbox"] {
+      display: none;
+    }
+
     position: absolute;
     bottom: 40px + (0 * @map-button-size) + (2 * @layout-margin-px);
     right: @layout-margin-px + @map-button-size;
