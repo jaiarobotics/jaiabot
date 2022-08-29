@@ -16,7 +16,7 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
-import { DivePackets } from './DivePackets'
+import { diveData } from './DivePackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -862,6 +862,7 @@ export default class CentralCommand extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
+			diveData.getHeatMapLayer()
 		]
 
 		return layers
@@ -1221,12 +1222,9 @@ export default class CentralCommand extends React.Component {
 	}
 
 	centerOn(coords, stopTracking = false, firstMove = false) {
-		console.log('coords = ', coords)
-
 		if (isNaN(coords[0]) || isNaN(coords[1])) {
 			return
 		}
-		console.log('centering')
 
 		if (stopTracking) {
 			this.trackBot('');
