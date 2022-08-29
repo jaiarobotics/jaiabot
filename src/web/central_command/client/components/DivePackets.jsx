@@ -24,7 +24,7 @@ export class DiveData {
         this.depthRange = [0, 1]
 
         this.heatMapLayer = new Heatmap({
-            title: 'Depth Measurements',
+            title: 'Depth',
             source: new VectorSource({
                 features: this.collection
             }),

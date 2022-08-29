@@ -849,6 +849,14 @@ export default class CentralCommand extends React.Component {
 
 		this.cacheTileLoad();
 
+		this.measurementLayerGroup = new OlLayerGroup({
+			title: 'Measurements',
+			fold: 'open',
+			layers: [
+				diveData.getHeatMapLayer()
+			]
+		})
+
 		let layers = [
 			new OlLayerGroup({
 				title: 'Map',
@@ -856,12 +864,12 @@ export default class CentralCommand extends React.Component {
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.measurementLayerGroup,
 			this.graticuleLayer,
 			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
-			diveData.getHeatMapLayer()
 		]
 
 		return layers
