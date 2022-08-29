@@ -19,7 +19,7 @@ import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -1681,12 +1681,6 @@ export default class CentralCommand extends React.Component {
 
 				<div id="layerinfo">&nbsp;</div>
 
-				<div id="eStop">
-					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
-						STOP
-					</button>
-				</div>
-
 				<div id="viewControls">
 					<button
 						type="button"
@@ -2380,8 +2374,11 @@ export default class CentralCommand extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
+					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop Mission" onClick={this.sendStop.bind(this)}>
+						STOP
+					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-						Act<br />All
+						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
 					</button>
 					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 						<Icon path={mdiPlay} title="Run Mission"/>
@@ -2551,9 +2548,13 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
+							className={`bot-item ${selected}`}
 						>
-							{botId}
+							<div 
+								className={`bot-item-inner ${faultLevelClass} ${tracked}`}
+							>
+								{botId}
+							</div>
 						</div>
 					);
 				})}
