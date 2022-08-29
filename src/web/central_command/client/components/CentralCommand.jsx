@@ -2374,7 +2374,7 @@ export default class CentralCommand extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
-					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop Mission" onClick={this.sendStop.bind(this)}>
+					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
 						STOP
 					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
