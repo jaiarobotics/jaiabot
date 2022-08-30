@@ -76,7 +76,6 @@ const int FAULT_ACTS = 8;
 
 // LED
 constexpr int LED_D1_PIN = A5;
-const int LED_D2_PIN = A6;
 bool target_led_switch_on = false;
 
 // Voltage and Current
@@ -200,7 +199,6 @@ void setup()
   pinMode(VccVoltage, INPUT);
   pinMode(VvCurrent, INPUT);
   pinMode(LED_D1_PIN, OUTPUT);
-  pinMode(LED_D2_PIN, OUTPUT);
   
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
@@ -261,11 +259,9 @@ void writeToActuators()
 
   if (target_led_switch_on == true){
     analogWrite(LED_D1_PIN, 255);
-    analogWrite(LED_D2_PIN, 255);
   }
   else if (target_led_switch_on == false){
     analogWrite(LED_D1_PIN, 0);
-    analogWrite(LED_D2_PIN, 0);
   }
 }
 
