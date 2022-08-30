@@ -231,8 +231,17 @@ void jaiabot::apps::ArduinoDriver::loop()
 
         return;
     }
+    // Don't use motor values of less power than the start bounds
+    int corrected_motor;
 
-    arduino_cmd.set_motor(target_motor);
+    if (target_motor > 1500)
+        corrected_motor = max(target_motor, bounds.motor().forwardstart());
+    else if (target_motor == 1500)
+        corrected_motor = target_motor;
+    else if (target_motor < 1500)
+        corrected_motor = min(target_motor, bounds.motor().reversestart());
+
+    arduino_cmd.set_motor(corrected_motor);
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);

@@ -54,10 +54,6 @@ int target_rudder = 1500;
 int current_motor = 1500;
 int target_motor = 1500;
 
-// Motor Bounds
-int forward_start = 1575;
-int reverse_start = 1400;
-
 // Motor Steps
 int motor_max_step_forward_faster = 4;
 int motor_max_step_forward_slower = 12;
@@ -258,17 +254,7 @@ void writeToActuators()
       current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
   }
 
-  // Don't use motor values of less power than the start bounds
-  int corrected_motor;
-
-  if (current_motor > 1500)
-      corrected_motor = max(current_motor, forward_start);
-  else if (current_motor == 1500)
-      corrected_motor = current_motor;
-  else if (current_motor < 1500)
-      corrected_motor = min(current_motor, reverse_start);
-
-  motor_servo.writeMicroseconds (corrected_motor);
+  motor_servo.writeMicroseconds (current_motor);
   rudder_servo.writeMicroseconds(target_rudder);
   stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
   port_elevator_servo.writeMicroseconds(command.port_elevator);
