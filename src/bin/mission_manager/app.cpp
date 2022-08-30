@@ -92,16 +92,21 @@ jaiabot::apps::MissionManager::MissionManager()
     for (auto m : cfg().test_mode())
     {
         auto em = static_cast<jaiabot::config::MissionManager::EngineeringTestMode>(m);
-        if (em == config::MissionManager::ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE)
+        if (em == config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS)
         {
-            glog.is_debug1() && glog << "ENGINEERING_TEST__INDOOR_MODE__NO_GPS also sets "
-                                        "ENGINEERING_TEST__IGNORE_SOME_ERRORS with ignore_error: "
-                                        "ERROR__MISSING_DATA__GPS_FIX and ignore_error: "
-                                        "ERROR__MISSING_DATA__GPS_POSITION"
-                                     << std::endl;
+            glog.is_debug1() &&
+                glog << "ENGINEERING_TEST__INDOOR_MODE__NO_GPS also sets "
+                        "ENGINEERING_TEST__IGNORE_SOME_ERRORS with ignore_error: "
+                        "[ERROR__MISSING_DATA__GPS_FIX, ERROR__MISSING_DATA__GPS_POSITION, "
+                        "ERROR__MISSING_DATA__HEADING, ERROR__MISSING_DATA__SPEED, "
+                        "ERROR__MISSING_DATA__COURSE]"
+                     << std::endl;
             test_modes_.insert(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS);
             ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__GPS_FIX);
             ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__GPS_POSITION);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__HEADING);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__SPEED);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__COURSE);
         }
         test_modes_.insert(em);
     }
@@ -415,8 +420,13 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         for (auto e : status.error())
         {
             // if we find any errors that are not excluded, health is not OK
-            if (!ignore_errors_.count(static_cast<protobuf::Error>(e)))
+            auto ee = static_cast<protobuf::Error>(e);
+            if (!ignore_errors_.count(ee))
+            {
+                glog.is_debug1() && glog << "Error " << protobuf::Error_Name(ee)
+                                         << " was not excluded" << std::endl;
                 return false;
+            }
         }
         // no errors found that were not excluded, so health is considered OK
         return true;
