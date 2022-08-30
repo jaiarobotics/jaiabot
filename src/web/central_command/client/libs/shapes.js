@@ -12,6 +12,7 @@ import OlText from 'ol/style/Text';
 import botRemoteControl from '../icons/bot-remoteControl.svg'
 import botSelectedIcon from '../icons/bot-selected.svg'
 import botIcon from '../icons/bot-unselected.svg'
+import { botDisconnected } from '../icons/Icons';
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -171,6 +172,7 @@ export default {
 
       const selected = feature.get('selected') === true;
       const remoteControlled = feature.get('remoteControlled') === true
+      const isDisconnected = feature.get('isDisconnected') === true
 
       // SVG icon
       let rotation = (feature.get('heading') ?? 180) * (Math.PI / 180.0)
@@ -182,6 +184,10 @@ export default {
 
       if (remoteControlled) {
         icon = botRemoteControl
+      }
+
+      if (isDisconnected) {
+        icon = botDisconnected
       }
 
       let boatStyle = new OlStyle({

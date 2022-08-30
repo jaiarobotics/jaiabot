@@ -1,6 +1,8 @@
 import numpy
 import pprint
 import cmath
+import logging
+import struct
 
 def get_leaf(dataset, indices):
     '''Gets the leaf data as a python object, from a dataset, indexing into it using the indices list'''
@@ -15,7 +17,7 @@ def get_leaf(dataset, indices):
         if val == numpy.iinfo(dataset.dtype).max:
             return None
         else:
-            # Is it en enum?
+            # Is it an enum?
             if 'enum_values' in attrs:
                 index = numpy.where(attrs['enum_values'] == val)
                 return attrs['enum_names'][index][0]
@@ -30,6 +32,17 @@ def get_leaf(dataset, indices):
             return val
 
     if isinstance(dataset, numpy.ndarray):
+        # If this is an array of int8, then try to load it as a string
+        if dataset.dtype == 'int8':
+            bytes_value = b''
+            
+            for i in dataset:
+                if i == 0:
+                    break
+                bytes_value += i
+
+            return bytes_value.decode('utf8')
+
         return dataset.tolist()
     
     raise Exception(f'Cannot convert to JSON serializable, type = ' + str(type(dataset)))
