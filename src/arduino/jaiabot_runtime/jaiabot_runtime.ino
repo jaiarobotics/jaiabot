@@ -14,6 +14,8 @@
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
 // TODO: Add CRC32?
+
+// A compile time evaluated pointer to a constant character.
 constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
@@ -38,10 +40,10 @@ void handle_timeout();
 void halt_all();
 
 // Neutral values for timing out
-int motor_neutral = 1500;
-int stbd_elevator_neutral = 1500;
-int port_elevator_neutral = 1500;
-int rudder_neutral = 1500;
+constexpr int motor_neutral = 1500;
+constexpr int stbd_elevator_neutral = 1500;
+constexpr int port_elevator_neutral = 1500;
+constexpr int rudder_neutral = 1500;
 
 // Elevators
 int target_stbd_elevator = 1500;
@@ -55,10 +57,10 @@ int current_motor = 1500;
 int target_motor = 1500;
 
 // Motor Steps
-int motor_max_step_forward_faster = 4;
-int motor_max_step_forward_slower = 12;
-int motor_max_step_reverse_faster = 4;
-int motor_max_step_reverse_slower = 12;
+constexpr int motor_max_step_forward_faster = 4;
+constexpr int motor_max_step_forward_slower = 12;
+constexpr int motor_max_step_reverse_faster = 4;
+constexpr int motor_max_step_reverse_slower = 12;
 
 // The thermocouple
 //constexpr int CLOCK_PIN = 7;
@@ -71,17 +73,17 @@ bool thermocouple_is_present = false;
 
 // Power Pins
 constexpr int POWER_PIN = A1;
-const int CTRL_ACTS = 10;
-const int FAULT_ACTS = 8;
+constexpr int CTRL_ACTS = 10;
+constexpr int FAULT_ACTS = 8;
 
-// LED
+// LED A5 is also D19
 constexpr int LED_D1_PIN = A5;
 bool target_led_switch_on = false;
 
 // Voltage and Current
-const int VvCurrent = A3;
-const int VccCurrent = A2;
-const int VccVoltage = A0;
+constexpr int VvCurrent = A3;
+constexpr int VccCurrent = A2;
+constexpr int VccVoltage = A0;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
