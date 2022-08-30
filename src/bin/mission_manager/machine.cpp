@@ -95,7 +95,7 @@ void jaiabot::statechart::predeployment::StartingUp::loop(const EvLoop&)
 // PreDeployment::Idle
 jaiabot::statechart::predeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
 {
-    if (cfg().stop_logging_while_idle())
+    if (!app().is_test_mode(config::MissionManager::ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE))
     {
         glog.is_verbose() && glog << "Stop Logging" << std::endl;
         goby::middleware::protobuf::LoggerRequest request;
@@ -106,7 +106,7 @@ jaiabot::statechart::predeployment::Idle::Idle(typename StateBase::my_context c)
 
 jaiabot::statechart::predeployment::Idle::~Idle()
 {
-    if (cfg().stop_logging_while_idle())
+    if (!app().is_test_mode(config::MissionManager::ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE))
     {
         glog.is_verbose() && glog << "Start Logging" << std::endl;
         goby::middleware::protobuf::LoggerRequest request;
@@ -649,6 +649,19 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
             << std::endl;
 }
 
+// Dive::ReacquireGPS
+jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+    {
+        // in indoor mode, simply post that we've received a fix
+        // (even though we haven't as there's no GPS)
+        gps(statechart::EvGPSFix());
+    }
+}
+
 // Task::StationKeep
 jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
@@ -883,7 +896,7 @@ void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
 // PostDeployment::Idle
 jaiabot::statechart::postdeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
 {
-    if (cfg().stop_logging_while_idle())
+    if (!app().is_test_mode(config::MissionManager::ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE))
     {
         glog.is_verbose() && glog << "Stop Logging" << std::endl;
         goby::middleware::protobuf::LoggerRequest request;
@@ -894,7 +907,7 @@ jaiabot::statechart::postdeployment::Idle::Idle(typename StateBase::my_context c
 
 jaiabot::statechart::postdeployment::Idle::~Idle()
 {
-    if (cfg().stop_logging_while_idle())
+    if (!app().is_test_mode(config::MissionManager::ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE))
     {
         glog.is_verbose() && glog << "Start Logging" << std::endl;
         goby::middleware::protobuf::LoggerRequest request;

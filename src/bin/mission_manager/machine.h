@@ -16,6 +16,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/dive_debug.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
@@ -846,7 +847,7 @@ struct PoweredDescent
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::config::DivePowerDescentDebug dive_pdescent_debug_;
+    jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug_;
 };
 
 struct Hold
@@ -877,7 +878,7 @@ struct Hold
         temperatures_;
     std::vector<double> salinities_;
     //Keep track of dive information
-    jaiabot::config::DiveHoldDebug dive_hold_debug;
+    jaiabot::protobuf::DiveHoldDebug dive_hold_debug;
 };
 
 struct UnpoweredAscent
@@ -904,7 +905,7 @@ struct UnpoweredAscent
 
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::config::DiveUnpoweredAscentDebug dive_uascent_debug_;
+    jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug_;
 };
 
 struct PoweredAscent
@@ -927,7 +928,7 @@ struct PoweredAscent
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::config::DivePoweredAscentDebug dive_pascent_debug;
+    jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug;
 };
 
 struct ReacquireGPS
@@ -936,7 +937,7 @@ struct ReacquireGPS
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
-    ReacquireGPS(typename StateBase::my_context c) : StateBase(c) {}
+    ReacquireGPS(typename StateBase::my_context c);
     ~ReacquireGPS() {}
 
     void gps(const EvGPSFix& ev)
