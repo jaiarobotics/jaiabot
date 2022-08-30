@@ -46,6 +46,11 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     std::set<jaiabot::config::MissionManager::EngineeringTestMode> test_modes_;
     std::set<jaiabot::protobuf::Error> ignore_errors_;
+    // if we don't get latitude information, we'll compute depth based on mid-latitude
+    // (45 degrees), which will introduce up to 0.27% error at 500 meters depth
+    // at the equator or the poles
+    boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
+        45 * boost::units::degree::degrees};
 };
 
 } // namespace apps
