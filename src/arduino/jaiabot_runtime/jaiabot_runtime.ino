@@ -254,7 +254,7 @@ void writeToActuators()
       current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
   }
 
-  motor_servo.writeMicroseconds (current_motor);
+  motor_servo.writeMicroseconds(current_motor);
   rudder_servo.writeMicroseconds(target_rudder);
   stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
   port_elevator_servo.writeMicroseconds(target_port_elevator);
