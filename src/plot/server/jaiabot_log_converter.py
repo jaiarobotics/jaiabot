@@ -36,10 +36,10 @@ while True:
         if os.path.islink(goby_filename):
             continue
 
-        # Skip giant files
-        file_size = os.path.getsize(goby_filename)
-        if file_size > args.size_limit:
-            continue
+        # # Skip giant files
+        # file_size = os.path.getsize(goby_filename)
+        # if file_size > args.size_limit:
+        #     continue
 
         goby_mtime = os.path.getmtime(goby_filename)
 
