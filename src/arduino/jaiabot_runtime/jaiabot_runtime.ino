@@ -47,7 +47,7 @@ constexpr int rudder_neutral = 1500;
 
 // Elevators
 int target_stbd_elevator = 1500;
-int target_elevator_neutral = 1500;
+int target_port_elevator = 1500;
 
 // Rudder
 int target_rudder = 1500;
@@ -256,8 +256,8 @@ void writeToActuators()
 
   motor_servo.writeMicroseconds (current_motor);
   rudder_servo.writeMicroseconds(target_rudder);
-  stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
-  port_elevator_servo.writeMicroseconds(command.port_elevator);
+  stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
+  port_elevator_servo.writeMicroseconds(target_port_elevator);
 
   if (target_led_switch_on == true){
     analogWrite(LED_D1_PIN, 255);
@@ -355,7 +355,7 @@ void loop()
     target_motor = command.motor;
     target_rudder = command.rudder;
     target_stbd_elevator = command.stbd_elevator;
-    target_elevator_neutral = command.port_elevator;
+    target_port_elevator = command.port_elevator;
     target_led_switch_on = command.led_switch_on;
 
     // Set the timeout vars
@@ -386,7 +386,7 @@ void halt_all() {
   target_motor = motor_neutral;
   target_rudder = rudder_neutral;
   target_stbd_elevator = stbd_elevator_neutral;
-  target_elevator_neutral = port_elevator_neutral;
+  target_port_elevator = port_elevator_neutral;
   target_led_switch_on = false;
 }
 
