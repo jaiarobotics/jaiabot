@@ -163,12 +163,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         {
             using boost::units::degree::degrees;
 
-            // This produces a heading that is off by 180 degrees, so we need to rotate it
+            // IMU is offset by 270 degrees, so we need to rotate it
             auto heading = euler_angles.alpha_with_units() + 270 * degrees;
-            if (heading > 360 * degrees)
-            {
-                heading -= (360 * degrees);
-            }
 
             // Apply magnetic declination
             auto magneticDeclination = wmm.magneticDeclination(
@@ -177,6 +173,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
+
+            if (heading > 360 * degrees)
+            {
+                heading -= (360 * degrees);
+            }
 
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);
             latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
