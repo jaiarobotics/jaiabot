@@ -79,7 +79,7 @@ export class Missions {
         return missions
     }
 
-    static RCMode(botId) {
+    static RCMode(botId, datum_location) {
         var mission_dict = {}
         mission_dict[botId] = {
             botId: botId,
@@ -90,10 +90,7 @@ export class Missions {
                 movement: 'REMOTE_CONTROL',
                 recovery: {
                     recoverAtFinalGoal: false,
-                    location: {
-                        lat: 0,
-                        lon: 0
-                    }
+                    location: datum_location
                 }
             }
         }
