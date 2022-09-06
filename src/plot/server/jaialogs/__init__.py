@@ -15,6 +15,7 @@ import os
 import numpy
 
 from .objects import *
+from .moos_messages import *
 
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
@@ -372,3 +373,4 @@ def get_active_goals(log_filenames):
         log_file.visititems(visit_path)
 
     return results
+

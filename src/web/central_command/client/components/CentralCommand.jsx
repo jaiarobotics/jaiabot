@@ -33,9 +33,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
 
+import JSZip from 'jszip';
+
 // Openlayers
 import OlMap from 'ol/Map';
 import {
+	DragAndDrop as DragAndDropInteraction,
 	Select as SelectInteraction,
 	Translate as TranslateInteraction,
 	Pointer as PointerInteraction,
@@ -58,6 +61,7 @@ import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
+import {GPX, IGC, KML, TopoJSON} from 'ol/format';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -139,6 +143,7 @@ import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
+import SoundEffects from './SoundEffects'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -413,8 +418,63 @@ export default class CentralCommand extends React.Component {
 			layers: botsLayerCollection
 		});
 
+		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
+		const zip = new JSZip();
+
+		function getKMLData(buffer) {
+			let kmlData;
+			zip.load(buffer);
+			const kmlFile = zip.file(/\.kml$/i)[0];
+			if (kmlFile) {
+				kmlData = kmlFile.asText();
+			}
+			return kmlData;
+		}
+
+		function getKMLImage(href) {
+			const index = window.location.href.lastIndexOf('/');
+			if (index !== -1) {
+				const kmlFile = zip.file(href.slice(index + 1));
+				if (kmlFile) {
+					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
+				}
+			}
+			return href;
+		}
+
+		// Define a KMZ format class by subclassing ol/format/KML
+
+		class KMZ extends KML {
+			constructor(opt_options) {
+				const options = opt_options || {};
+				options.iconUrlFunction = getKMLImage;
+				super(options);
+			}
+
+			getType() {
+				return 'arraybuffer';
+			}
+
+			readFeature(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeature(kmlData, options);
+			}
+
+			readFeatures(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeatures(kmlData, options);
+			}
+		}
+
+		// Define DragAndDrop interaction
+		this.dragAndDropInteraction = new DragAndDropInteraction({
+			formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+		});
+
+		this.dragAndDropVectorLayer = new OlVectorLayer();
+
 		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction()]),
+			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -861,6 +921,7 @@ export default class CentralCommand extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
+			this.dragAndDropVectorLayer,
 		]
 
 		return layers
@@ -1117,6 +1178,20 @@ export default class CentralCommand extends React.Component {
 			}
 		});
 
+		// Set addFeatures interaction
+		this.dragAndDropInteraction.on('addfeatures', function (event) {
+			const vectorSource = new OlVectorSource({
+				features: event.features,
+			});
+			map.addLayer(
+				new OlVectorLayer({
+					source: vectorSource,
+					zIndex: 2000
+				})
+			);
+			map.getView().fit(vectorSource.getExtent());
+		});
+
 		info('Welcome to Central Command!');
 	}
 
@@ -1287,6 +1362,7 @@ export default class CentralCommand extends React.Component {
 		const { trackingTarget } = this.state;
 
 		const botExtents = {};
+
 		// This needs to be synchronized somehow?
 		for (let botId in bots) {
 			let bot = bots[botId]
@@ -1310,6 +1386,8 @@ export default class CentralCommand extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
+			// Fault Levels
+
 			let faultLevel = 0
 
 			switch(bot.healthState) {
@@ -1327,6 +1405,30 @@ export default class CentralCommand extends React.Component {
 					break;
 			}
 
+
+			// Sounds for disconnect / reconnect
+			const disconnectThreshold = 30 * 1e6 // microseconds
+
+			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
+
+			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
+
+			if (oldPortalStatusAge != null) {
+				// Bot disconnect
+				if (bot.isDisconnected) {
+					if (oldPortalStatusAge < disconnectThreshold) {
+						SoundEffects.botDisconnect.play()
+					}
+				}
+
+				// Bot reconnect
+				if (bot.portalStatusAge < disconnectThreshold) {
+					if (oldPortalStatusAge >= disconnectThreshold) {
+						SoundEffects.botReconnect.play()
+					}
+				}
+			}
+
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
 				heading: botHeading,
@@ -1335,7 +1437,8 @@ export default class CentralCommand extends React.Component {
 				lastUpdatedString: botTimestamp.toISOString(),
 				missionState: bot.missionState,
 				healthState: bot.healthState,
-				faultLevel: faultLevel
+				faultLevel: faultLevel,
+				isDisconnected: bot.isDisconnected
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1430,6 +1533,8 @@ export default class CentralCommand extends React.Component {
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
 				else {
+					this.oldPodStatus = this.podStatus
+
 					this.podStatus = result
 
 					let messages = result.messages
@@ -2296,7 +2401,9 @@ export default class CentralCommand extends React.Component {
 		switch(evt.type) {
 			case 'click':
 				return this.clickEvent(evt)
-				break;
+				// break;
+			case 'dragging':
+				return
 		}
 		return true
 	}
@@ -2356,8 +2463,10 @@ export default class CentralCommand extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
-		let bot_dict_length = Object.keys(this.podStatus.bots).length
-		let bot_list = Array.from(Array(bot_dict_length).keys());
+		let bot_list = [];
+		for (const bot in this.podStatus.bots) {
+			bot_list.push(this.podStatus.bots[bot]['botId'])
+		}
 
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
@@ -2473,7 +2582,20 @@ export default class CentralCommand extends React.Component {
 			warning("No bots selected")
 			return
 		}
-		this.runMissions(Missions.RCMode(botId))
+
+		var datum_location = this.podStatus?.bots?.[botId]?.location 
+
+		if (datum_location == null) {
+			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+
+			if (!confirm(warning_string)) {
+				return
+			}
+
+			datum_location = {lat: 0, lon: 0}
+		}
+
+		this.runMissions(Missions.RCMode(botId, datum_location))
 	}
 
 	runRCDive() {
@@ -2537,6 +2659,7 @@ export default class CentralCommand extends React.Component {
 					let faultLevelClass = 'faultLevel' + faultLevel
 					let selected = this.isBotSelected(botId) ? 'selected' : ''
 					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
+					let disconnected = bot.isDisconnected ? "disconnected" : ""
 
 					return (
 						<div
@@ -2551,7 +2674,7 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
+							className={`bot-item ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
 						>
 							{botId}
 						</div>
