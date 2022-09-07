@@ -22,10 +22,12 @@
 
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/seawater.h>
 
 #include "machine.h"
 #include "mission_manager.h"
 
+#include "jaiabot/health/health.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
@@ -86,6 +88,30 @@ jaiabot::apps::MissionManager::MissionManager()
     glog.add_group("statechart", goby::util::Colors::yellow);
     glog.add_group("movement", goby::util::Colors::lt_green);
     glog.add_group("task", goby::util::Colors::lt_blue);
+
+    for (auto m : cfg().test_mode())
+    {
+        auto em = static_cast<jaiabot::config::MissionManager::EngineeringTestMode>(m);
+        if (em == config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS)
+        {
+            glog.is_debug1() &&
+                glog << "ENGINEERING_TEST__INDOOR_MODE__NO_GPS also sets "
+                        "ENGINEERING_TEST__IGNORE_SOME_ERRORS with ignore_error: "
+                        "[ERROR__MISSING_DATA__GPS_FIX, ERROR__MISSING_DATA__GPS_POSITION, "
+                        "ERROR__MISSING_DATA__HEADING, ERROR__MISSING_DATA__SPEED, "
+                        "ERROR__MISSING_DATA__COURSE]"
+                     << std::endl;
+            test_modes_.insert(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__GPS_FIX);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__GPS_POSITION);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__HEADING);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__SPEED);
+            ignore_errors_.insert(protobuf::ERROR__MISSING_DATA__COURSE);
+        }
+        test_modes_.insert(em);
+    }
+
+    for (auto e : cfg().ignore_error()) ignore_errors_.insert(static_cast<protobuf::Error>(e));
 
     interthread().subscribe<jaiabot::groups::state_change>(
         [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair) {
@@ -166,19 +192,21 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
-    // subscribe for vehicle depth (from NodeStatus)
+    // subscribe for latitude (from NodeStatus)
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
-            machine_->process_event(
-                statechart::EvVehicleDepth(node_status.global_fix().depth_with_units()));
+            latest_lat_ = node_status.global_fix().lat_with_units();
         });
 
-    // subscribe for sensor measurements
+    // subscribe for sensor measurements (including pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
+
+            auto depth = goby::util::seawater::depth(pt.pressure_with_units(), latest_lat_);
+            machine_->process_event(statechart::EvVehicleDepth(depth));
         });
 
     // subscribe for salinity data
@@ -192,7 +220,7 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
-            if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+            if (health_considered_ok(vehicle_health))
             {
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
                 machine_->process_event(statechart::EvStarted());
@@ -374,4 +402,35 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             interprocess().publish<jaiabot::groups::powerstate_command>(command);
             break;
     }
+}
+
+bool jaiabot::apps::MissionManager::health_considered_ok(
+    const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+{
+    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    {
+        return true;
+    }
+    else if (is_test_mode(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS))
+    {
+        jaiabot::protobuf::BotStatus status;
+        // check if we would be OK if the ignored errors didn't exist
+        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+
+        for (auto e : status.error())
+        {
+            // if we find any errors that are not excluded, health is not OK
+            auto ee = static_cast<protobuf::Error>(e);
+            if (!ignore_errors_.count(ee))
+            {
+                glog.is_debug1() && glog << "Error " << protobuf::Error_Name(ee)
+                                         << " was not excluded" << std::endl;
+                return false;
+            }
+        }
+        // no errors found that were not excluded, so health is considered OK
+        return true;
+    }
+
+    return false;
 }

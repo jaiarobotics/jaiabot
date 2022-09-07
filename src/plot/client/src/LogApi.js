@@ -23,7 +23,7 @@ export class LogApi {
 
   // Download a GET request
   static download_file(url) {
-    fetch(url, { method: 'GET' })
+    return fetch(url, { method: 'GET' })
     .then( res => res.blob() )
     .then( blob => {
       var file = window.URL.createObjectURL(blob);
