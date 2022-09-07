@@ -5,6 +5,7 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
+import "jaiabot/messages/health.proto";
 
 package jaiabot.config;
 
@@ -53,132 +54,15 @@ message MissionManager
     // jaia@hub0:/var/log/jaiabot/bot_offload
     required string data_offload_command = 60;
 
-    optional bool stop_logging_while_idle = 70 [default = false];
+    enum EngineeringTestMode
+    {
+        ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE = 1;
+        ENGINEERING_TEST__IGNORE_SOME_ERRORS = 2;
+        ENGINEERING_TEST__INDOOR_MODE__NO_GPS = 3;
+    }
+    repeated EngineeringTestMode test_mode = 80;
+
+    // errors to ignore,
+    // only when test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
+    repeated jaiabot.protobuf.Error ignore_error = 81;
 }
-
-message DivePowerDescentDebug
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-
-    optional double current_depth = 1 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional double last_depth = 2 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional double goal_depth = 3 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional double depth_eps = 4 [
-            default = 0, 
-            (dccl.field).units = 
-                { base_dimensions: "L" }
-        ];
-    optional uint64 current_time = 5 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional uint64 last_depth_change_time = 6 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }]; 
-    optional double bottoming_timeout = 7 [
-            default = 0, 
-            (dccl.field).units = { base_dimensions: "T" }
-        ];
-    optional bool depth_reached = 8 [default = false];
-    optional bool depth_changed = 9 [default = false];
-    optional bool depth_change_timeout = 10 [default = false];
-}
-
-message DiveHoldDebug
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    optional double current_depth = 1 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional uint64 current_time = 2 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional double hold_timeout = 3 [
-            default = 0, 
-            (dccl.field).units = { base_dimensions: "T" }
-        ];
-    optional bool dive_complete = 4 [default = false];
-    optional bool hold_complete = 5 [default = false];
-}
-
-message DiveUnpoweredAscentDebug
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    optional double current_depth = 1 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional uint64 current_time = 2 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional double depth_eps = 3 [
-            default = 0, 
-            (dccl.field).units = 
-                { base_dimensions: "L" }
-        ];
-    optional double unpowered_ascent_timeout = 4 [
-            default = 0, 
-            (dccl.field).units = { base_dimensions: "T" }
-        ];
-    optional bool unpowered_ascent_timed_out = 5 [default = false];
-    optional bool surfaced = 6 [default = false];
-}
-
-message DivePoweredAscentDebug
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    optional double current_depth = 1 [
-            default = 0,
-            (dccl.field) = {
-                precision: 0
-                units { base_dimensions: "L" }
-            }
-        ];
-    optional double depth_eps = 2 [
-            default = 0, 
-            (dccl.field).units = 
-                { base_dimensions: "L" }
-        ];
-    optional bool surfaced = 3 [default = false];
-}
-
