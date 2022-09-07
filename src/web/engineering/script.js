@@ -476,7 +476,7 @@ class DeadMansSwitch {
 
   static setOn(_on) {
     DeadMansSwitch.on = _on
-    el("deadMansSwitch").textContent = _on ? "🟢" : "❌"
+    el("deadMansSwitch").style.backgroundColor = _on ? "green" : "red"
 
     el('throttleSlider').disabled = !_on
     el('speedSlider').disabled = !_on
@@ -935,4 +935,12 @@ function helpButtonOnClick(e) {
   else {
     classList.add('hidden')
   }
+}
+
+function onMouseDownDeadMansSwitch(evt) {
+  DeadMansSwitch.setOn(true)
+}
+
+function onMouseUpDeadMansSwitch(evt) {
+  DeadMansSwitch.setOn(false)
 }
