@@ -2463,8 +2463,10 @@ export default class CentralCommand extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
-		let bot_dict_length = Object.keys(this.podStatus.bots).length
-		let bot_list = Array.from(Array(bot_dict_length).keys());
+		let bot_list = [];
+		for (const bot in this.podStatus.bots) {
+			bot_list.push(this.podStatus.bots[bot]['botId'])
+		}
 
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,

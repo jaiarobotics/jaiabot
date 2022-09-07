@@ -472,7 +472,7 @@ def create_mission_dict(bot_multipoint_dict, bot_list, base_task):
                                     "hold_time": 1}
                             }
     """
-    mission_dict_list = []
+    mission_dict_list = {}
     for bot in bot_list:
         bot_points = []
         for p in bot_multipoint_dict[bot].geometry:
@@ -499,7 +499,7 @@ def create_mission_dict(bot_multipoint_dict, bot_list, base_task):
                 }
             }
         }
-        mission_dict_list.append(mission_dict)
+        mission_dict_list[int(bot)] = mission_dict
     return mission_dict_list
 
 
