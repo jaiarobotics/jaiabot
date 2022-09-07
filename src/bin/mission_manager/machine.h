@@ -885,7 +885,7 @@ struct Hold
         temperatures_;
     std::vector<double> salinities_;
     //Keep track of dive information
-    jaiabot::protobuf::DiveHoldDebug dive_hold_debug;
+    jaiabot::protobuf::DiveHoldDebug dive_hold_debug_;
 };
 
 struct UnpoweredAscent
@@ -935,7 +935,7 @@ struct PoweredAscent
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug;
+    jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
 };
 
 struct ReacquireGPS

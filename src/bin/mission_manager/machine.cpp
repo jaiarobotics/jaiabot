@@ -437,8 +437,8 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
 
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
 
-    dive_hold_debug.set_current_time(now.time_since_epoch().count());
-    dive_hold_debug.set_hold_timeout(hold_stop_.time_since_epoch().count());
+    dive_hold_debug_.set_current_time(now.time_since_epoch().count());
+    dive_hold_debug_.set_hold_timeout(hold_stop_.time_since_epoch().count());
 
     glog.is_debug2() && glog << "if (now >= hold_stop_): " << (now >= hold_stop_)
                              << "\n Current Time: " << now.time_since_epoch().count()
@@ -453,17 +453,17 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
             glog.is_debug2() && glog << "context<Dive>().dive_complete() == true"
                                      << "\n post_event(EvDiveComplete())" << std::endl;
             post_event(EvDiveComplete());
-            dive_hold_debug.set_dive_complete(true);
+            dive_hold_debug_.set_dive_complete(true);
         }
         else
         {
             glog.is_debug2() && glog << "context<Dive>().dive_complete() == false"
                                      << "\n post_event(EvHoldComplete())" << std::endl;
             post_event(EvHoldComplete());
-            dive_hold_debug.set_hold_complete(true);
+            dive_hold_debug_.set_hold_complete(true);
         }
     }
-    interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug);
+    interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug_);
     glog.is_debug1() &&
         glog << "Exit jaiabot::statechart::inmission::underway::task::dive::Hold::loop: \n"
              << std::endl;
@@ -503,8 +503,8 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::depth(const EvV
 
     glog.is_debug2() && glog << "Current Depth: " << ev.depth.value() << std::endl;
 
-    dive_hold_debug.set_current_depth(ev.depth.value());
-    interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug);
+    dive_hold_debug_.set_current_depth(ev.depth.value());
+    interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug_);
     glog.is_debug1() &&
         glog << "Exit jaiabot::statechart::inmission::underway::task::dive::Hold::depth: \n"
              << std::endl;
@@ -637,12 +637,12 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
         glog.is_debug2() && glog << "ev.depth < cfg().dive_surface_eps_with_units() == true"
                                  << "\npost_event(EvSurfaced());" << std::endl;
         post_event(EvSurfaced());
-        dive_pascent_debug.set_surfaced(true);
+        dive_pascent_debug_.set_surfaced(true);
     }
 
-    dive_pascent_debug.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
-    dive_pascent_debug.set_current_depth(ev.depth.value());
-    interprocess().publish<jaiabot::groups::mission_dive>(dive_pascent_debug);
+    dive_pascent_debug_.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
+    dive_pascent_debug_.set_current_depth(ev.depth.value());
+    interprocess().publish<jaiabot::groups::mission_dive>(dive_pascent_debug_);
     glog.is_debug1() &&
         glog
             << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
