@@ -51,6 +51,7 @@ using goby::glog;
 using namespace std;
 
 namespace si = boost::units::si;
+using boost::units::degree::degrees;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Fusion>;
 
 namespace jaiabot
@@ -72,6 +73,7 @@ class Fusion : public ApplicationBase
     double deg2rad(const double& deg);
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
+    double corrected_heading(const double& heading);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -143,14 +145,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog.is_debug2() &&
                     glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                          << "  Magnetic declination: " << magneticDeclination << endl;
-                auto heading =
-                    att.heading_with_units() + magneticDeclination * boost::units::degree::degrees;
+                auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
-                // Have to make sure it's within the DCCL domain
-                if (heading < 0 * boost::units::degree::degrees)
-                    heading += 360 * boost::units::degree::degrees;
-                if (heading > 360 * boost::units::degree::degrees)
-                    heading -= 360 * boost::units::degree::degrees;
+                heading = corrected_heading(heading.value()) * degrees;
 
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
@@ -177,14 +174,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
         if (euler_angles.has_alpha())
         {
-            using boost::units::degree::degrees;
-
-            // This produces a heading that is off by 180 degrees, so we need to rotate it
+            // IMU is offset by 270 degrees, so we need to rotate it
             auto heading = euler_angles.alpha_with_units() + 270 * degrees;
-            if (heading > 360 * degrees)
-            {
-                heading -= (360 * degrees);
-            }
 
             // Apply magnetic declination
             auto magneticDeclination = wmm.magneticDeclination(
@@ -193,6 +184,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
+
+            heading = corrected_heading(heading.value()) * degrees;
 
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);
             latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
@@ -469,4 +462,21 @@ double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& 
     u = sin((lat2r - lat1r) / 2);
     v = sin((lon2r - lon1r) / 2);
     return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
+
+/**
+ * @brief Correcting heading After addition of Magnetic Declination
+ * 
+ * @param heading Heading with Addiction of Magnetic Declination
+ * @return double Corrected Heading 
+ */
+double jaiabot::apps::Fusion::corrected_heading(const double& heading)
+{
+    double corrected_heading = heading;
+    if (heading < 0)
+        corrected_heading += 360;
+    if (heading > 360)
+        corrected_heading -= 360;
+
+    return corrected_heading;
 }
