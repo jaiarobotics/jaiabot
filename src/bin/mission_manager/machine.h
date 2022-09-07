@@ -846,7 +846,7 @@ struct PoweredDescent
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::config::DivePowerDescentDebug dive_pdescent_debug;
+    jaiabot::config::DivePowerDescentDebug dive_pdescent_debug_;
 };
 
 struct Hold
@@ -904,7 +904,7 @@ struct UnpoweredAscent
 
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
-    jaiabot::config::DiveUnpoweredAscentDebug dive_uascent_debug;
+    jaiabot::config::DiveUnpoweredAscentDebug dive_uascent_debug_;
 };
 
 struct PoweredAscent
