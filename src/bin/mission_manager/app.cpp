@@ -22,6 +22,7 @@
 
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/util/seawater.h>
 
 #include "machine.h"
 #include "mission_manager.h"
@@ -166,19 +167,21 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
-    // subscribe for vehicle depth (from NodeStatus)
+    // subscribe for latitude (from NodeStatus)
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
-            machine_->process_event(
-                statechart::EvVehicleDepth(node_status.global_fix().depth_with_units()));
+            latest_lat_ = node_status.global_fix().lat_with_units();
         });
 
-    // subscribe for sensor measurements
+    // subscribe for sensor measurements (including pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
+
+            auto depth = goby::util::seawater::depth(pt.pressure_with_units(), latest_lat_);
+            machine_->process_event(statechart::EvVehicleDepth(depth));
         });
 
     // subscribe for salinity data
