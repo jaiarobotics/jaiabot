@@ -333,8 +333,12 @@ textarea {
       > div.bot-item.faultLevel2 {
         .bgcolor(@error-color);
       }
+      > div.bot-item.disconnected {
+        .bgcolor(gray)
+      }
       > div.bot-item.selected {
-        .bgcolor(@selected-color);
+        border-width: 4pt;
+        line-height: 30pt;
       }
       > div.bot-item.controlled {
         .bgcolor(@controlled-color);

@@ -155,3 +155,43 @@ Nominal progression (in all use cases):
 - Survey Mission to Single Vehicle Remote Control Use Case
 	+ This is handled by sending a standard mission plan containing waypoint goals (as Waypoint Mission or Optimized Survey Mission)
 	+ When the operator chooses, the RemoteControl setpoints can be sent which move the vehicle into the Movement::RemoteControl state. From here the operator can issue manual tasks as desired to perform. When the RC part of the mission is over, the operator can resume the original mission plan by sending REMOTE_CONTROL_RESUME_MOVEMENT.
+
+### Engineering Test Overrides
+
+For various engineering tests, it is helpful to bypass parts of the state machine or change other normal behavior.
+
+The overrides are set using one or more `test_mode` enumeration settings. *Warning: Use of these overrides may cause unpredictable or unsupported vehicle behavior and should not be used for regular operations.*
+
+#### Ignore some errors 
+
+To allow "normal" operation even the presence of one or more errors you can set:
+
+```
+test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
+```
+
+The errors to be ignored then must be set using one or more `ignore_error` enums (defined in `health.proto`), such as: 
+
+```
+ignore_error: ERROR__MISSING_DATA__PRESSURE
+ignore_error: ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL
+```
+
+When running the vehicle without GPS, "Indoor Mode" (see below) will automatically set the appropriate `ignore_error` flags (i.e., `ignore_error: ERROR__MISSING_DATA__GPS_FIX`, etc.).
+
+#### Always log
+
+Normally the vehicle stops logging when Idle to save disk space. This can be changed to always log using:
+
+```
+test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
+```
+
+#### Indoor Mode
+
+To run the vehicle without GPS (e.g. indoors in a tank), the following mode can be used:
+
+```
+test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
+```
+
