@@ -5,6 +5,7 @@
 
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
+import SoundEffects from './SoundEffects'
 
 let prec = 2
 
