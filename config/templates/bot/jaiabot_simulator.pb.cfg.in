@@ -6,6 +6,7 @@ moos {
   port: $moos_port
 }
 
+enable_gps: true
 gps_udp_config { 
     bind_port: 0
     remote_address: "127.0.0.1"
