@@ -31,7 +31,8 @@ namespace health
 {
 template <typename HuborBotStatus>
 void populate_status_from_health(HuborBotStatus& status,
-                                 const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+                                 const goby::middleware::protobuf::VehicleHealth& vehicle_health,
+                                 bool truncate_to_fit_dccl = true)
 {
     status.set_health_state(vehicle_health.state());
     status.clear_error();
@@ -66,12 +67,12 @@ void populate_status_from_health(HuborBotStatus& status,
                                      .GetExtension(dccl::field)
                                      .max_repeat();
 
-        if (status.error_size() > max_errors)
+        if (truncate_to_fit_dccl && status.error_size() > max_errors)
         {
             status.mutable_error()->Truncate(max_errors - 1);
             status.add_error(protobuf::ERROR__TOO_MANY_ERRORS_TO_REPORT_ALL);
         }
-        if (status.warning_size() > max_warnings)
+        if (truncate_to_fit_dccl && status.warning_size() > max_warnings)
         {
             status.mutable_warning()->Truncate(max_warnings - 1);
             status.add_warning(protobuf::WARNING__TOO_MANY_WARNINGS_TO_REPORT_ALL);
