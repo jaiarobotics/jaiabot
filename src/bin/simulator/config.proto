@@ -50,6 +50,9 @@ message Simulator
     optional goby.middleware.protobuf.UDPPointToPointConfig
         salinity_udp_config = 22;
 
+    // allow simulator without GPS by setting this false
+    optional bool enable_gps = 25 [default = true];
+    
     required double vertical_dive_rate = 30
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
     required double seafloor_depth = 31
