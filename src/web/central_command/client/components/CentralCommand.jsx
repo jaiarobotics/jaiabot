@@ -2580,11 +2580,7 @@ export default class CentralCommand extends React.Component {
 							}
 							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
 						>
-							<div 
-								className={`bot-item-inner ${faultLevelClass} ${tracked}`}
-							>
-								{botId}
-							</div>
+							{botId}
 						</div>
 					);
 				})}

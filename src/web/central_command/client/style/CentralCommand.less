@@ -317,42 +317,31 @@ textarea {
         height: 40pt;
         line-height: 38pt;
         width: 40pt;
-        margin: @layout-margin-px / 2;
+        margin: @layout-margin-px - 3;
         padding: 0;
         text-align: center;
         vertical-align: middle;
-
-        .bot-item-inner {
-          border-radius: @panel-corner-radius;
-        }
-
-        // The order of these matters
-        > div.bot-item-inner.tracked {
-          .bgcolor(@tracked-color);
-        }
-        > div.bot-item-inner.faultLevel1 {
-          .bgcolor(@warning-color);
-        }
-        > div.bot-item-inner.faultLevel2 {
-          .bgcolor(@error-color);
-        }
-        > div.bot-item-inner.disconnected {
-          .bgcolor(gray)
-        }
-        > div.bot-item-inner.controlled {
-          .bgcolor(@controlled-color);
-        }
-      }
-
-      > div.bot-item.selected {
-        border: 5px solid @selected-color;
-        line-height: 31pt;
-        .bot-item-inner {
-          border: 1px solid white;
-          border-radius: @panel-corner-radius;
-        }
       }
       
+      // The order of these matters
+      > div.bot-item.tracked {
+        .bgcolor(@tracked-color);
+      }
+      > div.bot-item.faultLevel1 {
+        .bgcolor(@warning-color);
+      }
+      > div.bot-item.faultLevel2 {
+        .bgcolor(@error-color);
+      }
+      > div.bot-item.disconnected {
+        .bgcolor(gray)
+      }
+      > div.bot-item.selected {
+        outline: 5px solid @selected-color;
+      }
+      > div.bot-item.controlled {
+        .bgcolor(@controlled-color);
+      }  
     }
 
   }
