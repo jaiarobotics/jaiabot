@@ -33,9 +33,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
 
+import JSZip from 'jszip';
+
 // Openlayers
 import OlMap from 'ol/Map';
 import {
+	DragAndDrop as DragAndDropInteraction,
 	Select as SelectInteraction,
 	Translate as TranslateInteraction,
 	Pointer as PointerInteraction,
@@ -58,6 +61,7 @@ import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
+import {GPX, IGC, KML, TopoJSON} from 'ol/format';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -105,7 +109,8 @@ import {
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
-	faLayerGroup
+	faLayerGroup,
+	faWrench
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -139,6 +144,7 @@ import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
+import SoundEffects from './SoundEffects'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -260,8 +266,6 @@ export default class CentralCommand extends React.Component {
 			controlSpeed: 0,
 			controlHeading: 0,
 			accelerationProfileIndex: 0,
-
-			botsDrawerOpen: false,
 			commandDrawerOpen: false,
 			// Map layers
 			botsLayerCollection: new OlCollection([], { unique: true }),
@@ -413,8 +417,63 @@ export default class CentralCommand extends React.Component {
 			layers: botsLayerCollection
 		});
 
+		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
+		const zip = new JSZip();
+
+		function getKMLData(buffer) {
+			let kmlData;
+			zip.load(buffer);
+			const kmlFile = zip.file(/\.kml$/i)[0];
+			if (kmlFile) {
+				kmlData = kmlFile.asText();
+			}
+			return kmlData;
+		}
+
+		function getKMLImage(href) {
+			const index = window.location.href.lastIndexOf('/');
+			if (index !== -1) {
+				const kmlFile = zip.file(href.slice(index + 1));
+				if (kmlFile) {
+					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
+				}
+			}
+			return href;
+		}
+
+		// Define a KMZ format class by subclassing ol/format/KML
+
+		class KMZ extends KML {
+			constructor(opt_options) {
+				const options = opt_options || {};
+				options.iconUrlFunction = getKMLImage;
+				super(options);
+			}
+
+			getType() {
+				return 'arraybuffer';
+			}
+
+			readFeature(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeature(kmlData, options);
+			}
+
+			readFeatures(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeatures(kmlData, options);
+			}
+		}
+
+		// Define DragAndDrop interaction
+		this.dragAndDropInteraction = new DragAndDropInteraction({
+			formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+		});
+
+		this.dragAndDropVectorLayer = new OlVectorLayer();
+
 		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction()]),
+			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -861,6 +920,7 @@ export default class CentralCommand extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
+			this.dragAndDropVectorLayer,
 		]
 
 		return layers
@@ -999,27 +1059,6 @@ export default class CentralCommand extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		$('#leftSidebar').resizable({
-			containment: 'parent',
-			handles: null,
-			maxWidth: sidebarMaxWidth,
-			minWidth: sidebarMinWidth,
-			resize(ui) {
-				us.setViewport([0, 0, 0, ui.size.width]);
-			}
-		});
-
-		let sidebarResizeHandle = document.getElementById('sidebarResizeHandle')
-		let leftSidebar = document.getElementById('leftSidebar')
-		sidebarResizeHandle.onclick = function() {
-			if (leftSidebar.style.width == "400px") {
-				leftSidebar.style.width = "0px"
-			}
-			else {
-				leftSidebar.style.width = "400px"
-			}
-		}
-
 		/*
 		$('.panelsContainerVertical').sortable({
 			handle: 'h2',
@@ -1028,7 +1067,7 @@ export default class CentralCommand extends React.Component {
 		*/
 		$('.panel > h2').disableSelection();
 		// } else {
-		//   $('#leftSidebar').hide();
+		//   $('#engineeringPanel').hide();
 		// }
 
 		/*
@@ -1070,7 +1109,6 @@ export default class CentralCommand extends React.Component {
 
 		tooltips();
 
-		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
@@ -1115,6 +1153,20 @@ export default class CentralCommand extends React.Component {
 						document.getElementById('layerinfo').innerHTML = html;
 					});
 			}
+		});
+
+		// Set addFeatures interaction
+		this.dragAndDropInteraction.on('addfeatures', function (event) {
+			const vectorSource = new OlVectorSource({
+				features: event.features,
+			});
+			map.addLayer(
+				new OlVectorLayer({
+					source: vectorSource,
+					zIndex: 2000
+				})
+			);
+			map.getView().fit(vectorSource.getExtent());
 		});
 
 		info('Welcome to Central Command!');
@@ -1287,6 +1339,7 @@ export default class CentralCommand extends React.Component {
 		const { trackingTarget } = this.state;
 
 		const botExtents = {};
+
 		// This needs to be synchronized somehow?
 		for (let botId in bots) {
 			let bot = bots[botId]
@@ -1310,6 +1363,8 @@ export default class CentralCommand extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
+			// Fault Levels
+
 			let faultLevel = 0
 
 			switch(bot.healthState) {
@@ -1327,6 +1382,30 @@ export default class CentralCommand extends React.Component {
 					break;
 			}
 
+
+			// Sounds for disconnect / reconnect
+			const disconnectThreshold = 30 * 1e6 // microseconds
+
+			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
+
+			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
+
+			if (oldPortalStatusAge != null) {
+				// Bot disconnect
+				if (bot.isDisconnected) {
+					if (oldPortalStatusAge < disconnectThreshold) {
+						SoundEffects.botDisconnect.play()
+					}
+				}
+
+				// Bot reconnect
+				if (bot.portalStatusAge < disconnectThreshold) {
+					if (oldPortalStatusAge >= disconnectThreshold) {
+						SoundEffects.botReconnect.play()
+					}
+				}
+			}
+
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
 				heading: botHeading,
@@ -1335,7 +1414,8 @@ export default class CentralCommand extends React.Component {
 				lastUpdatedString: botTimestamp.toISOString(),
 				missionState: bot.missionState,
 				healthState: bot.healthState,
-				faultLevel: faultLevel
+				faultLevel: faultLevel,
+				isDisconnected: bot.isDisconnected
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1430,6 +1510,8 @@ export default class CentralCommand extends React.Component {
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
 				else {
+					this.oldPodStatus = this.podStatus
+
 					this.podStatus = result
 
 					let messages = result.messages
@@ -1521,9 +1603,6 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 		});
-		if (selectedBotsFeatureCollection.getLength() > 0) {
-			this.openBotsDrawer();
-		}
 		this.setState({ selectedBotsFeatureCollection });
 		this.updateMissionLayer()
 		map.render();
@@ -1624,16 +1703,6 @@ export default class CentralCommand extends React.Component {
 		this.runMissions(returnToHomeMissions)
 	}
 
-	openBotsDrawer() {
-		$('#botsDrawer').show('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: true });
-	}
-
-	closeBotsDrawer() {
-		$('#botsDrawer').hide('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: false });
-	}
-
 	static formatLength(line) {
 		const length = OlGetLength(line, { projection: mercator });
 		if (length > 100) {
@@ -1651,7 +1720,6 @@ export default class CentralCommand extends React.Component {
 			botsLayerCollection,
 			trackingTarget,
 			faultCounts,
-			botsDrawerOpen,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
@@ -1802,66 +1870,19 @@ export default class CentralCommand extends React.Component {
 						</button>
 					)}
 
+					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+						<FontAwesomeIcon icon={faWrench} />
+					</button>
 
-				</div>
-
-				<div
-					id="botsSummary"
-					onClick={botsDrawerOpen ? this.closeBotsDrawer.bind(this) : this.openBotsDrawer.bind(this)}
-				>
-					<h2>
-						<FontAwesomeIcon icon={faMapMarkerAlt} />
-					</h2>
-					<div id="faultCounts">
-						<span id="faultLevel0Count" title="Count of bots with no issues">
-							{faultCounts.faultLevel0Count}
-						</span>
-						<span id="faultLevel1Count" title="Count of bots with warnings">
-							{faultCounts.faultLevel1Count}
-						</span>
-						<span id="faultLevel2Count" title="Count of bots with errors">
-							{faultCounts.faultLevel2Count}
-						</span>
-					</div>
-					{trackingTarget
-					&& trackingTarget !== ''
-					&& trackingTarget !== 'all'
-					&& trackingTarget !== 'pod'
-					&& trackingTarget !== 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} className="active-track" title="Unfollow">
-							<FontAwesomeIcon icon={faMapPin} />
-							{trackingTarget.toString()}
-						</button>
-					) : (
-						''
-					)}
-					{botsDrawerOpen ? (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.closeBotsDrawer.bind(this)}
-							title="Close Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronDown} />
-						</button>
-					) : (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.openBotsDrawer.bind(this)}
-							title="Open Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronLeft} />
-						</button>
-					)}
 				</div>
 
 				<div id="botsDrawer">
+					<img className="jaia-logo" src="/favicon.png"></img>
 					{this.botsList()}
+					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
+				</div>
 
-					<div id="botDetailsBox">
+				<div id="botDetailsBox">
 						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
 							? selectedBotsFeatureCollection.getArray().map(feature => (
 								<div
@@ -1871,14 +1892,6 @@ export default class CentralCommand extends React.Component {
 
 									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
 									<div id="botContextCommandBox">
-										{/* Leader-based commands and manual control go here */}
-										<button
-											type="button"
-											className=""
-											title="Control Bot"
-										>
-											<FontAwesomeIcon icon={faDharmachakra} />
-										</button>
 										{trackingTarget === feature.getId() ? (
 											<button
 												type="button"
@@ -1906,8 +1919,6 @@ export default class CentralCommand extends React.Component {
 							: ''}
 
 					</div>
-					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
-				</div>
 
 				{goalSettingsPanel}
 
@@ -2290,7 +2301,9 @@ export default class CentralCommand extends React.Component {
 		switch(evt.type) {
 			case 'click':
 				return this.clickEvent(evt)
-				break;
+				// break;
+			case 'dragging':
+				return
 		}
 		return true
 	}
@@ -2350,8 +2363,10 @@ export default class CentralCommand extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
-		let bot_dict_length = Object.keys(this.podStatus.bots).length
-		let bot_list = Array.from(Array(bot_dict_length).keys());
+		let bot_list = [];
+		for (const bot in this.podStatus.bots) {
+			bot_list.push(this.podStatus.bots[bot]['botId'])
+		}
 
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
@@ -2470,7 +2485,20 @@ export default class CentralCommand extends React.Component {
 			warning("No bots selected")
 			return
 		}
-		this.runMissions(Missions.RCMode(botId))
+
+		var datum_location = this.podStatus?.bots?.[botId]?.location 
+
+		if (datum_location == null) {
+			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+
+			if (!confirm(warning_string)) {
+				return
+			}
+
+			datum_location = {lat: 0, lon: 0}
+		}
+
+		this.runMissions(Missions.RCMode(botId, datum_location))
 	}
 
 	runRCDive() {
@@ -2522,6 +2550,7 @@ export default class CentralCommand extends React.Component {
 
 		return (
 			<div id="botsList">
+				BOTS
 				{botIds.map((botId) => {
 					let bot = bots[botId]
 
@@ -2534,6 +2563,7 @@ export default class CentralCommand extends React.Component {
 					let faultLevelClass = 'faultLevel' + faultLevel
 					let selected = this.isBotSelected(botId) ? 'selected' : ''
 					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
+					let disconnected = bot.isDisconnected ? "disconnected" : ""
 
 					return (
 						<div
@@ -2548,7 +2578,7 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${selected}`}
+							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
 						>
 							<div 
 								className={`bot-item-inner ${faultLevelClass} ${tracked}`}
@@ -2572,6 +2602,16 @@ export default class CentralCommand extends React.Component {
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
+	}
+
+	toggleEngineeringPanel() {
+		let engineeringPanel = document.getElementById('engineeringPanel')
+		if (engineeringPanel.style.width == "400px") {
+			engineeringPanel.style.width = "0px"
+		}
+		else {
+			engineeringPanel.style.width = "400px"
+		}
 	}
 
 }

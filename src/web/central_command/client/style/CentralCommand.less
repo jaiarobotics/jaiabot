@@ -289,21 +289,26 @@ textarea {
   #botsDrawer {
     position: absolute;
     left: 0;
-    top: @drawer-summary-height;
-    width: (100vw - @stop-width)/2 - @layout-margin;
+    top: 0;
+    width: 50pt;
     height: auto;
     max-height: 85vh;
     background: @overlay-background;
     border-radius: 0 0 @panel-corner-radius 0;
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: column nowrap;
 
     #botsList {
+      color: lightgray;
+      text-align: center;
+      font-size: 12pt;
+
       flex-shrink: 1;
 
       overflow-y: auto;
 
       .bot-item {
+        cursor: pointer;
         display: inline-block;
         border: 1px solid white;
         .bgcolor(@good-color);
@@ -331,6 +336,9 @@ textarea {
         > div.bot-item-inner.faultLevel2 {
           .bgcolor(@error-color);
         }
+        > div.bot-item-inner.disconnected {
+          .bgcolor(gray)
+        }
         > div.bot-item-inner.controlled {
           .bgcolor(@controlled-color);
         }
@@ -347,30 +355,34 @@ textarea {
       
     }
 
-    #botDetailsBox {
-      flex-basis: auto;
-      flex-shrink: 0;
-      top: 0;
+  }
+
+  #botDetailsBox {
+
+    position: absolute;
+    background-color: black;
+    top: 0pt;
+    left: 50pt;
+    color: white;
+    padding: 8pt;
+    border-radius: 8pt;
+
+    h2.name {
       color: white;
-      padding: @layout-margin-px / 2;
+      margin: 0;
+    }
 
-      h2.name {
-        color: white;
-        margin: 0;
-      }
+    table {
+      margin: 8px 0;
+    }
 
-      table {
-        margin: 8px 0;
-      }
+    td {
+      padding: 5px 0.5em;
+      font-size: 0.8em;
+    }
 
-      td {
-        padding: 5px 0.5em;
-        font-size: 0.8em;
-      }
-
-      select {
-        color: black;
-      }
+    select {
+      color: black;
     }
   }
 
@@ -1693,8 +1705,8 @@ textarea {
     left: 0;
   }
   .column-right {
-    width: 20em;
-    right: 0;
+    width: 0;
+    right: 50pt;
   }
   .drawer-wrapper {
     z-index: 10;
@@ -2059,6 +2071,24 @@ div.hoverable:hover {
 }
 
 #botDetailsTable {
-  width: 250pt;
+  width: 400pt;
   table-layout: fixed;
+}
+
+// For things like the bot icons
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.jaia-logo {
+  width: 40pt;
+  height: 40pt;
+  margin: 4pt 4pt 20pt 4pt;
+  border-radius: 4pt;
+  border: 1pt solid gray;
 }
