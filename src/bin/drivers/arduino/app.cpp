@@ -69,14 +69,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     jaiabot::protobuf::Bounds bounds;
 
     // Motor
-    int current_motor = 1500;
     int target_motor = 1500;
-
-    // Motor Steps
-    int motor_max_step_forward_faster = 2;
-    int motor_max_step_forward_slower = 6;
-    int motor_max_step_reverse_faster = 2;
-    int motor_max_step_reverse_slower = 6;
 
     // Control surfaces
     int rudder = 1500;
@@ -102,7 +95,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(32 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -113,26 +106,6 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
     // Setup our bounds configuration
     bounds = cfg().bounds();
-
-    if (bounds.motor().has_motor_max_step_forward_faster())
-    {
-        motor_max_step_forward_faster = bounds.motor().motor_max_step_forward_faster();
-    }
-
-    if (bounds.motor().has_motor_max_step_forward_slower())
-    {
-        motor_max_step_forward_slower = bounds.motor().motor_max_step_forward_slower();
-    }
-
-    if (bounds.motor().has_motor_max_step_reverse_faster())
-    {
-        motor_max_step_reverse_faster = bounds.motor().motor_max_step_reverse_faster();
-    }
-
-    if (bounds.motor().has_motor_max_step_reverse_slower())
-    {
-        motor_max_step_reverse_slower = bounds.motor().motor_max_step_reverse_slower();
-    }
 
     // Publish to meatadata group to record bounds file used
     interprocess().publish<groups::metadata>(bounds);
@@ -258,56 +231,17 @@ void jaiabot::apps::ArduinoDriver::loop()
 
         return;
     }
-
-    // Motor
-    // Move toward target_motor
-
-    // If we are going forward and we are trying to go faster
-    if (target_motor > 1500 && target_motor > current_motor)
-    {
-        current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
-    }
-    // If we are going forward and we are trying to go slower
-    else if (target_motor > 1500 && target_motor < current_motor ||
-             target_motor == 1500 && current_motor > 1500)
-    {
-        current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
-    }
-    // If we are going reverse and we are trying to go slower
-    else if (target_motor < 1500 && target_motor > current_motor ||
-             target_motor == 1500 && current_motor < 1500)
-    {
-        current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
-    }
-    // If we are going reverse and we are trying to go faster
-    else if (target_motor < 1500 && target_motor < current_motor)
-    {
-        current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
-    }
-
-    /*if (target_motor > current_motor)
-    {
-        const int max_step = current_motor > 0 ? motor_max_step : motor_max_reverse_step;
-        current_motor += min(target_motor - current_motor, max_step);
-    }
-    else
-    {
-        const int max_step = current_motor < 0 ? motor_max_step : motor_max_reverse_step;
-        current_motor -= min(current_motor - target_motor, max_step);
-    }*/
-
     // Don't use motor values of less power than the start bounds
     int corrected_motor;
 
-    if (current_motor > 1500)
-        corrected_motor = max(current_motor, bounds.motor().forwardstart());
-    else if (current_motor == 1500)
-        corrected_motor = current_motor;
-    else if (current_motor < 1500)
-        corrected_motor = min(current_motor, bounds.motor().reversestart());
+    if (target_motor > 1500)
+        corrected_motor = max(target_motor, bounds.motor().forwardstart());
+    else if (target_motor == 1500)
+        corrected_motor = target_motor;
+    else if (target_motor < 1500)
+        corrected_motor = min(target_motor, bounds.motor().reversestart());
 
     arduino_cmd.set_motor(corrected_motor);
-
     arduino_cmd.set_rudder(rudder);
     arduino_cmd.set_stbd_elevator(stbd_elevator);
     arduino_cmd.set_port_elevator(port_elevator);
