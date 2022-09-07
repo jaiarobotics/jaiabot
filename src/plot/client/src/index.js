@@ -73,7 +73,7 @@ class LogApp extends React.Component {
               this.forceUpdate()
             }}>Save Profile</button>
 
-            <button className="padded" onClick={
+            <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
               () => {
 
                 const t_range = this.get_plot_range()
@@ -239,11 +239,7 @@ class LogApp extends React.Component {
   }
 
   open_moos_messages(time_range) {
-    LogApi.get_moos(this.state.chosen_logs, time_range).then(
-      function(moos_messages) {
-        console.log(moos_messages)
-      }
-    )
+    LogApi.get_moos(this.state.chosen_logs, time_range)
   }
 
 }
