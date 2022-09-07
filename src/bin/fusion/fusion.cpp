@@ -174,10 +174,15 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             heading = heading + magneticDeclination * degrees;
 
             // Have to make sure it's within the DCCL domain
-            if (heading < 0 * boost::units::degree::degrees)
-                heading += 360 * boost::units::degree::degrees;
-            if (heading > 360 * boost::units::degree::degrees)
-                heading -= 360 * boost::units::degree::degrees;
+            //if (heading < 0 * boost::units::degree::degrees)
+            //    heading += 360 * boost::units::degree::degrees;
+            //if (heading > 360 * boost::units::degree::degrees)
+            //    heading -= 360 * boost::units::degree::degrees;
+
+            if (heading > 360 * degrees)
+            {
+                heading -= (360 * degrees);
+            }
 
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);
             latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
