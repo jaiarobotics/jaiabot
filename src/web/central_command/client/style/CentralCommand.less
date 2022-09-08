@@ -317,7 +317,7 @@ textarea {
         height: 40pt;
         line-height: 38pt;
         width: 40pt;
-        margin: @layout-margin-px / 2;
+        margin: @layout-margin-px - 3;
         padding: 0;
         text-align: center;
         vertical-align: middle;
@@ -337,12 +337,11 @@ textarea {
         .bgcolor(gray)
       }
       > div.bot-item.selected {
-        border-width: 4pt;
-        line-height: 30pt;
+        outline: 5px solid @selected-color;
       }
       > div.bot-item.controlled {
         .bgcolor(@controlled-color);
-      }
+      }  
     }
 
   }
