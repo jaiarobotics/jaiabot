@@ -201,11 +201,11 @@ export function BotDetailsComponent(bot, api, mission) {
                 {activeGoalDistRow}
                 <tr>
                     <td>Latitude</td>
-                    <td>{formatLatitude(bot.location?.lat)}°</td>
+                    <td>{formatLatitude(bot.location?.lat)}</td>
                 </tr>
                 <tr>
                     <td>Longitude</td>
-                    <td>{formatLongitude(bot.location?.lon)}°</td>
+                    <td>{formatLongitude(bot.location?.lon)}</td>
                 </tr>
                 <tr>
                     <td>Depth</td>
@@ -217,19 +217,19 @@ export function BotDetailsComponent(bot, api, mission) {
                 </tr>
                 <tr>
                     <td>Course Over Ground</td>
-                    <td>{bot.attitude?.courseOverGround?.toFixed(prec)}°</td>
+                    <td>{bot.attitude?.courseOverGround?.toFixed(prec)}</td>
                 </tr>
                 <tr>
                     <td>Heading</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.heading)}°</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
                 </tr>
                 <tr>
                     <td>Pitch</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.pitch)}°</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
                 </tr>
                 <tr>
                     <td>Roll</td>
-                    <td>{formatAttitudeAngle(bot.attitude?.roll)}°</td>
+                    <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
                 </tr>
                 <tr>
                     <td>Temperature</td>
