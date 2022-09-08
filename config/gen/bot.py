@@ -40,7 +40,7 @@ verbosities = \
   'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'DEBUG2', 'log': 'DEBUG2'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},

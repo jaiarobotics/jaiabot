@@ -70,6 +70,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Motor
     int target_motor = 1500;
+    int max_reverse = 1320;
 
     // Control surfaces
     int rudder = 1500;
@@ -106,6 +107,11 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
     // Setup our bounds configuration
     bounds = cfg().bounds();
+
+    if (bounds.motor().has_max_reverse())
+    {
+        max_reverse = bounds.motor().max_reverse();
+    }
 
     // Publish to meatadata group to record bounds file used
     interprocess().publish<groups::metadata>(bounds);
@@ -171,6 +177,12 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     if (control_surfaces.has_motor())
     {
         target_motor = 1500 + (control_surfaces.motor() / 100.0) * 400;
+
+        // Do not go lower than max_reverse
+        if (target_motor < max_reverse)
+        {
+            target_motor = max_reverse;
+        }
     }
 
     if (control_surfaces.has_rudder())
