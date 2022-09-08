@@ -41,3 +41,9 @@ def wifi_mac_slots(node_id):
 def xbee_mac_slots(node_id):
     slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 1 max_frame_bytes: 200 }\n'
     return slots
+
+def xbee_config():
+    try:
+        return open('/etc/jaiabot/xbee.pb.cfg').read()
+    except FileNotFoundError:
+        return ''
