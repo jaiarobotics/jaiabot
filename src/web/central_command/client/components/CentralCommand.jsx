@@ -1176,7 +1176,7 @@ export default class CentralCommand extends React.Component {
 			map.getView().fit(vectorSource.getExtent());
 		});
 
-		info('Welcome to Central Command!');
+		info('Welcome to JaiaBot Command & Control!');
 	}
 
 	componentDidUpdate(prevProps, prevState, snapshot) {

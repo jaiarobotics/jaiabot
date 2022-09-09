@@ -36,7 +36,7 @@ export default class EngineeringPanel extends React.Component {
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Engineering Center
+							JaiaBot Engineer & Debug
 						</button>
 					</div>
 
