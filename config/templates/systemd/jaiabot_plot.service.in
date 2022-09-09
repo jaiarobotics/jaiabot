@@ -4,26 +4,14 @@ Description=$description
 BindsTo=jaiabot_health.service
 After=jaiabot_health.service
 
-
 [Service]
 User=$user
 Group=$group
 
 EnvironmentFile=$env_file
-
-# Wait 5 seconds before starting
-ExecStartPre=/bin/sleep 5
-ExecStartPre=/bin/bash -c '$gen moos > $moos_file'
-ExecStartPre=/bin/bash -c '$gen bhv > $bhv_file'
-
-#   Allow CPU load to drop before starting MOOS
-# (DISABLED TO ALLOW FURTHER DEBUGGING)
-# ExecStartPre=$bin_dir/jaiabot-checkloadavg.py 3.0
-
 ExecStartPre=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state START --error_code $error_on_fail --service_name $service
-ExecStart=$moos_bin_dir/MOOSDB $moos_file
+ExecStart=$jaiabot_share_dir/jaiabot/plot/server/jaiabot_plot.py -d /var/log/jaiabot/bot_offload
 ExecStopPost=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state STOP --error_code $error_on_fail --service_name $service --service_result $$SERVICE_RESULT
-TimeoutSec=180
 
 [Install]
 WantedBy=jaiabot_health.service

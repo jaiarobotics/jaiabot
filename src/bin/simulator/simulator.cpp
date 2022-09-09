@@ -43,6 +43,7 @@
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 using goby::glog;
@@ -115,7 +116,8 @@ jaiabot::apps::Simulator::Simulator()
     glog.add_group("main", goby::util::Colors::yellow);
 
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
-    launch_thread<GPSUDPThread>(cfg().gps_udp_config());
+    if (cfg().enable_gps())
+        launch_thread<GPSUDPThread>(cfg().gps_udp_config());
 
     using PressureUDPThread =
         goby::middleware::io::UDPPointToPointThread<pressure_udp_in, pressure_udp_out>;
@@ -139,6 +141,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     const std::pair<goby::apps::moos::protobuf::GobyMOOSGatewayConfig, config::Simulator>& cfg)
     : goby::moos::Translator(cfg.first),
       sim_cfg_(cfg.second),
+      geodesy_(new goby::util::UTMGeodesy({sim_cfg_.start_location().lat_with_units(),
+                                           sim_cfg_.start_location().lon_with_units()})),
       temperature_distribution_(0, sim_cfg_.temperature_stdev()),
       salinity_distribution_(0, sim_cfg_.salinity_stdev())
 
@@ -160,8 +164,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         });
 
     interprocess().subscribe<groups::low_control>(
-        [this](const jaiabot::protobuf::LowControl& low_control)
-        {
+        [this](const jaiabot::protobuf::LowControl& low_control) {
             if (low_control.has_control_surfaces())
                 process_control_surfaces(low_control.control_surfaces());
         });
@@ -289,6 +292,16 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(ss.str());
         interthread().publish<salinity_udp_out>(io_data);
+    }
+
+    // publish IMUData
+    {
+        jaiabot::protobuf::IMUData imu_data;
+        imu_data.mutable_euler_angles()->set_gamma_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
+                                                              si::radians);
+        imu_data.mutable_euler_angles()->set_beta_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
+                                                             si::radians);
+        interprocess().publish<groups::imu>(imu_data);
     }
 
     last_nav_process_time_ = now;

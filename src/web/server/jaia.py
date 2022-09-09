@@ -159,6 +159,20 @@ class Interface:
 
         return {'status': 'ok'}
 
+    def post_all_activate(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'botId': bot.bot_id,
+                'time': str(now()),
+                'type': 'ACTIVATE' 
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
     def get_status(self):
 
         for hub in self.hubs.values():
