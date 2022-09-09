@@ -37,4 +37,8 @@ message Fusion
     required int32 bot_id = 10;
 
     optional int32 health_report_timeout_seconds = 11 [default = 20];
+
+    
+    optional int32 data_timeout_seconds = 20 [default = 20];
+    
 }

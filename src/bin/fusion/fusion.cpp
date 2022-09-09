@@ -51,6 +51,7 @@ using goby::glog;
 using namespace std;
 
 namespace si = boost::units::si;
+using boost::units::degree::degrees;
 using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::Fusion>;
 
 namespace jaiabot
@@ -66,38 +67,44 @@ class Fusion : public ApplicationBase
     void init_node_status();
     void init_bot_status();
 
-    void loop() override
-    {
-        // DCCL uses the real system clock to encode time, so "unwarp" the time first
-        auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
-            goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
+    void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-        latest_bot_status_.set_time_with_units(unwarped_time);
-
-        if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-        {
-            glog.is_warn() && glog << "Timeout on health report" << std::endl;
-            latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
-            latest_bot_status_.clear_error();
-            latest_bot_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
-        }
-
-        if (latest_bot_status_.IsInitialized())
-        {
-            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
-                                     << latest_bot_status_.ShortDebugString() << endl;
-            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
-        }
-    }
     double deg2rad(const double& deg);
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
+    double corrected_heading(const double& heading);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
+
+    enum class DataType
+    {
+        GPS_FIX,
+        GPS_POSITION,
+        PRESSURE,
+        TEMPERATURE,
+        HEADING,
+        SPEED,
+        COURSE,
+        PITCH,
+        ROLL
+    };
+    std::map<DataType, goby::time::SteadyClock::time_point> last_data_time_;
+
+    const std::map<DataType, jaiabot::protobuf::Error> missing_data_errors_{
+        {DataType::GPS_FIX, protobuf::ERROR__MISSING_DATA__GPS_FIX},
+        {DataType::GPS_POSITION, protobuf::ERROR__MISSING_DATA__GPS_POSITION},
+        {DataType::PRESSURE, protobuf::ERROR__MISSING_DATA__PRESSURE},
+        {DataType::HEADING, protobuf::ERROR__MISSING_DATA__HEADING},
+        {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED},
+        {DataType::COURSE, protobuf::ERROR__MISSING_DATA__COURSE}};
+    const std::map<DataType, jaiabot::protobuf::Warning> missing_data_warnings_{
+        {DataType::TEMPERATURE, protobuf::WARNING__MISSING_DATA__TEMPERATURE},
+        {DataType::PITCH, protobuf::WARNING__MISSING_DATA__PITCH},
+        {DataType::ROLL, protobuf::WARNING__MISSING_DATA__ROLL}};
 
     WMM wmm;
 };
@@ -119,11 +126,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
             glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
                                      << std::endl;
+
+            auto now = goby::time::SteadyClock::now();
+
             if (att.has_pitch())
             {
                 auto pitch = att.pitch_with_units();
                 latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
                 latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+
+                last_data_time_[DataType::PITCH] = now;
             }
 
             if (att.has_heading())
@@ -133,17 +145,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog.is_debug2() &&
                     glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                          << "  Magnetic declination: " << magneticDeclination << endl;
-                auto heading =
-                    att.heading_with_units() + magneticDeclination * boost::units::degree::degrees;
+                auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
-                // Have to make sure it's within the DCCL domain
-                if (heading < 0 * boost::units::degree::degrees)
-                    heading += 360 * boost::units::degree::degrees;
-                if (heading > 360 * boost::units::degree::degrees)
-                    heading -= 360 * boost::units::degree::degrees;
+                heading = corrected_heading(heading.value()) * degrees;
 
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+
+                last_data_time_[DataType::HEADING] = now;
             }
 
             if (att.has_roll())
@@ -151,24 +160,22 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 auto roll = att.roll_with_units();
                 latest_node_status_.mutable_pose()->set_roll_with_units(roll);
                 latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+
+                last_data_time_[DataType::ROLL] = now;
             }
         });
+
     interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
         glog.is_debug1() && glog << "Received Attitude update from IMU: "
                                  << imu_data.ShortDebugString() << std::endl;
 
         auto euler_angles = imu_data.euler_angles();
+        auto now = goby::time::SteadyClock::now();
 
         if (euler_angles.has_alpha())
         {
-            using boost::units::degree::degrees;
-
-            // This produces a heading that is off by 180 degrees, so we need to rotate it
+            // IMU is offset by 270 degrees, so we need to rotate it
             auto heading = euler_angles.alpha_with_units() + 270 * degrees;
-            if (heading > 360 * degrees)
-            {
-                heading -= (360 * degrees);
-            }
 
             // Apply magnetic declination
             auto magneticDeclination = wmm.magneticDeclination(
@@ -178,8 +185,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
 
+            heading = corrected_heading(heading.value()) * degrees;
+
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);
             latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
+
+            last_data_time_[DataType::HEADING] = now;
         }
 
         if (euler_angles.has_gamma())
@@ -187,6 +198,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             auto pitch = euler_angles.gamma_with_units();
             latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
             latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
+
+            last_data_time_[DataType::PITCH] = now;
         }
 
         if (euler_angles.has_beta())
@@ -194,12 +207,23 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             auto roll = euler_angles.beta_with_units();
             latest_node_status_.mutable_pose()->set_roll_with_units(roll);
             latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
+
+            last_data_time_[DataType::ROLL] = now;
         }
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
+
+            auto now = goby::time::SteadyClock::now();
+
+            if (tpv.has_mode() &&
+                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
+            {
+                last_data_time_[DataType::GPS_FIX] = now;
+            }
 
             if (tpv.has_location())
             {
@@ -218,6 +242,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                     latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
                     latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
                 }
+                last_data_time_[DataType::GPS_POSITION] = now;
             }
 
             if (tpv.has_speed())
@@ -225,6 +250,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 auto speed = tpv.speed_with_units();
                 latest_node_status_.mutable_speed()->set_over_ground_with_units(speed);
                 latest_bot_status_.mutable_speed()->set_over_ground_with_units(speed);
+                last_data_time_[DataType::SPEED] = now;
             }
 
             if (tpv.has_track())
@@ -232,6 +258,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 auto track = tpv.track_with_units();
                 latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
                 latest_bot_status_.mutable_attitude()->set_course_over_ground_with_units(track);
+                last_data_time_[DataType::COURSE] = now;
             }
 
             // publish the latest status message with each GPS update
@@ -255,6 +282,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+            auto now = goby::time::SteadyClock::now();
+
             auto depth = goby::util::seawater::depth(
                 pt.pressure_with_units(), latest_node_status_.global_fix().lat_with_units());
 
@@ -262,10 +291,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             latest_node_status_.mutable_local_fix()->set_z_with_units(
                 -latest_node_status_.global_fix().depth_with_units());
             latest_bot_status_.set_depth_with_units(depth);
+            last_data_time_[DataType::PRESSURE] = now;
 
             if (pt.has_temperature())
             {
                 latest_bot_status_.set_temperature_with_units(pt.temperature_with_units());
+                last_data_time_[DataType::TEMPERATURE] = now;
             }
         });
 
@@ -321,7 +352,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             else
             {
                 latest_bot_status_.clear_distance_to_active_goal();
-            }      
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
@@ -353,6 +384,61 @@ void jaiabot::apps::Fusion::init_node_status()
 
 void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cfg().bot_id()); }
 
+void jaiabot::apps::Fusion::loop()
+{
+    // DCCL uses the real system clock to encode time, so "unwarp" the time first
+    auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
+        goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
+
+    latest_bot_status_.set_time_with_units(unwarped_time);
+
+    if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on health report" << std::endl;
+        latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+        latest_bot_status_.clear_error();
+        latest_bot_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
+    }
+
+    if (latest_bot_status_.IsInitialized())
+    {
+        glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+                                 << latest_bot_status_.ShortDebugString() << endl;
+        intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+    }
+}
+
+void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    health.set_state(goby::middleware::protobuf::HEALTH__OK);
+
+    // order matters - do warnings then errors so that the state ends up correct
+    auto now = goby::time::SteadyClock::now();
+    for (const auto& wp : missing_data_warnings_)
+    {
+        if (!last_data_time_.count(wp.first) ||
+            (last_data_time_[wp.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(wp.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
+        }
+    }
+    for (const auto& ep : missing_data_errors_)
+    {
+        if (!last_data_time_.count(ep.first) ||
+            (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+        }
+    }
+}
+
 // This function converts decimal degrees to radians
 double jaiabot::apps::Fusion::deg2rad(const double& deg) { return (deg * M_PI / 180); }
 
@@ -376,4 +462,21 @@ double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& 
     u = sin((lat2r - lat1r) / 2);
     v = sin((lon2r - lon1r) / 2);
     return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
+
+/**
+ * @brief Correcting heading After addition of Magnetic Declination
+ * 
+ * @param heading Heading with Addiction of Magnetic Declination
+ * @return double Corrected Heading 
+ */
+double jaiabot::apps::Fusion::corrected_heading(const double& heading)
+{
+    double corrected_heading = heading;
+    if (heading < 0)
+        corrected_heading += 360;
+    if (heading > 360)
+        corrected_heading -= 360;
+
+    return corrected_heading;
 }

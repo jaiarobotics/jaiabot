@@ -19,7 +19,7 @@ import EngineeringPanel from './EngineeringPanel'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -109,7 +109,8 @@ import {
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
-	faLayerGroup
+	faLayerGroup,
+	faWrench
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -265,8 +266,6 @@ export default class CentralCommand extends React.Component {
 			controlSpeed: 0,
 			controlHeading: 0,
 			accelerationProfileIndex: 0,
-
-			botsDrawerOpen: false,
 			commandDrawerOpen: false,
 			// Map layers
 			botsLayerCollection: new OlCollection([], { unique: true }),
@@ -1060,27 +1059,6 @@ export default class CentralCommand extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		$('#leftSidebar').resizable({
-			containment: 'parent',
-			handles: null,
-			maxWidth: sidebarMaxWidth,
-			minWidth: sidebarMinWidth,
-			resize(ui) {
-				us.setViewport([0, 0, 0, ui.size.width]);
-			}
-		});
-
-		let sidebarResizeHandle = document.getElementById('sidebarResizeHandle')
-		let leftSidebar = document.getElementById('leftSidebar')
-		sidebarResizeHandle.onclick = function() {
-			if (leftSidebar.style.width == "400px") {
-				leftSidebar.style.width = "0px"
-			}
-			else {
-				leftSidebar.style.width = "400px"
-			}
-		}
-
 		/*
 		$('.panelsContainerVertical').sortable({
 			handle: 'h2',
@@ -1089,7 +1067,7 @@ export default class CentralCommand extends React.Component {
 		*/
 		$('.panel > h2').disableSelection();
 		// } else {
-		//   $('#leftSidebar').hide();
+		//   $('#engineeringPanel').hide();
 		// }
 
 		/*
@@ -1131,7 +1109,6 @@ export default class CentralCommand extends React.Component {
 
 		tooltips();
 
-		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
@@ -1626,9 +1603,6 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 		});
-		if (selectedBotsFeatureCollection.getLength() > 0) {
-			this.openBotsDrawer();
-		}
 		this.setState({ selectedBotsFeatureCollection });
 		this.updateMissionLayer()
 		map.render();
@@ -1729,16 +1703,6 @@ export default class CentralCommand extends React.Component {
 		this.runMissions(returnToHomeMissions)
 	}
 
-	openBotsDrawer() {
-		$('#botsDrawer').show('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: true });
-	}
-
-	closeBotsDrawer() {
-		$('#botsDrawer').hide('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: false });
-	}
-
 	static formatLength(line) {
 		const length = OlGetLength(line, { projection: mercator });
 		if (length > 100) {
@@ -1756,7 +1720,6 @@ export default class CentralCommand extends React.Component {
 			botsLayerCollection,
 			trackingTarget,
 			faultCounts,
-			botsDrawerOpen,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
@@ -1785,12 +1748,6 @@ export default class CentralCommand extends React.Component {
 				<div id="mapLayers" />
 
 				<div id="layerinfo">&nbsp;</div>
-
-				<div id="eStop">
-					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
-						STOP
-					</button>
-				</div>
 
 				<div id="viewControls">
 					<button
@@ -1913,66 +1870,19 @@ export default class CentralCommand extends React.Component {
 						</button>
 					)}
 
+					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+						<FontAwesomeIcon icon={faWrench} />
+					</button>
 
-				</div>
-
-				<div
-					id="botsSummary"
-					onClick={botsDrawerOpen ? this.closeBotsDrawer.bind(this) : this.openBotsDrawer.bind(this)}
-				>
-					<h2>
-						<FontAwesomeIcon icon={faMapMarkerAlt} />
-					</h2>
-					<div id="faultCounts">
-						<span id="faultLevel0Count" title="Count of bots with no issues">
-							{faultCounts.faultLevel0Count}
-						</span>
-						<span id="faultLevel1Count" title="Count of bots with warnings">
-							{faultCounts.faultLevel1Count}
-						</span>
-						<span id="faultLevel2Count" title="Count of bots with errors">
-							{faultCounts.faultLevel2Count}
-						</span>
-					</div>
-					{trackingTarget
-					&& trackingTarget !== ''
-					&& trackingTarget !== 'all'
-					&& trackingTarget !== 'pod'
-					&& trackingTarget !== 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} className="active-track" title="Unfollow">
-							<FontAwesomeIcon icon={faMapPin} />
-							{trackingTarget.toString()}
-						</button>
-					) : (
-						''
-					)}
-					{botsDrawerOpen ? (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.closeBotsDrawer.bind(this)}
-							title="Close Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronDown} />
-						</button>
-					) : (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.openBotsDrawer.bind(this)}
-							title="Open Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronLeft} />
-						</button>
-					)}
 				</div>
 
 				<div id="botsDrawer">
+					<img className="jaia-logo" src="/favicon.png"></img>
 					{this.botsList()}
+					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
+				</div>
 
-					<div id="botDetailsBox">
+				<div id="botDetailsBox">
 						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
 							? selectedBotsFeatureCollection.getArray().map(feature => (
 								<div
@@ -1982,14 +1892,6 @@ export default class CentralCommand extends React.Component {
 
 									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
 									<div id="botContextCommandBox">
-										{/* Leader-based commands and manual control go here */}
-										<button
-											type="button"
-											className=""
-											title="Control Bot"
-										>
-											<FontAwesomeIcon icon={faDharmachakra} />
-										</button>
 										{trackingTarget === feature.getId() ? (
 											<button
 												type="button"
@@ -2017,8 +1919,6 @@ export default class CentralCommand extends React.Component {
 							: ''}
 
 					</div>
-					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
-				</div>
 
 				{goalSettingsPanel}
 
@@ -2489,8 +2389,11 @@ export default class CentralCommand extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
+					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+						STOP
+					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-						Act<br />All
+						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
 					</button>
 					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
 						<Icon path={mdiPlay} title="Run Mission"/>
@@ -2647,6 +2550,7 @@ export default class CentralCommand extends React.Component {
 
 		return (
 			<div id="botsList">
+				BOTS
 				{botIds.map((botId) => {
 					let bot = bots[botId]
 
@@ -2674,7 +2578,7 @@ export default class CentralCommand extends React.Component {
 									}
 								}
 							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
+							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
 						>
 							{botId}
 						</div>
@@ -2694,6 +2598,16 @@ export default class CentralCommand extends React.Component {
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
+	}
+
+	toggleEngineeringPanel() {
+		let engineeringPanel = document.getElementById('engineeringPanel')
+		if (engineeringPanel.style.width == "400px") {
+			engineeringPanel.style.width = "0px"
+		}
+		else {
+			engineeringPanel.style.width = "400px"
+		}
 	}
 
 }
