@@ -311,6 +311,33 @@ export default class CentralCommand extends React.Component {
 
 		const { chartLayerCollection } = this.state;
 
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: this.state.noaaEncSource,
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
+			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			chartLayerCollection.push(layer);
+		});
+
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
 			layers: chartLayerCollection,
@@ -333,26 +360,6 @@ export default class CentralCommand extends React.Component {
 				type: 'base',
 				zIndex: 1,
 				source: new OlSourceOsm(),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				//type: 'base',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
 				wrapX: false
 			})
 		].forEach((layer) => {
@@ -1877,7 +1884,11 @@ export default class CentralCommand extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<img className="jaia-logo" src="/favicon.png"></img>
+					<img className="jaia-logo test" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
@@ -2390,7 +2401,7 @@ export default class CentralCommand extends React.Component {
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
 					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-						STOP
+						STOP<br />ALL
 					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
 						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
