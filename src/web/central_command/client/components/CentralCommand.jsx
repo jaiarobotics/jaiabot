@@ -80,7 +80,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
-import { deepcopy } from './Utilities';
+import { deepcopy, areEqual } from './Utilities';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -2568,7 +2568,14 @@ export default class CentralCommand extends React.Component {
 				var bothubClass = 'hub-item'
 
 				var onClickFunction = () => {
-					self.setState({detailsBoxItem: {'type': 'hub', id: hubId}})
+					const item = {'type': 'hub', id: hubId}
+
+					if (areEqual(self.state.detailsBoxItem, item)) {
+						self.setState({detailsBoxItem: null})
+					}
+					else {
+						self.setState({detailsBoxItem: item})
+					}
 				}
 			}
 
