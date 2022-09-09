@@ -1826,7 +1826,7 @@ export default class CentralCommand extends React.Component {
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
 						</button>
 					)}
-					{trackingTarget === 'user' ? (
+					{/* {trackingTarget === 'user' ? (
 						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
 							<FontAwesomeIcon icon={faCrosshairs} />
 						</button>
@@ -1846,7 +1846,7 @@ export default class CentralCommand extends React.Component {
 								<FontAwesomeIcon icon={faCrosshairs} />
 							</button>
 						)
-					)}
+					)} */}
 
 					{surveyPolygonActive ? (
 						<div>
