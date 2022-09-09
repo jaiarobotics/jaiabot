@@ -311,6 +311,33 @@ export default class CentralCommand extends React.Component {
 
 		const { chartLayerCollection } = this.state;
 
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: this.state.noaaEncSource,
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
+			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			chartLayerCollection.push(layer);
+		});
+
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
 			layers: chartLayerCollection,
@@ -333,26 +360,6 @@ export default class CentralCommand extends React.Component {
 				type: 'base',
 				zIndex: 1,
 				source: new OlSourceOsm(),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				//type: 'base',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
 				wrapX: false
 			})
 		].forEach((layer) => {
