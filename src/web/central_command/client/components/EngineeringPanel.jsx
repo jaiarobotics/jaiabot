@@ -30,14 +30,13 @@ export default class EngineeringPanel extends React.Component {
 			<div id="engineeringPanel" className="column-right">
 				<div className="panelsContainerVertical">
 					<div className="panel">
-						JaiaBot Central Command<br />
-						Version 1.1.0
+						Engineering Panel<br />						
 					</div>
 					<div className="panel">
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Jaia Engineering
+							Engineering Center
 						</button>
 					</div>
 
