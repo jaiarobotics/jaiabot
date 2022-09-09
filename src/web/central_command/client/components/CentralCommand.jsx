@@ -120,7 +120,7 @@ import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
-import {BotDetailsComponent} from './BotDetails'
+import {BotDetailsComponent, HubDetailsComponent} from './Details'
 import JaiaAPI from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
@@ -302,7 +302,8 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			detailsBoxItem: null
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -1602,6 +1603,11 @@ export default class CentralCommand extends React.Component {
 			}
 		});
 		this.setState({ selectedBotsFeatureCollection });
+
+		if (bot_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
+		}
+
 		this.updateMissionLayer()
 		map.render();
 	}
@@ -1721,7 +1727,10 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonActive
 		} = this.state;
 
+		let self = this
+
 		let bots = this.podStatus?.bots
+		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
@@ -1733,6 +1742,26 @@ export default class CentralCommand extends React.Component {
 		if (this.state.mode === 'missionPlanning') {
 			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.clearMissionPlanningState() }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
+		}
+
+		// Details box
+		let detailsBoxItem = this.state.detailsBoxItem
+		var detailsBox = null
+
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
+		switch (detailsBoxItem?.type) {
+			case 'hub':
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				break;
+			case 'bot':
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], this.api, closeDetails);
+				break;
+			case null:
+				detailsBox = null;
+				break;
 		}
 
 		return (
@@ -1879,43 +1908,7 @@ export default class CentralCommand extends React.Component {
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
-				<div id="botDetailsBox">
-						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
-							? selectedBotsFeatureCollection.getArray().map(feature => (
-								<div
-									key={feature.getId()}
-									className=''
-								>
-
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
-									<div id="botContextCommandBox">
-										{trackingTarget === feature.getId() ? (
-											<button
-												type="button"
-												onClick={this.trackBot.bind(this, '')}
-												title="Unfollow Bot"
-												className="toggle-active active-track"
-											>
-												<FontAwesomeIcon icon={faMapPin} />
-											</button>
-										) : (
-											<span>
-												<button
-													type="button"
-													onClick={this.trackBot.bind(this, feature.getId())}
-													title="Follow Bot"
-													className="toggle-inactive"
-												>
-													<FontAwesomeIcon icon={faMapPin} />
-												</button>
-											</span>
-										)}
-									</div>
-								</div>
-							))
-							: ''}
-
-					</div>
+				{detailsBox}
 
 				{goalSettingsPanel}
 
@@ -2560,10 +2553,23 @@ export default class CentralCommand extends React.Component {
 			if (botId != null) {
 				var key = 'bot-' + botId
 				var bothubClass = 'bot-item'
+
+				var onClickFunction = () => {
+					if (self.isBotSelected(botId)) {
+						self.selectBots([])
+					}
+					else {
+						self.selectBot(botId)
+					}
+				}
 			}
 			else {
 				var key = 'hub-' + hubId
 				var bothubClass = 'hub-item'
+
+				var onClickFunction = () => {
+					self.setState({detailsBoxItem: {'type': 'hub', id: hubId}})
+				}
 			}
 
 			let faultLevel = {
@@ -2580,14 +2586,7 @@ export default class CentralCommand extends React.Component {
 				<div
 					key={key}
 					onClick={
-						() => {
-							if (self.isBotSelected(botId)) {
-								self.selectBots([])
-							}
-							else {
-								self.selectBot(botId)
-							}
-						}
+						onClickFunction
 					}
 					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
 				>

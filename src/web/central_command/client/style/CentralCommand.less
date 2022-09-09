@@ -324,6 +324,7 @@ textarea {
       }
 
       .hub-item {
+        cursor: pointer;
         display: inline-block;
         border: 1px solid white;
         .bgcolor(@good-color);
@@ -2095,4 +2096,10 @@ div.hoverable:hover {
   margin: 4pt 4pt 20pt 4pt;
   border-radius: 4pt;
   border: 1pt solid gray;
+}
+
+div.closeButton {
+  .unselectable;
+  font-size: larger;
+  cursor: pointer;
 }
