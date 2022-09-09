@@ -1877,7 +1877,11 @@ export default class CentralCommand extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<img className="jaia-logo" src="/favicon.png"></img>
+					<img className="jaia-logo test" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
