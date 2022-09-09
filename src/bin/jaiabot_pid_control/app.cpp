@@ -105,7 +105,7 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 20, 10, 0);
+        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 4, 1, 2);
     }
     throttle_depth_pid->set_auto();
     throttle_depth_pid->set_direction(E_PID_REVERSE);
@@ -562,7 +562,7 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
             handle_remote_control(command.remote_control());
             break;
-        case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command.dive_depth()); break;
+        case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command); break;
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
     }
 
@@ -622,10 +622,11 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     }
 }
 
-void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
+void jaiabot::apps::BotPidControl::handle_dive_depth(
+    const jaiabot::protobuf::DesiredSetpoints& command)
 {
     // No dive PID for now... set to -60% throttle
-    setThrottleMode(MANUAL);
+    /*setThrottleMode(MANUAL);
 
     if (bounds.motor().has_throttle_dive())
     {
@@ -634,6 +635,13 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
     else
     {
         throttle = -35.0;
+    }*/
+
+    // Depth PID for dive
+    if (command.has_dive_depth())
+    {
+        setThrottleMode(PID_DEPTH);
+        target_depth = command.dive_depth();
     }
 
     // Set rudder to center
