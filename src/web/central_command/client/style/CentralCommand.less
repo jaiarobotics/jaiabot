@@ -955,57 +955,48 @@ textarea {
   }
 
   #viewControls {
+    background: @overlay-background;
+    border-radius: 0 @panel-corner-radius 0 0;
+    height: 680px;
     position: absolute;
-    bottom: 40px + (3 * @map-button-size) + (4 * @layout-margin-px);
+    bottom: 40px;
     right: 5px;
-    top: @drawer-summary-height;
+    top: 50px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 0 8px 0 0;
     display: flex;
-    flex-flow: column-reverse wrap-reverse;
     justify-content: flex-end;
-    min-height: @map-button-size + @layout-margin;
+    flex-flow: column-reverse wrap-reverse;
 
-    button {
-      width: @map-button-size;
-      min-height: @map-button-size;
-    }
+    #globalCommandBox {
+      display: flex;
+      flex-flow: column-reverse wrap-reverse;
+      border-radius: @panel-corner-radius;
 
-    > * {
-      flex-grow: 1;
-      margin: @layout-margin 0 0 @layout-margin;
-      display: block;
-      position: relative;
-      // height: fit-content;
-      height: min-content;
-      max-height: (@map-button-size * 2) + (@layout-margin-px * 2);
-      > button {
-        height: 100%;
+      .globalCommand {
+        margin: @command-button-margin;
+        padding: @command-button-padding;
+        height: @command-button-size;
+        width: auto;
+        min-width: @command-button-size;
+        min-height: @command-button-size;
+
+        &.selected {
+          .bgcolor(@controlled-color);
+        }
+
+        img {
+          display: block;
+          width: @command-button-size - (2 * @command-button-padding);
+          height: auto;
+        }
+        svg {
+          display: block;
+          width: @command-button-size - (2 * @command-button-padding);
+          height: 35px;
+          font-size: @command-button-size - (2 * @command-button-padding);
+        }
       }
-    }
-
-    #measureResult {
-      position: absolute;
-      right: 100%;
-      // top: (1 * @map-button-size) + (2 * @layout-margin-px);
-      top: 0;
-      background: white;
-      color: black;
-      border-radius: @panel-corner-radius;
-      width: max-content;
-      margin: @layout-margin;
-      padding: @layout-margin;
-    }
-
-    #surveyPolygonResults {
-      position: absolute;
-      right: 100%;
-      // top: (1 * @map-button-size) + (2 * @layout-margin-px);
-      top: 0;
-      background: white;
-      color: black;
-      border-radius: @panel-corner-radius;
-      width: max-content;
-      margin: @layout-margin;
-      padding: @layout-margin;
     }
   }
 

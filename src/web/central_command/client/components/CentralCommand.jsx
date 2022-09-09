@@ -1757,138 +1757,147 @@ export default class CentralCommand extends React.Component {
 				<div id="layerinfo">&nbsp;</div>
 
 				<div id="viewControls">
-					<button
-						type="button"
-						id="mapLayersButton"
-						onClick={() => {
-							$('#mapLayers').toggle('blind', { direction: 'right' });
-							$('#mapLayersButton').toggleClass('active');
-						}}
-					>
-						<FontAwesomeIcon icon={faLayerGroup} />
-					</button>
-					{measureActive ? (
-						<div>
-							<div id="measureResult" />
+					<div id="globalCommandBox">
+						<button
+							type="button"
+							class="globalCommand"
+							onClick={() => {
+								$('#mapLayers').toggle('blind', { direction: 'right' });
+								$('#mapLayersButton').toggleClass('active');
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup} />
+						</button>
+						{measureActive ? (
+							<div>
+								<div id="measureResult" />
+								<button
+									type="button"
+									className="active"
+									class="globalCommand"
+									onClick={() => {
+										// this.measureInteraction.finishDrawing();
+										this.changeInteraction();
+										this.setState({ measureActive: false });
+									}}
+								>
+									<FontAwesomeIcon icon={faRuler} />
+								</button>
+							</div>
+						) : (
 							<button
 								type="button"
-								className="active"
+								class="globalCommand"
 								onClick={() => {
-									// this.measureInteraction.finishDrawing();
-									this.changeInteraction();
-									this.setState({ measureActive: false });
+									this.setState({ measureActive: true });
+									this.changeInteraction(this.measureInteraction, 'crosshair');
+									info('Touch map to set first measure point');
 								}}
 							>
 								<FontAwesomeIcon icon={faRuler} />
 							</button>
-						</div>
-					) : (
-						<button
-							type="button"
-							onClick={() => {
-								this.setState({ measureActive: true });
-								this.changeInteraction(this.measureInteraction, 'crosshair');
-								info('Touch map to set first measure point');
-							}}
-						>
-							<FontAwesomeIcon icon={faRuler} />
-						</button>
-					)}
-					{trackingTarget === 'all' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow All" className="active">
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
-					) : (
-						<button
-							type="button"
-							onClick={() => {
-								this.zoomToAll(true);
-								this.trackBot('all');
-							}}
-							title="Follow All"
-						>
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
-					)}
-					{trackingTarget === 'pod' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow Pod" className="active">
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
-					) : (
-						<button
-							type="button"
-							onClick={() => {
-								this.zoomToAllBots(true);
-								this.trackBot('pod');
-							}}
-							title="Follow Pod"
-						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
-					)}
-					{trackingTarget === 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
-							<FontAwesomeIcon icon={faCrosshairs} />
-						</button>
-					) : (
-						this.clientLocation.isValid ? (
+						)}
+						{trackingTarget === 'all' ? (
+							<button type="button" class="globalCommand" onClick={this.trackBot.bind(this, '')} title="Unfollow All" className="active">
+								<FontAwesomeIcon icon={faMapMarkedAlt} />
+							</button>
+						) : (
 							<button
 								type="button"
+								class="globalCommand"
 								onClick={() => {
-									this.trackBot('user');
+									this.zoomToAll(true);
+									this.trackBot('all');
 								}}
-								title="Follow User"
+								title="Follow All"
 							>
+								<FontAwesomeIcon icon={faMapMarkedAlt} />
+							</button>
+						)}
+						{trackingTarget === 'pod' ? (
+							<button type="button" class="globalCommand" onClick={this.trackBot.bind(this, '')} title="Unfollow Pod" className="active">
+								<FontAwesomeIcon icon={faMapMarkerAlt} />
+							</button>
+						) : (
+							<button
+								type="button"
+								class="globalCommand"
+								onClick={() => {
+									this.zoomToAllBots(true);
+									this.trackBot('pod');
+								}}
+								title="Follow Pod"
+							>
+								<FontAwesomeIcon icon={faMapMarkerAlt} />
+							</button>
+						)}
+						{trackingTarget === 'user' ? (
+							<button type="button" class="globalCommand" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
 								<FontAwesomeIcon icon={faCrosshairs} />
 							</button>
 						) : (
-							<button type="button" className="inactive" title="Follow User">
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						)
-					)}
+							this.clientLocation.isValid ? (
+								<button
+									type="button"
+									class="globalCommand"
+									onClick={() => {
+										this.trackBot('user');
+									}}
+									title="Follow User"
+								>
+									<FontAwesomeIcon icon={faCrosshairs} />
+								</button>
+							) : (
+								<button type="button" className="inactive" title="Follow User">
+									<FontAwesomeIcon icon={faCrosshairs} />
+								</button>
+							)
+						)}
 
-					{surveyPolygonActive ? (
-						<div>
+						{surveyPolygonActive ? (
+							<div>
+								<button
+									type="button"
+									className="active"
+									class="globalCommand"
+									title="Edit Survey Plan"
+									onClick={() => {
+										this.changeInteraction();
+										this.setState({ surveyPolygonActive: false, mode: '' });
+									}}
+								>
+									<FontAwesomeIcon icon={faEdit} />
+								</button>
+							</div>
+						) : (
 							<button
 								type="button"
-								className="active"
 								title="Edit Survey Plan"
+								className="inactive"
+								class="globalCommand"
 								onClick={() => {
-									this.changeInteraction();
-									this.setState({ surveyPolygonActive: false, mode: '' });
+									this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
+									this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
+									info('Touch map to set first polygon point');
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
 							</button>
-						</div>
-					) : (
-						<button
-							type="button"
-							title="Edit Survey Plan"
-							className="inactive"
-							onClick={() => {
-								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
-								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
-								info('Touch map to set first polygon point');
-							}}
-						>
-							<FontAwesomeIcon icon={faEdit} />
+						)}
+
+						<button type="button" class="globalCommand" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+							<FontAwesomeIcon icon={faWrench} />
 						</button>
-					)}
 
-					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
-						<FontAwesomeIcon icon={faWrench} />
-					</button>
-
+						<img className="jaia-logo" class="globalCommand"  src="/favicon.png" onClick={() => { 
+							alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+								+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+							}}>	
+						</img>
+					</div>
 				</div>
 
 				<div id="botsDrawer">
-					<img className="jaia-logo test" src="/favicon.png" onClick={() => { 
-						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
-							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
-						}}>	
-					</img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
