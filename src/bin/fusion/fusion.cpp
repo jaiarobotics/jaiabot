@@ -486,10 +486,10 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
     const boost::units::quantity<boost::units::degree::plane_angle>& heading)
 {
     auto corrected_heading = heading;
-    if (heading < 0 * boost::units::degree::degrees)
-        corrected_heading += 360 * boost::units::degree::degrees;
-    if (heading > 360 * boost::units::degree::degrees)
-        corrected_heading -= 360 * boost::units::degree::degrees;
+    if (heading < 0 * degrees)
+        corrected_heading += 360 * degrees;
+    if (heading > 360 * degrees)
+        corrected_heading -= 360 * degrees;
 
     return corrected_heading;
 }
