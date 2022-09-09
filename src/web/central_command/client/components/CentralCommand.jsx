@@ -2409,14 +2409,14 @@ export default class CentralCommand extends React.Component {
 		let element = (
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
-					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-						STOP<br />ALL
-					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
 						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
 					</button>
-					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
-						<Icon path={mdiPlay} title="Run Mission"/>
+					<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
+						RC<br />Mode
+					</button>
+					<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
+						RC<br />Dive
 					</button>
 					<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
 						Set<br />Home
@@ -2424,25 +2424,25 @@ export default class CentralCommand extends React.Component {
 					<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 						Go<br />Home
 					</button>
+					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+						STOP<br />ALL
+					</button>
+					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
+						<Icon path={mdiPlay} title="Run Mission"/>
+					</button>
 					<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
 						<Icon path={mdiFolderOpen} title="Load Mission"/>
 					</button>
 					<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
 						<Icon path={mdiContentSave} title="Save Mission"/>
 					</button>
-					<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-						RC
-					</button>
-					<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-						Dive
-					</button>
-					<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
-						Flag
-					</button>
 					<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 						<Icon path={mdiDelete} title="Clear Mission"/>
 					</button>
 					{ this.undoButton() }
+					<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
+						Flag
+					</button>
 				</div>
 			</div>
 
