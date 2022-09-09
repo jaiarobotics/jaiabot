@@ -2394,7 +2394,7 @@ export default class CentralCommand extends React.Component {
 			<div id="commandsDrawer">
 				<div id="globalCommandBox">
 					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-						STOP
+						STOP<br />ALL
 					</button>
 					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
 						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
