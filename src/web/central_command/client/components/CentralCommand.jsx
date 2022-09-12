@@ -80,7 +80,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
-import { deepcopy } from './Utilities';
+import { deepcopy, areEqual } from './Utilities';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -120,7 +120,7 @@ import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
-import {BotDetailsComponent} from './BotDetails'
+import {BotDetailsComponent, HubDetailsComponent} from './Details'
 import JaiaAPI from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
@@ -279,7 +279,6 @@ export default class CentralCommand extends React.Component {
 			},
 			// incoming data
 			lastBotCount: 0,
-			faultCounts: { faultLevel0Count: 0, faultLevel1Count: 0, faultLevel2Count: 0 },
 			botExtents: {},
 			trackingTarget: '',
 			viewportPadding: [
@@ -303,13 +302,41 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			detailsBoxItem: null
 		};
 
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
 
 		const { chartLayerCollection } = this.state;
+
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: this.state.noaaEncSource,
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
+			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			chartLayerCollection.push(layer);
+		});
 
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
@@ -333,26 +360,6 @@ export default class CentralCommand extends React.Component {
 				type: 'base',
 				zIndex: 1,
 				source: new OlSourceOsm(),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				//type: 'base',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
 				wrapX: false
 			})
 		].forEach((layer) => {
@@ -1059,27 +1066,7 @@ export default class CentralCommand extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		/*
-		$('.panelsContainerVertical').sortable({
-			handle: 'h2',
-			placeholder: 'sortable-placeholder'
-		});
-		*/
 		$('.panel > h2').disableSelection();
-		// } else {
-		//   $('#engineeringPanel').hide();
-		// }
-
-		/*
-		map.on('pointermove', (event) => {
-			this.setState({
-				cursorLocation: {
-					latitude: event.coordinate[1],
-					longitude: event.coordinate[0]
-				}
-			});
-		});
-		*/
 
 		map.getView().on('change:resolution', () => {
 			this.setState({
@@ -1088,8 +1075,8 @@ export default class CentralCommand extends React.Component {
 		});
 
 		/*
-				This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-				*/
+		This needs to be called whenever liveCommand is updated externally, but NOT in the render method
+		*/
 
 		const { controlSpeed } = this.state;
 		$('#speedSlider').slider({
@@ -1103,7 +1090,6 @@ export default class CentralCommand extends React.Component {
 		});
 
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-		// $('input').checkboxradio();
 
 		$('button').disableSelection();
 
@@ -1169,7 +1155,7 @@ export default class CentralCommand extends React.Component {
 			map.getView().fit(vectorSource.getExtent());
 		});
 
-		info('Welcome to Central Command!');
+		info('Welcome to JaiaBot Command & Control!');
 	}
 
 	componentDidUpdate(prevProps, prevState, snapshot) {
@@ -1482,7 +1468,6 @@ export default class CentralCommand extends React.Component {
 		this.setState({
 			botExtents,
 			selectedBotsFeatureCollection,
-			faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
 			lastBotCount: botCount
 		});
 		// map.render();
@@ -1604,6 +1589,11 @@ export default class CentralCommand extends React.Component {
 			}
 		});
 		this.setState({ selectedBotsFeatureCollection });
+
+		if (bot_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
+		}
+
 		this.updateMissionLayer()
 		map.render();
 	}
@@ -1719,12 +1709,14 @@ export default class CentralCommand extends React.Component {
 			selectedBotsFeatureCollection,
 			botsLayerCollection,
 			trackingTarget,
-			faultCounts,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
 
+		let self = this
+
 		let bots = this.podStatus?.bots
+		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
@@ -1736,6 +1728,26 @@ export default class CentralCommand extends React.Component {
 		if (this.state.mode === 'missionPlanning') {
 			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.clearMissionPlanningState() }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
+		}
+
+		// Details box
+		let detailsBoxItem = this.state.detailsBoxItem
+		var detailsBox = null
+
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
+		switch (detailsBoxItem?.type) {
+			case 'hub':
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				break;
+			case 'bot':
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], this.api, closeDetails);
+				break;
+			case null:
+				detailsBox = null;
+				break;
 		}
 
 		return (
@@ -1752,7 +1764,6 @@ export default class CentralCommand extends React.Component {
 				<div id="viewControls">
 					<button
 						type="button"
-						id="mapLayersButton"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
 							$('#mapLayersButton').toggleClass('active');
@@ -1819,30 +1830,8 @@ export default class CentralCommand extends React.Component {
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
 						</button>
 					)}
-					{trackingTarget === 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
-							<FontAwesomeIcon icon={faCrosshairs} />
-						</button>
-					) : (
-						this.clientLocation.isValid ? (
-							<button
-								type="button"
-								onClick={() => {
-									this.trackBot('user');
-								}}
-								title="Follow User"
-							>
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						) : (
-							<button type="button" className="inactive" title="Follow User">
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						)
-					)}
 
 					{surveyPolygonActive ? (
-						<div>
 							<button
 								type="button"
 								className="active"
@@ -1854,7 +1843,6 @@ export default class CentralCommand extends React.Component {
 							>
 								<FontAwesomeIcon icon={faEdit} />
 							</button>
-						</div>
 					) : (
 						<button
 							type="button"
@@ -1874,51 +1862,20 @@ export default class CentralCommand extends React.Component {
 						<FontAwesomeIcon icon={faWrench} />
 					</button>
 
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
+
 				</div>
 
 				<div id="botsDrawer">
-					<img className="jaia-logo" src="/favicon.png"></img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
-				<div id="botDetailsBox">
-						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
-							? selectedBotsFeatureCollection.getArray().map(feature => (
-								<div
-									key={feature.getId()}
-									className=''
-								>
-
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
-									<div id="botContextCommandBox">
-										{trackingTarget === feature.getId() ? (
-											<button
-												type="button"
-												onClick={this.trackBot.bind(this, '')}
-												title="Unfollow Bot"
-												className="toggle-active active-track"
-											>
-												<FontAwesomeIcon icon={faMapPin} />
-											</button>
-										) : (
-											<span>
-												<button
-													type="button"
-													onClick={this.trackBot.bind(this, feature.getId())}
-													title="Follow Bot"
-													className="toggle-inactive"
-												>
-													<FontAwesomeIcon icon={faMapPin} />
-												</button>
-											</span>
-										)}
-									</div>
-								</div>
-							))
-							: ''}
-
-					</div>
+				{detailsBox}
 
 				{goalSettingsPanel}
 
@@ -2388,42 +2345,40 @@ export default class CentralCommand extends React.Component {
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<div id="globalCommandBox">
-					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-						STOP
-					</button>
-					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
-					</button>
-					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
-						<Icon path={mdiPlay} title="Run Mission"/>
-					</button>
-					<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
-						Set<br />Home
-					</button>
-					<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-						Go<br />Home
-					</button>
-					<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
-						<Icon path={mdiFolderOpen} title="Load Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
-						<Icon path={mdiContentSave} title="Save Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-						RC
-					</button>
-					<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-						Dive
-					</button>
-					<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
-						Flag
-					</button>
-					<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
-						<Icon path={mdiDelete} title="Clear Mission"/>
-					</button>
-					{ this.undoButton() }
-				</div>
+				<button id= "activate-all-bots" type="button" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
+					<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
+				</button>
+				<button type="button" title="RC Mode" onClick={this.runRCMode.bind(this)}>
+					RC<br />Mode
+				</button>
+				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
+					RC<br />Dive
+				</button>
+				<button type="button" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
+					Set<br />Home
+				</button>
+				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
+					Go<br />Home
+				</button>
+				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+					STOP<br />ALL
+				</button>
+				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
+				</button>
+				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+					<Icon path={mdiFolderOpen} title="Load Mission"/>
+				</button>
+				<button type="button" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+					<Icon path={mdiContentSave} title="Save Mission"/>
+				</button>
+				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
+					<Icon path={mdiDelete} title="Clear Mission"/>
+				</button>
+				{ this.undoButton() }
+				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
+					Flag
+				</button>
 			</div>
 
 		)
@@ -2543,47 +2498,84 @@ export default class CentralCommand extends React.Component {
 	}
 
 	botsList() {
-		let bots = this.podStatus?.bots
-		if (!bots) { return }
+		let self = this
 
-		let botIds = Object.keys(bots).sort()
+		let bots = Object.values(this.podStatus?.bots ?? {})
+		let hubs = Object.values(this.podStatus?.hubs ?? {})
+
+		function compare_by_hubId(hub1, hub2) {
+			return hub1.hubId - hub2.hubId
+		}
+
+		function compare_by_botId(bot1, bot2) {
+			return bot1.botId - bot2.botId
+		}
+
+		function bothub_to_div(bothub) {
+			let botId = bothub.botId
+			let hubId = bothub.hubId
+			
+			if (botId != null) {
+				var key = 'bot-' + botId
+				var bothubClass = 'bot-item'
+
+				var onClickFunction = () => {
+					if (self.isBotSelected(botId)) {
+						self.selectBots([])
+					}
+					else {
+						self.selectBot(botId)
+					}
+				}
+			}
+			else {
+				var key = 'hub-' + hubId
+				var bothubClass = 'hub-item'
+
+				var onClickFunction = () => {
+					const item = {'type': 'hub', id: hubId}
+
+					if (areEqual(self.state.detailsBoxItem, item)) {
+						self.setState({detailsBoxItem: null})
+					}
+					else {
+						self.setState({detailsBoxItem: item})
+					}
+				}
+			}
+
+			let faultLevel = {
+				'HEALTH__OK': 0,
+				'HEALTH__DEGRADED': 1,
+				'HEALTH__FAILED': 2
+			}[bothub.healthState] ?? 0
+
+			let faultLevelClass = 'faultLevel' + faultLevel
+			let selected = self.isBotSelected(botId) ? 'selected' : ''
+			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
+
+			return (
+				<div
+					key={key}
+					onClick={
+						onClickFunction
+					}
+					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
+				>
+					{botId ?? hubId}
+				</div>
+			);
+		}
+
 
 		return (
 			<div id="botsList">
-				BOTS
-				{botIds.map((botId) => {
-					let bot = bots[botId]
-
-					let faultLevel = {
-						'HEALTH__OK': 0,
-						'HEALTH__DEGRADED': 1,
-						'HEALTH__FAILED': 2
-					}[bot.healthState] ?? 0
-
-					let faultLevelClass = 'faultLevel' + faultLevel
-					let selected = this.isBotSelected(botId) ? 'selected' : ''
-					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
-					let disconnected = bot.isDisconnected ? "disconnected" : ""
-
-					return (
-						<div
-							key={botId}
-							onClick={
-								() => {
-									if (this.isBotSelected(botId)) {
-										this.selectBots([])
-									}
-									else {
-										this.selectBot(botId)
-									}
-								}
-							}
-							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
-						>
-							{botId}
-						</div>
-					);
-				})}
+				{
+					hubs.sort(compare_by_hubId).map(bothub_to_div)
+				}
+				{
+					bots.sort(compare_by_botId).map(bothub_to_div)
+				}
 			</div>
 		)
 	}
