@@ -1,0 +1,23 @@
+syntax = "proto2";
+import "goby/acomms/protobuf/driver_base.proto"; // load up message DriverBaseConfig
+  
+package xbee.protobuf;
+
+
+message Peer {
+    required string node_id = 1;
+    required uint64 serial_number = 2;
+}
+
+
+message Config
+{
+    optional uint64 network_id = 1 [default = 7];
+    repeated Peer peers = 2;
+}
+
+
+extend goby.acomms.protobuf.DriverConfig
+{
+    optional Config config = 1500;
+}

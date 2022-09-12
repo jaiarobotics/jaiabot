@@ -7,6 +7,9 @@ link {
         serial_port: "/dev/xbee"
         serial_baud: 9600
         modem_id: $modem_id
+        [xbee.protobuf.config] {
+            $xbee_config
+        }
     }
     mac { 
         type: MAC_FIXED_DECENTRALIZED

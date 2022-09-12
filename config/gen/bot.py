@@ -66,7 +66,8 @@ if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id))
+                                             mac_slots=common.comms.xbee_mac_slots(node_id),
+                                             xbee_config=common.comms.xbee_config())
 
 if is_simulation():
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',

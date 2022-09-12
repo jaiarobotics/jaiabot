@@ -76,7 +76,8 @@ XBeeDevice::XBeeDevice()
     port = new serial_port(*io);
 }
 
-void XBeeDevice::startup(const std::string& port_name, const int baud_rate, const std::string& _my_node_id)
+void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
+                         const std::string& _my_node_id, const uint16_t network_id)
 {
     my_node_id = _my_node_id;
     
@@ -103,7 +104,8 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate, cons
 
     {
         stringstream cmd;
-        cmd << "ATID=0007" << '\r';
+        glog.is_verbose() && glog << "Network ID: " << setw(4) << network_id << endl;
+        cmd << "ATID=" << setw(4) << network_id << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -442,11 +444,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
             auto node_id = xbee_address_entry.node_id();
             auto serial_number = xbee_address_entry.serial_number();
 
-            glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec
-                                      << " node_id= " << node_id << endl;
-
-            node_id_to_serial_number_map[node_id] = serial_number;
-            serial_number_to_node_id_map[serial_number] = node_id;
+            add_peer(node_id, serial_number);
 
             // Remote is requesting our xbee_address_entry
             if (packet.has_xbee_address_entry_request() && packet.xbee_address_entry_request())
@@ -457,8 +455,6 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
                          << std::hex << src << std::dec << std::endl;
                 send_node_id(src, false);
             }
-
-            flush_packets_for_node(node_id);
         }
 
         if (packet.has_data())
@@ -557,4 +553,15 @@ void XBeeDevice::send_packet(const NodeId& dest, const string& data)
     }
 
     send_packet(dest_ser, data);
+}
+
+void XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number)
+{
+    glog.is_verbose() && glog << "serial_number= " << std::hex << serial_number << std::dec
+                              << " node_id= " << node_id << endl;
+
+    node_id_to_serial_number_map[node_id] = serial_number;
+    serial_number_to_node_id_map[serial_number] = node_id;
+
+    flush_packets_for_node(node_id);
 }
