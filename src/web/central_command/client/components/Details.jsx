@@ -156,10 +156,10 @@ export function BotDetailsComponent(bot, api, closeWindow) {
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
-        statusAgeClassName = 'red'
+        statusAgeClassName = 'healthFailed'
     }
     else if (statusAge > 10) {
-        statusAgeClassName = 'yellow'
+        statusAgeClassName = 'healthDegraded'
     }
 
     // Active Goal
@@ -183,7 +183,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
-                <div className='horizontal flexbox'>
+                <div className='HorizontalFlexbox'>
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
@@ -279,16 +279,16 @@ export function HubDetailsComponent(hub, api, closeWindow) {
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
-        statusAgeClassName = 'red'
+        statusAgeClassName = 'healthFailed'
     }
     else if (statusAge > 10) {
-        statusAgeClassName = 'yellow'
+        statusAgeClassName = 'healthDegraded'
     }
 
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
-                <div className='horizontal flexbox'>
+                <div className='HorizontalFlexbox'>
                     <h2 className="name">{`Hub ${hub?.hubId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
