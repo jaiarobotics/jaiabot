@@ -165,7 +165,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot.bot_id,
+                'botId': bot['botId'],
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
