@@ -159,6 +159,7 @@ textarea {
       overflow-y: auto;
 
       .bot-item {
+        .unselectable;
         cursor: pointer;
         display: inline-block;
         border: 1px solid white;
@@ -169,6 +170,23 @@ textarea {
         line-height: 38pt;
         width: 40pt;
         margin: @layout-margin-px - 3;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .hub-item {
+        .unselectable;
+        cursor: pointer;
+        display: inline-block;
+        border: 1px solid white;
+        .bgcolor(@good-color);
+        border-radius: 20pt;
+        font-size: 20pt;
+        height: 40pt;
+        line-height: 38pt;
+        width: 40pt;
+        margin: @layout-margin-px / 2;
         padding: 0;
         text-align: center;
         vertical-align: middle;
@@ -1051,4 +1069,18 @@ div.hoverable:hover {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.jaia-logo {
+  width: 40pt;
+  height: 40pt;
+  margin: 4pt 4pt 20pt 4pt;
+  border-radius: 4pt;
+  border: 1pt solid gray;
+}
+
+div.closeButton {
+  .unselectable;
+  font-size: larger;
+  cursor: pointer;
 }

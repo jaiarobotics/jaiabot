@@ -185,7 +185,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
-            
+
             // Have to make sure it's within the DCCL domain
             //if (heading < 0 * boost::units::degree::degrees)
             //    heading += 360 * boost::units::degree::degrees;
