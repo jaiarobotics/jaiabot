@@ -80,7 +80,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
-import { deepcopy } from './Utilities';
+import { deepcopy, areEqual } from './Utilities';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -120,7 +120,7 @@ import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
-import {BotDetailsComponent} from './BotDetails'
+import {BotDetailsComponent, HubDetailsComponent} from './Details'
 import JaiaAPI from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
@@ -279,7 +279,6 @@ export default class CentralCommand extends React.Component {
 			},
 			// incoming data
 			lastBotCount: 0,
-			faultCounts: { faultLevel0Count: 0, faultLevel1Count: 0, faultLevel2Count: 0 },
 			botExtents: {},
 			trackingTarget: '',
 			viewportPadding: [
@@ -303,7 +302,8 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			detailsBoxItem: null
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -1468,7 +1468,6 @@ export default class CentralCommand extends React.Component {
 		this.setState({
 			botExtents,
 			selectedBotsFeatureCollection,
-			faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
 			lastBotCount: botCount
 		});
 		// map.render();
@@ -1590,6 +1589,11 @@ export default class CentralCommand extends React.Component {
 			}
 		});
 		this.setState({ selectedBotsFeatureCollection });
+
+		if (bot_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
+		}
+
 		this.updateMissionLayer()
 		map.render();
 	}
@@ -1705,12 +1709,14 @@ export default class CentralCommand extends React.Component {
 			selectedBotsFeatureCollection,
 			botsLayerCollection,
 			trackingTarget,
-			faultCounts,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
 
+		let self = this
+
 		let bots = this.podStatus?.bots
+		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
@@ -1722,6 +1728,26 @@ export default class CentralCommand extends React.Component {
 		if (this.state.mode === 'missionPlanning') {
 			missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} goal={this.state.missionBaseGoal} onClose={() => { this.clearMissionPlanningState() }} onMissionApply={() => { this.genMission(this.state.surveyPolygonGeoCoords) }} />
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
+		}
+
+		// Details box
+		let detailsBoxItem = this.state.detailsBoxItem
+		var detailsBox = null
+
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
+		switch (detailsBoxItem?.type) {
+			case 'hub':
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				break;
+			case 'bot':
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], this.api, closeDetails);
+				break;
+			case null:
+				detailsBox = null;
+				break;
 		}
 
 		return (
@@ -1849,43 +1875,7 @@ export default class CentralCommand extends React.Component {
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
-				<div id="botDetailsBox">
-						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
-							? selectedBotsFeatureCollection.getArray().map(feature => (
-								<div
-									key={feature.getId()}
-									className=''
-								>
-
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
-									<div id="botContextCommandBox">
-										{trackingTarget === feature.getId() ? (
-											<button
-												type="button"
-												onClick={this.trackBot.bind(this, '')}
-												title="Unfollow Bot"
-												className="toggle-active active-track"
-											>
-												<FontAwesomeIcon icon={faMapPin} />
-											</button>
-										) : (
-											<span>
-												<button
-													type="button"
-													onClick={this.trackBot.bind(this, feature.getId())}
-													title="Follow Bot"
-													className="toggle-inactive"
-												>
-													<FontAwesomeIcon icon={faMapPin} />
-												</button>
-											</span>
-										)}
-									</div>
-								</div>
-							))
-							: ''}
-
-					</div>
+				{detailsBox}
 
 				{goalSettingsPanel}
 
@@ -2508,47 +2498,84 @@ export default class CentralCommand extends React.Component {
 	}
 
 	botsList() {
-		let bots = this.podStatus?.bots
-		if (!bots) { return }
+		let self = this
 
-		let botIds = Object.keys(bots).sort()
+		let bots = Object.values(this.podStatus?.bots ?? {})
+		let hubs = Object.values(this.podStatus?.hubs ?? {})
+
+		function compare_by_hubId(hub1, hub2) {
+			return hub1.hubId - hub2.hubId
+		}
+
+		function compare_by_botId(bot1, bot2) {
+			return bot1.botId - bot2.botId
+		}
+
+		function bothub_to_div(bothub) {
+			let botId = bothub.botId
+			let hubId = bothub.hubId
+			
+			if (botId != null) {
+				var key = 'bot-' + botId
+				var bothubClass = 'bot-item'
+
+				var onClickFunction = () => {
+					if (self.isBotSelected(botId)) {
+						self.selectBots([])
+					}
+					else {
+						self.selectBot(botId)
+					}
+				}
+			}
+			else {
+				var key = 'hub-' + hubId
+				var bothubClass = 'hub-item'
+
+				var onClickFunction = () => {
+					const item = {'type': 'hub', id: hubId}
+
+					if (areEqual(self.state.detailsBoxItem, item)) {
+						self.setState({detailsBoxItem: null})
+					}
+					else {
+						self.setState({detailsBoxItem: item})
+					}
+				}
+			}
+
+			let faultLevel = {
+				'HEALTH__OK': 0,
+				'HEALTH__DEGRADED': 1,
+				'HEALTH__FAILED': 2
+			}[bothub.healthState] ?? 0
+
+			let faultLevelClass = 'faultLevel' + faultLevel
+			let selected = self.isBotSelected(botId) ? 'selected' : ''
+			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
+
+			return (
+				<div
+					key={key}
+					onClick={
+						onClickFunction
+					}
+					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
+				>
+					{botId ?? hubId}
+				</div>
+			);
+		}
+
 
 		return (
 			<div id="botsList">
-				BOTS
-				{botIds.map((botId) => {
-					let bot = bots[botId]
-
-					let faultLevel = {
-						'HEALTH__OK': 0,
-						'HEALTH__DEGRADED': 1,
-						'HEALTH__FAILED': 2
-					}[bot.healthState] ?? 0
-
-					let faultLevelClass = 'faultLevel' + faultLevel
-					let selected = this.isBotSelected(botId) ? 'selected' : ''
-					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
-					let disconnected = bot.isDisconnected ? "disconnected" : ""
-
-					return (
-						<div
-							key={botId}
-							onClick={
-								() => {
-									if (this.isBotSelected(botId)) {
-										this.selectBots([])
-									}
-									else {
-										this.selectBot(botId)
-									}
-								}
-							}
-							className={`bot-item unselectable ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
-						>
-							{botId}
-						</div>
-					);
-				})}
+				{
+					hubs.sort(compare_by_hubId).map(bothub_to_div)
+				}
+				{
+					bots.sort(compare_by_botId).map(bothub_to_div)
+				}
 			</div>
 		)
 	}
