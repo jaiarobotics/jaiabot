@@ -77,10 +77,12 @@ XBeeDevice::XBeeDevice()
 }
 
 void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
-                         const std::string& _my_node_id, const uint16_t network_id)
+                         const std::string& _my_node_id, const uint16_t network_id,
+                         const bool p_should_discover_peers)
 {
     my_node_id = _my_node_id;
-    
+    should_discover_peers = p_should_discover_peers;
+
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
 
@@ -438,7 +440,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
         glog.is_debug1() && glog << "Parsed packet of length " << serialized_packet.length()
                                  << endl;
 
-        if (packet.has_xbee_address_entry())
+        if (packet.has_xbee_address_entry() && should_discover_peers)
         {
             auto xbee_address_entry = packet.xbee_address_entry();
             auto node_id = xbee_address_entry.node_id();
