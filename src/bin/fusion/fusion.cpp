@@ -73,7 +73,8 @@ class Fusion : public ApplicationBase
     double deg2rad(const double& deg);
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
-    double corrected_heading(const double& heading);
+    boost::units::quantity<boost::units::degree::plane_angle>
+    corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -147,7 +148,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                          << "  Magnetic declination: " << magneticDeclination << endl;
                 auto heading = att.heading_with_units() + magneticDeclination * degrees;
 
-                heading = corrected_heading(heading.value()) * degrees;
+                heading = corrected_heading(heading);
 
                 latest_node_status_.mutable_pose()->set_heading_with_units(heading);
                 latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
@@ -184,8 +185,19 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
+            
+            // Have to make sure it's within the DCCL domain
+            //if (heading < 0 * boost::units::degree::degrees)
+            //    heading += 360 * boost::units::degree::degrees;
+            //if (heading > 360 * boost::units::degree::degrees)
+            //    heading -= 360 * boost::units::degree::degrees;
 
-            heading = corrected_heading(heading.value()) * degrees;
+            /*if (heading > 360 * degrees)
+            {
+                heading -= (360 * degrees);
+            }*/
+
+            heading = corrected_heading(heading);
 
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);
             latest_bot_status_.mutable_attitude()->set_heading_with_units(heading);
@@ -467,16 +479,17 @@ double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& 
 /**
  * @brief Correcting heading After addition of Magnetic Declination
  * 
- * @param heading Heading with Addiction of Magnetic Declination
- * @return double Corrected Heading 
+ * @param heading Heading with Addition of Magnetic Declination
+ * @return boost::units::quantity<boost::units::degree::plane_angle> Corrected Heading 
  */
-double jaiabot::apps::Fusion::corrected_heading(const double& heading)
+boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion::corrected_heading(
+    const boost::units::quantity<boost::units::degree::plane_angle>& heading)
 {
-    double corrected_heading = heading;
-    if (heading < 0)
-        corrected_heading += 360;
-    if (heading > 360)
-        corrected_heading -= 360;
+    auto corrected_heading = heading;
+    if (heading < 0 * degrees)
+        corrected_heading += 360 * degrees;
+    if (heading > 360 * degrees)
+        corrected_heading -= 360 * degrees;
 
     return corrected_heading;
 }
