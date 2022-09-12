@@ -10,8 +10,8 @@ Group=$group
 
 
 EnvironmentFile=$env_file
-# Wait 60 seconds before starting
-ExecStartPre=/bin/sleep 60
+# Wait 30 seconds before starting
+ExecStartPre=/bin/sleep 30
 Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1
 ExecStart=$goby_bin_dir/gobyd -C '$gen gobyd'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
