@@ -156,10 +156,10 @@ export function BotDetailsComponent(bot, api, mission) {
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
-        statusAgeClassName = 'red'
+        statusAgeClassName = 'healthFailed'
     }
     else if (statusAge > 10) {
-        statusAgeClassName = 'yellow'
+        statusAgeClassName = 'healthDegraded'
     }
 
     // Active Goal
@@ -183,7 +183,7 @@ export function BotDetailsComponent(bot, api, mission) {
     return (
     <div id="botDetailsComponent">
         <h2 className="name">{`Bot ${bot?.botId}`}</h2>
-        <div className='horizontal flexbox'>
+        <div className='HorizontalFlexbox'>
         <table id="botDetailsTable">
             <tbody>
                 <tr>
