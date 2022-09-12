@@ -479,7 +479,7 @@ double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& 
 /**
  * @brief Correcting heading After addition of Magnetic Declination
  * 
- * @param heading Heading with Addiction of Magnetic Declination
+ * @param heading Heading with Addition of Magnetic Declination
  * @return boost::units::quantity<boost::units::degree::plane_angle> Corrected Heading 
  */
 boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion::corrected_heading(
