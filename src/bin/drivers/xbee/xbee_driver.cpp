@@ -92,7 +92,13 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
 
-    device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(), encode_modem_id(driver_cfg_.modem_id()));
+    auto network_id = driver_cfg_.GetExtension(xbee::protobuf::config).network_id();
+
+    device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
+                    encode_modem_id(driver_cfg_.modem_id()), network_id);
+
+    for (auto peer : driver_cfg_.GetExtension(xbee::protobuf::config).peers())
+    { device_.add_peer(peer.node_id(), peer.serial_number()); }
 }
 
 void goby::acomms::XBeeDriver::shutdown()
