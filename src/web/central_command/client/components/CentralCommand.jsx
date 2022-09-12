@@ -311,6 +311,33 @@ export default class CentralCommand extends React.Component {
 
 		const { chartLayerCollection } = this.state;
 
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'NOAA ENC Charts',
+				//type: 'base',
+				opacity: 0.7,
+				zIndex: 20,
+				source: this.state.noaaEncSource,
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'GEBCO Bathymetry',
+				zIndex: 10,
+				opacity: 0.7,
+				source: new OlTileWMS({
+					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+					serverType: 'mapserver',
+					projection: 'EPSG:4326'
+				}),
+				wrapX: false
+			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			chartLayerCollection.push(layer);
+		});
+
 		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Charts and Imagery',
 			layers: chartLayerCollection,
@@ -333,26 +360,6 @@ export default class CentralCommand extends React.Component {
 				type: 'base',
 				zIndex: 1,
 				source: new OlSourceOsm(),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				//type: 'base',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
 				wrapX: false
 			})
 		].forEach((layer) => {
@@ -1059,27 +1066,7 @@ export default class CentralCommand extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		/*
-		$('.panelsContainerVertical').sortable({
-			handle: 'h2',
-			placeholder: 'sortable-placeholder'
-		});
-		*/
 		$('.panel > h2').disableSelection();
-		// } else {
-		//   $('#engineeringPanel').hide();
-		// }
-
-		/*
-		map.on('pointermove', (event) => {
-			this.setState({
-				cursorLocation: {
-					latitude: event.coordinate[1],
-					longitude: event.coordinate[0]
-				}
-			});
-		});
-		*/
 
 		map.getView().on('change:resolution', () => {
 			this.setState({
@@ -1088,8 +1075,8 @@ export default class CentralCommand extends React.Component {
 		});
 
 		/*
-				This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-				*/
+		This needs to be called whenever liveCommand is updated externally, but NOT in the render method
+		*/
 
 		const { controlSpeed } = this.state;
 		$('#speedSlider').slider({
@@ -1103,7 +1090,6 @@ export default class CentralCommand extends React.Component {
 		});
 
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-		// $('input').checkboxradio();
 
 		$('button').disableSelection();
 
@@ -1169,7 +1155,7 @@ export default class CentralCommand extends React.Component {
 			map.getView().fit(vectorSource.getExtent());
 		});
 
-		info('Welcome to Central Command!');
+		info('Welcome to JaiaBot Command & Control!');
 	}
 
 	componentDidUpdate(prevProps, prevState, snapshot) {
@@ -1752,7 +1738,6 @@ export default class CentralCommand extends React.Component {
 				<div id="viewControls">
 					<button
 						type="button"
-						id="mapLayersButton"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
 							$('#mapLayersButton').toggleClass('active');
@@ -1819,30 +1804,8 @@ export default class CentralCommand extends React.Component {
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
 						</button>
 					)}
-					{trackingTarget === 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
-							<FontAwesomeIcon icon={faCrosshairs} />
-						</button>
-					) : (
-						this.clientLocation.isValid ? (
-							<button
-								type="button"
-								onClick={() => {
-									this.trackBot('user');
-								}}
-								title="Follow User"
-							>
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						) : (
-							<button type="button" className="inactive" title="Follow User">
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						)
-					)}
 
 					{surveyPolygonActive ? (
-						<div>
 							<button
 								type="button"
 								className="active"
@@ -1854,7 +1817,6 @@ export default class CentralCommand extends React.Component {
 							>
 								<FontAwesomeIcon icon={faEdit} />
 							</button>
-						</div>
 					) : (
 						<button
 							type="button"
@@ -1874,10 +1836,15 @@ export default class CentralCommand extends React.Component {
 						<FontAwesomeIcon icon={faWrench} />
 					</button>
 
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
+
 				</div>
 
 				<div id="botsDrawer">
-					<img className="jaia-logo" src="/favicon.png"></img>
 					{this.botsList()}
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
@@ -2388,42 +2355,40 @@ export default class CentralCommand extends React.Component {
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<div id="globalCommandBox">
-					<button type="button" className="globalCommand" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-						STOP
-					</button>
-					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-						<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
-					</button>
-					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
-						<Icon path={mdiPlay} title="Run Mission"/>
-					</button>
-					<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
-						Set<br />Home
-					</button>
-					<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-						Go<br />Home
-					</button>
-					<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
-						<Icon path={mdiFolderOpen} title="Load Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
-						<Icon path={mdiContentSave} title="Save Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-						RC
-					</button>
-					<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-						Dive
-					</button>
-					<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
-						Flag
-					</button>
-					<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
-						<Icon path={mdiDelete} title="Clear Mission"/>
-					</button>
-					{ this.undoButton() }
-				</div>
+				<button id= "activate-all-bots" type="button" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
+					<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
+				</button>
+				<button type="button" title="RC Mode" onClick={this.runRCMode.bind(this)}>
+					RC<br />Mode
+				</button>
+				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
+					RC<br />Dive
+				</button>
+				<button type="button" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
+					Set<br />Home
+				</button>
+				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
+					Go<br />Home
+				</button>
+				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+					STOP<br />ALL
+				</button>
+				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
+				</button>
+				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+					<Icon path={mdiFolderOpen} title="Load Mission"/>
+				</button>
+				<button type="button" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+					<Icon path={mdiContentSave} title="Save Mission"/>
+				</button>
+				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
+					<Icon path={mdiDelete} title="Clear Mission"/>
+				</button>
+				{ this.undoButton() }
+				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
+					Flag
+				</button>
 			</div>
 
 		)
