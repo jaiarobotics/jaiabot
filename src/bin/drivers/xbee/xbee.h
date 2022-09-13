@@ -56,7 +56,8 @@ class XBeeDevice
 {
   public:
     XBeeDevice();
-    void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id);
+    void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
+                 const uint16_t network_id);
     void shutdown();
 
     vector<NodeId> get_peers();
@@ -70,6 +71,9 @@ class XBeeDevice
     static const NodeId broadcast;
 
     uint16_t max_payload_size;
+
+    // Adding a peer to the lookup table
+    void add_peer(const NodeId node_id, const SerialNumber serial_number);
 
   private:
     static const SerialNumber broadcast_serial_number;
