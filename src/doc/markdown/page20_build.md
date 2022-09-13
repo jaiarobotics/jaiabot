@@ -8,11 +8,11 @@ The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
 
-When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/focal/amd64/Dockerfile):
+When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/focal/amd64/Dockerfile):
 
 ```
-# add packages.gobysoft.org to your apt sources
-echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+# add mirror of packages.gobysoft.org to your apt sources
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 # update apt
@@ -90,11 +90,11 @@ When the developer is working on a new feature or fixing a bug, he or she *branc
 
 ### After the pull request is merged
 
-Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "main" branch (`1.y` in our case). After review (using the GitHub UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.gobysoft.org. At this point, they can be installed using `apt` onto any system with that repository installed:
+Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "main" branch (`1.y` in our case). After review (using the GitHub UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.jaia.tech. At this point, they can be installed using `apt` onto any system with that repository installed:
 
 ```
-# add packages.gobysoft.org to your apt sources
-echo "deb http://packages.gobysoft.org/ubuntu/release/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+# add mirror of packages.gobysoft.org to your apt sources
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 # add packages.jaia.tech to your apt sources
@@ -211,6 +211,26 @@ gpg -a --export-secret-keys 954A004CD5D8CF32 | cat -e | sed 's/\$/\\n/g'
 
 The resulting contents was copied into Circle CI [private environmental variable configuration](https://app.circleci.com/settings/project/github/jaiarobotics/jaiabot/environment-variables) and called "GPG_KEY" (which is later used by `jaiabot/.circleci/config.yml`).
 
+### packages.gobysoft.org mirror
+
+To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc.) that can be manually updated as necessary.
+
+```
+sudo apt install apt-mirror
+```
+
+I copied `gobysoft-apt-mirror-1.y.list` from `jaiabot/scripts/packages` to `/opt/jaia_packages` on packages.jaia.tech.
+
+#### Create/update the mirror
+
+Run `apt-mirror`:
+```
+sudo apt-mirror /opt/jaia_packages/gobysoft-apt-mirror-1.y.list
+```
+
+which creates the mirror in `/var/spool/apt-mirror/1.y/mirror/packages.gobysoft.org`.
+
+I symlinked `/var/spool/apt-mirror/1.y/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/1.y`
 
 
 ## Cross-compiling locally using Docker

@@ -1,14 +1,34 @@
-FROM gobysoft/goby3-ubuntu-build-arm64:20.04.1
+FROM ubuntu:focal
+
+SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update apt-key (out of date in goby3-ubuntu-build-arm64)
-RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+ENV CROSS_COMPILE_ARCHS "arm64 armhf"
 
-# Add packages.jaia.tech
-RUN apt-get update && apt-get -y install dirmngr && \
-    echo "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
-    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y --no-install-recommends install \
+            git build-essential ssh cmake gpg gpg-agent \
+            devscripts equivs ca-certificates quilt \
+            clang clang-tools dirmngr\
+            dput \
+            && rm -rf /var/lib/apt/lists/*
+
+# Allow us to install packages for cross-compiling architectures
+RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
+    ARCHS_LIST=$(IFS=,; echo "${ARCHS[*]}") && \
+    for ARCH in "${ARCHS[@]}"; do dpkg --add-architecture "$ARCH"; done && \
+    sed -i 's/deb /deb [arch=amd64] /' /etc/apt/sources.list && \
+    egrep "^deb " /etc/apt/sources.list | sed "s/amd64/${ARCHS_LIST}/" \
+        | sed 's|http://.*.ubuntu.com/ubuntu/|http://ports.ubuntu.com/|' \
+        >> /etc/apt/sources.list
+
+# Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
+RUN echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+
 
 # Install jaiabot dependencies
 RUN apt-get update && \
@@ -31,7 +51,6 @@ RUN apt-get update && \
             npm:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
-
 
 
 # Allow compilation of this directory, even if it's owned by someone else, not root
