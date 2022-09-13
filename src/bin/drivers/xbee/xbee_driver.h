@@ -37,6 +37,8 @@
 #include "goby/acomms/modemdriver/driver_base.h" // for ModemDriverBase
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
 
+#include "config.pb.h" // For our custom config
+
 extern "C"
 {
     const char* goby_driver_name();
