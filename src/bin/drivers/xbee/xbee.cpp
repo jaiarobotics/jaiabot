@@ -14,11 +14,6 @@ using namespace boost::asio;
 using namespace boost::endian;
 using xbee::protobuf::XBeePacket;
 
-// Node ID broadcast timeout
-
-const std::time_t node_id_broadcast_timeout = 10; // Don't broadcast our node_id within N seconds of a previous broadcast, to avoid back-and-forth loops
-std::time_t last_node_id_broadcast_time = 0;
-
 // Frame types
 
 const byte frame_type_at_command_response = 0x88;
@@ -77,10 +72,12 @@ XBeeDevice::XBeeDevice()
 }
 
 void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
-                         const std::string& _my_node_id, const uint16_t network_id)
+                         const std::string& _my_node_id, const uint16_t network_id,
+                         const bool p_should_discover_peers)
 {
     my_node_id = _my_node_id;
-    
+    should_discover_peers = p_should_discover_peers;
+
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
 
@@ -345,14 +342,14 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "SH") {
         assert(response->command_status == 0);
-        uint32_t upper_serial_number = *((uint32_t *)&response->command_data_start);
-        my_serial_number |= (SerialNumber)upper_serial_number;
+        uint32_t upper_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
+        my_serial_number |= ((SerialNumber)upper_serial_number << 32);
     }
 
     if (at_command == "SL") {
         assert(response->command_status == 0);
-        uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
-        my_serial_number |= ((SerialNumber) lower_serial_number << 32);
+        uint32_t lower_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
+        my_serial_number |= ((SerialNumber)lower_serial_number);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
 
         // Broadcast our node_id, and request everyone else's node_id
@@ -438,7 +435,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
         glog.is_debug1() && glog << "Parsed packet of length " << serialized_packet.length()
                                  << endl;
 
-        if (packet.has_xbee_address_entry())
+        if (packet.has_xbee_address_entry() && should_discover_peers)
         {
             auto xbee_address_entry = packet.xbee_address_entry();
             auto node_id = xbee_address_entry.node_id();
@@ -479,10 +476,12 @@ vector<string> XBeeDevice::get_packets() {
 
 string api_transmit_request(const SerialNumber& dest, const byte frame_id, const byte* ptr, const size_t length) {
     auto data_string = string((const char *) ptr, length);
-    auto serial_number_string = string((const char *)&dest, sizeof(SerialNumber));
+    auto dest_big_endian = native_to_big(dest);
+    auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
     glog.is_debug2() && glog << "   TX REQ for data:" << hexadecimal(data_string) << endl;
-    glog.is_debug2() && glog << "   dest: " << hexadecimal(serial_number_string) << endl;
-    string s = string("\x10") + string((char *) &frame_id, 1) + serial_number_string + string("\xff\xfe\x00\x00", 4) + data_string;
+    glog.is_debug2() && glog << "   dest: " << hexadecimal(dest_string) << endl;
+    string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
+               string("\xff\xfe\x00\x00", 4) + data_string;
     return s;
 }
 
@@ -515,6 +514,9 @@ void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet
 
 void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)
 {
+    if (!should_discover_peers)
+        return;
+
     auto packet = XBeePacket();
     auto xbee_address_entry = packet.mutable_xbee_address_entry();
     xbee_address_entry->set_node_id(my_node_id);
