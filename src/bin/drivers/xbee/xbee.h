@@ -57,7 +57,7 @@ class XBeeDevice
   public:
     XBeeDevice();
     void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
-                 const uint16_t network_id);
+                 const uint16_t network_id, const bool should_discover_peers);
     void shutdown();
 
     vector<NodeId> get_peers();
@@ -88,6 +88,8 @@ class XBeeDevice
     NodeId my_node_id;
     SerialNumber my_serial_number;
     byte frame_id;
+
+    bool should_discover_peers = false;
 
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
