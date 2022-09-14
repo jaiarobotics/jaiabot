@@ -354,18 +354,13 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "SH") {
         assert(response->command_status == 0);
-        glog.is_verbose() && glog << "before big_to_native" << endl;
         uint32_t upper_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
-        glog.is_verbose() && glog << "after big_to_native" << endl;
         my_serial_number |= ((SerialNumber)upper_serial_number << 32);
-        glog.is_verbose() && glog << "my_serial_number" << endl;
     }
 
     if (at_command == "SL") {
         assert(response->command_status == 0);
-        glog.is_verbose() && glog << "before big_to_native" << endl;
         uint32_t lower_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
-        glog.is_verbose() && glog << "after big_to_native" << endl;
         my_serial_number |= ((SerialNumber)lower_serial_number);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
 
@@ -379,10 +374,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     }
 
     if (at_command == "NP") {
-        glog.is_verbose() && glog << "before big_to_native" << endl;
         max_payload_size = big_to_native(*((uint16_t *) &response->command_data_start));
-        glog.is_verbose() && glog << "after big_to_native" << endl;
-        glog.is_verbose() && glog << "Maximum payload: " << max_payload_size << " bytes" << endl;
         return;
     }
 
@@ -536,10 +528,8 @@ void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet
 
 void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)
 {
-    glog.is_verbose() && glog << "Enter send_node_id()" << endl;
     if (!should_discover_peers)
     {
-        glog.is_verbose() && glog << "Exit send_node_id()" << endl;
         return;
     }
 
@@ -549,7 +539,6 @@ void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_
     xbee_address_entry->set_serial_number(my_serial_number);
     packet.set_xbee_address_entry_request(xbee_address_entry_request);
     _send_packet(dest, packet);
-    glog.is_verbose() && glog << "Exit send_node_id()" << endl;
 }
 
 void XBeeDevice::send_packet(const SerialNumber& dest, const string& data)

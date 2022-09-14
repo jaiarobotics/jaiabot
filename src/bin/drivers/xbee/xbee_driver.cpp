@@ -87,28 +87,19 @@ int32_t decode_modem_id(const string& modem_id) {
 
 void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 {
-    glog.is_verbose() && glog << "Enter XBeeDriver::startup" << endl;
     driver_cfg_ = cfg;
 
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
-    glog.is_verbose() && glog << "config_extension" << endl;
     auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
-    glog.is_verbose() && glog << "network_id" << endl;
     auto network_id = config_extension.network_id();
-    glog.is_verbose() && glog << "discover_peers" << endl;
     auto discover_peers = config_extension.discover_peers();
 
-    glog.is_verbose() && glog << "discover_peers: " << discover_peers << endl;
-
-    glog.is_verbose() && glog << "Before device_.startup " << endl;
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, discover_peers);
-    glog.is_verbose() && glog << "After device_.startup " << endl;
 
     for (auto peer : config_extension.peers())
     { device_.add_peer(peer.node_id(), peer.serial_number()); }
-    glog.is_verbose() && glog << "Exit XBeeDriver::startup" << endl;
 }
 
 void goby::acomms::XBeeDriver::shutdown()
