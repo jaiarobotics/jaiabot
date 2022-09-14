@@ -340,8 +340,6 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     assert(response->frame_type == frame_type_at_command_response);
     string at_command = string((char *) &response->at_command, 2);
 
-    glog.is_verbose() && glog << "Process Frame Command" << endl;
-
     if (at_command == "SH") {
         assert(response->command_status == 0);
         uint32_t upper_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
