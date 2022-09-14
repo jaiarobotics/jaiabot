@@ -75,18 +75,12 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
                          const std::string& _my_node_id, const uint16_t network_id,
                          const bool p_should_discover_peers)
 {
-    glog.is_verbose() && glog << "XBeeDevice Startup" << endl;
     my_node_id = _my_node_id;
-    glog.is_verbose() && glog << "Node id: " << my_node_id << endl;
     should_discover_peers = p_should_discover_peers;
-    glog.is_verbose() && glog << "should_discover_peers: " << should_discover_peers << endl;
 
     port->open(port_name);
-    glog.is_verbose() && glog << "Port: " << port_name << endl;
     port->set_option(serial_port_base::baud_rate(baud_rate));
-    glog.is_verbose() && glog << "baud_rate: " << baud_rate << endl;
 
-    glog.is_verbose() && glog << "Enter Command Mode" << endl;
     // Setup the modem
     enter_command_mode();
 
@@ -130,15 +124,11 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     }
 
     exit_command_mode();
-    glog.is_verbose() && glog << "Exit Command Mode" << endl;
 
-    glog.is_verbose() && glog << "Maximum Payload Size function" << endl;
     get_maximum_payload_size();
 
-    glog.is_verbose() && glog << "Get my serial number function" << endl;
     get_my_serial_number();
 
-    glog.is_verbose() && glog << "Do work function" << endl;
     do_work();
 
     return;
@@ -375,6 +365,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "NP") {
         max_payload_size = big_to_native(*((uint16_t *) &response->command_data_start));
+        glog.is_verbose() && glog << "Maximum payload: " << max_payload_size << " bytes" << endl;
         return;
     }
 
@@ -446,7 +437,6 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
         glog.is_debug1() && glog << "Parsed packet of length " << serialized_packet.length()
                                  << endl;
 
-        glog.is_verbose() && glog << "process_frame_receive_packet()" << endl;
         if (packet.has_xbee_address_entry() && should_discover_peers)
         {
             auto xbee_address_entry = packet.xbee_address_entry();
@@ -487,7 +477,6 @@ vector<string> XBeeDevice::get_packets() {
 
 
 string api_transmit_request(const SerialNumber& dest, const byte frame_id, const byte* ptr, const size_t length) {
-    glog.is_verbose() && glog << "Enter api_transmit_request()" << endl;
     auto data_string = string((const char *) ptr, length);
     auto dest_big_endian = native_to_big(dest);
     auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
@@ -495,7 +484,6 @@ string api_transmit_request(const SerialNumber& dest, const byte frame_id, const
     glog.is_debug2() && glog << "   dest: " << hexadecimal(dest_string) << endl;
     string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
                string("\xff\xfe\x00\x00", 4) + data_string;
-    glog.is_verbose() && glog << "Exit api_transmit_request()" << endl;
     return s;
 }
 

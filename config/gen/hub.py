@@ -31,7 +31,7 @@ templates_dir=common.jaia_templates_dir
 liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_load.pb.cfg.in')
 
 verbosities = \
-{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_logger':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
