@@ -139,7 +139,7 @@ void goby::acomms::XBeeDriver::do_work() {
 
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
-
+        device_.query_rssi();
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -147,8 +147,9 @@ void goby::acomms::XBeeDriver::do_work() {
         protobuf::ModemTransmission msg;
         msg.ParseFromArray(&packet[0], packet.size());
 
-        glog.is_debug1() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                << " bytes from " << msg.src() << std::endl;
+        glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
+                                 << " bytes from " << msg.src() << " RSSI value "
+                                 << device_.get_rssi() << std::endl;
 
         receive_message(msg);
     }

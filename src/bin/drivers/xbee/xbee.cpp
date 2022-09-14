@@ -130,6 +130,8 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
 
     get_maximum_payload_size();
 
+    query_rssi();
+
     get_my_serial_number();
 
     do_work();
@@ -177,6 +179,16 @@ void XBeeDevice::get_maximum_payload_size() {
     write(frame_data(cmd));
     frame_id++;
 }
+
+void XBeeDevice::query_rssi()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("DB");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+uint16_t XBeeDevice::get_rssi() { return rssi; }
 
 void XBeeDevice::get_my_serial_number() {
     string cmd = string("\x08") + *((char *) &frame_id) + string("SH");
@@ -371,6 +383,11 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         return;
     }
 
+    if (at_command == "DB")
+    {
+        rssi = *((uint16_t*)&response->command_data_start);
+        glog.is_verbose() && glog << "Received RSSI: " << rssi << endl;
+    }
 }
 
 

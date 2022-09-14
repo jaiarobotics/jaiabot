@@ -75,6 +75,11 @@ class XBeeDevice
     // Adding a peer to the lookup table
     void add_peer(const NodeId node_id, const SerialNumber serial_number);
 
+    // Get RSSI
+    uint16_t get_rssi();
+    // Query RSSI from Radio
+    void query_rssi();
+
   private:
     static const SerialNumber broadcast_serial_number;
     
@@ -133,6 +138,8 @@ class XBeeDevice
     // Processing queued packets
     void flush_packets_for_node(const NodeId& node_id);
 
+    // RSSI value
+    uint16_t rssi = 0;
 };
 #endif
 
