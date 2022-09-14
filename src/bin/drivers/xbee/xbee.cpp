@@ -353,10 +353,11 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         assert(response->command_status == 0);
         uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
         my_serial_number |= ((SerialNumber) lower_serial_number << 32);
+
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
 
         // Broadcast our node_id, and request everyone else's node_id
-        send_node_id(broadcast_serial_number, true);
+        //send_node_id(broadcast_serial_number, true);
     }
 
     if (at_command == "CB") {
