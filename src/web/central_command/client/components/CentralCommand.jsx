@@ -2502,7 +2502,7 @@ export default class CentralCommand extends React.Component {
 
 		let bots = Object.values(this.podStatus?.bots ?? {})
 		let hubs = Object.values(this.podStatus?.hubs ?? {})
-
+		
 		function compare_by_hubId(hub1, hub2) {
 			return hub1.hubId - hub2.hubId
 		}
@@ -2554,6 +2554,8 @@ export default class CentralCommand extends React.Component {
 			let selected = self.isBotSelected(botId) ? 'selected' : ''
 			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
 
+			//For now we are naming HUB, HUB with no id
+			//In the future we will have to revisit this
 			return (
 				<div
 					key={key}
@@ -2562,7 +2564,7 @@ export default class CentralCommand extends React.Component {
 					}
 					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
 				>
-					{botId ?? hubId}
+					{botId ?? "HUB"} 
 				</div>
 			);
 		}
