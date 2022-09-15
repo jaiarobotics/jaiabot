@@ -19,6 +19,7 @@ using xbee::protobuf::XBeePacket;
 const byte frame_type_at_command_response = 0x88;
 const byte frame_type_extended_transmit_status = 0x8b;
 const byte frame_type_receive_packet = 0x90;
+const byte frame_type_explicit_rx_indicator = 0x91;
 
 // Utilities
 
@@ -333,6 +334,9 @@ void XBeeDevice::process_frame() {
             process_frame_at_command_response(response_string);
             break;
         case frame_type_receive_packet: process_frame_receive_packet(response_string); break;
+        case frame_type_explicit_rx_indicator:
+            process_frame_explicit_rx_indicator(response_string);
+            break;
         default:
             cout << "Unknown frame_type = " << (int) frame_type << endl;
             break;
@@ -484,6 +488,55 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
     }
 }
 
+void XBeeDevice::process_frame_explicit_rx_indicator(const string& response_string)
+{
+    glog.is_debug1() && glog << "Packet frame explicit_rx_indicator" << endl;
+    struct Rx_Indicator
+    {
+        byte frame_type;
+        byte src[8];
+        byte reserved[2];
+        byte src_endpoint;
+        byte dst_endpoint;
+        byte cluster_id[2];
+        byte profile_id[2];
+        byte options;
+        byte dest_address[8];
+        byte payload_size[2];
+        byte iterations[2];
+        byte success[2];
+        byte retries[2];
+        byte result;
+        byte RR;
+        byte maxRSSI;
+        byte minRSSI;
+        byte avgRSSI;
+    };
+
+    auto response = (const Rx_Indicator*)response_string.c_str();
+    auto response_size = response_string.size();
+    string src = string((char*)&response->src, 8);
+    string dst = string((char*)&response->dest_address, 8);
+    string payload_size = string((char*)&response->payload_size, 2);
+    string iterations = string((char*)&response->iterations, 2);
+    string success = string((char*)&response->success, 2);
+    string result = string((char*)&response->result, 2);
+
+    assert(response->frame_type == 0x91);
+
+    glog.is_debug2() &&
+        glog << "frame_type = " << (int)response->frame_type << ", src = " << hexadecimal(src)
+             << ", dest_address = " << hexadecimal(dst)
+             << ", payload_size = " << std::atoi(hexadecimal(payload_size).c_str())
+             << ", iterations = " << std::atoi(hexadecimal(iterations).c_str())
+             << ", success = " << std::atoi(hexadecimal(success).c_str())
+             << ", retries = " << std::atoi(hexadecimal(result).c_str())
+             << ", result = " << std::atoi(hexadecimal(result).c_str())
+             << ", RR = " << (int)response->RR << ", maxRSSI = " << (int)response->maxRSSI
+             << ", minRSSI = " << (int)response->minRSSI << ", avgRSSI = " << (int)response->avgRSSI
+             << endl;
+}
+
 vector<string> XBeeDevice::get_packets() {
     auto packets = received_packets;
     received_packets.clear();
@@ -500,6 +553,59 @@ string api_transmit_request(const SerialNumber& dest, const byte frame_id, const
     string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
                string("\xff\xfe\x00\x00", 4) + data_string;
     return s;
+}
+
+// Example:
+// Start Delimeter 7E //Set in Frame Data function
+// Length          0020 //Set in Frame Data function
+// Frame Type      11
+// Frame ID        01
+// Destination     0013A20040521234
+// Reserved        FFFE
+// Source Endpoint E6
+// Dest Endpoint   E6
+// Cluster ID      0014
+// Profile ID      C105
+// Broadcast rad   00
+// Transmit opts   00
+// Command data
+//Destination   0013A2004052ABCD // This device
+//Payload size  0028 //40 decimal
+//Iterations    03E8 //1000 packets to send
+// Checksum        EB //Set in Frame Data function
+string api_explicit_transmit_request(const SerialNumber& dest, const SerialNumber& com_dest,
+                                     const byte frame_id)
+{
+    auto dest_big_endian = native_to_big(dest);
+    auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
+    auto com_dest_big_endian = native_to_big(com_dest);
+    auto com_dest_string = string((const char*)&com_dest_big_endian, sizeof(com_dest_big_endian));
+    glog.is_debug2() && glog << "   Explicit TX REQ for data:" << endl;
+    glog.is_debug2() && glog << "   dest: " << hexadecimal(dest_string) << endl;
+    glog.is_debug2() && glog << "   command dest: " << hexadecimal(com_dest_string) << endl;
+    string frame_type = string("\x11", 1);
+    string frame_id_str = string((char*)&frame_id, 1);
+    string frame_dest = dest_string;
+    string frame_reserved = string("\xff\xfe", 2);
+    string frame_src_endpoint = string("\xe6", 1);
+    string frame_dst_endpoint = string("\xe6", 1);
+    string frame_cluster_id = string("\x00\x14", 2);
+    string frame_profile_id = string("\xc1\x05", 2);
+    string frame_broad_rad = string("\x00", 1);
+    string frame_trans_opt = string("\x00", 1);
+    string frame_com_dest = com_dest_string;           // command destination
+    string frame_com_pay_size = string("\x00\x28", 2); // 40 bytes
+    string frame_com_iters =
+        string("\x03\xE8", 2); // 0x0064 100 packets to send 0x03E8 1000 packets to send
+
+    string explicit_trans_frame = frame_type + frame_id_str + frame_dest + frame_reserved +
+                                  frame_src_endpoint + frame_dst_endpoint + frame_cluster_id +
+                                  frame_profile_id + frame_broad_rad + frame_trans_opt +
+                                  frame_com_dest + frame_com_pay_size + frame_com_iters;
+
+    glog.is_debug2() && glog << "   Explicit Frame: " << hexadecimal(explicit_trans_frame) << endl;
+
+    return explicit_trans_frame;
 }
 
 SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id) {
@@ -527,6 +633,16 @@ void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet
         glog.is_warn() && glog << "Could not serialize packet for transmission:  "
                                << packet.ShortDebugString() << endl;
     }
+}
+
+// Test comms
+void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
+{
+    glog.is_debug2() && glog << "send_test_links: dest: " << get_serial_number(dest)
+                             << ", com dest: " << get_serial_number(com_dest) << endl;
+    write(frame_data(api_explicit_transmit_request(get_serial_number(dest),
+                                                   get_serial_number(com_dest), frame_id)));
+    frame_id++;
 }
 
 void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)

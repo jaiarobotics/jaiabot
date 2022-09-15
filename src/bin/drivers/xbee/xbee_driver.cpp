@@ -138,9 +138,36 @@ void goby::acomms::XBeeDriver::do_work() {
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto test_comms = config_extension.test_comms();
+    auto query_rssi = config_extension.query_rssi();
+    auto test_comm_period = config_extension.test_comm_period();
+
+    if (test_comms)
+    {
+        auto test_comms_dest_id = config_extension.test_comms_dest_id();
+        auto test_comms_com_dest_id = config_extension.test_comms_com_dest_id();
+        auto test_comms_time_now = goby::time::SteadyClock::now();
+
+        if (test_comm_last_sent_ + std::chrono::seconds(test_comm_period) < test_comms_time_now)
+        {
+            glog.is_debug2() && glog << group(glog_in_group())
+                                     << "Sending Test packet to node: " << test_comms_dest_id
+                                     << ", Command dest is set to node: " << test_comms_com_dest_id
+                                     << std::endl;
+            device_.send_test_links(encode_modem_id(test_comms_dest_id),
+                                    encode_modem_id(test_comms_com_dest_id));
+            test_comm_last_sent_ = test_comms_time_now;
+        }
+    }
+
+    if (query_rssi)
+    {
+        device_.query_rssi();
+    }
+
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
-        device_.query_rssi();
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -149,8 +176,7 @@ void goby::acomms::XBeeDriver::do_work() {
         msg.ParseFromArray(&packet[0], packet.size());
 
         glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                 << " bytes from " << msg.src() << " RSSI value "
-                                 << device_.get_rssi() << std::endl;
+                                 << " bytes from " << msg.src() << std::endl;
 
         receive_message(msg);
     }

@@ -63,6 +63,7 @@ class XBeeDevice
     vector<NodeId> get_peers();
 
     void send_packet(const NodeId& dest, const std::string& s);
+    void send_test_links(const NodeId& dest, const NodeId& com_dest);
 
     vector<string> get_packets();
 
@@ -136,6 +137,7 @@ class XBeeDevice
     void process_frame_at_command_response(const string& response_string);
     void process_frame_receive_packet(const string& response_string);
     void process_frame_node_identification_indicator(const string& response_string);
+    void process_frame_explicit_rx_indicator(const string& response_string);
 
     // Processing queued packets
     void flush_packets_for_node(const NodeId& node_id);
