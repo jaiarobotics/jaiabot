@@ -36,8 +36,6 @@
 
 #include "goby/acomms/modemdriver/driver_base.h" // for ModemDriverBase
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
-#include "goby/time/steady_clock.h"              // for SteadyClock
-#include "goby/time/system_clock.h"              // for SystemClock
 
 #include "config.pb.h" // For our custom config
 
@@ -91,7 +89,6 @@ class XBeeDriver : public ModemDriverBase
     std::set<unsigned> application_ack_ids_;
 
     std::uint32_t next_frame_{0};
-    goby::time::SteadyClock::time_point test_comm_last_sent_{std::chrono::seconds(0)};
 };
 } // namespace acomms
 } // namespace goby

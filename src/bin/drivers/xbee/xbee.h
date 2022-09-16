@@ -76,10 +76,8 @@ class XBeeDevice
     // Adding a peer to the lookup table
     void add_peer(const NodeId node_id, const SerialNumber serial_number);
 
-    // Get RSSI
-    uint16_t get_rssi();
-    // Query RSSI from Radio
-    void query_rssi();
+    // Get Diagnostics
+    void send_diagnostic_commands();
 
   private:
     static const SerialNumber broadcast_serial_number;
@@ -142,8 +140,41 @@ class XBeeDevice
     // Processing queued packets
     void flush_packets_for_node(const NodeId& node_id);
 
-    // RSSI value
+    // Query RSSI from Radio
+    void query_rssi();
+    // Query Received Error Count
+    void query_er();
+    // Query Received Good Count
+    void query_gd();
+    // Query Bytes Transmitted
+    void query_bc();
+    // Query Transmission Failure Count
+    void query_tr();
+
+    bool received_rssi = false;
+    bool received_er = false;
+    bool received_gd = false;
+    bool received_bc = false;
+    bool received_tr = false;
+
+    // RSSI fields
     uint16_t rssi = 0;
+    int rssi_query_count = 1;
+    uint16_t max_rssi = 0;
+    uint16_t min_rssi = 150;
+    uint16_t average_rssi = 0;
+
+    // Bytes Transmitted
+    uint32_t bytes_transmitted = 0;
+
+    // Received Error Count
+    uint16_t received_error_count = 0;
+
+    // Received Good Count
+    uint16_t received_good_count = 0;
+
+    // Transmission Failure Count
+    uint16_t transimission_failure_count = 0;
 };
 #endif
 

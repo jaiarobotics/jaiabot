@@ -16,10 +16,6 @@ message Config
     optional bool discover_peers = 3 [default = false];
     repeated Peer peers = 2;
     optional bool test_comms = 4 [default = false];
-    optional int32 test_comms_dest_id = 5 [default = 1];
-    optional int32 test_comms_com_dest_id = 6 [default = 2];
-    optional bool query_rssi = 7 [default = false];
-    optional uint32 test_comm_period = 8 [default = 10];
 }
 
 
