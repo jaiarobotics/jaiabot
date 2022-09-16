@@ -8,6 +8,7 @@ import os
 from common import config
 from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
+from pathlib import Path
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -25,6 +26,7 @@ except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
+Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
