@@ -182,7 +182,7 @@ textarea {
         border: 1px solid white;
         .bgcolor(@good-color);
         border-radius: 20pt;
-        font-size: 20pt;
+        font-size: 17pt;
         height: 40pt;
         line-height: 38pt;
         width: 40pt;
@@ -261,7 +261,8 @@ textarea {
     max-width: 20em;
     height: auto;
     width: auto;
-    background: @overlay-background;
+    background: @cc-text-color;
+    border: 2px dashed @cc-background-color;
     color: white;
 
     padding: @layout-margin 1em 0 0;
@@ -269,7 +270,13 @@ textarea {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
-    font-size: 15px;
+
+    button {
+      min-width: 10px;
+      min-height: 10px;
+      height: auto;
+      width: auto;
+    }
 
     > ul:before {
       content: "Map Layers";
@@ -280,6 +287,7 @@ textarea {
 
     ul {
       padding-left: 1em;
+      padding-right: 1em;
       padding-bottom: @layout-margin;
       list-style: none;
     }
@@ -361,22 +369,6 @@ textarea {
         transform: rotate(45deg);
         -webkit-transform: rotate(45deg);
       }
-
-      /*
-      input[type="radio"]:checked + label:after {
-        display: block;
-        position: absolute;
-        top: @layout-margin;
-        left: @layout-margin;
-        content: " ";
-        background: black;
-        border-radius: 50%;
-        margin-top: 0.2em;
-        margin-left: 0.23em;
-        width: 0.6em;
-        height: 0.6em;
-      }
-      */
     }
 
     label.disabled {
