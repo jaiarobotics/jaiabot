@@ -125,6 +125,7 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     }
 
     {
+        // Set modem API options to 0 (not explicit frames)
         stringstream cmd;
         cmd << "ATAO=0" << '\r';
         write(cmd.str());
@@ -174,7 +175,7 @@ void XBeeDevice::shutdown() {
         assert_ok();
     }
     {
-        // Set API Options
+        // Set modem API options to 0 (not explicit frames)
         stringstream cmd;
         cmd << "ATAO=0\r";
         write(cmd.str());
