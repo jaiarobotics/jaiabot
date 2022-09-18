@@ -192,6 +192,23 @@ void XBeeDevice::get_maximum_payload_size() {
     frame_id++;
 }
 
+/*
+DB (Last Packet RSSI)
+This command applies to the XBee/XBee-PRO SX RF Module.
+Reports the RSSI in -dBm of the last received RF data packet. DB returns a hexadecimal value for the -
+dBm measurement.
+For example, if DB returns 0x60, then the RSSI of the last packet received was -96 dBm.
+The RSSI measurement is accurate within ±2 dB from approximately -50 dBm down to sensitivity.
+DB only indicates the signal strength of the last hop. It does not provide an accurate quality
+measurement for a multihop link.
+If the XBee/XBee-PRO SX RF Module has been reset and has not yet received a packet, DB reports 0.
+This value is volatile—the value does not persist in the device's memory after a power-up sequence.
+
+Parameter range
+0x28 - 0x6E (-40 dBm to -110 dBm) [read-only]
+Default
+0
+*/
 void XBeeDevice::query_rssi()
 {
     // Send DB command
@@ -200,6 +217,20 @@ void XBeeDevice::query_rssi()
     frame_id++;
 }
 
+/*
+ER (Receive Count Error)
+
+This command applies to the XBee/XBee-PRO SX RF Module.
+This count increments when a device receives a packet that contains integrity errors of some sort.
+When the number reaches 0xFFFF, the firmware does not count further events.
+To reset the counter to any 16-bit value, append a hexadecimal parameter to the command. This
+value is volatile (the value does not persist in the device's memory after a power-up sequence).
+Occasionally random noise can cause this value to increment.
+
+The ER parameter is not reset by pin, serial port or cyclic sleep modes.
+Default
+N/A
+*/
 void XBeeDevice::query_er()
 {
     // Send DB command
@@ -208,6 +239,20 @@ void XBeeDevice::query_er()
     frame_id++;
 }
 
+/*
+GD (Good Packets Received)
+This command applies to the XBee/XBee-PRO SX RF Module.
+This count increments when a device receives a good frame with a valid MAC header on the RF
+interface. Received MAC ACK packets do not increment this counter. Once the number reaches 0xFFFF,
+it does not count further events.
+To reset the counter to any 16-bit unsigned value, append a hexadecimal parameter to the command.
+This value is volatile (the value does not persist in the device's memory after a power-up sequence).
+
+Parameter range
+0 - 0xFFFF
+Default
+N/A
+*/
 void XBeeDevice::query_gd()
 {
     // Send DB command
@@ -216,6 +261,21 @@ void XBeeDevice::query_gd()
     frame_id++;
 }
 
+/*
+BC (Bytes Transmitted)
+
+The number of RF bytes transmitted. The firmware counts bytes in every retry and retransmission. A
+packet includes not only the payload, but also the preamble, the MAC header, the network header, the
+application header, encryption overhead, and the CRC. The purpose of this count is to estimate
+battery life by tracking time spent performing transmissions.
+BC stops counting when it reaches a max value of 0xffffFFFF. But, you can reset the counter to any
+32-bit value—for example 0—by appending a hexadecimal parameter to the command.
+
+Parameter range
+0 - 0xFFFFFFFF
+Default
+N/A (0 after reset)
+*/
 void XBeeDevice::query_bc()
 {
     // Send DB command
@@ -224,6 +284,16 @@ void XBeeDevice::query_bc()
     frame_id++;
 }
 
+/*
+TR (Transmission Failure Count)
+This command applies to the XBee/XBee-PRO SX RF Module.
+This value is volatile—the value does not persist in the device's memory after a power-up sequence.
+
+Parameter range
+0 - 0xFFFF
+Default
+N/A
+*/
 void XBeeDevice::query_tr()
 {
     // Send DB command
@@ -365,7 +435,7 @@ void XBeeDevice::do_work() {
     if (received_rssi && received_er && received_gd && received_bc && received_tr)
     {
         glog.is_verbose() &&
-            glog << "Last RSSI: " << rssi << ", Average RSSI: " << average_rssi
+            glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
                  << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi
                  << ", bytes_transmitted: " << bytes_transmitted << " bytes"
                  << ", received_error_count: " << received_error_count
@@ -453,20 +523,20 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "DB")
     {
-        uint16_t rssi_tmp = *((uint16_t*)&response->command_data_start);
-        rssi += rssi_tmp;
-        average_rssi = rssi / rssi_query_count;
-        if (rssi_tmp > max_rssi)
+        current_rssi = *((uint16_t*)&response->command_data_start);
+        history_rssi += current_rssi;
+        average_rssi = history_rssi / rssi_query_count;
+        if (current_rssi > max_rssi)
         {
-            max_rssi = rssi_tmp;
+            max_rssi = current_rssi;
         }
-        if (rssi_tmp < min_rssi)
+        if (current_rssi < min_rssi)
         {
-            min_rssi = rssi_tmp;
+            min_rssi = current_rssi;
         }
-        glog.is_verbose() && glog << "Last RSSI: " << rssi << ", Average RSSI: " << average_rssi
-                                  << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi
-                                  << endl;
+        glog.is_debug3() && glog << "Current RSSI: " << current_rssi
+                                 << ", Average RSSI: " << average_rssi << ", Min RSSI: " << min_rssi
+                                 << ", Max RSSI: " << max_rssi << endl;
         rssi_query_count++;
         received_rssi = true;
     }
@@ -474,29 +544,29 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     if (at_command == "BC")
     {
         bytes_transmitted = *((uint32_t*)&response->command_data_start);
-        glog.is_verbose() && glog << "bytes_transmitted: " << bytes_transmitted << " bytes" << endl;
+        glog.is_debug3() && glog << "bytes_transmitted: " << bytes_transmitted << " bytes" << endl;
         received_bc = true;
     }
 
     if (at_command == "ER")
     {
         received_error_count = *((uint16_t*)&response->command_data_start);
-        glog.is_verbose() && glog << "received_error_count: " << received_error_count << endl;
+        glog.is_debug3() && glog << "received_error_count: " << received_error_count << endl;
         received_er = true;
     }
 
     if (at_command == "GD")
     {
         received_good_count = *((uint16_t*)&response->command_data_start);
-        glog.is_verbose() && glog << "received_good_count: " << received_good_count << endl;
+        glog.is_debug3() && glog << "received_good_count: " << received_good_count << endl;
         received_gd = true;
     }
 
     if (at_command == "TR")
     {
         transimission_failure_count = *((uint16_t*)&response->command_data_start);
-        glog.is_verbose() && glog << "transimission_failure_count: " << transimission_failure_count
-                                  << endl;
+        glog.is_debug3() && glog << "transimission_failure_count: " << transimission_failure_count
+                                 << endl;
         received_tr = true;
     }
 }

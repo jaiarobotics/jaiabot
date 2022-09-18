@@ -158,7 +158,8 @@ class XBeeDevice
     bool received_tr = false;
 
     // RSSI fields
-    uint16_t rssi = 0;
+    uint16_t current_rssi = 0;
+    uint16_t history_rssi = 0;
     int rssi_query_count = 1;
     uint16_t max_rssi = 0;
     uint16_t min_rssi = 150;
