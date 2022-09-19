@@ -324,7 +324,7 @@ jobs:
     working_directory: /tmp/bundle
     machine:
       image: ubuntu-2004:current
-    resource_class: arm
+    resource_class: arm.medium
     steps:
       - checkout
       - run:
