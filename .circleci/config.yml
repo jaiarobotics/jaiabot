@@ -175,7 +175,6 @@ job-template-deb-cross: &job-template-deb-cross
 job-template-upload: &job-template-upload
   <<: *job-template-amd64
   docker: *docker-base-light
-
   
 # which branches to run the Debian build and upload on
 filter-template-master-only: &filter-template-master-only
@@ -185,14 +184,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "packages"
+        - "apt-mirror"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "packages"
+        - "apt-mirror"
 
         
 ## Begin actual config
@@ -226,6 +225,11 @@ workflows:
           requires:
             - amd64-focal-deb-build
             - arm64-focal-deb-build
+
+      # bundle after each package upload
+      - bundle:
+          requires:
+            - upload          
 
 jobs:
 
@@ -316,3 +320,22 @@ jobs:
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
+  bundle:
+    working_directory: /tmp/bundle
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm
+    steps:
+      - checkout
+      - run:
+          name: Bundle package (to jaiabot/scripts/output)
+          command: |
+            cd jaiabot/scripts
+            sudo docker run --rm -v `pwd`:/work -w /work ubuntu:focal ./bundle_update.sh
+            cd output
+            export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
+            sudo tar cfv jaiabot_bundle_${NEW_VERSION}.tar *
+            sudo mkdir -p /tmp/bundle/result && sudo cp jaiabot_bundle_${NEW_VERSION}.tar /tmp/bundle/result
+      - store_artifacts:
+          path: /tmp/bundle/result
+
