@@ -40,5 +40,9 @@ apt-get -y install python3-pip
 pip3 wheel wheel -w .
 pip3 wheel -r /jaiabot/src/python/requirements.txt -w .
 
+# Generate ISO
+apt-get -y install genisoimage
+genisoimage -V updates -r -o ../jaiabot_updates.iso .
+
 # tar
-tar cfv jaiabot_bundle.tar .
+tar cfv ../jaiabot_updates.tar .
