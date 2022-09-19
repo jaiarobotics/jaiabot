@@ -36,7 +36,7 @@ dpkg-scanpackages . > Packages
 ## Don't install python3-pip until after the apt-get install download (to ensure all python .deb dependencies are included
 ## in previous steps)
 apt-get -y install python3-pip
-pip3 wheel -r /jaiabot/src/python/requirements.txt -w ${WORKING_DIR}
+pip3 wheel -r /jaiabot/src/python/requirements.txt -w .
 
 # tar
 tar cfv jaiabot_bundle.tar .
