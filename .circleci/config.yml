@@ -321,7 +321,7 @@ jobs:
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
   bundle:
-    working_directory: /tmp/bundle
+    working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2004:current
     resource_class: arm.medium
@@ -330,7 +330,7 @@ jobs:
       - run:
           name: Bundle package (to jaiabot/scripts/output)
           command: |
-            cd jaiabot/scripts
+            cd /tmp/bundle/jaiabot/scripts
             sudo docker run --rm -v `pwd`:/work -w /work ubuntu:focal ./bundle_update.sh
             cd output
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
