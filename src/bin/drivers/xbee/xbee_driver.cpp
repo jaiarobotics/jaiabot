@@ -138,9 +138,11 @@ void goby::acomms::XBeeDriver::do_work() {
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto test_comms = config_extension.test_comms();
+
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
-
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -148,10 +150,15 @@ void goby::acomms::XBeeDriver::do_work() {
         protobuf::ModemTransmission msg;
         msg.ParseFromArray(&packet[0], packet.size());
 
-        glog.is_debug1() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                << " bytes from " << msg.src() << std::endl;
+        glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
+                                 << " bytes from " << msg.src() << std::endl;
 
         receive_message(msg);
+
+        if (test_comms)
+        {
+            device_.send_diagnostic_commands();
+        }
     }
 }
 

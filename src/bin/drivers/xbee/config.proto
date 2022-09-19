@@ -15,6 +15,7 @@ message Config
     optional uint64 network_id = 1 [default = 7];
     optional bool discover_peers = 3 [default = false];
     repeated Peer peers = 2;
+    optional bool test_comms = 4 [default = false];
 }
 
 
