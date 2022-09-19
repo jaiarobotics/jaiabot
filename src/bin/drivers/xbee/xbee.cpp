@@ -525,21 +525,25 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     if (at_command == "DB")
     {
         current_rssi = *((uint16_t*)&response->command_data_start);
-        history_rssi += current_rssi;
-        average_rssi = history_rssi / rssi_query_count;
-        if (current_rssi > max_rssi)
+
+        if (current_rssi >= 40 && current_rssi <= 110)
         {
-            max_rssi = current_rssi;
+            history_rssi += current_rssi;
+            average_rssi = history_rssi / rssi_query_count;
+            if (current_rssi > max_rssi)
+            {
+                max_rssi = current_rssi;
+            }
+            if (current_rssi < min_rssi)
+            {
+                min_rssi = current_rssi;
+            }
+            glog.is_debug3() &&
+                glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
+                     << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi << endl;
+            rssi_query_count++;
+            received_rssi = true;
         }
-        if (current_rssi < min_rssi)
-        {
-            min_rssi = current_rssi;
-        }
-        glog.is_debug3() && glog << "Current RSSI: " << current_rssi
-                                 << ", Average RSSI: " << average_rssi << ", Min RSSI: " << min_rssi
-                                 << ", Max RSSI: " << max_rssi << endl;
-        rssi_query_count++;
-        received_rssi = true;
     }
 
     if (at_command == "BC")
