@@ -90,10 +90,13 @@ elif common.app == 'jaiabot_health':
                                      # do not power off or restart the simulator computer
                                      ignore_powerstate_changes=is_simulation()))
 elif common.app == 'goby_liaison':
+    liaison_port=30000
+    if is_simulation():
+        liaison_port=30000+node_id
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     http_port=30000+node_id,
+                                     http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_gps':
