@@ -11,8 +11,9 @@ RUN apt-get update && \
     apt-get -y --no-install-recommends install \
             git build-essential ssh cmake gpg gpg-agent \
             devscripts equivs ca-certificates quilt \
-            clang clang-tools dirmngr\
-            dput \
+            clang clang-tools dirmngr \
+            dput cdbs \
+            gcc-aarch64-linux-gnu \
             && rm -rf /var/lib/apt/lists/*
 
 # Allow us to install packages for cross-compiling architectures
@@ -49,6 +50,8 @@ RUN apt-get update && \
             nodejs:amd64 \
             webpack:amd64 \
             npm:amd64 \
+            graphviz:amd64 \
+            doxygen:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 

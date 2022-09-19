@@ -10,7 +10,7 @@ RUN apt-get update && \
             git build-essential ssh cmake gpg gpg-agent \
             devscripts equivs ca-certificates quilt \
             clang clang-tools dirmngr\
-            dput \
+            dput cdbs \
             && rm -rf /var/lib/apt/lists/*
 
 # Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
@@ -37,6 +37,8 @@ RUN apt-get update && \
             nodejs:amd64 \
             webpack:amd64 \
             npm:amd64 \
+            graphviz:amd64 \
+            doxygen:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 
