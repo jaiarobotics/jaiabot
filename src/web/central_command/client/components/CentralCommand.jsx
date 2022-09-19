@@ -69,7 +69,6 @@ import OlMousePosition from 'ol/control/MousePosition';
 import OlZoom from 'ol/control/Zoom';
 import OlRotate from 'ol/control/Rotate';
 import { createStringXY as OlCreateStringXY } from 'ol/coordinate';
-import OlGeolocation from 'ol/Geolocation';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
 import { LineString as OlLineString } from 'ol/geom';
@@ -157,7 +156,6 @@ punchJQuery($);
 // jqueryDrawer($);
 
 const { getBoatStyle } = shapes;
-const { getClientPositionStyle } = shapes;
 
 // Sorry, map is a global because it really gets used from everywhere
 let map;
@@ -367,17 +365,6 @@ export default class CentralCommand extends React.Component {
 			baseLayerCollection.push(layer);
 		});
 
-		this.clientAccuracyFeature = new OlFeature();
-
-		this.clientPositionFeature = new OlFeature();
-		this.clientPositionFeature.setStyle(getClientPositionStyle());
-		this.clientPositionLayer = new OlVectorLayer({
-			// title: 'User Position',
-			source: new OlVectorSource({
-				features: [this.clientAccuracyFeature, this.clientPositionFeature]
-			})
-		});
-
 		// Measure tool
 
 		let measureSource = new OlVectorSource();
@@ -508,107 +495,6 @@ export default class CentralCommand extends React.Component {
 		});
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
-
-		// const graticule = new OlGraticule({
-		// 	// the style to use for the lines, optional.
-		// 	// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
-		// 	strokeStyle: new OlStroke({
-		// 		color: 'black',
-		// 		width: 1
-		// 	}),
-		// 	showLabels: true,
-		// 	latLabelStyle: new OlText({
-		// 		font: '16px sans-serif',
-		// 		fill: new OlFillStyle({
-		// 			color: 'maroon'
-		// 		}),
-		// 		textAlign: 'end',
-		// 		offsetX: -4,
-		// 		offsetY: -10,
-		// 	}),
-		// 	lonLabelStyle: new OlText({
-		// 		font: '16px sans-serif',
-		// 		fill: new OlFillStyle({
-		// 			color: 'maroon'
-		// 		}),
-		// 		textBaseline: 'bottom',
-		// 	}),
-		// 	targetSize: 150,
-		// });
-
-		// graticule.setMap(map);
-
-		this.geolocation = new OlGeolocation({
-			trackingOptions: {
-				enableHighAccuracy: true // Needed to get heading
-			},
-			projection: mercator
-		});
-
-		this.clientLocation = {};
-
-		this.geolocation.on('change', () => {
-			const lat = parseFloat(this.geolocation.getPosition()[1]);
-			const lon = parseFloat(this.geolocation.getPosition()[0]);
-			if (Number.isNaN(lat) || Number.isNaN(lon) || lat > 90 || lat < -90 || lon > 360 || lon < -180) {
-				this.clientLocation.isValid = false;
-				return;
-			}
-			this.clientLocation.isValid = true;
-			this.clientLocation.position = [lon, lat];
-			this.clientLocation.accuracy = parseFloat(this.geolocation.getAccuracy());
-			this.clientLocation.altitude = this.geolocation.getAltitude();
-			this.clientLocation.altitudeAccuracy = this.geolocation.getAltitudeAccuracy();
-			this.clientLocation.heading = parseFloat(this.geolocation.getHeading());
-			this.clientLocation.speed = this.geolocation.getSpeed();
-			const { trackingTarget } = this.state;
-			if (trackingTarget === 'user') {
-				this.centerOn(this.clientLocation.position);
-				const { heading } = this.clientLocation;
-				if (!Number.isNaN(heading)) {
-					map.getView().setRotation(-heading);
-				}
-			}
-			this.api
-				.sendClientLocation(
-					this.clientLocation.accuracy < 10,
-					this.clientLocation.position[1],
-					this.clientLocation.position[0]
-				)
-				.then(
-					() => {},
-					() => {
-						console.error('Failed to send user location to topside system.');
-					}
-				);
-		});
-
-		// handle geolocation error.
-		this.geolocation.on('error', (err) => {
-			error(err.message);
-			const { trackingTarget } = this.state;
-			if (trackingTarget === 'user' || trackingTarget === 'all') {
-				this.trackBot('');
-			}
-		});
-
-		this.geolocation.on('change:position', () => {
-			const lat = parseFloat(this.geolocation.getPosition()[1]);
-			const lon = parseFloat(this.geolocation.getPosition()[0]);
-			if (Number.isNaN(lat) || Number.isNaN(lon) || lat > 90 || lat < -90 || lon > 360 || lon < -180) {
-				this.clientLocation.isValid = false;
-				return;
-			}
-			this.clientPositionFeature.setGeometry(new OlPoint([lon, lat]));
-		});
-		this.geolocation.on('change:accuracyGeometry', () => {
-			// console.debug('Accuracy geometry:');
-			// console.debug(this.geolocation.getAccuracyGeometry());
-			if (!this.geolocation.getAccuracyGeometry()) {
-				return;
-			}
-			this.clientAccuracyFeature.setGeometry(this.geolocation.getAccuracyGeometry());
-		});
 
 		this.measureInteraction = new OlDrawInteraction({
 			source: measureSource,
@@ -923,7 +809,6 @@ export default class CentralCommand extends React.Component {
 			}),
 			this.chartLayerGroup,
 			this.graticuleLayer,
-			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
@@ -1058,8 +943,6 @@ export default class CentralCommand extends React.Component {
 
 		const viewport = document.getElementById(this.mapDivId);
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
-
-		this.geolocation.setTracking(false);
 
 		const us = this;
 
@@ -1562,9 +1445,6 @@ export default class CentralCommand extends React.Component {
 			layerCount += 1;
 		};
 		this.botsLayerGroup.getLayers().forEach(addExtent);
-		if (this.clientLocation.isValid) {
-			addExtent(this.clientPositionLayer);
-		}
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
@@ -1623,17 +1503,6 @@ export default class CentralCommand extends React.Component {
 		} else if (id === 'pod') {
 			this.zoomToAllBots(true);
 			info('Following pod');
-		} else if (id === 'user') {
-			if (this.clientLocation.isValid) {
-				const { heading, position } = this.clientLocation;
-				this.centerOn(position, false, true);
-				if (!Number.isNaN(heading)) {
-					map.getView().setRotation(heading);
-				}
-				info('Following you');
-			} else {
-				this.trackBot('');
-			}
 		} else if (id !== '') {
 			this.zoomToBot(id, true);
 			info(`Following bot ${id}`);
@@ -1641,8 +1510,6 @@ export default class CentralCommand extends React.Component {
 			info('Stopped following all');
 		} else if (trackingTarget === 'pod') {
 			info('Stopped following pod');
-		} else if (trackingTarget === 'user') {
-			info('Stopped following you');
 		} else {
 			info(`Stopped following bot ${trackingTarget}`);
 		}
