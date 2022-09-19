@@ -328,14 +328,13 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Bundle package (to jaiabot/scripts/output)
+          name: Bundle package (to jaiabot/build/bundle/jaiabot_bundle.tar)
           command: |
-            cd /tmp/bundle/jaiabot/scripts
-            sudo docker run --rm -v `pwd`:/work -w /work ubuntu:focal ./bundle_update.sh
+            cd /tmp/bundle/jaiabot
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:focal ./scripts/bundle_update.sh
             cd output
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
-            sudo tar cfv jaiabot_bundle_${NEWVERSION}.tar *
-            sudo mkdir -p /tmp/bundle/result && sudo cp jaiabot_bundle_${NEWVERSION}.tar /tmp/bundle/result
+            sudo mkdir -p /tmp/bundle/result && sudo cp jaiabot_bundle.tar /tmp/bundle/result/jaiabot_bundle_${NEWVERSION}.tar
       - store_artifacts:
           path: /tmp/bundle/result
 
