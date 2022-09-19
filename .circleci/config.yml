@@ -334,8 +334,8 @@ jobs:
             sudo docker run --rm -v `pwd`:/work -w /work ubuntu:focal ./bundle_update.sh
             cd output
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
-            sudo tar cfv jaiabot_bundle_${NEW_VERSION}.tar *
-            sudo mkdir -p /tmp/bundle/result && sudo cp jaiabot_bundle_${NEW_VERSION}.tar /tmp/bundle/result
+            sudo tar cfv jaiabot_bundle_${NEWVERSION}.tar *
+            sudo mkdir -p /tmp/bundle/result && sudo cp jaiabot_bundle_${NEWVERSION}.tar /tmp/bundle/result
       - store_artifacts:
           path: /tmp/bundle/result
 
