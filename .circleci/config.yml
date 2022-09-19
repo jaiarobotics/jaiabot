@@ -83,7 +83,8 @@ job-template-amd64: &job-template-amd64
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y
+          apt-get dist-upgrade -y &&
+          apt-get install -y cdbs
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install goby3-clang-tool || true
     - run: &run-build
         name: Build
