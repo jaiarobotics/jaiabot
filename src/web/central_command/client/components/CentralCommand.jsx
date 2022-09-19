@@ -25,10 +25,10 @@ import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, md
 import * as turf from '@turf/turf';
 
 // ThreeJS
-import * as THREE from 'three';
+/*import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+*/
 // IndexedDB
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
@@ -820,22 +820,22 @@ export default class CentralCommand extends React.Component {
 
 	componentDidMount() {
 
-		const backgroundColor = 0x000000;
+		//const backgroundColor = 0x000000;
 
 		/*////////////////////////////////////////*/
 
-		var renderCalls = [];
+		/*var renderCalls = [];
 		function render() {
 			requestAnimationFrame(render);
 			renderCalls.forEach((callback) => {
 				callback();
 			});
 		}
-		render();
+		render();*/
 
 		/*////////////////////////////////////////*/
 
-		var scene = new THREE.Scene();
+		/*var scene = new THREE.Scene();
 
 		var camera = new THREE.PerspectiveCamera(
 			80,
@@ -870,11 +870,11 @@ export default class CentralCommand extends React.Component {
 		function renderScene() {
 			renderer.render(scene, camera);
 		}
-		renderCalls.push(renderScene);
+		renderCalls.push(renderScene);*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		var controls = new OrbitControls(camera, renderer.domElement);
+		/*var controls = new OrbitControls(camera, renderer.domElement);
 		controls.rotateSpeed = 0.3;
 		controls.zoomSpeed = 0.9;
 
@@ -889,20 +889,20 @@ export default class CentralCommand extends React.Component {
 
 		renderCalls.push(function () {
 			controls.update();
-		});
+		});*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		var light = new THREE.PointLight(0xffffcc, 5, 200);
+		/*var light = new THREE.PointLight(0xffffcc, 5, 200);
 		light.position.set(4, 30, -20);
 		scene.add(light);
 
 		var light2 = new THREE.AmbientLight(0x20202a, 8, 100);
 		light2.position.set(30, -10, 30);
-		scene.add(light2);
+		scene.add(light2);*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
-		async function run() {
+		/*async function run() {
 			try {
 				var loader = new GLTFLoader();
 				loader.crossOrigin = true;
@@ -937,7 +937,7 @@ export default class CentralCommand extends React.Component {
 			}
 		}
 
-		run();
+		run();*/
 
 		map.setTarget(this.mapDivId);
 
@@ -2369,7 +2369,7 @@ export default class CentralCommand extends React.Component {
 
 		let bots = Object.values(this.podStatus?.bots ?? {})
 		let hubs = Object.values(this.podStatus?.hubs ?? {})
-
+		
 		function compare_by_hubId(hub1, hub2) {
 			return hub1.hubId - hub2.hubId
 		}
@@ -2421,6 +2421,8 @@ export default class CentralCommand extends React.Component {
 			let selected = self.isBotSelected(botId) ? 'selected' : ''
 			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
 
+			//For now we are naming HUB, HUB with no id
+			//In the future we will have to revisit this
 			return (
 				<div
 					key={key}
@@ -2429,7 +2431,7 @@ export default class CentralCommand extends React.Component {
 					}
 					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
 				>
-					{botId ?? hubId}
+					{botId ?? "HUB"} 
 				</div>
 			);
 		}
