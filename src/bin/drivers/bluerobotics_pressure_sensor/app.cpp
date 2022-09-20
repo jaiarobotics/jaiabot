@@ -102,7 +102,7 @@ std::vector<std::string> split(std::string s, std::string delimiter)
 }
 
 jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDriver()
-    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(2 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BlueRoboticsPressureSensorDriver>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("bar30_test", goby::util::Colors::lt_magenta);

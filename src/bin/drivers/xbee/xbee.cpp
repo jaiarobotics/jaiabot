@@ -14,16 +14,12 @@ using namespace boost::asio;
 using namespace boost::endian;
 using xbee::protobuf::XBeePacket;
 
-// Node ID broadcast timeout
-
-const std::time_t node_id_broadcast_timeout = 10; // Don't broadcast our node_id within N seconds of a previous broadcast, to avoid back-and-forth loops
-std::time_t last_node_id_broadcast_time = 0;
-
 // Frame types
 
 const byte frame_type_at_command_response = 0x88;
 const byte frame_type_extended_transmit_status = 0x8b;
 const byte frame_type_receive_packet = 0x90;
+const byte frame_type_explicit_rx_indicator = 0x91;
 
 // Utilities
 
@@ -77,10 +73,12 @@ XBeeDevice::XBeeDevice()
 }
 
 void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
-                         const std::string& _my_node_id, const uint16_t network_id)
+                         const std::string& _my_node_id, const uint16_t network_id,
+                         const bool p_should_discover_peers)
 {
     my_node_id = _my_node_id;
-    
+    should_discover_peers = p_should_discover_peers;
+
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
 
@@ -126,9 +124,19 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
         assert_ok();
     }
 
+    {
+        // Set modem API options to 0 (not explicit frames)
+        stringstream cmd;
+        cmd << "ATAO=0" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
     exit_command_mode();
 
     get_maximum_payload_size();
+
+    query_rssi();
 
     get_my_serial_number();
 
@@ -166,6 +174,13 @@ void XBeeDevice::shutdown() {
         write(cmd.str());
         assert_ok();
     }
+    {
+        // Set modem API options to 0 (not explicit frames)
+        stringstream cmd;
+        cmd << "ATAO=0\r";
+        write(cmd.str());
+        assert_ok();
+    }
 
     exit_command_mode();    
     port->close();
@@ -176,6 +191,125 @@ void XBeeDevice::get_maximum_payload_size() {
     string cmd = string("\x08") + *((char *) &frame_id) + string("NP");
     write(frame_data(cmd));
     frame_id++;
+}
+
+/*
+DB (Last Packet RSSI)
+This command applies to the XBee/XBee-PRO SX RF Module.
+Reports the RSSI in -dBm of the last received RF data packet. DB returns a hexadecimal value for the -
+dBm measurement.
+For example, if DB returns 0x60, then the RSSI of the last packet received was -96 dBm.
+The RSSI measurement is accurate within ±2 dB from approximately -50 dBm down to sensitivity.
+DB only indicates the signal strength of the last hop. It does not provide an accurate quality
+measurement for a multihop link.
+If the XBee/XBee-PRO SX RF Module has been reset and has not yet received a packet, DB reports 0.
+This value is volatile—the value does not persist in the device's memory after a power-up sequence.
+
+Parameter range
+0x28 - 0x6E (-40 dBm to -110 dBm) [read-only]
+Default
+0
+*/
+void XBeeDevice::query_rssi()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("DB");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+/*
+ER (Receive Count Error)
+
+This command applies to the XBee/XBee-PRO SX RF Module.
+This count increments when a device receives a packet that contains integrity errors of some sort.
+When the number reaches 0xFFFF, the firmware does not count further events.
+To reset the counter to any 16-bit value, append a hexadecimal parameter to the command. This
+value is volatile (the value does not persist in the device's memory after a power-up sequence).
+Occasionally random noise can cause this value to increment.
+
+The ER parameter is not reset by pin, serial port or cyclic sleep modes.
+Default
+N/A
+*/
+void XBeeDevice::query_er()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("ER");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+/*
+GD (Good Packets Received)
+This command applies to the XBee/XBee-PRO SX RF Module.
+This count increments when a device receives a good frame with a valid MAC header on the RF
+interface. Received MAC ACK packets do not increment this counter. Once the number reaches 0xFFFF,
+it does not count further events.
+To reset the counter to any 16-bit unsigned value, append a hexadecimal parameter to the command.
+This value is volatile (the value does not persist in the device's memory after a power-up sequence).
+
+Parameter range
+0 - 0xFFFF
+Default
+N/A
+*/
+void XBeeDevice::query_gd()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("GD");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+/*
+BC (Bytes Transmitted)
+
+The number of RF bytes transmitted. The firmware counts bytes in every retry and retransmission. A
+packet includes not only the payload, but also the preamble, the MAC header, the network header, the
+application header, encryption overhead, and the CRC. The purpose of this count is to estimate
+battery life by tracking time spent performing transmissions.
+BC stops counting when it reaches a max value of 0xffffFFFF. But, you can reset the counter to any
+32-bit value—for example 0—by appending a hexadecimal parameter to the command.
+
+Parameter range
+0 - 0xFFFFFFFF
+Default
+N/A (0 after reset)
+*/
+void XBeeDevice::query_bc()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("BC");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+/*
+TR (Transmission Failure Count)
+This command applies to the XBee/XBee-PRO SX RF Module.
+This value is volatile—the value does not persist in the device's memory after a power-up sequence.
+
+Parameter range
+0 - 0xFFFF
+Default
+N/A
+*/
+void XBeeDevice::query_tr()
+{
+    // Send DB command
+    string cmd = string("\x08") + *((char*)&frame_id) + string("TR");
+    write(frame_data(cmd));
+    frame_id++;
+}
+
+void XBeeDevice::send_diagnostic_commands()
+{
+    query_rssi();
+    query_er();
+    query_gd();
+    query_bc();
+    query_tr();
 }
 
 void XBeeDevice::get_my_serial_number() {
@@ -299,6 +433,21 @@ string XBeeDevice::read_frame() {
 
 void XBeeDevice::do_work() {
     process_frame_if_available();
+    if (received_rssi && received_er && received_gd && received_bc && received_tr)
+    {
+        glog.is_verbose() &&
+            glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
+                 << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi
+                 << ", bytes_transmitted: " << bytes_transmitted << " bytes"
+                 << ", received_error_count: " << received_error_count
+                 << ", received_good_count: " << received_good_count
+                 << ", transimission_failure_count: " << transimission_failure_count << endl;
+        received_rssi = false;
+        received_er = false;
+        received_gd = false;
+        received_bc = false;
+        received_tr = false;
+    }
 }
 
 
@@ -324,6 +473,9 @@ void XBeeDevice::process_frame() {
             process_frame_at_command_response(response_string);
             break;
         case frame_type_receive_packet: process_frame_receive_packet(response_string); break;
+        case frame_type_explicit_rx_indicator:
+            process_frame_explicit_rx_indicator(response_string);
+            break;
         default:
             cout << "Unknown frame_type = " << (int) frame_type << endl;
             break;
@@ -345,14 +497,14 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "SH") {
         assert(response->command_status == 0);
-        uint32_t upper_serial_number = *((uint32_t *)&response->command_data_start);
-        my_serial_number |= (SerialNumber)upper_serial_number;
+        uint32_t upper_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
+        my_serial_number |= ((SerialNumber)upper_serial_number << 32);
     }
 
     if (at_command == "SL") {
         assert(response->command_status == 0);
-        uint32_t lower_serial_number = *((uint32_t *)&response->command_data_start);
-        my_serial_number |= ((SerialNumber) lower_serial_number << 32);
+        uint32_t lower_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
+        my_serial_number |= ((SerialNumber)lower_serial_number);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
 
         // Broadcast our node_id, and request everyone else's node_id
@@ -370,6 +522,58 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         return;
     }
 
+    if (at_command == "DB")
+    {
+        current_rssi = *((uint16_t*)&response->command_data_start);
+
+        if (current_rssi >= 40 && current_rssi <= 110)
+        {
+            history_rssi += current_rssi;
+            average_rssi = history_rssi / rssi_query_count;
+            if (current_rssi > max_rssi)
+            {
+                max_rssi = current_rssi;
+            }
+            if (current_rssi < min_rssi)
+            {
+                min_rssi = current_rssi;
+            }
+            glog.is_debug3() &&
+                glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
+                     << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi << endl;
+            rssi_query_count++;
+            received_rssi = true;
+        }
+    }
+
+    if (at_command == "BC")
+    {
+        bytes_transmitted = *((uint32_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "bytes_transmitted: " << bytes_transmitted << " bytes" << endl;
+        received_bc = true;
+    }
+
+    if (at_command == "ER")
+    {
+        received_error_count = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "received_error_count: " << received_error_count << endl;
+        received_er = true;
+    }
+
+    if (at_command == "GD")
+    {
+        received_good_count = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "received_good_count: " << received_good_count << endl;
+        received_gd = true;
+    }
+
+    if (at_command == "TR")
+    {
+        transimission_failure_count = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "transimission_failure_count: " << transimission_failure_count
+                                 << endl;
+        received_tr = true;
+    }
 }
 
 
@@ -438,7 +642,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
         glog.is_debug1() && glog << "Parsed packet of length " << serialized_packet.length()
                                  << endl;
 
-        if (packet.has_xbee_address_entry())
+        if (packet.has_xbee_address_entry() && should_discover_peers)
         {
             auto xbee_address_entry = packet.xbee_address_entry();
             auto node_id = xbee_address_entry.node_id();
@@ -470,6 +674,55 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string) {
     }
 }
 
+void XBeeDevice::process_frame_explicit_rx_indicator(const string& response_string)
+{
+    glog.is_debug1() && glog << "Packet frame explicit_rx_indicator" << endl;
+    struct Rx_Indicator
+    {
+        byte frame_type;
+        byte src[8];
+        byte reserved[2];
+        byte src_endpoint;
+        byte dst_endpoint;
+        byte cluster_id[2];
+        byte profile_id[2];
+        byte options;
+        byte dest_address[8];
+        byte payload_size[2];
+        byte iterations[2];
+        byte success[2];
+        byte retries[2];
+        byte result;
+        byte RR;
+        byte maxRSSI;
+        byte minRSSI;
+        byte avgRSSI;
+    };
+
+    auto response = (const Rx_Indicator*)response_string.c_str();
+    auto response_size = response_string.size();
+    string src = string((char*)&response->src, 8);
+    string dst = string((char*)&response->dest_address, 8);
+    string payload_size = string((char*)&response->payload_size, 2);
+    string iterations = string((char*)&response->iterations, 2);
+    string success = string((char*)&response->success, 2);
+    string result = string((char*)&response->result, 2);
+
+    assert(response->frame_type == 0x91);
+
+    glog.is_debug2() &&
+        glog << "frame_type = " << (int)response->frame_type << ", src = " << hexadecimal(src)
+             << ", dest_address = " << hexadecimal(dst)
+             << ", payload_size = " << std::atoi(hexadecimal(payload_size).c_str())
+             << ", iterations = " << std::atoi(hexadecimal(iterations).c_str())
+             << ", success = " << std::atoi(hexadecimal(success).c_str())
+             << ", retries = " << std::atoi(hexadecimal(result).c_str())
+             << ", result = " << std::atoi(hexadecimal(result).c_str())
+             << ", RR = " << (int)response->RR << ", maxRSSI = " << (int)response->maxRSSI
+             << ", minRSSI = " << (int)response->minRSSI << ", avgRSSI = " << (int)response->avgRSSI
+             << endl;
+}
+
 vector<string> XBeeDevice::get_packets() {
     auto packets = received_packets;
     received_packets.clear();
@@ -479,11 +732,51 @@ vector<string> XBeeDevice::get_packets() {
 
 string api_transmit_request(const SerialNumber& dest, const byte frame_id, const byte* ptr, const size_t length) {
     auto data_string = string((const char *) ptr, length);
-    auto serial_number_string = string((const char *)&dest, sizeof(SerialNumber));
+    auto dest_big_endian = native_to_big(dest);
+    auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
     glog.is_debug2() && glog << "   TX REQ for data:" << hexadecimal(data_string) << endl;
-    glog.is_debug2() && glog << "   dest: " << hexadecimal(serial_number_string) << endl;
-    string s = string("\x10") + string((char *) &frame_id, 1) + serial_number_string + string("\xff\xfe\x00\x00", 4) + data_string;
+    glog.is_debug2() && glog << "   dest: " << hexadecimal(dest_string) << endl;
+    string s = string("\x10") + string((char*)&frame_id, 1) + dest_string +
+               string("\xff\xfe\x00\x00", 4) + data_string;
     return s;
+}
+
+// This function is used to send a test between two links
+// This currently does not work as intended
+// Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
+string api_explicit_transmit_request(const SerialNumber& dest, const SerialNumber& com_dest,
+                                     const byte frame_id)
+{
+    auto dest_big_endian = native_to_big(dest);
+    auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
+    auto com_dest_big_endian = native_to_big(com_dest);
+    auto com_dest_string = string((const char*)&com_dest_big_endian, sizeof(com_dest_big_endian));
+    glog.is_debug2() && glog << "   Explicit TX REQ for data:" << endl;
+    glog.is_debug2() && glog << "   dest: " << hexadecimal(dest_string) << endl;
+    glog.is_debug2() && glog << "   command dest: " << hexadecimal(com_dest_string) << endl;
+    string frame_type = string("\x11", 1);
+    string frame_id_str = string((char*)&frame_id, 1);
+    string frame_dest = dest_string;
+    string frame_reserved = string("\xff\xfe", 2);
+    string frame_src_endpoint = string("\xe6", 1);
+    string frame_dst_endpoint = string("\xe6", 1);
+    string frame_cluster_id = string("\x00\x14", 2);
+    string frame_profile_id = string("\xc1\x05", 2);
+    string frame_broad_rad = string("\x00", 1);
+    string frame_trans_opt = string("\x00", 1);
+    string frame_com_dest = com_dest_string;           // command destination
+    string frame_com_pay_size = string("\x00\x28", 2); // 40 bytes
+    string frame_com_iters =
+        string("\x00\x01", 2); // 0x0064 100 packets to send 0x03E8 1000 packets to send
+
+    string explicit_trans_frame = frame_type + frame_id_str + frame_dest + frame_reserved +
+                                  frame_src_endpoint + frame_dst_endpoint + frame_cluster_id +
+                                  frame_profile_id + frame_broad_rad + frame_trans_opt +
+                                  frame_com_dest + frame_com_pay_size + frame_com_iters;
+
+    glog.is_debug2() && glog << "   Explicit Frame: " << hexadecimal(explicit_trans_frame) << endl;
+
+    return explicit_trans_frame;
 }
 
 SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id) {
@@ -513,8 +806,24 @@ void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet
     }
 }
 
+// Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
+void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
+{
+    glog.is_debug2() && glog << "send_test_links: dest: " << get_serial_number(dest)
+                             << ", com dest: " << get_serial_number(com_dest) << endl;
+    string packet = frame_data(api_explicit_transmit_request(
+        get_serial_number(dest), get_serial_number(com_dest), frame_id));
+    write(packet);
+    frame_id++;
+}
+
 void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)
 {
+    if (!should_discover_peers)
+    {
+        return;
+    }
+
     auto packet = XBeePacket();
     auto xbee_address_entry = packet.mutable_xbee_address_entry();
     xbee_address_entry->set_node_id(my_node_id);

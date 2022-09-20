@@ -91,13 +91,14 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
-
-    auto network_id = driver_cfg_.GetExtension(xbee::protobuf::config).network_id();
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto network_id = config_extension.network_id();
+    auto discover_peers = config_extension.discover_peers();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
-                    encode_modem_id(driver_cfg_.modem_id()), network_id);
+                    encode_modem_id(driver_cfg_.modem_id()), network_id, discover_peers);
 
-    for (auto peer : driver_cfg_.GetExtension(xbee::protobuf::config).peers())
+    for (auto peer : config_extension.peers())
     { device_.add_peer(peer.node_id(), peer.serial_number()); }
 }
 
@@ -137,9 +138,11 @@ void goby::acomms::XBeeDriver::do_work() {
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto test_comms = config_extension.test_comms();
+
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
-
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -147,10 +150,15 @@ void goby::acomms::XBeeDriver::do_work() {
         protobuf::ModemTransmission msg;
         msg.ParseFromArray(&packet[0], packet.size());
 
-        glog.is_debug1() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                << " bytes from " << msg.src() << std::endl;
+        glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
+                                 << " bytes from " << msg.src() << std::endl;
 
         receive_message(msg);
+
+        if (test_comms)
+        {
+            device_.send_diagnostic_commands();
+        }
     }
 }
 

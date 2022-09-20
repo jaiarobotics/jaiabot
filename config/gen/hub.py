@@ -8,6 +8,7 @@ import os
 from common import config
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
+from pathlib import Path
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -19,7 +20,8 @@ try:
 except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
-log_file_dir = common.jaia_log_dir+ '/hub'
+log_file_dir = common.jaia_log_dir + '/hub'
+Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 
 node_id = 0 
