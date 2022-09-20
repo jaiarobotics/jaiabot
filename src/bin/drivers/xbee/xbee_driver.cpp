@@ -190,16 +190,18 @@ void goby::acomms::XBeeDriver::receive_message(const protobuf::ModemTransmission
                                  << std::endl;
         if (test_comms_)
         {
-            if (send_time_.count(msg.dest()))
+            if (send_time_.count(msg.src()))
             {
-                auto total_time = now.time_since_epoch().count() -
-                                  send_time_.at(msg.dest()).time_since_epoch().count();
-                glog.is_verbose() && glog << group(glog_out_group()) << "Start Send at: "
-                                          << send_time_.at(msg.dest()).time_since_epoch().count()
-                                          << ", Received Ack At: " << now.time_since_epoch().count()
-                                          << ", Total Time: " << total_time
-                                          << ", Total Bytes Sent: " << number_of_bytes_to_send_
-                                          << std::endl;
+                auto total_time = (now.time_since_epoch().count() -
+                                   send_time_.at(msg.src()).time_since_epoch().count()) /
+                                  1e+6;
+
+                glog.is_verbose() &&
+                    glog << group(glog_out_group())
+                         << "Start Send at: " << send_time_.at(msg.src()).time_since_epoch().count()
+                         << ", Received Ack At: " << now.time_since_epoch().count()
+                         << ", Total Time in Seconds: " << total_time
+                         << ", Total Bytes Sent: " << number_of_bytes_to_send_ << std::endl;
             }
         }
     }
