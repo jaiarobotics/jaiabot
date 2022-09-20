@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # intended to be run within a bare (e.g. ubuntu:focal) docker container
-# docker run --rm -v /path/to/jaiabot:/jaiabot -w /jaiabot ubuntu:focal scripts/bundle_update.sh
+# docker run --rm -v /path/to/jaiabot:/jaiabot -w /jaiabot ubuntu:focal scripts/bundle_update.sh focal continuous 1.y
 
 # see also https://npmccallum.gitlab.io/post/foreign-architecture-docker/
 
 DESIRED_PACKAGES="jaiabot-embedded"
-SERIES="continuous"
-DISTRO="focal"
+DISTRO="$1"
+SERIES="$2"
+VERSION="$3"
 WORKING_DIR="./build/bundle"
 
 mkdir -p ${WORKING_DIR}
@@ -18,7 +19,7 @@ apt-get update && \
     apt-get -y --no-install-recommends install \
             gpg gpg-agent dirmngr
 
-echo -e "deb http://packages.jaia.tech/ubuntu/${SERIES}/1.y/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+echo -e "deb http://packages.jaia.tech/ubuntu/${SERIES}/${VERSION}/ ${DISTRO}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
