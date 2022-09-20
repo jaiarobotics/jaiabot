@@ -433,20 +433,21 @@ string XBeeDevice::read_frame() {
 
 void XBeeDevice::do_work() {
     process_frame_if_available();
-    if (received_rssi && received_er && received_gd && received_bc && received_tr)
+
+    if (received_rssi_ && received_er_ && received_gd_ && received_bc_ && received_tr_)
     {
         glog.is_verbose() &&
-            glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
-                 << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi
-                 << ", bytes_transmitted: " << bytes_transmitted << " bytes"
-                 << ", received_error_count: " << received_error_count
-                 << ", received_good_count: " << received_good_count
-                 << ", transimission_failure_count: " << transimission_failure_count << endl;
-        received_rssi = false;
-        received_er = false;
-        received_gd = false;
-        received_bc = false;
-        received_tr = false;
+            glog << "Current RSSI: " << current_rssi_ << ", Average RSSI: " << average_rssi_
+                 << ", Min RSSI: " << min_rssi_ << ", Max RSSI: " << max_rssi_
+                 << ", bytes_transmitted: " << bytes_transmitted_ << " bytes"
+                 << ", received_error_count: " << received_error_count_
+                 << ", received_good_count: " << received_good_count_
+                 << ", transimission_failure_count: " << transimission_failure_count_ << endl;
+        received_rssi_ = false;
+        received_er_ = false;
+        received_gd_ = false;
+        received_bc_ = false;
+        received_tr_ = false;
     }
 }
 
@@ -517,6 +518,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     }
 
     if (at_command == "NP") {
+        assert(response->command_status == 0);
         max_payload_size = big_to_native(*((uint16_t *) &response->command_data_start));
         glog.is_verbose() && glog << "Maximum payload: " << max_payload_size << " bytes" << endl;
         return;
@@ -524,55 +526,60 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
 
     if (at_command == "DB")
     {
-        current_rssi = *((uint16_t*)&response->command_data_start);
+        assert(response->command_status == 0);
+        current_rssi_ = *((uint16_t*)&response->command_data_start);
 
-        if (current_rssi >= 40 && current_rssi <= 110)
+        if (current_rssi_ >= 40 && current_rssi_ <= 110)
         {
-            history_rssi += current_rssi;
-            average_rssi = history_rssi / rssi_query_count;
-            if (current_rssi > max_rssi)
+            history_rssi_ += current_rssi_;
+            average_rssi_ = history_rssi_ / rssi_query_count_;
+            if (current_rssi_ > max_rssi_)
             {
-                max_rssi = current_rssi;
+                max_rssi_ = current_rssi_;
             }
-            if (current_rssi < min_rssi)
+            if (current_rssi_ < min_rssi_)
             {
-                min_rssi = current_rssi;
+                min_rssi_ = current_rssi_;
             }
             glog.is_debug3() &&
-                glog << "Current RSSI: " << current_rssi << ", Average RSSI: " << average_rssi
-                     << ", Min RSSI: " << min_rssi << ", Max RSSI: " << max_rssi << endl;
-            rssi_query_count++;
-            received_rssi = true;
+                glog << "Current RSSI: " << current_rssi_ << ", Average RSSI: " << average_rssi_
+                     << ", Min RSSI: " << min_rssi_ << ", Max RSSI: " << max_rssi_ << endl;
+            rssi_query_count_++;
+            received_rssi_ = true;
         }
     }
 
     if (at_command == "BC")
     {
-        bytes_transmitted = *((uint32_t*)&response->command_data_start);
-        glog.is_debug3() && glog << "bytes_transmitted: " << bytes_transmitted << " bytes" << endl;
-        received_bc = true;
+        assert(response->command_status == 0);
+        bytes_transmitted_ = *((uint32_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "bytes_transmitted: " << bytes_transmitted_ << " bytes" << endl;
+        received_bc_ = true;
     }
 
     if (at_command == "ER")
     {
-        received_error_count = *((uint16_t*)&response->command_data_start);
-        glog.is_debug3() && glog << "received_error_count: " << received_error_count << endl;
-        received_er = true;
+        assert(response->command_status == 0);
+        received_error_count_ = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "received_error_count: " << received_error_count_ << endl;
+        received_er_ = true;
     }
 
     if (at_command == "GD")
     {
-        received_good_count = *((uint16_t*)&response->command_data_start);
-        glog.is_debug3() && glog << "received_good_count: " << received_good_count << endl;
-        received_gd = true;
+        assert(response->command_status == 0);
+        received_good_count_ = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "received_good_count: " << received_good_count_ << endl;
+        received_gd_ = true;
     }
 
     if (at_command == "TR")
     {
-        transimission_failure_count = *((uint16_t*)&response->command_data_start);
-        glog.is_debug3() && glog << "transimission_failure_count: " << transimission_failure_count
+        assert(response->command_status == 0);
+        transimission_failure_count_ = *((uint16_t*)&response->command_data_start);
+        glog.is_debug3() && glog << "transimission_failure_count: " << transimission_failure_count_
                                  << endl;
-        received_tr = true;
+        received_tr_ = true;
     }
 }
 

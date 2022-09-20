@@ -150,32 +150,33 @@ class XBeeDevice
     void query_bc();
     // Query Transmission Failure Count
     void query_tr();
-
-    bool received_rssi = false;
-    bool received_er = false;
-    bool received_gd = false;
-    bool received_bc = false;
-    bool received_tr = false;
+    
+    // Check if we received diagnostics
+    bool received_rssi_{false};
+    bool received_er_{false};
+    bool received_gd_{false};
+    bool received_bc_{false};
+    bool received_tr_{false};
 
     // RSSI fields
-    uint16_t current_rssi = 0;
-    uint16_t history_rssi = 0;
-    int rssi_query_count = 1;
-    uint16_t max_rssi = 0;
-    uint16_t min_rssi = 150;
-    uint16_t average_rssi = 0;
+    uint16_t current_rssi_{0};
+    uint16_t history_rssi_{0};
+    int rssi_query_count_{1};
+    uint16_t max_rssi_{0};
+    uint16_t min_rssi_{150};
+    uint16_t average_rssi_{0};
 
     // Bytes Transmitted
-    uint32_t bytes_transmitted = 0;
+    uint32_t bytes_transmitted_{0};
 
     // Received Error Count
-    uint16_t received_error_count = 0;
+    uint16_t received_error_count_{0};
 
     // Received Good Count
-    uint16_t received_good_count = 0;
+    uint16_t received_good_count_{0};
 
     // Transmission Failure Count
-    uint16_t transimission_failure_count = 0;
+    uint16_t transimission_failure_count_{0};
 };
 #endif
 
