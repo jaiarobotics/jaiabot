@@ -146,6 +146,9 @@ void goby::acomms::XBeeDriver::do_work() {
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto test_comms = config_extension.test_comms();
+
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
         protobuf::ModemRaw raw_msg;

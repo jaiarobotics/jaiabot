@@ -150,7 +150,8 @@ class XBeeDevice
     void query_bc();
     // Query Transmission Failure Count
     void query_tr();
-
+    
+    // Check if we received diagnostics
     bool received_rssi_{false};
     bool received_er_{false};
     bool received_gd_{false};

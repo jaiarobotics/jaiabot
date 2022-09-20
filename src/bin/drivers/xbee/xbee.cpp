@@ -433,6 +433,7 @@ string XBeeDevice::read_frame() {
 
 void XBeeDevice::do_work() {
     process_frame_if_available();
+
     if (received_rssi_ && received_er_ && received_gd_ && received_bc_ && received_tr_)
     {
         glog.is_verbose() &&
