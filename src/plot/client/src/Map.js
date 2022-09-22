@@ -1,8 +1,7 @@
-// Performs a binary search on a sorted array, using a function f to determine
-// ordering
+// Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
   let start = 0, end = sorted_array.length - 1
-
+  
   // target is before the beginning of the array, so return null
   if (f(sorted_array[start]) < 0) {
     return null
@@ -13,8 +12,8 @@ function bisect(sorted_array, f) {
     if (end - start <= 1)
       return sorted_array[start]
 
-             // Find the mid index
-             let mid = Math.floor((start + end) / 2)
+      // Find the mid index
+      let mid = Math.floor((start + end) / 2)
 
       // Find which half we're in
       if (f(sorted_array[mid]) < 0) {
@@ -27,6 +26,7 @@ function bisect(sorted_array, f) {
 
   return null
 }
+
 
 export default class Map {
 
@@ -100,45 +100,50 @@ export default class Map {
     updateWithActiveGoal(active_goal_dict) {
       this.active_goal_dict = active_goal_dict
     }
-
+  
     updateToTimestamp(timestamp_micros) {
-      this.updateBotMarkers(timestamp_micros) this.updateWaypointMarkers(
-          timestamp_micros)
+      this.updateBotMarkers(timestamp_micros)
+      this.updateWaypointMarkers(timestamp_micros)
     }
 
     updateBotMarkers(timestamp_micros) {
-      this.bot_markers
-          .forEach((bot_marker) => {
-                       bot_marker.removeFrom(this.map)}) this.bot_markers = []
+      this.bot_markers.forEach((bot_marker) => {
+        bot_marker.removeFrom(this.map)
+      })
+      this.bot_markers = []
 
-          if (timestamp_micros == null) {
+      if (timestamp_micros == null) {
         return
       }
 
-      const point =
-          bisect(this.points, (point) => {return timestamp_micros - point[0]})
+      const point = bisect(this.points, (point) => {
+        return timestamp_micros - point[0]
+      })
 
       const markerOptions = {
-        icon :
-            new L.DivIcon({className : 'bot', html : 'Bot', iconSize : 'auto'})
+        icon: new L.DivIcon({
+          className: 'bot',
+          html: 'Bot',
+          iconSize: 'auto'
+        })
       }
 
       // Plot point on the map
       if (point) {
-        const bot_marker =
-            new L.Marker([ point[1], point[2] ],
-                         markerOptions) this.bot_markers.push(bot_marker)
+        const bot_marker = new L.Marker([point[1], point[2]], markerOptions)
+        this.bot_markers.push(bot_marker)
         bot_marker.addTo(this.map)
       }
     }
 
     updateWaypointMarkers(timestamp_micros) {
-      this.waypoint_markers
-          .forEach((waypoint_marker) => {waypoint_marker.removeFrom(this.map)})
+      this.waypoint_markers.forEach((waypoint_marker) => {
+        waypoint_marker.removeFrom(this.map)
+      })
 
-              this.waypoint_markers = []
+      this.waypoint_markers = []
 
-          if (timestamp_micros == null) {
+      if (timestamp_micros == null) {
         return
       }
 
@@ -150,11 +155,11 @@ export default class Map {
       // This assumes that we have a command_dict with only one botId!
       const botId = botId_array[0]
 
-          const command_array = this.command_dict[botId]
+      const command_array = this.command_dict[botId]
 
-                                const command =
-              bisect(command_array,
-                     (command) => {return timestamp_micros - command._utime_})
+      const command = bisect(command_array, (command) => {
+        return timestamp_micros - command._utime_
+      })
 
       if (command == null) {
         return
@@ -163,11 +168,12 @@ export default class Map {
       // This assumes that we have an active_goal_dict with only one botId!
       const active_goals_array = this.active_goal_dict[botId]
 
-                                 const active_goal = bisect(
-          active_goals_array,
-          (active_goal) => {return timestamp_micros - active_goal._utime_})
+      const active_goal = bisect(active_goals_array, (active_goal) => {
+        return timestamp_micros - active_goal._utime_
+      })
 
       const active_goal_index = active_goal?.active_goal
+
 
       // Add markers for each waypoint
       for (const [goal_index, goal] of command.plan.goal.entries()) {
@@ -178,25 +184,25 @@ export default class Map {
         }
 
         // Style this waypoint
-        var waypointClasses = [ 'waypoint' ]
+        var waypointClasses = ['waypoint']
 
-            if (goal_index == active_goal_index) {
+        if (goal_index == active_goal_index) {
           waypointClasses.push('active')
         }
 
         const markerOptions = {
-          icon : new L.DivIcon({
-            title : 'Bot ' + botId,
-            className : waypointClasses.join(' '),
-            html : goal_index,
-            iconSize : 'auto'
+          icon: new L.DivIcon({
+            title: 'Bot ' + botId,
+            className: waypointClasses.join(' '),
+            html: goal_index,
+            iconSize: 'auto'
           })
-        } var waypoint_marker =
-            new L.Marker([ location.lat, location.lon ], markerOptions)
-        waypoint_marker.addTo(this.map) this.waypoint_markers.push(
-            waypoint_marker)
+        }
+        var waypoint_marker = new L.Marker([location.lat, location.lon], markerOptions)
+        waypoint_marker.addTo(this.map)
+        this.waypoint_markers.push(waypoint_marker)
       }
+
     }
+  
   }
-  
-  

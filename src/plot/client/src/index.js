@@ -141,7 +141,8 @@ class LogApp extends React.Component {
         .then((series) => {
           if (series != null) {
             let plots =
-                this.state.plots this.setState({plots : plots.concat(series)})
+                this.state.plots 
+                this.setState({plots : plots.concat(series)})
           }
         })
         .catch(err => {alert(err)})
