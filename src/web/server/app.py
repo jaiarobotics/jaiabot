@@ -62,6 +62,11 @@ def postAllStop():
     response = jaia_interface.post_all_stop()
     return JSONResponse(response)
 
+@app.route('/jaia/allActivate', methods=['POST'])
+def postAllActivate():
+    response = jaia_interface.post_all_activate()
+    return JSONResponse(response)
+
 @app.route('/mission/status', methods=['GET'])
 def getMissionStatus():
     return JSONResponse(jaia_interface.get_mission_status())
@@ -101,7 +106,7 @@ def get_mission_list():
         spacing_meters=int(request.json['sample_spacing']),
         orientation=int(request.json["orientation"]),
         bot_list=request.json['bot_list'],
-        inside_points_all=request.json['inside_points_all']
+        # inside_points_all=request.json['inside_points_all']
     )
     return JSONResponse(mission_dict)
 

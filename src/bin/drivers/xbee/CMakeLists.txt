@@ -1,6 +1,6 @@
 set(APP xbee_driver_tester)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} xbee.proto)
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} xbee.proto config.proto)
 
 add_executable(${APP}
   main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp

@@ -11,14 +11,14 @@ Behavior = BHV_Waypoint
   
   endflag   = JAIABOT_TRANSIT_COMPLETE = true
 
-  lead = 8
-  lead_damper = 1
-  lead_to_start = true
-  capture_line = false
-  capture_radius = 5.0
-  slip_radius = 15.0
+  lead               = 8
+  lead_damper        = 1
+  lead_to_start      = true
+  capture_line       = false
+  capture_radius     = 5.0
+  slip_radius        = 15.0
   efficiency_measure = all
-  perpetual = true
+  perpetual          = true
   
   // set by updates
   // speed = ...   // meters per second
@@ -28,15 +28,15 @@ Behavior = BHV_Waypoint
 Behavior = BHV_StationKeep
 {
    name         = jaiabot_stationkeep
-   pwt          = 100                   // default
+   pwt          = 100                                 // default
    condition    = JAIABOT_STATIONKEEP_ACTIVE = true
    updates      = JAIABOT_STATIONKEEP_UPDATES
 
-   center_activate = false   // default
-   hibernation_radius = -1      // default
-   inner_radius = 4       // default
-   outer_radius = 15      // default
-   swing_time = 0       // default
+   center_activate    = false      // default
+   hibernation_radius = 10         // default -1
+   inner_radius       = 5.0        // default 4.0
+   outer_radius       = 15         // default
+   swing_time         = 0          // default
 
    // set by updates
    // outer_speed  = ...
@@ -50,9 +50,9 @@ Behavior = BHV_ConstantDepth
 {
   name         = jaia_fixed_depth
   pwt          = 100
-  basewidth = 100          // default
-  depth = 0            // default
-  duration = no-time-limit
-  peakwidth = 3            // default
-  summitdelta = 50           // default
+  basewidth    = 100             // default
+  depth        = 0               // default
+  duration     = no-time-limit
+  peakwidth    = 3               // default
+  summitdelta  = 50              // default
 }

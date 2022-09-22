@@ -31,34 +31,71 @@ function bisect(sorted_array, f) {
 export default class Map {
 
     constructor(map_div_id) {
-      this.map = L.map(map_div_id).setView([ 0, 0 ], 10) this.points =
-          [] this.waypoint_markers = [] this.bot_markers =
-              [] this.active_goal_dict =
-      {}
+
+      // Map
+      const map_options = {
+        minZoom: 1,
+        maxZoom: 20
+      }
+
+      this.map = L.map(map_div_id, map_options).setView([ 0, 0 ], 10)
+      L.control.scale().addTo(this.map)
+
+      // TileLayer
+      const tile_layer_options = {
+        maxNativeZoom: 18,
+        maxZoom: 20,
+        attribution :
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', tile_layer_options).addTo(this.map)
+    
+      this.points = []
+      this.waypoint_markers = []
+      this.bot_markers = []
+      this.active_goal_dict = {}
 
       // points is in the form [[timestamp, lat, lon]]
       this.path_polyline = null
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution :
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(this.map)
-    
+      // Time range for the visible path
+      this.timeRange = null
     }
   
+    // The bot path polyline
     updateWithPoints(points) {
+      this.points = points
+      this.updatePath()
+    }
+
+    updatePath() {
+      let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
+
       if (this.path_polyline) {
         this.map.removeLayer(this.path_polyline)
       }
-  
-      this.points = points
-      let path = points.map(pt => [pt[1], pt[2]])
+
+      var path = []
+      for (const pt of this.points) {
+        if (pt[0] > timeRange[1]) {
+          break
+        }
+
+        if (pt[0] > timeRange[0]) {
+          path.push([pt[1], pt[2]])
+        }
+      }
+      
       this.path_polyline = L.polyline(path, {color : 'red'}).addTo(this.map)
   
       this.map.fitBounds(this.path_polyline.getBounds())
     }
 
-    updateWithCommands(command_dict) { this.command_dict = command_dict }
+    // Commands and markers for bot and goals
+    updateWithCommands(command_dict) {
+      this.command_dict = command_dict
+    }
 
     updateWithActiveGoal(active_goal_dict) {
       this.active_goal_dict = active_goal_dict

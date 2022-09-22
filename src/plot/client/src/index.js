@@ -1,5 +1,7 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
+import { BrowserRouter as Router, Routes, Route } 
+       from "react-router-dom"
 
 import LoadProfile from "./LoadProfile.js"
 import {LogApi} from "./LogApi.js"
@@ -7,6 +9,12 @@ import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import Map from "./Map.js"
+
+// Convert from an ISO date string to microsecond UNIX timestamp
+function iso_date_to_micros(iso_date_string) {
+  return Date.parse(iso_date_string) * 1e3
+}
+
 
 class LogApp extends React.Component {
 
@@ -23,6 +31,7 @@ class LogApp extends React.Component {
 
   render() {
     return (
+      <Router>
         <div><div className = "vertical flexbox top_pane padded">
 
         <div className = "row"><div>
@@ -38,10 +47,10 @@ class LogApp extends React.Component {
           <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
 
         <PathSelector logs = {this.state.chosen_logs} key =
-             {this.state.chosen_logs} on_select_path =
-         {
-           this.path_was_selected.bind(this)
-         } />
+            {this.state.chosen_logs} on_select_path =
+        {
+          this.path_was_selected.bind(this)
+        } />
 
           <div>
             <button className="padded" onClick={() => {
@@ -49,13 +58,13 @@ class LogApp extends React.Component {
             }}>Clear Plots</button>
 
         <LoadProfile did_select_plot_set =
-         {
-           (paths) => {
-             LogApi.get_series(this.state.chosen_logs, paths)
-                 .then(
-                     (series_array) => {this.setState({plots : series_array})})
-           }
-         } />
+        {
+          (paths) => {
+            LogApi.get_series(this.state.chosen_logs, paths)
+                .then(
+                    (series_array) => {this.setState({plots : series_array})})
+          }
+        } />
 
             <button className="padded" onClick={() => {
               let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
@@ -63,6 +72,14 @@ class LogApp extends React.Component {
               PlotProfiles.save_profile(plot_profile_name, plot_profile)
               this.forceUpdate()
             }}>Save Profile</button>
+
+            <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
+              () => {
+
+                const t_range = this.get_plot_range()
+                this.open_moos_messages(t_range)
+              }
+            }>Download MOOS Messages...</button>
 
         </div>
         </div>
@@ -74,7 +91,9 @@ class LogApp extends React.Component {
 
           <div className="map" id="map"></div>
         </div>
-      </div>)
+        </div>
+      </Router>
+    )
   }
 
   componentDidUpdate() {
@@ -128,6 +147,16 @@ class LogApp extends React.Component {
         .catch(err => {alert(err)})
   }
 
+  get_plot_range() {
+    const range = this.plot_div_element.layout?.xaxis?.range
+    if (range == null) {
+      return [0, 2**60]
+    }
+    else {
+      return range.map(iso_date_to_micros)
+    }
+  }
+
   refresh_plots() {
     if (this.state.plots.length == 0) {
       Plotly.purge(this.plot_div_element)
@@ -166,21 +195,48 @@ class LogApp extends React.Component {
 
                   layout.height = data.length * 300 + 1 // in pixels
 
+    // Preserve current x axis range
+    const current_layout_xaxis = this.plot_div_element.layout?.xaxis
+    if (current_layout_xaxis != null) {
+      layout.xaxis = current_layout_xaxis
+    }
+
     Plotly.newPlot(this.plot_div_element, data, layout)
 
-    let self =
-        this this.plot_div_element
-            .on('plotly_hover',
-                function(data) {
-                  let dateString =
-                      data.points[0].data.x[data.points[0].pointIndex] let
-                          date_timestamp_micros = Date.parse(dateString) * 1e3
-                  self.map.updateToTimestamp(date_timestamp_micros)
-                })
+    // Apply plot range to map path
+    this.map.timeRange = this.get_plot_range()
 
-                this.plot_div_element.on(
-                    'plotly_unhover',
-                    function(data) { self.map.updateToTimestamp(null) })
+    // Setup the triggers
+    let self = this
+    this.plot_div_element.on('plotly_hover', function(data) {
+      let dateString = data.points[0].data.x[data.points[0].pointIndex] 
+      let date_timestamp_micros = iso_date_to_micros(dateString)
+      self.map.updateToTimestamp(date_timestamp_micros)
+    })
+
+    this.plot_div_element.on('plotly_unhover',
+                        function(data) { self.map.updateToTimestamp(null) })
+
+    // Zooming into plots
+    this.plot_div_element.on('plotly_relayout', function(eventdata) {
+
+      // When autorange, zoom out to the whole set of points
+      if (eventdata['xaxis.autorange']) {
+        self.map.timeRange = null
+        self.map.updatePath()
+        return
+      }
+
+      const t0 = iso_date_to_micros(eventdata['xaxis.range[0]'])
+      const t1 = iso_date_to_micros(eventdata['xaxis.range[1]'])
+
+      self.map.timeRange = [t0, t1]
+      self.map.updatePath()
+    })
+  }
+
+  open_moos_messages(time_range) {
+    LogApi.get_moos(this.state.chosen_logs, time_range)
   }
 
 }

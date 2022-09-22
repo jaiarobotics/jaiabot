@@ -49,4 +49,8 @@ export function deepcopy(aObject) {
     }
   
     return bObject;
-  }
+}
+
+export function areEqual(a, b) {
+    return JSON.stringify(a) == JSON.stringify(b)
+}

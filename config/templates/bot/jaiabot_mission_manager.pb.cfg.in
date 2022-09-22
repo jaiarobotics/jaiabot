@@ -22,9 +22,16 @@ command_sub_cfg {
 }
 
 dive_depth_eps: 0.1  #  (optional) (default=0.1)
-surfacing_timeout: 600  #  (optional) (default=600)
+surfacing_timeout: 35  #  (optional) (default=600)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 5 # (optional) (default=5)
 
 data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
+
+# Can enable one or more test modes to override normal operational settings
+test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
+#test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
+
+# test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
+# ignore_error: ERROR__MISSING_DATA__PRESSURE

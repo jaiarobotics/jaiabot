@@ -50,6 +50,7 @@ message MissionReport
 
     required MissionState state = 10;
     optional int32 active_goal = 11;
+    optional GeographicCoordinate active_goal_location = 12;
 }
 
 message MissionTask

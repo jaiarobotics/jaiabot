@@ -6,7 +6,8 @@ colors = {
     'unselected': '#5ec957',
     'selected': '#34d2eb',
     'remoteControl': '#ff9800',
-    'active': '#d6382d'
+    'active': '#d6382d',
+    'disconnected': 'gray'
 }
 
 jobs = [
@@ -32,6 +33,7 @@ jobs = [
     ['bot', 'selected'],
     ['bot', 'unselected'],
     ['bot', 'remoteControl'],
+    ['bot', 'disconnected'],
 ]
 
 jsFile = open('Icons.jsx', 'w')

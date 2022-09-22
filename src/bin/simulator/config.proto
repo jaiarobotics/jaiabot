@@ -28,6 +28,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
 
 package jaiabot.config;
 
@@ -49,6 +50,11 @@ message Simulator
         pressure_udp_config = 21;
     optional goby.middleware.protobuf.UDPPointToPointConfig
         salinity_udp_config = 22;
+
+    // allow simulator without GPS by setting this false
+    optional bool enable_gps = 25 [default = true];
+
+    optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
     required double vertical_dive_rate = 30
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];

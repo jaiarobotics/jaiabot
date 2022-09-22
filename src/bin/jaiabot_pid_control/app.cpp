@@ -32,7 +32,7 @@
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
-const float THROTTLE_FOR_ZERO_NET_BOUYANCY = -35.0; // throttle that equalizes the bouyancy force of bot
+float THROTTLE_FOR_ZERO_NET_BUOYANCY = -35.0; // throttle that equalizes the buoyancy force of bot
 
 using namespace std;
 using goby::glog;
@@ -57,6 +57,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (app_config.has_bounds())
     {
         bounds = app_config.bounds();
+    }
+
+    if (bounds.motor().has_throttle_zero_net_buoyancy())
+    {
+        THROTTLE_FOR_ZERO_NET_BUOYANCY = bounds.motor().throttle_zero_net_buoyancy();
     }
 
     glog.is_verbose() && glog << "BotPidControl starting" << std::endl;
@@ -100,11 +105,11 @@ jaiabot::apps::BotPidControl::BotPidControl()
     }
     else
     {
-        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 20, 10, 0);
+        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 4, 1, 2);
     }
     throttle_depth_pid->set_auto();
     throttle_depth_pid->set_direction(E_PID_REVERSE);
-    throttle_depth_pid->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BOUYANCY);
+    throttle_depth_pid->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BUOYANCY);
 
     if (cfg().has_heading_pid_gains())
     {
@@ -265,7 +270,7 @@ void jaiabot::apps::BotPidControl::loop()
             if (throttle_depth_pid->need_compute())
             {
                 throttle_depth_pid->compute();
-                throttle = throttle + THROTTLE_FOR_ZERO_NET_BOUYANCY;
+                throttle = throttle + THROTTLE_FOR_ZERO_NET_BUOYANCY;
             }
 
             glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth
@@ -557,7 +562,7 @@ void jaiabot::apps::BotPidControl::handle_command(
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
             handle_remote_control(command.remote_control());
             break;
-        case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command.dive_depth()); break;
+        case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command); break;
         case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
     }
 
@@ -617,10 +622,11 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     }
 }
 
-void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
+void jaiabot::apps::BotPidControl::handle_dive_depth(
+    const jaiabot::protobuf::DesiredSetpoints& command)
 {
     // No dive PID for now... set to -60% throttle
-    setThrottleMode(MANUAL);
+    /*setThrottleMode(MANUAL);
 
     if (bounds.motor().has_throttle_dive())
     {
@@ -628,7 +634,14 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(const double& dive_depth)
     }
     else
     {
-        throttle = -45.0;
+        throttle = -35.0;
+    }*/
+
+    // Depth PID for dive
+    if (command.has_dive_depth())
+    {
+        setThrottleMode(PID_DEPTH);
+        target_depth = command.dive_depth();
     }
 
     // Set rudder to center
@@ -646,7 +659,7 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
     }
     else
     {
-        throttle = 50.0;
+        throttle = 25.0;
     }
 }
 
