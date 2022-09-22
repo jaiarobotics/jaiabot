@@ -194,8 +194,8 @@ message BotStatus
     message CalibrationStatus
     {
         optional bool sys = 1;
-        optional bool accel = 2;
-        optional bool gyro = 3;
+        optional bool gyro = 2;
+        optional bool accel = 3;
         optional bool mag = 4;
     }
     optional CalibrationStatus calibration_status = 57;

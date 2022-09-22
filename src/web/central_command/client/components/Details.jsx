@@ -240,12 +240,12 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                             <td>{bot.calibration_status?.sys}</td>
                         </tr>
                         <tr>
-                            <td>Accel_Cal</td>
-                            <td>{bot.calibration_status?.accel}</td>
-                        </tr>
-                        <tr>
                             <td>Gyro_Cal</td>
                             <td>{bot.calibration_status?.gyro}</td>
+                        </tr>
+                        <tr>
+                            <td>Accel_Cal</td>
+                            <td>{bot.calibration_status?.accel}</td>
                         </tr>
                         <tr>
                             <td>Mag_Cal</td>

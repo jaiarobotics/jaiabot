@@ -225,8 +225,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         }
 
         latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
-        latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
         latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
+        latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
         latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
         
     });
