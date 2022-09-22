@@ -171,6 +171,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                                  << imu_data.ShortDebugString() << std::endl;
 
         auto euler_angles = imu_data.euler_angles();
+        auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
         if (euler_angles.has_alpha())
@@ -222,6 +223,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             last_data_time_[DataType::ROLL] = now;
         }
+
+        latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
+        latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
+        latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
+        latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
+        
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {

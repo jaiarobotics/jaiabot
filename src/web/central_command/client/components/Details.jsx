@@ -187,6 +187,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
+
                 <table id="botDetailsTable">
                     <tbody>
                         <tr>
@@ -233,6 +234,22 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                         <tr>
                             <td>Roll</td>
                             <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
+                        </tr>
+                        <tr>
+                            <td>Sys_Cal</td>
+                            <td>{bot.calibration_status?.sys}</td>
+                        </tr>
+                        <tr>
+                            <td>Accel_Cal</td>
+                            <td>{bot.calibration_status?.accel}</td>
+                        </tr>
+                        <tr>
+                            <td>Gyro_Cal</td>
+                            <td>{bot.calibration_status?.gyro}</td>
+                        </tr>
+                        <tr>
+                            <td>Mag_Cal</td>
+                            <td>{bot.calibration_status?.mag}</td>
                         </tr>
                         <tr>
                             <td>Temperature</td>
