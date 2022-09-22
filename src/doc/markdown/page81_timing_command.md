@@ -62,5 +62,5 @@
     <-- jaiabot_web_portal (Receives bot status triggered by hub_manager publish)
         subscribes to: bot_status (interprocess 2hz)
         publishes to: web_portal_udp_out (2hz)
--- Central Command (Gets bot status updates 2hz)
+-- JAIABOT Command and Control (Gets bot status updates 2hz)
 ```
