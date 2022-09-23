@@ -761,6 +761,10 @@ var hub_location = null
 // Updates the status element with a status response object
 function updateStatus(status) {
   bots = status["bots"]
+  hubs = status["hubs"]
+
+  // For now we just handle one hub
+  hub = hubs[0];
 
   updateBotSelectDropdown(bots)
 
@@ -778,11 +782,6 @@ function updateStatus(status) {
   let now_us = Date.now() * 1e3
 
   for (const [botId, bot] of Object.entries(bots)) {
-    if (bot.botId == 255) {
-      var hub = bot
-      hub_location = hub.location
-    }
-
     loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
@@ -802,6 +801,7 @@ function updateStatus(status) {
     innerHTML += "<td>" + bot.missionState + "</td>"
 
     let bot_location = bot.location || null
+    let hub_location = hub?.location || null
     innerHTML += "<td>" + (bot.location?.lat?.toFixed(6) || "❌") + "</td>"
     innerHTML += "<td>" + (bot.location?.lon?.toFixed(6) || "❌") + "</td>"
 

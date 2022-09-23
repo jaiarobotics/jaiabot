@@ -94,6 +94,7 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
     auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
     auto network_id = config_extension.network_id();
     auto discover_peers = config_extension.discover_peers();
+    test_comms_ = config_extension.test_comms();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, discover_peers);
@@ -130,7 +131,14 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     next_frame_ += msg.frame_size();
 
     if (!(msg.frame_size() == 0 || msg.frame(0).empty()))
+    {
+        send_time_[msg.dest()] = goby::time::SteadyClock::now();
+        number_of_bytes_to_send_ = msg.frame(0).size();
+        glog.is_debug1() && glog << group(glog_out_group()) << "Start Send At: "
+                                 << send_time_.at(msg.dest()).time_since_epoch().count()
+                                 << ", Msg Size: " << number_of_bytes_to_send_ << std::endl;
         start_send(msg);
+    }
 }
 
 void goby::acomms::XBeeDriver::do_work() {
@@ -138,9 +146,11 @@ void goby::acomms::XBeeDriver::do_work() {
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
+    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
+    auto test_comms = config_extension.test_comms();
+
     // // Deal with incoming packets
     for (auto packet: device_.get_packets()) {
-
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -148,10 +158,15 @@ void goby::acomms::XBeeDriver::do_work() {
         protobuf::ModemTransmission msg;
         msg.ParseFromArray(&packet[0], packet.size());
 
-        glog.is_debug1() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                << " bytes from " << msg.src() << std::endl;
+        glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
+                                 << " bytes from " << msg.src() << std::endl;
 
         receive_message(msg);
+
+        if (test_comms_)
+        {
+            device_.send_diagnostic_commands();
+        }
     }
 }
 
@@ -169,6 +184,29 @@ void goby::acomms::XBeeDriver::receive_message(const protobuf::ModemTransmission
         for (int i = msg.frame_start(), n = msg.frame_size() + msg.frame_start(); i < n; ++i)
             ack.add_acked_frame(i);
         start_send(ack);
+    }
+    else if (msg.type() == protobuf::ModemTransmission::ACK)
+    {
+        auto now = goby::time::SteadyClock::now();
+        glog.is_debug1() && glog << group(glog_out_group())
+                                 << "Received Ack At: " << now.time_since_epoch().count()
+                                 << std::endl;
+        if (test_comms_)
+        {
+            if (send_time_.count(msg.src()))
+            {
+                auto total_time = (now.time_since_epoch().count() -
+                                   send_time_.at(msg.src()).time_since_epoch().count()) /
+                                  1e+6;
+
+                glog.is_verbose() &&
+                    glog << group(glog_out_group())
+                         << "Start Send at: " << send_time_.at(msg.src()).time_since_epoch().count()
+                         << ", Received Ack At: " << now.time_since_epoch().count()
+                         << ", Total Time in Seconds: " << total_time
+                         << ", Total Bytes Sent: " << number_of_bytes_to_send_ << std::endl;
+            }
+        }
     }
 
     signal_receive(msg);
