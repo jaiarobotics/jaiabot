@@ -71,7 +71,7 @@ message BotStatus
     // Measured using dccl analyze
     option (dccl.msg) = {
         id: 81
-        max_bytes: 45
+        max_bytes: 46
         codec_version: 3
         unit_system: "si"
     };

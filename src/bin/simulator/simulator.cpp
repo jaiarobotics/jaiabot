@@ -301,10 +301,10 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
                                                               si::radians);
         imu_data.mutable_euler_angles()->set_beta_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                              si::radians);
-        imu_data.mutable_calibration_status()->set_sys(true);
-        imu_data.mutable_calibration_status()->set_gyro(true);
-        imu_data.mutable_calibration_status()->set_accel(true);
-        imu_data.mutable_calibration_status()->set_mag(true);
+        imu_data.mutable_calibration_status()->set_sys(3);
+        imu_data.mutable_calibration_status()->set_gyro(3);
+        imu_data.mutable_calibration_status()->set_accel(3);
+        imu_data.mutable_calibration_status()->set_mag(3);
         interprocess().publish<groups::imu>(imu_data);
     }
 

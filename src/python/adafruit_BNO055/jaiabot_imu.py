@@ -66,7 +66,7 @@ class IMUSimulator:
             "euler": (0.0, 0.0, 0.0),
             "linear_acceleration": (0.0, 0.0, 0.0),
             "gravity": (0.0, 0.0, 9.8),
-            "calibration_status": (1, 1, 1, 1)
+            "calibration_status": (3, 3, 3, 3)
         }
 
 

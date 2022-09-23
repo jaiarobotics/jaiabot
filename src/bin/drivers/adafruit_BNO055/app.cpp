@@ -136,8 +136,8 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_gravity()->set_z(std::stod(fields[index++]));
 
       output.mutable_calibration_status()->set_sys(std::stod(fields[index++]));
-      output.mutable_calibration_status()->set_accel(std::stod(fields[index++]));
       output.mutable_calibration_status()->set_gyro(std::stod(fields[index++]));
+      output.mutable_calibration_status()->set_accel(std::stod(fields[index++]));
       output.mutable_calibration_status()->set_mag(std::stod(fields[index++]));
 
       glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;

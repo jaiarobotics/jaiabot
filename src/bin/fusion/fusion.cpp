@@ -98,7 +98,7 @@ class Fusion : public ApplicationBase
         CALIBRATION_MAG
     };
     std::map<DataType, goby::time::SteadyClock::time_point> last_data_time_;
-    std::map<DataType, bool> last_calibration_status_;
+    std::map<DataType, int> last_calibration_status_;
 
     const std::map<DataType, jaiabot::protobuf::Error> missing_data_errors_{
         {DataType::GPS_FIX, protobuf::ERROR__MISSING_DATA__GPS_FIX},
@@ -499,7 +499,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
     }
     for (const auto& ep : not_calibrated_errors_)
     {
-        if (!last_calibration_status_.count(ep.first) || !last_calibration_status_[ep.first])
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
         {
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
             health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
