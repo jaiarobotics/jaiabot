@@ -33,6 +33,8 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
     const jaiabot::config::ArduinoStatusConfig& cfg)
     : HealthMonitorThread(cfg, "arduino_status", 4.0 / 60.0 * boost::units::si::hertz)
 {
+    battery_voltage_error_ = cfg.battery_voltage_error();
+    battery_voltage_warning_ = cfg.battery_voltage_warning();
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
@@ -43,6 +45,23 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
             status_.set_vvcurrent(arduino_response.vvcurrent());
             status_.set_crc(arduino_response.crc());
             status_.set_calculated_crc(arduino_response.calculated_crc());
+
+            if (arduino_response.has_vccvoltage())
+            {
+                if (arduino_response.vccvoltage() < battery_voltage_error_)
+                {
+                    voltage_error_ = true;
+                }
+                else if (arduino_response.vccvoltage() < battery_voltage_warning_)
+                {
+                    voltage_warning_ = true;
+                }
+                else
+                {
+                    voltage_error_ = false;
+                    voltage_warning_ = false;
+                }
+            }
         });
 }
 
@@ -50,13 +69,35 @@ void jaiabot::apps::ArduinoStatusThread::issue_status_summary()
 {
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::arduino_to_pi>(status_);
     status_.Clear();
 }
 
 void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    // Check to see if we have an warning on battery voltage
+    if (voltage_warning_)
+    {
+        glog.is_warn() && glog << "Warning on Voltage: >" << cfg().battery_voltage_warning()
+                               << std::endl;
+
+        demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
+    }
+
+    // Check to see if we have an error on battery voltage
+    if (voltage_error_)
+    {
+        glog.is_warn() && glog << "Error on Voltage: >" << cfg().battery_voltage_error()
+                               << std::endl;
+
+        demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+    }
+
     //Check to see if the arduino is responding
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
         goby::time::SteadyClock::now())

@@ -73,6 +73,8 @@ message ArduinoStatusConfig
         unit_system: "si"
     };
     optional int32 arduino_report_timeout_seconds = 10 [default = 20];
+    optional float battery_voltage_warning = 11 [default = 20];
+    optional float battery_voltage_error = 12 [default = 18];
 }
 
 message Health
