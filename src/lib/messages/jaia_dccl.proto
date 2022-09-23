@@ -67,9 +67,11 @@ message Command
 
 message BotStatus
 {
+    // Current Actual maximum size of message: 45 bytes / 360 bits
+    // Measured using dccl analyze
     option (dccl.msg) = {
         id: 81
-        max_bytes: 70
+        max_bytes: 45
         codec_version: 3
         unit_system: "si"
     };
