@@ -237,19 +237,19 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                         </tr>
                         <tr>
                             <td>Sys_Cal</td>
-                            <td>{bot.calibration_status?.sys}</td>
+                            <td>{bot.calibration_status?.toString(sys)}</td>
                         </tr>
                         <tr>
                             <td>Gyro_Cal</td>
-                            <td>{bot.calibration_status?.gyro}</td>
+                            <td>{bot.calibration_status?.toString(gyro)}</td>
                         </tr>
                         <tr>
                             <td>Accel_Cal</td>
-                            <td>{bot.calibration_status?.accel}</td>
+                            <td>{bot.calibration_status?.toString(accel)}</td>
                         </tr>
                         <tr>
                             <td>Mag_Cal</td>
-                            <td>{bot.calibration_status?.mag}</td>
+                            <td>{bot.calibration_status?.toString(mag)}</td>
                         </tr>
                         <tr>
                             <td>Temperature</td>
