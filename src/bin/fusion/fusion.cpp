@@ -224,10 +224,25 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             last_data_time_[DataType::ROLL] = now;
         }
 
-        latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
-        latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
-        latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
-        latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
+        if (calibration_status.has_sys())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
+        }
+
+        if (calibration_status.has_gyro())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
+        }
+
+        if (calibration_status.has_accel())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
+        }
+
+        if (calibration_status.has_mag())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
+        }
         
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
