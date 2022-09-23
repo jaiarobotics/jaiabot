@@ -179,7 +179,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
             <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} (m)</td>
         </tr>
     )
-    
+
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
@@ -237,19 +237,19 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                         </tr>
                         <tr>
                             <td>Sys_Cal</td>
-                            <td>{bot.calibration_status?.toString(sys)}</td>
+                            <td>{bot.calibrationStatus?.sys.toString()}</td>
                         </tr>
                         <tr>
                             <td>Gyro_Cal</td>
-                            <td>{bot.calibration_status?.toString(gyro)}</td>
+                            <td>{bot.calibrationStatus?.gyro.toString()}</td>
                         </tr>
                         <tr>
                             <td>Accel_Cal</td>
-                            <td>{bot.calibration_status?.toString(accel)}</td>
+                            <td>{bot.calibrationStatus?.accel.toString()}</td>
                         </tr>
                         <tr>
                             <td>Mag_Cal</td>
-                            <td>{bot.calibration_status?.toString(mag)}</td>
+                            <td>{bot.calibrationStatus?.mag.toString()}</td>
                         </tr>
                         <tr>
                             <td>Temperature</td>
