@@ -6,6 +6,7 @@ import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
+import "jaiabot/messages/imu.proto";
 
 package jaiabot.protobuf;
 
@@ -68,7 +69,7 @@ message BotStatus
 {
     option (dccl.msg) = {
         id: 81
-        max_bytes: 66
+        max_bytes: 70
         codec_version: 3
         unit_system: "si"
     };
@@ -191,15 +192,7 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
-    message CalibrationStatus
-    {
-        optional bool sys = 1;
-        optional bool gyro = 2;
-        optional bool accel = 3;
-        optional bool mag = 4;
-    }
-    optional CalibrationStatus calibration_status = 57;
-
+    optional IMUData.CalibrationStatus calibration_status = 57;
 }
 
 message DivePacket

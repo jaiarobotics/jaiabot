@@ -47,6 +47,6 @@ message IMUData
         optional bool mag = 4;        
     }
 
-    optional CalibrationStatus calibration_status= 4;
+    optional CalibrationStatus calibration_status = 4;
 
 }
