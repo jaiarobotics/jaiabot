@@ -83,4 +83,8 @@ import botRemoteControl from "../icons/bot-remoteControl.svg"
 export {botRemoteControl}
 export const botRemoteControlStyle = new OlStyle({ image: new OlIcon({ src: botRemoteControl }) })
 
+import botDisconnected from "../icons/bot-disconnected.svg"
+export {botDisconnected}
+export const botDisconnectedStyle = new OlStyle({ image: new OlIcon({ src: botDisconnected }) })
+
 

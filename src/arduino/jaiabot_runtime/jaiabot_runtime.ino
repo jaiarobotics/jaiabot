@@ -14,6 +14,8 @@
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
 // TODO: Add CRC32?
+
+// A compile time evaluated pointer to a constant character.
 constexpr const char* SERIAL_MAGIC = "JAIA";
 constexpr int SERIAL_MAGIC_BYTES = 4;
 constexpr int SIZE_BYTES = 2;
@@ -38,10 +40,27 @@ void handle_timeout();
 void halt_all();
 
 // Neutral values for timing out
-int motor_neutral = 1500;
-int stbd_elevator_neutral = 1500;
-int port_elevator_neutral = 1500;
-int rudder_neutral = 1500;
+constexpr int motor_neutral = 1500;
+constexpr int stbd_elevator_neutral = 1500;
+constexpr int port_elevator_neutral = 1500;
+constexpr int rudder_neutral = 1500;
+
+// Elevators
+int target_stbd_elevator = 1500;
+int target_port_elevator = 1500;
+
+// Rudder
+int target_rudder = 1500;
+
+// Motor
+int current_motor = 1500;
+int target_motor = 1500;
+
+// Motor Steps
+constexpr int motor_max_step_forward_faster = 3;
+constexpr int motor_max_step_forward_slower = 12;
+constexpr int motor_max_step_reverse_faster = 3;
+constexpr int motor_max_step_reverse_slower = 12;
 
 // The thermocouple
 //constexpr int CLOCK_PIN = 7;
@@ -54,17 +73,17 @@ bool thermocouple_is_present = false;
 
 // Power Pins
 constexpr int POWER_PIN = A1;
-const int CTRL_ACTS = 10;
-const int FAULT_ACTS = 8;
+constexpr int CTRL_ACTS = 10;
+constexpr int FAULT_ACTS = 8;
 
-// LED
+// LED A5 is also D19
 constexpr int LED_D1_PIN = A5;
-const int LED_D2_PIN = A6;
+bool target_led_switch_on = false;
 
 // Voltage and Current
-const int VvCurrent = A3;
-const int VccCurrent = A2;
-const int VccVoltage = A0;
+constexpr int VvCurrent = A3;
+constexpr int VccCurrent = A2;
+constexpr int VccVoltage = A0;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
@@ -182,7 +201,6 @@ void setup()
   pinMode(VccVoltage, INPUT);
   pinMode(VvCurrent, INPUT);
   pinMode(LED_D1_PIN, OUTPUT);
-  pinMode(LED_D2_PIN, OUTPUT);
   
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
@@ -211,18 +229,60 @@ int32_t clamp(int32_t v, int32_t min, int32_t max) {
   return v;
 }
 
+void writeToActuators()
+{
+  // If we are going forward and we are trying to go faster
+  if (target_motor > 1500 && target_motor > current_motor)
+  {
+      current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
+  }
+  // If we are going forward and we are trying to go slower
+  else if (target_motor > 1500 && target_motor < current_motor ||
+            target_motor == 1500 && current_motor > 1500)
+  {
+      current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
+  }
+  // If we are going reverse and we are trying to go slower
+  else if (target_motor < 1500 && target_motor > current_motor ||
+            target_motor == 1500 && current_motor < 1500)
+  {
+      current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
+  }
+  // If we are going reverse and we are trying to go faster
+  else if (target_motor < 1500 && target_motor < current_motor)
+  {
+      current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
+  }
+
+  motor_servo.writeMicroseconds(current_motor);
+  rudder_servo.writeMicroseconds(target_rudder);
+  stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
+  port_elevator_servo.writeMicroseconds(target_port_elevator);
+
+  if (target_led_switch_on == true){
+    analogWrite(LED_D1_PIN, 255);
+  }
+  else if (target_led_switch_on == false){
+    analogWrite(LED_D1_PIN, 0);
+  }
+}
+
 
 void loop()
 {
+  // Run loop at 16Hz
+  delay(63); 
+
+  // Write to Motor, rudder, and elevators
+  writeToActuators();
 
   constexpr int prefix_size = SERIAL_MAGIC_BYTES + SIZE_BYTES;
 
   handle_timeout();
 
+  // Command received at 4Hz
   while (Serial.available() >= prefix_size) {
     handle_timeout();
-    // Attempt to ghost bust, delay 100 milliseconds
-    delay(100); 
 
     // read bytes until the next magic word start (hopefully)
     while (Serial.available() > 0  && Serial.peek() != SERIAL_MAGIC[0]) {
@@ -291,19 +351,12 @@ void loop()
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     } 
 
-    motor_servo.writeMicroseconds (command.motor);
-    rudder_servo.writeMicroseconds(command.rudder);
-    stbd_elevator_servo.writeMicroseconds(command.stbd_elevator);
-    port_elevator_servo.writeMicroseconds(command.port_elevator);
-
-    if (command.led_switch_on == true){
-      analogWrite(LED_D1_PIN, 255);
-      analogWrite(LED_D2_PIN, 255);
-    }
-    else if (command.led_switch_on == false){
-      analogWrite(LED_D1_PIN, 0);
-      analogWrite(LED_D2_PIN, 0);
-    }
+    // The commanded targets
+    target_motor = command.motor;
+    target_rudder = command.rudder;
+    target_stbd_elevator = command.stbd_elevator;
+    target_port_elevator = command.port_elevator;
+    target_led_switch_on = command.led_switch_on;
 
     // Set the timeout vars
     t_last_command = millis();
@@ -330,11 +383,11 @@ void handle_timeout() {
 }
 
 void halt_all() {
-  command.motor = motor_neutral;
-  command.rudder = rudder_neutral;
-  command.stbd_elevator = stbd_elevator_neutral;
-  command.port_elevator = port_elevator_neutral;
-  command.led_switch_on = false;
+  target_motor = motor_neutral;
+  target_rudder = rudder_neutral;
+  target_stbd_elevator = stbd_elevator_neutral;
+  target_port_elevator = port_elevator_neutral;
+  target_led_switch_on = false;
 }
 
 // from feather.pb.c - would be better to just add the file to the sketch

@@ -27,17 +27,16 @@ export default class EngineeringPanel extends React.Component {
 		let self = this
 
 		return (
-			<div id="leftSidebar" className="column-left">
-				<div id="leftPanelsContainer" className="panelsContainerVertical">
-					<div className="panel">
-						JaiaBot Central Command<br />
-						Version 1.1.0
+			<div id="engineeringPanel" className="column-right">
+				<div className="panelsContainerVertical">
+					<div className="panel" >
+						<b>Engineering Panels</b><br />						
 					</div>
 					<div className="panel">
 						<button type="button" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
-							Jaia Engineering
+							JaiaBot Engineer & Debug
 						</button>
 					</div>
 
@@ -49,9 +48,6 @@ export default class EngineeringPanel extends React.Component {
 
                     <MissionSpeedSettingsPanel />
 
-				</div>
-				<div id="sidebarResizeHandle" className="ui-resizable-handle ui-resizable-e">
-					<FontAwesomeIcon icon={faGripVertical} />
 				</div>
 			</div>
 		)

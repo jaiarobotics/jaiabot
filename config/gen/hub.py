@@ -8,6 +8,7 @@ import os
 from common import config
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
+from pathlib import Path
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -19,7 +20,8 @@ try:
 except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
-log_file_dir = common.jaia_log_dir+ '/hub'
+log_file_dir = common.jaia_log_dir + '/hub'
+Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 
 node_id = 0 
@@ -55,7 +57,8 @@ if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id))
+                                             mac_slots=common.comms.xbee_mac_slots(node_id),
+                                             xbee_config=common.comms.xbee_config())
 
 if is_simulation():
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
@@ -89,10 +92,13 @@ elif common.app == 'jaiabot_health':
                                      # do not power off or restart the simulator computer
                                      ignore_powerstate_changes=is_simulation()))
 elif common.app == 'goby_liaison':
+    liaison_port=30000
+    if is_simulation():
+        liaison_port=30000+node_id
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     http_port=30000+node_id,
+                                     http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_gps':

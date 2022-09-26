@@ -1,17 +1,22 @@
-FROM gobysoft/goby3-ubuntu-build-base:20.04.1
+FROM --platform=linux/amd64 ubuntu:focal
+
+SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update || true
-RUN apt-get -y install ca-certificates 
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y --no-install-recommends install \
+            git build-essential ssh cmake gpg gpg-agent \
+            devscripts equivs ca-certificates quilt \
+            clang clang-tools dirmngr\
+            dput cdbs \
+            && rm -rf /var/lib/apt/lists/*
 
-# Update apt-key for packages.gobysoft.org (out of date in goby3-ubuntu-build-arm64)
-RUN apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-
-# Add packages.jaia.tech
-RUN apt-get update && apt-get -y install dirmngr && \
-    echo "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
-    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+# Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
+RUN echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
+    apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
 # Install jaiabot dependencies
 RUN apt-get update && \
@@ -32,6 +37,8 @@ RUN apt-get update && \
             nodejs:amd64 \
             webpack:amd64 \
             npm:amd64 \
+            graphviz:amd64 \
+            doxygen:amd64 \
             && \
     rm -rf /var/lib/apt/lists/*
 

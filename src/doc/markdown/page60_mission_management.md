@@ -4,7 +4,7 @@ The `jaiabot_mission_manager` maintains a state machine that oversees the overal
 
 ## State machine
 
-The JaiaBot maintains a hierarchical state machine (HSM), also referred to as a statechart, that keeps track of the vehicle's mission state from PreDeployment, through the in-water "Underway" operations, and finalizing with PostDeployment:
+The JaiaBot maintains a hierarchical state machine (HSM), also referred to as a statechart, that keeps track of the bot's mission state from PreDeployment, through the in-water "Underway" operations, and finalizing with PostDeployment:
 
 ![](../figures/mission-states.png)
 
@@ -14,88 +14,100 @@ The goal is to keep the state machine as simple as possible while still supporti
 
 ### States
 
-- PreDeployment: To be performed before the vehicle is in the water. (Use Cases: "Pre Mission", "Mission Planning", and "System Readiness")
-	+ Off: Vehicle is powered off (initial state). This is a somewhat meaningless state in practice but is included for the sake of completeness.
-	+ SelfTest: Vehicle checks system statuses and functionality.
-	+ Failed: Vehicle has a fault that does not allow it to perform any mission.
-	+ WaitForMissionPlan: Vehicle waits for a mission plan from the operator
-	+ Ready: Vehicle is ready for deployment.
-- InMission: Holds state variables for a given mission (what goal / task we are on)
-	- Underway: To be performed while the vehicle is in the water. (Use Cases: "Mission", "Recovery")
-		+ Movement: Vehicle is moving to the next Task.
-			* Transit: Vehicle is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
-			* RemoteControl: Vehicle is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the vehicle is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current vehicle location.
-				- Setpoint: Vehicle is performing a RC setpoint (heading, speed up to a given duration)
-				- StationKeep: Vehicle is stationkeeping waiting for the next Setpoint.
+- PreDeployment: To be performed before the bot is in the water. (Use Cases: "Pre Mission", "Mission Planning", and "System Readiness")
+	+ StartingUp: Bot is waiting for the system and all JaiaBot processes to start (initial state). 
+	+ SelfTest: Bot checks system statuses and functionality.
+	+ Failed: Bot has a fault that does not allow it to perform any mission.
+	+ WaitForMissionPlan: Bot waits for a mission plan from the operator
+	+ Ready: Bot is ready for deployment.
+- InMission: Holds state variables for a given mission (what goal / task we are on). Leaving InMission resets all data related to that mission.
+	- Underway: To be performed while the bot is in the water. (Use Cases: "Mission", "Recovery")
+		+ Movement: Bot is moving to the next Task.
+			* Transit: Bot is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
+			* RemoteControl: Bot is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the bot is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current bot location.
+				- Setpoint: Bot is performing a RC setpoint (heading, speed up to a given duration)
+				- StationKeep: Bot is stationkeeping while waiting for the next Setpoint.
+				- SurfaceDrift: Bot is drifting while waiting for the next Setpoint.
 			* ...: Can be expanded in the future to allow other types of Movement states as needed
-		+ Task: Vehicle is performing a sampling, station keeping, or other discrete task.
-			* StationKeep: Vehicle is actively maintaining a position on the surface.
-			* SurfaceDrift: Vehicle is drifting (propulsor off).
-			* Dive: Vehicle performs a dive maneuver. 
-				- PoweredDescent: Vehicle is diving by powered reverse thrust.
-				- Hold: Vehicle is maintaining a specific depth.
-				- UnpoweredAscent: Vehicle thruster is off, waiting for vehicle to ascend.
-				- PoweredAscent: Vehicle is performing a powered ascent to the surface.
+		+ Task: Bot is performing a sampling, station keeping, or other discrete task.
+			* StationKeep: Bot is actively maintaining a position on the surface.
+			* SurfaceDrift: Bot is drifting (propulsor off).
+			* Dive: Bot performs a dive maneuver. 
+				- PoweredDescent: Bot is diving by powered reverse thrust.
+				- Hold: Bot is maintaining a specific depth.
+				- UnpoweredAscent: Bot thruster is off, waiting for bot to ascend.
+				- PoweredAscent: Bot is performing a powered ascent to the surface.
+				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* ...: Can be expanded in the future for other types of Tasks.
-		+ Recovery: Vehicle is returning to a safe location for recovery.
-			* Transit: Vehicle is transiting to the recovery location.
-			* StationKeep: Vehicle is actively maintaining the recovery location position.
+		+ Recovery: Bot is returning to a safe location for recovery.
+			* Transit: Bot is transiting to the recovery location.
+			* StationKeep: Bot is actively maintaining the recovery location position.
 			* Stopped: Control surfaces are stopped for a safe recovery.
-		+ Replan: Vehicle has received a new mission and is assessing feasibility.
-- PostDeployment: To be performed after the vehicle is in the water. (Use Cases: "Post Mission")
-	+ Recovered: Vehicle has been recovered.
-	+ DataProcessing: First the goby_logger is stopped. Vehicle is doing automatic post mission conversions (e.g. .goby to HDF5, etc.). 
-	+ DataOffload: Vehicle is uploading data to a pre-configured storage location.
-	+ Idle: Vehicle is awaiting a command to reset for a new mission or shut down. If a new mission is sent, goby_logger is started.
-	+ ShuttingDown: Vehicle is cleanly powering down.
+		+ Replan: Bot has received a new mission and is assessing feasibility. The bot stationkeeps while in this state.
+- PostDeployment: To be performed after the bot is in the water. (Use Cases: "Post Mission")
+	+ Recovered: Bot has been recovered.
+	+ DataProcessing: Does not do anything at the moment. Placeholder for future on-board processing tasks.
+	+ DataOffload: Bot is uploading data to hub0.
+	+ Idle: Bot is awaiting a command to reset for a new mission or shut down. If a new mission is sent, goby_logger is started.
+	+ ShuttingDown: Bot is cleanly powering down.
 
 ### Events
 
-Events are what drives the changes in states. Some events are triggered by the operator, some by the vehicle autonomy, and some by changes in the environment (or in some cases a single event could be triggered by multiple means). 
+Events are what drives the changes in states. Some events are triggered by the operator, some by the bot autonomy, and some by changes in the environment (or in some cases a single event could be triggered by multiple means). 
 
 #### Implemented Events
 
-- EvTurnOn: Vehicle is powered on. This state is automatically entered by `jaiabot_mission_manager` as if it is running, by definition the vehicle has been powered on.
-- EvSelfTestSuccessful: The vehicle self test has completed successfully and no critical failures have been found. This is triggered by a yet-to-be-determined health monitoring application. Currently as a passthrough, this is always posted upon startup.
-- EvMissionFeasible: Triggered by `jaiabot_mission_manager` if the received mission should be feasible within the various constraints (power, etc.). Will be triggered by the `jaiabot_mission_manager` upon receipt of a mission plan from the operator. Currently the only feasibility check is that the mission has at least one goal.
-- EvMissionInfeasible: Triggered by `jaiabot_mission_manager` if the received mission is not feasible within the various constraints (power, etc.). Will be triggered by the `jaiabot_mission_manager` upon receipt of a mission plan from the operator.
-- EvDeployed: Triggered when the vehicle enters the water, depending on the value of the MissionStart enumeration given in the mission plan: 
+- EvStarted: Bot has successfully started. This is triggered by a `jaiabot_health` health report considered OK (*not* HEALTH__FAILED unless ENGINEERING_TEST__IGNORE_SOME_ERRORS and the excluded error would make health OK).
+- EvStartedTimeout: Timeout without EvStarted (Config value `startup_timeout`).
+- EvActivate: Bot is activated (primarily this starts logging). This is manually sent from Central Command using the Command type: ACTIVATE.
+- EvSelfTestSuccessful: The bot self test has completed successfully and no critical failures have been found. Currently, this is the same condition as EvStarted.
+- EvSelfTestFails: The bot self test fails and the bot is unable to perform a mission. This occurs when the health report is not considered OK (inverse of EvSelfTestSuccessful). 
+- EvMissionFeasible: Triggered by `jaiabot_mission_manager` if the received mission should be feasible within the various constraints (power, etc.). Will be triggered by the `jaiabot_mission_manager` upon receipt of a mission plan from the operator. Currently the only feasibility check is that the mission is well-formed (e.g. it has a goal and a valid recovery location).
+- EvMissionInfeasible: Triggered by `jaiabot_mission_manager` if the received mission is not feasible (inverse of EvMissionFeasible).
+- EvDeployed: Triggered when the bot enters the water, depending on the value of the MissionStart enumeration given in the mission plan: 
 	+ START_IMMEDIATELY: EvDeployed is immediately posted by the Ready state entry.
 	+ START_ON_COMMAND: EvDeployed is posted when a Command is received of type = START_MISSION. 
-- EvWaypointReached: Triggered when the vehicle reaches the next waypoint. This is triggered via the pHelmIvP waypoint behavior publication (which is published as `jaiabot::groups::mission_ivp_behavior_report`).
+- EvWaypointReached: Triggered when the bot reaches the next waypoint. This is triggered via the pHelmIvP waypoint behavior publication (which is published as `jaiabot::groups::mission_ivp_behavior_report`).
 - EvPerformTask: Triggered in a variety of ways depending on the mission (movement) type:
 	- Transit: Triggered when EvWaypointReached is posted. No data are passed so the next task in the mission is used.
 	- RemoteControl: Triggered via the operator UI using Command type: REMOTE_CONTROL_TASK. The desired manual task is passed a parameter to this event.
 - EvTaskComplete: Triggered when the task has been completed. This can be triggered in a variety of ways, depending on the task:
-	+ No task: Triggered immediately so that the vehicle returns to Movement.
+	+ No task: Triggered immediately so that the bot returns to Movement.
+	+ StationKeep: Triggered when the Command type: NEXT_TASK is sent by the operator
+	+ Dive: Triggered when the dive is completed.
+	+ SurfaceDrift: Triggered when the drift timer expires. (or Command type: NEXT_TASK is sent by the operator.).
 - EvNewMission: Triggered when the operator sends a new mission and the bot receives it.
 - EvReturnToHome: Triggered by the Movement::Transit state when the mission has completed all the preprogrammed waypoints, or via a command from the operator.
 - EvRecoveryPointReached: Triggered by the pHelmIvP behavior once the recovery point has been reached.
-- EvStopped: Triggered by a command from the operator or by the Abort state.
-- EvShutdown: Triggered by the operator.
-- EvRedeploy: Triggered by the operator to reset the vehicle back into the PreDeployment state.
-- EvTaskComplete:
-	+ StationKeep: Not triggered. Rather, EvNewMission is triggered when the operator sends a new mission.
-	+ Dive: Triggered when the dive is completed and the vehicle is back on the surface.
-	+ SurfaceDrift: Triggered when the drift timer expires. (Or as always, EvNewMission is triggered which starts the new mission).
-- EvHoldComplete: Triggered when the depth target hold timeout expires.
+- EvStop: Triggered by a command from the operator (Command type: STOP)
+- EvShutdown: Triggered by the operator with Command type: SHUTDOWN.
 - EvDepthTargetReached: Triggered when the Dive behavior reaches a target depth.
-- EvSurfacingTimeout: Triggered when the vehicle has not surfaced after a set amount of time.
-- EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
-- EvVehicleDepth: Triggered whenever new depth information is received from the vehicle sensors (event contains the depth value as a parameter).
-- EvResumeMovement: Triggered by a command from the operator (type == REMOTE_CONTROL_RESUME_MOVEMENT) to put the vehicle out of RemoteControl and back into the mission's Movement state (which could still be RemoteControl).
+- EvHoldComplete: Triggered when the depth target hold timeout expires.
+- EvDiveComplete: Triggered when the final depth and hold has been reached (or the bottom is detected).
+- EvSurfacingTimeout: Triggered when the bot has not surfaced after a set amount of time.
+- EvSurfaced: Triggered when the bot has reached the surface.
+- EvResumeMovement: Triggered by a command from the operator (type == REMOTE_CONTROL_RESUME_MOVEMENT) to put the bot out of RemoteControl and back into the mission's Movement state (which could still be RemoteControl).
 - EvRCSetpoint: Triggered by the operator providing a new remote control setpoint.
 - EvRCSetpointComplete: Triggered when the setpoint duration is exceeded.
+- EvRecovered: Triggered when the operator sends Command type: RECOVERED
+- EvBeginDataProcessing: Automatically triggered upon entry to Recovered.
+- EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
+- EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
+- EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
 
+#### Internal events
+
+These are not shown on the diagram but used for providing data to the state machine.
+
+- EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
+- EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
+- EvGPSFix: GPS Fix received
+- EvMeasurement: Sensor data measurement. 
 
 #### Unimplemented Events
 
-- EvSelfTestFails: The vehicle self test fails and the vehicle is unable to perform a mission. This is triggered by a yet-to-be-determined health monitoring application.
-- EvAbort: Abort triggered by yet-to-be-determined health monitoring process.
-- EvRecovered: Triggered when the vehicle detects it is out of the water.
-- EvBeginDataProcessing: Triggered by the operator? or automatically upon recovery?
-- EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
-- EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded.
+- EvAbort: Abort triggered.
+
 
 ### State data
 
@@ -112,24 +124,24 @@ Data is scoped to the innermost state that must have access to the data ([state 
 
 ## Supporting Use Cases
 
-This section briefly describes how the statechart supports the desired vehicle use cases.
+This section briefly describes how the statechart supports the desired bot use cases.
 
 ### Common
 
 Nominal progression (in all use cases):
 
 - PreDeployment::Off 
-	- vehicle powers on
+	- bot powers on
 - PreDeployment::SelfTest
 	- self test completes OK
 - PreDeployment::WaitForMissionPlan
 	- operator sends mission plan
 - PreDeployment::Ready
-	- operator deploys vehicle into water
+	- operator deploys bot into water
 - Underway::*
 	- *mission specific*
 - Underway::Recovery::Stopped
-	- operator picks up vehicle
+	- operator picks up bot
 - PostDeployment::Recovered
 	- data processing begins
 - PostDeployment::DataProcessing
@@ -139,7 +151,7 @@ Nominal progression (in all use cases):
 - PostDeployment::Idle
  	- operator sends shutdown command
 - PostDeployment::ShuttingDown
-	- vehicle powers off and we're done
+	- bot powers off and we're done
 
 ### Mission Types
 
@@ -147,11 +159,51 @@ Nominal progression (in all use cases):
 	- Set of waypoints loaded (one at a time) into the pHelmIvP waypoint behavior and managed by toggling between Underway::Movement::Transit and Underway::Task::* until the waypoints are completed.
 	- Upon completion of waypoints, EvReturnToHome is automatically triggered and the Recovery sequence begins.  
 - Optimized Survey Mission (*unimplemented*)
-	+ Topside software (presumably `jaiabot_hub_manager`) generates a set of waypoints from the operation region and number of vehicles to create a mission plan so this is identical to the Waypoint mission as far as each vehicle is concerned.
+	+ Topside software (presumably `jaiabot_hub_manager`) generates a set of waypoints from the operation region and number of bots to create a mission plan so this is identical to the Waypoint mission as far as each bot is concerned.
 - Retasking Use case
-	+ This is handled by EvNewMission, which triggers the vehicle to Replan the mission and either begin execution (Movement) or stationkeep within Replan if the plan is infeasible (e.g. battery too low). The operator can then choose to send a feasible plan or recover.
-- Single Vehicle Remote Control Use Case
+	+ This is handled by EvNewMission, which triggers the bot to Replan the mission and either begin execution (Movement) or stationkeep within Replan if the plan is infeasible (e.g. battery too low). The operator can then choose to send a feasible plan or recover.
+- Single Bot Remote Control Use Case
 	+ This is handled using the Movement::RemoteControl state, toggling to the Task::* states via commands from the operator. When the operator isn't providing RC setpoint commands, the RemoteControl state will use setpoints from the pHelmIvP stationkeep behavior (until RC setpoints commands are received again). Manual tasks can be sent by the operator as desired during this state.
-- Survey Mission to Single Vehicle Remote Control Use Case
+- Survey Mission to Single Bot Remote Control Use Case
 	+ This is handled by sending a standard mission plan containing waypoint goals (as Waypoint Mission or Optimized Survey Mission)
-	+ When the operator chooses, the RemoteControl setpoints can be sent which move the vehicle into the Movement::RemoteControl state. From here the operator can issue manual tasks as desired to perform. When the RC part of the mission is over, the operator can resume the original mission plan by sending REMOTE_CONTROL_RESUME_MOVEMENT.
+	+ When the operator chooses, the RemoteControl setpoints can be sent which move the bot into the Movement::RemoteControl state. From here the operator can issue manual tasks as desired to perform. When the RC part of the mission is over, the operator can resume the original mission plan by sending REMOTE_CONTROL_RESUME_MOVEMENT.
+
+### Engineering Test Overrides
+
+For various engineering tests, it is helpful to bypass parts of the state machine or change other normal behavior.
+
+The overrides are set using one or more `test_mode` enumeration settings. *Warning: Use of these overrides may cause unpredictable or unsupported bot behavior and should not be used for regular operations.*
+
+#### Ignore some errors 
+
+To allow "normal" operation even the presence of one or more errors you can set:
+
+```
+test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
+```
+
+The errors to be ignored then must be set using one or more `ignore_error` enums (defined in `health.proto`), such as: 
+
+```
+ignore_error: ERROR__MISSING_DATA__PRESSURE
+ignore_error: ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL
+```
+
+When running the bot without GPS, "Indoor Mode" (see below) will automatically set the appropriate `ignore_error` flags (i.e., `ignore_error: ERROR__MISSING_DATA__GPS_FIX`, etc.).
+
+#### Always log
+
+Normally the bot stops logging when Idle to save disk space. This can be changed to always log using:
+
+```
+test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
+```
+
+#### Indoor Mode
+
+To run the bot without GPS (e.g. indoors in a tank), the following mode can be used:
+
+```
+test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
+```
+

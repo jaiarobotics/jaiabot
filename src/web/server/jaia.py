@@ -4,6 +4,7 @@ import threading
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
+from jaiabot.messages.hub_pb2 import HubStatus
 
 import google.protobuf.json_format
 
@@ -30,11 +31,11 @@ def floatFrom(obj):
 
 
 class Interface:
+    # Dict from hubId => hubStatus
+    hubs = {}
+
     # Dict from botId => botStatus
     bots = {}
-
-    # Dict from botId => last timestamp that a status was received
-    lastStatusReceivedTime = {}
 
     # Dict from botId => engineeringStatus
     bots_engineering = {}
@@ -83,18 +84,25 @@ class Interface:
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
 
             if msg.HasField('bot_status'):
-                botStatus = msg.bot_status
+                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status)
 
                 # Set the time of last status to now
-                self.lastStatusReceivedTime[botStatus.bot_id] = now()
+                botStatus['lastStatusReceivedTime'] = now()
 
-                # Discard the status, if it's a base station
-                if botStatus.bot_id < 255:
-                    self.bots[botStatus.bot_id] = botStatus
+                self.bots[botStatus['botId']] = botStatus
 
             if msg.HasField('engineering_status'):
-                botEngineering = msg.engineering_status
-                self.bots_engineering[botEngineering.bot_id] = botEngineering
+                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status)
+                self.bots_engineering[botEngineering['botId']] = botEngineering
+
+            if msg.HasField('hub_status'):
+                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status)
+
+                # Set the time of last status to now
+                hubStatus['lastStatusReceivedTime'] = now()
+
+                self.hubs[hubStatus['hubId']] = hubStatus
+
 
             if msg.HasField('dive_packet'):
                 divePacket = msg.dive_packet
@@ -150,7 +158,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot.bot_id,
+                'botId': bot['botId'],
                 'time': str(now()),
                 'type': 'STOP', 
             }
@@ -164,7 +172,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot.bot_id,
+                'botId': bot['botId'],
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
@@ -174,22 +182,22 @@ class Interface:
 
     def get_status(self):
 
-        # Get the bots dictionaries from the stored protobuf messages
-        bots = {}
-        for bot in self.bots.values():
-            bots[bot.bot_id] = google.protobuf.json_format.MessageToDict(bot)
-
+        for hub in self.hubs.values():
             # Add the time since last status
-            bots[bot.bot_id]['portalStatusAge'] = now() - self.lastStatusReceivedTime[bot.bot_id]
+            hub['portalStatusAge'] = now() - hub['lastStatusReceivedTime']
 
 
-        # Add the engineering status data
-        for botId, botEngineering in self.bots_engineering.items():
-            if botId in bots:
-                bots[botId]['engineering'] = google.protobuf.json_format.MessageToDict(botEngineering)
+        for bot in self.bots.values():
+            # Add the time since last status
+            bot['portalStatusAge'] = now() - bot['lastStatusReceivedTime']
+
+            if bot['botId'] in self.bots_engineering:
+                bot['engineering'] = self.bots_engineering[bot['botId']]
+
 
         status = {
-            'bots': bots,
+            'hubs': self.hubs,
+            'bots': self.bots,
             'messages': self.messages
         }
 
