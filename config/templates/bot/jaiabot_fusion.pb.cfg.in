@@ -2,3 +2,9 @@ $app_block
 $interprocess_block
 
 bot_id: $bot_id
+
+discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
+discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
+discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
+discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT
+discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS
