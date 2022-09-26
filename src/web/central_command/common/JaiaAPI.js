@@ -89,6 +89,9 @@ export class JaiaAPI {
   postMissionFilesCreate(descriptor) {
     return this.post('missionfiles/create', descriptor)
   }
+
+  // Gets a JSON response containing a contour map's extent on the map
+  getContourMapBounds() { return this.get('jaia/contour-bounds') }
 }
 
 export const jaiaAPI = new JaiaAPI('/', false)

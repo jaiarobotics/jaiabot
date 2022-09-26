@@ -6,6 +6,9 @@ import Collection from "ol/Collection"
 import Feature from "ol/Feature"
 import { Point } from "ol/geom"
 import { getTransform } from "ol/proj"
+import ImageLayer from 'ol/layer/Image';
+import Projection from 'ol/proj/Projection';
+import Static from 'ol/source/ImageStatic';
 
 const POLL_INTERVAL = 5000
 
@@ -23,6 +26,9 @@ export class DiveData {
 
         this.depthRange = [0, 1]
 
+        this.divePackets = []
+
+        // Plot depth soundings using a heatmap
         this.heatMapLayer = new Heatmap({
             title: 'Depth',
             source: new VectorSource({
@@ -37,41 +43,54 @@ export class DiveData {
                 return weight
             },
           })
+
+        // Plot depth soundings using a contour plot
+
+        this.contourLayer = new ImageLayer({
+            title: 'Depth Contours',
+            zIndex: 25,
+            opacity: 0.5,
+            source: null,
+          })
+
+    }
+
+    updateContourPlot() {
+        jaiaAPI.getContourMapBounds().then((bounds) => {
+            const imageExtent = [bounds.x0, bounds.y0, bounds.x1, bounds.y1]
+
+            const source = new Static({
+                attributions: 'JaiaBot',
+                url: '/jaia/contour-map',
+                projection: equirectangular,
+                imageExtent: imageExtent,
+              })
+
+            this.contourLayer.setSource(source)
+
+            console.log('loaded: ', source)
+        })
     }
 
     pollDivePackets() {
         jaiaAPI.getDivePackets().then((divePackets) => {
-            this.divePackets = divePackets
+            console.log('divePackets.length = ', divePackets.length)
+            if (divePackets.length > this.divePackets.length) {
+                console.log('new divePackets arrived!')
+                this.divePackets = divePackets
 
-            this.collection.clear()
+                if (divePackets.length >= 3) {
+                    console.log('Updating contour plot')
+                    this.updateContourPlot()
+                }
 
-            // Get the depth range for plotting
-
-            const depths = divePackets.map((divePacket) => divePacket.depthAchieved)
-            var min = 0
-            var max = depths.reduce((a, b) => Math.max(a, b), -Infinity)
-
-            if (min == max) {
-                min -= 1.0
             }
 
-            this.depthRange = [min, max - min]
-            
-            for (const divePacket of this.divePackets) {
-                var feature = new Feature({
-                    name: 'depthAchieved',
-                    geometry: new Point(equirectangular_to_mercator([divePacket.location.lon, divePacket.location.lat]))
-                })
-
-                feature.set('depth', divePacket.depthAchieved)
-
-                this.collection.push(feature)
-            }
         })
     }
 
-    getHeatMapLayer() {
-        return this.heatMapLayer
+    getContourLayer() {
+        return this.contourLayer
     }
 
 }

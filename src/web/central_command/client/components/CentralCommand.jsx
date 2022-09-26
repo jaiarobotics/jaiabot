@@ -853,7 +853,7 @@ export default class CentralCommand extends React.Component {
 			title: 'Measurements',
 			fold: 'open',
 			layers: [
-				diveData.getHeatMapLayer()
+				diveData.getContourLayer()
 			]
 		})
 
@@ -871,6 +871,8 @@ export default class CentralCommand extends React.Component {
 			this.missionLayer,
 			this.botsLayerGroup,
 		]
+
+		console.log(layers)
 
 		return layers
 	}

@@ -126,5 +126,17 @@ def pidRoot():
     return pidStaticFile('index.html')
 
 
+######## Contour map
+
+@app.route('/jaia/contour-bounds', methods=['GET'])
+def get_contour_bounds():
+    return JSONResponse(jaia_interface.get_contour_bounds())
+
+
+@app.route('/jaia/contour-map', methods=['GET'])
+def get_contour_map():
+    return Response(jaia_interface.get_contour_map(), mimetype='image/png')
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)

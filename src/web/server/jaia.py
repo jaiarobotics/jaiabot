@@ -10,6 +10,7 @@ import google.protobuf.json_format
 from time import sleep
 import datetime
 from math import *
+import contour_map
 
 import logging
 
@@ -41,6 +42,9 @@ class Interface:
 
     # List of all DivePackets received, with last known location of that bot
     dive_packets = []
+
+    # Contour plot object
+    contour_map = contour_map.ContourPlot()
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -97,6 +101,7 @@ class Interface:
                 self.bots_engineering[botEngineering.bot_id] = botEngineering
 
             if msg.HasField('dive_packet'):
+                logging.warn('Dive packet received')
                 divePacket = msg.dive_packet
                 self.process_dive_packet(divePacket)
 
@@ -222,5 +227,24 @@ class Interface:
 
         self.dive_packets.append(dive_packet)
 
+        # If we have at least 3 points, it's time to produce a contour map
+        if len(self.dive_packets) >= 3:
+            longitudes = [dive_packet['location']['lon'] for dive_packet in self.dive_packets]
+            latitudes = [dive_packet['location']['lat'] for dive_packet in self.dive_packets]
+            depths = [dive_packet['depthAchieved'] for dive_packet in self.dive_packets]
+
+            logging.warning(f'Updating contour plot')
+            self.contour_map.update_with_data(longitudes, latitudes, depths)
+
     def get_dive_packets(self):
         return self.dive_packets
+
+
+    # Contour map
+
+    def get_contour_bounds(self):
+        return self.contour_map.get_bounds()
+
+    def get_contour_map(self):
+        return self.contour_map.get_image()
+    
