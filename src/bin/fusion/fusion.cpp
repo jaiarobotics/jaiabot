@@ -38,6 +38,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -80,6 +81,7 @@ class Fusion : public ApplicationBase
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
+    std::set<jaiabot::protobuf::MissionState> discard_location_modes_;
 
     enum class DataType
     {
@@ -136,6 +138,15 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 {
     init_node_status();
     init_bot_status();
+
+    // Create a set of modes. when the bot is in
+    // one of these modes we should discard the
+    // location status
+    for (auto m : cfg().discard_location_modes())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        discard_location_modes_.insert(dsm);
+    }
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -287,20 +298,25 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (tpv.has_location())
             {
-                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
-                latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
-                latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
-
-                latest_bot_status_.mutable_location()->set_lat_with_units(lat);
-                latest_bot_status_.mutable_location()->set_lon_with_units(lon);
-
-                if (has_geodesy())
+                // only set location if the current mode is not included in discard_status_modes_
+                if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
                 {
-                    auto xy =
-                        geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
-                                           latest_node_status_.global_fix().lon_with_units()});
-                    latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
-                    latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
+                    latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
+
+                    latest_bot_status_.mutable_location()->set_lat_with_units(lat);
+                    latest_bot_status_.mutable_location()->set_lon_with_units(lon);
+
+                    if (has_geodesy())
+                    {
+                        auto xy =
+                            geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
+                                               latest_node_status_.global_fix().lon_with_units()});
+                        latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+                        latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                    }
                 }
                 last_data_time_[DataType::GPS_POSITION] = now;
             }
