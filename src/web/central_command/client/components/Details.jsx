@@ -179,7 +179,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
             <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} (m)</td>
         </tr>
     )
-    
+
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
@@ -187,6 +187,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
+
                 <table id="botDetailsTable">
                     <tbody>
                         <tr>
@@ -233,6 +234,22 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                         <tr>
                             <td>Roll</td>
                             <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
+                        </tr>
+                        <tr>
+                            <td>Sys_Cal</td>
+                            <td>{bot.calibrationStatus?.sys.toFixed(0)}</td>
+                        </tr>
+                        <tr>
+                            <td>Gyro_Cal</td>
+                            <td>{bot.calibrationStatus?.gyro.toFixed(0)}</td>
+                        </tr>
+                        <tr>
+                            <td>Accel_Cal</td>
+                            <td>{bot.calibrationStatus?.accel.toFixed(0)}</td>
+                        </tr>
+                        <tr>
+                            <td>Mag_Cal</td>
+                            <td>{bot.calibrationStatus?.mag.toFixed(0)}</td>
                         </tr>
                         <tr>
                             <td>Temperature</td>
