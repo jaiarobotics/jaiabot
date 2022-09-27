@@ -12,3 +12,4 @@ RPi.GPIO==0.7.1
 smbus==1.1.post2
 sysv-ipc==1.1.0
 h5py==3.7.0
+flask==2.2.2
