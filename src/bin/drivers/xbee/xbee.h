@@ -56,12 +56,14 @@ class XBeeDevice
 {
   public:
     XBeeDevice();
-    void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id);
+    void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
+                 const uint16_t network_id, const bool should_discover_peers);
     void shutdown();
 
     vector<NodeId> get_peers();
 
     void send_packet(const NodeId& dest, const std::string& s);
+    void send_test_links(const NodeId& dest, const NodeId& com_dest);
 
     vector<string> get_packets();
 
@@ -71,6 +73,12 @@ class XBeeDevice
 
     uint16_t max_payload_size;
 
+    // Adding a peer to the lookup table
+    void add_peer(const NodeId node_id, const SerialNumber serial_number);
+
+    // Get Diagnostics
+    void send_diagnostic_commands();
+
   private:
     static const SerialNumber broadcast_serial_number;
     
@@ -79,6 +87,8 @@ class XBeeDevice
     NodeId my_node_id;
     SerialNumber my_serial_number;
     byte frame_id;
+
+    bool should_discover_peers = false;
 
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
@@ -125,10 +135,48 @@ class XBeeDevice
     void process_frame_at_command_response(const string& response_string);
     void process_frame_receive_packet(const string& response_string);
     void process_frame_node_identification_indicator(const string& response_string);
+    void process_frame_explicit_rx_indicator(const string& response_string);
 
     // Processing queued packets
     void flush_packets_for_node(const NodeId& node_id);
 
+    // Query RSSI from Radio
+    void query_rssi();
+    // Query Received Error Count
+    void query_er();
+    // Query Received Good Count
+    void query_gd();
+    // Query Bytes Transmitted
+    void query_bc();
+    // Query Transmission Failure Count
+    void query_tr();
+    
+    // Check if we received diagnostics
+    bool received_rssi_{false};
+    bool received_er_{false};
+    bool received_gd_{false};
+    bool received_bc_{false};
+    bool received_tr_{false};
+
+    // RSSI fields
+    uint16_t current_rssi_{0};
+    uint16_t history_rssi_{0};
+    int rssi_query_count_{1};
+    uint16_t max_rssi_{0};
+    uint16_t min_rssi_{150};
+    uint16_t average_rssi_{0};
+
+    // Bytes Transmitted
+    uint32_t bytes_transmitted_{0};
+
+    // Received Error Count
+    uint16_t received_error_count_{0};
+
+    // Received Good Count
+    uint16_t received_good_count_{0};
+
+    // Transmission Failure Count
+    uint16_t transimission_failure_count_{0};
 };
 #endif
 

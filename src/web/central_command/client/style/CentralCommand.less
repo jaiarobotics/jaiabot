@@ -1,95 +1,32 @@
 // Sizes
 @left-sidebar-initial-width: 0px;
 @status-bar-height: 0px;
-
 @control-corner-radius: 12px;
 @panel-corner-radius: 8px;
-
 @command-button-size: 75px;
 @command-button-padding: 8px;
 @command-button-margin: 8px;
 @map-button-size: 50px;
-@drawer-button-size: 50px;
-@drawer-summary-height: 50px;
-
 @layout-margin: 0.5vw;
 @layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
-@stop-width: 25vw;
 
-// Logo blue
-@ax-blue: #2073ba;
+// Colors
+@cc-background-color: white;
+@cc-text-color: black;
+@selected-color: #0bc9cd;
+@inactive-color: #4c4c47;
 
-// Other
-@ax-tan1: #f7d596;
-@ax-green: #80a353;
-@ax-blue2: #378de2;
-@ax-cyan: #73e2ed;
-@ax-paleblue: #bbebef;
-@ax-brown: #4a3f29;
-@ax-darkteal: #17646e;
-@ax-teal: #28b0b0;
-@ax-tan2: #ddcdbe;
-@ax-tan3: #ede4df;
-
-@ab-yellow1: #f4f7be;
-@ab-yellow2: #e5f77d;
-@ab-brown1: #deba6f;
-@ab-gray1: #2d2d2a;
-@ab-gray2: #4c4c47;
-@ab-yellow3: #e6c229;
-@ab-orange1: #f17105;
-@ab-magenta1: #d11149;
-@ab-blue2: #8fbfe0;
-@ab-purple1: #7c77b9;
-@ab-teal1: #0bc9cd;
-@ab-gray3: #264653;
-@ab-yellow4: #e9c46a;
-@ab-orange2: #f4a261;
-@ab-orange4: #f44e3f;
-@ab-yellow5: #fcff4b;
-@ab-yellow6: #ffad05;
-@ab-blue3: #7cafc4;
-@ab-yellow7: #e0d486;
-@ab-blue4: #739dc1;
-@ab-peach1: #d0a07a;
-@ab-dull1: #b4c7b1;
-@ab-orange3: #d98931;
-@ab-blue5: #9dc0de;
-@ab-pink2: #ea6843;
-@ab-white1: #eee4c5;
-@ab-blue6: #24bbd3;
-
-@te-1: @ax-blue;
-@te-2: #3230c4;
-@te-3: #ffc71c;
-@te-5: #ffa01c;
-
-@tr-1: @ax-blue;
-@tr-2: #ff601c;
-@tr-3: #ffc71c;
-
-@opposite-ax-blue: #ffa01c;
-
-@button-color: @ax-blue; // FG always white
-@selected-color: @ab-teal1;
-@inactive-color: @ab-gray2;
-
-// Used when bot is underwater
-@underwater-color: @ab-gray3;
-// Used when measuring drift
-@drifting-color: @ab-blue4;
-
-@controlled-color: @tr-2;
-@tracked-color: @te-2;
-
-@mission-color: @ab-brown1;
-@mission-goal-color: @ab-orange3;
+@controlled-color: #ff601c;
+@tracked-color: #ff601c;
+@disconnected: gray;
 
 @good-color: #00cc00;
 @warning-color: #ffff00;
 @error-color: #ff0000;
 
 @overlay-background: rgba(0, 0, 0, 0.7);
+
+/******** CSS Central Command ********************/
 
 .bgcolor(@col) {
   background-color: @col;
@@ -98,7 +35,7 @@
 
 body {
   overflow: hidden;
-  background: #ffffff;
+  background: @overlay-background;
   font-size: 16pt;
   margin: 0;
   font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
@@ -138,14 +75,18 @@ textarea {
   button,
   .button {
     display: inline-block;
+    height: @command-button-size;
+    width: auto;
+    min-width: @command-button-size;
+    min-height: @command-button-size;
     border-radius: @control-corner-radius;
     border: 0px solid black;
     box-shadow: #333 1px 1px 5px;
-    .bgcolor(@button-color);
-    padding: 10px;
+    .bgcolor(@cc-background-color);
+    padding: @command-button-padding;
     text-align: center;
     text-decoration: none;
-    margin: 0 @layout-margin-px 0 0;
+    margin: @command-button-margin;
     font-size: 24px;
     line-height: 1;
     cursor: pointer;
@@ -175,11 +116,16 @@ textarea {
     &.active-track {
       .bgcolor(@tracked-color);
     }
+    img {
+      display: block;
+      width: @command-button-size - (2 * @command-button-padding);
+      height: auto;
+      font-size: @command-button-size - (2 * @command-button-padding);
+    }
     svg {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      margin: 0;
+      display: block;
+      width: @command-button-size - (2 * @command-button-padding);
+      font-size: @command-button-size - (2 * @command-button-padding);
     }
   }
 
@@ -189,126 +135,54 @@ textarea {
     font-weight: 500;
   }
 
-  #eStop {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: @stop-width;
-    height: 70px;
-    margin-left: -@stop-width / 2;
-    padding: 0;
-    z-index: 1000;
-    button {
-      width: 100%;
-      height: 100%;
-      background: red;
-      color: white;
-      overflow: hidden;
-      font-size: 48px;
-      font-weight: bolder;
-      border-radius: 0 0 @control-corner-radius @control-corner-radius;
-      // Make sure everything stays on one line by removing the left and right padding
-      padding-left: 0;
-      padding-right: 0;
-      margin: 0;
-      img {
-        height: 80%;
-        vertical-align: middle;
-        position: relative;
-        top: -5px;
-        margin: 0 10px;
-      }
-    }
-  }
+  /******** CSS Bot Information ********************/
 
-  #botsSummary {
-    width: (100vw - @stop-width)/2 - @layout-margin;
-    height: @drawer-summary-height;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: @overlay-background;
-    color: white;
-    // text-align: center;
-    display: flex;
-    flex-flow: row nowrap;
-
-    h2 {
-      flex-grow: 0;
-      flex-shrink: 1;
-      flex-basis: 2em;
-      box-sizing: border-box;
-      width: 0;
-      min-width: 0;
-      overflow: hidden;
-      color: white;
-      font-size: 24pt;
-      padding: 0;
-      margin: auto 0;
-      text-align: center;
-    }
-
-    #faultCounts {
-      flex-grow: 1;
-      flex-shrink: 0;
-      display: flex;
-      flex-flow: row nowrap;
-      > span {
-        flex-grow: 1;
-        display: inline-block;
-        height: @drawer-summary-height - (@layout-margin-px);
-        width: auto;
-        min-width: 1em;
-        text-align: center;
-        font-size: 1.4em;
-        line-height: 1.4; // Needs to match font size
-        border: 1px solid white;
-        border-radius: @panel-corner-radius;
-        margin: (@layout-margin-px / 2);
-      }
-      #faultLevel0Count {
-        .bgcolor(@good-color);
-      }
-
-      #faultLevel1Count {
-        .bgcolor(@warning-color);
-      }
-
-      #faultLevel2Count {
-        .bgcolor(@error-color);
-      }
-    }
-
-    > button {
-      flex-grow: 0;
-      flex-shrink: 0;
-      // margin: @layout-margin-px / 2;
-      margin: auto 0;
-    }
-  }
   #botsDrawer {
     position: absolute;
     left: 0;
-    top: @drawer-summary-height;
-    width: (100vw - @stop-width)/2 - @layout-margin;
+    top: 0;
+    width: 50pt;
     height: auto;
     max-height: 85vh;
     background: @overlay-background;
     border-radius: 0 0 @panel-corner-radius 0;
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: column nowrap;
 
     #botsList {
+      color: @cc-text-color;
+      text-align: center;
+      font-size: 12pt;
+
       flex-shrink: 1;
 
       overflow-y: auto;
 
       .bot-item {
+        .unselectable;
+        cursor: pointer;
         display: inline-block;
         border: 1px solid white;
         .bgcolor(@good-color);
         border-radius: @panel-corner-radius;
         font-size: 20pt;
+        height: 40pt;
+        line-height: 38pt;
+        width: 40pt;
+        margin: @layout-margin-px - 3;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .hub-item {
+        .unselectable;
+        cursor: pointer;
+        display: inline-block;
+        border: 1px solid white;
+        .bgcolor(@good-color);
+        border-radius: 20pt;
+        font-size: 17pt;
         height: 40pt;
         line-height: 38pt;
         width: 40pt;
@@ -328,76 +202,55 @@ textarea {
       > div.bot-item.faultLevel2 {
         .bgcolor(@error-color);
       }
+      > div.bot-item.disconnected {
+        .bgcolor(@disconnected)
+      }
       > div.bot-item.selected {
-        .bgcolor(@selected-color);
+        outline: 5px solid @selected-color;
       }
       > div.bot-item.controlled {
         .bgcolor(@controlled-color);
-      }
+      }  
     }
 
-    #botDetailsBox {
-      flex-basis: auto;
-      flex-shrink: 0;
-      top: 0;
-      color: white;
-      padding: @layout-margin-px / 2;
-
-      h2.name {
-        color: white;
-        margin: 0;
-      }
-
-      table {
-        margin: 8px 0;
-      }
-
-      td {
-        padding: 5px 0.5em;
-        font-size: 0.8em;
-      }
-
-      select {
-        color: black;
-      }
-    }
   }
 
-  #speedControl {
+  #botDetailsBox {
+
     position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 25vw;
-    margin-left: -25vw / 2;
-    z-index: 1800;
+    background-color: @cc-text-color;
+    top: 0pt;
+    left: 50pt;
+    color: @cc-background-color;
+    padding: 8pt;
+    border-radius: 8pt;
+    border: 2px dashed @cc-background-color;
 
-    display: flex;
-    flex-flow: row nowrap;
-
-    #speedSlider {
-      flex-grow: 1;
-      margin-top: 25px;
+    h2.name {
+      color: @cc-background-color;
+      margin: 0;
     }
 
-    button {
-      margin: @layout-margin;
+    table {
+      margin: 8px 0;
     }
 
-    .ui-slider-handle {
-      background: @button-color;
+    td {
+      padding: 5px 0.5em;
+      font-size: 0.8em;
     }
 
-    #diveButton {
-      flex-grow: 1;
-      height: 2.5em;
-    }
-
-    #throttleButtonSingle {
-      flex-grow: 1;
-      width: 100%;
-      height: 2.5em;
+    select {
+      color: black;
     }
   }
+
+  #botDetailsBox:empty {
+    display:none;
+  }
+
+  
+  /******** CSS Choosing Map Layers ********************/
 
   #mapLayers {
 
@@ -407,13 +260,15 @@ textarea {
     }
 
     position: absolute;
-    bottom: 40px + (0 * @map-button-size) + (2 * @layout-margin-px);
-    right: @layout-margin-px + @map-button-size;
+    bottom: 40px + (3 * @map-button-size) + (2 * @layout-margin-px);
+    right: @command-button-size + (2 * @command-button-padding);;
     height: (8 * @map-button-size) + (6 * @layout-margin-px);
-    max-height: 80%;
-    max-width: 15em;
-
-    background: @overlay-background;
+    max-height: 90%;
+    max-width: 20em;
+    height: auto;
+    width: auto;
+    background: @cc-text-color;
+    border: 2px dashed @cc-background-color;
     color: white;
 
     padding: @layout-margin 1em 0 0;
@@ -421,6 +276,13 @@ textarea {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
+
+    button {
+      min-width: 10px;
+      min-height: 10px;
+      height: auto;
+      width: auto;
+    }
 
     > ul:before {
       content: "Map Layers";
@@ -431,6 +293,7 @@ textarea {
 
     ul {
       padding-left: 1em;
+      padding-right: 1em;
       padding-bottom: @layout-margin;
       list-style: none;
     }
@@ -464,7 +327,7 @@ textarea {
         position: relative;
         margin: @layout-margin 0 0 0;
         padding: @layout-margin;
-        .bgcolor(@button-color);
+        .bgcolor(@cc-background-color);
         border-radius: @control-corner-radius;
         padding-left: 1.8em;
         line-height: 1.1em;
@@ -512,22 +375,6 @@ textarea {
         transform: rotate(45deg);
         -webkit-transform: rotate(45deg);
       }
-
-      /*
-      input[type="radio"]:checked + label:after {
-        display: block;
-        position: absolute;
-        top: @layout-margin;
-        left: @layout-margin;
-        content: " ";
-        background: black;
-        border-radius: 50%;
-        margin-top: 0.2em;
-        margin-left: 0.23em;
-        width: 0.6em;
-        height: 0.6em;
-      }
-      */
     }
 
     label.disabled {
@@ -575,289 +422,8 @@ textarea {
     }
   }
 
-  #missionSummary {
-    width: (100vw - @stop-width)/2 - (2 * @layout-margin);
-    position: absolute;
-    top: 0;
-    right: 0;
-    height: @drawer-summary-height;
-    background: @overlay-background;
-    color: white;
-    display: flex;
-    flex-flow: row nowrap;
-
-    #toggleMissionDrawer {
-      flex-grow: 0;
-      flex-shrink: 0;
-      flex-basis: auto;
-      margin: 0 0 0 @layout-margin;
-    }
-
-    #missionFileManager {
-      flex-grow: 1;
-      width: auto;
-      position: relative;
-      display: flex;
-      flex-flow: row nowrap;
-      z-index: 22;
-      > h2 {
-        flex-grow: 0;
-        flex-shrink: 1;
-        flex-basis: 2em;
-        box-sizing: border-box;
-        width: 0;
-        min-width: 0;
-        overflow: hidden;
-        color: white;
-        font-size: 24pt;
-        padding: 0;
-        margin: auto 0;
-        text-align: center;
-      }
-      .file-manager {
-        flex-grow: 1;
-        flex-shrink: 1;
-        flex-basis: auto;
-        margin-top: (@drawer-summary-height - @map-button-size) / 2;
-        padding-left: @layout-margin;
-
-        > button {
-          margin-top: 0;
-          height: @map-button-size;
-          min-width: @map-button-size;
-        }
-      }
-
-      .file-manager-edit {
-        display: flex;
-        flex-flow: row nowrap;
-
-        input {
-          flex-grow: 1;
-          flex-shrink: 0;
-          width: 4em;
-          height: 40px;
-          margin-top: 2px;
-          font-size: 18pt;
-          border-radius: @control-corner-radius;
-          background: white;
-          color: black;
-          border: none;
-        }
-        span {
-          flex-grow: 0;
-          flex-shrink: 0;
-          padding-left: @layout-margin;
-        }
-      }
-
-      input {
-        background: @overlay-background;
-        padding: 0.2em 0.3em;
-      }
-
-      .file-manager-list {
-        > div {
-          margin-right: -50px;
-        }
-        table {
-          margin-top: @layout-margin-px;
-          border: 1px inset gray;
-          border-radius: @panel-corner-radius;
-          width: 100%;
-
-          thead {
-            background: darkgray;
-            color: black;
-            border: 1px outset gray;
-          }
-          tbody tr {
-            background: white;
-            color: black;
-            border-bottom: 1px solid gray;
-            cursor: pointer;
-            width: 100%;
-
-            td {
-              padding: 0.2em;
-            }
-
-            td.file-name {
-              width: auto;
-            }
-
-            td.file-delete {
-              width: min-content;
-            }
-          }
-        }
-      }
-    }
-
-    #missionControl {
-      flex-grow: 1;
-      flex-basis: auto;
-      .mission-state {
-        position: relative;
-        display: flex;
-        flex-flow: row nowrap;
-        h2 {
-          flex-grow: 1;
-          flex-shrink: 1;
-          flex-basis: 10px;
-          display: block;
-          color: white;
-          word-wrap: none;
-          overflow-x: auto;
-          overflow-y: hidden;
-          line-height: 2;
-          padding-left: @layout-margin;
-        }
-        .missionControlButton {
-          display: none;
-          flex-grow: 0;
-          flex-shrink: 0;
-          flex-basis: auto;
-        }
-      }
-    }
-  }
-
-  #missionDrawer {
-    width: (100vw - @stop-width)/2 - (2 * @layout-margin);
-    position: absolute;
-    top: @drawer-summary-height;
-    right: 0;
-    bottom: 0;
-    height: auto;
-    background: @overlay-background;
-    color: white;
-    #closeMissionDrawer {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: none;
-      box-shadow: none;
-      z-index: 200;
-    }
-    #missionPlanning {
-      position: relative;
-      height: 100%;
-      display: flex;
-      flex-flow: column;
-
-      #missionPlanner {
-        flex-grow: 1;
-        flex-shrink: 1;
-        flex-basis: auto;
-        position: relative;
-        display: block;
-        height: 25vh; // must have height set
-        z-index: 10;
-        padding: 0;
-        margin: 0;
-
-        td {
-          padding: 0 3px;
-        }
-
-        .action-condition {
-          input {
-            text-align: right;
-            border: 1px solid #ddd;
-            border-radius: @panel-corner-radius;
-            // margin-left: 0.5em;
-            width: 2em;
-          }
-        }
-
-        .command-editor {
-          margin: @layout-margin;
-        }
-
-        .actionActions {
-          text-align: right;
-        }
-
-        #missionSequenceEditor {
-          position: relative;
-          height: 100%;
-
-          > span button:first-child {
-            margin-left: 0.5em;
-          }
-
-          .sequenceEditor {
-            position: absolute;
-            top: 2.5em;
-            right: 0;
-            left: 0;
-            bottom: 0;
-          }
-        }
-      }
-    }
-
-    #missionExecution {
-      position: relative;
-      height: 100%;
-      display: flex;
-      flex-flow: column;
-
-      #missionPlanView {
-        flex-grow: 1;
-        flex-shrink: 1;
-        flex-basis: auto;
-        height: 50px;
-        position: relative;
-        z-index: 10;
-        padding: 0;
-        margin: 0;
-        td {
-          padding: 0 3px;
-        }
-
-        #missionSequenceEditor {
-          position: relative;
-          height: 100%;
-          .sequenceEditor {
-            height: 100%;
-            // position: absolute;
-            // top: 0;
-            // left: 0;
-            // right: 0;
-            // bottom: 0;
-          }
-        }
-      }
-    }
-  }
-
-  #commandsButton {
-    width: ((@command-button-size + (@command-button-margin * 2)) * 3);
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: @drawer-summary-height; // height gets multiplied by font size if you specify it in em
-    background: @overlay-background;
-    display: flex;
-    flex-flow: row nowrap;
-    padding-left: @layout-margin * 2;
-
-    h2 {
-      font-size: 24pt;
-      color: white;
-      flex-grow: 1;
-      margin: auto 0;
-    }
-
-    button {
-      flex-grow: 0;
-      flex-shrink: 0;
-      margin: 0;
-      color: white;
-    }
-  }
+  /******** CSS Tool Bars ********************/
+  
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
@@ -865,315 +431,31 @@ textarea {
     left: 0;
     background: @overlay-background;
     border-radius: 0 @panel-corner-radius 0 0;
-
     display: flex;
     flex-flow: row nowrap;
-
-    #globalCommandBox {
-      // width: ((@command-button-size + (@command-button-margin * 2)) * 12);
-      height: ((@command-button-size + (@command-button-margin * 2)) * 12);
-      display: flex;
-      flex-flow: row wrap;
-      border-radius: @panel-corner-radius;
-
-      .globalCommand {
-        margin: @command-button-margin;
-        padding: @command-button-padding;
-        height: @command-button-size;
-        width: auto;
-        min-width: @command-button-size;
-        min-height: @command-button-size;
-
-        &.selected {
-          .bgcolor(@controlled-color);
-        }
-
-        img {
-          display: block;
-          width: @command-button-size - (2 * @command-button-padding);
-          height: auto;
-        }
-        svg {
-          display: block;
-          width: @command-button-size - (2 * @command-button-padding);
-          height: auto;
-          font-size: @command-button-size - (2 * @command-button-padding);
-        }
-      }
-    }
-
-    #liveCommandEdit {
-      width: auto;
-      max-width: 350px;
-      height: ((@command-button-size + (@command-button-margin * 2)) * 3);
-      background: none;
-      padding: 0.5em;
-      color: white;
-
-      h2 {
-        color: white;
-      }
-
-      input {
-        max-width: 4em;
-      }
-
-      .formationControl {
-        max-width: 70px;
-        padding: 0;
-        text-align: center;
-
-        > * {
-          margin: 5px;
-        }
-
-        .details {
-          position: absolute;
-          bottom: -@layout-margin-px;
-          left: 100%;
-          margin-left: @layout-margin-px * 2;
-        }
-      }
-
-      #sendLiveCommand {
-        font-size: 1.5em;
-        float: right;
-        padding-left: 1em;
-        padding-right: 1em;
-        position: absolute;
-        top: 0;
-        left: 100%;
-        margin-left: @layout-margin;
-      }
-    }
   }
-
+  
   #viewControls {
+    width: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    bottom: 40px + (3 * @map-button-size) + (4 * @layout-margin-px);
-    right: 5px;
-    top: @drawer-summary-height;
+    top: 0;
+    right: 0;
+    background: @overlay-background;
+    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: column-reverse wrap-reverse;
-    justify-content: flex-end;
-    min-height: @map-button-size + @layout-margin;
-
-    button {
-      width: @map-button-size;
-      min-height: @map-button-size;
-    }
-
-    > * {
-      flex-grow: 1;
-      margin: @layout-margin 0 0 @layout-margin;
-      display: block;
-      position: relative;
-      // height: fit-content;
-      height: min-content;
-      max-height: (@map-button-size * 2) + (@layout-margin-px * 2);
-      > button {
-        height: 100%;
-      }
-    }
-
-    #measureResult {
-      position: absolute;
-      right: 100%;
-      // top: (1 * @map-button-size) + (2 * @layout-margin-px);
-      top: 0;
-      background: white;
-      color: black;
-      border-radius: @panel-corner-radius;
-      width: max-content;
-      margin: @layout-margin;
-      padding: @layout-margin;
-    }
-
-    #surveyPolygonResults {
-      position: absolute;
-      right: 100%;
-      // top: (1 * @map-button-size) + (2 * @layout-margin-px);
-      top: 0;
-      background: white;
-      color: black;
-      border-radius: @panel-corner-radius;
-      width: max-content;
-      margin: @layout-margin;
-      padding: @layout-margin;
-    }
   }
 
-  .command-editor {
-    background: black;
-    color: white;
-    border: 1px solid white;
-    border-radius: @control-corner-radius;
-    margin: 0 0 @layout-margin-px 0;
-    padding: @layout-margin-px;
-
-    .input-group {
-      margin: 0.2em;
-      line-height: 1.5;
-    }
-
-    input,
-    .input-group-addon {
-      display: inline-block;
-      color: black;
-      background: white;
-      text-align: right;
-      border: 1px solid #ddd;
-      border-radius: @control-corner-radius 0 0 @control-corner-radius;
-      border-right: none;
-      padding: 0;
-      height: 33px;
-      vertical-align: middle;
-      font-family: monospace;
-    }
-
-    input {
-      width: 4em;
-    }
-
-    input:last-child {
-      border-radius: @control-corner-radius;
-      border-right: 1px solid #ddd;
-    }
-
-    .input-group-addon {
-      border-left: none;
-      border-radius: 0 @control-corner-radius @control-corner-radius 0;
-      padding-right: 10px;
-    }
-
-    .help-block {
-      display: inline-block;
-    }
-
-    h2 {
-      color: white;
-    }
-
-    .change-command {
-      display: none;
-    }
-
-    .formationControl {
-      > * {
-        display: inline-block;
-        margin: @layout-margin 0 @layout-margin @layout-margin;
-      }
-
-      button.formationType {
-        display: inline-block;
-        padding: 0;
-        margin: 0;
-      }
-
-      .details {
-        background: black;
-        text-align: left;
-
-        color: white;
-
-        font-size: 14px;
-        border: 1px solid white;
-        border-radius: @panel-corner-radius;
-        padding: 0.5em;
-        width: min-content;
-
-        dl {
-          margin: 0;
-          line-height: 0.8em;
-        }
-        dt {
-          display: inline-block;
-          width: 14em;
-        }
-        dd {
-          display: inline-block;
-          width: 7em;
-          margin-left: -7em;
-        }
-      }
-    }
-    .missionActionTriggerSelect,
-    .missionActionTypeSelect {
-      border: 1px solid black;
-      border-radius: @panel-corner-radius;
-      padding: 0.2em 0.5em;
-      margin: 0.5em 0;
-      background: white;
-      color: black;
-    }
-
-    .xyLocationInput,
-    .headingInput {
-      border: 1px solid black;
-      border-radius: @panel-corner-radius;
-      padding: 0.2em 0.5em;
-      margin: 0.5em 0;
-      background: white;
-      color: black;
-      button {
-        font-size: 18px;
-      }
-    }
-
-    .command-select {
-      display: flex;
-      flex-flow: row wrap;
-      button {
-        width: 76px;
-        height: 76px;
-        padding: 8px;
-        margin: 8px;
-
-        > * {
-          width: 60px;
-          height: auto;
-        }
-      }
-    }
-
-    .commandTypeSelect {
-      position: relative;
-      min-height: 2.5em;
-    }
-
-    input {
-      color: black;
-    }
-  }
-
-  #controlsOverlay {
-    display: block;
-    position: absolute;
-    top: 0.5em;
-    right: 0.5em;
-    z-index: 10;
-    text-align: right;
-    background-color: @overlay-background;
-    h2 {
-      color: white;
-      text-align: center;
-    }
-    padding: 0.5em;
-  }
-
-  #mapContextOverlay {
-    display: block;
-  }
+  /******** CSS Map ********************/
 
   .map-control {
     position: absolute;
     width: auto;
     height: auto;
     top: 0;
-    right: 60px;
+    right: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
-    // left: @left-sidebar-initial-width;
-    left: 0;
+    left: 0px;
     z-index: 0;
 
     .ol-control {
@@ -1222,7 +504,7 @@ textarea {
     .ol-zoom {
       position: absolute;
       bottom: 16px;
-      right: -55px;
+      right: -(@command-button-size + (@command-button-padding));
     }
     .ol-zoom .ol-zoom-in {
       border-radius: @control-corner-radius @control-corner-radius 0 0;
@@ -1263,11 +545,11 @@ textarea {
     }
 
     .ol-rotate {
-      bottom: 120px;
-      right: -55px;
+      bottom: 170px;
+      right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
-        padding: 5px 3px 3px 5px;
+        padding: 5px 3px 3px 15px;
         .ol-compass {
           display: block;
           font-weight: normal;
@@ -1334,7 +616,7 @@ textarea {
     .ol-box {
       box-sizing: border-box;
       border-radius: @panel-corner-radius;
-      border: 2px solid @ax-blue;
+      border: 2px solid @cc-background-color;
     }
     .ol-zoom-extent {
       top: 4.643em;
@@ -1362,7 +644,7 @@ textarea {
       padding: 0 0.5em;
       font-size: 0.7rem;
       line-height: 1.375em;
-      color: #000;
+      color: @cc-text-color;
       text-shadow: 0 0 2px #fff;
       :before {
         content: "©";
@@ -1453,91 +735,8 @@ textarea {
     }
   }
 
-  #statusBar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100vw;
-    height: @status-bar-height;
-    background: lightgray;
-    z-index: 1200;
-    text-align: center;
-  }
+  /******** CSS Engineering Panels ********************/
 
-  .sortable-placeholder {
-    display: block;
-    width: 100%;
-    height: 50px;
-    border: 1px dotted lightgray;
-  }
-
-  .ui-slider {
-    margin: 10px;
-  }
-
-  .form-group {
-    // border-bottom: 1px solid gray;
-    // &:last-child {
-    //   border-bottom: none;
-    // }
-    margin: 0px;
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: flex-start;
-    > * {
-      margin: auto 0.3em;
-    }
-    button {
-      font-size: 16px;
-    }
-    label {
-      flex-grow: 1;
-      text-align: right;
-    }
-
-    &.read-only {
-      display: inline-block;
-
-      .help-block {
-        display: none;
-      }
-    }
-  }
-
-  .sequenceEditor {
-    max-height: 100%;
-    overflow-y: auto;
-    .sequenceItem {
-      border: 1px solid black;
-      .bgcolor(@mission-color);
-      border-radius: @panel-corner-radius;
-      margin: 10px @layout-margin;
-      padding: 10px;
-      position: relative;
-      // padding-left: 3em;
-      &.selected {
-        .bgcolor(@selected-color);
-      }
-      &.active {
-        .bgcolor(@mission-goal-color);
-      }
-      .missionActionIndex {
-        text-align: left;
-        position: absolute;
-        left: 0.5em;
-        top: 0.5em;
-      }
-    }
-  }
-
-  .prependedButton {
-    position: absolute;
-    top: @layout-margin / 2;
-    right: @layout-margin / 2;
-    margin: 0;
-  }
-
-  .column-left,
   .column-right {
     position: absolute;
     height: auto;
@@ -1545,53 +744,25 @@ textarea {
     bottom: @status-bar-height;
     z-index: 10;
     background-color: @overlay-background;
+    width: 0;
+    right: @command-button-size + (2 * @command-button-padding);
 
     div.panel {
       margin: @layout-margin / 2 2px;
       padding: @layout-margin / 2 2px;
-      background-color: white;
-      color: black;
+      background-color: @cc-background-color;
+      color: @cc-text-color;
       border-radius: @panel-corner-radius;
       overflow: visible;
       position: relative;
+      text-align: center;
+      font-weight: bold;
 
       > h2,
       > a > h2 {
         margin: 0;
         padding: 3px 5px;
-        color: #000;
-      }
-
-      .panelToggleButton {
-        position: absolute;
-        top: 0;
-        right: 0;
-        // padding-top: 0px;
-        // padding-right: 10px;
-        // padding-left: 30px;
-        // padding-bottom: 0px;
-        font-size: 1.5em;
-        padding: 3px 15px 3px 80px;
-      }
-
-      .scroll {
-        overflow: auto;
-      }
-
-      button,
-      .button {
-        margin: @layout-margin;
-      }
-
-      fieldset {
-        padding: @layout-margin / 2 @layout-margin;
-        margin: @layout-margin / 2;
-        line-height: 1.25;
-        border: 1px solid @ab-gray1;
-
-        legend {
-          font-weight: bolder;
-        }
+        color: @cc-text-color;
       }
 
       table {
@@ -1603,9 +774,9 @@ textarea {
         }
 
         tbody tr {
-          border-top: 1px solid white;
+          border-top: 1px solid @cc-text-color;
           box-sizing: border-box;
-          background-color: #bedbf4;
+          background-color: @cc-background-color;
         }
         tbody tr.row-selected {
           .bgcolor(@selected-color);
@@ -1618,6 +789,7 @@ textarea {
           padding: 2px 0;
           margin: 0;
           text-align: center;
+          font-weight: normal;
           vertical-align: middle;
           white-space: nowrap;
           &.name {
@@ -1652,147 +824,25 @@ textarea {
       margin: 0;
     }
 
-    .overlay {
-      position: absolute;
-      top: 0;
-      right: -20em;
-      width: 20em;
-      z-index: 40;
-    }
-
-    > div.ui-resizable-handle {
-      background: inherit;
-      color: white;
-      position: absolute;
-      height: 80px;
-      margin-top: -40px;
-      width: 35px;
-      border-radius: 0 @control-corner-radius @control-corner-radius 0;
-      top: 50vh;
-      z-index: 80;
-      font-size: 30px;
-      text-align: center;
-      vertical-align: middle;
-      svg {
-        height: 30px;
-        margin: 25px 0;
-      }
-    }
-
-    > div.ui-resizable-e {
-      right: -35px;
-    }
-  }
-  .column-left {
-    width: @left-sidebar-initial-width;
-    left: 0;
-  }
-  .column-right {
-    width: 20em;
-    right: 0;
-  }
-  .drawer-wrapper {
-    z-index: 10;
-    background-color: @overlay-background;
-    color: white;
-
-    .toggle-drawer-btn {
-      border-radius: 0;
-      margin: 0;
-      background-color: white;
-    }
-
-    .left-btn {
-      height: 100%;
-      width: @drawer-button-size !important;
-      float: left;
-      margin-left: 0;
-      border-radius: @control-corner-radius 0 0 @control-corner-radius;
-    }
-
-    .right-btn {
-      height: 100%;
-      width: @drawer-button-size !important;
-      float: right;
-      margin-right: 0;
-      border-radius: 0 @control-corner-radius @control-corner-radius 0;
-    }
-
-    .top-btn {
-      width: 100% !important;
-      height: @drawer-button-size !important;
-      top: 0;
-      border-radius: @control-corner-radius @control-corner-radius 0 0;
-      // position: absolute;
-    }
-
-    .bottom-btn {
-      width: 100% !important;
-      height: @drawer-button-size !important;
-      bottom: 0;
-      position: absolute;
-      border-radius: 0 0 @control-corner-radius @control-corner-radius;
-    }
-
-    &.drawer-right {
-      position: absolute;
-      right: 0;
-      border-radius: @control-corner-radius 0 0 @control-corner-radius;
-    }
-
-    &.drawer-left {
-      position: absolute;
-      left: 0;
-      border-radius: 0 @control-corner-radius @control-corner-radius 0;
-    }
-
-    &.drawer-bottom {
-      position: absolute;
-      bottom: 0;
-      border-radius: @control-corner-radius @control-corner-radius 0 0;
-    }
-
-    &.drawer-top {
-      position: absolute;
-      top: 0;
-      height: 400px;
-      border-radius: 0 0 @control-corner-radius @control-corner-radius;
-      border: 1px solid white;
-      border-width: 0 1px 0 1px;
-    }
-
-    .drawer-content-right {
-      position: absolute;
-      right: 0;
-    }
-
-    .drawer-content-left {
-      position: absolute;
-      left: 0;
-    }
-
-    .drawer-content-bottom {
-      bottom: 0;
-      position: absolute;
-    }
-
-    .drawer-content-top {
-      top: 0;
-      position: absolute;
-    }
   }
 
-  #logContainer {
-    max-height: 30vh;
+  /******** CSS System Health Information ********************/
 
-    > div {
-      margin: @layout-margin;
-    }
+  .healthOK {
+    color: (@good-color);
+  }
+
+  .healthDegraded {
+    color: (@warning-color);
+  }
+
+  .healthFailed {
+    color: @error-color;
   }
 
   .battery-state-0 {
     background: lightgreen;
-    color: black;
+    color: @cc-text-color;
   }
   .battery-state-1 {
     background: lightgreen;
@@ -1867,44 +917,37 @@ textarea {
   -ms-filter: ~"progid:DXImageTransform.Microsoft.Alpha(Opacity=@{opacityPercent})";
   filter: ~"alpha(opacity=@{opacityPercent})";
 }
-#toast-container > div {
-  bottom: 100px;
-  .opacity(1);
-}
 
-.ui-tooltip {
-  padding: @layout-margin;
-  border-radius: @panel-corner-radius;
-}
+/******** CSS GOAL/MISSION Settings ********************/
 
 .MissionSettingsPanel {
-  background-color: #000000c0;
-  color: #eeeeeeee;
+  background-color: @cc-background-color;
+  color: @cc-text-color;
   position: absolute;
-  right: 46pt;
+  right: @command-button-size + (2 * @command-button-padding);
   top: 0pt;
   padding: 8pt;
   border-radius: 8pt;
 }
 
 .GoalSettingsPanel {
-  background-color: #000000c0;
-  color: #eeeeeeee;
+  background-color: @cc-background-color;
+  color: @cc-text-color;
   position: absolute;
-  right: 46pt;
+  right: @command-button-size + (2 * @command-button-padding);
   top: 0pt;
   padding: 8pt;
   border-radius: 8pt;
 }
 
 #GoalType {
-  color: #111111ff;
+  color: @cc-text-color;
   margin: 8pt;
   border-radius: 4pt;
 }
 
 .NumberInput {
-  color: #111111ff;
+  color: @cc-text-color;
   text-align: right;
   border-radius: 4pt;
   padding: 2pt;
@@ -1915,22 +958,12 @@ table.DiveParametersTable > tbody > tr > td {
   padding: 4pt;
 }
 
+/******** CSS SAVING/LOADING MISSIONS ********************/
+
 .HorizontalFlexbox {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-}
-
-.healthOK {
-  color: lightgreen;
-}
-
-.healthDegraded {
-  color: yellow;
-}
-
-.healthFailed {
-  color: red;
 }
 
 .centered {
@@ -1950,13 +983,13 @@ table.DiveParametersTable > tbody > tr > td {
 }
 
 div.hoverable:hover {
-  background-color: lightblue;
-  color: black;
+  background-color: @cc-text-color;
+  color: @cc-background-color;
 }
 
 .LoadMissionPanel {
   padding: 5pt;
-  background-color: lightgray;
+  background-color: @cc-background-color;
 }
 
 .LoadMissionPanel .title {
@@ -1964,7 +997,7 @@ div.hoverable:hover {
 
   font-size: medium;
 
-  color: black;
+  color: @cc-text-color;
 }
 
 .LoadMissionPanel .missionList {
@@ -1972,7 +1005,7 @@ div.hoverable:hover {
   height: 200pt;
   overflow: auto;
 
-  background-color: whitesmoke;
+  background-color: @cc-background-color;
 }
 
 .LoadMissionPanel .row {
@@ -1980,13 +1013,13 @@ div.hoverable:hover {
 
   font-size: small;
 
-  background-color: whitesmoke;
-  color: black;
+  background-color: @cc-background-color;
+  color: @cc-text-color;
 }
 
 .LoadMissionPanel .selected, .LoadMissionPanel .selected:hover {
-  background-color: rgb(73, 122, 255);
-  color: #eeeeeeff;
+  background-color: @cc-background-color;
+  color: @cc-text-color;
 }
 
 .textInput {
@@ -1996,12 +1029,14 @@ div.hoverable:hover {
 
   border-width: 0pt;
 
-  background-color: whitesmoke;
+  background-color: @cc-background-color;
 }
 
 .flexSpacer {
   flex-grow: 1;
 }
+
+/******** CSS Disconnected ERROR MSG ********************/
 
 .disconnection {
   display: flex;
@@ -2015,8 +1050,8 @@ div.hoverable:hover {
 
   padding: 4pt;
 
-  background-color: red;
-  color: whitesmoke;
+  background-color: @error-color;
+  color: @cc-text-color;
 }
 
 .icon {
@@ -2024,36 +1059,26 @@ div.hoverable:hover {
   height: 60pt;
 }
 
-#botDetailsComponent .botCommand {
-  padding: 4pt;
-  margin: 4pt
+// For things like the bot icons
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
-.yellow {
-  color: yellow;
+.jaia-logo {
+  width: 40pt;
+  height: 40pt;
+  margin: 4pt 4pt 20pt 4pt;
+  border-radius: 4pt;
+  border: 1pt solid gray;
 }
 
-.red {
-  color: red;
-}
-
-#axui_container button.danger {
-  background-color: red;
-}
-
-.horizontal.flexbox {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.vertical.flexbox {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-#botDetailsTable {
-  width: 250pt;
-  table-layout: fixed;
+div.closeButton {
+  .unselectable;
+  font-size: larger;
+  cursor: pointer;
 }

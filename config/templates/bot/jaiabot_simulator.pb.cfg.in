@@ -6,10 +6,15 @@ moos {
   port: $moos_port
 }
 
+enable_gps: true
 gps_udp_config { 
     bind_port: 0
     remote_address: "127.0.0.1"
     remote_port: $gpsd_simulator_udp_port
+}
+start_location {
+    lat: -42.8826
+    lon: 147.3257
 }
 
 pressure_udp_config { 

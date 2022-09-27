@@ -174,10 +174,10 @@ jaiabot::apps::WebPortal::WebPortal()
         });
 
     // Subscribe to DivePackets
-    interprocess().subscribe<jaiabot::groups::dive_packet>(
-        [this](const jaiabot::protobuf::DivePacket& dive_packet) {
+    interprocess().subscribe<jaiabot::groups::task_packet>(
+        [this](const jaiabot::protobuf::TaskPacket& task_packet) {
             jaiabot::protobuf::PortalToClientMessage message;
-            *message.mutable_dive_packet() = dive_packet;
+            *message.mutable_task_packet() = task_packet;
 
             send_message_to_client(message);
         });

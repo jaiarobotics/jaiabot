@@ -4,6 +4,7 @@ import threading
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
+from jaiabot.messages.hub_pb2 import HubStatus
 
 import google.protobuf.json_format
 
@@ -31,17 +32,17 @@ def floatFrom(obj):
 
 
 class Interface:
+    # Dict from hubId => hubStatus
+    hubs = {}
+
     # Dict from botId => botStatus
     bots = {}
-
-    # Dict from botId => last timestamp that a status was received
-    lastStatusReceivedTime = {}
 
     # Dict from botId => engineeringStatus
     bots_engineering = {}
 
-    # List of all DivePackets received, with last known location of that bot
-    dive_packets = []
+    # List of all TaskPackets received, with last known location of that bot
+    task_packets = []
 
     # Contour plot object
     contour_map = contour_map.ContourPlot()
@@ -87,23 +88,30 @@ class Interface:
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
 
             if msg.HasField('bot_status'):
-                botStatus = msg.bot_status
+                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status)
 
                 # Set the time of last status to now
-                self.lastStatusReceivedTime[botStatus.bot_id] = now()
+                botStatus['lastStatusReceivedTime'] = now()
 
-                # Discard the status, if it's a base station
-                if botStatus.bot_id < 255:
-                    self.bots[botStatus.bot_id] = botStatus
+                self.bots[botStatus['botId']] = botStatus
 
             if msg.HasField('engineering_status'):
-                botEngineering = msg.engineering_status
-                self.bots_engineering[botEngineering.bot_id] = botEngineering
+                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status)
+                self.bots_engineering[botEngineering['botId']] = botEngineering
 
-            if msg.HasField('dive_packet'):
-                logging.warn('Dive packet received')
-                divePacket = msg.dive_packet
-                self.process_dive_packet(divePacket)
+            if msg.HasField('hub_status'):
+                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status)
+
+                # Set the time of last status to now
+                hubStatus['lastStatusReceivedTime'] = now()
+
+                self.hubs[hubStatus['hubId']] = hubStatus
+
+
+            if msg.HasField('task_packet'):
+                logging.warn('Task packet received')
+                packet = msg.task_packet
+                self.process_task_packet(packet)
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -155,7 +163,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot.bot_id,
+                'botId': bot['botId'],
                 'time': str(now()),
                 'type': 'STOP', 
             }
@@ -169,7 +177,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot.bot_id,
+                'botId': bot['botId'],
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
@@ -179,22 +187,22 @@ class Interface:
 
     def get_status(self):
 
-        # Get the bots dictionaries from the stored protobuf messages
-        bots = {}
-        for bot in self.bots.values():
-            bots[bot.bot_id] = google.protobuf.json_format.MessageToDict(bot)
-
+        for hub in self.hubs.values():
             # Add the time since last status
-            bots[bot.bot_id]['portalStatusAge'] = now() - self.lastStatusReceivedTime[bot.bot_id]
+            hub['portalStatusAge'] = now() - hub['lastStatusReceivedTime']
 
 
-        # Add the engineering status data
-        for botId, botEngineering in self.bots_engineering.items():
-            if botId in bots:
-                bots[botId]['engineering'] = google.protobuf.json_format.MessageToDict(botEngineering)
+        for bot in self.bots.values():
+            # Add the time since last status
+            bot['portalStatusAge'] = now() - bot['lastStatusReceivedTime']
+
+            if bot['botId'] in self.bots_engineering:
+                bot['engineering'] = self.bots_engineering[bot['botId']]
+
 
         status = {
-            'bots': bots,
+            'hubs': self.hubs,
+            'bots': self.bots,
             'messages': self.messages
         }
 
@@ -213,31 +221,30 @@ class Interface:
         msg.engineering_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)
 
-    def process_dive_packet(self, dive_packet_message):
-        dive_packet = google.protobuf.json_format.MessageToDict(dive_packet_message)
+    def process_task_packet(self, task_packet_message):
+        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
+        self.task_packets.append(task_packet)
 
-        # Let's attach the current position of the bot, if available
-        if dive_packet_message.bot_id in self.bots:
-            bot_location = self.bots[dive_packet_message.bot_id].location
+        # If we have at least 3 dive_packets, it's time to produce a contour map
+        dive_packets = []
 
-            dive_packet['location'] = {
-                'lon': bot_location.lon,
-                'lat': bot_location.lat
-            }
+        for task_packet in self.task_packets:
+            if 'dive' in task_packet:
+                dive_packets.append(task_packet['dive'])
 
-        self.dive_packets.append(dive_packet)
-
-        # If we have at least 3 points, it's time to produce a contour map
-        if len(self.dive_packets) >= 3:
-            longitudes = [dive_packet['location']['lon'] for dive_packet in self.dive_packets]
-            latitudes = [dive_packet['location']['lat'] for dive_packet in self.dive_packets]
-            depths = [dive_packet['depthAchieved'] for dive_packet in self.dive_packets]
+        if len(dive_packets) >= 3:
+            longitudes = [dive_packet['startLocation']['lon'] for dive_packet in dive_packets]
+            latitudes = [dive_packet['startLocation']['lat'] for dive_packet in dive_packets]
+            depths = [dive_packet['depthAchieved'] for dive_packet in dive_packets]
 
             logging.warning(f'Updating contour plot')
+
+            print(longitudes, latitudes, depths)
+
             self.contour_map.update_with_data(longitudes, latitudes, depths)
 
-    def get_dive_packets(self):
-        return self.dive_packets
+    def get_task_packets(self):
+        return self.task_packets
 
 
     # Contour map

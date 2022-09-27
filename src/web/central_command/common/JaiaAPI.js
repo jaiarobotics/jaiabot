@@ -74,7 +74,7 @@ export class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
-  getDivePackets() { return this.get('jaia/dive-packets') }
+  getTaskPackets() { return this.get('jaia/task-packets') }
 
   allStop() { return this.post('jaia/allStop', null) }
 

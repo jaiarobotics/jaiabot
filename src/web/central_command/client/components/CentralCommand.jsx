@@ -16,27 +16,30 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
-import { diveData } from './DivePackets'
+import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
 
 // ThreeJS
-import * as THREE from 'three';
+/*import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+*/
 // IndexedDB
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
 
+import JSZip from 'jszip';
+
 // Openlayers
 import OlMap from 'ol/Map';
 import {
+	DragAndDrop as DragAndDropInteraction,
 	Select as SelectInteraction,
 	Translate as TranslateInteraction,
 	Pointer as PointerInteraction,
@@ -59,6 +62,7 @@ import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import GeoJSON from 'ol/format/GeoJSON';
+import {GPX, IGC, KML, TopoJSON} from 'ol/format';
 import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import OlScaleLine from 'ol/control/ScaleLine';
@@ -66,7 +70,6 @@ import OlMousePosition from 'ol/control/MousePosition';
 import OlZoom from 'ol/control/Zoom';
 import OlRotate from 'ol/control/Rotate';
 import { createStringXY as OlCreateStringXY } from 'ol/coordinate';
-import OlGeolocation from 'ol/Geolocation';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
 import { LineString as OlLineString } from 'ol/geom';
@@ -77,7 +80,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
-import { deepcopy } from './Utilities';
+import { deepcopy, areEqual } from './Utilities';
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -106,7 +109,8 @@ import {
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
-	faLayerGroup
+	faLayerGroup,
+	faWrench
 } from '@fortawesome/free-solid-svg-icons';
 
 
@@ -116,8 +120,8 @@ import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
-import {BotDetailsComponent} from './BotDetails'
-import { jaiaAPI } from '../../common/JaiaAPI';
+import {BotDetailsComponent, HubDetailsComponent} from './Details'
+import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
@@ -140,6 +144,7 @@ import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
+import SoundEffects from './SoundEffects'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -152,7 +157,6 @@ punchJQuery($);
 // jqueryDrawer($);
 
 const { getBoatStyle } = shapes;
-const { getClientPositionStyle } = shapes;
 
 // Sorry, map is a global because it really gets used from everywhere
 let map;
@@ -261,8 +265,6 @@ export default class CentralCommand extends React.Component {
 			controlSpeed: 0,
 			controlHeading: 0,
 			accelerationProfileIndex: 0,
-
-			botsDrawerOpen: false,
 			commandDrawerOpen: false,
 			// Map layers
 			botsLayerCollection: new OlCollection([], { unique: true }),
@@ -276,7 +278,6 @@ export default class CentralCommand extends React.Component {
 			},
 			// incoming data
 			lastBotCount: 0,
-			faultCounts: { faultLevel0Count: 0, faultLevel1Count: 0, faultLevel2Count: 0 },
 			botExtents: {},
 			trackingTarget: '',
 			viewportPadding: [
@@ -300,7 +301,8 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			detailsBoxItem: null
 		};
 
 		this.missionPlanMarkers = new Map();
@@ -318,20 +320,6 @@ export default class CentralCommand extends React.Component {
 
 		// Configure the basemap layers
 		[
-			new OlTileLayer({
-				title: 'Google Satellite & Roads',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'OpenStreetMap',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceOsm(),
-				wrapX: false
-			}),
 			new OlTileLayer({
 				title: 'NOAA ENC Charts',
 				opacity: 0.7,
@@ -353,18 +341,34 @@ export default class CentralCommand extends React.Component {
 			})
 		].forEach((layer) => {
 			makeLayerSavable(layer);
-			baseLayerCollection.push(layer);
+			chartLayerCollection.push(layer);
 		});
 
-		this.clientAccuracyFeature = new OlFeature();
+		this.chartLayerGroup = new OlLayerGroup({
+			title: 'Charts and Imagery',
+			layers: chartLayerCollection,
+			fold: 'open'
+		});
 
-		this.clientPositionFeature = new OlFeature();
-		this.clientPositionFeature.setStyle(getClientPositionStyle());
-		this.clientPositionLayer = new OlVectorLayer({
-			// title: 'User Position',
-			source: new OlVectorSource({
-				features: [this.clientAccuracyFeature, this.clientPositionFeature]
+		// Configure the basemap layers
+		[
+			new OlTileLayer({
+				title: 'Google Satellite & Roads',
+				type: 'base',
+				zIndex: 1,
+				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+				wrapX: false
+			}),
+			new OlTileLayer({
+				title: 'OpenStreetMap',
+				type: 'base',
+				zIndex: 1,
+				source: new OlSourceOsm(),
+				wrapX: false
 			})
+		].forEach((layer) => {
+			makeLayerSavable(layer);
+			baseLayerCollection.push(layer);
 		});
 
 		// Measure tool
@@ -413,8 +417,63 @@ export default class CentralCommand extends React.Component {
 			layers: botsLayerCollection
 		});
 
+		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
+		const zip = new JSZip();
+
+		function getKMLData(buffer) {
+			let kmlData;
+			zip.load(buffer);
+			const kmlFile = zip.file(/\.kml$/i)[0];
+			if (kmlFile) {
+				kmlData = kmlFile.asText();
+			}
+			return kmlData;
+		}
+
+		function getKMLImage(href) {
+			const index = window.location.href.lastIndexOf('/');
+			if (index !== -1) {
+				const kmlFile = zip.file(href.slice(index + 1));
+				if (kmlFile) {
+					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
+				}
+			}
+			return href;
+		}
+
+		// Define a KMZ format class by subclassing ol/format/KML
+
+		class KMZ extends KML {
+			constructor(opt_options) {
+				const options = opt_options || {};
+				options.iconUrlFunction = getKMLImage;
+				super(options);
+			}
+
+			getType() {
+				return 'arraybuffer';
+			}
+
+			readFeature(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeature(kmlData, options);
+			}
+
+			readFeatures(source, options) {
+				const kmlData = getKMLData(source);
+				return super.readFeatures(kmlData, options);
+			}
+		}
+
+		// Define DragAndDrop interaction
+		this.dragAndDropInteraction = new DragAndDropInteraction({
+			formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+		});
+
+		this.dragAndDropVectorLayer = new OlVectorLayer();
+
 		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction()]),
+			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -442,107 +501,6 @@ export default class CentralCommand extends React.Component {
 		});
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
-
-		// const graticule = new OlGraticule({
-		// 	// the style to use for the lines, optional.
-		// 	// Do not use dashes because it will very quickly overload the renderer and the entire JS engiine
-		// 	strokeStyle: new OlStroke({
-		// 		color: 'black',
-		// 		width: 1
-		// 	}),
-		// 	showLabels: true,
-		// 	latLabelStyle: new OlText({
-		// 		font: '16px sans-serif',
-		// 		fill: new OlFillStyle({
-		// 			color: 'maroon'
-		// 		}),
-		// 		textAlign: 'end',
-		// 		offsetX: -4,
-		// 		offsetY: -10,
-		// 	}),
-		// 	lonLabelStyle: new OlText({
-		// 		font: '16px sans-serif',
-		// 		fill: new OlFillStyle({
-		// 			color: 'maroon'
-		// 		}),
-		// 		textBaseline: 'bottom',
-		// 	}),
-		// 	targetSize: 150,
-		// });
-
-		// graticule.setMap(map);
-
-		this.geolocation = new OlGeolocation({
-			trackingOptions: {
-				enableHighAccuracy: true // Needed to get heading
-			},
-			projection: mercator
-		});
-
-		this.clientLocation = {};
-
-		this.geolocation.on('change', () => {
-			const lat = parseFloat(this.geolocation.getPosition()[1]);
-			const lon = parseFloat(this.geolocation.getPosition()[0]);
-			if (Number.isNaN(lat) || Number.isNaN(lon) || lat > 90 || lat < -90 || lon > 360 || lon < -180) {
-				this.clientLocation.isValid = false;
-				return;
-			}
-			this.clientLocation.isValid = true;
-			this.clientLocation.position = [lon, lat];
-			this.clientLocation.accuracy = parseFloat(this.geolocation.getAccuracy());
-			this.clientLocation.altitude = this.geolocation.getAltitude();
-			this.clientLocation.altitudeAccuracy = this.geolocation.getAltitudeAccuracy();
-			this.clientLocation.heading = parseFloat(this.geolocation.getHeading());
-			this.clientLocation.speed = this.geolocation.getSpeed();
-			const { trackingTarget } = this.state;
-			if (trackingTarget === 'user') {
-				this.centerOn(this.clientLocation.position);
-				const { heading } = this.clientLocation;
-				if (!Number.isNaN(heading)) {
-					map.getView().setRotation(-heading);
-				}
-			}
-			this.api
-				.sendClientLocation(
-					this.clientLocation.accuracy < 10,
-					this.clientLocation.position[1],
-					this.clientLocation.position[0]
-				)
-				.then(
-					() => {},
-					() => {
-						console.error('Failed to send user location to topside system.');
-					}
-				);
-		});
-
-		// handle geolocation error.
-		this.geolocation.on('error', (err) => {
-			error(err.message);
-			const { trackingTarget } = this.state;
-			if (trackingTarget === 'user' || trackingTarget === 'all') {
-				this.trackBot('');
-			}
-		});
-
-		this.geolocation.on('change:position', () => {
-			const lat = parseFloat(this.geolocation.getPosition()[1]);
-			const lon = parseFloat(this.geolocation.getPosition()[0]);
-			if (Number.isNaN(lat) || Number.isNaN(lon) || lat > 90 || lat < -90 || lon > 360 || lon < -180) {
-				this.clientLocation.isValid = false;
-				return;
-			}
-			this.clientPositionFeature.setGeometry(new OlPoint([lon, lat]));
-		});
-		this.geolocation.on('change:accuracyGeometry', () => {
-			// console.debug('Accuracy geometry:');
-			// console.debug(this.geolocation.getAccuracyGeometry());
-			if (!this.geolocation.getAccuracyGeometry()) {
-				return;
-			}
-			this.clientAccuracyFeature.setGeometry(this.geolocation.getAccuracyGeometry());
-		});
 
 		this.measureInteraction = new OlDrawInteraction({
 			source: measureSource,
@@ -853,7 +811,7 @@ export default class CentralCommand extends React.Component {
 			title: 'Measurements',
 			fold: 'open',
 			layers: [
-				diveData.getContourLayer()
+				taskData.getContourLayer()
 			]
 		})
 
@@ -866,10 +824,10 @@ export default class CentralCommand extends React.Component {
 			this.chartLayerGroup,
 			this.measurementLayerGroup,
 			this.graticuleLayer,
-			this.clientPositionLayer,
 			this.measureLayer,
 			this.missionLayer,
 			this.botsLayerGroup,
+			this.dragAndDropVectorLayer,
 		]
 
 		console.log(layers)
@@ -879,22 +837,22 @@ export default class CentralCommand extends React.Component {
 
 	componentDidMount() {
 
-		const backgroundColor = 0x000000;
+		//const backgroundColor = 0x000000;
 
 		/*////////////////////////////////////////*/
 
-		var renderCalls = [];
+		/*var renderCalls = [];
 		function render() {
 			requestAnimationFrame(render);
 			renderCalls.forEach((callback) => {
 				callback();
 			});
 		}
-		render();
+		render();*/
 
 		/*////////////////////////////////////////*/
 
-		var scene = new THREE.Scene();
+		/*var scene = new THREE.Scene();
 
 		var camera = new THREE.PerspectiveCamera(
 			80,
@@ -929,11 +887,11 @@ export default class CentralCommand extends React.Component {
 		function renderScene() {
 			renderer.render(scene, camera);
 		}
-		renderCalls.push(renderScene);
+		renderCalls.push(renderScene);*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		var controls = new OrbitControls(camera, renderer.domElement);
+		/*var controls = new OrbitControls(camera, renderer.domElement);
 		controls.rotateSpeed = 0.3;
 		controls.zoomSpeed = 0.9;
 
@@ -948,20 +906,20 @@ export default class CentralCommand extends React.Component {
 
 		renderCalls.push(function () {
 			controls.update();
-		});
+		});*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		var light = new THREE.PointLight(0xffffcc, 5, 200);
+		/*var light = new THREE.PointLight(0xffffcc, 5, 200);
 		light.position.set(4, 30, -20);
 		scene.add(light);
 
 		var light2 = new THREE.AmbientLight(0x20202a, 8, 100);
 		light2.position.set(30, -10, 30);
-		scene.add(light2);
+		scene.add(light2);*/
 
 		/* ////////////////////////////////////////////////////////////////////////// */
-		async function run() {
+		/*async function run() {
 			try {
 				var loader = new GLTFLoader();
 				loader.crossOrigin = true;
@@ -996,62 +954,19 @@ export default class CentralCommand extends React.Component {
 			}
 		}
 
-		run();
+		run();*/
 
 		map.setTarget(this.mapDivId);
 
 		const viewport = document.getElementById(this.mapDivId);
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
 
-		this.geolocation.setTracking(true);
-
 		const us = this;
 
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		$('#leftSidebar').resizable({
-			containment: 'parent',
-			handles: null,
-			maxWidth: sidebarMaxWidth,
-			minWidth: sidebarMinWidth,
-			resize(ui) {
-				us.setViewport([0, 0, 0, ui.size.width]);
-			}
-		});
-
-		let sidebarResizeHandle = document.getElementById('sidebarResizeHandle')
-		let leftSidebar = document.getElementById('leftSidebar')
-		sidebarResizeHandle.onclick = function() {
-			if (leftSidebar.style.width == "400px") {
-				leftSidebar.style.width = "0px"
-			}
-			else {
-				leftSidebar.style.width = "400px"
-			}
-		}
-
-		/*
-		$('.panelsContainerVertical').sortable({
-			handle: 'h2',
-			placeholder: 'sortable-placeholder'
-		});
-		*/
 		$('.panel > h2').disableSelection();
-		// } else {
-		//   $('#leftSidebar').hide();
-		// }
-
-		/*
-		map.on('pointermove', (event) => {
-			this.setState({
-				cursorLocation: {
-					latitude: event.coordinate[1],
-					longitude: event.coordinate[0]
-				}
-			});
-		});
-		*/
 
 		map.getView().on('change:resolution', () => {
 			this.setState({
@@ -1060,8 +975,8 @@ export default class CentralCommand extends React.Component {
 		});
 
 		/*
-				This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-				*/
+		This needs to be called whenever liveCommand is updated externally, but NOT in the render method
+		*/
 
 		const { controlSpeed } = this.state;
 		$('#speedSlider').slider({
@@ -1075,13 +990,11 @@ export default class CentralCommand extends React.Component {
 		});
 
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-		// $('input').checkboxradio();
 
 		$('button').disableSelection();
 
 		tooltips();
 
-		$('#botsDrawer').hide('blind', { direction: 'up' }, 0);
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
@@ -1128,7 +1041,21 @@ export default class CentralCommand extends React.Component {
 			}
 		});
 
-		info('Welcome to Central Command!');
+		// Set addFeatures interaction
+		this.dragAndDropInteraction.on('addfeatures', function (event) {
+			const vectorSource = new OlVectorSource({
+				features: event.features,
+			});
+			map.addLayer(
+				new OlVectorLayer({
+					source: vectorSource,
+					zIndex: 2000
+				})
+			);
+			map.getView().fit(vectorSource.getExtent());
+		});
+
+		info('Welcome to JaiaBot Command & Control!');
 	}
 
 	componentDidUpdate(prevProps, prevState, snapshot) {
@@ -1295,6 +1222,7 @@ export default class CentralCommand extends React.Component {
 		const { trackingTarget } = this.state;
 
 		const botExtents = {};
+
 		// This needs to be synchronized somehow?
 		for (let botId in bots) {
 			let bot = bots[botId]
@@ -1318,6 +1246,8 @@ export default class CentralCommand extends React.Component {
 
 			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
 
+			// Fault Levels
+
 			let faultLevel = 0
 
 			switch(bot.healthState) {
@@ -1335,6 +1265,30 @@ export default class CentralCommand extends React.Component {
 					break;
 			}
 
+
+			// Sounds for disconnect / reconnect
+			const disconnectThreshold = 30 * 1e6 // microseconds
+
+			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
+
+			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
+
+			if (oldPortalStatusAge != null) {
+				// Bot disconnect
+				if (bot.isDisconnected) {
+					if (oldPortalStatusAge < disconnectThreshold) {
+						SoundEffects.botDisconnect.play()
+					}
+				}
+
+				// Bot reconnect
+				if (bot.portalStatusAge < disconnectThreshold) {
+					if (oldPortalStatusAge >= disconnectThreshold) {
+						SoundEffects.botReconnect.play()
+					}
+				}
+			}
+
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
 				heading: botHeading,
@@ -1343,7 +1297,8 @@ export default class CentralCommand extends React.Component {
 				lastUpdatedString: botTimestamp.toISOString(),
 				missionState: bot.missionState,
 				healthState: bot.healthState,
-				faultLevel: faultLevel
+				faultLevel: faultLevel,
+				isDisconnected: bot.isDisconnected
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1410,7 +1365,6 @@ export default class CentralCommand extends React.Component {
 		this.setState({
 			botExtents,
 			selectedBotsFeatureCollection,
-			faultCounts: { faultLevel0Count, faultLevel1Count, faultLevel2Count },
 			lastBotCount: botCount
 		});
 		// map.render();
@@ -1438,6 +1392,8 @@ export default class CentralCommand extends React.Component {
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
 				else {
+					this.oldPodStatus = this.podStatus
+
 					this.podStatus = result
 
 					let messages = result.messages
@@ -1503,9 +1459,6 @@ export default class CentralCommand extends React.Component {
 			layerCount += 1;
 		};
 		this.botsLayerGroup.getLayers().forEach(addExtent);
-		if (this.clientLocation.isValid) {
-			addExtent(this.clientPositionLayer);
-		}
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
@@ -1529,10 +1482,12 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 		});
-		if (selectedBotsFeatureCollection.getLength() > 0) {
-			this.openBotsDrawer();
-		}
 		this.setState({ selectedBotsFeatureCollection });
+
+		if (bot_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
+		}
+
 		this.updateMissionLayer()
 		map.render();
 	}
@@ -1562,17 +1517,6 @@ export default class CentralCommand extends React.Component {
 		} else if (id === 'pod') {
 			this.zoomToAllBots(true);
 			info('Following pod');
-		} else if (id === 'user') {
-			if (this.clientLocation.isValid) {
-				const { heading, position } = this.clientLocation;
-				this.centerOn(position, false, true);
-				if (!Number.isNaN(heading)) {
-					map.getView().setRotation(heading);
-				}
-				info('Following you');
-			} else {
-				this.trackBot('');
-			}
 		} else if (id !== '') {
 			this.zoomToBot(id, true);
 			info(`Following bot ${id}`);
@@ -1580,8 +1524,6 @@ export default class CentralCommand extends React.Component {
 			info('Stopped following all');
 		} else if (trackingTarget === 'pod') {
 			info('Stopped following pod');
-		} else if (trackingTarget === 'user') {
-			info('Stopped following you');
 		} else {
 			info(`Stopped following bot ${trackingTarget}`);
 		}
@@ -1632,16 +1574,6 @@ export default class CentralCommand extends React.Component {
 		this.runMissions(returnToHomeMissions)
 	}
 
-	openBotsDrawer() {
-		$('#botsDrawer').show('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: true });
-	}
-
-	closeBotsDrawer() {
-		$('#botsDrawer').hide('blind', { direction: 'up' });
-		this.setState({ botsDrawerOpen: false });
-	}
-
 	static formatLength(line) {
 		const length = OlGetLength(line, { projection: mercator });
 		if (length > 100) {
@@ -1658,13 +1590,14 @@ export default class CentralCommand extends React.Component {
 			selectedBotsFeatureCollection,
 			botsLayerCollection,
 			trackingTarget,
-			faultCounts,
-			botsDrawerOpen,
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
 
+		let self = this
+
 		let bots = this.podStatus?.bots
+		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
@@ -1678,6 +1611,26 @@ export default class CentralCommand extends React.Component {
 			// missionSettingsPanel = <MissionSettingsPanel mission_params={this.state.missionParams} onChange={() => {this.generateMissions(this.state.surveyPolygonGeoCoords)}} onClose={() => { this.state.surveyPolygonChanged = false }} />
 		}
 
+		// Details box
+		let detailsBoxItem = this.state.detailsBoxItem
+		var detailsBox = null
+
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
+		switch (detailsBoxItem?.type) {
+			case 'hub':
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				break;
+			case 'bot':
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], this.api, closeDetails);
+				break;
+			case null:
+				detailsBox = null;
+				break;
+		}
+
 		return (
 			<div id="axui_container">
 
@@ -1689,16 +1642,9 @@ export default class CentralCommand extends React.Component {
 
 				<div id="layerinfo">&nbsp;</div>
 
-				<div id="eStop">
-					<button type="button" style={{"backgroundColor":"red"}} onClick={this.sendStop.bind(this)} title="Stop All">
-						STOP
-					</button>
-				</div>
-
 				<div id="viewControls">
 					<button
 						type="button"
-						id="mapLayersButton"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
 							$('#mapLayersButton').toggleClass('active');
@@ -1765,30 +1711,8 @@ export default class CentralCommand extends React.Component {
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
 						</button>
 					)}
-					{trackingTarget === 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow User" className="active">
-							<FontAwesomeIcon icon={faCrosshairs} />
-						</button>
-					) : (
-						this.clientLocation.isValid ? (
-							<button
-								type="button"
-								onClick={() => {
-									this.trackBot('user');
-								}}
-								title="Follow User"
-							>
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						) : (
-							<button type="button" className="inactive" title="Follow User">
-								<FontAwesomeIcon icon={faCrosshairs} />
-							</button>
-						)
-					)}
 
 					{surveyPolygonActive ? (
-						<div>
 							<button
 								type="button"
 								className="active"
@@ -1800,7 +1724,6 @@ export default class CentralCommand extends React.Component {
 							>
 								<FontAwesomeIcon icon={faEdit} />
 							</button>
-						</div>
 					) : (
 						<button
 							type="button"
@@ -1816,112 +1739,24 @@ export default class CentralCommand extends React.Component {
 						</button>
 					)}
 
+					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+						<FontAwesomeIcon icon={faWrench} />
+					</button>
 
-				</div>
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
 
-				<div
-					id="botsSummary"
-					onClick={botsDrawerOpen ? this.closeBotsDrawer.bind(this) : this.openBotsDrawer.bind(this)}
-				>
-					<h2>
-						<FontAwesomeIcon icon={faMapMarkerAlt} />
-					</h2>
-					<div id="faultCounts">
-						<span id="faultLevel0Count" title="Count of bots with no issues">
-							{faultCounts.faultLevel0Count}
-						</span>
-						<span id="faultLevel1Count" title="Count of bots with warnings">
-							{faultCounts.faultLevel1Count}
-						</span>
-						<span id="faultLevel2Count" title="Count of bots with errors">
-							{faultCounts.faultLevel2Count}
-						</span>
-					</div>
-					{trackingTarget
-					&& trackingTarget !== ''
-					&& trackingTarget !== 'all'
-					&& trackingTarget !== 'pod'
-					&& trackingTarget !== 'user' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} className="active-track" title="Unfollow">
-							<FontAwesomeIcon icon={faMapPin} />
-							{trackingTarget.toString()}
-						</button>
-					) : (
-						''
-					)}
-					{botsDrawerOpen ? (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.closeBotsDrawer.bind(this)}
-							title="Close Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronDown} />
-						</button>
-					) : (
-						<button
-							type="button"
-							id="toggleBotsDrawer"
-							className="not-a-button"
-							onClick={this.openBotsDrawer.bind(this)}
-							title="Open Pod Drawer"
-						>
-							<FontAwesomeIcon icon={faChevronLeft} />
-						</button>
-					)}
 				</div>
 
 				<div id="botsDrawer">
 					{this.botsList()}
-
-					<div id="botDetailsBox">
-						{selectedBotsFeatureCollection && selectedBotsFeatureCollection.getLength() > 0
-							? selectedBotsFeatureCollection.getArray().map(feature => (
-								<div
-									key={feature.getId()}
-									className=''
-								>
-
-									{BotDetailsComponent(bots?.[this.selectedBotId()], this.api, this.missions[this.selectedBotId()])}
-									<div id="botContextCommandBox">
-										{/* Leader-based commands and manual control go here */}
-										<button
-											type="button"
-											className=""
-											title="Control Bot"
-										>
-											<FontAwesomeIcon icon={faDharmachakra} />
-										</button>
-										{trackingTarget === feature.getId() ? (
-											<button
-												type="button"
-												onClick={this.trackBot.bind(this, '')}
-												title="Unfollow Bot"
-												className="toggle-active active-track"
-											>
-												<FontAwesomeIcon icon={faMapPin} />
-											</button>
-										) : (
-											<span>
-												<button
-													type="button"
-													onClick={this.trackBot.bind(this, feature.getId())}
-													title="Follow Bot"
-													className="toggle-inactive"
-												>
-													<FontAwesomeIcon icon={faMapPin} />
-												</button>
-											</span>
-										)}
-									</div>
-								</div>
-							))
-							: ''}
-
-					</div>
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
+
+				{detailsBox}
 
 				{goalSettingsPanel}
 
@@ -2304,7 +2139,9 @@ export default class CentralCommand extends React.Component {
 		switch(evt.type) {
 			case 'click':
 				return this.clickEvent(evt)
-				break;
+				// break;
+			case 'dragging':
+				return
 		}
 		return true
 	}
@@ -2364,8 +2201,10 @@ export default class CentralCommand extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
-		let bot_dict_length = Object.keys(this.podStatus.bots).length
-		let bot_list = Array.from(Array(bot_dict_length).keys());
+		let bot_list = [];
+		for (const bot in this.podStatus.bots) {
+			bot_list.push(this.podStatus.bots[bot]['botId'])
+		}
 
 		this.api.postMissionFilesCreate({
 			"bot_list": bot_list,
@@ -2387,39 +2226,40 @@ export default class CentralCommand extends React.Component {
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<div id="globalCommandBox">
-					<button id= "activate-all-bots" type="button" className="globalCommand" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-						Act<br />All
-					</button>
-					<button id= "missionStartStop" type="button" className="globalCommand" title="Run Mission" onClick={this.playClicked.bind(this)}>
-						<Icon path={mdiPlay} title="Run Mission"/>
-					</button>
-					<button type="button" className="globalCommand" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
-						Set<br />Home
-					</button>
-					<button type="button" className="globalCommand" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-						Go<br />Home
-					</button>
-					<button type="button" className="globalCommand" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
-						<Icon path={mdiFolderOpen} title="Load Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
-						<Icon path={mdiContentSave} title="Save Mission"/>
-					</button>
-					<button type="button" className="globalCommand" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-						RC
-					</button>
-					<button type="button" className="globalCommand" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-						Dive
-					</button>
-					<button type="button" className="globalCommand" title="Flag" onClick={this.sendFlag.bind(this)}>
-						Flag
-					</button>
-					<button type="button" className="globalCommand" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
-						<Icon path={mdiDelete} title="Clear Mission"/>
-					</button>
-					{ this.undoButton() }
-				</div>
+				<button id= "activate-all-bots" type="button" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
+					<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
+				</button>
+				<button type="button" title="RC Mode" onClick={this.runRCMode.bind(this)}>
+					RC<br />Mode
+				</button>
+				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
+					RC<br />Dive
+				</button>
+				<button type="button" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
+					Set<br />Home
+				</button>
+				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
+					Go<br />Home
+				</button>
+				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+					STOP<br />ALL
+				</button>
+				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
+					<Icon path={mdiPlay} title="Run Mission"/>
+				</button>
+				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+					<Icon path={mdiFolderOpen} title="Load Mission"/>
+				</button>
+				<button type="button" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+					<Icon path={mdiContentSave} title="Save Mission"/>
+				</button>
+				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
+					<Icon path={mdiDelete} title="Clear Mission"/>
+				</button>
+				{ this.undoButton() }
+				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
+					Flag
+				</button>
 			</div>
 
 		)
@@ -2481,7 +2321,20 @@ export default class CentralCommand extends React.Component {
 			warning("No bots selected")
 			return
 		}
-		this.runMissions(Missions.RCMode(botId))
+
+		var datum_location = this.podStatus?.bots?.[botId]?.location 
+
+		if (datum_location == null) {
+			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+
+			if (!confirm(warning_string)) {
+				return
+			}
+
+			datum_location = {lat: 0, lon: 0}
+		}
+
+		this.runMissions(Missions.RCMode(botId, datum_location))
 	}
 
 	runRCDive() {
@@ -2526,45 +2379,86 @@ export default class CentralCommand extends React.Component {
 	}
 
 	botsList() {
-		let bots = this.podStatus?.bots
-		if (!bots) { return }
+		let self = this
 
-		let botIds = Object.keys(bots).sort()
+		let bots = Object.values(this.podStatus?.bots ?? {})
+		let hubs = Object.values(this.podStatus?.hubs ?? {})
+		
+		function compare_by_hubId(hub1, hub2) {
+			return hub1.hubId - hub2.hubId
+		}
+
+		function compare_by_botId(bot1, bot2) {
+			return bot1.botId - bot2.botId
+		}
+
+		function bothub_to_div(bothub) {
+			let botId = bothub.botId
+			let hubId = bothub.hubId
+			
+			if (botId != null) {
+				var key = 'bot-' + botId
+				var bothubClass = 'bot-item'
+
+				var onClickFunction = () => {
+					if (self.isBotSelected(botId)) {
+						self.selectBots([])
+					}
+					else {
+						self.selectBot(botId)
+					}
+				}
+			}
+			else {
+				var key = 'hub-' + hubId
+				var bothubClass = 'hub-item'
+
+				var onClickFunction = () => {
+					const item = {'type': 'hub', id: hubId}
+
+					if (areEqual(self.state.detailsBoxItem, item)) {
+						self.setState({detailsBoxItem: null})
+					}
+					else {
+						self.setState({detailsBoxItem: item})
+					}
+				}
+			}
+
+			let faultLevel = {
+				'HEALTH__OK': 0,
+				'HEALTH__DEGRADED': 1,
+				'HEALTH__FAILED': 2
+			}[bothub.healthState] ?? 0
+
+			let faultLevelClass = 'faultLevel' + faultLevel
+			let selected = self.isBotSelected(botId) ? 'selected' : ''
+			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
+
+			//For now we are naming HUB, HUB with no id
+			//In the future we will have to revisit this
+			return (
+				<div
+					key={key}
+					onClick={
+						onClickFunction
+					}
+					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
+				>
+					{botId ?? "HUB"} 
+				</div>
+			);
+		}
+
 
 		return (
 			<div id="botsList">
-				{botIds.map((botId) => {
-					let bot = bots[botId]
-
-					let faultLevel = {
-						'HEALTH__OK': 0,
-						'HEALTH__DEGRADED': 1,
-						'HEALTH__FAILED': 2
-					}[bot.healthState] ?? 0
-
-					let faultLevelClass = 'faultLevel' + faultLevel
-					let selected = this.isBotSelected(botId) ? 'selected' : ''
-					let tracked = botId === this.state.trackingTarget ? ' tracked' : ''
-
-					return (
-						<div
-							key={botId}
-							onClick={
-								() => {
-									if (this.isBotSelected(botId)) {
-										this.selectBots([])
-									}
-									else {
-										this.selectBot(botId)
-									}
-								}
-							}
-							className={`bot-item ${faultLevelClass} ${selected} ${tracked}`}
-						>
-							{botId}
-						</div>
-					);
-				})}
+				{
+					hubs.sort(compare_by_hubId).map(bothub_to_div)
+				}
+				{
+					bots.sort(compare_by_botId).map(bothub_to_div)
+				}
 			</div>
 		)
 	}
@@ -2579,6 +2473,16 @@ export default class CentralCommand extends React.Component {
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>
+	}
+
+	toggleEngineeringPanel() {
+		let engineeringPanel = document.getElementById('engineeringPanel')
+		if (engineeringPanel.style.width == "400px") {
+			engineeringPanel.style.width = "0px"
+		}
+		else {
+			engineeringPanel.style.width = "400px"
+		}
 	}
 
 }

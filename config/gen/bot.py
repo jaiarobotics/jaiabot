@@ -8,6 +8,7 @@ import os
 from common import config
 from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
+from pathlib import Path
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -25,6 +26,7 @@ except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
+Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
@@ -33,7 +35,7 @@ node_id=common.bot.bot_index_to_node_id(bot_index)
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
@@ -66,7 +68,8 @@ if is_runtime():
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id))
+                                             mac_slots=common.comms.xbee_mac_slots(node_id),
+                                             xbee_config=common.comms.xbee_config())
 
 if is_simulation():
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
@@ -101,10 +104,13 @@ elif common.app == 'goby_logger':
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir))
 elif common.app == 'goby_liaison' or common.app == 'goby_liaison_jaiabot':
+    liaison_port=30000
+    if is_simulation():
+        liaison_port=30000+node_id
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     http_port=30000+node_id,
+                                     http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=''))
 elif common.app == 'goby_moos_gateway':

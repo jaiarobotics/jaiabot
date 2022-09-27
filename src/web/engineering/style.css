@@ -182,8 +182,17 @@ div.gain {
 }
 
 #deadMansSwitch {
-  padding: 5pt;
-  font-size: 72pt;
+  width: 80pt;
+  margin: 5pt;
+  padding: 20pt 5pt;
+  font-size: 16pt;
+  text-align: center;
+  border-radius: 10pt;
+  background-color: red;
+  color: whitesmoke;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
 }
 
 div.horizontal {

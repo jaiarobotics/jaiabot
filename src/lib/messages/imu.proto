@@ -7,21 +7,21 @@ package jaiabot.protobuf;
 message IMUData
 {
     message EulerAngles {
-        required double alpha = 1 
+        optional double alpha = 1 
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
             
-        required double beta = 2
+        optional double beta = 2
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
 
-        required double gamma = 3
+        optional double gamma = 3
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
@@ -29,14 +29,24 @@ message IMUData
             ];
 
     }
-    required EulerAngles euler_angles = 1;
+    optional EulerAngles euler_angles = 1;
 
     message Acceleration {
-        required double x = 1;
-        required double y = 2;
-        required double z = 3;
+        optional double x = 1;
+        optional double y = 2;
+        optional double z = 3;
     }
 
-    required Acceleration linear_acceleration = 2;
-    required Acceleration gravity = 3;
+    optional Acceleration linear_acceleration = 2;
+    optional Acceleration gravity = 3;
+
+    message CalibrationStatus {
+        optional int32 sys = 1 [(dccl.field) = { min: 0 max: 3 }];
+        optional int32 gyro = 2 [(dccl.field) = { min: 0 max: 3 }];
+        optional int32 accel = 3 [(dccl.field) = { min: 0 max: 3 }];
+        optional int32 mag = 4 [(dccl.field) = { min: 0 max: 3 }];
+    }
+
+    optional CalibrationStatus calibration_status = 4;
+
 }

@@ -17,16 +17,16 @@ const equirectangular = 'EPSG:4326'
 const equirectangular_to_mercator = getTransform(equirectangular, mercator);
 const mercator_to_equirectangular = getTransform(mercator, equirectangular);
 
-export class DiveData {
+export class TaskData {
 
     constructor() {
-        this.pollTimer = setInterval(this.pollDivePackets.bind(this), POLL_INTERVAL)
+        this.pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
         
         this.collection = new Collection([])
 
         this.depthRange = [0, 1]
 
-        this.divePackets = []
+        this.taskPackets = []
 
         // Plot depth soundings using a heatmap
         this.heatMapLayer = new Heatmap({
@@ -72,14 +72,14 @@ export class DiveData {
         })
     }
 
-    pollDivePackets() {
-        jaiaAPI.getDivePackets().then((divePackets) => {
-            console.log('divePackets.length = ', divePackets.length)
-            if (divePackets.length > this.divePackets.length) {
-                console.log('new divePackets arrived!')
-                this.divePackets = divePackets
+    _pollTaskPackets() {
+        jaiaAPI.getTaskPackets().then((taskPackets) => {
+            console.log('taskPackets.length = ', taskPackets.length)
+            if (taskPackets.length > this.taskPackets.length) {
+                console.log('new taskPackets arrived!')
+                this.taskPackets = taskPackets
 
-                if (divePackets.length >= 3) {
+                if (taskPackets.length >= 3) {
                     console.log('Updating contour plot')
                     this.updateContourPlot()
                 }
@@ -95,4 +95,4 @@ export class DiveData {
 
 }
 
-export const diveData = new DiveData()
+export const taskData = new TaskData()

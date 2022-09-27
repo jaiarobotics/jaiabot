@@ -21,6 +21,16 @@ export class LogApi {
         })
   }
 
+  // Download a GET request
+  static download_file(url) {
+    return fetch(url, { method: 'GET' })
+    .then( res => res.blob() )
+    .then( blob => {
+      var file = window.URL.createObjectURL(blob);
+      window.location.assign(file);
+    });
+  }
+
   // Get a series corresponding to a set of log files and paths
   static get_series(logs, paths) {
     var url = new URL('series', window.location.origin)
@@ -63,5 +73,14 @@ export class LogApi {
     url.searchParams.append('log', logs.join(','))
 
     return this.get_json(url.toString())
+  }
+
+  static get_moos(logs, time_range) {
+    var url = new URL('moos', window.location.origin)
+    url.searchParams.append('log', logs.join(','))
+    url.searchParams.append('t_start', time_range[0])
+    url.searchParams.append('t_end', time_range[1])
+
+    return this.download_file(url.toString())
   }
 }
