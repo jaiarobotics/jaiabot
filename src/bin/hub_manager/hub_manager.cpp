@@ -74,7 +74,7 @@ class HubManager : public ApplicationBase
     }
 
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
-    void handle_dive_packet(const jaiabot::protobuf::DivePacket& dive_packet);
+    void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -111,18 +111,18 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
         }
         {
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().dive_packet_sub_cfg();
+                cfg().task_packet_sub_cfg();
             goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
                 *subscriber_cfg.mutable_intervehicle();
             intervehicle_cfg.add_publisher_id(id);
 
-            goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
+            goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(subscriber_cfg);
 
-            glog.is_debug1() && glog << "Subscribing to dive_packet" << std::endl;
+            glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
-            intervehicle().subscribe<jaiabot::groups::dive_packet, jaiabot::protobuf::DivePacket>(
-                [this](const jaiabot::protobuf::DivePacket& dive_packet) {
-                    handle_dive_packet(dive_packet);
+            intervehicle().subscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
+                [this](const jaiabot::protobuf::TaskPacket& task_packet) {
+                    handle_task_packet(task_packet);
                 },
                 subscriber);
         }
@@ -197,14 +197,14 @@ jaiabot::apps::HubManager::~HubManager()
         }
         {
             goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().dive_packet_sub_cfg();
+                cfg().task_packet_sub_cfg();
             goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
                 *subscriber_cfg.mutable_intervehicle();
             intervehicle_cfg.add_publisher_id(id);
 
-            goby::middleware::Subscriber<jaiabot::protobuf::DivePacket> subscriber(subscriber_cfg);
+            goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(subscriber_cfg);
 
-            intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::DivePacket>(
+            intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::TaskPacket>(
                 subscriber);
         }
 
@@ -262,12 +262,12 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         interprocess().publish<goby::middleware::frontseat::groups::node_status>(node_status);
 }
 
-void jaiabot::apps::HubManager::handle_dive_packet(const jaiabot::protobuf::DivePacket& dive_packet)
+void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)
 {
-    glog.is_debug1() && glog << group("dive_packet")
-                             << "Received Dive packet: " << dive_packet.ShortDebugString()
+    glog.is_debug1() && glog << group("task_packet")
+                             << "Received Task Packet: " << task_packet.ShortDebugString()
                              << std::endl;
 
     // republish
-    interprocess().publish<jaiabot::groups::dive_packet>(dive_packet);
+    interprocess().publish<jaiabot::groups::task_packet>(task_packet);
 }
