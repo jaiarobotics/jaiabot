@@ -237,6 +237,8 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            machine_->set_gps_tpv(tpv);
+
             glog.is_debug2() && glog << "Received GPS mode: " << tpv.mode() << std::endl;
 
             // Check mission state to make sure we are in reacquire_gps.

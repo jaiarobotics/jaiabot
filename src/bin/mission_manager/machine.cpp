@@ -210,6 +210,37 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::~StationKeep()
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
+// Task
+
+jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::glog.is_debug2() && goby::glog << "Entering Task" << std::endl;
+    auto perform_task_event = dynamic_cast<const EvPerformTask*>(triggering_event());
+    if (perform_task_event && perform_task_event->has_task)
+    {
+        manual_task_ = perform_task_event->task;
+        has_manual_task_ = true;
+    }
+
+    task_packet_.set_bot_id(cfg().bot_id());
+    task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
+    task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
+}
+
+jaiabot::statechart::inmission::underway::Task::~Task()
+{
+    if (!has_manual_task_)
+        // each time we complete a autonomous task - we should increment the goal index
+        context<InMission>().increment_goal_index();
+
+    task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
+    if (task_packet_.type() != protobuf::MissionTask::NONE)
+        intervehicle().publish<groups::task_packet>(task_packet_);
+}
+
 // Task::Dive
 jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::my_context c)
     : StateBase(c)
@@ -227,10 +258,15 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     }
     // always add max_depth at the end
     dive_depths_.push_back(max_depth);
+    dive_packet().set_depth_achieved(0);
 
-    dive_packet_.set_bot_id(cfg().bot_id());
-    dive_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    dive_packet_.set_depth_achieved(0);
+    if (machine().gps_tpv().has_location())
+    {
+        const auto& pos = machine().gps_tpv().location();
+        auto& start = *dive_packet().mutable_start_location();
+        start.set_lat_with_units(pos.lat_with_units());
+        start.set_lon_with_units(pos.lon_with_units());
+    }
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -242,22 +278,20 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     dive_packet().set_dive_rate_with_units(vz);
 
     // ensure we don't exceed the bounds on the DCCL repeated field
-    const auto max_measurement_size = dive_packet_.GetDescriptor()
+    const auto max_measurement_size = dive_packet()
+                                          .GetDescriptor()
                                           ->FindFieldByName("measurement")
                                           ->options()
                                           .GetExtension(dccl::field)
                                           .max_repeat();
-    if (dive_packet_.measurement_size() > max_measurement_size)
+    if (dive_packet().measurement_size() > max_measurement_size)
     {
-        glog.is_warn() && glog << "Number of measurements (" << dive_packet_.measurement_size()
+        glog.is_warn() && glog << "Number of measurements (" << dive_packet().measurement_size()
                                << ") exceed DivePacket maximum of " << max_measurement_size
                                << ". Truncating." << std::endl;
-        while (dive_packet_.measurement_size() > max_measurement_size)
-            dive_packet_.mutable_measurement()->RemoveLast();
+        while (dive_packet().measurement_size() > max_measurement_size)
+            dive_packet().mutable_measurement()->RemoveLast();
     }
-
-    dive_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    intervehicle().publish<groups::dive_packet>(dive_packet_);
 }
 
 // Task::Dive::PoweredDescent
@@ -658,8 +692,14 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
     {
         // in indoor mode, simply post that we've received a fix
         // (even though we haven't as there's no GPS)
-        gps(statechart::EvGPSFix());
+        post_event(statechart::EvGPSFix());
     }
+}
+
+jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGPS()
+{
+    end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
+    context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
 }
 
 // Task::StationKeep
@@ -690,33 +730,6 @@ jaiabot::statechart::inmission::underway::task::StationKeep::~StationKeep()
     jaiabot::protobuf::IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
-}
-
-// Task::SurfaceDrift
-jaiabot::statechart::inmission::underway::task::SurfaceDrift::SurfaceDrift(
-    typename StateBase::my_context c)
-    : StateBase(c)
-{
-    goby::time::SteadyClock::time_point drift_time_start = goby::time::SteadyClock::now();
-    int drift_time_seconds = context<Task>()
-                                 .current_task()
-                                 ->surface_drift()
-                                 .drift_time_with_units<goby::time::SITime>()
-                                 .value();
-    goby::time::SteadyClock::duration drift_time_duration =
-        std::chrono::seconds(drift_time_seconds);
-    drift_time_stop_ = drift_time_start + drift_time_duration;
-}
-
-void jaiabot::statechart::inmission::underway::task::SurfaceDrift::loop(const EvLoop&)
-{
-    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
-    if (now >= drift_time_stop_)
-        post_event(EvTaskComplete());
-
-    protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
-    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 boost::statechart::result
