@@ -38,6 +38,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 				- UnpoweredAscent: Bot thruster is off, waiting for bot to ascend.
 				- PoweredAscent: Bot is performing a powered ascent to the surface.
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
+				- SurfaceDrift: Bot is drifting to estimate currents.
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
@@ -94,6 +95,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
 - EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
+- EvGPSFix: GPS Fix received
 
 #### Internal events
 
@@ -101,7 +103,6 @@ These are not shown on the diagram but used for providing data to the state mach
 
 - EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
 - EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
-- EvGPSFix: GPS Fix received
 - EvMeasurement: Sensor data measurement. 
 
 #### Unimplemented Events
