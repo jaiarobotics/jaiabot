@@ -108,7 +108,6 @@ class Fusion : public ApplicationBase
         {DataType::PRESSURE, protobuf::ERROR__MISSING_DATA__PRESSURE},
         {DataType::HEADING, protobuf::ERROR__MISSING_DATA__HEADING},
         {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED},
-        {DataType::COURSE, protobuf::ERROR__MISSING_DATA__COURSE},
         {DataType::CALIBRATION_SYS, protobuf::ERROR__MISSING_DATA__CALIBRATION_SYS},
         {DataType::CALIBRATION_GYRO, protobuf::ERROR__MISSING_DATA__CALIBRATION_GYRO},
         {DataType::CALIBRATION_ACCEL, protobuf::ERROR__MISSING_DATA__CALIBRATION_ACCEL},
@@ -116,12 +115,14 @@ class Fusion : public ApplicationBase
     const std::map<DataType, jaiabot::protobuf::Warning> missing_data_warnings_{
         {DataType::TEMPERATURE, protobuf::WARNING__MISSING_DATA__TEMPERATURE},
         {DataType::PITCH, protobuf::WARNING__MISSING_DATA__PITCH},
+        {DataType::COURSE, protobuf::WARNING__MISSING_DATA__COURSE},
         {DataType::ROLL, protobuf::WARNING__MISSING_DATA__ROLL}};
     const std::map<DataType, jaiabot::protobuf::Error> not_calibrated_errors_{
-        {DataType::CALIBRATION_SYS, protobuf::ERROR__NOT_CALIBRATED_SYS},
         {DataType::CALIBRATION_GYRO, protobuf::ERROR__NOT_CALIBRATED_GYRO},
         {DataType::CALIBRATION_ACCEL, protobuf::ERROR__NOT_CALIBRATED_ACCEL},
         {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
+    const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
+        {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
 
     WMM wmm;
 };
@@ -501,6 +502,15 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(wp.second);
             health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
+        }
+    }
+    for (const auto& ep : not_calibrated_warnings_)
+    {
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }
     for (const auto& ep : missing_data_errors_)
