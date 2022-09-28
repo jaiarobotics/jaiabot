@@ -1,14 +1,11 @@
 import { jaiaAPI } from "../../common/JaiaAPI"
 import { Heatmap } from "ol/layer"
 import VectorSource from 'ol/source/Vector'
-import KML from 'ol/format/KML'
 import Collection from "ol/Collection"
-import Feature from "ol/Feature"
-import { Point } from "ol/geom"
 import { getTransform } from "ol/proj"
-import ImageLayer from 'ol/layer/Image';
-import Projection from 'ol/proj/Projection';
-import Static from 'ol/source/ImageStatic';
+import { Vector as VectorLayer } from "ol/layer"
+import GeoJSON from 'ol/format/GeoJSON'
+import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
 
 const POLL_INTERVAL = 5000
 
@@ -46,7 +43,7 @@ export class TaskData {
 
         // Plot depth soundings using a contour plot
 
-        this.contourLayer = new ImageLayer({
+        this.contourLayer = new VectorLayer({
             title: 'Depth Contours',
             zIndex: 25,
             opacity: 0.5,
@@ -55,20 +52,22 @@ export class TaskData {
 
     }
 
-    updateContourPlot() {
-        jaiaAPI.getContourMapBounds().then((bounds) => {
-            const imageExtent = [bounds.x0, bounds.y0, bounds.x1, bounds.y1]
+    _updateContourPlot() {
+        jaiaAPI.getTaskGeoJSON().then((geojson) => {
+                console.log('geojson = ', geojson)
 
-            const source = new Static({
-                attributions: 'JaiaBot',
-                url: '/jaia/contour-map',
-                projection: equirectangular,
-                imageExtent: imageExtent,
-              })
+                // Manually transform features, because OpenLayers is a lazy, useless piece of shit
+                var features = new GeoJSON().readFeatures(geojson)
+                features.forEach((feature) => {
+                    feature.getGeometry().transform(equirectangular, mercator)
+                })
 
-            this.contourLayer.setSource(source)
-
-            console.log('loaded: ', source)
+                const vectorSource = new VectorSource({
+                    features: features,
+                    projection: equirectangular
+                })
+              
+                this.contourLayer.setSource(vectorSource)
         })
     }
 
@@ -87,6 +86,9 @@ export class TaskData {
             }
 
         })
+
+        // We're hiding this bathy chart for now
+        // this._updateContourPlot()
     }
 
     getContourLayer() {

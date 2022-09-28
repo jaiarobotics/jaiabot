@@ -76,6 +76,8 @@ export class JaiaAPI {
 
   getTaskPackets() { return this.get('jaia/task-packets') }
 
+  getTaskGeoJSON() { return this.get('jaia/task-geojson') }
+
   allStop() { return this.post('jaia/allStop', null) }
 
   allActivate() { return this.post('jaia/allActivate', null) }
