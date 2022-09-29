@@ -11,6 +11,7 @@ import google.protobuf.json_format
 from time import sleep
 import datetime
 from math import *
+import contour_map
 
 import logging
 
@@ -40,8 +41,11 @@ class Interface:
     # Dict from botId => engineeringStatus
     bots_engineering = {}
 
-    # List of all DivePackets received, with last known location of that bot
-    dive_packets = []
+    # List of all TaskPackets received, with last known location of that bot
+    task_packets = []
+
+    # Contour plot object
+    contour_map = contour_map.ContourPlot()
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -104,9 +108,10 @@ class Interface:
                 self.hubs[hubStatus['hubId']] = hubStatus
 
 
-            if msg.HasField('dive_packet'):
-                divePacket = msg.dive_packet
-                self.process_dive_packet(divePacket)
+            if msg.HasField('task_packet'):
+                logging.warn('Task packet received')
+                packet = msg.task_packet
+                self.process_task_packet(packet)
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -216,19 +221,37 @@ class Interface:
         msg.engineering_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)
 
-    def process_dive_packet(self, dive_packet_message):
-        dive_packet = google.protobuf.json_format.MessageToDict(dive_packet_message)
+    def process_task_packet(self, task_packet_message):
+        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
+        self.task_packets.append(task_packet)
 
-        # Let's attach the current position of the bot, if available
-        if dive_packet_message.bot_id in self.bots:
-            bot_location = self.bots[dive_packet_message.bot_id].location
+        # If we have at least 3 dive_packets, it's time to produce a contour map
+        dive_packets = []
 
-            dive_packet['location'] = {
-                'lon': bot_location.lon,
-                'lat': bot_location.lat
-            }
+        for task_packet in self.task_packets:
+            if 'dive' in task_packet:
+                dive_packets.append(task_packet['dive'])
 
-        self.dive_packets.append(dive_packet)
+        if len(dive_packets) >= 3:
+            longitudes = [dive_packet['startLocation']['lon'] for dive_packet in dive_packets]
+            latitudes = [dive_packet['startLocation']['lat'] for dive_packet in dive_packets]
+            depths = [dive_packet['depthAchieved'] for dive_packet in dive_packets]
 
-    def get_dive_packets(self):
-        return self.dive_packets
+            logging.warning(f'Updating contour plot')
+
+            print(longitudes, latitudes, depths)
+
+            self.contour_map.update_with_data(longitudes, latitudes, depths)
+
+    def get_task_packets(self):
+        return self.task_packets
+
+
+    # Contour map
+
+    def get_contour_bounds(self):
+        return self.contour_map.get_bounds()
+
+    def get_contour_map(self):
+        return self.contour_map.get_image()
+    

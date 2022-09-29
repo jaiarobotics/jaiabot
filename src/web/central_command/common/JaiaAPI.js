@@ -74,7 +74,7 @@ export class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
-  getDivePackets() { return this.get('jaia/dive-packets') }
+  getTaskPackets() { return this.get('jaia/task-packets') }
 
   allStop() { return this.post('jaia/allStop', null) }
 
@@ -89,6 +89,9 @@ export class JaiaAPI {
   postMissionFilesCreate(descriptor) {
     return this.post('missionfiles/create', descriptor)
   }
+
+  // Gets a JSON response containing a contour map's extent on the map
+  getContourMapBounds() { return this.get('jaia/contour-bounds') }
 }
 
 export const jaiaAPI = new JaiaAPI('/', false)

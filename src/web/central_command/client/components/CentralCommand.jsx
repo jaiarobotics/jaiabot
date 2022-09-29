@@ -16,7 +16,7 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
-import { diveData } from './DivePackets'
+import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -120,12 +120,8 @@ import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
-//import {BotDetailsComponent} from './BotDetails'
-import { jaiaAPI } from '../../common/JaiaAPI';
-
 import {BotDetailsComponent, HubDetailsComponent} from './Details'
-//import JaiaAPI from '../../common/JaiaAPI';
-
+import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
@@ -314,14 +310,13 @@ export default class CentralCommand extends React.Component {
 
 		const { chartLayerCollection } = this.state;
 
-/*		this.chartLayerGroup = new OlLayerGroup({
+		this.chartLayerGroup = new OlLayerGroup({
 			title: 'Overlays',
 			layers: chartLayerCollection,
 			fold: 'open'
 		});
 
 		const { baseLayerCollection } = this.state;
-*/
 
 		// Configure the basemap layers
 		[
@@ -354,8 +349,6 @@ export default class CentralCommand extends React.Component {
 			layers: chartLayerCollection,
 			fold: 'open'
 		});
-
-		const { baseLayerCollection } = this.state;
 
 		// Configure the basemap layers
 		[
@@ -818,7 +811,7 @@ export default class CentralCommand extends React.Component {
 			title: 'Measurements',
 			fold: 'open',
 			layers: [
-				diveData.getHeatMapLayer()
+				taskData.getContourLayer()
 			]
 		})
 
@@ -836,6 +829,8 @@ export default class CentralCommand extends React.Component {
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
+
+		console.log(layers)
 
 		return layers
 	}

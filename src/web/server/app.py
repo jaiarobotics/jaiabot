@@ -52,9 +52,9 @@ def JSONResponse(obj):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
-@app.route('/jaia/dive-packets', methods=['GET'])
-def getDivePackets():
-    return JSONResponse(jaia_interface.get_dive_packets())
+@app.route('/jaia/task-packets', methods=['GET'])
+def getPackets():
+    return JSONResponse(jaia_interface.get_task_packets())
 
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
@@ -124,6 +124,18 @@ def pidStaticFile(path):
 @app.route('/pid/', methods=['GET'])
 def pidRoot():
     return pidStaticFile('index.html')
+
+
+######## Contour map
+
+@app.route('/jaia/contour-bounds', methods=['GET'])
+def get_contour_bounds():
+    return JSONResponse(jaia_interface.get_contour_bounds())
+
+
+@app.route('/jaia/contour-map', methods=['GET'])
+def get_contour_map():
+    return Response(jaia_interface.get_contour_map(), mimetype='image/png')
 
 
 if __name__ == '__main__':
