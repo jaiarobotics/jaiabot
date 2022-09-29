@@ -42,6 +42,9 @@ message MissionManager
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
 
+    // number of times to check the gps mode is correct when reacquiring
+    optional uint32 total_gps_checks = 34 [default = 5];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;

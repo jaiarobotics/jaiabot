@@ -37,7 +37,7 @@ message HubManager
 
     repeated int32 managed_bot_modem_id = 10;
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
-    required goby.middleware.protobuf.TransporterConfig dive_packet_sub_cfg =
+    required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
         12;
 
     optional int32 hub_id = 13 [default = 0];

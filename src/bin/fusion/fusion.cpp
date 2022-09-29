@@ -38,6 +38,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -80,6 +81,7 @@ class Fusion : public ApplicationBase
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
+    std::set<jaiabot::protobuf::MissionState> discard_location_modes_;
 
     enum class DataType
     {
@@ -91,9 +93,14 @@ class Fusion : public ApplicationBase
         SPEED,
         COURSE,
         PITCH,
-        ROLL
+        ROLL,
+        CALIBRATION_SYS,
+        CALIBRATION_GYRO,
+        CALIBRATION_ACCEL,
+        CALIBRATION_MAG
     };
     std::map<DataType, goby::time::SteadyClock::time_point> last_data_time_;
+    std::map<DataType, int> last_calibration_status_;
 
     const std::map<DataType, jaiabot::protobuf::Error> missing_data_errors_{
         {DataType::GPS_FIX, protobuf::ERROR__MISSING_DATA__GPS_FIX},
@@ -101,11 +108,21 @@ class Fusion : public ApplicationBase
         {DataType::PRESSURE, protobuf::ERROR__MISSING_DATA__PRESSURE},
         {DataType::HEADING, protobuf::ERROR__MISSING_DATA__HEADING},
         {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED},
-        {DataType::COURSE, protobuf::ERROR__MISSING_DATA__COURSE}};
+        {DataType::CALIBRATION_SYS, protobuf::ERROR__MISSING_DATA__CALIBRATION_SYS},
+        {DataType::CALIBRATION_GYRO, protobuf::ERROR__MISSING_DATA__CALIBRATION_GYRO},
+        {DataType::CALIBRATION_ACCEL, protobuf::ERROR__MISSING_DATA__CALIBRATION_ACCEL},
+        {DataType::CALIBRATION_MAG, protobuf::ERROR__MISSING_DATA__CALIBRATION_MAG}};
     const std::map<DataType, jaiabot::protobuf::Warning> missing_data_warnings_{
         {DataType::TEMPERATURE, protobuf::WARNING__MISSING_DATA__TEMPERATURE},
         {DataType::PITCH, protobuf::WARNING__MISSING_DATA__PITCH},
+        {DataType::COURSE, protobuf::WARNING__MISSING_DATA__COURSE},
         {DataType::ROLL, protobuf::WARNING__MISSING_DATA__ROLL}};
+    const std::map<DataType, jaiabot::protobuf::Error> not_calibrated_errors_{
+        {DataType::CALIBRATION_GYRO, protobuf::ERROR__NOT_CALIBRATED_GYRO},
+        {DataType::CALIBRATION_ACCEL, protobuf::ERROR__NOT_CALIBRATED_ACCEL},
+        {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
+    const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
+        {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
 
     WMM wmm;
 };
@@ -122,6 +139,15 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 {
     init_node_status();
     init_bot_status();
+
+    // Create a set of modes. when the bot is in
+    // one of these modes we should discard the
+    // location status
+    for (auto m : cfg().discard_location_modes())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        discard_location_modes_.insert(dsm);
+    }
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -171,6 +197,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                                  << imu_data.ShortDebugString() << std::endl;
 
         auto euler_angles = imu_data.euler_angles();
+        auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
         if (euler_angles.has_alpha())
@@ -222,6 +249,39 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             last_data_time_[DataType::ROLL] = now;
         }
+
+        if (calibration_status.has_sys())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
+
+            last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
+            last_data_time_[DataType::CALIBRATION_SYS] = now;
+        }
+
+        if (calibration_status.has_gyro())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
+
+            last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
+            last_data_time_[DataType::CALIBRATION_GYRO] = now;
+        }
+
+        if (calibration_status.has_accel())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
+
+            last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
+            last_data_time_[DataType::CALIBRATION_ACCEL] = now;
+        }
+
+        if (calibration_status.has_mag())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
+
+            last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
+            last_data_time_[DataType::CALIBRATION_MAG] = now;
+        }
+        
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
@@ -239,20 +299,25 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (tpv.has_location())
             {
-                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
-                latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
-                latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
-
-                latest_bot_status_.mutable_location()->set_lat_with_units(lat);
-                latest_bot_status_.mutable_location()->set_lon_with_units(lon);
-
-                if (has_geodesy())
+                // only set location if the current mode is not included in discard_status_modes_
+                if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
                 {
-                    auto xy =
-                        geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
-                                           latest_node_status_.global_fix().lon_with_units()});
-                    latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
-                    latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
+                    latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
+
+                    latest_bot_status_.mutable_location()->set_lat_with_units(lat);
+                    latest_bot_status_.mutable_location()->set_lon_with_units(lon);
+
+                    if (has_geodesy())
+                    {
+                        auto xy =
+                            geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
+                                               latest_node_status_.global_fix().lon_with_units()});
+                        latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+                        latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                    }
                 }
                 last_data_time_[DataType::GPS_POSITION] = now;
             }
@@ -439,10 +504,28 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
         }
     }
+    for (const auto& ep : not_calibrated_warnings_)
+    {
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
+        }
+    }
     for (const auto& ep : missing_data_errors_)
     {
         if (!last_data_time_.count(ep.first) ||
             (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+        }
+    }
+    for (const auto& ep : not_calibrated_errors_)
+    {
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
         {
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
             health.set_state(goby::middleware::protobuf::HEALTH__FAILED);

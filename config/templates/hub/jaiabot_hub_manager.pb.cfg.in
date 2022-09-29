@@ -19,7 +19,7 @@ status_sub_cfg {
 }
 
 
-dive_packet_sub_cfg {
+task_packet_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
         # buffer configuration for BotStatus messages

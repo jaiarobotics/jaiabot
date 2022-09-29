@@ -28,6 +28,7 @@ enum MissionState
     IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 124;
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 125;
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 126;
+    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 127;
 
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
@@ -115,7 +116,7 @@ message MissionTask
         ];
     }
 
-    // for type == SURFACE_DRIFT
+    // for type == SURFACE_DRIFT and type == DIVE
     optional DriftParameters surface_drift = 3;
 }
 
