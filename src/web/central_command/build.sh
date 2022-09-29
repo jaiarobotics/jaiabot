@@ -11,10 +11,6 @@ output_path='dist/client'
 SUDO=
 [[ $UID -ne 0 ]] && SUDO=sudo
 
-cat <<EOM > common/version.js
-module.exports = "${AXSERVER_VERSION}"
-EOM
-
 function add_node_repo_to_host() {
     # Add NodeSource repo if we haven't already
                 if [ ! -e /usr/lib/apt/methods/https ]; then

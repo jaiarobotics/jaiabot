@@ -237,10 +237,43 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            if (tpv.has_mode() &&
-                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
-                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
-                machine_->process_event(statechart::EvGPSFix());
+            machine_->set_gps_tpv(tpv);
+
+            glog.is_debug2() && glog << "Received GPS mode: " << tpv.mode() << std::endl;
+
+            // Check mission state to make sure we are in reacquire_gps.
+            // This way the bot needs a configurable amount of checks for gps
+            // mode to be mode2d or mode3d in a row. If the gps mode deviates
+            // then the count resets.
+            if (machine_->state() == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
+            {
+                if (tpv.has_mode() &&
+                    (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                     tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
+                {
+                    // confirming gps is in the correct mode
+                    if (current_gps_check_incr_ < cfg().total_gps_checks())
+                    {
+                        glog.is_debug2() && glog << "GPS is in the correct mode, but has not "
+                                                    "reached threshold for total checks"
+                                                 << std::endl;
+                        // Increment until we reach total gps checks
+                        current_gps_check_incr_++;
+                    }
+                    else
+                    {
+                        glog.is_debug2() && glog << "GPS has confirmed fix" << std::endl;
+                        machine_->process_event(statechart::EvGPSFix());
+                    }
+                }
+                else
+                {
+                    glog.is_debug2() && glog << "Reset GPS check incrementor, wrong mode: "
+                                             << tpv.mode() << std::endl;
+                    // Reset if gps in not incorrect state
+                    current_gps_check_incr_ = 0;
+                }
+            }
         });
 }
 

@@ -24,6 +24,7 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.config;
 
@@ -38,7 +39,8 @@ message Fusion
 
     optional int32 health_report_timeout_seconds = 11 [default = 20];
 
-    
     optional int32 data_timeout_seconds = 20 [default = 20];
+
+    repeated jaiabot.protobuf.MissionState discard_location_modes = 30;
     
 }
