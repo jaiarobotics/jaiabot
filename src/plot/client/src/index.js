@@ -81,6 +81,10 @@ class LogApp extends React.Component {
               }
             }>Download MOOS Messages...</button>
 
+            <button className="padded" onClick={() => {
+              this.map.clear()
+            }}>Clear Map</button>
+
         </div>
         </div>
 

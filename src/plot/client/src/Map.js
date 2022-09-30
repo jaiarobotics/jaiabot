@@ -50,21 +50,22 @@ export default class Map {
                       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }
 
-                L.tileLayer(
-                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                     tile_layer_options)
-                    .addTo(this.map)
+            L.tileLayer(
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    tile_layer_options)
+                .addTo(this.map)
 
-                this.points = [] 
-                this.waypoint_markers = []
-                this.bot_markers = []
-                this.active_goal_dict = {}
+            // An array of arrays of points.  Each array of points corresponds to a polyline for a bot path
+            this.path_point_arrays = []
 
-            // points is in the form [[timestamp, lat, lon]]
-            this.path_polyline = null
+            this.waypoint_markers = []
+            this.bot_markers = []
+            this.active_goal_dict = {}
 
             // Time range for the visible path
             this.timeRange = null
+
+            this.task_packets = []
 
             this.pathLayerGroup =
                 L.layerGroup().addTo(this.map)
@@ -81,35 +82,44 @@ export default class Map {
                 L.control.layers(null, layersToControl).addTo(this.map)
         }
     
-        // The bot path polyline
+        // Adds points to the path
         updateWithPoints(points) {
-            this.points = points
+            this.path_point_arrays.push(points)
             this.updatePath()
         }
 
         updatePath() {
             let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
 
-            if (this.path_polyline) {
-                this.pathLayerGroup.removeLayer(this.path_polyline)
-            }
+            this.pathLayerGroup.clearLayers()
 
-            var path = []
-            for (const pt of this.points) {
-                if (pt[0] > timeRange[1]) {
-                    break
+            var bounds = []
+
+            for (const path_point_array of this.path_point_arrays) {
+
+                var path = []
+                for (const pt of path_point_array) {
+                    if (pt[0] > timeRange[1]) {
+                        break
+                    }
+
+                    if (pt[0] > timeRange[0]) {
+                        path.push([pt[1], pt[2]])
+                    }
                 }
 
-                if (pt[0] > timeRange[0]) {
-                    path.push([pt[1], pt[2]])
-                }
+                const path_polyline =
+                    L.polyline(path, {color : 'green', zIndex : 1})
+                        .addTo(this.pathLayerGroup)
+
+                bounds.push(path_polyline.getBounds())
+
             }
 
-            this.path_polyline =
-                L.polyline(path, {color : 'green', zIndex : 1})
-                    .addTo(this.pathLayerGroup)
+            if (bounds.length > 0) {
+                this.map.fitBounds(bounds)
+            }
 
-                        this.map.fitBounds(this.path_polyline.getBounds())
         }
 
         // Commands and markers for bot and goals
@@ -118,7 +128,7 @@ export default class Map {
         }
 
         updateWithTaskPackets(task_packets) {
-            this.task_packets = task_packets
+            this.task_packets = this.task_packets.concat(task_packets)
             this.updateTaskAnnotations()
         }
 
@@ -131,7 +141,23 @@ export default class Map {
             this.updateWaypointMarkers(timestamp_micros)
         }
 
+        clear() {
+            this.path_point_arrays = []
+            this.command_dict = {}
+            this.task_packets = []
+            this.active_goal_dict = {}
+
+            this.updateAll()
+        }
+
         //////////////////////// Map Feature Updates
+
+        updateAll() {
+            this.updateBotMarkers()
+            this.updateWaypointMarkers()
+            this.updatePath()
+            this.updateTaskAnnotations()
+        }
 
         updateBotMarkers(timestamp_micros) {
             this.bot_markers.forEach((bot_marker) => {
@@ -143,23 +169,25 @@ export default class Map {
                 return
             }
 
-            const point = bisect(this.points, (point) => {
-                return timestamp_micros - point[0]
-            })
-
-            const markerOptions = {
-                icon: new L.DivIcon({
-                    className: 'bot',
-                    html: 'Bot',
-                    iconSize: 'auto'
+            for (const path_point_array of this.path_point_arrays) {
+                const point = bisect(path_point_array, (point) => {
+                    return timestamp_micros - point[0]
                 })
-            }
 
-            // Plot point on the map
-            if (point) {
-                const bot_marker = new L.Marker([point[1], point[2]], markerOptions)
-                this.bot_markers.push(bot_marker)
-                bot_marker.addTo(this.map)
+                const markerOptions = {
+                    icon: new L.DivIcon({
+                        className: 'bot',
+                        html: 'Bot',
+                        iconSize: 'auto'
+                    })
+                }
+
+                // Plot point on the map
+                if (point) {
+                    const bot_marker = new L.Marker([point[1], point[2]], markerOptions)
+                    this.bot_markers.push(bot_marker)
+                    bot_marker.addTo(this.map)
+                }
             }
         }
 
@@ -281,6 +309,17 @@ export default class Map {
                             .bindTooltip(d_hover)
                     drift_start_circle.addTo(this.taskLayerGroup)
 
+                    const distance = L.latLng(d_start).distanceTo(L.latLng(d_end))
+
+                    // Extend the line, if the drift distance is less than threshold
+                    const threshold = 10.0
+
+                    if (distance < threshold && distance > 0) {
+                        const k = threshold / distance
+                        d_end[0] = d_start[0] + k * (d_end[0] - d_start[0])
+                        d_end[1] = d_start[1] + k * (d_end[1] - d_start[1])
+                    }
+
                     // A line leading to the end location
 
                     const drift_line =
@@ -296,8 +335,6 @@ export default class Map {
                 // Dive markers
 
                 const dive = task_packet.dive
-
-                console.log(task_packet)
 
                 if (dive.depth_achieved != 0) {
 
@@ -326,9 +363,9 @@ export default class Map {
 
             }
 
-            if (bounds.length > 0) {
-                this.map.fitBounds(bounds)
-            }
+            // if (bounds.length > 0) {
+            //     this.map.fitBounds(bounds)
+            // }
         }
 
     }
