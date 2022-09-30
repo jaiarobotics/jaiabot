@@ -61,6 +61,9 @@ export default class Map {
 
       // Time range for the visible path
       this.timeRange = null
+
+      this.taskLayerGroup = L.layerGroup().addTo(this.map)
+      this.pathLayerGroup = L.layerGroup().addTo(this.map)
     }
   
     // The bot path polyline
@@ -70,10 +73,12 @@ export default class Map {
     }
 
     updatePath() {
+      return
+
       let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
 
       if (this.path_polyline) {
-        this.map.removeLayer(this.path_polyline)
+        this.pathLayerGroup.removeLayer(this.path_polyline)
       }
 
       var path = []
@@ -87,7 +92,7 @@ export default class Map {
         }
       }
       
-      this.path_polyline = L.polyline(path, {color : 'red'}).addTo(this.map)
+      this.path_polyline = L.polyline(path, {color : 'red'}).addTo(this.pathLayerGroup)
   
       this.map.fitBounds(this.path_polyline.getBounds())
     }
@@ -95,6 +100,11 @@ export default class Map {
     // Commands and markers for bot and goals
     updateWithCommands(command_dict) {
       this.command_dict = command_dict
+    }
+
+    updateWithTaskPackets(task_packets) {
+      this.task_packets = task_packets
+      this.updateTaskAnnotations()
     }
 
     updateWithActiveGoal(active_goal_dict) {
@@ -105,6 +115,8 @@ export default class Map {
       this.updateBotMarkers(timestamp_micros)
       this.updateWaypointMarkers(timestamp_micros)
     }
+
+    //////////////////////// Map Feature Updates
 
     updateBotMarkers(timestamp_micros) {
       this.bot_markers.forEach((bot_marker) => {
@@ -205,6 +217,46 @@ export default class Map {
 
     }
   
+    updateTaskAnnotations() {
+      this.taskLayerGroup.clearLayers()
+
+      var bounds = []
+
+      for (const task_packet of this.task_packets ?? []) {
+
+        // Drift markers
+        const drift = task_packet.drift
+
+        function to_array(latlon) {
+          return [latlon.lat, latlon.lon]
+        }
+
+        const d_start = to_array(drift.start_location)
+        const d_end = to_array(drift.end_location)
+
+        const d_hover = 'Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
+
+        // A circle marker at the start location
+        const drift_start_circle = new L.circleMarker(d_start, {
+          color: "green",
+          fillOpacity: 0.5,
+          radius: 4.0
+        }).bindPopup(d_hover)
+        drift_start_circle.addTo(this.taskLayerGroup)
+
+        // A line leading to the end location
+        const drift_line = new L.polyline([d_start, d_end], {
+          color: "green",
+          weight: 4.0,
+        }).bindPopup(d_hover)
+        drift_line.addTo(this.taskLayerGroup)
+        bounds.push(drift_line.getBounds())
+
+      }
+
+      this.map.fitBounds(bounds)
+    }
+
   }
   
   

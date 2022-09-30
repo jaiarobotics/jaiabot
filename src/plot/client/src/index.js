@@ -113,6 +113,11 @@ class LogApp extends React.Component {
         this.map.updateWithActiveGoal(active_goal_dict)
       })
 
+      // Get the task packets
+      LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+        this.map.updateWithTaskPackets(task_packets)
+      })
+
     }
     this.refresh_plots()
   }
