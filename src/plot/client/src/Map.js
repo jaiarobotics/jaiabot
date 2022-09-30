@@ -42,19 +42,23 @@ export default class Map {
             L.control.scale().addTo(this.map)
 
             // TileLayer
-            const tile_layer_options = {
-                maxNativeZoom: 18,
-                maxZoom: 20,
-                attribution :
-                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }
+            const tile_layer_options =
+                {
+                  maxNativeZoom : 18,
+                  maxZoom : 20,
+                  attribution :
+                      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', tile_layer_options).addTo(this.map)
-        
-            this.points = []
-            this.waypoint_markers = []
-            this.bot_markers = []
-            this.active_goal_dict = {}
+                L.tileLayer(
+                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                     tile_layer_options)
+                    .addTo(this.map)
+
+                this.points = [] 
+                this.waypoint_markers = []
+                this.bot_markers = []
+                this.active_goal_dict = {}
 
             // points is in the form [[timestamp, lat, lon]]
             this.path_polyline = null
@@ -62,8 +66,19 @@ export default class Map {
             // Time range for the visible path
             this.timeRange = null
 
-            this.taskLayerGroup = L.layerGroup().addTo(this.map)
-            this.pathLayerGroup = L.layerGroup().addTo(this.map)
+            this.pathLayerGroup =
+                L.layerGroup().addTo(this.map)
+            this.taskLayerGroup =
+                L.layerGroup().addTo(this.map)
+
+            // Add layer control
+            const layersToControl = {
+              'Bot paths' : this.pathLayerGroup,
+              'Task packets' : this.taskLayerGroup
+            } 
+            
+            var layerControl =
+                L.control.layers(null, layersToControl).addTo(this.map)
         }
     
         // The bot path polyline
@@ -73,8 +88,6 @@ export default class Map {
         }
 
         updatePath() {
-            return
-
             let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
 
             if (this.path_polyline) {
@@ -91,10 +104,12 @@ export default class Map {
                     path.push([pt[1], pt[2]])
                 }
             }
-            
-            this.path_polyline = L.polyline(path, {color : 'red'}).addTo(this.pathLayerGroup)
-    
-            this.map.fitBounds(this.path_polyline.getBounds())
+
+            this.path_polyline =
+                L.polyline(path, {color : 'green', zIndex : 1})
+                    .addTo(this.pathLayerGroup)
+
+                        this.map.fitBounds(this.path_polyline.getBounds())
         }
 
         // Commands and markers for bot and goals
@@ -257,18 +272,23 @@ export default class Map {
                     const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
 
                     // A circle marker at the start location
-                    const drift_start_circle = new L.circleMarker(d_start, {
-                        color: "green",
-                        fillOpacity: 0.5,
-                        radius: 4.0
-                    }).bindPopup(d_hover)
+                    const drift_start_circle =
+                        new L
+                            .circleMarker(
+                                d_start,
+                                {color : "red", radius : 4.0, zIndex : 2})
+                            .bindPopup(d_hover)
+                            .bindTooltip(d_hover)
                     drift_start_circle.addTo(this.taskLayerGroup)
 
                     // A line leading to the end location
-                    const drift_line = new L.polyline([d_start, d_end], {
-                        color: "green",
-                        weight: 4.0,
-                    }).bindPopup(d_hover)
+
+                    const drift_line =
+                        new L
+                            .polyline([ d_start, d_end ],
+                                      {color : "red", weight : 4.0, zIndex : 2})
+                            .bindPopup(d_hover)
+                            .bindTooltip(d_hover)
                     drift_line.addTo(this.taskLayerGroup)
                     bounds.push(drift_line.getBounds())
                 }
@@ -294,17 +314,21 @@ export default class Map {
                     const d_hover = '<h3>Dive</h3>' + description_of(dive, descriptors)
 
                     // A circle marker at the start location
-                    const d_start_circle = new L.circleMarker(d_start, {
-                        color: "blue",
-                        fillOpacity: 0.5,
-                        radius: 6.0
-                    }).bindPopup(d_hover)
+                    const d_start_circle = new L
+                                               .circleMarker(d_start, {
+                                                 color : "blue",
+                                                 radius : 6.0,
+                                               })
+                                               .bindPopup(d_hover)
+                                               .bindTooltip(d_hover)
                     d_start_circle.addTo(this.taskLayerGroup)
                 }
 
             }
 
-            this.map.fitBounds(bounds)
+            if (bounds.length > 0) {
+                this.map.fitBounds(bounds)
+            }
         }
 
     }
