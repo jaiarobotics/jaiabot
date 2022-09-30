@@ -1728,7 +1728,6 @@ export default class CentralCommand extends React.Component {
 						<button
 							type="button"
 							title="Edit Survey Plan"
-							className="inactive"
 							onClick={() => {
 								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
