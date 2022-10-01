@@ -239,13 +239,13 @@ jaiabot::apps::MissionManager::MissionManager()
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             machine_->set_gps_tpv(tpv);
 
-            glog.is_debug2() && glog << "Received GPS mode: " << tpv.mode() << std::endl;
+            //glog.is_debug2() && glog << "Received GPS mode: " << tpv.mode() << std::endl;
 
             // Check mission state to make sure we are in reacquire_gps.
             // This way the bot needs a configurable amount of checks for gps
             // mode to be mode2d or mode3d in a row. If the gps mode deviates
             // then the count resets.
-            if (machine_->state() == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
+            /*if (machine_->state() == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
             {
                 if (tpv.has_mode() &&
                     (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
@@ -273,6 +273,72 @@ jaiabot::apps::MissionManager::MissionManager()
                     // Reset if gps in not incorrect state
                     current_gps_check_incr_ = 0;
                 }
+            }*/
+        });
+
+    // subscribe for GPS data (to reacquire after resurfacing)
+    interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+            // Check mission state to make sure we are in reacquire_gps or transit.
+            if (machine_->state() == protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT ||
+                machine_->state() == protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS ||
+                machine_->state() == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
+            {
+                glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop() << std::endl;
+
+                if (sky.has_hdop() && (sky.hdop() <= cfg().gps_hdop_fix()))
+                {
+                    // Increment gps fix checks until we are > the threshold for confirming gps fix
+                    if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
+                    {
+                        glog.is_debug1() && glog << "GPS has a good fix, but has not "
+                                                    "reached threshold for total checks"
+                                                 << std::endl;
+                        // Increment until we reach total gps checks
+                        gps_fix_check_incr_++;
+                    }
+                    else
+                    {
+                        glog.is_debug1() && glog << "Post EvGPSFix, hdop is < 1: " << sky.hdop()
+                                                 << std::endl;
+
+                        // Post Event for gps fix
+                        machine_->process_event(statechart::EvGPSFix());
+
+                        // Reset degraded fix check as we received a good fix
+                        gps_degraded_fix_check_incr_ = 1;
+                    }
+                }
+                else
+                {
+                    // Increment degraded checks until we are > the threshold for confirming degraded gps
+                    if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
+                    {
+                        glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
+                                                    "reached threshold for total checks"
+                                                 << std::endl;
+
+                        // Increment when gps does not have a good fix
+                        gps_degraded_fix_check_incr_++;
+                    }
+                    else
+                    {
+                        glog.is_debug1() && glog << "Post EvGPSNoFix, hdop is > 1: " << sky.hdop()
+                                                 << std::endl;
+
+                        // Post Event for no gps fix
+                        machine_->process_event(statechart::EvGPSNoFix());
+
+                        // Reset if gps hdop is above 1
+                        gps_fix_check_incr_ = 1;
+                    }
+                }
+            }
+            else
+            {
+                // Reset when not in states to check
+                gps_fix_check_incr_ = 1;
+                gps_degraded_fix_check_incr_ = 1;
             }
         });
 }
