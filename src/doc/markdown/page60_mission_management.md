@@ -43,6 +43,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
+			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* StationKeep: Bot is actively maintaining the recovery location position.
 			* Stopped: Control surfaces are stopped for a safe recovery.
 		+ Replan: Bot has received a new mission and is assessing feasibility. The bot stationkeeps while in this state.

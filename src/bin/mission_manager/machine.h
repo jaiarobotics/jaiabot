@@ -200,6 +200,7 @@ struct Recovery;
 namespace recovery
 {
 struct Transit;
+struct ReacquireGPS;
 struct StationKeep;
 struct Stopped;
 } // namespace recovery
@@ -1116,7 +1117,22 @@ struct Transit : boost::statechart::state<Transit, Recovery>,
     ~Transit();
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>>;
+        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>,
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+};
+
+struct ReacquireGPS
+    : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
+                             protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>
+{
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
+                                 protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS(){};
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
