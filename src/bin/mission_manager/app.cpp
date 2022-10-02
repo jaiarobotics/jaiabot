@@ -259,14 +259,17 @@ jaiabot::apps::MissionManager::MissionManager()
                     {
                         glog.is_debug1() && glog << "GPS has a good fix, but has not "
                                                     "reached threshold for total checks"
-                                                 << std::endl;
+                                                    " "
+                                                 << gps_fix_check_incr_ << " < "
+                                                 << cfg().total_gps_fix_checks() << std::endl;
                         // Increment until we reach total gps fix checks
                         gps_fix_check_incr_++;
                     }
                     else
                     {
-                        glog.is_debug1() && glog << "Post EvGPSFix, hdop is " << sky.hdop()
-                                                 << " <= " << cfg().gps_hdop_fix() << std::endl;
+                        glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
+                                                 << sky.hdop() << " <= " << cfg().gps_hdop_fix()
+                                                 << " Reset incr for gps degraded fix" << std::endl;
 
                         // Post Event for gps fix
                         machine_->process_event(statechart::EvGPSFix());
@@ -281,7 +284,10 @@ jaiabot::apps::MissionManager::MissionManager()
                     if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
                     {
                         glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
-                                                    "reached threshold for total checks"
+                                                    "reached threshold for total checks: "
+                                                    " "
+                                                 << gps_degraded_fix_check_incr_ << " < "
+                                                 << cfg().total_gps_degraded_fix_checks()
                                                  << std::endl;
 
                         // Increment until we reach total gps degraded fix checks
@@ -289,8 +295,10 @@ jaiabot::apps::MissionManager::MissionManager()
                     }
                     else
                     {
-                        glog.is_debug1() && glog << "Post EvGPSNoFix, hdop is " << sky.hdop()
-                                                 << " > " << cfg().gps_hdop_fix() << std::endl;
+                        glog.is_debug1() &&
+                            glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is "
+                                 << sky.hdop() << " > " << cfg().gps_hdop_fix()
+                                 << " Reset incr for gps fix" << std::endl;
 
                         // Post Event for no gps fix
                         machine_->process_event(statechart::EvGPSNoFix());
