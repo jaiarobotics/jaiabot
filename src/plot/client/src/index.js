@@ -81,6 +81,10 @@ class LogApp extends React.Component {
               }
             }>Download MOOS Messages...</button>
 
+            <button className="padded" onClick={() => {
+              this.map.clear()
+            }}>Clear Map</button>
+
         </div>
         </div>
 
@@ -111,6 +115,11 @@ class LogApp extends React.Component {
       // Get the active_goals
       LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
         this.map.updateWithActiveGoal(active_goal_dict)
+      })
+
+      // Get the task packets
+      LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+        this.map.updateWithTaskPackets(task_packets)
       })
 
     }

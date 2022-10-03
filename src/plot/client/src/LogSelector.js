@@ -130,6 +130,11 @@ export default class LogSelector extends React.Component {
         }
         else {
             let dict = this.state.log_dict[this.state.fleet][this.state.bot]
+
+            if (dict == null) {
+                return null
+            }
+
             var timestamps = Object.keys(dict)
             timestamps.sort()
             timestamps.reverse()
