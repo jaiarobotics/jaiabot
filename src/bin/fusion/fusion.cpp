@@ -100,29 +100,29 @@ class Fusion : public ApplicationBase
         CALIBRATION_MAG
     };
     std::map<DataType, goby::time::SteadyClock::time_point> last_data_time_;
-    std::map<DataType, int> last_calibration_status_;
+    //std::map<DataType, int> last_calibration_status_;
 
     const std::map<DataType, jaiabot::protobuf::Error> missing_data_errors_{
         {DataType::GPS_FIX, protobuf::ERROR__MISSING_DATA__GPS_FIX},
         {DataType::GPS_POSITION, protobuf::ERROR__MISSING_DATA__GPS_POSITION},
         {DataType::PRESSURE, protobuf::ERROR__MISSING_DATA__PRESSURE},
         {DataType::HEADING, protobuf::ERROR__MISSING_DATA__HEADING},
-        {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED},
-        {DataType::CALIBRATION_SYS, protobuf::ERROR__MISSING_DATA__CALIBRATION_SYS},
-        {DataType::CALIBRATION_GYRO, protobuf::ERROR__MISSING_DATA__CALIBRATION_GYRO},
-        {DataType::CALIBRATION_ACCEL, protobuf::ERROR__MISSING_DATA__CALIBRATION_ACCEL},
-        {DataType::CALIBRATION_MAG, protobuf::ERROR__MISSING_DATA__CALIBRATION_MAG}};
+        {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED}};
+    //    {DataType::CALIBRATION_SYS, protobuf::ERROR__MISSING_DATA__CALIBRATION_SYS},
+    //    {DataType::CALIBRATION_GYRO, protobuf::ERROR__MISSING_DATA__CALIBRATION_GYRO},
+    //    {DataType::CALIBRATION_ACCEL, protobuf::ERROR__MISSING_DATA__CALIBRATION_ACCEL},
+    //    {DataType::CALIBRATION_MAG, protobuf::ERROR__MISSING_DATA__CALIBRATION_MAG}};
     const std::map<DataType, jaiabot::protobuf::Warning> missing_data_warnings_{
         {DataType::TEMPERATURE, protobuf::WARNING__MISSING_DATA__TEMPERATURE},
         {DataType::PITCH, protobuf::WARNING__MISSING_DATA__PITCH},
         {DataType::COURSE, protobuf::WARNING__MISSING_DATA__COURSE},
         {DataType::ROLL, protobuf::WARNING__MISSING_DATA__ROLL}};
-    const std::map<DataType, jaiabot::protobuf::Error> not_calibrated_errors_{
-        {DataType::CALIBRATION_GYRO, protobuf::ERROR__NOT_CALIBRATED_GYRO},
-        {DataType::CALIBRATION_ACCEL, protobuf::ERROR__NOT_CALIBRATED_ACCEL},
-        {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
-    const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
-        {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
+    //const std::map<DataType, jaiabot::protobuf::Error> not_calibrated_errors_{
+    //    {DataType::CALIBRATION_GYRO, protobuf::ERROR__NOT_CALIBRATED_GYRO},
+    //    {DataType::CALIBRATION_ACCEL, protobuf::ERROR__NOT_CALIBRATED_ACCEL},
+    //    {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
+    //const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
+    //    {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
 
     WMM wmm;
 };
@@ -243,32 +243,32 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         {
             latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
 
-            last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
-            last_data_time_[DataType::CALIBRATION_SYS] = now;
+            //last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
+            //last_data_time_[DataType::CALIBRATION_SYS] = now;
         }
 
         if (calibration_status.has_gyro())
         {
             latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
 
-            last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
-            last_data_time_[DataType::CALIBRATION_GYRO] = now;
+            //last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
+            //last_data_time_[DataType::CALIBRATION_GYRO] = now;
         }
 
         if (calibration_status.has_accel())
         {
             latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
 
-            last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
-            last_data_time_[DataType::CALIBRATION_ACCEL] = now;
+            //last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
+            //last_data_time_[DataType::CALIBRATION_ACCEL] = now;
         }
 
         if (calibration_status.has_mag())
         {
             latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
 
-            last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
-            last_data_time_[DataType::CALIBRATION_MAG] = now;
+            //last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
+            //last_data_time_[DataType::CALIBRATION_MAG] = now;
         }
         
     });
@@ -493,7 +493,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
         }
     }
-    for (const auto& ep : not_calibrated_warnings_)
+    /*for (const auto& ep : not_calibrated_warnings_)
     {
         if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
         {
@@ -501,7 +501,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
-    }
+    }*/
     for (const auto& ep : missing_data_errors_)
     {
         if (!last_data_time_.count(ep.first) ||
@@ -512,7 +512,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
         }
     }
-    for (const auto& ep : not_calibrated_errors_)
+    /*for (const auto& ep : not_calibrated_errors_)
     {
         if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
         {
@@ -520,7 +520,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
             glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
         }
-    }
+    }*/
 }
 
 // This function converts decimal degrees to radians
