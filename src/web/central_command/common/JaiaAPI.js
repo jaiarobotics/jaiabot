@@ -2,7 +2,7 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-module.exports = class JaiaAPI {
+export class JaiaAPI {
   constructor(url = 'http://192.168.42.1:5000', debug = false) {
     this.url = url;
 
@@ -74,6 +74,10 @@ module.exports = class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
+  getTaskPackets() { return this.get('jaia/task-packets') }
+
+  getTaskGeoJSON() { return this.get('jaia/task-geojson') }
+
   allStop() { return this.post('jaia/allStop', null) }
 
   allActivate() { return this.post('jaia/allActivate', null) }
@@ -87,4 +91,9 @@ module.exports = class JaiaAPI {
   postMissionFilesCreate(descriptor) {
     return this.post('missionfiles/create', descriptor)
   }
+
+  // Gets a JSON response containing a contour map's extent on the map
+  getContourMapBounds() { return this.get('jaia/contour-bounds') }
 }
+
+export const jaiaAPI = new JaiaAPI('/', false)

@@ -16,6 +16,7 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
+import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -121,7 +122,7 @@ import jaiabot_icon from '../icons/jaiabot.png'
 // const element = <FontAwesomeIcon icon={faCoffee} />
 
 import {BotDetailsComponent, HubDetailsComponent} from './Details'
-import JaiaAPI from '../../common/JaiaAPI';
+import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
@@ -249,7 +250,7 @@ export default class CentralCommand extends React.Component {
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
 
-		this.api = new JaiaAPI("/", false);
+		this.api = jaiaAPI
 
 		this.podStatus = {}
 
@@ -326,11 +327,18 @@ export default class CentralCommand extends React.Component {
 
 		const { chartLayerCollection } = this.state;
 
+		this.chartLayerGroup = new OlLayerGroup({
+			title: 'Overlays',
+			layers: chartLayerCollection,
+			fold: 'open'
+		});
+
+		const { baseLayerCollection } = this.state;
+
 		// Configure the basemap layers
 		[
 			new OlTileLayer({
 				title: 'NOAA ENC Charts',
-				//type: 'base',
 				opacity: 0.7,
 				zIndex: 20,
 				source: this.state.noaaEncSource,
@@ -358,8 +366,6 @@ export default class CentralCommand extends React.Component {
 			layers: chartLayerCollection,
 			fold: 'open'
 		});
-
-		const { baseLayerCollection } = this.state;
 
 		// Configure the basemap layers
 		[
@@ -968,13 +974,22 @@ export default class CentralCommand extends React.Component {
 
 		this.cacheTileLoad();
 
+		this.measurementLayerGroup = new OlLayerGroup({
+			title: 'Measurements',
+			fold: 'open',
+			layers: [
+				taskData.getContourLayer()
+			]
+		})
+
 		let layers = [
 			new OlLayerGroup({
-				title: 'Base Maps (internet connection required)',
+				title: 'Map',
 				fold: 'open',
 				layers: this.state.baseLayerCollection
 			}),
 			this.chartLayerGroup,
+			this.measurementLayerGroup,
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
@@ -982,6 +997,8 @@ export default class CentralCommand extends React.Component {
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
+
+		console.log(layers)
 
 		return layers
 	}
@@ -1647,12 +1664,9 @@ export default class CentralCommand extends React.Component {
 	}
 
 	centerOn(coords, stopTracking = false, firstMove = false) {
-		console.log('coords = ', coords)
-
 		if (isNaN(coords[0]) || isNaN(coords[1])) {
 			return
 		}
-		console.log('centering')
 
 		if (stopTracking) {
 			this.trackBot('');
