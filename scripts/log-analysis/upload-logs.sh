@@ -13,7 +13,7 @@ set -ex
 
 # Link to staging for a flat directory structure
 mkdir -p staging
-find /var/log/jaiabot -name '*.goby' -size -50M -exec ln -sf {} staging/ \;
+find /var/log/jaiabot -name '*.goby' -size -500M -exec ln -sf {} staging/ \;
 
 rsync -zaLP staging/ ${DEST_HOSTNAME}:/var/log/jaiabot/bot_offload/
 

@@ -52,6 +52,10 @@ def JSONResponse(obj):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
+@app.route('/jaia/task-packets', methods=['GET'])
+def getPackets():
+    return JSONResponse(jaia_interface.get_task_packets())
+
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
     response = jaia_interface.post_command(request.json)
@@ -66,14 +70,6 @@ def postAllStop():
 def postAllActivate():
     response = jaia_interface.post_all_activate()
     return JSONResponse(response)
-
-@app.route('/mission/status', methods=['GET'])
-def getMissionStatus():
-    return JSONResponse(jaia_interface.get_mission_status())
-
-@app.route('/jaia/setManualID', methods=['POST'])
-def setManualID():
-    return JSONResponse(jaia_interface.set_manual_id())
 
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
@@ -128,6 +124,13 @@ def pidStaticFile(path):
 @app.route('/pid/', methods=['GET'])
 def pidRoot():
     return pidStaticFile('index.html')
+
+
+######## Contour map
+
+@app.route('/jaia/task-geojson', methods=['GET'])
+def get_contour_bounds():
+    return JSONResponse(jaia_interface.get_task_geojson())
 
 
 if __name__ == '__main__':
