@@ -1165,6 +1165,9 @@ export default class CentralCommand extends React.Component {
 				max_depth: 10,
 				depth_interval: 10,
 				hold_time: 1
+			},
+			surface_drift: {
+				drift_time: 10
 			}
 		}
 

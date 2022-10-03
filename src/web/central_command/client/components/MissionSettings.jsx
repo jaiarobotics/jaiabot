@@ -164,6 +164,9 @@ export class MissionSettingsPanel extends React.Component {
                         max_depth: 10,
                         depth_interval: 10,
                         hold_time: 1
+                    },
+                    surface_drift: {
+                        drift_time: 10
                     }
                 }
                 break;
@@ -190,6 +193,7 @@ export class MissionSettingsPanel extends React.Component {
 
     diveOptionsPanel() {
         let dive = this.state.goal.task.dive
+        let surface_drift = this.state.goal.task.surface_drift
 
         return (
             <div>
@@ -207,6 +211,10 @@ export class MissionSettingsPanel extends React.Component {
                         <td>Hold Time</td>
                         <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
                     </tr>
+                    <tr>
+                        <td>Drift Time</td>
+                        <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                    </tr>
                     </tbody>
                 </table>
             </div>
@@ -219,7 +227,14 @@ export class MissionSettingsPanel extends React.Component {
         const key = evt.target.name
         const value = evt.target.value
 
-        goal.task.dive[key] = value
+        if(key != "drift_time")
+        {
+            goal.task.dive[key] = value;
+        }
+        else
+        {
+            goal.task.surface_drift[key] = value;
+        }
 
         this.setState({goal})
     }
