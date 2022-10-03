@@ -172,6 +172,15 @@ jaiabot::apps::WebPortal::WebPortal()
 
             send_message_to_client(message);
         });
+
+    // Subscribe to DivePackets
+    interprocess().subscribe<jaiabot::groups::task_packet>(
+        [this](const jaiabot::protobuf::TaskPacket& task_packet) {
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_task_packet() = task_packet;
+
+            send_message_to_client(message);
+        });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)

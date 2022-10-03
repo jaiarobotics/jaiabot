@@ -27,4 +27,5 @@ message PortalToClientMessage
     optional BotStatus bot_status = 1;
     optional Engineering engineering_status = 2;
     optional HubStatus hub_status = 3;
+    optional TaskPacket task_packet = 4;
 }

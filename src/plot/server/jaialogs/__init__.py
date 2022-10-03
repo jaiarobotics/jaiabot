@@ -374,3 +374,84 @@ def get_active_goals(log_filenames):
 
     return results
 
+################################################
+# Reading tasks
+# get_task_packets returns a list of tasks like so:
+# [
+#   {
+#     "_datenum_": 815848.3725064587,
+#     "_scheme_": 2,
+#     "_utime_": 8321993784558025,
+#     "bot_id": 1,
+#     "dive": {
+#       "depth_achieved": 10,
+#       "dive_rate": 0.5,
+#       "duration_to_acquire_gps": 1.5,
+#       "measurement": {
+#         "mean_depth": [
+#           10,
+#           null
+#         ],
+#         "mean_salinity": [
+#           20,
+#           null
+#         ],
+#         "mean_temperature": [
+#           14.5,
+#           null
+#         ]
+#       },
+#       "powered_rise_rate": 0.3,
+#       "start_location": {
+#         "lat": 43.517494,
+#         "lon": -72.115236
+#       },
+#       "unpowered_rise_rate": 0.3
+#     },
+#     "drift": {
+#       "drift_duration": 0,
+#       "end_location": {
+#         "lat": 43.517738,
+#         "lon": -72.115225
+#       },
+#       "estimated_drift": {
+#         "speed": 0
+#       },
+#       "start_location": {
+#         "lat": 43.517736,
+#         "lon": -72.115225
+#       }
+#     },
+#     "end_time": 1664441785000000,
+#     "start_time": 1664441686000000,
+#     "type": "DIVE"
+#   },
+#   ...
+#   ]
+
+
+TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
+
+def get_task_packets(log_filenames):
+
+    # Open all our logs
+    log_files = [h5py.File(log_name) for log_name in log_filenames]
+
+    # A dictionary mapping bot_id to an array of mission dictionaries
+    results = []
+
+    for log_file in log_files:
+        
+        # Search for Command items
+        for path in log_file.keys():
+
+            m = TASK_PACKET_RE.match(path)
+            if m is not None:
+                task_packet_group_path = path
+
+                task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
+                task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
+
+                results += task_packets
+
+    return results
