@@ -45,6 +45,8 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -93,6 +95,9 @@ class SimulatorTranslation : public goby::moos::Translator
     std::default_random_engine generator_;
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
+    goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
+    int time_out_sky_ = 1;
+    double hdop_rand_max_ = 1;
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -174,6 +179,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         temperature_degC_profile_[sample.depth_with_units()] = sample.temperature();
         salinity_profile_[sample.depth_with_units()] = sample.salinity();
     }
+
+    hdop_rand_max_ = sim_cfg_.gps_hdop_rand_max();
 }
 
 void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
@@ -246,6 +253,20 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(hdt.serialize().message_cr_nl());
         interthread().publish<gps_udp_out>(io_data);
+    }
+
+    // publish gps sky data
+    if (sky_last_updated_ + std::chrono::seconds(time_out_sky_) < now)
+    {
+        goby::middleware::protobuf::gpsd::SkyView sky;
+
+        double hdop;
+        std::srand(unsigned(std::time(NULL)));
+        hdop = (double)std::rand() / (RAND_MAX)*hdop_rand_max_;
+
+        sky.set_hdop(hdop);
+        interprocess().publish<goby::middleware::groups::gpsd::sky>(sky);
+        sky_last_updated_ = goby::time::SteadyClock::now();
     }
 
     // publish pressure as UDP message for bar30 driver

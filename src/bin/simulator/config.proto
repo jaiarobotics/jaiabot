@@ -56,6 +56,9 @@ message Simulator
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
+    // Default is to use the hdop value of 1 so bot does not need to reacquire gps
+    optional double gps_hdop_rand_max = 27 [default = 1.0];
+
     required double vertical_dive_rate = 30
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
     required double seafloor_depth = 31
