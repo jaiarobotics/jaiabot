@@ -87,6 +87,7 @@ STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
+STATECHART_EVENT(EvGPSNoFix)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
@@ -164,6 +165,7 @@ namespace movement
 struct MovementSelection;
 
 struct Transit;
+struct ReacquireGPS;
 struct RemoteControl;
 namespace remotecontrol
 {
@@ -198,6 +200,7 @@ struct Recovery;
 namespace recovery
 {
 struct Transit;
+struct ReacquireGPS;
 struct StationKeep;
 struct Stopped;
 } // namespace recovery
@@ -517,6 +520,25 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
 
 namespace underway
 {
+// Base class for all Task ReacquireGPS as these do nearly the same thing.
+// "Derived" MUST be a child state of Task
+template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
+struct ReacquireGPSTaskCommon : boost::statechart::state<Derived, Parent>,
+                                Notify<Derived, state, protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<Derived, Parent>;
+    ReacquireGPSTaskCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+        {
+            // in indoor mode, simply post that we've received a fix
+            // (even though we haven't as there's no GPS)
+            this->post_event(statechart::EvGPSFix());
+        }
+    };
+    ~ReacquireGPSTaskCommon(){};
+};
+
 struct Replan : boost::statechart::state<Replan, Underway>,
                 Notify<Replan, protobuf::IN_MISSION__UNDERWAY__REPLAN,
                        protobuf::SETPOINT_IVP_HELM // stationkeep
@@ -601,8 +623,24 @@ struct Transit : boost::statechart::state<Transit, Movement>,
         post_event(EvPerformTask());
     }
 
-    using reactions = boost::statechart::in_state_reaction<EvWaypointReached, Transit,
-                                                           &Transit::waypoint_reached>;
+    using reactions =
+        boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
+                                                              &Transit::waypoint_reached>,
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+};
+
+struct ReacquireGPS
+    : ReacquireGPSTaskCommon<ReacquireGPS, Movement,
+                             protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
+{
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<ReacquireGPS, Movement,
+                                 protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS(){};
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>>;
 };
 
 struct RemoteControl
@@ -1019,13 +1057,20 @@ struct PoweredAscent
 };
 
 struct ReacquireGPS
-    : boost::statechart::state<ReacquireGPS, Dive>,
-      Notify<ReacquireGPS, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
-             protobuf::SETPOINT_STOP>
+    : ReacquireGPSTaskCommon<ReacquireGPS, Dive,
+                             protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS>
 {
-    using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
-    ReacquireGPS(typename StateBase::my_context c);
-    ~ReacquireGPS();
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<ReacquireGPS, Dive,
+                                 protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS()
+    {
+        end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
+        context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ -
+                                                                             start_time_);
+    };
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
 
@@ -1072,7 +1117,22 @@ struct Transit : boost::statechart::state<Transit, Recovery>,
     ~Transit();
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>>;
+        boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>,
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+};
+
+struct ReacquireGPS
+    : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
+                             protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>
+{
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
+                                 protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS(){};
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,

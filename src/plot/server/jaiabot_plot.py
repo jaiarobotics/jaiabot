@@ -2,9 +2,10 @@
 
 import argparse
 from flask import Flask, send_from_directory, Response, request
-import json
+import simplejson as json
 import logging
 import os
+import math
 
 import jaialogs
 
@@ -35,7 +36,7 @@ def parse_log_filenames(input):
 ####### Responses
 
 def JSONResponse(obj):
-    return Response(json.dumps(obj), mimetype='application/json')
+    return Response(json.dumps(obj, ignore_nan=True), mimetype='application/json')
 
 def JSONErrorResponse(msg):
     obj = {"error": msg}
@@ -99,6 +100,16 @@ def getActiveGoals():
         return JSONErrorResponse("Missing log filename")
 
     return JSONResponse(jaialogs.get_active_goals(log_names))
+
+
+@app.route('/task_packet', methods=['GET'])
+def getTaskPackets():
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    return JSONResponse(jaialogs.get_task_packets(log_names))
 
 
 @app.route('/moos', methods=['GET'])

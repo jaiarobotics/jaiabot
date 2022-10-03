@@ -11,7 +11,7 @@ import google.protobuf.json_format
 from time import sleep
 import datetime
 from math import *
-import contour_map
+#import task_mapper
 
 import logging
 
@@ -45,7 +45,7 @@ class Interface:
     task_packets = []
 
     # Contour plot object
-    contour_map = contour_map.ContourPlot()
+    #task_mapper = task_mapper.ContourPlot()
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -241,17 +241,12 @@ class Interface:
 
             print(longitudes, latitudes, depths)
 
-            self.contour_map.update_with_data(longitudes, latitudes, depths)
+            #self.task_mapper.update_with_data(longitudes, latitudes, depths)
 
     def get_task_packets(self):
         return self.task_packets
 
-
     # Contour map
 
-    def get_contour_bounds(self):
-        return self.contour_map.get_bounds()
-
-    def get_contour_map(self):
-        return self.contour_map.get_image()
-    
+    def get_task_geojson(self):
+        return #self.task_mapper.get_geojson()

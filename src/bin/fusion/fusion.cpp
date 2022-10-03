@@ -213,17 +213,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
 
-            // Have to make sure it's within the DCCL domain
-            //if (heading < 0 * boost::units::degree::degrees)
-            //    heading += 360 * boost::units::degree::degrees;
-            //if (heading > 360 * boost::units::degree::degrees)
-            //    heading -= 360 * boost::units::degree::degrees;
-
-            /*if (heading > 360 * degrees)
-            {
-                heading -= (360 * degrees);
-            }*/
-
             heading = corrected_heading(heading);
 
             latest_node_status_.mutable_pose()->set_heading_with_units(heading);

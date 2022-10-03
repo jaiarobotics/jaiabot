@@ -128,14 +128,9 @@ def pidRoot():
 
 ######## Contour map
 
-@app.route('/jaia/contour-bounds', methods=['GET'])
+@app.route('/jaia/task-geojson', methods=['GET'])
 def get_contour_bounds():
-    return JSONResponse(jaia_interface.get_contour_bounds())
-
-
-@app.route('/jaia/contour-map', methods=['GET'])
-def get_contour_map():
-    return Response(jaia_interface.get_contour_map(), mimetype='image/png')
+    return JSONResponse(jaia_interface.get_task_geojson())
 
 
 if __name__ == '__main__':

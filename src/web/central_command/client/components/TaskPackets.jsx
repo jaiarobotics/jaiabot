@@ -1,7 +1,6 @@
 import { jaiaAPI } from "../../common/JaiaAPI"
 import { Heatmap } from "ol/layer"
 import VectorSource from 'ol/source/Vector'
-import { Vector as OlVectorLayer } from 'ol/layer';
 import KML from 'ol/format/KML'
 import Collection from "ol/Collection"
 import Feature from "ol/Feature"
@@ -23,6 +22,10 @@ import botSelectedIcon from '../icons/bot-selected.svg'
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
+import { getTransform } from "ol/proj"
+import { Vector as VectorLayer } from "ol/layer"
+import GeoJSON from 'ol/format/GeoJSON'
+import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
 
 const POLL_INTERVAL = 5000
 
@@ -60,21 +63,21 @@ export class TaskData {
 
         // Plot depth soundings using a contour plot
 
-        this.contourLayer = new ImageLayer({
+        this.contourLayer = new VectorLayer({
             title: 'Depth Contours',
             zIndex: 25,
             opacity: 0.5,
             source: null,
           })
 
-        this.taskPacketDiveLayer = new OlVectorLayer({
+        this.taskPacketDiveLayer = new VectorLayer({
             title: 'Dive Data',
             zIndex: 25,
             opacity: 1,
             source: null,
           })
 
-        this.taskPacketDriftLayer = new OlVectorLayer({
+        this.taskPacketDriftLayer = new VectorLayer({
             title: 'Drift Data',
             zIndex: 25,
             opacity: 1,
@@ -207,6 +210,25 @@ drift:
         this.taskPacketDriftLayer.setSource(driftVectorSource)
     }
 
+    _updateContourPlot() {
+        jaiaAPI.getTaskGeoJSON().then((geojson) => {
+                console.log('geojson = ', geojson)
+
+                // Manually transform features, because OpenLayers is a lazy, useless piece of shit
+                var features = new GeoJSON().readFeatures(geojson)
+                features.forEach((feature) => {
+                    feature.getGeometry().transform(equirectangular, mercator)
+                })
+
+                const vectorSource = new VectorSource({
+                    features: features,
+                    projection: equirectangular
+                })
+              
+                this.contourLayer.setSource(vectorSource)
+        })
+    }
+
     _pollTaskPackets() {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
 
@@ -229,6 +251,9 @@ drift:
             }
 
         })
+
+        // We're hiding this bathy chart for now
+        // this._updateContourPlot()
     }
 
     getContourLayer() {

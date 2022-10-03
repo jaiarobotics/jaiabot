@@ -42,8 +42,14 @@ message MissionManager
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
 
-    // number of times to check the gps mode is correct when reacquiring
-    optional uint32 total_gps_checks = 34 [default = 5];
+    // number of times to check the gps hdop is =< 1 when in reacquiring gps state
+    optional uint32 total_gps_fix_checks = 34 [default = 5];
+
+    // number of times to check the gps hdop is > 1 while in transit to go into reacquiring gps state
+    optional uint32 total_gps_degraded_fix_checks = 35 [default = 1];
+
+    // The hdop value to check against to determine gps fix
+    optional uint32 gps_hdop_fix = 36 [default = 1];
 
     enum RemoteControlSetpointEnd
     {
