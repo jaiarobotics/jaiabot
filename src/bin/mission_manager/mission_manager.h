@@ -53,7 +53,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
 
-    uint32_t current_gps_check_incr_{0};
+    uint32_t gps_fix_check_incr_{1};
+    uint32_t gps_degraded_fix_check_incr_{1};
 };
 
 } // namespace apps

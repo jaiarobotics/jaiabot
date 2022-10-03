@@ -45,3 +45,5 @@ seafloor_depth: 50
 
 temperature_stdev: 0.05
 salinity_stdev: 0.05
+
+gps_hdop_rand_max: 1.00 # (optional) (default=1)

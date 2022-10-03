@@ -683,25 +683,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
             << std::endl;
 }
 
-// Dive::ReacquireGPS
-jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
-    typename StateBase::my_context c)
-    : StateBase(c)
-{
-    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
-    {
-        // in indoor mode, simply post that we've received a fix
-        // (even though we haven't as there's no GPS)
-        post_event(statechart::EvGPSFix());
-    }
-}
-
-jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGPS()
-{
-    end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
-    context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
-}
-
 // Task::StationKeep
 jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
