@@ -446,6 +446,17 @@ textarea {
     flex-flow: column-reverse wrap-reverse;
   }
 
+  #measureResult {
+    height: auto;
+    width: @command-button-size;
+    font-size: 14px;
+    background: @cc-background-color;
+    color: @cc-text-color;
+    border: 2px dashed @cc-text-color;
+    padding: @command-button-padding;
+    margin: @command-button-margin;
+  }
+
   /******** CSS Map ********************/
 
   .map-control {
@@ -930,6 +941,20 @@ textarea {
   border-radius: 8pt;
 }
 
+#mission-type {
+  color: #111111ff;
+  margin: 8pt;
+  border-radius: 4pt;
+}
+
+.missionStats > td {
+  color: #051d61;
+  margin: 8pt;
+  border-radius: 4pt;
+  padding: 8pt;
+  text-align: right;
+}
+
 .GoalSettingsPanel {
   background-color: @cc-background-color;
   color: @cc-text-color;
@@ -948,6 +973,14 @@ textarea {
 
 .NumberInput {
   color: @cc-text-color;
+  text-align: right;
+  border-radius: 4pt;
+  padding: 2pt;
+  max-width: 75pt;
+}
+
+.RadioInput {
+  color: #111111ff;
   text-align: right;
   border-radius: 4pt;
   padding: 2pt;
@@ -1018,8 +1051,8 @@ div.hoverable:hover {
 }
 
 .LoadMissionPanel .selected, .LoadMissionPanel .selected:hover {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
+  background-color:  @cc-text-color;
+  color: @cc-background-color;
 }
 
 .textInput {

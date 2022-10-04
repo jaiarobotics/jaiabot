@@ -24,6 +24,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 	- Underway: To be performed while the bot is in the water. (Use Cases: "Mission", "Recovery")
 		+ Movement: Bot is moving to the next Task.
 			* Transit: Bot is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
+			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* RemoteControl: Bot is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the bot is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current bot location.
 				- Setpoint: Bot is performing a RC setpoint (heading, speed up to a given duration)
 				- StationKeep: Bot is stationkeeping while waiting for the next Setpoint.
@@ -42,6 +43,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
+			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* StationKeep: Bot is actively maintaining the recovery location position.
 			* Stopped: Control surfaces are stopped for a safe recovery.
 		+ Replan: Bot has received a new mission and is assessing feasibility. The bot stationkeeps while in this state.
@@ -96,6 +98,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
 - EvGPSFix: GPS Fix received
+- EvGPSNoFix: GPS No Fix received
 
 #### Internal events
 

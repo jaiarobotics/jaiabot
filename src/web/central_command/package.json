@@ -22,7 +22,7 @@
     "isomorphic-fetch": "^3.0.0",
     "jquery": "^3.6.0",
     "jquery-ui": "^1.13.2",
-    "ol": "^6.15.1",
+    "ol": "^7.1.0",
     "ol-layerswitcher": "^3.8.3",
     "reset-css": "^5.0.1",
     "toastr": "^2.1.4"

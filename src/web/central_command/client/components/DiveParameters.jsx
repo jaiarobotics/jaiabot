@@ -10,6 +10,7 @@ export var currentParameters = Settings.read('diveParameters') || {
     maxDepth: 1,
     depthInterval: 1,
     holdTime: 0,
+    driftTime: 0
 }
 
 function setParameter(parameterName, event) {
@@ -34,6 +35,10 @@ export function panel() {
                     <tr key="hold_time">
                         <td>Hold Time</td>
                         <td><input type="text" id="dive_hold_time" defaultValue={currentParameters.holdTime} onChange={setParameter.bind(null, 'holdTime')} /></td>
+                    </tr>
+                    <tr key="drift_time">
+                        <td>Drift Time</td>
+                        <td><input type="text" id="drift_time" defaultValue={currentParameters.drift_time} onChange={setParameter.bind(null, 'driftTime')} /></td>
                     </tr>
                 </tbody>
             </table>
