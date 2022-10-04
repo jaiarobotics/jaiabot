@@ -4,12 +4,10 @@ from scipy.spatial import Delaunay
 import numpy as np
 
 
-def point(coordinates, name=''):
+def point(coordinates, properties={}):
     return {
         "type": "Feature",
-        "properties": {
-            "name": name
-        },
+        "properties": properties,
         "geometry": {
             "type": "Point",
             "coordinates": coordinates
@@ -17,12 +15,10 @@ def point(coordinates, name=''):
     }
 
 
-def polygon(coordinates, name=''):
+def polygon(coordinates, properties={}):
     return {
       "type": "Feature",
-      "properties": {
-        "name": name
-      },
+      "properties": properties,
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -32,12 +28,10 @@ def polygon(coordinates, name=''):
     }
 
 
-def linestring(coordinates, name=''):
+def linestring(coordinates, properties={}):
     return {
       "type": "Feature",
-      "properties": {
-        "name": name
-      },
+      "properties": properties,
       "geometry": {
         "type": "LineString",
         "coordinates": 
@@ -96,22 +90,31 @@ def getContourSegmentsForTriangles(triangleVertices, contourValues):
             'value': contourValue
         })
 
-    # Return a list of line segment coordinates, like so:
-    # [ 
-    #     [ [0, 0], [0, 1] ],
-    #     [ [1, 2], [3, 4] ],
-    #     [ [8, 7], [6, 5] ]
-    # ]
-
     return contourSegments
 
 
-def getContourSegmentsForMeshPoints(meshPoints):
+def getContourSegmentsForMeshPoints(meshPoints, contourCount=10):
+    """Gets an array of contour line segments, given a set of irregular mesh points (x, y, z)
+
+    Args:
+        meshPoints (iterable): A container with triplets (x, y, z), with z used to produce the contour segments.
+        contourCount (int): The number of contours to produce
+
+    Returns:
+        list: A list of dictionaries like so: { 'vertices': [[0, 1], [1, 2]], 'value': 0.4 }
+    """
+    if len(meshPoints) < 3:
+        return []
+
     meshPoints2d = [p[:2] for p in meshPoints]
 
     tri = Delaunay(np.array(meshPoints2d))
 
-    contourValues = np.arange(1, 4, 0.3)
+    # Get contour values
+    values = [p[2] for p in meshPoints]
+    minValue = min(values)
+    maxValue = max(values)
+    contourValues = np.arange(minValue, maxValue, (maxValue - minValue) / contourCount)
 
     contourSegments = []
 
@@ -120,6 +123,22 @@ def getContourSegmentsForMeshPoints(meshPoints):
         contourSegments += getContourSegmentsForTriangles(triangleVertices, contourValues)
 
     return contourSegments
+
+def getContourGeoJSON(meshPoints, contourCount=10):
+    """Return a GeoJSON string containing contours for a set of mesh points
+
+    Args:
+        meshPoints (iterable): A container with triplets (x, y, z), with z used to produce the contour segments.
+        contourCount (int): The number of contours to produce
+
+    Returns:
+        dict: a GeoJSON dictionary
+    """
+    contourSegments = getContourSegmentsForMeshPoints(meshPoints)
+
+    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value'])}) for contourSegment in contourSegments]
+
+    return geojson(linestrings)
 
 
 if __name__ == '__main__':
@@ -132,10 +151,5 @@ if __name__ == '__main__':
         [20, 10, 3],
     ]
 
-    contourSegments = getContourSegmentsForMeshPoints(meshPoints)
 
-    linestrings = [linestring(contourSegment['vertices'], name=str(contourSegment['value'])) for contourSegment in contourSegments]
-
-    data = geojson(linestrings)
-
-    json.dump(data, open(os.path.expanduser('~/test.json'), 'w'))
+    json.dump(getContourGeoJSON(meshPoints), open(os.path.expanduser('~/test.json'), 'w'))

@@ -11,7 +11,7 @@ import google.protobuf.json_format
 from time import sleep
 import datetime
 from math import *
-import task_mapper
+import contours
 
 import logging
 
@@ -43,9 +43,6 @@ class Interface:
 
     # List of all TaskPackets received, with last known location of that bot
     task_packets = []
-
-    # Contour plot object
-    task_mapper = task_mapper.ContourPlot()
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -225,28 +222,17 @@ class Interface:
         task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
         self.task_packets.append(task_packet)
 
-        # If we have at least 3 dive_packets, it's time to produce a contour map
-        dive_packets = []
-
-        for task_packet in self.task_packets:
-            if 'dive' in task_packet:
-                dive_packets.append(task_packet['dive'])
-
-        if len(dive_packets) >= 3:
-            longitudes = [dive_packet['startLocation']['lon'] for dive_packet in dive_packets]
-            latitudes = [dive_packet['startLocation']['lat'] for dive_packet in dive_packets]
-            depths = [dive_packet['depthAchieved'] for dive_packet in dive_packets]
-
-            logging.warning(f'Updating contour plot')
-
-            print(longitudes, latitudes, depths)
-
-            self.task_mapper.update_with_data(longitudes, latitudes, depths)
-
     def get_task_packets(self):
         return self.task_packets
 
     # Contour map
 
-    def get_task_geojson(self):
-        return self.task_mapper.get_geojson()
+    def get_depth_contours(self):
+
+        mesh_points = []
+        for task_packet in self.task_packets:
+            if 'dive' in task_packet:
+                dive_packet = task_packet['dive']
+                mesh_points.append([dive_packet['startLocation']['lon'], dive_packet['startLocation']['lat'], dive_packet['depthAchieved']])
+
+        return contours.getContourGeoJSON(mesh_points)
