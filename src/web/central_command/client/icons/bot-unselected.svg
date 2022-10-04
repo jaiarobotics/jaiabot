@@ -61,7 +61,7 @@
        sodipodi:nodetypes="ccccc"
        transform="matrix(0.495,0,0,0.495,9.2241536,8.9528548)" />
     <path
-       style="fill:#5ec957;fill-opacity:1;stroke:#000000;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:white;fill-opacity:1;stroke:#000000;stroke-width:0.529167;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
        d="m 13.966507,23.431069 4.387786,-11.449608 4.210501,11.49393 -4.343411,-2.802432 z"
        id="path63"
        sodipodi:nodetypes="ccccc" />
