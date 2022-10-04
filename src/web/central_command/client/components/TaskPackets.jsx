@@ -70,14 +70,28 @@ export class TaskData {
           })
 
         this.taskPacketDiveLayer = new VectorLayer({
-            title: 'Dive Data',
+            title: 'Dive Icon',
+            zIndex: 1001,
+            opacity: 1,
+            source: null,
+          })
+
+        this.taskPacketDiveInfoLayer = new VectorLayer({
+            title: 'Dive Info',
             zIndex: 1001,
             opacity: 1,
             source: null,
           })
 
         this.taskPacketDriftLayer = new VectorLayer({
-            title: 'Drift Data',
+            title: 'Drift Icon',
+            zIndex: 1001,
+            opacity: 1,
+            source: null,
+          })
+
+        this.taskPacketDriftInfoLayer = new VectorLayer({
+            title: 'Drift Info',
             zIndex: 1001,
             opacity: 1,
             source: null,
@@ -101,37 +115,38 @@ export class TaskData {
         })
     }
 
-/*
-Task Packet
-0: 
-botId: 0
-dive: 
-    depthAchieved: 1
-    diveRate: 0.5
-    durationToAcquireGps: 0.3
-    measurement: Array(1)
-        0: 
-        {meanDepth: 1, meanTemperature: 15, meanSalinity: 20}
-        length: 1
-    startLocation: 
-        lat: 41.487142
-        lon: -71.259441 
-    unpoweredRiseRate: 0.3
-drift: 
-    driftDuration: 0
-    endLocation: 
-        lat: 41.487135
-        lon: -71.259441
-    startLocation: 
-        lat: 41.487136
-        lon: -71.259441
-    endTime: "1664484912000000"
-    startTime: "1664484905000000"
-    type: "DIVE"
-*/
+    /*
+    Task Packet Example
+    0: 
+    botId: 0
+    dive: 
+        depthAchieved: 1
+        diveRate: 0.5
+        durationToAcquireGps: 0.3
+        measurement: Array(1)
+            0: 
+            {meanDepth: 1, meanTemperature: 15, meanSalinity: 20}
+            length: 1
+        startLocation: 
+            lat: 41.487142
+            lon: -71.259441 
+        unpoweredRiseRate: 0.3
+    drift: 
+        driftDuration: 0
+        endLocation: 
+            lat: 41.487135
+            lon: -71.259441
+        startLocation: 
+            lat: 41.487136
+            lon: -71.259441
+        endTime: "1664484912000000"
+        startTime: "1664484905000000"
+        type: "DIVE"
+    */
 
     updateDiveLocations() {
         let taskDiveFeatures = []
+        let taskDiveInfoFeatures = []
 
         for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
             if(taskPacket.type == "DIVE")
@@ -144,14 +159,17 @@ drift:
                         size: [319, 299],
                         // the scale factor
                         scale: 0.1
-                    }),
+                    })
+                });
+
+                let iconInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
                         text : `Depth (m): ` + divePacket.depthAchieved 
                              + '\nDiveRate (m/s): ' + divePacket.depthAchieved,
                         scale: 1,
-                        fill: new OlFillStyle({color: 'black'}),
-                        backgroundFill: new OlFillStyle({color: 'white'}),
+                        fill: new OlFillStyle({color: 'white'}),
+                        backgroundFill: new OlFillStyle({color: 'black'}),
                         textAlign: 'end',
                         justify: 'left',
                         textBaseline: 'bottom',
@@ -163,8 +181,11 @@ drift:
     
                 let pt = equirectangular_to_mercator([divePacket.startLocation.lon, divePacket.startLocation.lat])
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                diveFeature.setStyle(iconStyle)   
+                let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                diveFeature.setStyle(iconStyle)  
+                diveInfoFeature.setStyle(iconInfoStyle)   
                 taskDiveFeatures.push(diveFeature) 
+                taskDiveInfoFeatures.push(diveInfoFeature) 
             }
         }
 
@@ -172,12 +193,17 @@ drift:
             features: taskDiveFeatures
         })
 
+        let diveInfoVectorSource = new VectorSource({
+            features: taskDiveInfoFeatures
+        })
+
         this.taskPacketDiveLayer.setSource(diveVectorSource)
-        
+        this.taskPacketDiveInfoLayer.setSource(diveInfoVectorSource)
     }
 
     updateDriftLocations() {
         let taskDriftFeatures = []
+        let taskDriftInfoFeatures = []
 
         for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
             if(taskPacket.type == "DIVE" ||
@@ -205,15 +231,18 @@ drift:
                         scale: 0.05,
                         rotation: rotation,
                         rotateWithView : true
-                    }),
+                    })
+                });
+
+                let iconInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
                         text : `Duration (s): ` + driftPacket.driftDuration 
                              + '\nDirection (deg): ' + bearing.toFixed(2) 
                              + '\nSpeed (m/s): ' + meters_per_second.toFixed(2),
                         scale: 1,
-                        fill: new OlFillStyle({color: 'black'}),
-                        backgroundFill: new OlFillStyle({color: 'white'}),
+                        fill: new OlFillStyle({color: 'white'}),
+                        backgroundFill: new OlFillStyle({color: 'black'}),
                         textAlign: 'end',
                         justify: 'left',
                         textBaseline: 'bottom',
@@ -225,8 +254,11 @@ drift:
 
                 let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
                 let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
                 driftFeature.setStyle(iconStyle)   
+                driftInfoFeature.setStyle(iconInfoStyle)
                 taskDriftFeatures.push(driftFeature)   
+                taskDriftInfoFeatures.push(driftInfoFeature)
             }
         }
 
@@ -234,7 +266,12 @@ drift:
             features: taskDriftFeatures
         })
 
+        let driftInfoVectorSource = new VectorSource({
+            features: taskDriftInfoFeatures
+        })
+
         this.taskPacketDriftLayer.setSource(driftVectorSource)
+        this.taskPacketDriftInfoLayer.setSource(driftInfoVectorSource)
     }
 
     _updateContourPlot() {
@@ -291,10 +328,17 @@ drift:
         return this.taskPacketDiveLayer
     }
 
+    getTaskPacketDiveInfoLayer() {
+        return this.taskPacketDiveInfoLayer
+    }
+
     getTaskPacketDriftLayer() {
         return this.taskPacketDriftLayer
     }
-    
+
+    getTaskPacketDriftInfoLayer() {
+        return this.taskPacketDriftInfoLayer
+    }
 }
 
 export const taskData = new TaskData()
