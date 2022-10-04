@@ -18,7 +18,7 @@ import OlIcon from 'ol/style/Icon';
 import OlPoint from 'ol/geom/Point';
 import diveLocation from '../icons/task_packet/DiveLocation.png'
 import currentDirection from '../icons/task_packet/Arrow.png'
-import botSelectedIcon from '../icons/bot-selected.svg'
+import bottomDiveLocation from '../icons/task_packet/X.png'
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
@@ -74,6 +74,7 @@ export class TaskData {
             zIndex: 1001,
             opacity: 1,
             source: null,
+            visible: false
           })
 
         this.taskPacketDiveInfoLayer = new VectorLayer({
@@ -81,7 +82,23 @@ export class TaskData {
             zIndex: 1001,
             opacity: 1,
             source: null,
+            visible: false
           })
+
+        this.taskPacketDiveBottomLayer = new VectorLayer({
+            title: 'Dive Bottom Icon',
+            zIndex: 1001,
+            opacity: 1,
+            source: null,
+          })
+
+        this.taskPacketDiveBottomInfoLayer = new VectorLayer({
+            title: 'Dive Bottom Info',
+            zIndex: 1001,
+            opacity: 1,
+            source: null,
+          })
+
 
         this.taskPacketDriftLayer = new VectorLayer({
             title: 'Drift Icon',
@@ -120,6 +137,7 @@ export class TaskData {
     0: 
     botId: 0
     dive: 
+        bottomDive: false
         depthAchieved: 1
         diveRate: 0.5
         durationToAcquireGps: 0.3
@@ -147,6 +165,8 @@ export class TaskData {
     updateDiveLocations() {
         let taskDiveFeatures = []
         let taskDiveInfoFeatures = []
+        let taskDiveBottomFeatures = []
+        let taskDiveBottomInfoFeatures = []
 
         for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
             if(taskPacket.type == "DIVE")
@@ -166,7 +186,7 @@ export class TaskData {
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
                         text : `Depth (m): ` + divePacket.depthAchieved 
-                             + '\nDiveRate (m/s): ' + divePacket.depthAchieved,
+                             + '\nDiveRate (m/s): ' + divePacket.diveRate,
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
@@ -175,17 +195,59 @@ export class TaskData {
                         textBaseline: 'bottom',
                         padding: [3, 5, 3, 5],
                         offsetY: -10,
-                        offsetX: -15
+                        offsetX: -30
                     })
                 });
-    
-                let pt = equirectangular_to_mercator([divePacket.startLocation.lon, divePacket.startLocation.lat])
+
+                let iconBottomStyle = new OlStyle({
+                    image: new OlIcon({
+                        src: bottomDiveLocation,
+                        // the real size of your icon
+                        size: [225, 225],
+                        // the scale factor
+                        scale: 0.1
+                    })
+                });
+
+                let iconBottomInfoStyle = new OlStyle({
+                    text : new OlText({
+                        font : `15px Calibri,sans-serif`,
+                        text : `Bottom Depth (m): ` + divePacket.depthAchieved,
+                        scale: 1,
+                        fill: new OlFillStyle({color: 'white'}),
+                        backgroundFill: new OlFillStyle({color: 'black'}),
+                        textAlign: 'end',
+                        justify: 'left',
+                        textBaseline: 'bottom',
+                        padding: [3, 5, 3, 5],
+                        offsetY: -10,
+                        offsetX: -30
+                    })
+                });
+
+                let task_calcs = this.calculateDiveDrift(taskPacket);
+                let dive_lon = task_calcs.diveLocation.geometry.coordinates[0];
+                let dive_lat = task_calcs.diveLocation.geometry.coordinates[1];
+                let pt = equirectangular_to_mercator([dive_lon, dive_lat])
+
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
                 let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+
                 diveFeature.setStyle(iconStyle)  
                 diveInfoFeature.setStyle(iconInfoStyle)   
+                diveBottomFeature.setStyle(iconBottomStyle)  
+                diveBottomInfoFeature.setStyle(iconBottomInfoStyle)   
+
                 taskDiveFeatures.push(diveFeature) 
-                taskDiveInfoFeatures.push(diveInfoFeature) 
+                taskDiveInfoFeatures.push(diveInfoFeature)
+                
+                if(divePacket.bottomDive)
+                {
+                    taskDiveBottomFeatures.push(diveBottomFeature) 
+                    taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
+                }
             }
         }
 
@@ -197,8 +259,18 @@ export class TaskData {
             features: taskDiveInfoFeatures
         })
 
+        let diveBottomVectorSource = new VectorSource({
+            features: taskDiveBottomFeatures
+        })
+
+        let diveBottomInfoVectorSource = new VectorSource({
+            features: taskDiveBottomInfoFeatures
+        })
+
         this.taskPacketDiveLayer.setSource(diveVectorSource)
         this.taskPacketDiveInfoLayer.setSource(diveInfoVectorSource)
+        this.taskPacketDiveBottomLayer.setSource(diveBottomVectorSource)
+        this.taskPacketDiveBottomInfoLayer.setSource(diveBottomInfoVectorSource)
     }
 
     updateDriftLocations() {
@@ -211,16 +283,9 @@ export class TaskData {
             {
                 let driftPacket = taskPacket.drift;
                 
-                let start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
-                let end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
+                let task_calcs = this.calculateDiveDrift(taskPacket);
 
-                let bearing = turf.bearing(start, end);
-
-                let options = {units: 'meters'};
-                var distance = turf.distance(start, end, options);
-                let meters_per_second = distance/driftPacket.driftDuration;
-
-                let rotation = (bearing ?? 180) * (Math.PI / 180.0)
+                let rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
 
                 let iconStyle = new OlStyle({
                     image: new OlIcon({
@@ -238,8 +303,8 @@ export class TaskData {
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
                         text : `Duration (s): ` + driftPacket.driftDuration 
-                             + '\nDirection (deg): ' + bearing.toFixed(2) 
-                             + '\nSpeed (m/s): ' + meters_per_second.toFixed(2),
+                             + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
+                             + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
@@ -248,7 +313,7 @@ export class TaskData {
                         textBaseline: 'bottom',
                         padding: [3, 5, 3, 5],
                         offsetY: -10,
-                        offsetX: -15
+                        offsetX: -30
                     })
                 });
 
@@ -272,6 +337,39 @@ export class TaskData {
 
         this.taskPacketDriftLayer.setSource(driftVectorSource)
         this.taskPacketDriftInfoLayer.setSource(driftInfoVectorSource)
+    }
+
+    calculateDiveDrift(taskPacket) {
+        let divePacket = taskPacket.dive;
+        let driftPacket = taskPacket.drift;
+        
+        let task_calcs = {diveLocation: divePacket.startLocation, driftSpeed: 0, driftDirection: 0}
+
+        if(driftPacket.driftDuration > 0)
+        {
+            let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
+
+            let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
+            let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
+
+            let drift_direction = turf.bearing(drift_start, drift_end);
+            let drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start);
+
+            let options = {units: 'meters'};
+            let drift_distance = turf.distance(drift_start, drift_end, options);
+            let drift_meters_per_second = drift_distance/driftPacket.driftDuration;
+
+            let distance_to_ascent_wpt = divePacket.durationToAcquireGps * drift_meters_per_second;
+
+            let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
+
+            let dive_location = turf.midpoint(dive_start, ascent_wpt);
+
+            task_calcs.diveLocation = dive_location;
+            task_calcs.driftSpeed = drift_meters_per_second;
+            task_calcs.driftDirection = drift_direction;
+        }
+        return task_calcs;
     }
 
     _updateContourPlot() {
@@ -304,8 +402,6 @@ export class TaskData {
                 this.taskPackets = taskPackets
 
                 console.log(this.taskPackets);
-                this.updateDiveLocations();
-                this.updateDriftLocations();
 
                 if (taskPackets.length >= 3) {
                     console.log('Updating contour plot')
@@ -314,6 +410,8 @@ export class TaskData {
 
             }
 
+            this.updateDiveLocations();
+            this.updateDriftLocations();
         })
 
         // We're hiding this bathy chart for now
@@ -332,10 +430,18 @@ export class TaskData {
         return this.taskPacketDiveInfoLayer
     }
 
+    getTaskPacketDiveBottomLayer() {
+        return this.taskPacketDiveBottomLayer
+    }
+
+    getTaskPacketDiveBottomInfoLayer() {
+        return this.taskPacketDiveBottomInfoLayer
+    }
+
     getTaskPacketDriftLayer() {
         return this.taskPacketDriftLayer
     }
-
+    
     getTaskPacketDriftInfoLayer() {
         return this.taskPacketDriftInfoLayer
     }

@@ -981,8 +981,10 @@ export default class CentralCommand extends React.Component {
 				//taskData.getContourLayer(),
 				taskData.getTaskPacketDiveLayer(),
 				taskData.getTaskPacketDriftLayer(),
+				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
-				taskData.getTaskPacketDriftInfoLayer()
+				taskData.getTaskPacketDriftInfoLayer(),
+				taskData.getTaskPacketDiveBottomInfoLayer()
 			]
 		})
 
