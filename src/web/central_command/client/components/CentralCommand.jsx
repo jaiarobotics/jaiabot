@@ -858,6 +858,7 @@ export default class CentralCommand extends React.Component {
 
 	clearMissionPlanningState() {
 		this.setState({
+			surveyPolygonActive: false,
 			mode: '',
 			surveyPolygonChanged: false,
 			missionPlanningGrid: null,
@@ -941,29 +942,6 @@ export default class CentralCommand extends React.Component {
 					}
 				});
 			});
-
-
-
-
-			// const tx = db.transaction('tiles', 'readonly');
-			// let tiles = tx.objectStore('tiles');
-			// const image = tile.getImage();
-			//
-			// tiles.get(url).then(blob => {
-			// 	if (!blob) {
-			// 		// use online url
-			// 		image.src = url;
-			// 		return;
-			// 	}
-			// 	const objUrl = URL.createObjectURL(blob);
-			// 	image.onload = function() {
-			// 		URL.revokeObjectURL(objUrl);
-			// 	};
-			// 	image.src = objUrl;
-			// }).catch(() => {
-			// 	// use online url
-			// 	image.src = url;
-			// });
 		})
 	}
 
@@ -2184,7 +2162,14 @@ export default class CentralCommand extends React.Component {
 								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
-									this.setState({ surveyPolygonActive: false, mode: '' });
+									this.setState({
+										surveyPolygonActive: false,
+										mode: '',
+										surveyPolygonChanged: false,
+										missionPlanningGrid: null,
+										missionPlanningLines: null
+									});
+									this.updateMissionLayer();
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
@@ -2737,7 +2722,7 @@ export default class CentralCommand extends React.Component {
 			// Place all the mission planning features in this for the missionLayer
 			let missionPlanningFeaturesList = [];
 
-			if (this.state.missionParams.mission_type === 'lines') {
+			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === 'missionPlanning') {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
@@ -2751,7 +2736,7 @@ export default class CentralCommand extends React.Component {
 					features: missionPlanningFeaturesList
 				})
 				this.missionPlanningLayer.setSource(missionPlanningSource);
-				this.missionPlanningLayer.setZIndex(500);
+				this.missionPlanningLayer.setZIndex(2000);
 			}
 		}
 
@@ -2970,9 +2955,11 @@ export default class CentralCommand extends React.Component {
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 
 		this.setState({
-			homeLocation: location
+			homeLocation: location,
+			mode: ''
 		})
 
+		this.toggleMode('setHome')
 		this.updateMissionLayer()
 	}
 
@@ -2980,8 +2967,11 @@ export default class CentralCommand extends React.Component {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
-			rallyPointLocation: location
+			rallyPointLocation: location,
+			mode: ''
 		})
+
+		this.toggleMode('setRallyPoint')
 		this.updateMissionLayer()
 	}
 

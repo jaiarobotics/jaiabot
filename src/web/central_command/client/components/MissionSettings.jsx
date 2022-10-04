@@ -84,7 +84,7 @@ export class MissionSettingsPanel extends React.Component {
                                 <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.mission_params.num_bots} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
-                                <td>Goals per Bot</td>
+                                <td>Max Points per Bot</td>
                                 <td><input type="number" className="NumberInput" name="num_goals" defaultValue={this.state.mission_params.num_goals} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
