@@ -6,6 +6,7 @@ import { getTransform } from "ol/proj"
 import { Vector as VectorLayer } from "ol/layer"
 import GeoJSON from 'ol/format/GeoJSON'
 import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
+import {asString} from 'ol/color'
 
 const POLL_INTERVAL = 5000
 
@@ -53,13 +54,37 @@ export class TaskData {
     }
 
     _updateContourPlot() {
-        jaiaAPI.getTaskGeoJSON().then((geojson) => {
+        jaiaAPI.getDepthContours().then((geojson) => {
                 console.log('geojson = ', geojson)
 
-                // Manually transform features, because OpenLayers is a lazy, useless piece of shit
+                // Manually transform features from lon/lat to the view's projection.
                 var features = new GeoJSON().readFeatures(geojson)
                 features.forEach((feature) => {
+                    // Transform to the map's mercator projection
                     feature.getGeometry().transform(equirectangular, mercator)
+
+                    // Set the style based on the colorParameter property
+                    const color0 = [0, 255, 0, 255]
+                    const color1 = [255, 0, 0, 255]
+
+                    const properties = feature.getProperties()
+                    const k1 = properties.colorParameter
+                    const k0 = 1.0 - k1
+
+                    const color = [
+                                k0 * color0[0] + k1 * color1[0],
+                                k0 * color0[1] + k1 * color1[1],
+                                k0 * color0[2] + k1 * color1[2],
+                                k0 * color0[3] + k1 * color1[3],
+                            ]
+
+                    feature.setStyle(new Style({
+                        stroke: new Stroke({
+                            color: asString(color),
+                            width: 2.0
+                        })
+                    }))
+
                 })
 
                 const vectorSource = new VectorSource({
@@ -74,21 +99,19 @@ export class TaskData {
     _pollTaskPackets() {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
             console.log('taskPackets.length = ', taskPackets.length)
+            console.log('this.taskPackets.length = ', this.taskPackets.length)
             if (taskPackets.length > this.taskPackets.length) {
                 console.log('new taskPackets arrived!')
                 this.taskPackets = taskPackets
 
                 if (taskPackets.length >= 3) {
                     console.log('Updating contour plot')
-                    this.updateContourPlot()
+                    this._updateContourPlot()
                 }
 
             }
 
         })
-
-        // We're hiding this bathy chart for now
-        // this._updateContourPlot()
     }
 
     getContourLayer() {

@@ -72,6 +72,10 @@ def getContourSegmentsForTriangles(triangleVertices, contourValues):
     midValue = sortedVertices[1][2]
     maxValue = sortedVertices[2][2]
 
+    # Get min and max contour values in this set (for colorization)
+    minContourValue = min(contourValues)
+    maxContourValue = max(contourValues)
+
     # Find which contourValues lie between the min and max
     relevantContourValues = filter(lambda val: minValue <= val < maxValue, contourValues)
 
@@ -87,7 +91,8 @@ def getContourSegmentsForTriangles(triangleVertices, contourValues):
 
         contourSegments.append({
             'vertices': [pt0, pt1],
-            'value': contourValue
+            'value': contourValue,
+            'colorParameter': (contourValue - minContourValue) / (maxContourValue - minContourValue)
         })
 
     return contourSegments
@@ -136,7 +141,7 @@ def getContourGeoJSON(meshPoints, contourCount=10):
     """
     contourSegments = getContourSegmentsForMeshPoints(meshPoints)
 
-    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value'])}) for contourSegment in contourSegments]
+    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value']), 'colorParameter': contourSegment['colorParameter']}) for contourSegment in contourSegments]
 
     return geojson(linestrings)
 
