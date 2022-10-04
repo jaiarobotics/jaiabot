@@ -13,6 +13,7 @@ export class MissionSettingsPanel extends React.Component {
 
         this.state = {
             goal: props.goal,
+            style: props.style,
             mission_params: props.mission_params,
             bot_list: props.bot_list
         }
@@ -22,6 +23,7 @@ export class MissionSettingsPanel extends React.Component {
         this.onMissionApply = props.onMissionApply
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
         this.onMissionChangeBotList = props.onMissionChangeBotList
+        this.onTaskTypeChange = props.onTaskTypeChange
     }
 
     componentDidUpdate() {
@@ -82,7 +84,7 @@ export class MissionSettingsPanel extends React.Component {
                                 <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.mission_params.num_bots} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
-                                <td>Goals per Bot</td>
+                                <td>Max Points per Bot</td>
                                 <td><input type="number" className="NumberInput" name="num_goals" defaultValue={this.state.mission_params.num_goals} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
@@ -151,6 +153,7 @@ export class MissionSettingsPanel extends React.Component {
 
     changeTaskType(taskType) {
         let {goal} = this.state
+        let {style} = this.state
 
         if (taskType === goal.task?.type) {
             return
@@ -158,6 +161,10 @@ export class MissionSettingsPanel extends React.Component {
 
         switch(taskType) {
             case 'DIVE':
+                style = {
+
+                }
+
                 goal.task = {
                     type: taskType,
                     dive: {
@@ -171,6 +178,10 @@ export class MissionSettingsPanel extends React.Component {
                 }
                 break;
             case 'SURFACE_DRIFT':
+                style = {
+
+                }
+
                 goal.task = {
                     type: taskType,
                     surface_drift: {
@@ -179,16 +190,26 @@ export class MissionSettingsPanel extends React.Component {
                 }
                 break;
             case 'STATION_KEEP':
+                style = {
+
+                }
+
                 goal.task = {
                     type: taskType
                 }
                 break;
             default:
+                style = {
+
+                }
+
                 goal.task = null
                 break;
         }
 
         this.setState({goal})
+        this.setState({style})
+        this.onTaskTypeChange?.()
     }
 
     diveOptionsPanel() {
