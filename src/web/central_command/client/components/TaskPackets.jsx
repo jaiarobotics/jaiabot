@@ -22,7 +22,6 @@ import botSelectedIcon from '../icons/bot-selected.svg'
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
-import { getTransform } from "ol/proj"
 import { Vector as VectorLayer } from "ol/layer"
 import GeoJSON from 'ol/format/GeoJSON'
 import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
@@ -72,14 +71,14 @@ export class TaskData {
 
         this.taskPacketDiveLayer = new VectorLayer({
             title: 'Dive Data',
-            zIndex: 25,
+            zIndex: 1001,
             opacity: 1,
             source: null,
           })
 
         this.taskPacketDriftLayer = new VectorLayer({
             title: 'Drift Data',
-            zIndex: 25,
+            zIndex: 1001,
             opacity: 1,
             source: null,
           })
@@ -135,21 +134,38 @@ drift:
         let taskDiveFeatures = []
 
         for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
-            let divePacket = taskPacket.dive;
-            let iconStyle = new OlStyle({
-                image: new OlIcon({
-                    src: diveLocation,
-                    // the real size of your icon
-                    size: [319, 299],
-                    // the scale factor
-                    scale: 0.1
-                })
-            });
-
-            let pt = equirectangular_to_mercator([divePacket.startLocation.lon, divePacket.startLocation.lat])
-            let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-            diveFeature.setStyle(iconStyle)   
-            taskDiveFeatures.push(diveFeature)         
+            if(taskPacket.type == "DIVE")
+            {            
+                let divePacket = taskPacket.dive;
+                let iconStyle = new OlStyle({
+                    image: new OlIcon({
+                        src: diveLocation,
+                        // the real size of your icon
+                        size: [319, 299],
+                        // the scale factor
+                        scale: 0.1
+                    }),
+                    text : new OlText({
+                        font : `15px Calibri,sans-serif`,
+                        text : `Depth (m): ` + divePacket.depthAchieved 
+                             + '\nDiveRate (m/s): ' + divePacket.depthAchieved,
+                        scale: 1,
+                        fill: new OlFillStyle({color: 'black'}),
+                        backgroundFill: new OlFillStyle({color: 'white'}),
+                        textAlign: 'end',
+                        justify: 'left',
+                        textBaseline: 'bottom',
+                        padding: [3, 5, 3, 5],
+                        offsetY: -10,
+                        offsetX: -15
+                    })
+                });
+    
+                let pt = equirectangular_to_mercator([divePacket.startLocation.lon, divePacket.startLocation.lat])
+                let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                diveFeature.setStyle(iconStyle)   
+                taskDiveFeatures.push(diveFeature) 
+            }
         }
 
         let diveVectorSource = new VectorSource({
@@ -157,50 +173,61 @@ drift:
         })
 
         this.taskPacketDiveLayer.setSource(diveVectorSource)
+        
     }
 
     updateDriftLocations() {
         let taskDriftFeatures = []
 
         for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
-            let driftPacket = taskPacket.drift;
-            
-            let start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
-            let end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
+            if(taskPacket.type == "DIVE" ||
+               taskPacket.type == "SURFACE_DRIFT")
+            {
+                let driftPacket = taskPacket.drift;
+                
+                let start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
+                let end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
 
-            let bearing = turf.bearing(start, end);
+                let bearing = turf.bearing(start, end);
 
-            let rotation = (bearing ?? 180) * (Math.PI / 180.0)
+                let options = {units: 'meters'};
+                var distance = turf.distance(start, end, options);
+                let meters_per_second = distance/driftPacket.driftDuration;
 
-            let iconStyle = new OlStyle({
-                image: new OlIcon({
-                    src: currentDirection,
-                    // the real size of your icon
-                    size: [152, 793],
-                    // the scale factor
-                    scale: 0.05,
-                    rotation: rotation,
-                    rotateWithView : true
-                }),
-                text : new OlText({
-                    font : `bold 16 helvetica,sans-serif`,
-                    text : `Testinggggggggggg`,
-                    overflow : true,
-                    //scale: 1.3,
-                    fill: new OlFillStyle({
-                    color: '#000000'
+                let rotation = (bearing ?? 180) * (Math.PI / 180.0)
+
+                let iconStyle = new OlStyle({
+                    image: new OlIcon({
+                        src: currentDirection,
+                        // the real size of your icon
+                        size: [152, 793],
+                        // the scale factor
+                        scale: 0.05,
+                        rotation: rotation,
+                        rotateWithView : true
                     }),
-                    stroke: new OlStrokeStyle({
-                    color: '#FFFF99',
-                    width: 3.5
+                    text : new OlText({
+                        font : `15px Calibri,sans-serif`,
+                        text : `Duration (s): ` + driftPacket.driftDuration 
+                             + '\nDirection (deg): ' + bearing.toFixed(2) 
+                             + '\nSpeed (m/s): ' + meters_per_second.toFixed(2),
+                        scale: 1,
+                        fill: new OlFillStyle({color: 'black'}),
+                        backgroundFill: new OlFillStyle({color: 'white'}),
+                        textAlign: 'end',
+                        justify: 'left',
+                        textBaseline: 'bottom',
+                        padding: [3, 5, 3, 5],
+                        offsetY: -10,
+                        offsetX: -15
                     })
-                  })
-            });
+                });
 
-            let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
-            let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
-            driftFeature.setStyle(iconStyle)   
-            taskDriftFeatures.push(driftFeature)         
+                let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
+                let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                driftFeature.setStyle(iconStyle)   
+                taskDriftFeatures.push(driftFeature)   
+            }
         }
 
         let driftVectorSource = new VectorSource({
