@@ -259,6 +259,7 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     // always add max_depth at the end
     dive_depths_.push_back(max_depth);
     dive_packet().set_depth_achieved(0);
+    dive_packet().set_bottom_dive(false);
 
     if (machine().gps_tpv().has_location())
     {

@@ -965,9 +965,15 @@ export default class CentralCommand extends React.Component {
 
 		this.measurementLayerGroup = new OlLayerGroup({
 			title: 'Measurements',
-			fold: 'open',
+			fold: 'close',
 			layers: [
-				taskData.getContourLayer()
+				//taskData.getContourLayer(),
+				taskData.getTaskPacketDiveLayer(),
+				taskData.getTaskPacketDriftLayer(),
+				taskData.getTaskPacketDiveBottomLayer(),
+				taskData.getTaskPacketDiveInfoLayer(),
+				taskData.getTaskPacketDriftInfoLayer(),
+				taskData.getTaskPacketDiveBottomInfoLayer()
 			]
 		})
 

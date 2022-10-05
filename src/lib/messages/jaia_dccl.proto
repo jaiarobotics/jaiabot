@@ -304,10 +304,21 @@ message DivePacket
         precision: 1
         units { base_dimensions: "T" }
     }];
+
+    // Did we reach seafloor?
+    optional bool bottom_dive = 17 [default = false];
 }
 
 message TaskPacket
 {
+    /*
+    Actual maximum size of message: 197 bytes / 1576 bits
+            dccl.id head..........................16
+            user head..............................0
+            body................................1556
+            padding to full byte...................4
+    Allowed maximum size of message: 200 bytes / 1600 bits
+    */
     option (dccl.msg) = {
         id: 0x5001
         max_bytes: 200
