@@ -3,6 +3,7 @@ import json
 from scipy.spatial import Delaunay
 import numpy as np
 import cmocean
+import logging
 
 deepColorMap = cmocean.cm.deep
 
@@ -129,7 +130,12 @@ def getContourSegmentsForMeshPoints(meshPoints, contourCount=10):
 
     meshPoints2d = [p[:2] for p in meshPoints]
 
-    tri = Delaunay(np.array(meshPoints2d))
+    try:
+        tri = Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
+    except Exception as e:
+        logging.warning(f'While doing Delaunay triangulation: {e}')
+        logging.warning('Do you have co-linear mesh points?')
+        return []
 
     # Get contour values
     values = [p[2] for p in meshPoints]
@@ -165,14 +171,9 @@ def getContourGeoJSON(meshPoints, contourCount=10):
 if __name__ == '__main__':
     meshPoints = [
         [10, 10, 1],
-        [15, 15, 2],
         [15, 10, 2],
-        [10, 15, 1],
-        [20, 20, 3],
-        [20, 10, 3],
+        [20, 10, 2],
+        [17, 10, 2]
     ]
-
-    print(colorCode(deepColorMap, 0.5))
-    exit()
 
     json.dump(getContourGeoJSON(meshPoints), open(os.path.expanduser('~/test.json'), 'w'))

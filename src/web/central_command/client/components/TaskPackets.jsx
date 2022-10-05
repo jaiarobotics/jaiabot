@@ -88,8 +88,7 @@ export class TaskData {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
             console.log('taskPackets.length = ', taskPackets.length)
             console.log('this.taskPackets.length = ', this.taskPackets.length)
-            if (taskPackets.length > this.taskPackets.length) {
-                console.log('new taskPackets arrived!')
+            if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
 
                 if (taskPackets.length >= 3) {
