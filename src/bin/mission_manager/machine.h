@@ -678,6 +678,21 @@ struct RemoteControlEndSelection
     using reactions = boost::statechart::custom_reaction<EvRCEndSelect>;
 };
 
+struct ReacquireGPS : ReacquireGPSTaskCommon<
+                          ReacquireGPS, RemoteControl,
+                          protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS>
+{
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<
+              ReacquireGPS, RemoteControl,
+              protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS(){};
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>>;
+};
+
 struct StationKeep
     : boost::statechart::state<StationKeep, RemoteControl>,
       Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP,
@@ -687,6 +702,8 @@ struct StationKeep
     using StateBase = boost::statechart::state<StationKeep, RemoteControl>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
 };
 
 struct SurfaceDrift
