@@ -970,6 +970,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
         // remove any more depth goals, and set the current goal to the measured depth
         dive_depths_.clear();
         dive_depths_.push_back(seafloor_depth);
+        dive_packet().set_bottom_dive(true);
     }
 
   private:

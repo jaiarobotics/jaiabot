@@ -93,7 +93,7 @@ export class MissionSettingsPanel extends React.Component {
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} /> deg</td>
+                                <td><input id='missionOrientation' type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
                             </tr>
                             <tr hidden>
                                 <td>Use Max Line Length</td>
@@ -124,13 +124,25 @@ export class MissionSettingsPanel extends React.Component {
                     <div id="surveyPolygonResults">
                         <table>
                             <tbody>
-                            <tr className="missionStats">
-                                <td>Area (km^2): </td>
-                                <td><div id="surveyPolygonResultArea"></div></td>
+                            <tr>
+                                <td className="missionStatsHeader">Area (km^2): </td>
+                                <td className="missionStatsValue"><div id="missionStatArea"></div></td>
                             </tr>
-                            <tr className="missionStats">
-                                <td>Perimeter (km): </td>
-                                <td><div id="surveyPolygonResultPerimeter"></div></td>
+                            <tr>
+                                <td className="missionStatsHeader">Perimeter (km): </td>
+                                <td className="missionStatsValue"><div id="missionStatPerimeter"></div></td>
+                            </tr>
+                            <tr>
+                                <td className="missionStatsHeader">Mission Orientation (deg): </td>
+                                <td className="missionStatsValue"><div id="missionStatOrientation"></div></td>
+                            </tr>
+                            <tr>
+                                <td className="missionStatsHeader">Rally Start Distance (km): </td>
+                                <td className="missionStatsValue"><div id="missionStatRallyStartDistance"></div></td>
+                            </tr>
+                            <tr>
+                                <td className="missionStatsHeader">Rally Finish Distance (km): </td>
+                                <td className="missionStatsValue"><div id="missionStatRallyFinishDistance"></div></td>
                             </tr>
                             </tbody>
                         </table>

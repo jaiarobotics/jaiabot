@@ -3,7 +3,7 @@
 @status-bar-height: 0px;
 @control-corner-radius: 12px;
 @panel-corner-radius: 8px;
-@command-button-size: 75px;
+@command-button-size: 50px;
 @command-button-padding: 8px;
 @command-button-margin: 8px;
 @map-button-size: 50px;
@@ -87,7 +87,7 @@ textarea {
     text-align: center;
     text-decoration: none;
     margin: @command-button-margin;
-    font-size: 24px;
+    font-size: 16px;
     line-height: 1;
     cursor: pointer;
 
@@ -166,9 +166,9 @@ textarea {
         .bgcolor(@good-color);
         border-radius: @panel-corner-radius;
         font-size: 20pt;
-        height: 40pt;
+        height: 50px;
         line-height: 38pt;
-        width: 40pt;
+        width: 50px;
         margin: @layout-margin-px - 3;
         padding: 0;
         text-align: center;
@@ -183,9 +183,9 @@ textarea {
         .bgcolor(@good-color);
         border-radius: 20pt;
         font-size: 17pt;
-        height: 40pt;
+        height: 50px;
         line-height: 38pt;
-        width: 40pt;
+        width: 50px;
         margin: @layout-margin-px / 2;
         padding: 0;
         text-align: center;
@@ -237,7 +237,7 @@ textarea {
 
     td {
       padding: 5px 0.5em;
-      font-size: 0.8em;
+      font-size: 16px;
     }
 
     select {
@@ -260,10 +260,10 @@ textarea {
     }
 
     position: absolute;
-    bottom: 40px + (3 * @map-button-size) + (2 * @layout-margin-px);
+    bottom: 40px + (2 * @map-button-size) + (2 * @layout-margin-px);
     right: @command-button-size + (2 * @command-button-padding);;
     height: (8 * @map-button-size) + (6 * @layout-margin-px);
-    max-height: 90%;
+    max-height: 50%;
     max-width: 20em;
     height: auto;
     width: auto;
@@ -947,7 +947,18 @@ textarea {
   border-radius: 4pt;
 }
 
-.missionStats > td {
+.missionStatsHeader {
+  font-size: 10pt;
+  color: #051d61;
+  font-weight: bold;
+  margin: 8pt;
+  border-radius: 4pt;
+  padding: 8pt;
+  text-align: right;
+}
+
+.missionStatsValue {
+  font-size: 10pt;
   color: #051d61;
   margin: 8pt;
   border-radius: 4pt;

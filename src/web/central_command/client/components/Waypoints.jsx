@@ -7,7 +7,7 @@ import start from '../icons/start.svg'
 console.warn('start = ', start)
 
 const selectedColor = '#34d2eb'
-const unselectedColor = '#5ec957'
+const unselectedColor = 'white'
 
 function IconStyle(input_icon, color) {
     return new OlStyle({
