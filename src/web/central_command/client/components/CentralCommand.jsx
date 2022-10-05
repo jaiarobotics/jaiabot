@@ -139,8 +139,8 @@ import 'reset-css';
 import '../style/CentralCommand.less';
 import { transform } from 'ol/proj';
 
-import homeIcon from '../icons/home.svg'
-import rallyPointIcon from '../icons/rally-point-red.svg'
+import homeIcon from '../icons/rally-point-red.svg'
+import rallyPointIcon from '../icons/rally-point-green.svg'
 import missionOrientationIcon from '../icons/compass.svg'
 import startIcon from '../icons/start.svg'
 import stopIcon from '../icons/stop.svg'
@@ -311,6 +311,7 @@ export default class CentralCommand extends React.Component {
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
 			missionBaseGoal: {},
+			missionBaseStyle: null,
 			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
 			surveyPolygonActive: false,
@@ -857,8 +858,11 @@ export default class CentralCommand extends React.Component {
 
 	clearMissionPlanningState() {
 		this.setState({
+			surveyPolygonActive: false,
 			mode: '',
 			surveyPolygonChanged: false,
+			missionPlanningGrid: null,
+			missionPlanningLines: null
 		});
 		this.updateMissionLayer();
 	}
@@ -938,29 +942,6 @@ export default class CentralCommand extends React.Component {
 					}
 				});
 			});
-
-
-
-
-			// const tx = db.transaction('tiles', 'readonly');
-			// let tiles = tx.objectStore('tiles');
-			// const image = tile.getImage();
-			//
-			// tiles.get(url).then(blob => {
-			// 	if (!blob) {
-			// 		// use online url
-			// 		image.src = url;
-			// 		return;
-			// 	}
-			// 	const objUrl = URL.createObjectURL(blob);
-			// 	image.onload = function() {
-			// 		URL.revokeObjectURL(objUrl);
-			// 	};
-			// 	image.src = objUrl;
-			// }).catch(() => {
-			// 	// use online url
-			// 	image.src = url;
-			// });
 		})
 	}
 
@@ -1004,7 +985,7 @@ export default class CentralCommand extends React.Component {
 			this.dragAndDropVectorLayer,
 		]
 
-		console.log(layers)
+		// console.log(layers)
 
 		return layers
 	}
@@ -1251,27 +1232,36 @@ export default class CentralCommand extends React.Component {
 		}
 
 		let surveyLineStyle = function(feature) {
-			// console.log('WHAT IS GOING ON!!!!');
-			// console.log(feature);
-			// console.log(us.state);
-			// console.log(us.homeLocation);
+
+			let rotationAngle = 0;
+			let rhumbDist = 0;
+			let rhumbHomeDist = 0;
+			let stringCoords = feature.getGeometry().getCoordinates();
+			let coords = stringCoords.slice(-2);
+			if (
+				coords[1][0] == coords[0][0] &&
+				coords[1][1] == coords[0][1] &&
+				stringCoords.length > 2
+			) {
+				coords = stringCoords.slice(-3, -1);
+			}
 
 			let lineStyle = new OlStyle({
 				fill: new OlFillStyle({
-					color: 'rgba(255, 255, 255, 0.2)'
+					color: 'rgb(196,10,10)'
 				}),
 				stroke: new OlStrokeStyle({
-					color: 'rgba(0, 0, 0, 0.5)',
+					color: 'rgb(196,10,10)',
 					lineDash: [10, 10],
-					width: 2
+					width: 3
 				}),
 				image: new OlCircleStyle({
 					radius: 5,
 					stroke: new OlStrokeStyle({
-						color: 'rgba(0, 0, 0, 0.7)'
+						color: 'rgb(196,10,10)'
 					}),
 					fill: new OlFillStyle({
-						color: 'rgba(255, 255, 255, 0.2)'
+						color: 'rgb(196,10,10)'
 					})
 				})
 			});
@@ -1283,35 +1273,19 @@ export default class CentralCommand extends React.Component {
 				}),
 				text: new OlText({
 					font: '15px Calibri,sans-serif',
-					fill: new OlFillStyle({ color: '#000' }),
+					fill: new OlFillStyle({ color: '#000000' }),
 					stroke: new OlStrokeStyle({
-						color: '#fff', width: 2
+						color: '#ffffff', width: .1
 					}),
-					textAlign: 'end',
+					placement: 'point',
+					textAlign: 'start',
 					justify: 'left',
 					textBaseline: 'bottom',
-					offsetY: -45,
-					offsetX: 45
+					offsetY: -100,
+					offsetX: 100
 				})
 			});
-			// console.log('surveyLineStyle');
-			// console.log(feature);
-			let rotationAngle = 0;
-			let rhumbDist = 0;
-			let rhumbHomeDist = 0;
-			let stringCoords = feature.getGeometry().getCoordinates();
-			// console.log('stringCoords');
-			// console.log(stringCoords);
-			let coords = stringCoords.slice(-2);
-			if (
-				coords[1][0] == coords[0][0] &&
-				coords[1][1] == coords[0][1] &&
-				stringCoords.length > 2
-			) {
-				coords = stringCoords.slice(-3, -1);
-			}
-			// console.log('iconStyle');
-			// console.log(iconStyle);
+
 			iconStyle.setGeometry(new OlPoint(coords[0]));
 			iconStyle
 				.getImage()
@@ -1320,46 +1294,28 @@ export default class CentralCommand extends React.Component {
 				);
 			let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
 
-			rotationAngle = (Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100);
+			rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
 			if (rotationAngle < 0) {
 				rotationAngle = rotationAngle + 360;
 			}
-			// console.log('coords');
-			// console.log(coords);
-			// console.log(coords.length);
 
 			const { homeLocation } = us.state;
 			if (stringCoords[0].length >= 2) {
 				let previousIndex = stringCoords.length - 2;
 				let nextIndex = stringCoords.length - 1;
-				// console.log('INDEXES');
-				// console.log(previousIndex);
-				// console.log(nextIndex);
-				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'}).toString();
+				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
+				rhumbDist = Number(rhumbDist.toFixed(2)).toString();
 				if (homeLocation !== null) {
-					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'}).toString();
+					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
+					rhumbHomeDist = Number(rhumbHomeDist.toFixed(2)).toString();
 				}
 			}
 
-			// const { missionParams } = us.state;
-			// console.log('###################missionParams');
-			// console.log(missionParams);
-			// missionParams.orientation = rotationAngle;
-			// document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
-			// us.setState({
-			// 	missionParams
-			// })
 			us.updateMissionLayer();
 
-			// const { missionParams } = us.state;
-			// missionParams.orientation = rotationAngle;
-			// us.setState({
-			// 	missionParams: missionParams
-			// })
-
 			iconStyle.text_.text_ =
-				  ' Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ ' Leg Dist (km): ' + rhumbDist.toString() + '\n'
+				  'Heading (deg): ' + rotationAngle.toString() + '\n'
+				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
 				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
@@ -1394,129 +1350,83 @@ export default class CentralCommand extends React.Component {
 					const format = new GeoJSON();
 
 					let { missionParams } = this.state;
-					// console.log('missionParams');
-					// console.log(missionParams);
 
 					let stringCoords = geom1.getGeometry().getCoordinates()
-					// console.log('stringCoords');
-					// console.log(stringCoords);
-					// console.log(stringCoords.length);
 
 					if (stringCoords[0].length >= 2) {
 						let coords = stringCoords.slice(-2);
 						let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
 
-						let rotationAngle = (Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100);
+						let rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
 						if (rotationAngle < 0) {
 							rotationAngle = rotationAngle + 360;
 						}
 						missionParams.orientation = rotationAngle;
-						document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
+						// document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
 
-						// let bot_dict_length = Object.keys(this.podStatus.bots).length
-						// let bot_list = Array.from(Array(bot_dict_length-1).keys());
 						let bot_list = Object.keys(this.podStatus.bots);
-						// console.log('bot_list');
-						// console.log(bot_list);
 
 						// console.log('TESTING')
 						// console.log(this);
 						// console.log(this.podStatus.bots);
 						// console.log(turf);
 						// console.log(format);
-						let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
-						// console.log(centerLineString);
-						let centerLineStringWgs84 = turf.toWgs84(centerLineString);
-						// console.log(centerLineStringWgs84);
-						let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
-						// console.log(centerLineStringWgs84Chunked);
-						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
-						let centerLine = turf.getGeom(centerLineFc).features[0];
-						// console.log(centerLine);
 
 
 						let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
+						let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
+
+						// Check if user selects length > allowed (bots * spacing), if so make centerLine max length
+						let currentCenterLineLength = turf.length(turf.toWgs84(centerLineString));
+						// console.log('currentCenterLineLength');
+						// console.log(currentCenterLineLength);
 						// console.log('maxLineLength');
 						// console.log(maxLineLength);
-						let currentLineLength = turf.length(centerLine)
-						// console.log('currentLineLength');
-						// console.log(currentLineLength);
+						if (currentCenterLineLength >= maxLineLength) {
+							let rhumbPoint = turf.rhumbDestination(turf.toWgs84(turf.point(stringCoords[0])), maxLineLength-(Number(missionParams.spacing)/1000), rotationAngle)
+							// console.log('rhumbPoint');
+							// console.log(rhumbPoint);
+							centerLineString = turf.lineString([stringCoords[0], turf.toMercator(rhumbPoint).geometry.coordinates])
+							// console.log('centerLineString');
+							// console.log(centerLineString);
+						}
 
-						if (currentLineLength <= maxLineLength) {
+						let centerLineStringWgs84 = turf.toWgs84(centerLineString);
+						let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
+						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
+
+
+						let centerLine = turf.getGeom(centerLineFc).features[0];
+						let currentLineLength = turf.length(centerLine)
+
+
+
+						if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
 							let offsetLines = [];
-							let lineOffsetStart = 0;
+							let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((bot_list.length/2)*0.75))
 							let nextLineOffset = 0;
 							let currentLineOffset = 0;
+
 							bot_list.forEach(bot => {
 								let ol = deepcopy(centerLine);
 								currentLineOffset = lineOffsetStart + nextLineOffset
-								// console.log('currentLineOffset');
-								// console.log(currentLineOffset);
+
 								ol.properties['botId'] = bot;
 								ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
-								// ol = turf.lineOffset(ol, currentLineOffset, {units: 'meters'});
+
 								offsetLines.push(ol);
 								nextLineOffset = nextLineOffset + Number(missionParams.spacing)
 							})
-
-							// let offsetLine = turf.lineOffset(centerLine, this.state.missionParams.spacing, {units: 'meters'});
-							// console.log('offsetLines');
-							// console.log(offsetLines);
-
-							// let missionPlanningLinesTurf = turf.multiLineString(offsetLines);
-							// console.log('missionPlanningLinesTurf');
-							// console.log(missionPlanningLinesTurf);
-							//
-							// let a = turf.getGeom(missionPlanningLinesTurf)
-							// let b = []
-							// a.coordinates.forEach(coord => {
-							// 	b.push(format.readFeature(coord,
-							// 		{
-							// 			dataProjection: 'EPSG:4326',
-							// 			featureProjection: 'EPSG:3857'
-							// 		}
-							// 	).getGeometry().getCoordinates());
-							// })
-							// console.log(b);
 
 							let alongLines = {};
 							let alongPoints = {};
 							offsetLines.forEach(offsetLine => {
 								turf.geomEach(offsetLine, function (currentGeometry, featureIndex, featureProperties, featureBBox, featureId) {
-									// console.log('currentGeometry');
-									// console.log(currentGeometry);
-									// console.log('featureProperties');
-									// console.log(featureProperties);
 									let botId = featureProperties.botId;
 									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
 								});
 								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)))))))
 							})
-
-							// console.log('alongLines');
-							// console.log(alongLines);
-							// console.log('alongPoints');
-							// console.log(alongPoints);
-
-							/* This works
-							let alongPoints = [];
-							turf.geomEach(missionPlanningLinesTurf, function (currentGeometry, featureIndex, featureProperties, featureBBox, featureId) {
-								currentGeometry.coordinates.forEach(coord => {
-									alongPoints.push(format.readFeature(
-										turf.cleanCoords(turf.multiPoint(turf.coordAll(coord))),
-										{
-											dataProjection: 'EPSG:4326',
-											featureProjection: 'EPSG:3857'
-										}
-									).getGeometry().getCoordinates())
-								})
-							});
-							console.log('alongPoints');
-							console.log(alongPoints);
-							*/
-
-
-
 
 							this.setState({
 								missionPlanningLines: alongLines,
@@ -2123,19 +2033,22 @@ export default class CentralCommand extends React.Component {
 				mission_params={this.state.missionParams}
 				bot_list={this.podStatus?.bots}
 				goal={this.state.missionBaseGoal}
+				style={this.state.missionBaseStyle}
 				onClose={() => {
 					this.clearMissionPlanningState()
 				}}
 				onMissionChangeEditMode={() => {
 					this.changeMissionMode()
 				}}
+				onTaskTypeChange={() => {
+					this.setState({
+						missionPlans: null
+					})
+					this.missions = {};
+					this.updateMissionLayer()
+				}}
 				onMissionApply={() => {
 					if (this.state.missionParams.mission_type === 'lines') {
-						// Lines
-						this.setState({
-							missionPlanningGrid: null,
-							missionPlanningLines: null
-						})
 						this.loadMissions(this.state.missionPlans)
 					} else {
 						// Polygon
@@ -2255,7 +2168,14 @@ export default class CentralCommand extends React.Component {
 								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
-									this.setState({ surveyPolygonActive: false, mode: '' });
+									this.setState({
+										surveyPolygonActive: false,
+										mode: '',
+										surveyPolygonChanged: false,
+										missionPlanningGrid: null,
+										missionPlanningLines: null
+									});
+									this.updateMissionLayer();
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
@@ -2351,11 +2271,60 @@ export default class CentralCommand extends React.Component {
 		})
 	}
 
-	surveyStyle(self, feature) {
+	setGrid2Style(self, feature, taskType) {
+		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+
+		switch(taskType) {
+			case 'DIVE':
+				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				break;
+			case 'SURFACE_DRIFT':
+				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				break;
+			case 'STATION_KEEP':
+				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				break;
+			default:
+				break;
+		}
+
+		let s = new OlStyle({
+			image: gridStyle
+		})
+
+		return [s]
+	}
+
+	setGridStyle(self, taskType) {
+
+		// console.log(taskType);
+
+		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+
+		switch(taskType) {
+			case 'DIVE':
+				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				break;
+			case 'SURFACE_DRIFT':
+				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				break;
+			case 'STATION_KEEP':
+				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				break;
+			default:
+				break;
+		}
+
+		return gridStyle
+	}
+
+	surveyStyle(self, feature, taskType) {
 			// console.log('WHAT IS GOING ON!!!!');
 			// console.log(feature);
 			// console.log(self.state);
 			// console.log(self.homeLocation);
+
+		let iStyle = this.setGridStyle(self, taskType)
 
 			let lineStyle = new OlStyle({
 				fill: new OlFillStyle({
@@ -2366,15 +2335,7 @@ export default class CentralCommand extends React.Component {
 					lineDash: [10, 10],
 					width: 2
 				}),
-				image: new OlCircleStyle({
-					radius: 5,
-					stroke: new OlStrokeStyle({
-						color: 'rgba(0, 0, 0, 0.7)'
-					}),
-					fill: new OlFillStyle({
-						color: 'rgba(255, 255, 255, 0.2)'
-					})
-				})
+				image: iStyle
 			});
 
 			let iconStyle = new OlStyle({
@@ -2384,15 +2345,16 @@ export default class CentralCommand extends React.Component {
 				}),
 				text: new OlText({
 					font: '15px Calibri,sans-serif',
-					fill: new OlFillStyle({ color: '#000' }),
+					fill: new OlFillStyle({ color: '#000000' }),
 					stroke: new OlStrokeStyle({
-						color: '#fff', width: 2
+						color: '#ffffff', width: .1
 					}),
-					textAlign: 'end',
+					placement: 'point',
+					textAlign: 'start',
 					justify: 'left',
 					textBaseline: 'bottom',
-					offsetY: -45,
-					offsetX: 45
+					offsetY: -100,
+					offsetX: 100
 				})
 			});
 			// console.log('surveyLineStyle');
@@ -2415,7 +2377,7 @@ export default class CentralCommand extends React.Component {
 				);
 			let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
 
-			rotationAngle = (Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100);
+			rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
 			if (rotationAngle < 0) {
 				rotationAngle = rotationAngle + 360;
 			}
@@ -2430,30 +2392,40 @@ export default class CentralCommand extends React.Component {
 				// console.log('INDEXES');
 				// console.log(previousIndex);
 				// console.log(nextIndex);
-				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[0])), turf.toWgs84(turf.point(stringCoords[1])), {units: 'kilometers'}).toString();
+				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
+				rhumbDist = Number(rhumbDist.toFixed(2)).toString();
 				if (homeLocation !== null) {
-					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[0])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'}).toString();
+					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
+					rhumbHomeDist = Number(rhumbHomeDist.toFixed(2)).toString();
 				}
 			}
 
-			let { missionParams } = self.state;
+			// let { missionParams } = self.state;
 			// console.log('###################missionParams');
 			// console.log(missionParams);
-			missionParams.orientation = rotationAngle;
-			self.setState({
-				missionParams: missionParams
-			})
+			// missionParams.orientation = rotationAngle;
+			// self.setState({
+			// 	missionParams: missionParams
+			// })
 
 			iconStyle.text_.text_ =
-				  ' Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ ' Leg Dist (km): ' + rhumbDist.toString() + '\n'
+				  'Heading (deg): ' + rotationAngle.toString() + '\n'
+				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
 				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
 
-	setSurveyStyle(self, feature) {
-		let featureStyles = this.surveyStyle(self, feature);
+	setSurveyStyle(self, feature, taskType) {
+		let featureStyles = this.surveyStyle(self, feature, taskType);
 		feature.setStyle(featureStyles);
+		return feature
+	}
+
+	setGridFeatureStyle(self, feature, taskType) {
+		if (feature) {
+			let gridStyle = this.setGrid2Style(self, feature, taskType);
+			feature.setStyle(gridStyle);
+		}
 		return feature
 	}
 
@@ -2468,26 +2440,30 @@ export default class CentralCommand extends React.Component {
 		let surveyPolygonColor = '#051d61'
 
 		let homeStyle = new OlStyle({
-			image: new OlIcon({ src: homeIcon })
+			image: new OlIcon({
+				src: homeIcon,
+				scale: [0.5, 0.5]
+			})
 		})
 
 		let rallyPointStyle = new OlStyle({
 			image: new OlIcon({
 				src: rallyPointIcon,
-				scale: [0.25, 0.25]
-			})
-		})
-
-		let missionOrientationPointStyle = new OlStyle({
-			image: new OlIcon({
-				src: missionOrientationIcon,
 				scale: [0.5, 0.5]
 			})
 		})
 
-		let gridStyle = new OlStyle({
-			image: new OlIcon({ src: waypointIcon })
-		})
+		// let missionOrientationPointStyle = new OlStyle({
+		// 	image: new OlIcon({
+		// 		src: missionOrientationIcon,
+		// 		scale: [0.5, 0.5]
+		// 	})
+		// })
+
+		// let gridStyle = new OlStyle({
+		// 	image: this.setGridStyle(this.state.missionBaseGoal.task.type)
+		// 	// image: new OlIcon({ src: waypointIcon })
+		// })
 
 		let selectedLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: selectedColor}),
@@ -2645,12 +2621,6 @@ export default class CentralCommand extends React.Component {
 			})
 		}
 
-		function utcTimestamp(date) {
-			return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
-				date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(),
-				date.getUTCMilliseconds());
-		}
-
 		if (this.state.missionPlanningGrid) {
 			// console.log('this.state.missionPlanningGrid');
 			let missionPlans = []
@@ -2690,8 +2660,9 @@ export default class CentralCommand extends React.Component {
 					}
 				)
 				mpGridFeature.setProperties({'botId': key});
-				mpGridFeature.setStyle(gridStyle);
-				features.push(mpGridFeature);
+				// let activeGridStyle = this.setGridStyle(this, mpGridFeature, this.state.missionBaseGoal.task.type)
+				let mpGridFeatureStyled = this.setGridFeatureStyle(this, mpGridFeature, this.state.missionBaseGoal.task.type);
+				features.push(mpGridFeatureStyled);
 
 				// TODO: Update the mission plan for the bots at the same time??
 				// Create the goals from the missionPlanningGrid
@@ -2747,38 +2718,20 @@ export default class CentralCommand extends React.Component {
 				}
 				missionPlans.push(mission_dict);
 			})
-			// console.log('missionPlans');
-			// console.log(missionPlans);
-			//this.loadMissions(missionPlans);
 
 			this.setState({
 				missionPlans: missionPlans
 			})
-
-
-			/* This works
-			mpg.forEach(p => {
-				console.log(p);
-				let mpGridFeature = new OlFeature(
-					{
-						geometry: new OlMultiPoint(p)
-					}
-				)
-				console.log(mpGridFeature);
-				mpGridFeature.setStyle(gridStyle);
-				features.push(mpGridFeature);
-			})
-			 */
 		}
 
 		if (this.state.missionPlanningFeature) {
 			// Place all the mission planning features in this for the missionLayer
 			let missionPlanningFeaturesList = [];
 
-			if (this.state.missionParams.mission_type === 'lines') {
+			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === 'missionPlanning') {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
-				let mpStyledFeature = this.setSurveyStyle(this, mpFeature);
+				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
 				missionPlanningFeaturesList.push(mpStyledFeature)
 
 				// console.log('missionPlanningFeaturesList');
@@ -2789,7 +2742,7 @@ export default class CentralCommand extends React.Component {
 					features: missionPlanningFeaturesList
 				})
 				this.missionPlanningLayer.setSource(missionPlanningSource);
-				this.missionPlanningLayer.setZIndex(500);
+				this.missionPlanningLayer.setZIndex(2000);
 			}
 		}
 
@@ -3008,9 +2961,11 @@ export default class CentralCommand extends React.Component {
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 
 		this.setState({
-			homeLocation: location
+			homeLocation: location,
+			mode: ''
 		})
 
+		this.toggleMode('setHome')
 		this.updateMissionLayer()
 	}
 
@@ -3018,8 +2973,11 @@ export default class CentralCommand extends React.Component {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
-			rallyPointLocation: location
+			rallyPointLocation: location,
+			mode: ''
 		})
+
+		this.toggleMode('setRallyPoint')
 		this.updateMissionLayer()
 	}
 
@@ -3062,14 +3020,14 @@ export default class CentralCommand extends React.Component {
 				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
 					RC<br />Dive
 				</button>
-				<button type="button" id="setHome" title="Set Home" onClick={this.setHomeClicked.bind(this)}>
-					Set<br />Home
-				</button>
 				<button type="button" id="setRallyPoint" title="Set Rally Point" onClick={this.setRallyPointClicked.bind(this)}>
-					Set<br />Rally Point
+					Rally<br />Start
+				</button>
+				<button type="button" id="setHome" title="Rally Finish" onClick={this.setHomeClicked.bind(this)}>
+					Rally<br />Finish
 				</button>
 				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-					Go<br />Home
+					Goto<br />Rally Finish
 				</button>
 				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
 					STOP<br />ALL
