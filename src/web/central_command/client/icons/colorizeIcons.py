@@ -3,10 +3,10 @@
 variableColor = '#00ffff'
 
 colors = {
-    'unselected': '#5ec957',
+    'unselected': 'white',
     'selected': '#34d2eb',
     'remoteControl': '#ff9800',
-    'active': '#d6382d',
+    'active': '#5ec957',
     'disconnected': 'gray'
 }
 

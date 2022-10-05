@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -2446,7 +2446,7 @@ export default class CentralCommand extends React.Component {
 		let missions = this.missions || {}
 
 		let selectedColor = '#34d2eb'
-		let unselectedColor = '#5ec957'
+		let unselectedColor = 'white'
 		let surveyPolygonColor = '#051d61'
 
 		let homeStyle = new OlStyle({
@@ -3054,9 +3054,9 @@ export default class CentralCommand extends React.Component {
 				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
-				{ this.undoButton() }
+				{ this.undoButton() }					
 				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
-					Flag
+					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</button>
 			</div>
 
