@@ -183,6 +183,7 @@ namespace task
 struct TaskSelection;
 
 struct StationKeep;
+struct ReacquireGPS;
 struct SurfaceDrift;
 struct Dive;
 namespace dive
@@ -890,6 +891,19 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     using reactions = boost::statechart::custom_reaction<EvTaskSelect>;
 };
 
+struct ReacquireGPS : ReacquireGPSTaskCommon<ReacquireGPS, Task,
+                                             protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>
+{
+    ReacquireGPS(typename StateBase::my_context c)
+        : ReacquireGPSTaskCommon<ReacquireGPS, Task,
+                                 protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>(c)
+    {
+    }
+    ~ReacquireGPS(){};
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>>;
+};
+
 struct StationKeep : boost::statechart::state<StationKeep, Task>,
                      Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP,
                             protobuf::SETPOINT_IVP_HELM // stationkeep
@@ -898,6 +912,8 @@ struct StationKeep : boost::statechart::state<StationKeep, Task>,
     using StateBase = boost::statechart::state<StationKeep, Task>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
+
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
@@ -1132,7 +1148,8 @@ struct ReacquireGPS
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
+                                       boost::statechart::transition<EvGPSFix, StationKeep>>;
 };
 
 struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
@@ -1144,7 +1161,8 @@ struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvStop, Stopped>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvStop, Stopped>,
+                                       boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
 };
 
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
