@@ -2632,36 +2632,34 @@ export default class CentralCommand extends React.Component {
 		}
 
 		if (this.state.missionPlanningGrid) {
-			// console.log('this.state.missionPlanningGrid');
-			let missionPlans = []
-			let millisecondsSinceEpoch = new Date().getTime()
+			let missionPlans = {};
+			let millisecondsSinceEpoch = new Date().getTime();
 
 			// Bot rally point separation scheme
+			let bot_list = Object.keys(this.podStatus.bots);
 			let center = [this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat];
 			let radius = 0.02;
-			let options = {steps: this.state.missionParams.num_bots};
+			let options = {steps: bot_list.length};
 			let circle = turf.circle(center, radius, options);
-			// console.log('circle');
-			// console.log(circle);
-			let circleRallyPoints = circle.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleRallyPoints);
+			let circleRallyPointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0])));
+			let circleRallyPoints = {};
+			circleRallyPointsBasic.forEach(p => {
+				circleRallyPoints[Number(bot_list.pop())] = p
+			})
 
 			// Bot home point separation scheme
+			bot_list = Object.keys(this.podStatus.bots);
 			let centerHome = [this.state.homeLocation.lon, this.state.homeLocation.lat];
 			let radiusHome = 0.02;
-			let optionsHome = {steps: this.state.missionParams.num_bots};
+			let optionsHome = {steps: bot_list.length};
 			let circleHome = turf.circle(centerHome, radiusHome, optionsHome);
-			// console.log('circle');
-			// console.log(circleHome);
-			let circleHomePoints = circleHome.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleHomePoints);
+			let circleHomePointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circleHome.geometry.coordinates[0])));
+			let circleHomePoints = {};
+			circleHomePointsBasic.forEach(p => {
+				circleHomePoints[Number(bot_list.pop())] = p
+			})
 
 			let mpg = this.state.missionPlanningGrid;
-			// console.log(mpg);
 			let mpgKeys = Object.keys(mpg);
 			mpgKeys.forEach(key => {
 				let mpGridFeature = new OlFeature(
@@ -2690,8 +2688,6 @@ export default class CentralCommand extends React.Component {
 
 				// Mission Goals
 				mpg[key].forEach(goal => {
-					// console.log('goal');
-					// console.log(goal);
 					let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
 					bot_goal = {
 						"location": {
@@ -2726,7 +2722,7 @@ export default class CentralCommand extends React.Component {
 						}
 					}
 				}
-				missionPlans.push(mission_dict);
+				missionPlans[key] = mission_dict;
 			})
 
 			this.setState({
@@ -2743,9 +2739,6 @@ export default class CentralCommand extends React.Component {
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
 				missionPlanningFeaturesList.push(mpStyledFeature)
-
-				// console.log('missionPlanningFeaturesList');
-				// console.log(missionPlanningFeaturesList);
 
 				// Add all the features in the list to the map layer
 				let missionPlanningSource = new OlVectorSource({
