@@ -27,10 +27,12 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* RemoteControl: Bot is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the bot is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current bot location.
 				- Setpoint: Bot is performing a RC setpoint (heading, speed up to a given duration)
+				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 				- StationKeep: Bot is stationkeeping while waiting for the next Setpoint.
 				- SurfaceDrift: Bot is drifting while waiting for the next Setpoint.
 			* ...: Can be expanded in the future to allow other types of Movement states as needed
 		+ Task: Bot is performing a sampling, station keeping, or other discrete task.
+			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 			* StationKeep: Bot is actively maintaining a position on the surface.
 			* SurfaceDrift: Bot is drifting (propulsor off).
 			* Dive: Bot performs a dive maneuver. 
