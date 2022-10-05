@@ -63,24 +63,12 @@ export class TaskData {
                     // Transform to the map's mercator projection
                     feature.getGeometry().transform(equirectangular, mercator)
 
-                    // Set the style based on the colorParameter property
-                    const color0 = [0, 255, 0, 255]
-                    const color1 = [255, 0, 0, 255]
-
                     const properties = feature.getProperties()
-                    const k1 = properties.colorParameter
-                    const k0 = 1.0 - k1
-
-                    const color = [
-                                k0 * color0[0] + k1 * color1[0],
-                                k0 * color0[1] + k1 * color1[1],
-                                k0 * color0[2] + k1 * color1[2],
-                                k0 * color0[3] + k1 * color1[3],
-                            ]
+                    const color = properties.color
 
                     feature.setStyle(new Style({
                         stroke: new Stroke({
-                            color: asString(color),
+                            color: color,
                             width: 2.0
                         })
                     }))

@@ -2,7 +2,21 @@ import os
 import json
 from scipy.spatial import Delaunay
 import numpy as np
+import cmocean
 
+deepColorMap = cmocean.cm.deep
+
+def colorCode(colorMap, value):
+    """Gets an html color code string from the given matplotlib colormap and value
+
+    Args:
+        colorMap (ColorMap): A matplotlib ColorMap object
+        value (float): Value to read into the color map (0.0-1.0 range)
+    """
+
+    rgba = colorMap(value)
+    s = f'#{int(rgba[0]*255):02x}{int(rgba[1]*255):02x}{int(rgba[2]*255):02x}{int(rgba[3]*255):02x}'
+    return s
 
 def point(coordinates, properties={}):
     return {
@@ -89,10 +103,12 @@ def getContourSegmentsForTriangles(triangleVertices, contourValues):
         else:
             pt1 = interpolate(sortedVertices[0], sortedVertices[1], contourValue)
 
+        colorParameter = (contourValue - minContourValue) / (maxContourValue - minContourValue)
+
         contourSegments.append({
             'vertices': [pt0, pt1],
             'value': contourValue,
-            'colorParameter': (contourValue - minContourValue) / (maxContourValue - minContourValue)
+            'color': colorCode(deepColorMap, colorParameter)
         })
 
     return contourSegments
@@ -141,7 +157,7 @@ def getContourGeoJSON(meshPoints, contourCount=10):
     """
     contourSegments = getContourSegmentsForMeshPoints(meshPoints)
 
-    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value']), 'colorParameter': contourSegment['colorParameter']}) for contourSegment in contourSegments]
+    linestrings = [linestring(contourSegment['vertices'], properties={'name': str(contourSegment['value']), 'color': contourSegment['color']}) for contourSegment in contourSegments]
 
     return geojson(linestrings)
 
@@ -156,5 +172,7 @@ if __name__ == '__main__':
         [20, 10, 3],
     ]
 
+    print(colorCode(deepColorMap, 0.5))
+    exit()
 
     json.dump(getContourGeoJSON(meshPoints), open(os.path.expanduser('~/test.json'), 'w'))
