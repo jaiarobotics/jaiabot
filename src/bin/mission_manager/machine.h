@@ -170,6 +170,7 @@ struct RemoteControl;
 namespace remotecontrol
 {
 struct RemoteControlEndSelection;
+struct ReacquireGPS;
 struct StationKeep;
 struct SurfaceDrift;
 struct Setpoint;
@@ -181,9 +182,8 @@ struct Task;
 namespace task
 {
 struct TaskSelection;
-
-struct StationKeep;
 struct ReacquireGPS;
+struct StationKeep;
 struct SurfaceDrift;
 struct Dive;
 namespace dive
