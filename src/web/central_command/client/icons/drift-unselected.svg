@@ -52,7 +52,7 @@
 
 
 <path
-   style="fill:#5ec957;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+   style="fill:white;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
    d="m 15.126247,40.363275 c 0,0 5.0502,-5.021695 8.292675,-5.088686 3.093028,-0.06391 5.015756,4.703249 8.104205,4.523277 2.785082,-0.162295 6.784916,-4.900218 6.784916,-4.900218 l 1.696229,2.261639 c 0,0 -5.12066,5.986469 -8.669615,6.219506 -3.056978,0.200733 -5.04074,-4.359216 -8.104205,-4.334807 -2.58714,0.02061 -6.784916,3.769398 -6.784916,3.769398 z"
    id="path11393"
    sodipodi:nodetypes="cssccsscc" /></svg>
