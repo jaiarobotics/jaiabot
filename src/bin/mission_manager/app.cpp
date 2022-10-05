@@ -118,8 +118,17 @@ jaiabot::apps::MissionManager::MissionManager()
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
 
             if (state_pair.first)
+            {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
+
+                if (state_pair.second == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
+                {
+                    // Reset after dive
+                    gps_fix_check_incr_ = 1;
+                    gps_degraded_fix_check_incr_ = 1;
+                }
+            }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
                                           << std::endl;
@@ -243,76 +252,60 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
         [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
-            // Check mission state to make sure we are in reacquire_gps or transit.
-            if (machine_->state() == protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT ||
-                machine_->state() == protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT ||
-                machine_->state() == protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS ||
-                machine_->state() == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS ||
-                machine_->state() == protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS)
+            glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop() << std::endl;
+
+            if (sky.has_hdop() && (sky.hdop() <= cfg().gps_hdop_fix()))
             {
-                glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop() << std::endl;
-
-                if (sky.has_hdop() && (sky.hdop() <= cfg().gps_hdop_fix()))
+                // Increment gps fix checks until we are > the threshold for confirming gps fix
+                if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
                 {
-                    // Increment gps fix checks until we are > the threshold for confirming gps fix
-                    if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
-                    {
-                        glog.is_debug1() && glog << "GPS has a good fix, but has not "
-                                                    "reached threshold for total checks"
-                                                    " "
-                                                 << gps_fix_check_incr_ << " < "
-                                                 << cfg().total_gps_fix_checks() << std::endl;
-                        // Increment until we reach total gps fix checks
-                        gps_fix_check_incr_++;
-                    }
-                    else
-                    {
-                        glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
-                                                 << sky.hdop() << " <= " << cfg().gps_hdop_fix()
-                                                 << " Reset incr for gps degraded fix" << std::endl;
-
-                        // Post Event for gps fix
-                        machine_->process_event(statechart::EvGPSFix());
-
-                        // Reset degraded fix check as we received hdop below cfg().gps_hdop_fix()
-                        gps_degraded_fix_check_incr_ = 1;
-                    }
+                    glog.is_debug1() && glog << "GPS has a good fix, but has not "
+                                                "reached threshold for total checks"
+                                                " "
+                                             << gps_fix_check_incr_ << " < "
+                                             << cfg().total_gps_fix_checks() << std::endl;
+                    // Increment until we reach total gps fix checks
+                    gps_fix_check_incr_++;
                 }
                 else
                 {
-                    // Increment degraded checks until we are > the threshold for confirming degraded gps
-                    if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
-                    {
-                        glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
-                                                    "reached threshold for total checks: "
-                                                    " "
-                                                 << gps_degraded_fix_check_incr_ << " < "
-                                                 << cfg().total_gps_degraded_fix_checks()
-                                                 << std::endl;
+                    glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
+                                             << sky.hdop() << " <= " << cfg().gps_hdop_fix()
+                                             << " Reset incr for gps degraded fix" << std::endl;
 
-                        // Increment until we reach total gps degraded fix checks
-                        gps_degraded_fix_check_incr_++;
-                    }
-                    else
-                    {
-                        glog.is_debug1() &&
-                            glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is "
-                                 << sky.hdop() << " > " << cfg().gps_hdop_fix()
-                                 << " Reset incr for gps fix" << std::endl;
+                    // Post Event for gps fix
+                    machine_->process_event(statechart::EvGPSFix());
 
-                        // Post Event for no gps fix
-                        machine_->process_event(statechart::EvGPSNoFix());
-
-                        // Reset if gps hdop is above cfg().gps_hdop_fix()
-                        gps_fix_check_incr_ = 1;
-                    }
+                    // Reset degraded fix check as we received hdop below cfg().gps_hdop_fix()
+                    gps_degraded_fix_check_incr_ = 1;
                 }
             }
             else
             {
-                // Reset when not in states to check
-                gps_fix_check_incr_ = 1;
-                gps_degraded_fix_check_incr_ = 1;
+                // Increment degraded checks until we are > the threshold for confirming degraded gps
+                if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
+                {
+                    glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
+                                                "reached threshold for total checks: "
+                                                " "
+                                             << gps_degraded_fix_check_incr_ << " < "
+                                             << cfg().total_gps_degraded_fix_checks() << std::endl;
+
+                    // Increment until we reach total gps degraded fix checks
+                    gps_degraded_fix_check_incr_++;
+                }
+                else
+                {
+                    glog.is_debug1() && glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is "
+                                             << sky.hdop() << " > " << cfg().gps_hdop_fix()
+                                             << " Reset incr for gps fix" << std::endl;
+
+                    // Post Event for no gps fix
+                    machine_->process_event(statechart::EvGPSNoFix());
+
+                    // Reset if gps hdop is above cfg().gps_hdop_fix()
+                    gps_fix_check_incr_ = 1;
+                }
             }
         });
 }
