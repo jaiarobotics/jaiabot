@@ -340,15 +340,22 @@ export class TaskData {
     }
 
     calculateDiveDrift(taskPacket) {
-        let divePacket = taskPacket.dive;
         let driftPacket = taskPacket.drift;
-        
-        let task_calcs = {diveLocation: divePacket.startLocation, driftSpeed: 0, driftDirection: 0}
+        let divePacket;
+        let task_calcs;
 
+        if(taskPacket.type == "DIVE")
+        {
+            divePacket = taskPacket.dive;
+            task_calcs = {diveLocation: divePacket.startLocation, driftSpeed: 0, driftDirection: 0};
+        } 
+        else
+        {
+            task_calcs = {driftSpeed: 0, driftDirection: 0};
+        }
+        
         if(driftPacket.driftDuration > 0)
         {
-            let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
-
             let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
             let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
 
@@ -359,13 +366,16 @@ export class TaskData {
             let drift_distance = turf.distance(drift_start, drift_end, options);
             let drift_meters_per_second = drift_distance/driftPacket.driftDuration;
 
-            let distance_to_ascent_wpt = divePacket.durationToAcquireGps * drift_meters_per_second;
+            if(taskPacket.type == "DIVE")
+            {
+                
+                let distance_to_ascent_wpt = divePacket.durationToAcquireGps * drift_meters_per_second;
+                let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
+                let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
+                let dive_location = turf.midpoint(dive_start, ascent_wpt);
+                task_calcs.diveLocation = dive_location;
+            }
 
-            let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
-
-            let dive_location = turf.midpoint(dive_start, ascent_wpt);
-
-            task_calcs.diveLocation = dive_location;
             task_calcs.driftSpeed = drift_meters_per_second;
             task_calcs.driftDirection = drift_direction;
         }
