@@ -303,6 +303,8 @@ export default class CentralCommand extends React.Component {
 				'orientation': 0,
 				'sp_area': 0,
 				'sp_perimeter': 0,
+				'sp_rally_start_dist': 0,
+				'sp_rally_finish_dist': 0,
 				'selected_bots': [],
 				'use_max_length': true
 			},
@@ -739,8 +741,11 @@ export default class CentralCommand extends React.Component {
 						this.state.missionParams.sp_perimeter = spPerimeter;
 					}
 
-					$('#surveyPolygonResultArea').text(this.state.missionParams.sp_area);
-					$('#surveyPolygonResultPerimeter').text(this.state.missionParams.sp_perimeter);
+					$('#missionStatArea').text(this.state.missionParams.sp_area);
+					$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+					$('#missionStatOrientation').text(this.state.missionParams.orientation);
+					$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+					$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
 
 					this.updateMissionLayer();
 
@@ -809,8 +814,11 @@ export default class CentralCommand extends React.Component {
 
 				// console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-				$('#surveyPolygonResultArea').text(spArea);
-				$('#surveyPolygonResultPerimeter').text(spPerimeter);
+				$('#missionStatArea').text(this.state.missionParams.sp_area);
+				$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+				$('#missionStatOrientation').text(this.state.missionParams.orientation);
+				$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+				$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
 
 				this.updateMissionLayer();
 				OlUnobserveByKey(surveyPolygonlistener);
@@ -1215,17 +1223,17 @@ export default class CentralCommand extends React.Component {
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		const round = value => {
+		const round = (value, precision) => {
 			if (typeof value === "number")
-				return Number(value.toFixed(7));
+				return Number(value.toFixed(precision));
 
 			if (Array.isArray(value))
-				return value.map(round);
+				return value.map(function(x) {return round(x, precision)});
 
 			if (typeof value === "object" && value !== null)
 				return Object.fromEntries(
 					Object.entries(value)
-						.map(([k, v]) => [k, round(v)])
+						.map(([k, v]) => [k, round(v, precision)])
 				);
 
 			return value
@@ -1313,10 +1321,6 @@ export default class CentralCommand extends React.Component {
 
 			us.updateMissionLayer();
 
-			iconStyle.text_.text_ =
-				  'Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
-				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
 
@@ -1372,7 +1376,6 @@ export default class CentralCommand extends React.Component {
 						// console.log(turf);
 						// console.log(format);
 
-
 						let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
 						let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
 
@@ -1425,8 +1428,26 @@ export default class CentralCommand extends React.Component {
 									let botId = featureProperties.botId;
 									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
 								});
-								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)))))))
+								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
 							})
+
+							// Metadata setup
+							// TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
+							// console.log('hubs');
+							// console.log(Object.values(this.podStatus?.hubs ?? {}));
+							let fcInput = []
+							Object.keys(alongPoints).forEach(key => {
+								let points = alongPoints[key]
+								points.forEach(point => {
+									fcInput.push(turf.toWgs84(turf.point(point)))
+								})
+							})
+							let fcOutput = turf.featureCollection(fcInput)
+							let fcOutputPoly = turf.concave(fcOutput)
+							missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
+							missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat])), 2)
+							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.homeLocation.lon, this.state.homeLocation.lat])), 2)
 
 							this.setState({
 								missionPlanningLines: alongLines,
@@ -1434,14 +1455,15 @@ export default class CentralCommand extends React.Component {
 								missionParams: missionParams
 							})
 							this.updateMissionLayer();
-						} else {
-							// Clear the view and wait for a valid line length
-							this.setState({
-								missionPlanningLines: null,
-								missionPlanningGrid: null
-							})
-							this.updateMissionLayer();
 						}
+
+						// Metadata/Stats
+						$('#missionStatArea').text(this.state.missionParams.sp_area);
+						$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+						$('#missionStatOrientation').text(this.state.missionParams.orientation);
+						$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+						$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
+
 						// console.log('** END ********* ON CHANGE *************************')
 					}
 				})
@@ -2400,18 +2422,6 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 
-			// let { missionParams } = self.state;
-			// console.log('###################missionParams');
-			// console.log(missionParams);
-			// missionParams.orientation = rotationAngle;
-			// self.setState({
-			// 	missionParams: missionParams
-			// })
-
-			iconStyle.text_.text_ =
-				  'Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
-				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
 
