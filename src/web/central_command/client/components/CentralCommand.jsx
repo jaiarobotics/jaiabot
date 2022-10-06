@@ -1660,6 +1660,20 @@ export default class CentralCommand extends React.Component {
 		// map.render();
 	}
 
+	/*updateHubsLayer() {
+		let hubs = this.podStatus.hubs;
+
+		for (let hubId in hubs) {
+			let hub = hubs[hubId];
+
+			// ID
+			const hub_id = hub.hubId
+			// Geometry
+			const hubLatitude = hub.location?.lat
+			const hubLongitude = hub.location?.lon
+		}
+	}*/
+
 	updateBotsLayer() {
 		const { selectedBotsFeatureCollection } = this.state;
 		let bots = this.podStatus.bots
@@ -1865,6 +1879,7 @@ export default class CentralCommand extends React.Component {
 					}
 
 					this.updateBotsLayer()
+					//this.updateHubsLayer()
 					if (this.state.mode !== 'missionPlanning') {
 						this.updateMissionLayer()
 					}
@@ -2100,7 +2115,11 @@ export default class CentralCommand extends React.Component {
 				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
 				break;
 			case 'bot':
-				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], this.api, closeDetails);
+				//**********************
+				// TO DO  
+				// the following line assumes fleets to only have hub0 in use
+				//**********************
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], hubs?.[0], this.api, closeDetails);
 				break;
 			case null:
 				detailsBox = null;

@@ -340,7 +340,8 @@ export class TaskData {
     }
 
     calculateDiveDrift(taskPacket) {
-        let driftPacket = taskPacket.drift;
+
+        let driftPacket;
         let divePacket;
         let task_calcs;
 
@@ -354,8 +355,12 @@ export class TaskData {
             task_calcs = {driftSpeed: 0, driftDirection: 0};
         }
         
-        if(driftPacket.driftDuration > 0)
+        if(taskPacket?.drift != null 
+            && taskPacket.drift?.driftDuration != null
+            && taskPacket.drift.driftDuration > 0)
         {
+            driftPacket = taskPacket.drift;
+
             let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
             let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
 

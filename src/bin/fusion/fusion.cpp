@@ -291,6 +291,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 // only set location if the current mode is not included in discard_status_modes_
                 if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
                 {
+                    glog.is_debug2() &&
+                        glog << "Updating Lat Long because bot is in the correct state: "
+                             << latest_bot_status_.mission_state() << std::endl;
+
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
@@ -439,6 +443,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+            if (sky.has_hdop())
+            {
+                latest_bot_status_.set_hdop(sky.hdop());
+            }
         });
 }
 
