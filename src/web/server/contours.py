@@ -141,6 +141,11 @@ def getContourSegmentsForMeshPoints(meshPoints, contourCount=10):
     values = [p[2] for p in meshPoints]
     minValue = min(values)
     maxValue = max(values)
+
+    if minValue == maxValue:
+        logging.warning('No contours to display, because all dives reach the same depth')
+        return []
+
     contourValues = np.arange(minValue, maxValue, (maxValue - minValue) / contourCount)
 
     contourSegments = []
