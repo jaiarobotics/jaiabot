@@ -210,6 +210,15 @@ export class MissionSettingsPanel extends React.Component {
                     type: taskType
                 }
                 break;
+            case 'NONE':
+                style = {
+
+                }
+
+                goal.task = {
+                    type: taskType
+                }
+                break;
             default:
                 style = {
 
