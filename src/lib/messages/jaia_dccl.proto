@@ -67,11 +67,17 @@ message Command
 
 message BotStatus
 {
-    // Current Actual maximum size of message: 45 bytes / 360 bits
-    // Measured using dccl analyze
+    /*
+    Actual maximum size of message: 46 bytes / 368 bits
+            dccl.id head...........................8
+            user head..............................0
+            body.................................353
+            padding to full byte...................7
+    Allowed maximum size of message: 46 bytes / 368 bits
+    */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 45
+        max_bytes: 46
         codec_version: 3
         unit_system: "si"
     };
@@ -304,10 +310,21 @@ message DivePacket
         precision: 1
         units { base_dimensions: "T" }
     }];
+
+    // Did we reach seafloor?
+    optional bool bottom_dive = 17 [default = false];
 }
 
 message TaskPacket
 {
+    /*
+    Actual maximum size of message: 197 bytes / 1576 bits
+            dccl.id head..........................16
+            user head..............................0
+            body................................1556
+            padding to full byte...................4
+    Allowed maximum size of message: 200 bytes / 1600 bits
+    */
     option (dccl.msg) = {
         id: 0x5001
         max_bytes: 200

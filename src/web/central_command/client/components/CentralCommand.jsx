@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -303,6 +303,8 @@ export default class CentralCommand extends React.Component {
 				'orientation': 0,
 				'sp_area': 0,
 				'sp_perimeter': 0,
+				'sp_rally_start_dist': 0,
+				'sp_rally_finish_dist': 0,
 				'selected_bots': [],
 				'use_max_length': true
 			},
@@ -739,8 +741,11 @@ export default class CentralCommand extends React.Component {
 						this.state.missionParams.sp_perimeter = spPerimeter;
 					}
 
-					$('#surveyPolygonResultArea').text(this.state.missionParams.sp_area);
-					$('#surveyPolygonResultPerimeter').text(this.state.missionParams.sp_perimeter);
+					$('#missionStatArea').text(this.state.missionParams.sp_area);
+					$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+					$('#missionStatOrientation').text(this.state.missionParams.orientation);
+					$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+					$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
 
 					this.updateMissionLayer();
 
@@ -809,8 +814,11 @@ export default class CentralCommand extends React.Component {
 
 				// console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-				$('#surveyPolygonResultArea').text(spArea);
-				$('#surveyPolygonResultPerimeter').text(spPerimeter);
+				$('#missionStatArea').text(this.state.missionParams.sp_area);
+				$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+				$('#missionStatOrientation').text(this.state.missionParams.orientation);
+				$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+				$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
 
 				this.updateMissionLayer();
 				OlUnobserveByKey(surveyPolygonlistener);
@@ -957,9 +965,15 @@ export default class CentralCommand extends React.Component {
 
 		this.measurementLayerGroup = new OlLayerGroup({
 			title: 'Measurements',
-			fold: 'open',
+			fold: 'close',
 			layers: [
-				taskData.getContourLayer()
+				//taskData.getContourLayer(),
+				taskData.getTaskPacketDiveLayer(),
+				taskData.getTaskPacketDriftLayer(),
+				taskData.getTaskPacketDiveBottomLayer(),
+				taskData.getTaskPacketDiveInfoLayer(),
+				taskData.getTaskPacketDriftInfoLayer(),
+				taskData.getTaskPacketDiveBottomInfoLayer()
 			]
 		})
 
@@ -1209,17 +1223,17 @@ export default class CentralCommand extends React.Component {
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		const round = value => {
+		const round = (value, precision) => {
 			if (typeof value === "number")
-				return Number(value.toFixed(7));
+				return Number(value.toFixed(precision));
 
 			if (Array.isArray(value))
-				return value.map(round);
+				return value.map(function(x) {return round(x, precision)});
 
 			if (typeof value === "object" && value !== null)
 				return Object.fromEntries(
 					Object.entries(value)
-						.map(([k, v]) => [k, round(v)])
+						.map(([k, v]) => [k, round(v, precision)])
 				);
 
 			return value
@@ -1307,10 +1321,6 @@ export default class CentralCommand extends React.Component {
 
 			us.updateMissionLayer();
 
-			iconStyle.text_.text_ =
-				  'Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
-				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
 
@@ -1366,7 +1376,6 @@ export default class CentralCommand extends React.Component {
 						// console.log(turf);
 						// console.log(format);
 
-
 						let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
 						let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
 
@@ -1419,8 +1428,31 @@ export default class CentralCommand extends React.Component {
 									let botId = featureProperties.botId;
 									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
 								});
-								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)))))))
+								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
 							})
+
+							// Metadata setup
+							// TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
+							// console.log('hubs');
+							// console.log(Object.values(this.podStatus?.hubs ?? {}));
+							let fcInput = []
+							Object.keys(alongPoints).forEach(key => {
+								let points = alongPoints[key]
+								points.forEach(point => {
+									fcInput.push(turf.toWgs84(turf.point(point)))
+								})
+							})
+
+							// Make sure this would be a valid polygon before changing the stats
+							if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
+								let fcOutput = turf.featureCollection(fcInput)
+								let fcOutputPoly = turf.concave(fcOutput)
+								missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
+								missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+							}
+
+							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat])), 2)
+							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.homeLocation.lon, this.state.homeLocation.lat])), 2)
 
 							this.setState({
 								missionPlanningLines: alongLines,
@@ -1428,14 +1460,15 @@ export default class CentralCommand extends React.Component {
 								missionParams: missionParams
 							})
 							this.updateMissionLayer();
-						} else {
-							// Clear the view and wait for a valid line length
-							this.setState({
-								missionPlanningLines: null,
-								missionPlanningGrid: null
-							})
-							this.updateMissionLayer();
 						}
+
+						// Metadata/Stats
+						$('#missionStatArea').text(this.state.missionParams.sp_area);
+						$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
+						$('#missionStatOrientation').text(this.state.missionParams.orientation);
+						$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
+						$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
+
 						// console.log('** END ********* ON CHANGE *************************')
 					}
 				})
@@ -2278,6 +2311,9 @@ export default class CentralCommand extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
 				break;
+			case 'NONE':
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				break;
 			default:
 				break;
 		}
@@ -2304,6 +2340,9 @@ export default class CentralCommand extends React.Component {
 				break;
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				break;
+			case 'NONE':
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
 				break;
 			default:
 				break;
@@ -2394,18 +2433,6 @@ export default class CentralCommand extends React.Component {
 				}
 			}
 
-			// let { missionParams } = self.state;
-			// console.log('###################missionParams');
-			// console.log(missionParams);
-			// missionParams.orientation = rotationAngle;
-			// self.setState({
-			// 	missionParams: missionParams
-			// })
-
-			iconStyle.text_.text_ =
-				  'Heading (deg): ' + rotationAngle.toString() + '\n'
-				+ 'Leg Dist (km): ' + rhumbDist.toString() + '\n'
-				+ 'Dist Home (km): ' + rhumbHomeDist.toString()
 			return [lineStyle, iconStyle];
 		};
 
@@ -2423,6 +2450,34 @@ export default class CentralCommand extends React.Component {
 		return feature
 	}
 
+	findRallySeparation(bot_list, feature, rotationAngle) {
+		// Bot rally point separation scheme
+		let rallyPoints = {};
+		let center = [feature.lon, feature.lat];
+		let radius = 0.02;
+		if (bot_list.length >= 3) {
+			// We can use a circle to separate the bots
+			let options = {steps: bot_list.length};
+			let circle = turf.circle(center, radius, options);
+			let circleRallyPointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0])));
+			circleRallyPointsBasic.forEach(p => {
+				rallyPoints[Number(bot_list.pop())] = p
+			})
+		} else {
+			// Alternative to using a circle for bot separation
+			let rhumbDestinationPoints = [];
+			let nextRadius = 0;
+			bot_list.forEach(bot => {
+				rhumbDestinationPoints.push(turf.coordAll(turf.rhumbDestination(turf.point(center), nextRadius, rotationAngle-90)));
+				nextRadius = nextRadius + radius;
+			})
+			rhumbDestinationPoints.forEach(p => {
+				rallyPoints[Number(bot_list.pop())] = p[0]
+			})
+		}
+		return rallyPoints
+	}
+
 	updateMissionLayer() {
 		// Update the mission layer
 		let features = []
@@ -2430,7 +2485,7 @@ export default class CentralCommand extends React.Component {
 		let missions = this.missions || {}
 
 		let selectedColor = '#34d2eb'
-		let unselectedColor = '#5ec957'
+		let unselectedColor = 'white'
 		let surveyPolygonColor = '#051d61'
 
 		let homeStyle = new OlStyle({
@@ -2616,36 +2671,19 @@ export default class CentralCommand extends React.Component {
 		}
 
 		if (this.state.missionPlanningGrid) {
-			// console.log('this.state.missionPlanningGrid');
-			let missionPlans = []
-			let millisecondsSinceEpoch = new Date().getTime()
+			let missionPlans = {};
+			let millisecondsSinceEpoch = new Date().getTime();
+			let bot_list = Object.keys(this.podStatus.bots);
 
 			// Bot rally point separation scheme
-			let center = [this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat];
-			let radius = 0.02;
-			let options = {steps: this.state.missionParams.num_bots};
-			let circle = turf.circle(center, radius, options);
-			// console.log('circle');
-			// console.log(circle);
-			let circleRallyPoints = circle.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleRallyPoints);
-
-			// Bot home point separation scheme
-			let centerHome = [this.state.homeLocation.lon, this.state.homeLocation.lat];
-			let radiusHome = 0.02;
-			let optionsHome = {steps: this.state.missionParams.num_bots};
-			let circleHome = turf.circle(centerHome, radiusHome, optionsHome);
-			// console.log('circle');
-			// console.log(circleHome);
-			let circleHomePoints = circleHome.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleHomePoints);
+			let rallyStartPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointLocation, this.state.missionParams.orientation);
+			// console.log('rallyStartPoints');
+			// console.log(rallyStartPoints);
+			let rallyFinishPoints = this.findRallySeparation(deepcopy(bot_list), this.state.homeLocation, this.state.missionParams.orientation);
+			// console.log('rallyFinishPoints');
+			// console.log(rallyFinishPoints);
 
 			let mpg = this.state.missionPlanningGrid;
-			// console.log(mpg);
 			let mpgKeys = Object.keys(mpg);
 			mpgKeys.forEach(key => {
 				let mpGridFeature = new OlFeature(
@@ -2665,8 +2703,8 @@ export default class CentralCommand extends React.Component {
 				// Rally Point Goals
 				let bot_goal = {
 					"location": {
-						"lat": circleRallyPoints[key][1],
-						"lon": circleRallyPoints[key][0]
+						"lat": rallyStartPoints[key][1],
+						"lon": rallyStartPoints[key][0]
 					},
 					"task": {"type": "STATION_KEEP"}
 				}
@@ -2674,8 +2712,6 @@ export default class CentralCommand extends React.Component {
 
 				// Mission Goals
 				mpg[key].forEach(goal => {
-					// console.log('goal');
-					// console.log(goal);
 					let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
 					bot_goal = {
 						"location": {
@@ -2690,8 +2726,8 @@ export default class CentralCommand extends React.Component {
 				// Home Goals
 				bot_goal = {
 					"location": {
-						"lat": circleHomePoints[key][1],
-						"lon": circleHomePoints[key][0]
+						"lat": rallyFinishPoints[key][1],
+						"lon": rallyFinishPoints[key][0]
 					},
 					"task": {"type": "STATION_KEEP"}
 				}
@@ -2710,7 +2746,7 @@ export default class CentralCommand extends React.Component {
 						}
 					}
 				}
-				missionPlans.push(mission_dict);
+				missionPlans[key] = mission_dict;
 			})
 
 			this.setState({
@@ -2727,9 +2763,6 @@ export default class CentralCommand extends React.Component {
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
 				missionPlanningFeaturesList.push(mpStyledFeature)
-
-				// console.log('missionPlanningFeaturesList');
-				// console.log(missionPlanningFeaturesList);
 
 				// Add all the features in the list to the map layer
 				let missionPlanningSource = new OlVectorSource({
@@ -3038,9 +3071,9 @@ export default class CentralCommand extends React.Component {
 				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</button>
-				{ this.undoButton() }
+				{ this.undoButton() }					
 				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
-					Flag
+					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</button>
 			</div>
 
