@@ -344,7 +344,6 @@ export default class Map {
 
                 const descriptors = {
                     'depth_achieved': ['Depth achieved', 'm'],
-                    'dive_rate': ['Dive rate', 'm/s'],
                     'duration_to_acquire_gps': ['Duration to acquire GPS', 's'],
                     'powered_rise_rate': ['Powered rise rate', 'm/s'],
                     'unpowered_rise_rate': ['Unpowered rise rate', 'm/s']
