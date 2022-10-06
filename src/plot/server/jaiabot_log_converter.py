@@ -12,7 +12,7 @@ import glob
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest="path", type=str, default="/var/log/jaiabot/bot_offload", help="Path to monitor for new goby files to convert")
 parser.add_argument("-l", dest='logLevel', type=str, default='INFO', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
-parser.add_argument('-s', dest='size_limit', type=int, default='50000000', help='Maximum goby file size to convert')
+parser.add_argument('-s', dest='size_limit', type=int, default='100000000000', help='Maximum goby file size to convert')
 args = parser.parse_args()
 
 # Setup log level
