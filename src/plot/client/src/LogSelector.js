@@ -50,6 +50,8 @@ export default class LogSelector extends React.Component {
             log_dict: {},
             fleet: localStorage.getItem("fleet"),
             bot: localStorage.getItem("bot"),
+            fromDate: localStorage.getItem("fromDate"),
+            toDate: localStorage.getItem("toDate"),
             selectedLogs: new Set()
         }
     }
@@ -101,14 +103,26 @@ export default class LogSelector extends React.Component {
             <div className="dialogHeader">Select Logs</div>
             <div className="section">
                 <div className="dialogSectionHeader">Filters</div>
-                Fleet
-                <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
-                {this.fleet_option_elements()}
-                </select>
-                Bot
-                <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
-                {this.bot_option_elements()}
-                </select>
+
+                <div className="horizontal flexbox equal" style={{justifyContent: "space-between", alignItems: "center"}}>
+
+                    Fleet
+                    <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
+                    {this.fleet_option_elements()}
+                    </select>
+
+                    Bot
+                    <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
+                    {this.bot_option_elements()}
+                    </select>
+
+                    From
+                    <input type="date" id="fromDate" defaultValue={this.state.fromDate} onInput={this.fromDateChanged.bind(this)} />
+                    To
+                    <input type="date" id="toDate" defaultValue={this.state.toDate} onInput={this.toDateChanged.bind(this)} />
+                
+                </div>
+
             </div>
 
             <div className="section">
@@ -146,6 +160,9 @@ export default class LogSelector extends React.Component {
     getFilteredLogs() {
         const log_dict = this.state.log_dict
 
+        const from_timestamp = new Date(this.state.fromDate).getTime() / 1e3
+        const to_timestamp = new Date(this.state.toDate).getTime() / 1e3 + 24 * 60 * 60 // Add a day, so we're inclusive of this date
+
         var log_array = []
 
         for (const fleet in log_dict) {
@@ -158,7 +175,12 @@ export default class LogSelector extends React.Component {
 
                 const bot_dict = fleet_dict[bot]
 
-                log_array = log_array.concat(Object.values(bot_dict))
+                for (const log of Object.values(bot_dict)) {
+                    if (!isNaN(from_timestamp) && log.timestamp < from_timestamp) continue;
+                    if (!isNaN(to_timestamp) && log.timestamp > to_timestamp) continue;
+
+                    log_array.push(log)
+                }
             }
         }
 
@@ -259,6 +281,18 @@ export default class LogSelector extends React.Component {
         save("bot", bot)
 
         this.clearLogs()
+    }
+
+    fromDateChanged(evt) {
+        const fromDate = evt.target.value
+        this.setState({fromDate})
+        save("fromDate", fromDate)
+    }
+
+    toDateChanged(evt) {
+        const toDate = evt.target.value
+        this.setState({toDate})
+        save("toDate", toDate)
     }
 
     cancelClicked() {
