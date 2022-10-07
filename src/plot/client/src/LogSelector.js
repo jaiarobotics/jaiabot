@@ -44,8 +44,6 @@ export default class LogSelector extends React.Component {
     constructor(props) {
         super(props)
 
-        console.log(localStorage)
-
         this.state = {
             log_dict: {},
             fleet: localStorage.getItem("fleet"),
@@ -304,6 +302,7 @@ export default class LogSelector extends React.Component {
             return log.filename;
         })
 
+        console.debug('Selected logs: ', selectedLogNames)
         this.props.didSelectLogs?.(selectedLogNames)
     }
 
