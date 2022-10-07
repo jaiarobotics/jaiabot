@@ -3,6 +3,8 @@ $interprocess_block
 
 bot_id: $bot_id
 
+is_sim: $fusion_in_simulation
+
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
@@ -23,5 +25,3 @@ course_over_ground_timeout: 3
 # REBOOT_BOT
 # REPORT_IMU
 imu_issue_solution: REPORT_IMU 
-
-is_sim: $fusion_in_simulation
