@@ -149,6 +149,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         discard_location_modes_.insert(dsm);
     }
 
+    for (auto state : discard_location_modes_)
+    { glog.is_debug1() && glog << "Mission States to discard latlon:  " << state << std::endl; }
+
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
             glog.is_debug1() && glog << "Received Attitude update: " << att.ShortDebugString()
@@ -288,9 +291,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (tpv.has_location())
             {
+                glog.is_debug1() && glog << "Mission State:  " << latest_bot_status_.mission_state()
+                                         << std::endl;
                 // only set location if the current mode is not included in discard_status_modes_
                 if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
                 {
+                    glog.is_debug1() && glog << "Update lat lon:  "
+                                             << latest_bot_status_.mission_state() << std::endl;
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
@@ -439,6 +446,18 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+            if (sky.has_hdop())
+            {
+                latest_bot_status_.set_hdop(sky.hdop());
+            }
+            if (sky.has_pdop())
+            {
+                latest_bot_status_.set_pdop(sky.pdop());
+            }
         });
 }
 
