@@ -76,7 +76,7 @@ export class JaiaAPI {
 
   getTaskPackets() { return this.get('jaia/task-packets') }
 
-  getTaskGeoJSON() { return this.get('jaia/task-geojson') }
+  getDepthContours() { return this.get('jaia/depth-contours') }
 
   allStop() { return this.post('jaia/allStop', null) }
 
