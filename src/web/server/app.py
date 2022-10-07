@@ -128,9 +128,9 @@ def pidRoot():
 
 ######## Contour map
 
-@app.route('/jaia/task-geojson', methods=['GET'])
-def get_contour_bounds():
-    return JSONResponse(jaia_interface.get_task_geojson())
+@app.route('/jaia/depth-contours', methods=['GET'])
+def get_deth_contours():
+    return JSONResponse(jaia_interface.get_depth_contours())
 
 
 if __name__ == '__main__':
