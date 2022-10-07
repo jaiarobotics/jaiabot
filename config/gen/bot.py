@@ -153,7 +153,8 @@ elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index))
+                                     bot_id=bot_index,
+                                     fusion_in_simulation=is_simulation()))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
