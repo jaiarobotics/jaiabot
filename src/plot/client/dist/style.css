@@ -130,3 +130,62 @@ button {
     border-width: 2pt;
     border-style: solid;
 }
+
+.centered {
+    position: fixed;
+    left: 25%;
+    top: 25%;
+    bottom: 25%;
+    right: 25%;
+    border: 3px solid green;
+    padding: 10px;
+    z-index: 10000;
+}
+
+.dialog {
+    background-color: antiquewhite;
+    padding: 10pt;
+    border-radius: 10pt;
+}
+
+.filterSection {
+    height: 20%;
+    padding: 4pt;
+}
+
+.logList {
+    background-color: white;
+    border-color: lightgray;
+    height: 60%;
+    overflow-y: auto;
+}
+
+.buttonSection {
+    text-align: right;
+    height: 20%;
+    padding: 4pt;
+}
+
+.fleetCell {
+    display: inline-block;
+    width: 15%;
+}
+
+.botCell {
+    display: inline-block;
+    width: 15%;
+}
+
+.timeCell {
+    display: inline-block;
+    width: 30%;
+}
+
+.durationCell {
+    display: inline-block;
+    width: 30%;
+}
+
+.selected {
+    background-color: lightblue;
+}

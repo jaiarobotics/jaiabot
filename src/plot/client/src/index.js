@@ -23,6 +23,7 @@ class LogApp extends React.Component {
 
         this.state = {
       logs : [],
+      is_selecting_logs: false,
       chosen_logs : [],
       chosen_paths : [],
       plots : []
@@ -30,6 +31,11 @@ class LogApp extends React.Component {
   }
 
   render() {
+    const self = this;
+
+    // Show log selection box?
+    const log_selector = this.state.is_selecting_logs ? <LogSelector logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+
     return (
       <Router>
         <div><div className = "vertical flexbox top_pane padded">
@@ -44,7 +50,11 @@ class LogApp extends React.Component {
             </div>
         </div>
 
-          <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
+        <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+
+        { log_selector }
+
+        <div id="logList" className="padded">No logs selected</div>
 
         <PathSelector logs = {this.state.chosen_logs} key =
             {this.state.chosen_logs} on_select_path =
@@ -100,11 +110,15 @@ class LogApp extends React.Component {
     )
   }
 
+  selectLogButtonPressed(evt) {
+    this.setState({is_selecting_logs: true})
+  }
+
   componentDidUpdate() {
     if (this.state.chosen_logs.length > 0) {
       // Get map data
-      LogApi.get_map(this.state.chosen_logs).then((points) => {
-        this.map.updateWithPoints(points)
+      LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+        this.map.setSeriesArray(seriesArray)
       })
 
       // Get the command dictionary (botId => [Command])
@@ -122,6 +136,10 @@ class LogApp extends React.Component {
         this.map.updateWithTaskPackets(task_packets)
       })
 
+    }
+    else {
+      console.log('empty chosen_logs')
+      this.map.clear()
     }
     this.refresh_plots()
   }
@@ -143,8 +161,12 @@ class LogApp extends React.Component {
     })
   }
 
-  log_was_selected(evt) {
-    this.setState({chosen_logs: [ evt.target.value] })
+  didSelectLogs(logs) {
+    if (logs != null) {
+      this.setState({chosen_logs: logs })
+    }
+
+    this.setState({is_selecting_logs: false})
   }
 
   path_was_selected(path) {
