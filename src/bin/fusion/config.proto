@@ -52,5 +52,11 @@ message Fusion
     optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 33 [default = REPORT_IMU];
 
     optional bool is_sim = 34 [default = false];
-    
+
+    // These checks are in the loop (so fusions runs at 2hz)
+    optional int32 total_imu_issue_checks = 35 [default = 10];
+
+    // timeout in seconds
+    optional int32 imu_restart_timeout = 36 [default = 30]; 
+
 }
