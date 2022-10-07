@@ -56,7 +56,7 @@ export class MissionSettingsPanel extends React.Component {
                 Mission Settings<hr/>
                 <div>
                     <div>
-                        <table>
+                        <table className="MissionParametersTable">
                             <tbody>
                             <tr hidden>
                                 <td>Bot Selection List:</td>
@@ -76,10 +76,11 @@ export class MissionSettingsPanel extends React.Component {
                                         <option value="editing">Editing</option>
                                         <option value="polygon-grid">Polygon</option>
                                         <option value="lines">Lines</option>
+                                        <option value="exclusions">Exclusions</option>
                                     </select>
                                 </td>
                             </tr>
-                            <tr>
+                            <tr hidden>
                                 <td>Bot Count</td>
                                 <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.mission_params.num_bots} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
@@ -90,6 +91,10 @@ export class MissionSettingsPanel extends React.Component {
                             <tr>
                                 <td>Mission Spacing</td>
                                 <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
+                            </tr>
+                            <tr>
+                                <td>Rally Point Spacing</td>
+                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.mission_params.rally_spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
@@ -344,6 +349,9 @@ export class MissionSettingsPanel extends React.Component {
                 mission_params.mission_type = missionEditMode
                 break;
             case 'editing':
+                mission_params.mission_type = missionEditMode
+                break;
+            case 'exclusions':
                 mission_params.mission_type = missionEditMode
                 break;
             default:
