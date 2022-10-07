@@ -301,6 +301,7 @@ export default class CentralCommand extends React.Component {
 				'num_goals': 12,
 				'spacing': 30,
 				'orientation': 0,
+				'rally_spacing': 20,
 				'sp_area': 0,
 				'sp_perimeter': 0,
 				'sp_rally_start_dist': 0,
@@ -320,10 +321,13 @@ export default class CentralCommand extends React.Component {
 			surveyPolygonGeoCoords: null,
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
+			surveyExclusions: null,
 			selectedFeatures: null,
 			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null
 		};
+
+		this.surveyExclusionsStyle = null;
 
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
@@ -891,6 +895,8 @@ export default class CentralCommand extends React.Component {
 			this.changeInteraction(this.selectInteraction(), 'grab');
 		if (this.state.missionParams.mission_type === 'lines')
 			this.changeInteraction(this.surveyLinesInteraction, 'crosshair');
+		if (this.state.missionParams.mission_type === 'exclusions')
+			this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
 	}
 
 	getMissionState() {
@@ -960,6 +966,10 @@ export default class CentralCommand extends React.Component {
 			name: 'missionPlanningLayer',
 			title: 'Mission Planning'
 		});
+		this.exclusionsLayer = new OlVectorLayer({
+			name: 'exclusionsLayer',
+			title: 'Mission Exclusion Areas'
+		});
 
 		this.cacheTileLoad();
 
@@ -967,7 +977,7 @@ export default class CentralCommand extends React.Component {
 			title: 'Measurements',
 			fold: 'close',
 			layers: [
-				//taskData.getContourLayer(),
+				taskData.getContourLayer(),
 				taskData.getTaskPacketDiveLayer(),
 				taskData.getTaskPacketDriftLayer(),
 				taskData.getTaskPacketDiveBottomLayer(),
@@ -989,6 +999,7 @@ export default class CentralCommand extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.missionPlanningLayer,
+			this.exclusionsLayer,
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
@@ -1239,6 +1250,91 @@ export default class CentralCommand extends React.Component {
 			return value
 		}
 
+		// Survey exclusion areas
+		const surveyExclusionsStyle = function(feature) {
+			let lineStyle = new OlStyle({
+				fill: new OlFillStyle({
+					color: 'rgb(196,10,10)'
+				}),
+				stroke: new OlStrokeStyle({
+					color: 'rgb(196,10,10)',
+					lineDash: [10, 10],
+					width: 5
+				}),
+				image: new OlCircleStyle({
+					radius: 5,
+					stroke: new OlStrokeStyle({
+						color: 'rgb(196,10,10)'
+					}),
+					fill: new OlFillStyle({
+						color: 'rgb(196,10,10)'
+					})
+				})
+			});
+
+			return [lineStyle];
+		};
+
+		let surveyExclusionsSource = new OlVectorSource({ wrapX: false });
+		this.surveyExclusionsInteraction = new OlDrawInteraction({
+			source: surveyExclusionsSource,
+			stopClick: true,
+			minPoints: 3,
+			clickTolerance: 10,
+			type: 'Polygon',
+			style: surveyExclusionsStyle
+		})
+
+		let surveyExclusionslistener;
+		this.surveyExclusionsInteraction.on(
+			'drawstart',
+			(evt) => {
+				this.setState({
+					surveyExclusions: null
+				})
+				this.updateMissionLayer();
+
+				// Show the preview of the survey
+				surveyLineslistener = evt.feature.on('change', (evt2) => {
+					this.updateMissionLayer();
+					// console.log('surveyExclusions changed...')
+				})
+			},
+			this
+		);
+
+		this.surveyExclusionsInteraction.on(
+			'drawend',
+			(evt) => {
+				// console.log('surveyExclusionsInteraction drawend');
+
+				let featuresExclusions = [];
+
+				let surveyExclusionsFeature = new OlFeature(
+					{
+						geometry: new OlLineString(turf.coordAll(turf.polygon(evt.feature.getGeometry().getCoordinates()))),
+						name: "Exclusions"
+					}
+				)
+				surveyExclusionsFeature.setStyle(surveyExclusionsStyle);
+				featuresExclusions.push(surveyExclusionsFeature);
+
+				const vectorSource = new OlVectorSource({
+					features: featuresExclusions,
+				});
+
+				this.exclusionsLayer.setSource(vectorSource);
+				this.exclusionsLayer.setZIndex(5000);
+
+				this.setState({
+					surveyExclusions: turf.coordAll(turf.polygon(evt.feature.getGeometry().getCoordinates()))
+				})
+				OlUnobserveByKey(surveyExclusionslistener);
+			},
+			this
+		);
+
+		// Survey planning using lines
 		let surveyLineStyle = function(feature) {
 
 			let rotationAngle = 0;
@@ -1395,6 +1491,26 @@ export default class CentralCommand extends React.Component {
 						}
 
 						let centerLineStringWgs84 = turf.toWgs84(centerLineString);
+
+						// TODO: Maybe use turf.shortestPath here to find a way around the exclusion
+						// let centerLineStringWgs84Diverted = null;
+						// let centerLineStringWgs84Points = turf.coordAll(centerLineStringWgs84);
+						// console.log('centerLineStringWgs84Points')
+						// console.log(centerLineStringWgs84Points)
+						// if (this.state.surveyExclusions === 6) {
+						// 	let se = this.state.surveyExclusions
+						// 	let optionsExc = {
+						// 		'obstacles': turf.polygon([turf.coordAll(turf.toWgs84(turf.multiPoint(se)))]),
+						// 		// 'minDistance': Number(missionParams.spacing)/1000,
+						// 		'resolution': maxLineLength
+						// 	}
+						// 	console.log('optionsExc')
+						// 	console.log(optionsExc)
+						// 	centerLineStringWgs84Diverted = turf.shortestPath(centerLineStringWgs84Points[0], centerLineStringWgs84Points[1], optionsExc)
+						// } else {
+						// 	centerLineStringWgs84Diverted = centerLineStringWgs84;
+						// }
+
 						let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
 						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
 
@@ -1428,7 +1544,24 @@ export default class CentralCommand extends React.Component {
 									let botId = featureProperties.botId;
 									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
 								});
-								alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
+								if (this.state.surveyExclusions) {
+									let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
+									let alongPointsAfterExclusion = []
+									alongPointsBeforeExclusion.forEach(point => {
+										// console.log('this.state.surveyExclusions');
+										let se = turf.coordAll(turf.toWgs84(turf.multiPoint(this.state.surveyExclusions)));
+										// console.log(se);
+										// console.log(point);
+										let options = {'ignoreBoundary': true}
+										if (turf.booleanPointInPolygon(point, turf.polygon([se]), options) === false) {
+											alongPointsAfterExclusion.push(point)
+										}
+									})
+									// let alongPointsAfterExclusion = turf.pointsWithinPolygon(turf.mutliPoint(alongPointsBeforeExclusion), turf.polygon(this.state.surveyExclusions))
+									alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.multiPoint(alongPointsAfterExclusion)))
+								} else {
+									alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
+								}
 							})
 
 							// Metadata setup
@@ -1442,10 +1575,15 @@ export default class CentralCommand extends React.Component {
 									fcInput.push(turf.toWgs84(turf.point(point)))
 								})
 							})
-							let fcOutput = turf.featureCollection(fcInput)
-							let fcOutputPoly = turf.concave(fcOutput)
-							missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
-							missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+
+							// Make sure this would be a valid polygon before changing the stats
+							if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
+								let fcOutput = turf.featureCollection(fcInput)
+								let fcOutputPoly = turf.concave(fcOutput)
+								missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
+								missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+							}
+
 							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat])), 2)
 							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.homeLocation.lon, this.state.homeLocation.lat])), 2)
 
@@ -1496,8 +1634,6 @@ export default class CentralCommand extends React.Component {
 			},
 			this
 		);
-
-
 
 		info('Welcome to JaiaBot Command & Control!');
 	}
@@ -2071,6 +2207,7 @@ export default class CentralCommand extends React.Component {
 				}}
 				onMissionApply={() => {
 					if (this.state.missionParams.mission_type === 'lines') {
+						this.updateMissionLayer();
 						this.loadMissions(this.state.missionPlans)
 					} else {
 						// Polygon
@@ -2214,6 +2351,8 @@ export default class CentralCommand extends React.Component {
 									this.changeInteraction(this.selectInteraction(), 'grab');
 								if (this.state.missionParams.mission_type === 'lines')
 									this.changeInteraction(this.surveyLinesInteraction, 'crosshair');
+								if (this.state.missionParams.mission_type === 'exclusions')
+									this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
 
 								info('Touch map to set first polygon point');
 							}}
@@ -2306,6 +2445,9 @@ export default class CentralCommand extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
 				break;
+			case 'NONE':
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				break;
 			default:
 				break;
 		}
@@ -2332,6 +2474,9 @@ export default class CentralCommand extends React.Component {
 				break;
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				break;
+			case 'NONE':
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
 				break;
 			default:
 				break;
@@ -2439,6 +2584,34 @@ export default class CentralCommand extends React.Component {
 		return feature
 	}
 
+	findRallySeparation(bot_list, feature, rotationAngle, rallySpacing) {
+		// Bot rally point separation scheme
+		let rallyPoints = {};
+		let center = [feature.lon, feature.lat];
+		let radius = rallySpacing/1000;
+		if (bot_list.length >= 3) {
+			// We can use a circle to separate the bots
+			let options = {steps: bot_list.length};
+			let circle = turf.circle(center, radius, options);
+			let circleRallyPointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0])));
+			circleRallyPointsBasic.forEach(p => {
+				rallyPoints[Number(bot_list.pop())] = p
+			})
+		} else {
+			// Alternative to using a circle for bot separation
+			let rhumbDestinationPoints = [];
+			let nextRadius = 0;
+			bot_list.forEach(bot => {
+				rhumbDestinationPoints.push(turf.coordAll(turf.rhumbDestination(turf.point(center), nextRadius, rotationAngle-90)));
+				nextRadius = nextRadius + radius;
+			})
+			rhumbDestinationPoints.forEach(p => {
+				rallyPoints[Number(bot_list.pop())] = p[0]
+			})
+		}
+		return rallyPoints
+	}
+
 	updateMissionLayer() {
 		// Update the mission layer
 		let features = []
@@ -2448,6 +2621,7 @@ export default class CentralCommand extends React.Component {
 		let selectedColor = '#34d2eb'
 		let unselectedColor = 'white'
 		let surveyPolygonColor = '#051d61'
+		let surveyExclusionsColor = '#c40a0a'
 
 		let homeStyle = new OlStyle({
 			image: new OlIcon({
@@ -2632,36 +2806,19 @@ export default class CentralCommand extends React.Component {
 		}
 
 		if (this.state.missionPlanningGrid) {
-			// console.log('this.state.missionPlanningGrid');
-			let missionPlans = []
-			let millisecondsSinceEpoch = new Date().getTime()
+			let missionPlans = {};
+			let millisecondsSinceEpoch = new Date().getTime();
+			let bot_list = Object.keys(this.podStatus.bots);
 
 			// Bot rally point separation scheme
-			let center = [this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat];
-			let radius = 0.02;
-			let options = {steps: this.state.missionParams.num_bots};
-			let circle = turf.circle(center, radius, options);
-			// console.log('circle');
-			// console.log(circle);
-			let circleRallyPoints = circle.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleRallyPoints);
-
-			// Bot home point separation scheme
-			let centerHome = [this.state.homeLocation.lon, this.state.homeLocation.lat];
-			let radiusHome = 0.02;
-			let optionsHome = {steps: this.state.missionParams.num_bots};
-			let circleHome = turf.circle(centerHome, radiusHome, optionsHome);
-			// console.log('circle');
-			// console.log(circleHome);
-			let circleHomePoints = circleHome.geometry.coordinates[0];
-			// TODO: Assign them to actual botIds
-			// console.log('circlePoints');
-			// console.log(circleHomePoints);
+			let rallyStartPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
+			// console.log('rallyStartPoints');
+			// console.log(rallyStartPoints);
+			let rallyFinishPoints = this.findRallySeparation(deepcopy(bot_list), this.state.homeLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
+			// console.log('rallyFinishPoints');
+			// console.log(rallyFinishPoints);
 
 			let mpg = this.state.missionPlanningGrid;
-			// console.log(mpg);
 			let mpgKeys = Object.keys(mpg);
 			mpgKeys.forEach(key => {
 				let mpGridFeature = new OlFeature(
@@ -2681,8 +2838,8 @@ export default class CentralCommand extends React.Component {
 				// Rally Point Goals
 				let bot_goal = {
 					"location": {
-						"lat": circleRallyPoints[key][1],
-						"lon": circleRallyPoints[key][0]
+						"lat": rallyStartPoints[key][1],
+						"lon": rallyStartPoints[key][0]
 					},
 					"task": {"type": "STATION_KEEP"}
 				}
@@ -2690,8 +2847,6 @@ export default class CentralCommand extends React.Component {
 
 				// Mission Goals
 				mpg[key].forEach(goal => {
-					// console.log('goal');
-					// console.log(goal);
 					let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
 					bot_goal = {
 						"location": {
@@ -2706,8 +2861,8 @@ export default class CentralCommand extends React.Component {
 				// Home Goals
 				bot_goal = {
 					"location": {
-						"lat": circleHomePoints[key][1],
-						"lon": circleHomePoints[key][0]
+						"lat": rallyFinishPoints[key][1],
+						"lon": rallyFinishPoints[key][0]
 					},
 					"task": {"type": "STATION_KEEP"}
 				}
@@ -2726,7 +2881,7 @@ export default class CentralCommand extends React.Component {
 						}
 					}
 				}
-				missionPlans.push(mission_dict);
+				missionPlans[key] = mission_dict;
 			})
 
 			this.setState({
@@ -2743,9 +2898,6 @@ export default class CentralCommand extends React.Component {
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
 				missionPlanningFeaturesList.push(mpStyledFeature)
-
-				// console.log('missionPlanningFeaturesList');
-				// console.log(missionPlanningFeaturesList);
 
 				// Add all the features in the list to the map layer
 				let missionPlanningSource = new OlVectorSource({
