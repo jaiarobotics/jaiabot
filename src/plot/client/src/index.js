@@ -21,7 +21,7 @@ class LogApp extends React.Component {
   constructor(props) {
     super(props)
 
-        this.state = {
+    this.state = {
       logs : [],
       is_selecting_logs: false,
       chosen_logs : [],
@@ -34,7 +34,7 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.is_selecting_logs ? <LogSelector logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+    const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
 
     return (
       <Router>

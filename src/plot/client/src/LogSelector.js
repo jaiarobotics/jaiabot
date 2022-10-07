@@ -29,16 +29,27 @@ function date_string_from_microseconds(timestamp_microseconds) {
     })
 }
 
+function save(key, value) {
+    if (value != null) {
+        localStorage.setItem(key, value)
+    }
+    else {
+        localStorage.removeItem(key)
+    }
+}
+
 // Dropdown menu showing all of the available logs to choose from
 export default class LogSelector extends React.Component {
 
     constructor(props) {
         super(props)
 
+        console.log(localStorage)
+
         this.state = {
             log_dict: {},
-            fleet: null,
-            bot: null,
+            fleet: localStorage.getItem("fleet"),
+            bot: localStorage.getItem("bot"),
             selectedLogs: new Set()
         }
     }
@@ -48,11 +59,26 @@ export default class LogSelector extends React.Component {
 
         const logs = this.getFilteredLogs()
 
+        const logHeader = <div key="logHeader" className="logHeaderRow">
+            <div className="fleetCell logHeader">
+                Fleet
+            </div>
+            <div className="botCell logHeader">
+                Bot
+            </div>
+            <div className="timeCell logHeader">
+                Start time
+            </div>
+            <div className="durationCell logHeader">
+                Duration
+            </div>
+        </div>
+
         const logItems = logs.map((log) => {
             const key = `${log.fleet}-${log.bot}-${log.timestamp}`
             const className = (self.state.selectedLogs.has(log)) ? "selected" : ""
 
-            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"logItem " + className}>
+            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded logItem " + className}>
                 <div className="fleetCell">
                     {log.fleet}
                 </div>
@@ -84,6 +110,7 @@ export default class LogSelector extends React.Component {
                 </select>
             </div>
 
+            {logHeader}
             <div className="logList">{logItems}</div>
 
             <div className="buttonSection">
@@ -172,14 +199,14 @@ export default class LogSelector extends React.Component {
         return log_dict
     }
 
-    dict_options(dict) {
+    dict_options(dict, selectedOption) {
         let names = Object.keys(dict)
         names.sort()
 
         let first_option = <option key={"all"}>All</option>
 
         var elements = names.map(name => {
-            return <option value={name} key={name}>{name}</option>
+            return <option value={name} key={name} selected={name == selectedOption}>{name}</option>
         })
 
         elements = [ first_option ].concat(elements)
@@ -188,17 +215,23 @@ export default class LogSelector extends React.Component {
     }
 
     fleet_option_elements() {
-        return this.dict_options(this.state.log_dict)
+        return this.dict_options(this.state.log_dict, this.state.fleet)
     }
 
     did_select_fleet(evt) {
+        var fleet = this.state.fleet
+
         if (evt.target.selectedIndex == 0) {
-            this.setState({fleet: null})
+            fleet = null
         }
         else {
-            this.setState({fleet: evt.target.value})
+            fleet = evt.target.value
         }
+        this.setState({fleet})
+        save("fleet", fleet)
+
         this.clearLogs()
+
     }
 
     bot_option_elements() {
@@ -206,17 +239,22 @@ export default class LogSelector extends React.Component {
             return null
         }
         else {
-            return this.dict_options(this.state.log_dict[this.state.fleet])
+            return this.dict_options(this.state.log_dict[this.state.fleet], this.state.bot)
         }
     }
 
     did_select_bot(evt) {
+        var bot = this.state.bot
+
         if (evt.target.selectedIndex == 0) {
-            this.setState({bot: null})
+            bot = null
         }
         else {
-            this.setState({bot: evt.target.value})
+            bot = evt.target.value
         }
+        this.setState({bot})
+        save("bot", bot)
+
         this.clearLogs()
     }
 

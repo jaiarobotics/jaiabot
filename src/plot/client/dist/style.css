@@ -200,3 +200,9 @@ button {
 #logList {
     display: inline;
 }
+
+.logHeaderRow {
+    padding: 8pt;
+    background-color: lightgray;
+}
+
