@@ -24,4 +24,7 @@ course_over_ground_timeout: 3 # timeout in seconds
 # RESTART_BOT
 # REBOOT_BOT
 # REPORT_IMU
-imu_issue_solution: REPORT_IMU 
+imu_issue_solution: RESTART_IMU_PY
+
+# Seconds
+imu_restart_timeout: 30 # default (30 seconds)
