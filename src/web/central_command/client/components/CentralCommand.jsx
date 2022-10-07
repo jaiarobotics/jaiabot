@@ -967,7 +967,7 @@ export default class CentralCommand extends React.Component {
 			title: 'Measurements',
 			fold: 'close',
 			layers: [
-				//taskData.getContourLayer(),
+				taskData.getContourLayer(),
 				taskData.getTaskPacketDiveLayer(),
 				taskData.getTaskPacketDriftLayer(),
 				taskData.getTaskPacketDiveBottomLayer(),
