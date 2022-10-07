@@ -16,7 +16,7 @@ discard_location_modes: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
 discard_location_modes: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
 imu_heading_course_max_diff: 45 # In Degrees
-course_over_ground_timeout: 3
+course_over_ground_timeout: 3 # timeout in seconds
 
 # STOP_BOT
 # USE_COG
