@@ -71,11 +71,14 @@ export default class Map {
                 L.layerGroup().addTo(this.map)
             this.taskLayerGroup =
                 L.layerGroup().addTo(this.map)
+            this.bottomStrikeLayerGroup =
+                L.layerGroup().addTo(this.map)
 
             // Add layer control
             const layersToControl = {
               'Bot paths' : this.pathLayerGroup,
-              'Task packets' : this.taskLayerGroup
+              'Task packets' : this.taskLayerGroup,
+              'Bottom strikes' : this.bottomStrikeLayerGroup
             } 
             
             var layerControl =
@@ -335,20 +338,21 @@ export default class Map {
                 // Dive markers
 
                 const dive = task_packet.dive
+                console.log('dive = ', dive)
+
+                const d_start = to_array(dive.start_location)
+
+                const descriptors = {
+                    'depth_achieved': ['Depth achieved', 'm'],
+                    'duration_to_acquire_gps': ['Duration to acquire GPS', 's'],
+                    'powered_rise_rate': ['Powered rise rate', 'm/s'],
+                    'unpowered_rise_rate': ['Unpowered rise rate', 'm/s']
+                }
+
+                const d_description = description_of(dive, descriptors)
 
                 if (dive.depth_achieved != 0) {
-
-                    const d_start = to_array(dive.start_location)
-
-                    const descriptors = {
-                        'depth_achieved': ['Depth achieved', 'm'],
-                        'dive_rate': ['Dive rate', 'm/s'],
-                        'duration_to_acquire_gps': ['Duration to acquire GPS', 's'],
-                        'powered_rise_rate': ['Powered rise rate', 'm/s'],
-                        'unpowered_rise_rate': ['Unpowered rise rate', 'm/s']
-                    }
-
-                    const d_hover = '<h3>Dive</h3>' + description_of(dive, descriptors)
+                    const hovertext = '<h3>Dive</h3>' + d_description
 
                     // A circle marker at the start location
                     const d_start_circle = new L
@@ -356,9 +360,24 @@ export default class Map {
                                                  color : "blue",
                                                  radius : 6.0,
                                                })
-                                               .bindPopup(d_hover)
-                                               .bindTooltip(d_hover)
+                                               .bindPopup(hovertext)
+                                               .bindTooltip(hovertext)
                     d_start_circle.addTo(this.taskLayerGroup)
+                }
+
+                if (dive.bottom_dive) {
+                    // A circle marker at the start location
+                    const hovertext = '<h3>Bottom Strike</h3>' + d_description
+
+                    const circleMarker = new L
+                                               .circleMarker(d_start, {
+                                                 color : "red",
+                                                 radius : 6.0,
+                                               })
+                                               .bindPopup(hovertext)
+                                               .bindTooltip(hovertext)
+
+                    circleMarker.addTo(this.bottomStrikeLayerGroup)
                 }
 
             }
