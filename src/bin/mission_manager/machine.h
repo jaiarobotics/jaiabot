@@ -834,8 +834,11 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
 
             auto& drift = *drift_packet().mutable_estimated_drift();
             drift.set_speed_with_units(boost::units::sqrt(dx * dx + dy * dy) / dt);
-            drift.set_heading_with_units(goby::util::pi<double> / 2 * boost::units::si::radians -
-                                         boost::units::atan2(dy, dx));
+
+            auto heading = goby::util::pi<double> / 2 * boost::units::si::radians -
+                                         boost::units::atan2(dy, dx);
+            if (heading < 0 * boost::units::si::radians) heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
+            drift.set_heading_with_units(heading);
         }
     }
 
