@@ -36,6 +36,11 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
 
+    // Show the plots, if present
+    const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
+        <div id="plot" className="plot"></div>
+    </div>
+
     return (
       <Router>
         <div><div className = "vertical flexbox top_pane padded">
@@ -99,10 +104,8 @@ class LogApp extends React.Component {
         </div>
         </div>
 
-        <div className = "bottom_pane">
-          <div className="plotcontainer">
-            <div id="plot" className="plot"></div>
-          </div>
+        <div className = "bottom_pane flexbox horizontal">
+          { plotContainer }
 
           <div className="map" id="map"></div>
         </div>

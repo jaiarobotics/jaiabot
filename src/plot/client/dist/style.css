@@ -20,20 +20,14 @@
 }
 
 .plotcontainer {
-    position: absolute;
     overflow: auto;
-    left: 0%;
-    top: 0%;
-    width: 59%;
     height: 100%;
+    flex: 1 1 60%;
 }
 
 .map {
-    position: absolute;
-    left: 60%;
-    top: 0%;
-    width: 39%;
     height: 100%;
+    flex: 1 1 40%;
 }
 
 .plot {
@@ -137,33 +131,52 @@ button {
     top: 25%;
     bottom: 25%;
     right: 25%;
-    border: 3px solid green;
     padding: 10px;
     z-index: 10000;
 }
 
 .dialog {
-    background-color: antiquewhite;
+    position: fixed;
+    left: 25%;
+    top: 10%;
+    right: 25%;
+    z-index: 10000;
+
+    background-color: whitesmoke;
+    border: 2px solid darkgray;
     padding: 10pt;
     border-radius: 10pt;
+    box-shadow: 2pt 2pt 10pt darkgray;
 }
 
-.filterSection {
-    height: 20%;
-    padding: 4pt;
+.logSelector.dialog {
+    height: 400pt;
+}
+
+.dialog > .section {
+    margin-bottom: 10pt;
+}
+
+.dialogHeader {
+    font-size: larger;
+    font-weight: bold;
+    height: 30pt;
+    margin-bottom: 10pt;
+}
+
+.dialogSectionHeader {
+    margin-bottom: 8pt;
 }
 
 .logList {
     background-color: white;
     border-color: lightgray;
-    height: 60%;
+    height: 220pt;
     overflow-y: auto;
 }
 
 .buttonSection {
     text-align: right;
-    height: 20%;
-    padding: 4pt;
 }
 
 .logItem {

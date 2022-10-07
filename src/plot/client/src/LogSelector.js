@@ -97,23 +97,26 @@ export default class LogSelector extends React.Component {
         })
 
         return (
-          <div className="centered dialog">
-            <div className="filterSection">
-                <div>Filters</div>
+          <div className="logSelector dialog">
+            <div className="dialogHeader">Select Logs</div>
+            <div className="section">
+                <div className="dialogSectionHeader">Filters</div>
                 Fleet
-                <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}>
+                <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
                 {this.fleet_option_elements()}
                 </select>
                 Bot
-                <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)}>
+                <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
                 {this.bot_option_elements()}
                 </select>
             </div>
 
-            {logHeader}
-            <div className="logList">{logItems}</div>
+            <div className="section">
+                {logHeader}
+                <div className="logList">{logItems}</div>
+            </div>
 
-            <div className="buttonSection">
+            <div className="buttonSection section">
                 <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
                 <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
             </div>
@@ -199,14 +202,14 @@ export default class LogSelector extends React.Component {
         return log_dict
     }
 
-    dict_options(dict, selectedOption) {
+    dict_options(dict) {
         let names = Object.keys(dict)
         names.sort()
 
         let first_option = <option key={"all"}>All</option>
 
         var elements = names.map(name => {
-            return <option value={name} key={name} selected={name == selectedOption}>{name}</option>
+            return <option value={name} key={name}>{name}</option>
         })
 
         elements = [ first_option ].concat(elements)
@@ -215,7 +218,7 @@ export default class LogSelector extends React.Component {
     }
 
     fleet_option_elements() {
-        return this.dict_options(this.state.log_dict, this.state.fleet)
+        return this.dict_options(this.state.log_dict)
     }
 
     did_select_fleet(evt) {
@@ -239,7 +242,7 @@ export default class LogSelector extends React.Component {
             return null
         }
         else {
-            return this.dict_options(this.state.log_dict[this.state.fleet], this.state.bot)
+            return this.dict_options(this.state.log_dict[this.state.fleet])
         }
     }
 
