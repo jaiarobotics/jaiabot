@@ -249,7 +249,7 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->set_gps_tpv(tpv);
         });
 
-    // subscribe for GPS data (to reacquire after resurfacing)
+    // subscribe for GPS data (to reacquire gps)
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
         [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
             glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop()
