@@ -13,7 +13,7 @@ discard_location_modes: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIR
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
 discard_location_modes: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
-imu_heading_course_max_diff: 45
+imu_heading_course_max_diff: 45 # In Degrees
 course_over_ground_timeout: 3
 
 # STOP_BOT
@@ -23,3 +23,5 @@ course_over_ground_timeout: 3
 # REBOOT_BOT
 # REPORT_IMU
 imu_issue_solution: REPORT_IMU 
+
+is_sim: $fusion_in_simulation

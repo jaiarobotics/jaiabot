@@ -528,7 +528,7 @@ void jaiabot::apps::Fusion::loop()
                 double diff = std::abs(course - heading);
 
                 glog.is_debug1() &&
-                    glog << "The previous course is diffenct than the current course"
+                    glog << "The previous course is different than the current course"
                          << ", Difference between course and heading: " << diff
                          << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
 
@@ -542,9 +542,7 @@ void jaiabot::apps::Fusion::loop()
 
                     imu_issue_ = true;
 
-                    glog.is_debug1() && glog << "The diff between the course and heading is >="
-                                             << cfg().imu_heading_course_max_diff()
-                                             << ", Post IMU Warning" << endl;
+                    glog.is_debug1() && glog << "Post IMU Warning" << endl;
                 }
             }
         }
@@ -578,7 +576,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }*/
-    if (imu_issue_)
+    if (imu_issue_ && !cfg().is_sim())
     {
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__IMU_ISSUE);
