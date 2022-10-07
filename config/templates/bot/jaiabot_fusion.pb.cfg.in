@@ -3,6 +3,8 @@ $interprocess_block
 
 bot_id: $bot_id
 
+is_sim: $fusion_in_simulation
+
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
@@ -12,3 +14,14 @@ discard_location_modes: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
 discard_location_modes: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS
 discard_location_modes: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
 discard_location_modes: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+
+imu_heading_course_max_diff: 45 # In Degrees
+course_over_ground_timeout: 3 # timeout in seconds
+
+# STOP_BOT
+# USE_COG
+# USE_CORRECTION
+# RESTART_BOT
+# REBOOT_BOT
+# REPORT_IMU
+imu_issue_solution: REPORT_IMU 

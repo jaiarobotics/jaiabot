@@ -100,6 +100,7 @@ class SimulatorTranslation : public goby::moos::Translator
     int time_out_sky_{1};
     double hdop_rand_max_{1};
     double pdop_rand_max_{1.5};
+    double heading_rand_max_{0};
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -189,6 +190,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
 
         hdop_rand_max_ = sim_cfg_.gps_hdop_rand_max();
         pdop_rand_max_ = sim_cfg_.gps_pdop_rand_max();
+        heading_rand_max_ = sim_cfg_.heading_rand_max();
+
+        // Seed once
+        std::srand(unsigned(std::time(NULL)));
     }
     else
     {
@@ -264,7 +269,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     rmc.course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
-    hdt.true_heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
+    double heading_error = (double)std::rand() / (RAND_MAX)*heading_rand_max_;
+
+    hdt.true_heading = (moos_buffer["NAV_HEADING"].GetDouble() + heading_error) * degree::degrees;
     {
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(rmc.serialize().message_cr_nl());
@@ -284,7 +291,6 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         double hdop;
         double pdop;
-        std::srand(unsigned(std::time(NULL)));
         hdop = (double)std::rand() / (RAND_MAX)*hdop_rand_max_;
         pdop = (double)std::rand() / (RAND_MAX)*pdop_rand_max_;
 

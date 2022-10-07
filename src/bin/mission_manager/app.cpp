@@ -315,6 +315,19 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
             }
         });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
+            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (imu_issue.solution())
+            {
+                case protobuf::IMUIssue::STOP_BOT:
+                    machine_->process_event(statechart::EvStop());
+                    break;
+            }
+        });
 }
 
 jaiabot::apps::MissionManager::~MissionManager()
