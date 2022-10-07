@@ -25,6 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/imu.proto";
 
 package jaiabot.config;
 
@@ -42,5 +43,11 @@ message Fusion
     optional int32 data_timeout_seconds = 20 [default = 20];
 
     repeated jaiabot.protobuf.MissionState discard_location_modes = 30;
+
+    optional double imu_heading_course_max_diff = 31 [default = 45];
+
+    optional int32 course_over_ground_timeout = 32 [default = 3]; 
+
+    optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 33 [default = REPORT_IMU];
     
 }
