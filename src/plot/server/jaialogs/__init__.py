@@ -204,9 +204,23 @@ class Series:
         self.hovertext = {}
 
         if log:
-            series = zip(h5_get_series(log[get_root_item_path(path, '_utime_')]), h5_get_series(log[get_root_item_path(path, '_scheme_')]), h5_get_series(log[path]))
+            _utime__array = log[get_root_item_path(path, '_utime_')]
+            _scheme__array = log[get_root_item_path(path, '_scheme_')]
+            path_array = log[path]
+
+            series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
             series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
-            self.utime, schemes, self.y_values = zip(*series)
+
+            try:
+                self.utime, schemes, self.y_values = zip(*series)
+            except ValueError:
+                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
+                self.utime = []
+                self.schemes = []
+                self.y_values = []
+                self.hovertext = {}
+
+                return
 
             self.hovertext = h5_get_hovertext(log[path]) or {}
 
