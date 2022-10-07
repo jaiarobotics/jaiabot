@@ -142,7 +142,6 @@ class LogApp extends React.Component {
 
     }
     else {
-      console.log('empty chosen_logs')
       this.map.clear()
     }
     this.refresh_plots()

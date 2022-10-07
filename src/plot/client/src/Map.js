@@ -339,7 +339,6 @@ export default class Map {
                 // Dive markers
 
                 const dive = task_packet.dive
-                console.log('dive = ', dive)
 
                 const d_start = to_array(dive.start_location)
 
