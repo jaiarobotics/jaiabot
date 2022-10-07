@@ -2,6 +2,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/engineering DESTINATION ${project_SHARE_DI
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/jaia.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/missions.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/contours.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 
 set(central_command_outdir ${project_SHARE_DIR}/jaiabot/web/central_command/dist/client)
 add_custom_command(OUTPUT ${central_command_outdir}/client.js ${central_command_outdir}/favicon.png ${central_command_outdir}/index.html ${central_command_outdir}/manifest.json
