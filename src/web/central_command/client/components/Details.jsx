@@ -245,6 +245,10 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                             <td>{bot.hdop?.toFixed(prec)}</td>
                         </tr>
                         <tr>
+                            <td>PDOP</td>
+                            <td>{bot.pdop?.toFixed(prec)}</td>
+                        </tr>
+                        <tr>
                             <td>Depth</td>
                             <td>{bot.depth?.toFixed(prec)} m</td>
                         </tr>

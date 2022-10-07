@@ -97,8 +97,9 @@ class SimulatorTranslation : public goby::moos::Translator
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    int time_out_sky_ = 1;
-    double hdop_rand_max_ = 1;
+    int time_out_sky_{1};
+    double hdop_rand_max_{1};
+    double pdop_rand_max_{1.5};
 };
 
 class Simulator : public zeromq::MultiThreadApplication<config::Simulator>
@@ -187,6 +188,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         }
 
         hdop_rand_max_ = sim_cfg_.gps_hdop_rand_max();
+        pdop_rand_max_ = sim_cfg_.gps_pdop_rand_max();
     }
     else
     {
@@ -281,10 +283,13 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         goby::middleware::protobuf::gpsd::SkyView sky;
 
         double hdop;
+        double pdop;
         std::srand(unsigned(std::time(NULL)));
         hdop = (double)std::rand() / (RAND_MAX)*hdop_rand_max_;
+        pdop = (double)std::rand() / (RAND_MAX)*pdop_rand_max_;
 
         sky.set_hdop(hdop);
+        sky.set_pdop(pdop);
         interprocess().publish<goby::middleware::groups::gpsd::sky>(sky);
         sky_last_updated_ = goby::time::SteadyClock::now();
     }
