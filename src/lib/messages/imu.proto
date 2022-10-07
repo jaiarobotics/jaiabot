@@ -61,6 +61,7 @@ message IMUIssue
         RESTART_BOT = 3;
         REBOOT_BOT = 4;
         REPORT_IMU = 5;
+        RESTART_IMU_PY = 6;
     }
 
     required SolutionType solution = 1;
