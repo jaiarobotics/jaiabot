@@ -8,3 +8,4 @@ CMakeCache.txt
 __pycache__
 .DS_Store
 .idea
+config/launch/simulation/all.launch

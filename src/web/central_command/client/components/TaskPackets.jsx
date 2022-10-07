@@ -25,6 +25,7 @@ import * as turf from '@turf/turf';
 import { Vector as VectorLayer } from "ol/layer"
 import GeoJSON from 'ol/format/GeoJSON'
 import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
+import {asString} from 'ol/color'
 
 const POLL_INTERVAL = 5000
 
@@ -226,8 +227,8 @@ export class TaskData {
                 });
 
                 let task_calcs = this.calculateDiveDrift(taskPacket);
-                let dive_lon = task_calcs.diveLocation.geometry.coordinates[0];
-                let dive_lat = task_calcs.diveLocation.geometry.coordinates[1];
+                let dive_lon = task_calcs.diveLocation.lon;
+                let dive_lat = task_calcs.diveLocation.lat;
                 let pt = equirectangular_to_mercator([dive_lon, dive_lat])
 
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
@@ -340,7 +341,8 @@ export class TaskData {
     }
 
     calculateDiveDrift(taskPacket) {
-        let driftPacket = taskPacket.drift;
+
+        let driftPacket;
         let divePacket;
         let task_calcs;
 
@@ -354,8 +356,12 @@ export class TaskData {
             task_calcs = {driftSpeed: 0, driftDirection: 0};
         }
         
-        if(driftPacket.driftDuration > 0)
+        if(taskPacket?.drift != null 
+            && taskPacket.drift?.driftDuration != null
+            && taskPacket.drift.driftDuration > 0)
         {
+            driftPacket = taskPacket.drift;
+
             let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
             let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
 
@@ -373,7 +379,9 @@ export class TaskData {
                 let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
                 let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
                 let dive_location = turf.midpoint(dive_start, ascent_wpt);
-                task_calcs.diveLocation = dive_location;
+                let dive_lon = dive_location.geometry.coordinates[0];
+                let dive_lat = dive_location.geometry.coordinates[1];
+                task_calcs.diveLocation = {lat: dive_lat, lon: dive_lon};
             }
 
             task_calcs.driftSpeed = drift_meters_per_second;
@@ -383,13 +391,25 @@ export class TaskData {
     }
 
     _updateContourPlot() {
-        jaiaAPI.getTaskGeoJSON().then((geojson) => {
+        jaiaAPI.getDepthContours().then((geojson) => {
                 console.log('geojson = ', geojson)
 
-                // Manually transform features, because OpenLayers is a lazy, useless piece of shit
+                // Manually transform features from lon/lat to the view's projection.
                 var features = new GeoJSON().readFeatures(geojson)
                 features.forEach((feature) => {
+                    // Transform to the map's mercator projection
                     feature.getGeometry().transform(equirectangular, mercator)
+
+                    const properties = feature.getProperties()
+                    const color = properties.color
+
+                    feature.setStyle(new Style({
+                        stroke: new Stroke({
+                            color: color,
+                            width: 2.0
+                        })
+                    }))
+
                 })
 
                 const vectorSource = new VectorSource({
@@ -405,17 +425,15 @@ export class TaskData {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
 
             console.log('taskPackets.length = ', taskPackets.length)
-
-            if (taskPackets.length > this.taskPackets.length) {
-                console.log('new taskPackets arrived!')
-
+            console.log('this.taskPackets.length = ', this.taskPackets.length)
+            if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
 
                 console.log(this.taskPackets);
 
                 if (taskPackets.length >= 3) {
                     console.log('Updating contour plot')
-                    //this.updateContourPlot()
+                    this._updateContourPlot()
                 }
 
             }
@@ -423,9 +441,6 @@ export class TaskData {
             this.updateDiveLocations();
             this.updateDriftLocations();
         })
-
-        // We're hiding this bathy chart for now
-        // this._updateContourPlot()
     }
 
     getContourLayer() {
