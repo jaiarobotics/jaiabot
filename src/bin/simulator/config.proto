@@ -43,7 +43,7 @@ message Simulator
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    required goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
+    optional goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
     optional goby.middleware.protobuf.UDPPointToPointConfig
@@ -59,12 +59,16 @@ message Simulator
     // Default is to use the hdop value of 1 so bot does not need to reacquire gps
     optional double gps_hdop_rand_max = 27 [default = 1.0];
 
-    // Default is to use the pdop value of 1.5 so bot does not need to reacquire gps
-    optional double gps_pdop_rand_max = 28 [default = 1.5];
+    // Default is bot simulation
+    optional bool is_bot_sim = 28 [default = true];
 
-    required double vertical_dive_rate = 30
+    // Default is to use the pdop value of 1.5 so bot does not need to reacquire gps
+    optional double gps_pdop_rand_max = 29 [default = 1.5];
+
+    optional double vertical_dive_rate = 30
+
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
-    required double seafloor_depth = 31
+    optional double seafloor_depth = 31
         [(dccl.field) = { units { derived_dimensions: "length" } }];
 
     message ScalarSample

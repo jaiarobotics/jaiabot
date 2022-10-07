@@ -6,6 +6,8 @@
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import SoundEffects from './SoundEffects'
+// TurfJS
+import * as turf from '@turf/turf';
 
 let prec = 2
 
@@ -147,14 +149,14 @@ function healthRow(bot) {
     )
 }
 
-export function BotDetailsComponent(bot, api, closeWindow) {
+export function BotDetailsComponent(bot, hub, api, closeWindow) {
     if (bot == null) {
         return (<div></div>)
     }
 
     let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0)
 
-    var statusAgeClassName = ''
+    let statusAgeClassName = ''
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
     }
@@ -163,22 +165,45 @@ export function BotDetailsComponent(bot, api, closeWindow) {
     }
 
     // Active Goal
-    let activeGoal = bot.activeGoal ?? "None"
-    let distToGoal = bot.distanceToActiveGoal ?? "No Active Goal"
+    let activeGoal = bot.activeGoal ?? "N/A"
+    let distToGoal = bot.distanceToActiveGoal ?? "N/A"
     
-    var activeGoalRow = (
+    let activeGoalRow = (
         <tr>
             <td>Active Goal</td>
             <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
         </tr>
     )
 
-    var activeGoalDistRow = (
+    let activeGoalDistRow = (
         <tr>
-            <td>Distance To Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} (m)</td>
+            <td>Distance to Goal</td>
+            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} m</td>
         </tr>
     )
+
+    // Distance from hub
+    let distToHub = "N/A"
+    if (bot?.location != null
+        && hub?.location != null)
+    {
+        let botloc = turf.point([bot.location.lon, bot.location.lat]); 
+        let hubloc = turf.point([hub.location.lon, hub.location.lat]);
+        var options = {units: 'meters'};
+
+        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(prec);
+    }
+
+    let vccVoltageClassName = ''
+    if(bot.vccVoltage <= 18 &&
+        bot.vccVoltage > 16) 
+    {
+        vccVoltageClassName = 'healthFailed';
+    } 
+    else if(bot.vccVoltage < 16)
+    {
+        vccVoltageClassName = 'healthDegraded';
+    }
 
     return (
         <div id='botDetailsBox'>
@@ -197,6 +222,10 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                             </td>
                         </tr>
                         {healthRow(bot)}
+                        <tr>
+                            <td>Distance from Hub</td>
+                            <td>{distToHub} m</td>
+                        </tr>
                         <tr>
                             <td>Mission State</td>
                             <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
@@ -271,7 +300,7 @@ export function BotDetailsComponent(bot, api, closeWindow) {
                             <td>Thermocouple</td>
                             <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
                         </tr> */}
-                        <tr>
+                        <tr className={vccVoltageClassName}>
                             <td>Vcc Voltage</td>
                             <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                         </tr>

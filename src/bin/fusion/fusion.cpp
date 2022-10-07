@@ -296,8 +296,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 // only set location if the current mode is not included in discard_status_modes_
                 if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
                 {
-                    glog.is_debug1() && glog << "Update lat lon:  "
+
+                    glog.is_debug1() && glog << "Updating Lat Long because bot is in the correct state:  "
                                              << latest_bot_status_.mission_state() << std::endl;
+                                             
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
