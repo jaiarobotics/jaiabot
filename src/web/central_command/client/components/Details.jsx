@@ -215,6 +215,10 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
 
                 <table id="botDetailsTable">
                     <tbody>
+                        <tr className={statusAgeClassName}>
+                            <td>Status Age</td>
+                            <td>{statusAge} s</td>
+                        </tr>
                         <tr>
                             <td>Command</td>
                             <td>
@@ -225,6 +229,10 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                         <tr>
                             <td>Distance from Hub</td>
                             <td>{distToHub} m</td>
+                        </tr>
+                        <tr className={vccVoltageClassName}>
+                            <td>Vcc Voltage</td>
+                            <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                         </tr>
                         <tr>
                             <td>Mission State</td>
@@ -268,10 +276,10 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                             <td>Pitch</td>
                             <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
                         </tr>
-                        <tr>
+                        {/* <tr>
                             <td>Roll</td>
                             <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
-                        </tr>
+                        </tr> */}
                         <tr>
                             <td>Sys_Cal</td>
                             <td>{bot.calibrationStatus?.sys.toFixed(0)}</td>
@@ -300,10 +308,6 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                             <td>Thermocouple</td>
                             <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
                         </tr> */}
-                        <tr className={vccVoltageClassName}>
-                            <td>Vcc Voltage</td>
-                            <td>{bot.vccVoltage?.toFixed(prec)} V</td>
-                        </tr>
                         <tr>
                             <td>Vcc Current</td>
                             <td>{bot.vccCurrent?.toFixed(prec)} A</td>
@@ -312,10 +316,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                             <td>5v Current</td>
                             <td>{bot.vvCurrent?.toFixed(prec)} A</td>
                         </tr>
-                        <tr className={statusAgeClassName}>
-                            <td>Status Age</td>
-                            <td>{statusAge} s</td>
-                        </tr>
+                        
 
                     </tbody>
                 </table>
