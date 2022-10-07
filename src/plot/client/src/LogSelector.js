@@ -156,10 +156,22 @@ export default class LogSelector extends React.Component {
     }
 
     getFilteredLogs() {
-        const log_dict = this.state.log_dict
+        const { fromDate, toDate, log_dict } = this.state
 
-        const from_timestamp = new Date(this.state.fromDate).getTime() / 1e3
-        const to_timestamp = new Date(this.state.toDate).getTime() / 1e3 + 24 * 60 * 60 // Add a day, so we're inclusive of this date
+        function stringToTimestamp(str) {
+            if (str == null) return null
+            const d = new Date(str)
+            const t = d.getTime()
+            if (isNaN(t)) return null
+            else return t / 1e3
+        }
+
+        const from_timestamp = stringToTimestamp(this.state.fromDate)
+        var to_timestamp = stringToTimestamp(this.state.toDate)
+
+        if (to_timestamp != null) {
+            to_timestamp = to_timestamp + 24 * 60 * 60
+        }
 
         var log_array = []
 
@@ -174,8 +186,8 @@ export default class LogSelector extends React.Component {
                 const bot_dict = fleet_dict[bot]
 
                 for (const log of Object.values(bot_dict)) {
-                    if (!isNaN(from_timestamp) && log.timestamp < from_timestamp) continue;
-                    if (!isNaN(to_timestamp) && log.timestamp > to_timestamp) continue;
+                    if (from_timestamp != null && log.timestamp < from_timestamp) continue;
+                    if (to_timestamp != null && log.timestamp > to_timestamp) continue;
 
                     log_array.push(log)
                 }
