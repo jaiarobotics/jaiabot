@@ -50,11 +50,12 @@ class LogApp extends React.Component {
             </div>
         </div>
 
-        <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+        <span>
+          <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+          <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
+        </span>
 
         { log_selector }
-
-        <div id="logList" className="padded">No logs selected</div>
 
         <PathSelector logs = {this.state.chosen_logs} key =
             {this.state.chosen_logs} on_select_path =

@@ -52,7 +52,7 @@ export default class LogSelector extends React.Component {
             const key = `${log.fleet}-${log.bot}-${log.timestamp}`
             const className = (self.state.selectedLogs.has(log)) ? "selected" : ""
 
-            const row = <div key={key} onClick={this.didToggleLog.bind(this, log)} className={className}>
+            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"logItem " + className}>
                 <div className="fleetCell">
                     {log.fleet}
                 </div>
@@ -105,6 +105,12 @@ export default class LogSelector extends React.Component {
             selectedLogs.add(log)
             this.setState({selectedLogs})
         }
+    }
+
+    clearLogs() {
+        var selectedLogs = this.state.selectedLogs
+        selectedLogs.clear()
+        this.setState({selectedLogs})
     }
 
     getFilteredLogs() {
@@ -192,6 +198,7 @@ export default class LogSelector extends React.Component {
         else {
             this.setState({fleet: evt.target.value})
         }
+        this.clearLogs()
     }
 
     bot_option_elements() {
@@ -210,6 +217,7 @@ export default class LogSelector extends React.Component {
         else {
             this.setState({bot: evt.target.value})
         }
+        this.clearLogs()
     }
 
     cancelClicked() {
