@@ -68,16 +68,16 @@ message Command
 message BotStatus
 {
     /*
-    Actual maximum size of message: 46 bytes / 368 bits
+    Actual maximum size of message: 49 bytes / 392 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................353
-            padding to full byte...................7
-    Allowed maximum size of message: 46 bytes / 368 bits
+            body.................................381
+            padding to full byte...................3
+    Allowed maximum size of message: 49 bytes / 392 bits
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 46
+        max_bytes: 49
         codec_version: 3
         unit_system: "si"
     };
@@ -201,6 +201,10 @@ message BotStatus
     }];
 
     optional IMUData.CalibrationStatus calibration_status = 57;
+    
+    optional double hdop = 58 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional double pdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 }
 
 message DriftPacket
