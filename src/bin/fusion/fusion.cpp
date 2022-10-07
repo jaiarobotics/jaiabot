@@ -82,6 +82,7 @@ class Fusion : public ApplicationBase
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_modes_;
+    // timeout in seconds
     int course_over_ground_timeout_{0};
     double previous_course_over_ground_{0};
     bool imu_issue_{false};
