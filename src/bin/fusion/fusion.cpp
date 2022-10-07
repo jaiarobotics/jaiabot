@@ -529,7 +529,7 @@ void jaiabot::apps::Fusion::loop()
                 double diff = std::abs(course - heading);
 
                 glog.is_debug1() &&
-                    glog << "The previous course is diffenct than the current course"
+                    glog << "The previous course is different than the current course"
                          << ", Difference between course and heading: " << diff
                          << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
 
