@@ -44,12 +44,12 @@ export default class LogSelector extends React.Component {
     constructor(props) {
         super(props)
 
-        console.log(localStorage)
-
         this.state = {
             log_dict: {},
             fleet: localStorage.getItem("fleet"),
             bot: localStorage.getItem("bot"),
+            fromDate: localStorage.getItem("fromDate"),
+            toDate: localStorage.getItem("toDate"),
             selectedLogs: new Set()
         }
     }
@@ -101,14 +101,26 @@ export default class LogSelector extends React.Component {
             <div className="dialogHeader">Select Logs</div>
             <div className="section">
                 <div className="dialogSectionHeader">Filters</div>
-                Fleet
-                <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
-                {this.fleet_option_elements()}
-                </select>
-                Bot
-                <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
-                {this.bot_option_elements()}
-                </select>
+
+                <div className="horizontal flexbox equal" style={{justifyContent: "space-between", alignItems: "center"}}>
+
+                    Fleet
+                    <select name="fleet" id="fleet" className={"padded log"} onChange={this.did_select_fleet.bind(this)}  defaultValue={this.state.fleet}>
+                    {this.fleet_option_elements()}
+                    </select>
+
+                    Bot
+                    <select name="bot" id="bot" className={"padded log"} onChange={this.did_select_bot.bind(this)} defaultValue={this.state.bot}>
+                    {this.bot_option_elements()}
+                    </select>
+
+                    From
+                    <input type="date" id="fromDate" defaultValue={this.state.fromDate} onInput={this.fromDateChanged.bind(this)} />
+                    To
+                    <input type="date" id="toDate" defaultValue={this.state.toDate} onInput={this.toDateChanged.bind(this)} />
+                
+                </div>
+
             </div>
 
             <div className="section">
@@ -144,7 +156,22 @@ export default class LogSelector extends React.Component {
     }
 
     getFilteredLogs() {
-        const log_dict = this.state.log_dict
+        const { fromDate, toDate, log_dict } = this.state
+
+        function stringToTimestamp(str) {
+            if (str == null) return null
+            const d = new Date(str)
+            const t = d.getTime()
+            if (isNaN(t)) return null
+            else return t / 1e3
+        }
+
+        const from_timestamp = stringToTimestamp(this.state.fromDate)
+        var to_timestamp = stringToTimestamp(this.state.toDate)
+
+        if (to_timestamp != null) {
+            to_timestamp = to_timestamp + 24 * 60 * 60
+        }
 
         var log_array = []
 
@@ -158,7 +185,12 @@ export default class LogSelector extends React.Component {
 
                 const bot_dict = fleet_dict[bot]
 
-                log_array = log_array.concat(Object.values(bot_dict))
+                for (const log of Object.values(bot_dict)) {
+                    if (from_timestamp != null && log.timestamp < from_timestamp) continue;
+                    if (to_timestamp != null && log.timestamp > to_timestamp) continue;
+
+                    log_array.push(log)
+                }
             }
         }
 
@@ -261,6 +293,18 @@ export default class LogSelector extends React.Component {
         this.clearLogs()
     }
 
+    fromDateChanged(evt) {
+        const fromDate = evt.target.value
+        this.setState({fromDate})
+        save("fromDate", fromDate)
+    }
+
+    toDateChanged(evt) {
+        const toDate = evt.target.value
+        this.setState({toDate})
+        save("toDate", toDate)
+    }
+
     cancelClicked() {
         this.props.didSelectLogs?.(null)
     }
@@ -270,6 +314,7 @@ export default class LogSelector extends React.Component {
             return log.filename;
         })
 
+        console.debug('Selected logs: ', selectedLogNames)
         this.props.didSelectLogs?.(selectedLogNames)
     }
 

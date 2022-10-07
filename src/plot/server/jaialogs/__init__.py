@@ -296,14 +296,14 @@ def get_map(log_names):
     # Open all our logs
     logs = [h5py.File(log_name) for log_name in log_names]
 
-    TPV_lat_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat'
-    TPV_lon_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon'
+    BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
+    BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
 
     seriesList = []
 
     for log in logs:
-        lat_series = Series(log=log, path=TPV_lat_path, invalid_values=[0])
-        lon_series = Series(log=log, path=TPV_lon_path, invalid_values=[0])
+        lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
+        lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
 
         thisSeries = []
 
