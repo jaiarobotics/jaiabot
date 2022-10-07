@@ -252,9 +252,11 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
         [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
-            glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop() << std::endl;
+            glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop()
+                                     << ", PDOP: " << sky.pdop() << std::endl;
 
-            if (sky.has_hdop() && (sky.hdop() <= cfg().gps_hdop_fix()))
+            if (sky.has_hdop() && sky.has_pdop() && (sky.hdop() <= cfg().gps_hdop_fix()) &&
+                (sky.pdop() <= cfg().gps_pdop_fix()))
             {
                 // Increment gps fix checks until we are > the threshold for confirming gps fix
                 if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
@@ -271,12 +273,15 @@ jaiabot::apps::MissionManager::MissionManager()
                 {
                     glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
                                              << sky.hdop() << " <= " << cfg().gps_hdop_fix()
+                                             << ", pdop is " << sky.pdop()
+                                             << " <= " << cfg().gps_pdop_fix()
                                              << " Reset incr for gps degraded fix" << std::endl;
 
                     // Post Event for gps fix
                     machine_->process_event(statechart::EvGPSFix());
 
                     // Reset degraded fix check as we received hdop below cfg().gps_hdop_fix()
+                    // and pdop is below cfg().gps_pdop_fix()
                     gps_degraded_fix_check_incr_ = 1;
                 }
             }
@@ -296,14 +301,16 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
                 else
                 {
-                    glog.is_debug1() && glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is "
-                                             << sky.hdop() << " > " << cfg().gps_hdop_fix()
-                                             << " Reset incr for gps fix" << std::endl;
+                    glog.is_debug1() &&
+                        glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << sky.hdop()
+                             << " > " << cfg().gps_hdop_fix() << ", pdop is " << sky.pdop() << " > "
+                             << cfg().gps_pdop_fix() << " Reset incr for gps fix" << std::endl;
 
                     // Post Event for no gps fix
                     machine_->process_event(statechart::EvGPSNoFix());
 
                     // Reset if gps hdop is above cfg().gps_hdop_fix()
+                    // and pdop is above cfg().gps_pdop_fix()
                     gps_fix_check_incr_ = 1;
                 }
             }
