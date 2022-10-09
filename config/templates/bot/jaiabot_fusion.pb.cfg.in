@@ -28,3 +28,6 @@ imu_issue_solution: RESTART_IMU_PY
 
 # Seconds
 imu_restart_timeout: 30 # default (30 seconds)
+
+# fusion runs at 2hz
+total_imu_issue_checks: 15

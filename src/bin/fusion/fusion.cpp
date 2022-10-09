@@ -77,6 +77,7 @@ class Fusion : public ApplicationBase
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
+    double degrees_difference(const double& heading, const double& course);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -499,8 +500,12 @@ void jaiabot::apps::Fusion::loop()
     {
         if (!imu_issue_)
         {
-            //Let's detect imu issue
-            detect_imu_issue();
+            // only detect imu issue if the current mode is not included in discard_status_modes_
+            if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
+            {
+                //Let's detect imu issue
+                detect_imu_issue();
+            }
         }
 
         if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
@@ -658,7 +663,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
             // Make sure course is updating with new value
             if (previous_course_over_ground_ != course)
             {
-                double diff = std::abs(course - heading);
+                double diff = degrees_difference(heading, course);
 
                 glog.is_debug1() &&
                     glog << "The previous course is different than the current course"
@@ -736,6 +741,28 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     if(imu_issue_)
     {
         last_imu_issue_report_time_ = now;
+        // Reset increment
+        imu_issue_hdg_incr_ = 1;
     }
-    
+}
+
+/**
+ * @brief The difference between heading and course
+ * 
+ * @param heading double
+ * @param course double
+ * @return double 
+ */
+double jaiabot::apps::Fusion::degrees_difference(const double& heading, const double& course)
+{
+    double absDiff = std::abs(heading - course);
+
+    if (absDiff <= 180)
+    {
+        return absDiff;
+    }
+    else
+    {
+        return 360 - absDiff;
+    }
 }
