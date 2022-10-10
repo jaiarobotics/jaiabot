@@ -3,7 +3,7 @@ $interprocess_block
 
 bot_id: $bot_id
 
-is_sim: false
+is_sim: $fusion_in_simulation
 
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
 discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
