@@ -84,7 +84,7 @@ class Fusion : public ApplicationBase
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
-    std::set<jaiabot::protobuf::MissionState> include_course_error_states_;
+    std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
     std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
     // timeout in seconds
     int course_over_ground_timeout_{0};
@@ -163,10 +163,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
     // Create a set of states. when the bot is in
     // one of these modes we should include the
     // course status
-    for (auto m : cfg().include_course_states())
+    for (auto m : cfg().include_course_error_detection_states())
     {
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
-        include_course_error_states_.insert(dsm);
+        include_course_error_detection_states_.insert(dsm);
     }
 
     // Create a set of states. when the bot is in
@@ -362,7 +362,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 last_data_time_[DataType::COURSE] = now;
             }
 
-            if (!include_course_error_states_.count(latest_bot_status_.mission_state()))
+            if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()))
             {
                 // Update course timestamp
                 // We want to ignore errors until we are
