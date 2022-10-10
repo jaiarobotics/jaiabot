@@ -82,6 +82,8 @@ export class JaiaAPI {
 
   allActivate() { return this.post('jaia/allActivate', null) }
 
+  nextTaskAll() { return this.post('jaia/nextTaskAll', null) }
+
   postCommand(command) { return this.post('jaia/command', command) }
 
   postEngineering(engineeringCommand) {

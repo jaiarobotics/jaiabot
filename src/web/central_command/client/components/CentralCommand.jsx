@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus, mdiSkipNext } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -3216,6 +3216,9 @@ export default class CentralCommand extends React.Component {
 				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
+				<button id= "all-next-task" type="button" title="All Next Task" onClick={this.nextTaskAllClicked.bind(this)}>
+					<Icon path={mdiSkipNext} title="All Next Task"/>
+				</button>
 				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</button>
@@ -3284,6 +3287,17 @@ export default class CentralCommand extends React.Component {
 			}
 			else {
 				info("Sent Activate All")
+			}
+		})
+	}
+
+	nextTaskAllClicked(evt) {
+		this.api.nextTaskAll().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent Next Task All")
 			}
 		})
 	}

@@ -71,6 +71,11 @@ def postAllActivate():
     response = jaia_interface.post_all_activate()
     return JSONResponse(response)
 
+@app.route('/jaia/nextTaskAll', methods=['POST'])
+def postNextTaskAll():
+    response = jaia_interface.post_next_task_all()
+    return JSONResponse(response)
+
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
     jaia_interface.post_engineering_command(request.json)
