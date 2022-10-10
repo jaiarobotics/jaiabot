@@ -667,7 +667,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     if (latest_bot_status_.has_attitude() && latest_bot_status_.attitude().has_heading() &&
         latest_bot_status_.attitude().has_course_over_ground())
     {
-        double heading = latest_bot_status_.attitude().heading() + 80;
+        double heading = latest_bot_status_.attitude().heading();
         double course = latest_bot_status_.attitude().course_over_ground();
 
         glog.is_debug1() &&
