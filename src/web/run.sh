@@ -3,7 +3,7 @@
 set -e
 
 # Build Central Command
-pushd central_command
+pushd command_control
     make
 popd
 
