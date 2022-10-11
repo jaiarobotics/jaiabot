@@ -2,7 +2,7 @@
 
 set -e
 
-# Build Central Command
+# Build Command Control
 pushd command_control
     make
 popd
