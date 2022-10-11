@@ -7,11 +7,11 @@ There are three components comprising the Jaia Web Interface.  These are describ
 Central Command is the main map page, which allows the user to define new missions by clicking to define waypoints, etc.  This web app is written in JavaScript and uses the React and OpenLayers libraries.  Central Command must be built as follows:
 
 ```
-cd central_command
+cd command_control
 ./build.sh
 ```
 
-This will place the product into the `central_command/dist/client` directory.
+This will place the product into the `command_control/dist/client` directory.
 
 ## Engineering
 
