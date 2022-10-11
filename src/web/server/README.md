@@ -27,7 +27,7 @@ This can be localhost, or a remote machine.
 
 ## Browsing to the server
 
-You can access the **Jaia Central Command** at:
+You can access the **Jaiabot Command and Control** at:
 
 <http://web_hostname:3000/>
 

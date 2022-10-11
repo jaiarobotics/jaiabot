@@ -31,7 +31,7 @@ jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=
 app = Flask(__name__)
 
 ####### Static files
-root = '../central_command/dist/client/'
+root = '../command_control/dist/client/'
 pid = '../engineering/'
 
 @app.route('/<path>', methods=['GET'])

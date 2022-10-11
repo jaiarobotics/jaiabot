@@ -1,6 +1,8 @@
-import React, { Component } from 'react';
 import './style/app.css';
-import CentralCommand from './components/CentralCommand';
+
+import React, {Component} from 'react';
+
+import CommandControl from './components/CommandControl';
 
 export default class App extends Component {
   // state = { username: null };
@@ -17,7 +19,7 @@ export default class App extends Component {
     // const { username } = this.state;
     return (
       <div>
-        <CentralCommand />
+        <CommandControl />
         {/* {username ? <h1>{`Hello ${username}`}</h1> : <h1>Loading.. please wait!</h1>}   */}
       </div>
     );
