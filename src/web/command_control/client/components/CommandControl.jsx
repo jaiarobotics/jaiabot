@@ -136,7 +136,7 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
-import '../style/CentralCommand.less';
+import '../style/CommandControl.less';
 import { transform } from 'ol/proj';
 
 import homeIcon from '../icons/rally-point-red.svg'
@@ -152,7 +152,7 @@ import SoundEffects from './SoundEffects'
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CentralCommand.less');
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
 
@@ -243,7 +243,7 @@ loadVisibleLayers()
 
 // ===========================================================================================================================
 
-export default class CentralCommand extends React.Component {
+export default class CommandControl extends React.Component {
 
 	constructor(props) {
 		super(props);
@@ -560,7 +560,7 @@ export default class CentralCommand extends React.Component {
 				listener = evt.feature.getGeometry().on('change', (evt2) => {
 					const geom = evt2.target;
 					// tooltipCoord = geom.getLastCoordinate();
-					$('#measureResult').text(CentralCommand.formatLength(geom));
+					$('#measureResult').text(CommandControl.formatLength(geom));
 				});
 			},
 			this
@@ -735,7 +735,7 @@ export default class CentralCommand extends React.Component {
 						}
 
 						// tooltipCoord = geom.getLastCoordinate();
-						// $('#surveyPolygonResult').text(CentralCommand.formatLength(geom));
+						// $('#surveyPolygonResult').text(CommandControl.formatLength(geom));
 					}
 
 					let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
