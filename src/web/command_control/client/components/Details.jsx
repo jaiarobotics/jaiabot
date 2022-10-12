@@ -6,6 +6,12 @@
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import SoundEffects from './SoundEffects'
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from '@mui/material/Typography';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
 // TurfJS
 import * as turf from '@turf/turf';
 
@@ -212,7 +218,18 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-
+                <Accordion>
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Accordion 1</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                    <div>TEST</div>
+                    </AccordionDetails>
+                </Accordion>
                 <table id="botDetailsTable">
                     <tbody>
                         <tr className={statusAgeClassName}>
