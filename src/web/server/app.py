@@ -71,6 +71,11 @@ def postAllActivate():
     response = jaia_interface.post_all_activate()
     return JSONResponse(response)
 
+@app.route('/jaia/allRecover', methods=['POST'])
+def postAllRecover():
+    response = jaia_interface.post_all_recover()
+    return JSONResponse(response)
+
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
     jaia_interface.post_engineering_command(request.json)
