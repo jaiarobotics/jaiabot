@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus, mdiArrowULeftTop, mdiDownload } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -3216,6 +3216,9 @@ export default class CommandControl extends React.Component {
 				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
+				<button id= "missionRecover" type="button" title="Recover All" onClick={this.recoverAllClicked.bind(this)}>
+					<Icon path={mdiDownload} title="Recover All"/>
+				</button>
 				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</button>
@@ -3258,7 +3261,7 @@ export default class CommandControl extends React.Component {
 	undoButton() {
 		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
-		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
+		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></button>)
 	}
 
 	setHomeClicked(evt) {
@@ -3276,7 +3279,7 @@ export default class CommandControl extends React.Component {
 	playClicked(evt) {
 		this.runLoadedMissions(this.selectedBotIds())
 	}
-
+	
 	activateAllClicked(evt) {
 		this.api.allActivate().then(response => {
 			if (response.message) {
@@ -3284,6 +3287,17 @@ export default class CommandControl extends React.Component {
 			}
 			else {
 				info("Sent Activate All")
+			}
+		})
+	}
+
+	recoverAllClicked(evt) {
+		this.api.allRecover().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent Recover All")
 			}
 		})
 	}

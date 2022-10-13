@@ -182,6 +182,20 @@ class Interface:
 
         return {'status': 'ok'}
 
+    def post_all_recover(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'botId': bot['botId'],
+                'time': str(now()),
+                'type': 'RECOVERED' 
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
     def get_status(self):
 
         for hub in self.hubs.values():
