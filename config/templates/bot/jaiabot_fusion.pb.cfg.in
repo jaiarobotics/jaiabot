@@ -30,7 +30,7 @@ imu_issue_solution: RESTART_IMU_PY
 imu_restart_timeout: 30 # default (30 seconds)
 
 # fusion runs at 2hz
-total_imu_issue_checks: 15
+total_imu_issue_checks: 10
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
