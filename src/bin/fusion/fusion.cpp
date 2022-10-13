@@ -523,7 +523,8 @@ void jaiabot::apps::Fusion::loop()
     }
     else
     {
-        if (!imu_issue_)
+        // If the imu issue is currently not detected and we are not running a sim
+        if (!imu_issue_ && !cfg().is_sim())
         {
             // only detect imu issue if the current mode is included in include_imu_detection_modes_
             if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
@@ -576,7 +577,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }*/
-    if (imu_issue_ && !cfg().is_sim())
+    if (imu_issue_)
     {
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__IMU_ISSUE);
