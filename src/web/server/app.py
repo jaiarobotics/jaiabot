@@ -71,6 +71,11 @@ def postAllActivate():
     response = jaia_interface.post_all_activate()
     return JSONResponse(response)
 
+@app.route('/jaia/nextTaskAll', methods=['POST'])
+def postNextTaskAll():
+    response = jaia_interface.post_next_task_all()
+    return JSONResponse(response)
+
 @app.route('/jaia/allRecover', methods=['POST'])
 def postAllRecover():
     response = jaia_interface.post_all_recover()
