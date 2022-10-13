@@ -11,12 +11,3 @@ rpi-ws281x==4.3.4
 RPi.GPIO==0.7.1
 smbus==1.1.post2
 sysv-ipc==1.1.0
-h5py==3.7.0
-cmocean==2.0
-flask==2.2.2
-scipy==1.9.1
-simplejson==3.16.0
-geopandas==0.11.1
-matplotlib==3.6.0
-networkx==2.8.7
-protobuf==3.20.0
