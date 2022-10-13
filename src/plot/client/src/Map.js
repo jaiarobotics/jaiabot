@@ -85,9 +85,9 @@ export default class Map {
                 L.control.layers(null, layersToControl).addTo(this.map)
         }
     
-        // Adds points to the path
-        updateWithPoints(points) {
-            this.path_point_arrays.push(points)
+        // Set the array of paths
+        setSeriesArray(seriesArray) {
+            this.path_point_arrays = seriesArray
             this.updatePath()
         }
 
@@ -131,7 +131,7 @@ export default class Map {
         }
 
         updateWithTaskPackets(task_packets) {
-            this.task_packets = this.task_packets.concat(task_packets)
+            this.task_packets = task_packets
             this.updateTaskAnnotations()
         }
 
@@ -287,6 +287,7 @@ export default class Map {
             }
 
             this.taskLayerGroup.clearLayers()
+            this.bottomStrikeLayerGroup.clearLayers()
 
             var bounds = []
 
@@ -338,7 +339,6 @@ export default class Map {
                 // Dive markers
 
                 const dive = task_packet.dive
-                console.log('dive = ', dive)
 
                 const d_start = to_array(dive.start_location)
 

@@ -227,8 +227,8 @@ export class TaskData {
                 });
 
                 let task_calcs = this.calculateDiveDrift(taskPacket);
-                let dive_lon = task_calcs.diveLocation.geometry.coordinates[0];
-                let dive_lat = task_calcs.diveLocation.geometry.coordinates[1];
+                let dive_lon = task_calcs.diveLocation.lon;
+                let dive_lat = task_calcs.diveLocation.lat;
                 let pt = equirectangular_to_mercator([dive_lon, dive_lat])
 
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
@@ -379,7 +379,9 @@ export class TaskData {
                 let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
                 let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
                 let dive_location = turf.midpoint(dive_start, ascent_wpt);
-                task_calcs.diveLocation = dive_location;
+                let dive_lon = dive_location.geometry.coordinates[0];
+                let dive_lat = dive_location.geometry.coordinates[1];
+                task_calcs.diveLocation = {lat: dive_lat, lon: dive_lon};
             }
 
             task_calcs.driftSpeed = drift_meters_per_second;

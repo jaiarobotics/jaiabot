@@ -76,12 +76,21 @@ class Fusion : public ApplicationBase
                           const double& lon2d);
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
+    void detect_imu_issue();
+    double degrees_difference(const double& heading, const double& course);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_modes_;
+    // timeout in seconds
+    int course_over_ground_timeout_{0};
+    double previous_course_over_ground_{0};
+    bool imu_issue_{false};
+    int imu_issue_crs_hdg_incr_{1};
+    int imu_issue_hdg_incr_{1};
+    goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
     enum class DataType
     {
@@ -487,6 +496,25 @@ void jaiabot::apps::Fusion::loop()
         latest_bot_status_.clear_error();
         latest_bot_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
     }
+    else
+    {
+        if (!imu_issue_)
+        {
+            // only detect imu issue if the current mode is not included in discard_status_modes_
+            if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
+            {
+                //Let's detect imu issue
+                detect_imu_issue();
+            }
+        }
+
+        if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
+            goby::time::SteadyClock::now())
+        {
+            // Reset imu issue vars
+            imu_issue_ = false;
+        }
+    }
 
     if (latest_bot_status_.IsInitialized())
     {
@@ -523,6 +551,15 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }*/
+    if (imu_issue_ && !cfg().is_sim())
+    {
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__IMU_ISSUE);
+        health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+        glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
+                               << std::endl;
+    }
+
     for (const auto& ep : missing_data_errors_)
     {
         if (!last_data_time_.count(ep.first) ||
@@ -585,4 +622,147 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
         corrected_heading -= 360 * degrees;
 
     return corrected_heading;
+}
+
+/**
+ * @brief We need to detect imu issues
+ * 
+ */
+void jaiabot::apps::Fusion::detect_imu_issue()
+{
+    jaiabot::protobuf::IMUIssue imu_issue;
+    imu_issue.set_solution(cfg().imu_issue_solution());
+
+    auto now = goby::time::SteadyClock::now();
+
+    glog.is_debug1() && glog << "detect_imu_issue" << endl;
+
+    //Let's try to detect IMU issu
+    //Check to see if we have heading and course info
+    if (latest_bot_status_.has_attitude() && latest_bot_status_.attitude().has_heading() &&
+        latest_bot_status_.attitude().has_course_over_ground())
+    {
+        double heading = latest_bot_status_.attitude().heading();
+        double course = latest_bot_status_.attitude().course_over_ground();
+
+        glog.is_debug1() &&
+            glog << "Bot has heading and course over ground data"
+                 << ", course last updated: "
+                 << last_data_time_[DataType::COURSE].time_since_epoch().count()
+                 << ", timout: " << std::chrono::seconds(cfg().course_over_ground_timeout()).count()
+                 << ", current time: " << now.time_since_epoch().count() << endl;
+        // Make sure Course is updating
+        if (last_data_time_[DataType::COURSE] +
+                std::chrono::seconds(cfg().course_over_ground_timeout()) >=
+            now)
+        {
+            glog.is_debug1() && glog << "The course over ground value is updating"
+                                     << ", Previous Course: " << previous_course_over_ground_
+                                     << ", Current Course: " << course << endl;
+
+            // Make sure course is updating with new value
+            if (previous_course_over_ground_ != course)
+            {
+                double diff = degrees_difference(heading, course);
+
+                glog.is_debug1() &&
+                    glog << "The previous course is different than the current course"
+                         << ", Difference between course and heading: " << diff
+                         << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
+
+                // Make sure the diff is greater than the config max
+                if (diff >= cfg().imu_heading_course_max_diff())
+                {
+                    if (imu_issue_crs_hdg_incr_ < cfg().total_imu_issue_checks())
+                    {
+                        glog.is_debug1() && glog << "Have not reached threshold for total checks "
+                                                 << imu_issue_crs_hdg_incr_ << " < "
+                                                 << cfg().total_imu_issue_checks() << std::endl;
+                        // Increment until we reach total_imu_issue_checks
+                        imu_issue_crs_hdg_incr_++;
+                    }
+                    else
+                    {
+                        interprocess().publish<jaiabot::groups::imu>(imu_issue);
+                        imu_issue_ = true;
+                        glog.is_debug1() && glog << "Post IMU Warning" << endl;
+                    }
+                }
+                else
+                {
+                    // Reset increment
+                    imu_issue_crs_hdg_incr_ = 1;
+                }
+            }
+            else
+            {
+                // Reset increment
+                imu_issue_crs_hdg_incr_ = 1;
+            }
+        }
+        else
+        {
+            // Reset increment
+            imu_issue_crs_hdg_incr_ = 1;
+        }
+    }
+    else
+    {
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 1;
+    }
+
+    if (!last_data_time_.count(DataType::HEADING) ||
+        (last_data_time_[DataType::HEADING] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+         now))
+    {
+        if (imu_issue_hdg_incr_ < cfg().total_imu_issue_checks())
+        {
+            glog.is_debug1() && glog << "Have not reached threshold for total checks "
+                                     << imu_issue_hdg_incr_ << " < "
+                                     << cfg().total_imu_issue_checks() << std::endl;
+            // Increment until we reach total_imu_issue_checks
+            imu_issue_hdg_incr_++;
+        }
+        else
+        {
+            interprocess().publish<jaiabot::groups::imu>(imu_issue);
+            imu_issue_ = true;
+            glog.is_debug1() && glog << "Post IMU Warning" << endl;
+        }
+        
+    }
+    else
+    {
+        // Reset increment 
+        imu_issue_hdg_incr_ = 1;
+    }
+
+    if(imu_issue_)
+    {
+        last_imu_issue_report_time_ = now;
+        // Reset increment
+        imu_issue_hdg_incr_ = 1;
+    }
+}
+
+/**
+ * @brief The difference between heading and course
+ * 
+ * @param heading double
+ * @param course double
+ * @return double 
+ */
+double jaiabot::apps::Fusion::degrees_difference(const double& heading, const double& course)
+{
+    double absDiff = std::abs(heading - course);
+
+    if (absDiff <= 180)
+    {
+        return absDiff;
+    }
+    else
+    {
+        return 360 - absDiff;
+    }
 }

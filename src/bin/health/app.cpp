@@ -65,6 +65,7 @@ class Health : public ApplicationBase
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
     void restart_services() { system("systemctl restart jaiabot"); }
+    void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
   private:
@@ -112,6 +113,20 @@ jaiabot::apps::Health::Health()
                     glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
                     if (!cfg().ignore_powerstate_changes())
                         system("systemctl poweroff");
+                    break;
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
+            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (imu_issue.solution())
+            {
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    glog.is_debug2() && glog << "IMU ERROR: RESTART IMU PY. " << std::endl;
+                    restart_imu_py();
                     break;
             }
         });

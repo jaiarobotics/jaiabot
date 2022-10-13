@@ -204,16 +204,16 @@ class Series:
         self.hovertext = {}
 
         if log:
-            _utime__array = log[get_root_item_path(path, '_utime_')]
-            _scheme__array = log[get_root_item_path(path, '_scheme_')]
-            path_array = log[path]
-
-            series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-            series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
-
             try:
+                _utime__array = log[get_root_item_path(path, '_utime_')]
+                _scheme__array = log[get_root_item_path(path, '_scheme_')]
+                path_array = log[path]
+
+                series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+                series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
+
                 self.utime, schemes, self.y_values = zip(*series)
-            except ValueError:
+            except (ValueError, KeyError):
                 logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
                 self.utime = []
                 self.schemes = []
@@ -296,26 +296,23 @@ def get_map(log_names):
     # Open all our logs
     logs = [h5py.File(log_name) for log_name in log_names]
 
-    TPV_lat_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat'
-    TPV_lon_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon'
+    BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
+    BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
 
-    lat_series = Series()
-    lon_series = Series()
+    seriesList = []
 
     for log in logs:
-        lat_series += Series(log=log, path=TPV_lat_path, invalid_values=[0])
-        lon_series += Series(log=log, path=TPV_lon_path, invalid_values=[0])
+        lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
+        lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
 
-    lat_series.sort()
-    lon_series.sort()
+        thisSeries = []
 
-    points = []
+        for i, lat in enumerate(lat_series.y_values):
+            thisSeries.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
 
-    for i, lat in enumerate(lat_series.y_values):
-        points.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
+        seriesList.append(thisSeries)
 
-    return points
-
+    return seriesList
 
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')

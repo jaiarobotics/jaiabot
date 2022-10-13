@@ -25,8 +25,8 @@ dive_depth_eps: 0.1  #  (optional) (default=0.1)
 surfacing_timeout: 35  #  (optional) (default=600)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
-bottoming_timeout: 5 # (optional) (default=5)
-total_gps_fix_checks: 10 # (optional) (default=5)
+bottoming_timeout: 10 # (optional) (default=5)
+total_gps_fix_checks: 15 # (optional) (default=5)
 total_gps_degraded_fix_checks: 1 # (optional) (default=1)
 gps_hdop_fix: 1 # (optional) (default=1)
 gps_pdop_fix: 1.5 # (optional) (default=1.5)

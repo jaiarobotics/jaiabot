@@ -20,20 +20,14 @@
 }
 
 .plotcontainer {
-    position: absolute;
     overflow: auto;
-    left: 0%;
-    top: 0%;
-    width: 59%;
     height: 100%;
+    flex: 1 1 60%;
 }
 
 .map {
-    position: absolute;
-    left: 60%;
-    top: 0%;
-    width: 39%;
     height: 100%;
+    flex: 1 1 40%;
 }
 
 .plot {
@@ -130,3 +124,98 @@ button {
     border-width: 2pt;
     border-style: solid;
 }
+
+.centered {
+    position: fixed;
+    left: 25%;
+    top: 25%;
+    bottom: 25%;
+    right: 25%;
+    padding: 10px;
+    z-index: 10000;
+}
+
+.dialog {
+    position: fixed;
+    left: 25%;
+    top: 10%;
+    right: 25%;
+    z-index: 10000;
+
+    background-color: whitesmoke;
+    border: 2px solid darkgray;
+    padding: 10pt;
+    border-radius: 10pt;
+    box-shadow: 2pt 2pt 10pt darkgray;
+}
+
+.logSelector.dialog {
+    height: 400pt;
+}
+
+.dialog > .section {
+    margin-bottom: 10pt;
+}
+
+.dialogHeader {
+    font-size: larger;
+    font-weight: bold;
+    height: 30pt;
+    margin-bottom: 10pt;
+}
+
+.dialogSectionHeader {
+    margin-bottom: 8pt;
+}
+
+.logList {
+    background-color: white;
+    border-color: lightgray;
+    height: 220pt;
+    overflow-y: auto;
+}
+
+.buttonSection {
+    text-align: right;
+}
+
+.logItem {
+    -webkit-user-select: none; /* Safari */        
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
+}
+
+.fleetCell {
+    display: inline-block;
+    width: 15%;
+}
+
+.botCell {
+    display: inline-block;
+    width: 15%;
+}
+
+.timeCell {
+    display: inline-block;
+    width: 30%;
+}
+
+.durationCell {
+    display: inline-block;
+    width: 30%;
+}
+
+.selected {
+    background-color: lightblue;
+}
+
+#logList {
+    display: inline;
+}
+
+.logHeaderRow {
+    padding: 8pt;
+    background-color: lightgray;
+}
+
