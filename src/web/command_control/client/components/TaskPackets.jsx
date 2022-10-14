@@ -283,48 +283,55 @@ export class TaskData {
                taskPacket.type == "SURFACE_DRIFT")
             {
                 let driftPacket = taskPacket.drift;
-                
-                let task_calcs = this.calculateDiveDrift(taskPacket);
 
-                let rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
+                if(taskPacket?.drift != null 
+                    && taskPacket.drift?.driftDuration != null
+                    && driftPacket.driftDuration > 0)
+                {
 
-                let iconStyle = new OlStyle({
-                    image: new OlIcon({
-                        src: currentDirection,
-                        // the real size of your icon
-                        size: [152, 793],
-                        // the scale factor
-                        scale: 0.05,
-                        rotation: rotation,
-                        rotateWithView : true
-                    })
-                });
+                    let task_calcs = this.calculateDiveDrift(taskPacket);
 
-                let iconInfoStyle = new OlStyle({
-                    text : new OlText({
-                        font : `15px Calibri,sans-serif`,
-                        text : `Duration (s): ` + driftPacket.driftDuration 
-                             + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
-                             + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
-                        scale: 1,
-                        fill: new OlFillStyle({color: 'white'}),
-                        backgroundFill: new OlFillStyle({color: 'black'}),
-                        textAlign: 'end',
-                        justify: 'left',
-                        textBaseline: 'bottom',
-                        padding: [3, 5, 3, 5],
-                        offsetY: -10,
-                        offsetX: -30
-                    })
-                });
+                    let rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
 
-                let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
-                let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                driftFeature.setStyle(iconStyle)   
-                driftInfoFeature.setStyle(iconInfoStyle)
-                taskDriftFeatures.push(driftFeature)   
-                taskDriftInfoFeatures.push(driftInfoFeature)
+                    let iconStyle = new OlStyle({
+                        image: new OlIcon({
+                            src: currentDirection,
+                            // the real size of your icon
+                            size: [152, 793],
+                            // the scale factor
+                            scale: 0.05,
+                            rotation: rotation,
+                            rotateWithView : true
+                        })
+                    });
+
+                    let iconInfoStyle = new OlStyle({
+                        text : new OlText({
+                            font : `15px Calibri,sans-serif`,
+                            text : `Duration (s): ` + driftPacket.driftDuration 
+                                + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
+                                + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
+                            scale: 1,
+                            fill: new OlFillStyle({color: 'white'}),
+                            backgroundFill: new OlFillStyle({color: 'black'}),
+                            textAlign: 'end',
+                            justify: 'left',
+                            textBaseline: 'bottom',
+                            padding: [3, 5, 3, 5],
+                            offsetY: -10,
+                            offsetX: -30
+                        })
+                    });
+
+                    let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
+                    let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    driftFeature.setStyle(iconStyle)   
+                    driftInfoFeature.setStyle(iconInfoStyle)
+                    taskDriftFeatures.push(driftFeature)   
+                    taskDriftInfoFeatures.push(driftInfoFeature)
+
+                }    
             }
         }
 

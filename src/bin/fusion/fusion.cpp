@@ -83,7 +83,9 @@ class Fusion : public ApplicationBase
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
-    std::set<jaiabot::protobuf::MissionState> discard_location_modes_;
+    std::set<jaiabot::protobuf::MissionState> discard_location_states_;
+    std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
+    std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
     // timeout in seconds
     int course_over_ground_timeout_{0};
     double previous_course_over_ground_{0};
@@ -149,17 +151,32 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
     init_node_status();
     init_bot_status();
 
-    // Create a set of modes. when the bot is in
+    // Create a set of states. when the bot is in
     // one of these modes we should discard the
     // location status
-    for (auto m : cfg().discard_location_modes())
+    for (auto m : cfg().discard_location_states())
     {
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
-        discard_location_modes_.insert(dsm);
+        discard_location_states_.insert(dsm);
     }
 
-    for (auto state : discard_location_modes_)
-    { glog.is_debug1() && glog << "Mission States to discard latlon:  " << state << std::endl; }
+    // Create a set of states. when the bot is in
+    // one of these modes we should include the
+    // course status
+    for (auto m : cfg().include_course_error_detection_states())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        include_course_error_detection_states_.insert(dsm);
+    }
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should detect
+    // imu issue
+    for (auto m : cfg().include_imu_detection_states())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        include_imu_detection_states_.insert(dsm);
+    }
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -303,7 +320,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog.is_debug1() && glog << "Mission State:  " << latest_bot_status_.mission_state()
                                          << std::endl;
                 // only set location if the current mode is not included in discard_status_modes_
-                if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
+                if (!discard_location_states_.count(latest_bot_status_.mission_state()))
                 {
 
                     glog.is_debug1() && glog << "Updating Lat Long because bot is in the correct state:  "
@@ -342,6 +359,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 auto track = tpv.track_with_units();
                 latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
                 latest_bot_status_.mutable_attitude()->set_course_over_ground_with_units(track);
+                last_data_time_[DataType::COURSE] = now;
+            }
+
+            if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()))
+            {
+                // Update course timestamp
+                // We want to ignore errors until we are
+                // in the right state
                 last_data_time_[DataType::COURSE] = now;
             }
 
@@ -498,10 +523,11 @@ void jaiabot::apps::Fusion::loop()
     }
     else
     {
-        if (!imu_issue_)
+        // If the imu issue is currently not detected and we are not running a sim
+        if (!imu_issue_ && !cfg().is_sim())
         {
-            // only detect imu issue if the current mode is not included in discard_status_modes_
-            if (!discard_location_modes_.count(latest_bot_status_.mission_state()))
+            // only detect imu issue if the current mode is included in include_imu_detection_modes_
+            if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
             {
                 //Let's detect imu issue
                 detect_imu_issue();
@@ -551,7 +577,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }*/
-    if (imu_issue_ && !cfg().is_sim())
+    if (imu_issue_)
     {
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__IMU_ISSUE);
@@ -663,6 +689,9 @@ void jaiabot::apps::Fusion::detect_imu_issue()
             // Make sure course is updating with new value
             if (previous_course_over_ground_ != course)
             {
+                // Set previous course
+                previous_course_over_ground_ = course;
+
                 double diff = degrees_difference(heading, course);
 
                 glog.is_debug1() &&
@@ -741,8 +770,10 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     if(imu_issue_)
     {
         last_imu_issue_report_time_ = now;
-        // Reset increment
+        // Reset hdg increment
         imu_issue_hdg_incr_ = 1;
+        // Reset crs hdg increment
+        imu_issue_crs_hdg_incr_ = 1;
     }
 }
 

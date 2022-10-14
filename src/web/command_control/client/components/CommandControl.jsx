@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus, mdiArrowULeftTop, mdiDownload } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload } from '@mdi/js'
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -3216,6 +3216,9 @@ export default class CommandControl extends React.Component {
 				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</button>
+				<button id= "all-next-task" type="button" title="All Next Task" onClick={this.nextTaskAllClicked.bind(this)}>
+					<Icon path={mdiSkipNext} title="All Next Task"/>
+			        </button>
 				<button id= "missionRecover" type="button" title="Recover All" onClick={this.recoverAllClicked.bind(this)}>
 					<Icon path={mdiDownload} title="Recover All"/>
 				</button>
@@ -3291,16 +3294,27 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	recoverAllClicked(evt) {
-		this.api.allRecover().then(response => {
+	nextTaskAllClicked(evt) {
+		this.api.nextTaskAll().then(response => {
 			if (response.message) {
 				error(response.message)
 			}
 			else {
-				info("Sent Recover All")
+				info("Sent Next Task All")
 			}
 		})
 	}
+
+        recoverAllClicked(evt) {
+                this.api.allRecover().then(response => {
+                        if (response.message) {
+                                error(response.message)
+                        }
+                        else {
+                                info("Sent Recover All")
+                        }
+                })
+        }
 
 	runRCMode() {
 		let botId = this.selectedBotId()
