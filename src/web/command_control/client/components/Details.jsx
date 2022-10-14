@@ -173,20 +173,23 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
     // Active Goal
     let activeGoal = bot.activeGoal ?? "N/A"
     let distToGoal = bot.distanceToActiveGoal ?? "N/A"
-    
-    let activeGoalRow = (
-        <tr>
-            <td>Active Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
-        </tr>
-    )
 
-    let activeGoalDistRow = (
-        <tr>
-            <td>Distance to Goal</td>
-            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)} m</td>
-        </tr>
-    )
+    if(activeGoal != "N/A"
+        && distToGoal == "N/A")
+    {
+        distToGoal = "Distance To Goal > 1000"
+    } 
+    else if(activeGoal != "N/A"
+            && distToGoal != "N/A")
+    {
+        distToGoal = distToGoal + " m"
+    }
+    else if(activeGoal == "N/A"
+            && distToGoal != "N/A")
+    {
+        activeGoal = "Recovery"
+        distToGoal = distToGoal + " m"
+    }
 
     // Distance from hub
     let distToHub = "N/A"
@@ -204,11 +207,11 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
     if(bot.vccVoltage <= 18 &&
         bot.vccVoltage > 16) 
     {
-        vccVoltageClassName = 'healthFailed';
+        vccVoltageClassName = 'healthDegraded';
     } 
     else if(bot.vccVoltage < 16)
     {
-        vccVoltageClassName = 'healthDegraded';
+        vccVoltageClassName = 'healthFailed';
     }
 
     return (
@@ -252,8 +255,14 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                     <td>Mission State</td>
                                     <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
                                 </tr>
-                                {activeGoalRow}
-                                {activeGoalDistRow}
+                                <tr>
+                                    <td>Active Goal</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
+                                </tr>
+                                <tr>
+                                    <td>Distance to Goal</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </AccordionDetails>
