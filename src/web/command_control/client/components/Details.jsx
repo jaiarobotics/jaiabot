@@ -231,7 +231,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                         </tr>
                     </tbody>
                 </table>
-                <Accordion className="accordion">
+                <Accordion defaultExpanded className="accordion">
                     <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
