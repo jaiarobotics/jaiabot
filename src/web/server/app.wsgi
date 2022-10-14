@@ -1,5 +1,10 @@
 import sys
- 
-sys.path.append('/home/jaia/jaiabot/src/web/server')
+from pathlib import Path
+
+path = str(Path().absolute())
+
+print("Path: ", path)
+
+sys.path.append(path)
  
 from app import app as application
