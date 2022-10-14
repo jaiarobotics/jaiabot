@@ -355,7 +355,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Temperature/Pressure/Salinity</Typography>
+                        <Typography>Temperature/Depth/Salinity</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
