@@ -8,7 +8,7 @@ import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
-import Map from "./Map.js"
+import JaiaMap from "./JaiaMap.js"
 
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
@@ -108,6 +108,7 @@ class LogApp extends React.Component {
           { plotContainer }
 
           <div className="map" id="map"></div>
+          <div className="openlayers-map" id="openlayers-map"></div>
         </div>
         </div>
       </Router>
@@ -149,7 +150,7 @@ class LogApp extends React.Component {
 
   componentDidMount() {
     this.getElements()
-    this.map = new Map('map')
+    this.map = new JaiaMap('map', 'openlayers-map')
     this.update_log_dropdown()
   }
 

@@ -30,6 +30,11 @@
     flex: 1 1 40%;
 }
 
+#openlayers-map {
+    height: 100%;
+    flex: 1 1 40%;
+}
+
 .plot {
     left: 10pt;
     right: 10pt;

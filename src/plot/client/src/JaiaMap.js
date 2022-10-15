@@ -1,3 +1,9 @@
+import {Map, View} from 'ol';
+import TileLayer from 'ol/layer/Tile';
+import OSM from 'ol/source/OSM';
+import TileWMS from 'ol/source/TileWMS';
+import { TileArcGISRest} from 'ol/source';
+
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
     let start = 0, end = sorted_array.length - 1
@@ -28,9 +34,9 @@ function bisect(sorted_array, f) {
 }
 
 
-export default class Map {
+export default class JaiaMap {
 
-        constructor(map_div_id) {
+        constructor(map_div_id, openlayersMapDivId) {
 
             // Map
             const map_options = {
@@ -83,6 +89,59 @@ export default class Map {
             
             var layerControl =
                 L.control.layers(null, layersToControl).addTo(this.map)
+
+            this.setupOpenlayersMap(openlayersMapDivId)
+        }
+
+        setupOpenlayersMap(openlayersMapDivId) {
+            this.openlayersMap = new Map({
+                target: openlayersMapDivId,
+                layers: this.getOpenlayersTileLayers(),
+                view: new View({
+                    center: [0, 0],
+                    zoom: 2
+                })
+            })
+
+            console.log(this.openlayersMap)
+        }
+
+        getOpenlayersTileLayers() {
+            return [
+                // new OlTileLayer({
+                //     title: 'Google Satellite & Roads',
+                //     type: 'base',
+                //     zIndex: 1,
+                //     source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+                //     wrapX: false
+                // }),
+                new TileLayer({
+                    title: 'OpenStreetMap',
+                    type: 'base',
+                    zIndex: 1,
+                    source: new OSM(),
+                    wrapX: false
+                }),
+                new TileLayer({
+                    title: 'NOAA ENC Charts',
+                    opacity: 0.7,
+                    zIndex: 20,
+                    source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+                    wrapX: false
+                }),
+                // new TileLayer({
+                //     title: 'GEBCO Bathymetry',
+                //     zIndex: 10,
+                //     opacity: 0.7,
+                //     source: new TileWMS({
+                //         url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
+                //         params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
+                //         serverType: 'mapserver',
+                //         projection: 'EPSG:4326'
+                //     }),
+                //     wrapX: false
+                // })
+            ]
         }
     
         // Set the array of paths

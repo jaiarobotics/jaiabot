@@ -26,5 +26,7 @@
       "@babel/preset-env"
     ]
   },
-  "dependencies": {}
+  "dependencies": {
+    "ol": "^7.1.0"
+  }
 }
