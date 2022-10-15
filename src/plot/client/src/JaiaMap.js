@@ -3,6 +3,16 @@ import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import TileWMS from 'ol/source/TileWMS';
 import { TileArcGISRest} from 'ol/source';
+import LayerGroup from 'ol/layer/Group';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import Polygon from 'ol/geom/Polygon';
+import { fromLonLat } from 'ol/proj';
+import Feature from 'ol/Feature';
+import { LineString } from 'ol/geom';
+import { isEmpty } from 'ol/extent';
+import Stroke from 'ol/style/Stroke';
+import Style from 'ol/style/Style';
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -94,54 +104,58 @@ export default class JaiaMap {
         }
 
         setupOpenlayersMap(openlayersMapDivId) {
-            this.openlayersMap = new Map({
-                target: openlayersMapDivId,
-                layers: this.getOpenlayersTileLayers(),
-                view: new View({
-                    center: [0, 0],
-                    zoom: 2
-                })
+            const view = new View({
+                center: [0, 0],
+                zoom: 2
             })
 
-            console.log(this.openlayersMap)
+            this.openlayersProjection = view.getProjection()
+
+            this.openlayersMap = new Map({
+                target: openlayersMapDivId,
+                layers: [
+                    this.getOpenlayersTileLayerGroup(),
+                    this.getBotPathLayer()
+                ],
+                view: view
+            })
         }
 
-        getOpenlayersTileLayers() {
-            return [
-                // new OlTileLayer({
-                //     title: 'Google Satellite & Roads',
-                //     type: 'base',
-                //     zIndex: 1,
-                //     source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-                //     wrapX: false
-                // }),
-                new TileLayer({
-                    title: 'OpenStreetMap',
-                    type: 'base',
-                    zIndex: 1,
-                    source: new OSM(),
-                    wrapX: false
-                }),
-                new TileLayer({
-                    title: 'NOAA ENC Charts',
-                    opacity: 0.7,
-                    zIndex: 20,
-                    source: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
-                    wrapX: false
-                }),
-                // new TileLayer({
-                //     title: 'GEBCO Bathymetry',
-                //     zIndex: 10,
-                //     opacity: 0.7,
-                //     source: new TileWMS({
-                //         url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-                //         params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-                //         serverType: 'mapserver',
-                //         projection: 'EPSG:4326'
-                //     }),
-                //     wrapX: false
-                // })
-            ]
+        fromLonLat(coordinate) {
+            return fromLonLat(coordinate, this.openlayersProjection)
+        }
+
+        getOpenlayersTileLayerGroup() {
+            const noaaEncSource = new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
+
+            return new LayerGroup({
+                title: 'Base Maps',
+                layers: [
+                    new TileLayer({
+                        title: 'OpenStreetMap',
+                        type: 'base',
+                        zIndex: 1,
+                        source: new OSM(),
+                        wrapX: false
+                    }),
+                    new TileLayer({
+                        title: 'NOAA ENC Charts',
+                        opacity: 0.7,
+                        zIndex: 2,
+                        source: noaaEncSource,
+                        wrapX: false
+                    }),
+                ]
+            })
+        }
+
+        getBotPathLayer() {
+            this.botPathVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                source: this.botPathVectorSource,
+                zIndex: 10
+            })
         }
     
         // Set the array of paths
@@ -182,6 +196,79 @@ export default class JaiaMap {
                 this.map.fitBounds(bounds)
             }
 
+            // OpenLayers
+            this.botPathVectorSource.clear()
+
+            const botLineColorArray = this.getBotLineColorArray()
+
+            for (const botIndex in this.path_point_arrays) {
+                const ptArray = this.path_point_arrays[botIndex]
+
+                const lineColor = botLineColorArray[botIndex % botLineColorArray.length]
+
+                const style = new Style({
+                    stroke: new Stroke({
+                        color: lineColor,
+                        width: 4
+                    })
+                })
+
+                var path = []
+                for (const pt of ptArray) {
+                    if (pt[0] > timeRange[1]) {
+                        break
+                    }
+
+                    if (pt[0] > timeRange[0]) {
+                        path.push(this.fromLonLat([pt[2], pt[1]])) // API gives lat/lon, OpenLayers uses lon/lat
+                    }
+                }
+
+                // const pathLineString = new LineString(path)
+                const pathLineString = new LineString(path)
+
+                const pathFeature = new Feature({
+                    name: 'Bot Path',
+                    geometry: pathLineString,
+                })
+
+                pathFeature.setStyle(style)
+
+                this.botPathVectorSource.addFeature(pathFeature)
+
+            }
+
+            // Zoom OpenLayers to bot path extent
+            const extent = this.botPathVectorSource.getExtent()
+            const padding = 80 // in pixels
+            if (!isEmpty(extent)) {
+                this.openlayersMap.getView().fit(extent, {
+                    padding: [padding, padding, padding, padding],
+                    duration: 0.25
+                })
+            }
+
+        }
+
+        getBotLineColorArray() {
+            var array = []
+            var start = 0
+            var step = 720
+            const cycleCount = 5
+
+            for (let cycle = 0; cycle < cycleCount; cycle++) {
+                for (let hue = start; hue < 360; hue += step) {
+                    const color = 'hsl(' + hue + ', 50%, 44%)'
+                    console.log('<div style="' + color + '">' + color + '<div>')
+                    array.push(color)
+                }
+
+                step /= 2
+                start = step / 2
+
+            }
+
+            return array
         }
 
         // Commands and markers for bot and goals
