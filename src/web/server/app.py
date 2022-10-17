@@ -31,7 +31,7 @@ jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=
 app = Flask(__name__)
 
 ####### Static files
-root = '../central_command/dist/client/'
+root = '../command_control/dist/client/'
 pid = '../engineering/'
 
 @app.route('/<path>', methods=['GET'])
@@ -69,6 +69,16 @@ def postAllStop():
 @app.route('/jaia/allActivate', methods=['POST'])
 def postAllActivate():
     response = jaia_interface.post_all_activate()
+    return JSONResponse(response)
+
+@app.route('/jaia/nextTaskAll', methods=['POST'])
+def postNextTaskAll():
+    response = jaia_interface.post_next_task_all()
+    return JSONResponse(response)
+
+@app.route('/jaia/allRecover', methods=['POST'])
+def postAllRecover():
+    response = jaia_interface.post_all_recover()
     return JSONResponse(response)
 
 @app.route('/jaia/pid-command', methods=['POST'])
