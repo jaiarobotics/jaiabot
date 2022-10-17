@@ -20,9 +20,9 @@
 @tracked-color: #ff601c;
 @disconnected: gray;
 
-@good-color: #00cc00;
-@warning-color: #ffff00;
-@error-color: #ff0000;
+@good-color: #06c006;
+@warning-color: #d5d506;
+@error-color: #cc0505;
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
@@ -225,6 +225,9 @@ textarea {
     padding: 8pt;
     border-radius: 8pt;
     border: 2px dashed @cc-background-color;
+    overflow-y: auto;
+    max-height: 80vh;
+    max-width: 25vw;
 
     h2.name {
       color: @cc-background-color;
@@ -238,6 +241,7 @@ textarea {
     td {
       padding: 5px 0.5em;
       font-size: 16px;
+      min-width: 8vw;
     }
 
     select {
@@ -1012,6 +1016,7 @@ table.MissionParametersTable > tbody > tr > td {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  padding-bottom: 10px;
 }
 
 .centered {
@@ -1129,4 +1134,10 @@ div.closeButton {
   .unselectable;
   font-size: larger;
   cursor: pointer;
+}
+
+/******** CSS Accordion ********************/
+
+.accordion {
+  overflow: auto;
 }
