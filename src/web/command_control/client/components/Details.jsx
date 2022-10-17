@@ -6,6 +6,12 @@
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import SoundEffects from './SoundEffects'
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from '@mui/material/Typography';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
 // TurfJS
 import * as turf from '@turf/turf';
 
@@ -215,120 +221,192 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-
-                <table id="botDetailsTable">
+                <table>
                     <tbody>
-                        <tr className={statusAgeClassName}>
-                            <td>Status Age</td>
-                            <td>{statusAge} s</td>
-                        </tr>
                         <tr>
                             <td>Command</td>
                             <td>
                                 { getCommandSelectElement(api, bot) }
                             </td>
                         </tr>
-                        {healthRow(bot)}
-                        <tr>
-                            <td>Distance from Hub</td>
-                            <td>{distToHub} m</td>
-                        </tr>
-                        <tr className={vccVoltageClassName}>
-                            <td>Vcc Voltage</td>
-                            <td>{bot.vccVoltage?.toFixed(prec)} V</td>
-                        </tr>
-                        <tr>
-                            <td>Mission State</td>
-                            <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
-                        </tr>
-                        <tr>
-                            <td>Active Goal</td>
-                            <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
-                        </tr>
-                        <tr>
-                            <td>Distance to Goal</td>
-                            <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
-                        </tr>
-                        <tr>
-                            <td>Latitude</td>
-                            <td>{formatLatitude(bot.location?.lat)}</td>
-                        </tr>
-                        <tr>
-                            <td>Longitude</td>
-                            <td>{formatLongitude(bot.location?.lon)}</td>
-                        </tr>
-                        <tr>
-                            <td>HDOP</td>
-                            <td>{bot.hdop?.toFixed(prec)}</td>
-                        </tr>
-                        <tr>
-                            <td>PDOP</td>
-                            <td>{bot.pdop?.toFixed(prec)}</td>
-                        </tr>
-                        <tr>
-                            <td>Depth</td>
-                            <td>{bot.depth?.toFixed(prec)} m</td>
-                        </tr>
-                        <tr>
-                            <td>Ground Speed</td>
-                            <td>{bot.speed?.overGround?.toFixed(prec)} m/s</td>
-                        </tr>
-                        <tr>
-                            <td>Course Over Ground</td>
-                            <td>{bot.attitude?.courseOverGround?.toFixed(prec)}</td>
-                        </tr>
-                        <tr>
-                            <td>Heading</td>
-                            <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
-                        </tr>
-                        <tr>
-                            <td>Pitch</td>
-                            <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
-                        </tr>
-                        {/* <tr>
-                            <td>Roll</td>
-                            <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
-                        </tr> */}
-                        <tr>
-                            <td>Sys_Cal</td>
-                            <td>{bot.calibrationStatus?.sys.toFixed(0)}</td>
-                        </tr>
-                        <tr>
-                            <td>Gyro_Cal</td>
-                            <td>{bot.calibrationStatus?.gyro.toFixed(0)}</td>
-                        </tr>
-                        <tr>
-                            <td>Accel_Cal</td>
-                            <td>{bot.calibrationStatus?.accel.toFixed(0)}</td>
-                        </tr>
-                        <tr>
-                            <td>Mag_Cal</td>
-                            <td>{bot.calibrationStatus?.mag.toFixed(0)}</td>
-                        </tr>
-                        <tr>
-                            <td>Temperature</td>
-                            <td>{bot.temperature?.toFixed(prec)} °C</td>
-                        </tr>
-                        <tr>
-                            <td>Salinity</td>
-                            <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
-                        </tr>
-                        {/* <tr>
-                            <td>Thermocouple</td>
-                            <td>{bot.thermocoupleTemperature?.toFixed(prec)}°C</td>
-                        </tr> */}
-                        <tr>
-                            <td>Vcc Current</td>
-                            <td>{bot.vccCurrent?.toFixed(prec)} A</td>
-                        </tr>
-                        <tr>
-                            <td>5v Current</td>
-                            <td>{bot.vvCurrent?.toFixed(prec)} A</td>
-                        </tr>
-                        
-
                     </tbody>
                 </table>
+                <Accordion defaultExpanded className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Mission Status</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr className={statusAgeClassName}>
+                                    <td>Status Age</td>
+                                    <td>{statusAge} s</td>
+                                </tr>
+                                {healthRow(bot)}
+                                <tr>
+                                    <td>Distance from Hub</td>
+                                    <td>{distToHub} m</td>
+                                </tr>
+                                <tr>
+                                    <td>Mission State</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
+                                </tr>
+                                <tr>
+                                    <td>Active Goal</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
+                                </tr>
+                                <tr>
+                                    <td>Distance to Goal</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
+                                </tr>
+                                <tr className={vccVoltageClassName}>
+                                    <td>Vcc Voltage</td>
+                                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>GPS</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Latitude</td>
+                                    <td>{formatLatitude(bot.location?.lat)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Longitude</td>
+                                    <td>{formatLongitude(bot.location?.lon)}</td>
+                                </tr>
+                                <tr>
+                                    <td>HDOP</td>
+                                    <td>{bot.hdop?.toFixed(prec)}</td>
+                                </tr>
+                                <tr>
+                                    <td>PDOP</td>
+                                    <td>{bot.pdop?.toFixed(prec)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Ground Speed</td>
+                                    <td>{bot.speed?.overGround?.toFixed(prec)} m/s</td>
+                                </tr>
+                                <tr>
+                                    <td>Course Over Ground</td>
+                                    <td>{bot.attitude?.courseOverGround?.toFixed(prec)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>IMU</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Heading</td>
+                                    <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Pitch</td>
+                                    <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
+                                </tr>
+                                {/* <tr>
+                                    <td>Roll</td>
+                                    <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
+                                </tr> */}
+                                <tr>
+                                    <td>Sys_Cal</td>
+                                    <td>{bot.calibrationStatus?.sys.toFixed(0)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Gyro_Cal</td>
+                                    <td>{bot.calibrationStatus?.gyro.toFixed(0)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Accel_Cal</td>
+                                    <td>{bot.calibrationStatus?.accel.toFixed(0)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mag_Cal</td>
+                                    <td>{bot.calibrationStatus?.mag.toFixed(0)}</td>
+                                </tr>
+                            </tbody>
+                        </table>              
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Temperature/Depth/Salinity</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Temperature</td>
+                                    <td>{bot.temperature?.toFixed(prec)} °C</td>
+                                </tr>
+                                <tr>
+                                    <td>Depth</td>
+                                    <td>{bot.depth?.toFixed(prec)} m</td>
+                                </tr>
+                                <tr>
+                                    <td>Salinity</td>
+                                    <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
+                                </tr>
+                            </tbody>
+                        </table>   
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Battery</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr className={vccVoltageClassName}>
+                                    <td>Vcc Voltage</td>
+                                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
+                                </tr>
+                                <tr>
+                                    <td>Vcc Current</td>
+                                    <td>{bot.vccCurrent?.toFixed(prec)} A</td>
+                                </tr>
+                                <tr>
+                                    <td>5v Current</td>
+                                    <td>{bot.vvCurrent?.toFixed(prec)} A</td>
+                                </tr>
+                            </tbody>
+                        </table>   
+                    </AccordionDetails>
+                </Accordion>  
             </div>
         </div>
     )
