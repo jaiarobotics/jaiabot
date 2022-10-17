@@ -3210,7 +3210,7 @@ export default class CommandControl extends React.Component {
 				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
 					Goto<br />Rally Finish
 				</button>
-				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
+				<button type="button" style={{"backgroundColor":"#cc0505"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
 					STOP<br />ALL
 				</button>
 				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
