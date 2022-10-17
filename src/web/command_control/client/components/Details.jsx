@@ -237,7 +237,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Status</Typography>
+                        <Typography>Mission Status</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -262,6 +262,10 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                 <tr>
                                     <td>Distance to Goal</td>
                                     <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
+                                </tr>
+                                <tr className={vccVoltageClassName}>
+                                    <td>Vcc Voltage</td>
+                                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
                             </tbody>
                         </table>
