@@ -8,6 +8,11 @@ The system can be built and installed as a systemd service using the following c
 
 ```make install```
 
+```
+cd jaiabot/plot
+pip install -r requirements.txt
+```
+
 ## Overview
 
 The JaiabotPlot package is composed of two systemd services:  `jaiabot_log_converter.service` and `jaiabot_plot.service`.
