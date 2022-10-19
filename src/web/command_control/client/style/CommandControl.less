@@ -13,7 +13,11 @@
 // Colors
 @cc-background-color: white;
 @cc-text-color: black;
-@selected-color: #0bc9cd;
+@cc-accordian-color: #767d7d;
+@cc-accordian-text-color: white;
+@cc-details-text-color: white;
+@cc-maplayers-text-color: white;
+@selected-color: rgba(108, 214, 237, 0.7);
 @inactive-color: #4c4c47;
 
 @controlled-color: #ff601c;
@@ -218,19 +222,18 @@ textarea {
   #botDetailsBox {
 
     position: absolute;
-    background-color: @cc-text-color;
+    background-color: @overlay-background;
     top: 0pt;
     left: 50pt;
-    color: @cc-background-color;
+    color: @cc-details-text-color;
     padding: 8pt;
     border-radius: 8pt;
-    border: 2px dashed @cc-background-color;
     overflow-y: auto;
     max-height: 80vh;
     max-width: 25vw;
 
     h2.name {
-      color: @cc-background-color;
+      color: @cc-details-text-color;
       margin: 0;
     }
 
@@ -271,9 +274,8 @@ textarea {
     max-width: 20em;
     height: auto;
     width: auto;
-    background: @cc-text-color;
-    border: 2px dashed @cc-background-color;
-    color: white;
+    background: @overlay-background;
+    color: @cc-maplayers-text-color;
 
     padding: @layout-margin 1em 0 0;
     margin: 0 @layout-margin;
@@ -1140,4 +1142,9 @@ div.closeButton {
 
 .accordion {
   overflow: auto;
+}
+
+#panel1a-header {
+  background-color: @cc-accordian-color;
+  color:@cc-accordian-text-color;
 }

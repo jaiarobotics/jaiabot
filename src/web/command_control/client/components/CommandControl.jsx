@@ -20,7 +20,12 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, 
+	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
+	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
+    mdiStop, mdiPause} from '@mdi/js'
+
+import Button from '@mui/material/Button';
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -145,9 +150,14 @@ import missionOrientationIcon from '../icons/compass.svg'
 import startIcon from '../icons/start.svg'
 import stopIcon from '../icons/stop.svg'
 import waypointIcon from '../icons/waypoint.svg'
+import rcMode from '../icons/controller.svg'
+import goToRallyGreen from '../icons/go-to-rally-point-green.png'
+import goToRallyRed from '../icons/go-to-rally-point-red.png'
+
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
+
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -2188,7 +2198,7 @@ export default class CommandControl extends React.Component {
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
-
+		
 		let self = this
 
 		let bots = this.podStatus?.bots
@@ -2245,6 +2255,7 @@ export default class CommandControl extends React.Component {
 		switch (detailsBoxItem?.type) {
 			case 'hub':
 				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				
 				break;
 			case 'bot':
 				//**********************
@@ -2270,7 +2281,7 @@ export default class CommandControl extends React.Component {
 				<div id="layerinfo">&nbsp;</div>
 
 				<div id="viewControls">
-					<button
+					<Button
 						type="button"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
@@ -2278,11 +2289,11 @@ export default class CommandControl extends React.Component {
 						}}
 					>
 						<FontAwesomeIcon icon={faLayerGroup} />
-					</button>
+					</Button>
 					{measureActive ? (
 						<div>
 							<div id="measureResult" />
-							<button
+							<Button
 								type="button"
 								className="active"
 								onClick={() => {
@@ -2292,10 +2303,10 @@ export default class CommandControl extends React.Component {
 								}}
 							>
 								<FontAwesomeIcon icon={faRuler} />
-							</button>
+							</Button>
 						</div>
 					) : (
-						<button
+						<Button
 							type="button"
 							onClick={() => {
 								this.setState({ measureActive: true });
@@ -2304,14 +2315,14 @@ export default class CommandControl extends React.Component {
 							}}
 						>
 							<FontAwesomeIcon icon={faRuler} />
-						</button>
+						</Button>
 					)}
 					{trackingTarget === 'all' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow All" className="active">
+						<Button type="button" onClick={this.trackBot.bind(this, '')} className="active">
 							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
+						</Button>
 					) : (
-						<button
+						<Button
 							type="button"
 							onClick={() => {
 								this.zoomToAll(true);
@@ -2320,30 +2331,28 @@ export default class CommandControl extends React.Component {
 							title="Follow All"
 						>
 							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
+						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow Pod" className="active">
+						<Button type="button" onClick={this.trackBot.bind(this, '')} className="active">
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
+						</Button>
 					) : (
-						<button
+						<Button
 							type="button"
 							onClick={() => {
 								this.zoomToAllBots(true);
 								this.trackBot('pod');
 							}}
-							title="Follow Pod"
 						>
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
+						</Button>
 					)}
 
 					{surveyPolygonActive ? (
-							<button
+							<Button
 								type="button"
 								className="active"
-								title="Edit Survey Plan"
 								onClick={() => {
 									this.changeInteraction();
 									this.setState({
@@ -2357,11 +2366,10 @@ export default class CommandControl extends React.Component {
 								}}
 							>
 								<FontAwesomeIcon icon={faEdit} />
-							</button>
+							</Button>
 					) : (
-						<button
+						<Button
 							type="button"
-							title="Edit Survey Plan"
 							onClick={() => {
 								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
@@ -2377,12 +2385,12 @@ export default class CommandControl extends React.Component {
 							}}
 						>
 							<FontAwesomeIcon icon={faEdit} />
-						</button>
+						</Button>
 					)}
 
-					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
+					<Button type="button" onClick={ this.toggleEngineeringPanel.bind(this) }>
 						<FontAwesomeIcon icon={faWrench} />
-					</button>
+					</Button>
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
@@ -2410,6 +2418,7 @@ export default class CommandControl extends React.Component {
 				{this.state.saveMissionPanel}
 
 				{this.disconnectionPanel()}
+				
 			</div>
 		);
 	}
@@ -3188,53 +3197,52 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Command Drawer
-
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<button id= "activate-all-bots" type="button" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-					<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
-				</button>
-				<button type="button" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-					RC<br />Mode
-				</button>
-				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-					RC<br />Dive
-				</button>
-				<button type="button" id="setRallyPoint" title="Set Rally Point" onClick={this.setRallyPointClicked.bind(this)}>
-					Rally<br />Start
-				</button>
-				<button type="button" id="setHome" title="Rally Finish" onClick={this.setHomeClicked.bind(this)}>
-					Rally<br />Finish
-				</button>
-				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-					Goto<br />Rally Finish
-				</button>
-				<button type="button" style={{"backgroundColor":"#cc0505"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-					STOP<br />ALL
-				</button>
-				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<Button id="system-check-all-bots" type="button" onClick={this.activateAllClicked.bind(this)}>
+					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
+				</Button>
+				<Button type="button" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
+					<img src={rallyPointIcon} alt="Set Rally Point"></img>
+				</Button>
+				<Button type="button" id="goToRallyGreen">
+					<img src={goToRallyGreen} alt="Go To Rally Green"></img>
+				</Button>
+				<Button type="button" id="setHome" onClick={this.setHomeClicked.bind(this)}>
+					<img src={homeIcon} alt="Set Rally Finish"></img>
+				</Button>
+				<Button type="button" id="goHome" onClick={this.goHomeClicked.bind(this)}>
+					<img src={goToRallyRed} alt="Go To Rally Red"></img>
+				</Button>
+				<Button type="button" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
+				    <Icon path={mdiStop} title="Stop All Missions"/>
+				</Button>
+				<Button id= "missionPause" type="button">
+					<Icon path={mdiPause} title="Pause All Missions"/>
+				</Button>
+				<Button id= "missionStartStop" type="button" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
-				</button>
-				<button id= "all-next-task" type="button" title="All Next Task" onClick={this.nextTaskAllClicked.bind(this)}>
+				</Button>
+				<Button id= "all-next-task" type="button" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
-			        </button>
-				<button id= "missionRecover" type="button" title="Recover All" onClick={this.recoverAllClicked.bind(this)}>
+				</Button>
+				<Button id= "missionRecover" type="button" onClick={this.recoverAllClicked.bind(this)}>
 					<Icon path={mdiDownload} title="Recover All"/>
-				</button>
-				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+				</Button>
+				<Button type="button" onClick={this.loadMissionButtonClicked.bind(this)}>
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
-				</button>
-				<button type="button" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+				</Button>
+				<Button type="button" onClick={this.saveMissionButtonClicked.bind(this)}>
 					<Icon path={mdiContentSave} title="Save Mission"/>
-				</button>
-				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
+				</Button>
+				<Button type="button" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
-				</button>
+				</Button>
 				{ this.undoButton() }					
-				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
+				<Button type="button" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
-				</button>
+				</Button>
 			</div>
 
 		)
@@ -3264,7 +3272,7 @@ export default class CommandControl extends React.Component {
 	undoButton() {
 		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
-		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></button>)
+		return (<Button type="button" className={"globalCommand" + inactive} onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
 	setHomeClicked(evt) {

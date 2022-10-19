@@ -11,6 +11,13 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Icon from '@mdi/react'
+import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
+	     mdiSkipNext, mdiDownload, mdiStop, mdiPause } from '@mdi/js'
+import rcMode from '../icons/controller.svg'
+import goToRallyGreen from '../icons/go-to-rally-point-green.png'
+import goToRallyRed from '../icons/go-to-rally-point-red.png'
+import Button from '@mui/material/Button';
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -124,7 +131,7 @@ function getCommandSelectElement(api, bot) {
 }
 
 // Get the table row for the health of the vehicle
-function healthRow(bot) {
+function healthRow(bot, allInfo) {
     let healthClassName = {
         "HEALTH__OK": "healthOK",
         "HEALTH__DEGRADED": "healthDegraded",
@@ -143,16 +150,31 @@ function healthRow(bot) {
         return <div key={warning} className='healthDegraded'>{warning}</div>
     })
 
-    return (
-        <tr>
-            <td>Health</td>
-            <td>
-                {healthStateElement}
-                {errorElements}
-                {warningElements}
-            </td>
-        </tr>
-    )
+    if(allInfo)
+    {
+        return (
+            <tr>
+                <td>Health</td>
+                <td>
+                    {healthStateElement}
+                    {errorElements}
+                    {warningElements}
+                </td>
+            </tr>
+        )
+    }
+    else
+    {
+        return (
+            <tr>
+                <td>Health</td>
+                <td>
+                    {healthStateElement}
+                </td>
+            </tr>
+        )
+    }
+
 }
 
 export function BotDetailsComponent(bot, hub, api, closeWindow) {
@@ -221,23 +243,13 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td>Command</td>
-                            <td>
-                                { getCommandSelectElement(api, bot) }
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
                 <Accordion defaultExpanded className="accordion">
                     <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Mission Status</Typography>
+                        <Typography>Quick Look</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -246,7 +258,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                     <td>Status Age</td>
                                     <td>{statusAge} s</td>
                                 </tr>
-                                {healthRow(bot)}
+                                {healthRow(bot, false)}
                                 <tr>
                                     <td>Distance from Hub</td>
                                     <td>{distToHub} m</td>
@@ -267,6 +279,94 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Commands</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                       <Button type="button" style={{"backgroundColor":"#cc0505"}}>
+                                       <Icon path={mdiStop} title="Stop Mission"/>
+				                       </Button>
+                                    </td>
+                                    <td>
+                                       <Button id="missionStartStop" type="button">
+				                           <Icon path={mdiPlay} title="Run Mission"/>
+				                       </Button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                       <Button id="all-next-task" type="button">
+					                      <Icon path={mdiSkipNext} title="Next Task"/>
+				                       </Button>
+                                    </td>
+                                    <td>
+                                       <Button id="missionPause" type="button">
+				                           <Icon path={mdiPause} title="Pause Mission"/>
+				                       </Button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                       <Button id="system-check-all-bots" type="button">
+					                      <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
+				                       </Button>
+                                    </td>
+                                    <td>
+                                       <Button type="button">
+				                           <img src={rcMode} alt="Activate RC Mode"></img>
+				                       </Button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                       <Button id="goToRallyGreen" type="button">
+					                      <img src={goToRallyGreen} alt="Go To Rally Green"></img>
+				                       </Button>
+                                    </td>
+                                    <td>
+                                       <Button id="goHome" type="button">
+				                           <img src={goToRallyRed} alt="Go To Rally Red"></img>
+				                       </Button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                       <Button id="missionRecover" type="button">
+				                           <Icon path={mdiDownload} title="Recover"/>
+				                       </Button>
+                                    </td>
+                                    <td>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Health Details</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                {healthRow(bot, true)}
                             </tbody>
                         </table>
                     </AccordionDetails>
@@ -359,7 +459,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Temperature/Depth/Salinity</Typography>
+                        <Typography>Sensor Data</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -386,7 +486,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Battery</Typography>
+                        <Typography>Power</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
