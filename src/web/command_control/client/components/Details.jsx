@@ -292,67 +292,41 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <table>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                       <Button type="button" style={{"backgroundColor":"#cc0505"}}>
-                                       <Icon path={mdiStop} title="Stop Mission"/>
-				                       </Button>
-                                    </td>
-                                    <td>
-                                       <Button id="missionStartStop" type="button">
-				                           <Icon path={mdiPlay} title="Run Mission"/>
-				                       </Button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                       <Button id="all-next-task" type="button">
-					                      <Icon path={mdiSkipNext} title="Next Task"/>
-				                       </Button>
-                                    </td>
-                                    <td>
-                                       <Button id="missionPause" type="button">
-				                           <Icon path={mdiPause} title="Pause Mission"/>
-				                       </Button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                       <Button id="system-check-all-bots" type="button">
-					                      <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
-				                       </Button>
-                                    </td>
-                                    <td>
-                                       <Button type="button">
-				                           <img src={rcMode} alt="Activate RC Mode"></img>
-				                       </Button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                       <Button id="goToRallyGreen" type="button">
-					                      <img src={goToRallyGreen} alt="Go To Rally Green"></img>
-				                       </Button>
-                                    </td>
-                                    <td>
-                                       <Button id="goHome" type="button">
-				                           <img src={goToRallyRed} alt="Go To Rally Red"></img>
-				                       </Button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                       <Button id="missionRecover" type="button">
-				                           <Icon path={mdiDownload} title="Recover"/>
-				                       </Button>
-                                    </td>
-                                    <td>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <Button type="button" style={{"backgroundColor":"#cc0505"}}>
+                            <Icon path={mdiStop} title="Stop Mission"/>
+                        </Button>
+
+                        <Button id="missionStartStop" type="button">
+                            <Icon path={mdiPlay} title="Run Mission"/>
+                        </Button>
+
+                        <Button id="all-next-task" type="button">
+                            <Icon path={mdiSkipNext} title="Next Task"/>
+                        </Button>
+
+                        <Button id="missionPause" type="button">
+                            <Icon path={mdiPause} title="Pause Mission"/>
+                        </Button>
+
+                        <Button id="system-check-all-bots" type="button">
+                            <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
+                        </Button>
+
+                        <Button type="button">
+                            <img src={rcMode} alt="Activate RC Mode"></img>
+                        </Button>
+
+                        <Button id="goToRallyGreen" type="button">
+                            <img src={goToRallyGreen} alt="Go To Rally Green"></img>
+                        </Button>
+
+                        <Button id="goHome" type="button">
+                            <img src={goToRallyRed} alt="Go To Rally Red"></img>
+                        </Button>
+
+                        <Button id="missionRecover" type="button">
+                            <Icon path={mdiDownload} title="Recover"/>
+                        </Button>
                     </AccordionDetails>
                 </Accordion>
                 <Accordion className="accordion">
@@ -534,30 +508,42 @@ export function HubDetailsComponent(hub, api, closeWindow) {
                     <h2 className="name">{`Hub ${hub?.hubId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <table id="botDetailsTable">
-                    <tbody>
-                        <tr>
-                            <td>Command</td>
-                            <td>
-                                { getCommandSelectElement(api, hub) }
-                            </td>
-                        </tr>
-                        {healthRow(hub)}
-                        <tr>
-                            <td>Latitude</td>
-                            <td>{formatLatitude(hub.location?.lat)}</td>
-                        </tr>
-                        <tr>
-                            <td>Longitude</td>
-                            <td>{formatLongitude(hub.location?.lon)}</td>
-                        </tr>
-                        <tr className={statusAgeClassName}>
-                            <td>Status Age</td>
-                            <td>{statusAge} s</td>
-                        </tr>
 
-                    </tbody>
-                </table>
+                <Accordion defaultExpanded className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Quick Look</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Command</td>
+                                    <td>
+                                        { getCommandSelectElement(api, hub) }
+                                    </td>
+                                </tr>
+                                {healthRow(hub)}
+                                <tr>
+                                    <td>Latitude</td>
+                                    <td>{formatLatitude(hub.location?.lat)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Longitude</td>
+                                    <td>{formatLongitude(hub.location?.lon)}</td>
+                                </tr>
+                                <tr className={statusAgeClassName}>
+                                    <td>Status Age</td>
+                                    <td>{statusAge} s</td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
             </div>
         </div>
     )
