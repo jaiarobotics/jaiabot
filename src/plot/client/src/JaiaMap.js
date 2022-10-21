@@ -61,6 +61,26 @@ function dateStringFromMicros(timestamp_micros) {
 }
 
 
+// Creates an OpenLayers marker feature with a popup
+function createMarker(map, title, point, style) {
+    const time = point[0]
+    const lonLat = [point[2], point[1]]
+    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+
+    const markerFeature = new Feature({
+        name: title,
+        geometry: new Point(coordinate)
+    })
+    markerFeature.setStyle(style)
+
+    const popupData = {title: title, time:dateStringFromMicros(time), lon: lonLat[0], lat: lonLat[1]}
+    Popup.addPopup(map, markerFeature, Template.get('markerPopup', popupData))
+
+    return markerFeature
+}
+
+
+
 export default class JaiaMap {
 
         constructor(map_div_id, openlayersMapDivId) {
@@ -92,7 +112,6 @@ export default class JaiaMap {
             this.path_point_arrays = []
 
             this.waypoint_markers = []
-            this.bot_markers = []
             this.active_goal_dict = {}
 
             // Time range for the visible path
@@ -107,7 +126,6 @@ export default class JaiaMap {
 
             // Add layer control
             const layersToControl = {
-              'Bot paths' : this.pathLayerGroup,
               'Task packets' : this.taskLayerGroup,
               'Bottom strikes' : this.bottomStrikeLayerGroup
             } 
@@ -129,8 +147,9 @@ export default class JaiaMap {
             this.openlayersMap = new Map({
                 target: openlayersMapDivId,
                 layers: [
-                    this.getOpenlayersTileLayerGroup(),
-                    this.getBotPathLayer()
+                    this.createOpenlayersTileLayerGroup(),
+                    this.createBotPathLayer(),
+                    this.createBotLayer()
                 ],
                 view: view,
                 controls: []
@@ -139,9 +158,20 @@ export default class JaiaMap {
             // Dispatch click events to the feature, if it has an "onclick" property set
             this.openlayersMap.on("click", (e) => {
                 this.openlayersMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
-                    console.log(feature.getProperties())
                     feature.get('onclick')?.(e)
                 })
+            });
+
+            // Change cursor to hand pointer, when hovering over a feature with an onclick property
+            this.openlayersMap.on("pointermove", function (evt) {
+                var hit = this.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                    return (feature.get('onclick') != null)
+                }); 
+                if (hit) {
+                    this.getTargetElement().style.cursor = 'pointer';
+                } else {
+                    this.getTargetElement().style.cursor = '';
+                }
             });
         }
 
@@ -150,7 +180,7 @@ export default class JaiaMap {
             return fromLonLat(coordinate, this.openlayersProjection)
         }
 
-        getOpenlayersTileLayerGroup() {
+        createOpenlayersTileLayerGroup() {
             const noaaEncSource = new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
 
             return new LayerGroup({
@@ -174,12 +204,21 @@ export default class JaiaMap {
             })
         }
 
-        getBotPathLayer() {
+        createBotPathLayer() {
             this.botPathVectorSource = new VectorSource()
 
             return new VectorLayer({
                 source: this.botPathVectorSource,
                 zIndex: 10
+            })
+        }
+
+        createBotLayer() {
+            this.botVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                source: this.botVectorSource,
+                zIndex: 11
             })
         }
     
@@ -236,23 +275,6 @@ export default class JaiaMap {
 
                 // Add start and end markers
                 if (ptArray.length > 0) {
-
-                    function createMarker(map, title, point, style) {
-                        const time = point[0]
-                        const lonLat = [point[2], point[1]]
-                        const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-    
-                        const markerFeature = new Feature({
-                            name: 'Start',
-                            geometry: new Point(coordinate)
-                        })
-                        markerFeature.setStyle(style)
-    
-                        const popupData = {title: title, time:dateStringFromMicros(time), lon: lonLat[0], lat: lonLat[1]}
-                        Popup.addPopup(map, markerFeature, Template.get('markerPopup', popupData))
-
-                        return markerFeature
-                    }
 
                     const startMarker = createMarker(this.openlayersMap, "Start", ptArray[0], Styles.startMarker)
                     this.botPathVectorSource.addFeature(startMarker)
@@ -333,10 +355,8 @@ export default class JaiaMap {
         }
 
         updateBotMarkers(timestamp_micros) {
-            this.bot_markers.forEach((bot_marker) => {
-                bot_marker.removeFrom(this.map)
-            })
-            this.bot_markers = []
+            // OpenLayers
+            this.botVectorSource.clear()
 
             if (timestamp_micros == null) {
                 return
@@ -346,22 +366,11 @@ export default class JaiaMap {
                 const point = bisect(path_point_array, (point) => {
                     return timestamp_micros - point[0]
                 })
+                if (point == null) continue;
 
-                const markerOptions = {
-                    icon: new L.DivIcon({
-                        className: 'bot',
-                        html: 'Bot',
-                        iconSize: 'auto'
-                    })
-                }
-
-                // Plot point on the map
-                if (point) {
-                    const bot_marker = new L.Marker([point[1], point[2]], markerOptions)
-                    this.bot_markers.push(bot_marker)
-                    bot_marker.addTo(this.map)
-                }
+                this.botVectorSource.addFeature(createMarker(this.openlayersMap, "Bot", point, Styles.botMarker))
             }
+
         }
 
         updateWaypointMarkers(timestamp_micros) {

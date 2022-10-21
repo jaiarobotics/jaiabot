@@ -1,5 +1,5 @@
 import Stroke from 'ol/style/Stroke';
-import {Circle as CircleStyle, Fill, Icon, Style} from 'ol/style';
+import {Circle as CircleStyle, Fill, Icon, Style, Text} from 'ol/style';
 
 export const startMarker = new Style({
     image: new CircleStyle({
@@ -19,3 +19,18 @@ export const endMarker = new Style({
         src: '/stop.svg',
     })
 })
+
+export const botMarker = function(feature) {
+    return new Style({
+        image: new CircleStyle({
+            radius: 8,
+            stroke: new Stroke({
+                color: 'white',
+                width: 2
+            }),
+            fill: new Fill({
+                color: 'blue',
+            }),
+        })
+    })
+}
