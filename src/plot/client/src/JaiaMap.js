@@ -9,10 +9,13 @@ import VectorSource from 'ol/source/Vector';
 import Polygon from 'ol/geom/Polygon';
 import { fromLonLat } from 'ol/proj';
 import Feature from 'ol/Feature';
-import { LineString } from 'ol/geom';
+import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
-import Style from 'ol/style/Style';
+import {Circle as CircleStyle, Fill, Style} from 'ol/style';
+import * as Styles from './Styles'
+import * as Popup from './Popup'
+import * as Template from './Template'
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -41,6 +44,20 @@ function bisect(sorted_array, f) {
     }
 
     return null
+}
+
+
+// Get date description from microsecond timestamp
+function dateStringFromMicros(timestamp_micros) {
+    return new Date(timestamp_micros / 1e3).toLocaleDateString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+    })
 }
 
 
@@ -83,8 +100,6 @@ export default class JaiaMap {
 
             this.task_packets = []
 
-            this.pathLayerGroup =
-                L.layerGroup().addTo(this.map)
             this.taskLayerGroup =
                 L.layerGroup().addTo(this.map)
             this.bottomStrikeLayerGroup =
@@ -117,8 +132,17 @@ export default class JaiaMap {
                     this.getOpenlayersTileLayerGroup(),
                     this.getBotPathLayer()
                 ],
-                view: view
+                view: view,
+                controls: []
             })
+
+            // Dispatch click events to the feature, if it has an "onclick" property set
+            this.openlayersMap.on("click", (e) => {
+                this.openlayersMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
+                    console.log(feature.getProperties())
+                    feature.get('onclick')?.(e)
+                })
+            });
         }
 
         // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view
@@ -168,41 +192,13 @@ export default class JaiaMap {
         updatePath() {
             let timeRange = this.timeRange ?? [0, Number.MAX_SAFE_INTEGER]
 
-            this.pathLayerGroup.clearLayers()
-
-            var bounds = []
-
-            for (const path_point_array of this.path_point_arrays) {
-
-                var path = []
-                for (const pt of path_point_array) {
-                    if (pt[0] > timeRange[1]) {
-                        break
-                    }
-
-                    if (pt[0] > timeRange[0]) {
-                        path.push([pt[1], pt[2]])
-                    }
-                }
-
-                const path_polyline =
-                    L.polyline(path, {color : 'green', zIndex : 1})
-                        .addTo(this.pathLayerGroup)
-
-                bounds.push(path_polyline.getBounds())
-
-            }
-
-            if (bounds.length > 0) {
-                this.map.fitBounds(bounds)
-            }
-
             // OpenLayers
             this.botPathVectorSource.clear()
 
             const botLineColorArray = this.getBotLineColorArray()
 
             for (const botIndex in this.path_point_arrays) {
+
                 const ptArray = this.path_point_arrays[botIndex]
 
                 const lineColor = botLineColorArray[botIndex % botLineColorArray.length]
@@ -210,10 +206,11 @@ export default class JaiaMap {
                 const style = new Style({
                     stroke: new Stroke({
                         color: lineColor,
-                        width: 4
+                        width: 3
                     })
                 })
 
+                // Filter to only keep points within the time range
                 var path = []
                 for (const pt of ptArray) {
                     if (pt[0] > timeRange[1]) {
@@ -237,6 +234,33 @@ export default class JaiaMap {
 
                 this.botPathVectorSource.addFeature(pathFeature)
 
+                // Add start and end markers
+                if (ptArray.length > 0) {
+
+                    function createMarker(map, title, point, style) {
+                        const time = point[0]
+                        const lonLat = [point[2], point[1]]
+                        const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+    
+                        const markerFeature = new Feature({
+                            name: 'Start',
+                            geometry: new Point(coordinate)
+                        })
+                        markerFeature.setStyle(style)
+    
+                        const popupData = {title: title, time:dateStringFromMicros(time), lon: lonLat[0], lat: lonLat[1]}
+                        Popup.addPopup(map, markerFeature, Template.get('markerPopup', popupData))
+
+                        return markerFeature
+                    }
+
+                    const startMarker = createMarker(this.openlayersMap, "Start", ptArray[0], Styles.startMarker)
+                    this.botPathVectorSource.addFeature(startMarker)
+
+                    const endMarker = createMarker(this.openlayersMap, "End", ptArray[ptArray.length - 1], Styles.endMarker)
+                    this.botPathVectorSource.addFeature(endMarker)
+
+                }
             }
 
             // Zoom OpenLayers to bot path extent
@@ -260,7 +284,6 @@ export default class JaiaMap {
             for (let cycle = 0; cycle < cycleCount; cycle++) {
                 for (let hue = start; hue < 360; hue += step) {
                     const color = 'hsl(' + hue + ', 50%, 44%)'
-                    console.log('<div style="' + color + '">' + color + '<div>')
                     array.push(color)
                 }
 

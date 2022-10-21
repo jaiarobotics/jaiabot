@@ -224,3 +224,9 @@ button {
     background-color: lightgray;
 }
 
+.popup {
+    background-color: azure;
+    border-radius: 10pt;
+    box-shadow: 2pt 2pt 10pt darkgray;
+    padding: 10pt;
+}
