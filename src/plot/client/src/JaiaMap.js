@@ -121,6 +121,7 @@ export default class JaiaMap {
             })
         }
 
+        // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view
         fromLonLat(coordinate) {
             return fromLonLat(coordinate, this.openlayersProjection)
         }
