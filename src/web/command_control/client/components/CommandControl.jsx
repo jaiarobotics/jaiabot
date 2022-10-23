@@ -2262,7 +2262,11 @@ export default class CommandControl extends React.Component {
 				// TO DO  
 				// the following line assumes fleets to only have hub0 in use
 				//**********************
-				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], hubs?.[0], this.api, closeDetails);
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
+												hubs?.[0], 
+												this.api, 
+												this.missions, 
+												closeDetails);
 				break;
 			case null:
 				detailsBox = null;
@@ -2282,7 +2286,7 @@ export default class CommandControl extends React.Component {
 
 				<div id="viewControls">
 					<Button
-						type="button"
+						className="button-jcc"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
 							$('#mapLayersButton').toggleClass('active');
@@ -2294,8 +2298,7 @@ export default class CommandControl extends React.Component {
 						<div>
 							<div id="measureResult" />
 							<Button
-								type="button"
-								className="active"
+								className="button-jcc active"
 								onClick={() => {
 									// this.measureInteraction.finishDrawing();
 									this.changeInteraction();
@@ -2307,7 +2310,7 @@ export default class CommandControl extends React.Component {
 						</div>
 					) : (
 						<Button
-							type="button"
+							className="button-jcc"
 							onClick={() => {
 								this.setState({ measureActive: true });
 								this.changeInteraction(this.measureInteraction, 'crosshair');
@@ -2318,12 +2321,12 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
-						<Button type="button" onClick={this.trackBot.bind(this, '')} className="active">
+						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
 							<FontAwesomeIcon icon={faMapMarkedAlt} />
 						</Button>
 					) : (
 						<Button
-							type="button"
+							className="button-jcc"
 							onClick={() => {
 								this.zoomToAll(true);
 								this.trackBot('all');
@@ -2334,12 +2337,12 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
-						<Button type="button" onClick={this.trackBot.bind(this, '')} className="active">
+						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
 							<FontAwesomeIcon icon={faMapMarkerAlt} />
 						</Button>
 					) : (
 						<Button
-							type="button"
+							className="button-jcc"
 							onClick={() => {
 								this.zoomToAllBots(true);
 								this.trackBot('pod');
@@ -2351,8 +2354,7 @@ export default class CommandControl extends React.Component {
 
 					{surveyPolygonActive ? (
 							<Button
-								type="button"
-								className="active"
+								className="button-jcc active"
 								onClick={() => {
 									this.changeInteraction();
 									this.setState({
@@ -2369,7 +2371,7 @@ export default class CommandControl extends React.Component {
 							</Button>
 					) : (
 						<Button
-							type="button"
+							className="button-jcc"
 							onClick={() => {
 								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
@@ -2388,7 +2390,7 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 
-					<Button type="button" onClick={ this.toggleEngineeringPanel.bind(this) }>
+					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) }>
 						<FontAwesomeIcon icon={faWrench} />
 					</Button>
 
@@ -3200,47 +3202,47 @@ export default class CommandControl extends React.Component {
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<Button id="system-check-all-bots" type="button" onClick={this.activateAllClicked.bind(this)}>
+				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
-				<Button type="button" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
+				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
 					<img src={rallyPointIcon} alt="Set Rally Point"></img>
 				</Button>
-				<Button type="button" id="goToRallyGreen">
+				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
 					<img src={goToRallyGreen} alt="Go To Rally Green"></img>
 				</Button>
-				<Button type="button" id="setHome" onClick={this.setHomeClicked.bind(this)}>
+				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
 					<img src={homeIcon} alt="Set Rally Finish"></img>
 				</Button>
-				<Button type="button" id="goHome" onClick={this.goHomeClicked.bind(this)}>
+				<Button className="button-jcc" id="goHome" onClick={this.goHomeClicked.bind(this)}>
 					<img src={goToRallyRed} alt="Go To Rally Red"></img>
 				</Button>
-				<Button type="button" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
+				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions"/>
 				</Button>
-				<Button id= "missionPause" type="button">
+				<Button id= "missionPause" className="button-jcc inactive" disabled>
 					<Icon path={mdiPause} title="Pause All Missions"/>
 				</Button>
-				<Button id= "missionStartStop" type="button" onClick={this.playClicked.bind(this)}>
+				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id= "all-next-task" type="button" onClick={this.nextTaskAllClicked.bind(this)}>
+				<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
 				</Button>
-				<Button id= "missionRecover" type="button" onClick={this.recoverAllClicked.bind(this)}>
+				<Button id= "missionRecover" className="button-jcc" onClick={this.recoverAllClicked.bind(this)}>
 					<Icon path={mdiDownload} title="Recover All"/>
 				</Button>
-				<Button type="button" onClick={this.loadMissionButtonClicked.bind(this)}>
+				<Button className="button-jcc" onClick={this.loadMissionButtonClicked.bind(this)}>
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</Button>
-				<Button type="button" onClick={this.saveMissionButtonClicked.bind(this)}>
+				<Button className="button-jcc" onClick={this.saveMissionButtonClicked.bind(this)}>
 					<Icon path={mdiContentSave} title="Save Mission"/>
 				</Button>
-				<Button type="button" onClick={this.deleteClicked.bind(this)}>
+				<Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</Button>
 				{ this.undoButton() }					
-				<Button type="button" onClick={this.sendFlag.bind(this)}>
+				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
 			</div>
@@ -3272,7 +3274,7 @@ export default class CommandControl extends React.Component {
 	undoButton() {
 		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
-		return (<Button type="button" className={"globalCommand" + inactive} onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
+		return (<Button className={"globalCommand" + inactive + " button-jcc"} onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
 	setHomeClicked(evt) {
