@@ -107,7 +107,6 @@ class LogApp extends React.Component {
         <div className = "bottom_pane flexbox horizontal">
           { plotContainer }
 
-          <div className="map" id="map"></div>
           <div className="openlayers-map" id="openlayers-map"></div>
         </div>
         </div>
@@ -150,7 +149,7 @@ class LogApp extends React.Component {
 
   componentDidMount() {
     this.getElements()
-    this.map = new JaiaMap('map', 'openlayers-map')
+    this.map = new JaiaMap('openlayers-map')
     this.update_log_dropdown()
   }
 
@@ -162,6 +161,7 @@ class LogApp extends React.Component {
   update_log_dropdown() {
     LogApi.get_logs().then(logs => {
       this.setState({logs})
+      this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
     })
   }
 

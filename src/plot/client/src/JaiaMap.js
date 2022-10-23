@@ -68,7 +68,7 @@ function createMarker(map, title, point, style) {
     const coordinate = fromLonLat(lonLat, map.getView().getProjection())
 
     const markerFeature = new Feature({
-        name: title,
+        name: title ?? 'Marker',
         geometry: new Point(coordinate)
     })
     markerFeature.setStyle(style)
@@ -80,58 +80,45 @@ function createMarker(map, title, point, style) {
 }
 
 
+// Creates an OpenLayers marker feature with a popup using options
+// parameters: {lon, lat}
+function createMarker2(map, parameters) {
+    const lonLat = [parameters.lon, parameters.lat]
+    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+
+    const markerFeature = new Feature({
+        name: parameters.title ?? 'Marker',
+        geometry: new Point(coordinate)
+    })
+
+    if (parameters.style != null) {
+        markerFeature.setStyle(parameters.style)
+    }
+
+    // Convert time to a string
+    if (parameters.time != null) {
+        parameters.time = dateStringFromMicros(parameters.time)
+    }
+
+    Popup.addPopup(map, markerFeature, Template.get('markerPopup', parameters))
+
+    return markerFeature
+}
+
 
 export default class JaiaMap {
 
-        constructor(map_div_id, openlayersMapDivId) {
-
-            // Map
-            const map_options = {
-                minZoom: 1,
-                maxZoom: 20
-            }
-
-            this.map = L.map(map_div_id, map_options).setView([ 0, 0 ], 10)
-            L.control.scale().addTo(this.map)
-
-            // TileLayer
-            const tile_layer_options =
-                {
-                  maxNativeZoom : 18,
-                  maxZoom : 20,
-                  attribution :
-                      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }
-
-            L.tileLayer(
-                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    tile_layer_options)
-                .addTo(this.map)
+        constructor(openlayersMapDivId) {
 
             // An array of arrays of points.  Each array of points corresponds to a polyline for a bot path
             this.path_point_arrays = []
 
-            this.waypoint_markers = []
             this.active_goal_dict = {}
 
             // Time range for the visible path
             this.timeRange = null
 
             this.task_packets = []
-
-            this.taskLayerGroup =
-                L.layerGroup().addTo(this.map)
-            this.bottomStrikeLayerGroup =
-                L.layerGroup().addTo(this.map)
-
-            // Add layer control
-            const layersToControl = {
-              'Task packets' : this.taskLayerGroup,
-              'Bottom strikes' : this.bottomStrikeLayerGroup
-            } 
-            
-            var layerControl =
-                L.control.layers(null, layersToControl).addTo(this.map)
 
             this.setupOpenlayersMap(openlayersMapDivId)
         }
@@ -149,7 +136,8 @@ export default class JaiaMap {
                 layers: [
                     this.createOpenlayersTileLayerGroup(),
                     this.createBotPathLayer(),
-                    this.createBotLayer()
+                    this.createBotLayer(),
+                    this.createMissionLayer()
                 ],
                 view: view,
                 controls: []
@@ -218,6 +206,15 @@ export default class JaiaMap {
 
             return new VectorLayer({
                 source: this.botVectorSource,
+                zIndex: 12
+            })
+        }
+    
+        createMissionLayer() {
+            this.missionVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                source: this.missionVectorSource,
                 zIndex: 11
             })
         }
@@ -374,11 +371,9 @@ export default class JaiaMap {
         }
 
         updateWaypointMarkers(timestamp_micros) {
-            this.waypoint_markers.forEach((waypoint_marker) => {
-                waypoint_marker.removeFrom(this.map)
-            })
 
-            this.waypoint_markers = []
+            // Clear OpenLayers layer
+            this.missionVectorSource.clear()
 
             if (timestamp_micros == null) {
                 return
@@ -392,11 +387,14 @@ export default class JaiaMap {
             // This assumes that we have a command_dict with only one botId!
             const botId = botId_array[0]
 
-            const command_array = this.command_dict[botId]
+            const command_array = this.command_dict[botId].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
 
             const command = bisect(command_array, (command) => {
                 return timestamp_micros - command._utime_
             })
+
+            console.log('Command array = ', command_array)
+            console.log('Command = ', command)
 
             if (command == null) {
                 return
@@ -420,24 +418,11 @@ export default class JaiaMap {
                     continue
                 }
 
-                // Style this waypoint
-                var waypointClasses = ['waypoint']
-
-                if (goal_index == active_goal_index) {
-                    waypointClasses.push('active')
+                {
+                    // OpenLayers
+                    const markerFeature = createMarker2(this.openlayersMap, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal)})
+                    this.missionVectorSource.addFeature(markerFeature)
                 }
-
-                const markerOptions = {
-                    icon: new L.DivIcon({
-                        title: 'Bot ' + botId,
-                        className: waypointClasses.join(' '),
-                        html: goal_index,
-                        iconSize: 'auto'
-                    })
-                }
-                var waypoint_marker = new L.Marker([location.lat, location.lon], markerOptions)
-                waypoint_marker.addTo(this.map)
-                this.waypoint_markers.push(waypoint_marker)
             }
 
         }
@@ -465,9 +450,6 @@ export default class JaiaMap {
                 return s
             }
 
-            this.taskLayerGroup.clearLayers()
-            this.bottomStrikeLayerGroup.clearLayers()
-
             var bounds = []
 
             for (const task_packet of this.task_packets ?? []) {
@@ -483,36 +465,36 @@ export default class JaiaMap {
                     const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
 
                     // A circle marker at the start location
-                    const drift_start_circle =
-                        new L
-                            .circleMarker(
-                                d_start,
-                                {color : "red", radius : 4.0, zIndex : 2})
-                            .bindPopup(d_hover)
-                            .bindTooltip(d_hover)
-                    drift_start_circle.addTo(this.taskLayerGroup)
+                    // const drift_start_circle =
+                    //     new L
+                    //         .circleMarker(
+                    //             d_start,
+                    //             {color : "red", radius : 4.0, zIndex : 2})
+                    //         .bindPopup(d_hover)
+                    //         .bindTooltip(d_hover)
+                    // drift_start_circle.addTo(this.taskLayerGroup)
 
-                    const distance = L.latLng(d_start).distanceTo(L.latLng(d_end))
+                    // const distance = L.latLng(d_start).distanceTo(L.latLng(d_end))
 
                     // Extend the line, if the drift distance is less than threshold
-                    const threshold = 10.0
+                    // const threshold = 10.0
 
-                    if (distance < threshold && distance > 0) {
-                        const k = threshold / distance
-                        d_end[0] = d_start[0] + k * (d_end[0] - d_start[0])
-                        d_end[1] = d_start[1] + k * (d_end[1] - d_start[1])
-                    }
+                    // if (distance < threshold && distance > 0) {
+                    //     const k = threshold / distance
+                    //     d_end[0] = d_start[0] + k * (d_end[0] - d_start[0])
+                    //     d_end[1] = d_start[1] + k * (d_end[1] - d_start[1])
+                    // }
 
                     // A line leading to the end location
 
-                    const drift_line =
-                        new L
-                            .polyline([ d_start, d_end ],
-                                      {color : "red", weight : 4.0, zIndex : 2})
-                            .bindPopup(d_hover)
-                            .bindTooltip(d_hover)
-                    drift_line.addTo(this.taskLayerGroup)
-                    bounds.push(drift_line.getBounds())
+                    // const drift_line =
+                    //     new L
+                    //         .polyline([ d_start, d_end ],
+                    //                   {color : "red", weight : 4.0, zIndex : 2})
+                    //         .bindPopup(d_hover)
+                    //         .bindTooltip(d_hover)
+                    // drift_line.addTo(this.taskLayerGroup)
+                    // bounds.push(drift_line.getBounds())
                 }
 
                 // Dive markers
@@ -534,36 +516,33 @@ export default class JaiaMap {
                     const hovertext = '<h3>Dive</h3>' + d_description
 
                     // A circle marker at the start location
-                    const d_start_circle = new L
-                                               .circleMarker(d_start, {
-                                                 color : "blue",
-                                                 radius : 6.0,
-                                               })
-                                               .bindPopup(hovertext)
-                                               .bindTooltip(hovertext)
-                    d_start_circle.addTo(this.taskLayerGroup)
+                    // const d_start_circle = new L
+                    //                            .circleMarker(d_start, {
+                    //                              color : "blue",
+                    //                              radius : 6.0,
+                    //                            })
+                    //                            .bindPopup(hovertext)
+                    //                            .bindTooltip(hovertext)
+                    // d_start_circle.addTo(this.taskLayerGroup)
                 }
 
                 if (dive.bottom_dive) {
                     // A circle marker at the start location
                     const hovertext = '<h3>Bottom Strike</h3>' + d_description
 
-                    const circleMarker = new L
-                                               .circleMarker(d_start, {
-                                                 color : "red",
-                                                 radius : 6.0,
-                                               })
-                                               .bindPopup(hovertext)
-                                               .bindTooltip(hovertext)
+                    // const circleMarker = new L
+                    //                            .circleMarker(d_start, {
+                    //                              color : "red",
+                    //                              radius : 6.0,
+                    //                            })
+                    //                            .bindPopup(hovertext)
+                    //                            .bindTooltip(hovertext)
 
-                    circleMarker.addTo(this.bottomStrikeLayerGroup)
+                    // circleMarker.addTo(this.bottomStrikeLayerGroup)
                 }
 
             }
 
-            // if (bounds.length > 0) {
-            //     this.map.fitBounds(bounds)
-            // }
         }
 
     }

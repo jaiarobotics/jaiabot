@@ -22,17 +22,12 @@
 .plotcontainer {
     overflow: auto;
     height: 100%;
-    flex: 1 1 60%;
-}
-
-.map {
-    height: 100%;
-    flex: 1 1 40%;
+    flex: 1 1 50%;
 }
 
 #openlayers-map {
     height: 100%;
-    flex: 1 1 40%;
+    flex: 1 1 50%;
 }
 
 .plot {
@@ -98,36 +93,6 @@ div.inline {
 button {
     display: inline;
     width: 100pt;
-}
-
-.waypoint {
-    background-color: darkslategray;
-    color: white;
-    text-align: center;
-    min-width: 18pt;
-    height: 14pt;
-    border-radius: 0pt 5pt 5pt 5pt;
-    border-color: white;
-    border-width: 1pt;
-    border-style: solid;
-}
-
-.waypoint.active {
-    background-color: rgb(51, 161, 82);
-    font-weight: bolder;
-    border-width: 2pt;
-}
-
-.bot {
-    background-color: rgb(0, 0, 0);
-    color: rgb(255, 255, 255);
-    text-align: center;
-    min-width: 18pt;
-    height: 14pt;
-    border-radius: 0pt 5pt 5pt 5pt;
-    border-color: rgb(255, 255, 255);
-    border-width: 2pt;
-    border-style: solid;
 }
 
 .centered {
