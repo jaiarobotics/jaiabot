@@ -393,12 +393,11 @@ export default class JaiaMap {
                 return timestamp_micros - command._utime_
             })
 
-            console.log('Command array = ', command_array)
-            console.log('Command = ', command)
-
             if (command == null) {
                 return
             }
+
+            console.log(command)
 
             // This assumes that we have an active_goal_dict with only one botId!
             const active_goals_array = this.active_goal_dict[botId]
@@ -408,7 +407,6 @@ export default class JaiaMap {
             })
 
             const active_goal_index = active_goal?.active_goal
-
 
             // Add markers for each waypoint
             for (const [goal_index, goal] of command.plan.goal.entries()) {
@@ -420,7 +418,7 @@ export default class JaiaMap {
 
                 {
                     // OpenLayers
-                    const markerFeature = createMarker2(this.openlayersMap, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal)})
+                    const markerFeature = createMarker2(this.openlayersMap, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == active_goal_index)})
                     this.missionVectorSource.addFeature(markerFeature)
                 }
             }

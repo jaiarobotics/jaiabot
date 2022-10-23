@@ -37,17 +37,20 @@ export const botMarker = function(feature) {
 
 
 // Markers for the mission goals
-export function goal(goalIndex, goal) {
+export function goal(goalIndex, goal, isActive) {
+    const srcMap = {
+        'DIVE': '/taskDive.svg',
+        'STATION_KEEP': '/taskStationKeep.svg',
+        'SURFACE_DRIFT': '/taskSurfaceDrift.svg',
+        'NONE': '/taskNone.svg'        
+    }
+
+    const src = srcMap[goal.task?.type ?? 'NONE'] ?? '/taskNone.svg'
+
     return new Style({
-        image: new CircleStyle({
-            radius: 10,
-            stroke: new Stroke({
-                color: 'white',
-                width: 2
-            }),
-            fill: new Fill({
-                color: 'blue',
-            }),
+        image: new Icon({
+            src: src,
+            color: isActive ? 'green' : 'blue'
         }),
         text: new Text({
             text: new String(goalIndex),
