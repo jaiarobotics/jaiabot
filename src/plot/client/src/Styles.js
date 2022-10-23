@@ -61,3 +61,30 @@ export function goal(goalIndex, goal, isActive) {
         })
     })
 }
+
+
+// Markers for bottom strikes
+export function bottomStrike(depth) {
+    var text = depth?.toFixed(1)
+    if (text != null) {
+        text = text + 'm'
+    }
+    else {
+        text = ''
+    }
+
+    return new Style({
+        image: new Icon({
+            src: '/bottomStrike.svg',
+            color: 'red'
+        }),
+        text: new Text({
+            text: new String(text),
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            offsetY: 20
+        })
+    })
+}

@@ -137,7 +137,8 @@ export default class JaiaMap {
                     this.createOpenlayersTileLayerGroup(),
                     this.createBotPathLayer(),
                     this.createBotLayer(),
-                    this.createMissionLayer()
+                    this.createMissionLayer(),
+                    this.createTaskPacketLayer()
                 ],
                 view: view,
                 controls: []
@@ -206,7 +207,7 @@ export default class JaiaMap {
 
             return new VectorLayer({
                 source: this.botVectorSource,
-                zIndex: 12
+                zIndex: 13
             })
         }
     
@@ -216,6 +217,15 @@ export default class JaiaMap {
             return new VectorLayer({
                 source: this.missionVectorSource,
                 zIndex: 11
+            })
+        }
+    
+        createTaskPacketLayer() {
+            this.taskPacketVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                source: this.taskPacketVectorSource,
+                zIndex: 12
             })
         }
     
@@ -427,6 +437,8 @@ export default class JaiaMap {
     
         updateTaskAnnotations() {
 
+            this.taskPacketVectorSource.clear()
+
             // Helper to convert from latlon obj to array
             function to_array(latlon) {
                 return [latlon.lat, latlon.lon]
@@ -525,6 +537,8 @@ export default class JaiaMap {
                 }
 
                 if (dive.bottom_dive) {
+                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Bottom Strike', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.bottomStrike(dive.depth_achieved)}))
+
                     // A circle marker at the start location
                     const hovertext = '<h3>Bottom Strike</h3>' + d_description
 
