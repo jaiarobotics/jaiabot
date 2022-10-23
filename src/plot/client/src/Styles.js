@@ -34,3 +34,27 @@ export const botMarker = function(feature) {
         })
     })
 }
+
+
+// Markers for the mission goals
+export function goal(goalIndex, goal) {
+    return new Style({
+        image: new CircleStyle({
+            radius: 10,
+            stroke: new Stroke({
+                color: 'white',
+                width: 2
+            }),
+            fill: new Fill({
+                color: 'blue',
+            }),
+        }),
+        text: new Text({
+            text: new String(goalIndex),
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'white'
+            })
+        })
+    })
+}
