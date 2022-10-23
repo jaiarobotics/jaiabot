@@ -100,7 +100,18 @@ function createMarker2(map, parameters) {
         parameters.time = dateStringFromMicros(parameters.time)
     }
 
-    Popup.addPopup(map, markerFeature, Template.get('markerPopup', parameters))
+    // If we received a popupHTML, then use it
+    var popupElement
+    if (parameters.popupHTML != null) {
+        popupElement = document.createElement('div')
+        popupElement.classList = "popup"
+        popupElement.innerHTML = parameters.popupHTML
+    }
+    else {
+        popupElement = Template.get('markerPopup', parameters)
+    }
+
+    Popup.addPopup(map, markerFeature, popupElement)
 
     return markerFeature
 }
@@ -464,6 +475,11 @@ export default class JaiaMap {
 
             for (const task_packet of this.task_packets ?? []) {
 
+                // Discard the lower-precision DCCL task packets
+                if (task_packet._scheme_ == 2) {
+                    continue
+                }
+
                 // Drift markers
                 const drift = task_packet.drift
 
@@ -474,37 +490,7 @@ export default class JaiaMap {
 
                     const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
 
-                    // A circle marker at the start location
-                    // const drift_start_circle =
-                    //     new L
-                    //         .circleMarker(
-                    //             d_start,
-                    //             {color : "red", radius : 4.0, zIndex : 2})
-                    //         .bindPopup(d_hover)
-                    //         .bindTooltip(d_hover)
-                    // drift_start_circle.addTo(this.taskLayerGroup)
-
-                    // const distance = L.latLng(d_start).distanceTo(L.latLng(d_end))
-
-                    // Extend the line, if the drift distance is less than threshold
-                    // const threshold = 10.0
-
-                    // if (distance < threshold && distance > 0) {
-                    //     const k = threshold / distance
-                    //     d_end[0] = d_start[0] + k * (d_end[0] - d_start[0])
-                    //     d_end[1] = d_start[1] + k * (d_end[1] - d_start[1])
-                    // }
-
-                    // A line leading to the end location
-
-                    // const drift_line =
-                    //     new L
-                    //         .polyline([ d_start, d_end ],
-                    //                   {color : "red", weight : 4.0, zIndex : 2})
-                    //         .bindPopup(d_hover)
-                    //         .bindTooltip(d_hover)
-                    // drift_line.addTo(this.taskLayerGroup)
-                    // bounds.push(drift_line.getBounds())
+                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Surface Drift', lon: drift.start_location.lon, lat: drift.start_location.lat, style: Styles.driftTask(drift), popupHTML: d_hover}))
                 }
 
                 // Dive markers
@@ -520,37 +506,10 @@ export default class JaiaMap {
                     'unpowered_rise_rate': ['Unpowered rise rate', 'm/s']
                 }
 
-                const d_description = description_of(dive, descriptors)
+                const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${description_of(dive, descriptors)}`
 
                 if (dive.depth_achieved != 0) {
-                    const hovertext = '<h3>Dive</h3>' + d_description
-
-                    // A circle marker at the start location
-                    // const d_start_circle = new L
-                    //                            .circleMarker(d_start, {
-                    //                              color : "blue",
-                    //                              radius : 6.0,
-                    //                            })
-                    //                            .bindPopup(hovertext)
-                    //                            .bindTooltip(hovertext)
-                    // d_start_circle.addTo(this.taskLayerGroup)
-                }
-
-                if (dive.bottom_dive) {
-                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Bottom Strike', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.bottomStrike(dive.depth_achieved)}))
-
-                    // A circle marker at the start location
-                    const hovertext = '<h3>Bottom Strike</h3>' + d_description
-
-                    // const circleMarker = new L
-                    //                            .circleMarker(d_start, {
-                    //                              color : "red",
-                    //                              radius : 6.0,
-                    //                            })
-                    //                            .bindPopup(hovertext)
-                    //                            .bindTooltip(hovertext)
-
-                    // circleMarker.addTo(this.bottomStrikeLayerGroup)
+                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.diveTask(dive), popupHTML: d_description}))
                 }
 
             }

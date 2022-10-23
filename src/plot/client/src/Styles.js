@@ -63,9 +63,11 @@ export function goal(goalIndex, goal, isActive) {
 }
 
 
-// Markers for bottom strikes
-export function bottomStrike(depth) {
-    var text = depth?.toFixed(1)
+// Markers for dives
+export function diveTask(dive) {
+
+    // Depth text
+    var text = dive.depth_achieved?.toFixed(1)
     if (text != null) {
         text = text + 'm'
     }
@@ -73,10 +75,13 @@ export function bottomStrike(depth) {
         text = ''
     }
 
+    // Icon color
+    const color = dive.bottom_dive ? 'red': 'white'
+
     return new Style({
         image: new Icon({
             src: '/bottomStrike.svg',
-            color: 'red'
+            color: color
         }),
         text: new Text({
             text: new String(text),
@@ -86,5 +91,29 @@ export function bottomStrike(depth) {
             }),
             offsetY: 20
         })
+    })
+}
+
+// Markers for surface drift tasks
+export function driftTask(drift) {
+
+    // Icon color
+    const color = 'white'
+
+    return new Style({
+        image: new Icon({
+            src: '/driftTaskPacket.svg',
+            color: color,
+            rotateWithView: true,
+            rotation: drift.estimated_drift.heading * Math.PI / 180.0,
+        }),
+        // text: new Text({
+        //     text: new String(text),
+        //     font: '12pt sans-serif',
+        //     fill: new Fill({
+        //         color: 'black'
+        //     }),
+        //     offsetY: 20
+        // })
     })
 }
