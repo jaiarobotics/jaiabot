@@ -28,7 +28,8 @@ class LogApp extends React.Component {
       chosen_paths : [],
       plots : [],
       layerSwitcherVisible: false,
-      plotNeedsRefresh: false
+      plotNeedsRefresh: false,
+      mapNeedsRefresh: false
     }
   }
 
@@ -131,34 +132,36 @@ class LogApp extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.state.chosen_logs.length > 0) {
-      // Get map data
-      LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
-        this.map.setSeriesArray(seriesArray)
-      })
+    if (this.state.mapNeedsRefresh) {
+      if (this.state.chosen_logs.length > 0) {
+        // Get map data
+        LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+          this.map.setSeriesArray(seriesArray)
+        })
 
-      // Get the command dictionary (botId => [Command])
-      LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
-        this.map.updateWithCommands(command_dict)
-      })
+        // Get the command dictionary (botId => [Command])
+        LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
+          this.map.updateWithCommands(command_dict)
+        })
 
-      // Get the active_goals
-      LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
-        this.map.updateWithActiveGoal(active_goal_dict)
-      })
+        // Get the active_goals
+        LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
+          this.map.updateWithActiveGoal(active_goal_dict)
+        })
 
-      // Get the task packets
-      LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
-        this.map.updateWithTaskPackets(task_packets)
-      })
+        // Get the task packets
+        LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+          this.map.updateWithTaskPackets(task_packets)
+        })
 
-    }
-    else {
-      this.map.clear()
+      }
+      else {
+        this.map.clear()
+      }
+
+      this.setState({mapNeedsRefresh: false})
     }
     
-    console.log('state = ', this.state)
-
     if (this.state.plotNeedsRefresh) {
       this.refresh_plots()
     }
@@ -184,7 +187,7 @@ class LogApp extends React.Component {
 
   didSelectLogs(logs) {
     if (logs != null) {
-      this.setState({chosen_logs: logs })
+      this.setState({chosen_logs: logs, mapNeedsRefresh: true })
     }
 
     this.setState({is_selecting_logs: false})
