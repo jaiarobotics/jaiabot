@@ -1,5 +1,6 @@
 import Stroke from 'ol/style/Stroke';
 import {Circle as CircleStyle, Fill, Icon, Style, Text} from 'ol/style';
+import { Point } from 'ol/geom';
 
 export const startMarker = new Style({
     image: new CircleStyle({
@@ -123,10 +124,39 @@ export function driftTask(drift) {
 
 // The mission path linestring
 export function missionPath(feature) {
-    return new Style({
-        stroke: new Stroke({
-            width: 2,
-            color: 'black'
+    const arrowColor = 'black'
+
+    const geometry = feature.getGeometry()
+    const styles = [
+        new Style({
+            stroke: new Stroke({
+                width: 2,
+                color: arrowColor
+            })
         })
-    })
+    ]
+
+    geometry.forEachSegment(function (start, end) {
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+        const midpoint = [start[0] + dx / 2, start[1] + dy / 2]
+        const rotation = Math.atan2(dy, dx);
+
+        // arrows
+        styles.push(
+            new Style({
+                geometry: new Point(midpoint),
+                image: new Icon({
+                    src: 'arrowHead.svg',
+                    anchor: [1, 0.5],
+                    rotateWithView: true,
+                    rotation: -rotation,
+                    color: arrowColor,
+                }),
+                zIndex: -1
+            })
+        );
+    });
+
+    return styles
 }
