@@ -25,11 +25,6 @@
     flex: 1 1 50%;
 }
 
-#openlayers-map {
-    height: 100%;
-    flex: 1 1 50%;
-}
-
 .plot {
     left: 10pt;
     right: 10pt;
@@ -195,3 +190,54 @@ button {
     box-shadow: 2pt 2pt 10pt darkgray;
     padding: 10pt;
 }
+
+#layerSwitcherToggler {
+    display: inline-block;
+    vertical-align: text-top;
+    padding: 10pt;
+    border-width: 1pt;
+    border-color: black;
+    border-style: solid;
+    border-radius: 4pt;
+    background-color: lightgray;
+    margin: 10pt;
+    user-select: none;
+}
+
+#layerSwitcher {
+    display: inline-block;
+    vertical-align: text-top;
+    margin: 10pt;
+    padding: 10pt 40pt 10pt 10pt;
+    border-width: 1pt;
+    border-color: black;
+    border-style: solid;
+    border-radius: 4pt;
+    background-color: lightgray;
+}
+
+#openlayers-map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Layer Switcher */
+li::marker {
+    content: '';
+}
+
+#mapControls {
+    display: block;
+    position: absolute;
+    top: 0pt;
+    left: 0pt;
+    right: 0pt;
+}
+
+#mapPane {
+    display: block;
+    position: relative;
+    height: 100%;
+    flex: 1 1 50%;
+}
+

@@ -26,7 +26,8 @@ class LogApp extends React.Component {
       is_selecting_logs: false,
       chosen_logs : [],
       chosen_paths : [],
-      plots : []
+      plots : [],
+      layerSwitcherVisible: false
     }
   }
 
@@ -107,13 +108,23 @@ class LogApp extends React.Component {
         <div className = "bottom_pane flexbox horizontal">
           { plotContainer }
 
-          <div className="openlayers-map" id="openlayers-map">
-            <div id="layerSwitcher"></div>
+          <div id="mapPane">
+            <div className="openlayers-map" id="openlayers-map">
+            </div>
+            <div id="mapControls">
+              <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+              <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+            </div>
           </div>
         </div>
         </div>
       </Router>
     )
+  }
+
+  togglerLayerSwitcher() {
+    var {layerSwitcherVisible} = this.state
+    this.setState({layerSwitcherVisible: !layerSwitcherVisible})
   }
 
   selectLogButtonPressed(evt) {
