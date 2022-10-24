@@ -18,7 +18,7 @@ import OlIcon from 'ol/style/Icon';
 import OlPoint from 'ol/geom/Point';
 import diveLocation from '../icons/task_packet/DiveLocation.png'
 import currentDirection from '../icons/task_packet/Arrow.png'
-import bottomDiveLocation from '../icons/task_packet/X.png'
+import bottomDiveLocation from '../icons/task_packet/X-white.png'
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
