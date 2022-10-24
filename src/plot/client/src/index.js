@@ -107,7 +107,9 @@ class LogApp extends React.Component {
         <div className = "bottom_pane flexbox horizontal">
           { plotContainer }
 
-          <div className="openlayers-map" id="openlayers-map"></div>
+          <div className="openlayers-map" id="openlayers-map">
+            <div id="layerSwitcher"></div>
+          </div>
         </div>
         </div>
       </Router>

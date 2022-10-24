@@ -16,6 +16,7 @@ import {Circle as CircleStyle, Fill, Style} from 'ol/style';
 import * as Styles from './Styles'
 import * as Popup from './Popup'
 import * as Template from './Template'
+import OlLayerSwitcher from 'ol-layerswitcher';
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -132,6 +133,8 @@ export default class JaiaMap {
             this.task_packets = []
 
             this.setupOpenlayersMap(openlayersMapDivId)
+
+            OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'))
         }
 
         setupOpenlayersMap(openlayersMapDivId) {
@@ -208,6 +211,7 @@ export default class JaiaMap {
             this.botPathVectorSource = new VectorSource()
 
             return new VectorLayer({
+                title: 'Bot Path',
                 source: this.botPathVectorSource,
                 zIndex: 10
             })
@@ -217,6 +221,7 @@ export default class JaiaMap {
             this.botVectorSource = new VectorSource()
 
             return new VectorLayer({
+                title: 'Bot Icon',
                 source: this.botVectorSource,
                 zIndex: 13
             })
@@ -226,6 +231,7 @@ export default class JaiaMap {
             this.missionVectorSource = new VectorSource()
 
             return new VectorLayer({
+                title: 'Mission Plan',
                 source: this.missionVectorSource,
                 zIndex: 11
             })
@@ -235,6 +241,7 @@ export default class JaiaMap {
             this.taskPacketVectorSource = new VectorSource()
 
             return new VectorLayer({
+                title: 'Task Packets',
                 source: this.taskPacketVectorSource,
                 zIndex: 12
             })
