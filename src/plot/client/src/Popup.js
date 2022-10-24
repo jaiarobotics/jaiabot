@@ -27,7 +27,6 @@ export function addPopup(map, feature, popupElement) {
     };
 
     feature.set('onclick', function (evt) {
-        console.log(evt)
         const coordinate = evt.coordinate;
         overlay.setPosition(coordinate);
         map.addOverlay(overlay)

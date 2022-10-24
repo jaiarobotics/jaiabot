@@ -351,7 +351,7 @@ export default class JaiaMap {
     
         updateToTimestamp(timestamp_micros) {
             this.updateBotMarkers(timestamp_micros)
-            this.updateWaypointMarkers(timestamp_micros)
+            this.updateMissionLayer(timestamp_micros)
         }
 
         clear() {
@@ -367,7 +367,7 @@ export default class JaiaMap {
 
         updateAll() {
             this.updateBotMarkers()
-            this.updateWaypointMarkers()
+            this.updateMissionLayer()
             this.updatePath()
             this.updateTaskAnnotations()
         }
@@ -391,7 +391,7 @@ export default class JaiaMap {
 
         }
 
-        updateWaypointMarkers(timestamp_micros) {
+        updateMissionLayer(timestamp_micros) {
 
             // Clear OpenLayers layer
             this.missionVectorSource.clear()
@@ -430,6 +430,8 @@ export default class JaiaMap {
             const active_goal_index = active_goal?.active_goal
 
             // Add markers for each waypoint
+            var missionLineStringCoordinates = []
+
             for (const [goal_index, goal] of command.plan.goal.entries()) {
                 const location = goal.location
 
@@ -442,8 +444,14 @@ export default class JaiaMap {
                     const markerFeature = createMarker2(this.openlayersMap, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == active_goal_index)})
                     this.missionVectorSource.addFeature(markerFeature)
                 }
+
+                missionLineStringCoordinates.push(fromLonLat([location.lon, location.lat]))
             }
 
+            // Add a linestring for the mission path
+            const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
+            missionPathFeature.setStyle(Styles.missionPath)
+            this.missionVectorSource.addFeature(missionPathFeature)
         }
     
         updateTaskAnnotations() {

@@ -41,23 +41,26 @@ export function goal(goalIndex, goal, isActive) {
     const srcMap = {
         'DIVE': '/taskDive.svg',
         'STATION_KEEP': '/taskStationKeep.svg',
-        'SURFACE_DRIFT': '/taskSurfaceDrift.svg',
+        'SURFACE_DRIFT': '/taskDrift.svg',
         'NONE': '/taskNone.svg'        
     }
 
     const src = srcMap[goal.task?.type ?? 'NONE'] ?? '/taskNone.svg'
+    console.log(goal, src)
 
     return new Style({
         image: new Icon({
             src: src,
-            color: isActive ? 'green' : 'blue'
+            color: isActive ? '#64db4f' : '#bbb',
+            anchor: [0.5, 1]
         }),
         text: new Text({
             text: new String(goalIndex),
             font: '12pt sans-serif',
             fill: new Fill({
-                color: 'white'
-            })
+                color: 'black'
+            }),
+            offsetY: -15
         })
     })
 }
@@ -115,5 +118,15 @@ export function driftTask(drift) {
         //     }),
         //     offsetY: 20
         // })
+    })
+}
+
+// The mission path linestring
+export function missionPath(feature) {
+    return new Style({
+        stroke: new Stroke({
+            width: 2,
+            color: 'black'
+        })
     })
 }
