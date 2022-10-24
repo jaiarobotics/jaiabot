@@ -27,7 +27,8 @@ class LogApp extends React.Component {
       chosen_logs : [],
       chosen_paths : [],
       plots : [],
-      layerSwitcherVisible: false
+      layerSwitcherVisible: false,
+      plotNeedsRefresh: false
     }
   }
 
@@ -66,7 +67,7 @@ class LogApp extends React.Component {
         <PathSelector logs = {this.state.chosen_logs} key =
             {this.state.chosen_logs} on_select_path =
         {
-          this.path_was_selected.bind(this)
+          (path) => {this.didSelectPaths([path])}
         } />
 
           <div>
@@ -76,10 +77,8 @@ class LogApp extends React.Component {
 
         <LoadProfile did_select_plot_set =
         {
-          (paths) => {
-            LogApi.get_series(this.state.chosen_logs, paths)
-                .then(
-                    (series_array) => {this.setState({plots : series_array})})
+          (pathArray) => {
+            this.didSelectPaths(pathArray)
           }
         } />
 
@@ -157,7 +156,12 @@ class LogApp extends React.Component {
     else {
       this.map.clear()
     }
-    this.refresh_plots()
+    
+    console.log('state = ', this.state)
+
+    if (this.state.plotNeedsRefresh) {
+      this.refresh_plots()
+    }
   }
 
   componentDidMount() {
@@ -186,13 +190,14 @@ class LogApp extends React.Component {
     this.setState({is_selecting_logs: false})
   }
 
-  path_was_selected(path) {
-    LogApi.get_series(this.state.chosen_logs, [ path ])
+  didSelectPaths(pathArray) {
+    LogApi.get_series(this.state.chosen_logs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
                 this.state.plots 
-                this.setState({plots : plots.concat(series)})
+                this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
+                console.log('set plotNeedsRefresh to true')
           }
         })
         .catch(err => {alert(err)})
@@ -284,6 +289,9 @@ class LogApp extends React.Component {
       self.map.timeRange = [t0, t1]
       self.map.updatePath()
     })
+
+    console.log('refreshed plots, setting plotNeedsRefresh to false')
+    this.setState({plotNeedsRefresh: false})
   }
 
   open_moos_messages(time_range) {
