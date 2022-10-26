@@ -3,35 +3,26 @@ import {Circle as CircleStyle, Fill, Icon, Style, Text} from 'ol/style';
 import { Point } from 'ol/geom';
 
 export const startMarker = new Style({
-    image: new CircleStyle({
-        radius: 6,
-        stroke: new Stroke({
-            color: 'white',
-            width: 2
-        }),
-        fill: new Fill({
-            color: 'green',
-        }),
+    image: new Icon({
+        src: '/start.svg',
+        anchor: [1/16, 1]
     })
 })
 
 export const endMarker = new Style({
     image: new Icon({
-        src: '/stop.svg',
+        src: '/end.svg',
+        anchor: [1/16, 1]
     })
 })
 
-export const botMarker = function(feature) {
+export function botMarker(heading) {
     return new Style({
-        image: new CircleStyle({
-            radius: 8,
-            stroke: new Stroke({
-                color: 'white',
-                width: 2
-            }),
-            fill: new Fill({
-                color: 'blue',
-            }),
+        image: new Icon({
+            src: '/bot.svg',
+            anchor: [0.5, 0.5],
+            rotation: heading * Math.PI / 180,
+            rotateWithView: true
         })
     })
 }

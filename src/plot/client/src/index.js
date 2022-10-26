@@ -181,7 +181,7 @@ class LogApp extends React.Component {
   update_log_dropdown() {
     LogApi.get_logs().then(logs => {
       this.setState({logs})
-      this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
+      // this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
     })
   }
 

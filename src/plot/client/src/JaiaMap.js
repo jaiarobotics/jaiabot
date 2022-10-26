@@ -82,7 +82,7 @@ function createMarker(map, title, point, style) {
 
 
 // Creates an OpenLayers marker feature with a popup using options
-// parameters: {lon, lat}
+// parameters: {title?, lon, lat, style?, time?, popupHTML?}
 function createMarker2(map, parameters) {
     const lonLat = [parameters.lon, parameters.lat]
     const coordinate = fromLonLat(lonLat, map.getView().getProjection())
@@ -301,10 +301,13 @@ export default class JaiaMap {
                 // Add start and end markers
                 if (ptArray.length > 0) {
 
-                    const startMarker = createMarker(this.openlayersMap, "Start", ptArray[0], Styles.startMarker)
+                    // parameters: {title?, lon, lat, style?, time?, popupHTML?}
+                    const startPt = ptArray[0]
+                    const startMarker = createMarker2(this.openlayersMap, {title: "Start", lon: startPt[2], lat: startPt[1], time: startPt[0], style: Styles.startMarker})
                     this.botPathVectorSource.addFeature(startMarker)
 
-                    const endMarker = createMarker(this.openlayersMap, "End", ptArray[ptArray.length - 1], Styles.endMarker)
+                    const endPt = ptArray[ptArray.length - 1]
+                    const endMarker = createMarker2(this.openlayersMap, {title: "End", lon: endPt[2], lat: endPt[1], time: endPt[0], style: Styles.endMarker})
                     this.botPathVectorSource.addFeature(endMarker)
 
                 }
@@ -393,7 +396,8 @@ export default class JaiaMap {
                 })
                 if (point == null) continue;
 
-                this.botVectorSource.addFeature(createMarker(this.openlayersMap, "Bot", point, Styles.botMarker))
+                const botFeature = createMarker2(this.openlayersMap, {title: "Bot", time: point[0], lon: point[2], lat: point[1], style: Styles.botMarker(point[3])})
+                this.botVectorSource.addFeature(botFeature)
             }
 
         }
