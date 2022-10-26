@@ -164,6 +164,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             [this](const goby::middleware::protobuf::DatumUpdate& datum_update) {
                 geodesy_.reset(new goby::util::UTMGeodesy({datum_update.datum().lat_with_units(),
                                                            datum_update.datum().lon_with_units()}));
+                moos().comms().Notify("USM_RESET", "x=0, y=0, speed=0, heading=0, depth=0");
             });
 
         std::vector<std::string> nav_buffer_params(
