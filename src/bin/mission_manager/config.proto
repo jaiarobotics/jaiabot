@@ -79,4 +79,6 @@ message MissionManager
     // errors to ignore,
     // only when test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
     repeated jaiabot.protobuf.Error ignore_error = 81;
+
+    optional bool is_sim = 82 [default = false];
 }
