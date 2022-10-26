@@ -39,3 +39,5 @@ data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 
 # test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
+
+is_sim: $mission_manager_in_simulation
