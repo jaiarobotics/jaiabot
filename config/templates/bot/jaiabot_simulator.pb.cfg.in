@@ -46,6 +46,16 @@ seafloor_depth: 50
 temperature_stdev: 0.05
 salinity_stdev: 0.05
 
+# GPS
 gps_hdop_rand_max: 1.00 # (optional) (default=1)
 gps_pdop_rand_max: 1.50 # (optional) (default=1.5)
 heading_rand_max: 0 # (optional) (default=0)
+
+# Voltage
+arduino_config {
+    voltage_period: 3 # (default = 1)
+    voltage_step_decrease: 0.0 # (default = 0.1)
+    voltage_start: 24.0 # (default = 24.0)
+    reset_voltage_level: 15.0 # (default = 15.0)
+} 
+
