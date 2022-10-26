@@ -284,17 +284,6 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(prec);
     }
 
-    let vccVoltageClassName = ''
-    if(bot.vccVoltage <= 18 &&
-        bot.vccVoltage > 16) 
-    {
-        vccVoltageClassName = 'healthDegraded';
-    } 
-    else if(bot.vccVoltage < 16)
-    {
-        vccVoltageClassName = 'healthFailed';
-    }
-
     let missionState = bot.missionState;
 
     return (
@@ -336,7 +325,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                     <td>Distance to Goal</td>
                                     <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
                                 </tr>
-                                <tr className={vccVoltageClassName}>
+                                <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
@@ -547,7 +536,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                     <AccordionDetails>
                         <table>
                             <tbody>
-                                <tr className={vccVoltageClassName}>
+                                <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>

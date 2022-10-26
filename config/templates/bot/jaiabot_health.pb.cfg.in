@@ -8,3 +8,10 @@ auto_restart_init_grace_period: 60
 ignore_powerstate_changes: $ignore_powerstate_changes
 check_helm_ivp_status: true
 check_arduino_status: true
+
+arduino {
+    arduino_report_timeout_seconds: 20 # (default = 20)
+    battery_voltage_low_level: 20 # (default = 20)
+    battery_voltage_very_low_level: 18 # (default = 18)
+    battery_voltage_critically_low_level: 16 # (default = 16)
+}

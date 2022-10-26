@@ -33,8 +33,9 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
     const jaiabot::config::ArduinoStatusConfig& cfg)
     : HealthMonitorThread(cfg, "arduino_status", 4.0 / 60.0 * boost::units::si::hertz)
 {
-    battery_voltage_error_ = cfg.battery_voltage_error();
-    battery_voltage_warning_ = cfg.battery_voltage_warning();
+    battery_voltage_low_level_ = cfg.battery_voltage_low_level();
+    battery_voltage_very_low_level_ = cfg.battery_voltage_very_low_level();
+    battery_voltage_critically_low_level_ = cfg.battery_voltage_critically_low_level();
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
@@ -48,18 +49,29 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
 
             if (arduino_response.has_vccvoltage())
             {
-                if (arduino_response.vccvoltage() < battery_voltage_error_)
+                if (arduino_response.vccvoltage() < battery_voltage_critically_low_level_)
                 {
-                    voltage_error_ = true;
+                    voltage_critically_low_ = true;
+                    voltage_very_low_ = false;
+                    voltage_low_ = false;
                 }
-                else if (arduino_response.vccvoltage() < battery_voltage_warning_)
+                else if (arduino_response.vccvoltage() < battery_voltage_very_low_level_)
                 {
-                    voltage_warning_ = true;
+                    voltage_critically_low_ = false;
+                    voltage_very_low_ = true;
+                    voltage_low_ = false;
+                }
+                else if (arduino_response.vccvoltage() < battery_voltage_low_level_)
+                {
+                    voltage_critically_low_ = false;
+                    voltage_very_low_ = false;
+                    voltage_low_ = true;
                 }
                 else
                 {
-                    voltage_error_ = false;
-                    voltage_warning_ = false;
+                    voltage_critically_low_ = false;
+                    voltage_very_low_ = false;
+                    voltage_low_ = false;
                 }
             }
         });
@@ -76,10 +88,10 @@ void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::Thre
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    // Check to see if we have an warning on battery voltage
-    if (voltage_warning_)
+    // Check to see if we have low battery voltage
+    if (voltage_low_)
     {
-        glog.is_warn() && glog << "Warning on Voltage: >" << cfg().battery_voltage_warning()
+        glog.is_warn() && glog << "Low battery voltage: >" << cfg().battery_voltage_low_level()
                                << std::endl;
 
         demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
@@ -87,15 +99,26 @@ void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::Thre
             ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
     }
 
-    // Check to see if we have an error on battery voltage
-    if (voltage_error_)
+    // Check to see if we have very low battery voltage
+    if (voltage_very_low_)
     {
-        glog.is_warn() && glog << "Error on Voltage: >" << cfg().battery_voltage_error()
-                               << std::endl;
+        glog.is_warn() && glog << "Very low battery voltage: >"
+                               << cfg().battery_voltage_very_low_level() << std::endl;
 
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+    }
+
+    // Check to see if we have critically low battery voltage
+    if (voltage_critically_low_)
+    {
+        glog.is_warn() && glog << "Critically low battery voltage: >"
+                               << cfg().battery_voltage_critically_low_level() << std::endl;
+
+        demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
     }
 
     //Check to see if the arduino is responding

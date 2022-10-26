@@ -126,10 +126,12 @@ class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoS
   private:
     jaiabot::protobuf::ArduinoStatus status_;
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
-    float battery_voltage_error_{18};
-    float battery_voltage_warning_{18};
-    bool voltage_warning_{false};
-    bool voltage_error_{false};
+    float battery_voltage_low_level_{18};
+    float battery_voltage_very_low_level_{18};
+    float battery_voltage_critically_low_level_{18};
+    bool voltage_low_{false};
+    bool voltage_very_low_{false};
+    bool voltage_critically_low_{false};
 };
 
 } // namespace apps
