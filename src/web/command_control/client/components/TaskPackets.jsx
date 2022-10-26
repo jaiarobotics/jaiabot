@@ -150,6 +150,7 @@ export class TaskData {
             lat: 41.487142
             lon: -71.259441 
         unpoweredRiseRate: 0.3
+        poweredRiseRate: 0.5
     drift: 
         driftDuration: 0
         estimatedDrift:
@@ -384,13 +385,13 @@ export class TaskData {
                 && taskPacket?.diveRate > 0)
             {
                 // Calculate the distance we traveled while acquiring gps
-                let distance_between_ascent_and_acquire_gps 
+                let distance_between_breach_point_and_acquire_gps 
                     = divePacket.durationToAcquireGps * driftPacket.estimatedDrift.speed;
 
-                // Calculate the surface wpt
-                let surface_wpt = turf.destination(drift_start, 
-                                                  distance_between_ascent_and_acquire_gps, 
-                                                  drift_to_dive_ascent_bearing, options);
+                // Calculate the breach point
+                let breach_point = turf.destination(drift_start, 
+                                                    distance_between_breach_point_and_acquire_gps, 
+                                                    drift_to_dive_ascent_bearing, options);
 
                 let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
 
@@ -407,29 +408,29 @@ export class TaskData {
                 }
                 else if(divePacket?.poweredRiseRate)
                 {
-                    dive_total_ascent_seconds = divePacket.unpoweredRiseRate * divePacket.depthAchieved;
+                    dive_total_ascent_seconds = divePacket.poweredRiseRate * divePacket.depthAchieved;
                 }
 
                 // Calculate the total time it took to dive to required depth 
                 // and ascent to the surface
                 let total_dive_to_ascent_seconds = dive_total_descent_seconds + dive_total_ascent_seconds;
 
-                // Calculate the distance between the dive start and on surface wpt
-                let distance_between_dive_and_surface = turf.distance(dive_start, surface_wpt, options);
+                // Calculate the distance between the dive start and breach point
+                let distance_between_dive_and_breach = turf.distance(dive_start, breach_point, options);
 
-                // Calculate the percentage the dive took when compared to surface time
+                // Calculate the percentage the dive took when compared to breach point time
                 let dive_percent_in_total_dive_seconds = dive_total_descent_seconds / total_dive_to_ascent_seconds;
 
                 // Calculate the distance to the achieved depth starting from the dive start
-                let dive_distance_to_depth_achieved = distance_between_dive_and_surface * dive_percent_in_total_dive_seconds;
+                let dive_distance_to_depth_achieved = distance_between_dive_and_breach * dive_percent_in_total_dive_seconds;
 
-                // Calculate the bearing from the dive start and the surface wpt
-                let dive_start_to_ascent_bearing = turf.bearing(dive_start, surface_wpt);
+                // Calculate the bearing from the dive start and the breach point
+                let dive_start_to_breach_point_bearing = turf.bearing(dive_start, breach_point);
                 
                 // Calculate the achieved depth location
                 let dive_location = turf.destination(dive_start, 
                                                      dive_distance_to_depth_achieved, 
-                                                     dive_start_to_ascent_bearing,
+                                                     dive_start_to_breach_point_bearing,
                                                      options);
 
                 let dive_lon = dive_location.geometry.coordinates[0];
