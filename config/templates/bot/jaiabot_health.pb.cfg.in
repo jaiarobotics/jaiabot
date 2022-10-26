@@ -13,5 +13,6 @@ arduino {
     arduino_report_timeout_seconds: 20 # (default = 20)
     battery_voltage_low_level: 20 # (default = 20)
     battery_voltage_very_low_level: 18 # (default = 18)
-    battery_voltage_critically_low_level: 16 # (default = 16)
+    battery_voltage_critically_low_level: 17.75 # (default = 17.75)
+    vvcvoltage_report_timeout_seconds: 20 # (default = 20)
 }

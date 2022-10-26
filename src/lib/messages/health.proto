@@ -108,6 +108,7 @@ enum Error
 
     ERROR__VEHICLE__VERY_LOW_BATTERY = 600;
     ERROR__VEHICLE__CRITICALLY_LOW_BATTERY = 601;
+    ERROR__VEHICLE__MISSING_DATA_BATTERY = 602;
 };
 
 enum Warning
@@ -137,7 +138,6 @@ enum Warning
     // from xbee driver
     WARNING__COMMS_LOW_SIGNAL_STRENGTH = 300;
 
-    // TODO: IMPLEMENT
     // from jaiabot_health
     WARNING__VEHICLE__LOW_BATTERY = 400;
 

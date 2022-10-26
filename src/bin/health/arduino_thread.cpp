@@ -73,6 +73,8 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
                     voltage_very_low_ = false;
                     voltage_low_ = false;
                 }
+
+                vvcvoltage_last_updated_ = goby::time::SteadyClock::now();
             }
         });
 }
@@ -119,6 +121,17 @@ void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::Thre
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
+    }
+
+    //Check to see if the voltage is posting
+    if (vvcvoltage_last_updated_ + std::chrono::seconds(cfg().vvcvoltage_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on battery voltage report" << std::endl;
+
+        demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VEHICLE__MISSING_DATA_BATTERY);
     }
 
     //Check to see if the arduino is responding
