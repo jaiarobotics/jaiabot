@@ -150,8 +150,12 @@ export class TaskData {
             lat: 41.487142
             lon: -71.259441 
         unpoweredRiseRate: 0.3
+        poweredRiseRate: 0.5
     drift: 
         driftDuration: 0
+        estimatedDrift:
+            speed: 0
+            heading: 180
         endLocation: 
             lat: 41.487135
             lon: -71.259441
@@ -352,6 +356,7 @@ export class TaskData {
         let driftPacket;
         let divePacket;
         let task_calcs;
+        let options = {units: 'meters'};
 
         if(taskPacket.type == "DIVE")
         {
@@ -372,27 +377,69 @@ export class TaskData {
             let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
             let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
 
-            let drift_direction = turf.bearing(drift_start, drift_end);
             let drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start);
 
-            let options = {units: 'meters'};
-            let drift_distance = turf.distance(drift_start, drift_end, options);
-            let drift_meters_per_second = drift_distance/driftPacket.driftDuration;
-
-            if(taskPacket.type == "DIVE")
+            if(taskPacket.type == "DIVE"
+                && taskPacket?.dive != null
+                && taskPacket?.diveRate != null
+                && taskPacket?.diveRate > 0)
             {
-                
-                let distance_to_ascent_wpt = divePacket.durationToAcquireGps * drift_meters_per_second;
-                let ascent_wpt = turf.destination(drift_start, distance_to_ascent_wpt, drift_to_dive_ascent_bearing, options);
+                // Calculate the distance we traveled while acquiring gps
+                let distance_between_breach_point_and_acquire_gps 
+                    = divePacket.durationToAcquireGps * driftPacket.estimatedDrift.speed;
+
+                // Calculate the breach point
+                let breach_point = turf.destination(drift_start, 
+                                                    distance_between_breach_point_and_acquire_gps, 
+                                                    drift_to_dive_ascent_bearing, options);
+
                 let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
-                let dive_location = turf.midpoint(dive_start, ascent_wpt);
+
+
+                // Calculate the total time the bot took to reach the required depth
+                let dive_total_descent_seconds = divePacket.diveRate * divePacket.depthAchieved;
+
+                // Caclulate the total time the bot took to reach the surface
+                // This is assuming we are in either unpowered ascent or powered ascent
+                let dive_total_ascent_seconds = 0;
+                if(divePacket?.unpoweredRiseRate)
+                {
+                    dive_total_ascent_seconds = divePacket.unpoweredRiseRate * divePacket.depthAchieved;
+                }
+                else if(divePacket?.poweredRiseRate)
+                {
+                    dive_total_ascent_seconds = divePacket.poweredRiseRate * divePacket.depthAchieved;
+                }
+
+                // Calculate the total time it took to dive to required depth 
+                // and ascent to the surface
+                let total_dive_to_ascent_seconds = dive_total_descent_seconds + dive_total_ascent_seconds;
+
+                // Calculate the distance between the dive start and breach point
+                let distance_between_dive_and_breach = turf.distance(dive_start, breach_point, options);
+
+                // Calculate the percentage the dive took when compared to breach point time
+                let dive_percent_in_total_dive_seconds = dive_total_descent_seconds / total_dive_to_ascent_seconds;
+
+                // Calculate the distance to the achieved depth starting from the dive start
+                let dive_distance_to_depth_achieved = distance_between_dive_and_breach * dive_percent_in_total_dive_seconds;
+
+                // Calculate the bearing from the dive start and the breach point
+                let dive_start_to_breach_point_bearing = turf.bearing(dive_start, breach_point);
+                
+                // Calculate the achieved depth location
+                let dive_location = turf.destination(dive_start, 
+                                                     dive_distance_to_depth_achieved, 
+                                                     dive_start_to_breach_point_bearing,
+                                                     options);
+
                 let dive_lon = dive_location.geometry.coordinates[0];
                 let dive_lat = dive_location.geometry.coordinates[1];
                 task_calcs.diveLocation = {lat: dive_lat, lon: dive_lon};
             }
 
-            task_calcs.driftSpeed = drift_meters_per_second;
-            task_calcs.driftDirection = drift_direction;
+            task_calcs.driftSpeed = driftPacket.estimatedDrift.speed;
+            task_calcs.driftDirection = driftPacket.estimatedDrift.heading;
         }
         return task_calcs;
     }
