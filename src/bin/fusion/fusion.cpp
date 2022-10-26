@@ -38,6 +38,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -75,11 +76,23 @@ class Fusion : public ApplicationBase
                           const double& lon2d);
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
+    void detect_imu_issue();
+    double degrees_difference(const double& heading, const double& course);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
+    std::set<jaiabot::protobuf::MissionState> discard_location_states_;
+    std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
+    std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
+    // timeout in seconds
+    int course_over_ground_timeout_{0};
+    double previous_course_over_ground_{0};
+    bool imu_issue_{false};
+    int imu_issue_crs_hdg_incr_{1};
+    int imu_issue_hdg_incr_{1};
+    goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
     enum class DataType
     {
@@ -91,21 +104,36 @@ class Fusion : public ApplicationBase
         SPEED,
         COURSE,
         PITCH,
-        ROLL
+        ROLL,
+        CALIBRATION_SYS,
+        CALIBRATION_GYRO,
+        CALIBRATION_ACCEL,
+        CALIBRATION_MAG
     };
     std::map<DataType, goby::time::SteadyClock::time_point> last_data_time_;
+    //std::map<DataType, int> last_calibration_status_;
 
     const std::map<DataType, jaiabot::protobuf::Error> missing_data_errors_{
         {DataType::GPS_FIX, protobuf::ERROR__MISSING_DATA__GPS_FIX},
         {DataType::GPS_POSITION, protobuf::ERROR__MISSING_DATA__GPS_POSITION},
         {DataType::PRESSURE, protobuf::ERROR__MISSING_DATA__PRESSURE},
         {DataType::HEADING, protobuf::ERROR__MISSING_DATA__HEADING},
-        {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED},
-        {DataType::COURSE, protobuf::ERROR__MISSING_DATA__COURSE}};
+        {DataType::SPEED, protobuf::ERROR__MISSING_DATA__SPEED}};
+    //    {DataType::CALIBRATION_SYS, protobuf::ERROR__MISSING_DATA__CALIBRATION_SYS},
+    //    {DataType::CALIBRATION_GYRO, protobuf::ERROR__MISSING_DATA__CALIBRATION_GYRO},
+    //    {DataType::CALIBRATION_ACCEL, protobuf::ERROR__MISSING_DATA__CALIBRATION_ACCEL},
+    //    {DataType::CALIBRATION_MAG, protobuf::ERROR__MISSING_DATA__CALIBRATION_MAG}};
     const std::map<DataType, jaiabot::protobuf::Warning> missing_data_warnings_{
         {DataType::TEMPERATURE, protobuf::WARNING__MISSING_DATA__TEMPERATURE},
         {DataType::PITCH, protobuf::WARNING__MISSING_DATA__PITCH},
+        {DataType::COURSE, protobuf::WARNING__MISSING_DATA__COURSE},
         {DataType::ROLL, protobuf::WARNING__MISSING_DATA__ROLL}};
+    //const std::map<DataType, jaiabot::protobuf::Error> not_calibrated_errors_{
+    //    {DataType::CALIBRATION_GYRO, protobuf::ERROR__NOT_CALIBRATED_GYRO},
+    //    {DataType::CALIBRATION_ACCEL, protobuf::ERROR__NOT_CALIBRATED_ACCEL},
+    //    {DataType::CALIBRATION_MAG, protobuf::ERROR__NOT_CALIBRATED_MAG}};
+    //const std::map<DataType, jaiabot::protobuf::Warning> not_calibrated_warnings_{
+    //    {DataType::CALIBRATION_SYS, protobuf::WARNING__NOT_CALIBRATED_SYS}};
 
     WMM wmm;
 };
@@ -122,6 +150,33 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 {
     init_node_status();
     init_bot_status();
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should discard the
+    // location status
+    for (auto m : cfg().discard_location_states())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        discard_location_states_.insert(dsm);
+    }
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should include the
+    // course status
+    for (auto m : cfg().include_course_error_detection_states())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        include_course_error_detection_states_.insert(dsm);
+    }
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should detect
+    // imu issue
+    for (auto m : cfg().include_imu_detection_states())
+    {
+        auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
+        include_imu_detection_states_.insert(dsm);
+    }
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -171,6 +226,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                                  << imu_data.ShortDebugString() << std::endl;
 
         auto euler_angles = imu_data.euler_angles();
+        auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
         if (euler_angles.has_alpha())
@@ -185,17 +241,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 glog << "Location: " << latest_node_status_.global_fix().ShortDebugString()
                      << "  Magnetic declination: " << magneticDeclination << endl;
             heading = heading + magneticDeclination * degrees;
-
-            // Have to make sure it's within the DCCL domain
-            //if (heading < 0 * boost::units::degree::degrees)
-            //    heading += 360 * boost::units::degree::degrees;
-            //if (heading > 360 * boost::units::degree::degrees)
-            //    heading -= 360 * boost::units::degree::degrees;
-
-            /*if (heading > 360 * degrees)
-            {
-                heading -= (360 * degrees);
-            }*/
 
             heading = corrected_heading(heading);
 
@@ -222,6 +267,39 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             last_data_time_[DataType::ROLL] = now;
         }
+
+        if (calibration_status.has_sys())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
+
+            //last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
+            //last_data_time_[DataType::CALIBRATION_SYS] = now;
+        }
+
+        if (calibration_status.has_gyro())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
+
+            //last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
+            //last_data_time_[DataType::CALIBRATION_GYRO] = now;
+        }
+
+        if (calibration_status.has_accel())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
+
+            //last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
+            //last_data_time_[DataType::CALIBRATION_ACCEL] = now;
+        }
+
+        if (calibration_status.has_mag())
+        {
+            latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
+
+            //last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
+            //last_data_time_[DataType::CALIBRATION_MAG] = now;
+        }
+        
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
@@ -239,20 +317,31 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             if (tpv.has_location())
             {
-                auto lat = tpv.location().lat_with_units(), lon = tpv.location().lon_with_units();
-                latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
-                latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
-
-                latest_bot_status_.mutable_location()->set_lat_with_units(lat);
-                latest_bot_status_.mutable_location()->set_lon_with_units(lon);
-
-                if (has_geodesy())
+                glog.is_debug1() && glog << "Mission State:  " << latest_bot_status_.mission_state()
+                                         << std::endl;
+                // only set location if the current mode is not included in discard_status_modes_
+                if (!discard_location_states_.count(latest_bot_status_.mission_state()))
                 {
-                    auto xy =
-                        geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
-                                           latest_node_status_.global_fix().lon_with_units()});
-                    latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
-                    latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+
+                    glog.is_debug1() && glog << "Updating Lat Long because bot is in the correct state:  "
+                                             << latest_bot_status_.mission_state() << std::endl;
+                                             
+                    auto lat = tpv.location().lat_with_units(),
+                         lon = tpv.location().lon_with_units();
+                    latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
+                    latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
+
+                    latest_bot_status_.mutable_location()->set_lat_with_units(lat);
+                    latest_bot_status_.mutable_location()->set_lon_with_units(lon);
+
+                    if (has_geodesy())
+                    {
+                        auto xy =
+                            geodesy().convert({latest_node_status_.global_fix().lat_with_units(),
+                                               latest_node_status_.global_fix().lon_with_units()});
+                        latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+                        latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
+                    }
                 }
                 last_data_time_[DataType::GPS_POSITION] = now;
             }
@@ -270,6 +359,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                 auto track = tpv.track_with_units();
                 latest_node_status_.mutable_pose()->set_course_over_ground_with_units(track);
                 latest_bot_status_.mutable_attitude()->set_course_over_ground_with_units(track);
+                last_data_time_[DataType::COURSE] = now;
+            }
+
+            if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()))
+            {
+                // Update course timestamp
+                // We want to ignore errors until we are
+                // in the right state
                 last_data_time_[DataType::COURSE] = now;
             }
 
@@ -386,6 +483,18 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+            if (sky.has_hdop())
+            {
+                latest_bot_status_.set_hdop(sky.hdop());
+            }
+            if (sky.has_pdop())
+            {
+                latest_bot_status_.set_pdop(sky.pdop());
+            }
+        });
 }
 
 void jaiabot::apps::Fusion::init_node_status()
@@ -411,6 +520,26 @@ void jaiabot::apps::Fusion::loop()
         latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
         latest_bot_status_.clear_error();
         latest_bot_status_.add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_HEALTH);
+    }
+    else
+    {
+        // If the imu issue is currently not detected and we are not running a sim
+        if (!imu_issue_ && !cfg().is_sim())
+        {
+            // only detect imu issue if the current mode is included in include_imu_detection_modes_
+            if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
+            {
+                //Let's detect imu issue
+                detect_imu_issue();
+            }
+        }
+
+        if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
+            goby::time::SteadyClock::now())
+        {
+            // Reset imu issue vars
+            imu_issue_ = false;
+        }
     }
 
     if (latest_bot_status_.IsInitialized())
@@ -439,6 +568,24 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(wp.second) << std::endl;
         }
     }
+    /*for (const auto& ep : not_calibrated_warnings_)
+    {
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
+        }
+    }*/
+    if (imu_issue_)
+    {
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__IMU_ISSUE);
+        health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+        glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
+                               << std::endl;
+    }
+
     for (const auto& ep : missing_data_errors_)
     {
         if (!last_data_time_.count(ep.first) ||
@@ -449,6 +596,15 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
         }
     }
+    /*for (const auto& ep : not_calibrated_errors_)
+    {
+        if (!last_calibration_status_.count(ep.first) || last_calibration_status_[ep.first] < 3)
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+        }
+    }*/
 }
 
 // This function converts decimal degrees to radians
@@ -492,4 +648,152 @@ boost::units::quantity<boost::units::degree::plane_angle> jaiabot::apps::Fusion:
         corrected_heading -= 360 * degrees;
 
     return corrected_heading;
+}
+
+/**
+ * @brief We need to detect imu issues
+ * 
+ */
+void jaiabot::apps::Fusion::detect_imu_issue()
+{
+    jaiabot::protobuf::IMUIssue imu_issue;
+    imu_issue.set_solution(cfg().imu_issue_solution());
+
+    auto now = goby::time::SteadyClock::now();
+
+    glog.is_debug1() && glog << "detect_imu_issue" << endl;
+
+    //Let's try to detect IMU issu
+    //Check to see if we have heading and course info
+    if (latest_bot_status_.has_attitude() && latest_bot_status_.attitude().has_heading() &&
+        latest_bot_status_.attitude().has_course_over_ground())
+    {
+        double heading = latest_bot_status_.attitude().heading();
+        double course = latest_bot_status_.attitude().course_over_ground();
+
+        glog.is_debug1() &&
+            glog << "Bot has heading and course over ground data"
+                 << ", course last updated: "
+                 << last_data_time_[DataType::COURSE].time_since_epoch().count()
+                 << ", timout: " << std::chrono::seconds(cfg().course_over_ground_timeout()).count()
+                 << ", current time: " << now.time_since_epoch().count() << endl;
+        // Make sure Course is updating
+        if (last_data_time_[DataType::COURSE] +
+                std::chrono::seconds(cfg().course_over_ground_timeout()) >=
+            now)
+        {
+            glog.is_debug1() && glog << "The course over ground value is updating"
+                                     << ", Previous Course: " << previous_course_over_ground_
+                                     << ", Current Course: " << course << endl;
+
+            // Make sure course is updating with new value
+            if (previous_course_over_ground_ != course)
+            {
+                // Set previous course
+                previous_course_over_ground_ = course;
+
+                double diff = degrees_difference(heading, course);
+
+                glog.is_debug1() &&
+                    glog << "The previous course is different than the current course"
+                         << ", Difference between course and heading: " << diff
+                         << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
+
+                // Make sure the diff is greater than the config max
+                if (diff >= cfg().imu_heading_course_max_diff())
+                {
+                    if (imu_issue_crs_hdg_incr_ < cfg().total_imu_issue_checks())
+                    {
+                        glog.is_debug1() && glog << "Have not reached threshold for total checks "
+                                                 << imu_issue_crs_hdg_incr_ << " < "
+                                                 << cfg().total_imu_issue_checks() << std::endl;
+                        // Increment until we reach total_imu_issue_checks
+                        imu_issue_crs_hdg_incr_++;
+                    }
+                    else
+                    {
+                        interprocess().publish<jaiabot::groups::imu>(imu_issue);
+                        imu_issue_ = true;
+                        glog.is_debug1() && glog << "Post IMU Warning" << endl;
+                    }
+                }
+                else
+                {
+                    // Reset increment
+                    imu_issue_crs_hdg_incr_ = 1;
+                }
+            }
+            else
+            {
+                // Reset increment
+                imu_issue_crs_hdg_incr_ = 1;
+            }
+        }
+        else
+        {
+            // Reset increment
+            imu_issue_crs_hdg_incr_ = 1;
+        }
+    }
+    else
+    {
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 1;
+    }
+
+    if (!last_data_time_.count(DataType::HEADING) ||
+        (last_data_time_[DataType::HEADING] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+         now))
+    {
+        if (imu_issue_hdg_incr_ < cfg().total_imu_issue_checks())
+        {
+            glog.is_debug1() && glog << "Have not reached threshold for total checks "
+                                     << imu_issue_hdg_incr_ << " < "
+                                     << cfg().total_imu_issue_checks() << std::endl;
+            // Increment until we reach total_imu_issue_checks
+            imu_issue_hdg_incr_++;
+        }
+        else
+        {
+            interprocess().publish<jaiabot::groups::imu>(imu_issue);
+            imu_issue_ = true;
+            glog.is_debug1() && glog << "Post IMU Warning" << endl;
+        }
+        
+    }
+    else
+    {
+        // Reset increment 
+        imu_issue_hdg_incr_ = 1;
+    }
+
+    if(imu_issue_)
+    {
+        last_imu_issue_report_time_ = now;
+        // Reset hdg increment
+        imu_issue_hdg_incr_ = 1;
+        // Reset crs hdg increment
+        imu_issue_crs_hdg_incr_ = 1;
+    }
+}
+
+/**
+ * @brief The difference between heading and course
+ * 
+ * @param heading double
+ * @param course double
+ * @return double 
+ */
+double jaiabot::apps::Fusion::degrees_difference(const double& heading, const double& course)
+{
+    double absDiff = std::abs(heading - course);
+
+    if (absDiff <= 180)
+    {
+        return absDiff;
+    }
+    else
+    {
+        return 360 - absDiff;
+    }
 }

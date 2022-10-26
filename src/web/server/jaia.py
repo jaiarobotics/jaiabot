@@ -11,6 +11,7 @@ import google.protobuf.json_format
 from time import sleep
 import datetime
 from math import *
+import contours
 
 import logging
 
@@ -39,6 +40,9 @@ class Interface:
 
     # Dict from botId => engineeringStatus
     bots_engineering = {}
+
+    # List of all TaskPackets received, with last known location of that bot
+    task_packets = []
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -100,6 +104,11 @@ class Interface:
 
                 self.hubs[hubStatus['hubId']] = hubStatus
 
+
+            if msg.HasField('task_packet'):
+                logging.warn('Task packet received')
+                packet = msg.task_packet
+                self.process_task_packet(packet)
 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -173,6 +182,34 @@ class Interface:
 
         return {'status': 'ok'}
 
+    def post_all_recover(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'botId': bot['botId'],
+                'time': str(now()),
+                'type': 'RECOVERED' 
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
+    def post_next_task_all(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'botId': bot['botId'],
+                'time': str(now()),
+                'type': 'NEXT_TASK'
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
     def get_status(self):
 
         for hub in self.hubs.values():
@@ -202,23 +239,28 @@ class Interface:
 
         return status
 
-    def get_mission_status(self):
-        return {
-            'missionStatus': {
-                'missionSegment': -1,
-                'missionComplete': False,
-                'isActive': False,
-            }
-        }
-
-    def set_manual_id(self):
-        return {
-            'code': 0
-        }
-
     def post_engineering_command(self, command):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
         cmd.time = now()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
         self.send_message_to_portal(msg)
+
+    def process_task_packet(self, task_packet_message):
+        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
+        self.task_packets.append(task_packet)
+
+    def get_task_packets(self):
+        return self.task_packets
+
+    # Contour map
+
+    def get_depth_contours(self):
+
+        mesh_points = []
+        for task_packet in self.task_packets:
+            if 'dive' in task_packet:
+                dive_packet = task_packet['dive']
+                mesh_points.append([dive_packet['startLocation']['lon'], dive_packet['startLocation']['lat'], dive_packet['depthAchieved']])
+
+        return contours.getContourGeoJSON(mesh_points)

@@ -2,16 +2,19 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/engineering DESTINATION ${project_SHARE_DI
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/jaia.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/missions.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/contours.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.wsgi DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
-set(central_command_outdir ${project_SHARE_DIR}/jaiabot/web/central_command/dist/client)
-add_custom_command(OUTPUT ${central_command_outdir}/client.js ${central_command_outdir}/favicon.png ${central_command_outdir}/index.html ${central_command_outdir}/manifest.json
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/central_command/build.sh
-  ARGS ${central_command_outdir}
-  COMMENT "Running central_command build.sh"
+set(command_control_outdir ${project_SHARE_DIR}/jaiabot/web/command_control/dist/client)
+add_custom_command(OUTPUT ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/command_control/build.sh
+  ARGS ${command_control_outdir}
+  COMMENT "Running command_control build.sh"
   )
-add_custom_target(central_command
+add_custom_target(command_control
   ALL
-  DEPENDS ${central_command_outdir}/client.js ${central_command_outdir}/favicon.png ${central_command_outdir}/index.html ${central_command_outdir}/manifest.json
+  DEPENDS ${command_control_outdir}/client.js ${command_control_outdir}/favicon.png ${command_control_outdir}/index.html ${command_control_outdir}/manifest.json
   )
 
 set(server_outdir ${project_SHARE_DIR}/jaiabot/web/server)

@@ -21,8 +21,9 @@ class LogApp extends React.Component {
   constructor(props) {
     super(props)
 
-        this.state = {
+    this.state = {
       logs : [],
+      is_selecting_logs: false,
       chosen_logs : [],
       chosen_paths : [],
       plots : []
@@ -30,6 +31,16 @@ class LogApp extends React.Component {
   }
 
   render() {
+    const self = this;
+
+    // Show log selection box?
+    const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+
+    // Show the plots, if present
+    const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
+        <div id="plot" className="plot"></div>
+    </div>
+
     return (
       <Router>
         <div><div className = "vertical flexbox top_pane padded">
@@ -44,7 +55,12 @@ class LogApp extends React.Component {
             </div>
         </div>
 
-          <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
+        <span>
+          <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+          <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
+        </span>
+
+        { log_selector }
 
         <PathSelector logs = {this.state.chosen_logs} key =
             {this.state.chosen_logs} on_select_path =
@@ -81,13 +97,15 @@ class LogApp extends React.Component {
               }
             }>Download MOOS Messages...</button>
 
+            <button className="padded" onClick={() => {
+              this.map.clear()
+            }}>Clear Map</button>
+
         </div>
         </div>
 
-        <div className = "bottom_pane">
-          <div className="plotcontainer">
-            <div id="plot" className="plot"></div>
-          </div>
+        <div className = "bottom_pane flexbox horizontal">
+          { plotContainer }
 
           <div className="map" id="map"></div>
         </div>
@@ -96,11 +114,15 @@ class LogApp extends React.Component {
     )
   }
 
+  selectLogButtonPressed(evt) {
+    this.setState({is_selecting_logs: true})
+  }
+
   componentDidUpdate() {
     if (this.state.chosen_logs.length > 0) {
       // Get map data
-      LogApi.get_map(this.state.chosen_logs).then((points) => {
-        this.map.updateWithPoints(points)
+      LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+        this.map.setSeriesArray(seriesArray)
       })
 
       // Get the command dictionary (botId => [Command])
@@ -113,6 +135,14 @@ class LogApp extends React.Component {
         this.map.updateWithActiveGoal(active_goal_dict)
       })
 
+      // Get the task packets
+      LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+        this.map.updateWithTaskPackets(task_packets)
+      })
+
+    }
+    else {
+      this.map.clear()
     }
     this.refresh_plots()
   }
@@ -134,8 +164,12 @@ class LogApp extends React.Component {
     })
   }
 
-  log_was_selected(evt) {
-    this.setState({chosen_logs: [ evt.target.value] })
+  didSelectLogs(logs) {
+    if (logs != null) {
+      this.setState({chosen_logs: logs })
+    }
+
+    this.setState({is_selecting_logs: false})
   }
 
   path_was_selected(path) {

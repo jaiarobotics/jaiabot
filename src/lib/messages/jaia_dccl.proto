@@ -6,6 +6,7 @@ import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/high_control.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/health.proto";
+import "jaiabot/messages/imu.proto";
 
 package jaiabot.protobuf;
 
@@ -66,9 +67,17 @@ message Command
 
 message BotStatus
 {
+    /*
+    Actual maximum size of message: 49 bytes / 392 bits
+            dccl.id head...........................8
+            user head..............................0
+            body.................................381
+            padding to full byte...................3
+    Allowed maximum size of message: 49 bytes / 392 bits
+    */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 66
+        max_bytes: 49
         codec_version: 3
         unit_system: "si"
     };
@@ -190,26 +199,61 @@ message BotStatus
         precision: 2
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
+
+    optional IMUData.CalibrationStatus calibration_status = 57;
+    
+    optional double hdop = 58 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional double pdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+}
+
+message DriftPacket
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional int32 drift_duration = 1 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: -1
+            units { base_dimensions: "T" }
+        }
+    ];
+
+    message EstimatedDrift
+    {
+        required double speed = 1 [(dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        }];
+
+        optional double heading = 3 [(dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+    }
+
+    // should correspond to ocean current velocity
+    optional EstimatedDrift estimated_drift = 10;
+
+    // location C
+    optional GeographicCoordinate start_location = 11;
+    // location D
+    optional GeographicCoordinate end_location = 12;
 }
 
 message DivePacket
 {
     option (dccl.msg) = {
-        id: 0x5001
-        max_bytes: 200
-        codec_version: 3
         unit_system: "si"
     };
-
-    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
-    required uint64 start_time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
-    required uint64 end_time = 3 [(dccl.field) = {
-        codec: "dccl.time2"
-        units { prefix: "micro" derived_dimensions: "time" }
-    }];
 
     required double dive_rate = 10 [(dccl.field) = {
         min: 0
@@ -259,5 +303,50 @@ message DivePacket
             [(dccl.field) = { min: 0 max: 45 precision: 1 }];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 50 }];
+    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 45 }];
+
+    // location A
+    optional GeographicCoordinate start_location = 15;
+
+    optional double duration_to_acquire_gps = 16 [(dccl.field) = {
+        min: 0
+        max: 120
+        precision: 1
+        units { base_dimensions: "T" }
+    }];
+
+    // Did we reach seafloor?
+    optional bool bottom_dive = 17 [default = false];
+}
+
+message TaskPacket
+{
+    /*
+    Actual maximum size of message: 197 bytes / 1576 bits
+            dccl.id head..........................16
+            user head..............................0
+            body................................1556
+            padding to full byte...................4
+    Allowed maximum size of message: 200 bytes / 1600 bits
+    */
+    option (dccl.msg) = {
+        id: 0x5001
+        max_bytes: 200
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    required uint64 start_time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+    required uint64 end_time = 3 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+    required MissionTask.TaskType type = 4;
+
+    optional DivePacket dive = 10;
+    optional DriftPacket drift = 11;
 }

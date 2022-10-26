@@ -34,7 +34,11 @@ class IMU:
     def setup(self):
         if not self.is_setup:
             self.i2c = board.I2C()
-            self.sensor = adafruit_bno055.BNO055_I2C(self.i2c)
+            try:
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x28)
+            except ValueError: # From I2CDevice if not on 0x28: ValueError("No I2C device at address: 0x%x" % self.device_address)
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x29)
+            
             self.sensor.mode = adafruit_bno055.NDOF_MODE
             self.is_setup = True
 
@@ -46,7 +50,8 @@ class IMU:
             return {
                 "euler": self.sensor.euler,
                 "linear_acceleration": self.sensor.linear_acceleration,
-                "gravity": self.sensor.gravity
+                "gravity": self.sensor.gravity,
+                "calibration_status": self.sensor.calibration_status
             }
         except OSError as e:
             self.is_setup = False
@@ -64,7 +69,8 @@ class IMUSimulator:
         return {
             "euler": (0.0, 0.0, 0.0),
             "linear_acceleration": (0.0, 0.0, 0.0),
-            "gravity": (0.0, 0.0, 9.8)
+            "gravity": (0.0, 0.0, 9.8),
+            "calibration_status": (3, 3, 3, 3)
         }
 
 
@@ -95,12 +101,14 @@ while True:
     euler = data['euler']
     linear_acceleration = data['linear_acceleration']
     gravity = data['gravity']
+    calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
     try:
-        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f\n' % \
+        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d\n' % \
             (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
             euler[0], euler[2], euler[1], 
             linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
-            gravity[0], gravity[2], gravity[1])
+            gravity[0], gravity[2], gravity[1],
+            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3])
         log.debug('Sent: ' + line)
 
         sock.sendto(line.encode('utf8'), addr)

@@ -204,9 +204,23 @@ class Series:
         self.hovertext = {}
 
         if log:
-            series = zip(h5_get_series(log[get_root_item_path(path, '_utime_')]), h5_get_series(log[get_root_item_path(path, '_scheme_')]), h5_get_series(log[path]))
-            series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
-            self.utime, schemes, self.y_values = zip(*series)
+            try:
+                _utime__array = log[get_root_item_path(path, '_utime_')]
+                _scheme__array = log[get_root_item_path(path, '_scheme_')]
+                path_array = log[path]
+
+                series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+                series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
+
+                self.utime, schemes, self.y_values = zip(*series)
+            except (ValueError, KeyError):
+                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
+                self.utime = []
+                self.schemes = []
+                self.y_values = []
+                self.hovertext = {}
+
+                return
 
             self.hovertext = h5_get_hovertext(log[path]) or {}
 
@@ -282,26 +296,23 @@ def get_map(log_names):
     # Open all our logs
     logs = [h5py.File(log_name) for log_name in log_names]
 
-    TPV_lat_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lat'
-    TPV_lon_path = 'goby::middleware::groups::gpsd::tpv/goby.middleware.protobuf.gpsd.TimePositionVelocity/location/lon'
+    BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
+    BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
 
-    lat_series = Series()
-    lon_series = Series()
+    seriesList = []
 
     for log in logs:
-        lat_series += Series(log=log, path=TPV_lat_path, invalid_values=[0])
-        lon_series += Series(log=log, path=TPV_lon_path, invalid_values=[0])
+        lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
+        lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
 
-    lat_series.sort()
-    lon_series.sort()
+        thisSeries = []
 
-    points = []
+        for i, lat in enumerate(lat_series.y_values):
+            thisSeries.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
 
-    for i, lat in enumerate(lat_series.y_values):
-        points.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
+        seriesList.append(thisSeries)
 
-    return points
-
+    return seriesList
 
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
@@ -374,3 +385,84 @@ def get_active_goals(log_filenames):
 
     return results
 
+################################################
+# Reading tasks
+# get_task_packets returns a list of tasks like so:
+# [
+#   {
+#     "_datenum_": 815848.3725064587,
+#     "_scheme_": 2,
+#     "_utime_": 8321993784558025,
+#     "bot_id": 1,
+#     "dive": {
+#       "depth_achieved": 10,
+#       "dive_rate": 0.5,
+#       "duration_to_acquire_gps": 1.5,
+#       "measurement": {
+#         "mean_depth": [
+#           10,
+#           null
+#         ],
+#         "mean_salinity": [
+#           20,
+#           null
+#         ],
+#         "mean_temperature": [
+#           14.5,
+#           null
+#         ]
+#       },
+#       "powered_rise_rate": 0.3,
+#       "start_location": {
+#         "lat": 43.517494,
+#         "lon": -72.115236
+#       },
+#       "unpowered_rise_rate": 0.3
+#     },
+#     "drift": {
+#       "drift_duration": 0,
+#       "end_location": {
+#         "lat": 43.517738,
+#         "lon": -72.115225
+#       },
+#       "estimated_drift": {
+#         "speed": 0
+#       },
+#       "start_location": {
+#         "lat": 43.517736,
+#         "lon": -72.115225
+#       }
+#     },
+#     "end_time": 1664441785000000,
+#     "start_time": 1664441686000000,
+#     "type": "DIVE"
+#   },
+#   ...
+#   ]
+
+
+TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
+
+def get_task_packets(log_filenames):
+
+    # Open all our logs
+    log_files = [h5py.File(log_name) for log_name in log_filenames]
+
+    # A dictionary mapping bot_id to an array of mission dictionaries
+    results = []
+
+    for log_file in log_files:
+        
+        # Search for Command items
+        for path in log_file.keys():
+
+            m = TASK_PACKET_RE.match(path)
+            if m is not None:
+                task_packet_group_path = path
+
+                task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
+                task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
+
+                results += task_packets
+
+    return results
