@@ -160,7 +160,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     log_dir=log_file_dir))
+                                     log_dir=log_file_dir,
+                                     mission_manager_in_simulation=is_simulation()))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
