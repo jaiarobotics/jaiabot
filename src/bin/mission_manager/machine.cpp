@@ -878,6 +878,12 @@ void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
     if (offload_complete_)
     {
         offload_thread_->join();
+
+        if (cfg().is_sim())
+        {
+            offload_success_ = true;
+        }
+
         if (!offload_success_)
             this->machine().insert_warning(
                 jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);

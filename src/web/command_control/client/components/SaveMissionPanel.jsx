@@ -8,6 +8,7 @@ import React from 'react'
 // Material Design Icons
 import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
+import Button from '@mui/material/Button';
 
 export class SaveMissionPanel extends React.Component {
 
@@ -51,12 +52,12 @@ export class SaveMissionPanel extends React.Component {
 
         // Buttons
         let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
-            <button onClick={this.deleteClicked.bind(this)}>
+            <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
                 <Icon path={mdiDelete}></Icon>
-            </button>
+            </Button>
             <div className='flexSpacer'></div>
-            <button onClick={this.cancelClicked.bind(this)}>Cancel</button>
-            <button onClick={this.saveClicked.bind(this)}>Save</button>
+            <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
+            <Button className="button-jcc" onClick={this.saveClicked.bind(this)}>Save</Button>
         </div>)
 
         return (<div className="LoadMissionPanel centered rounded shadowed">
