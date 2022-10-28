@@ -6,6 +6,7 @@
 import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
+import Button from '@mui/material/Button';
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
 let pid_gains = ['Kp', 'Ki', 'Kd']
@@ -98,7 +99,7 @@ export class PIDGainsPanel extends React.Component {
                 {
                     pidGainsTable(engineering)
                 }
-                <button type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</button>
+                <Button className="button-jcc" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
             </div>
         )
     

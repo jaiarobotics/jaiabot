@@ -354,8 +354,11 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
                                  << "\n post_event(EvDepthTargetReached());"
                                  << "\n"
                                  << std::endl;
-        post_event(EvDepthTargetReached());
+
+        // Set depth achieved if we have reached our goal depth
+        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
         dive_pdescent_debug_.set_depth_reached(true);
+        post_event(EvDepthTargetReached());
     }
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
@@ -403,6 +406,10 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
                  << "\n"
                  << std::endl;
         context<Dive>().set_seafloor_reached(ev.depth);
+
+        // Set depth achieved if we had a bottoming timeout
+        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
         // used to correct dive rate calculation
         duration_correction_ = (now - last_depth_change_time_);
         post_event(EvDepthTargetReached());
@@ -878,6 +885,12 @@ void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
     if (offload_complete_)
     {
         offload_thread_->join();
+
+        if (cfg().is_sim())
+        {
+            offload_success_ = true;
+        }
+
         if (!offload_success_)
             this->machine().insert_warning(
                 jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);

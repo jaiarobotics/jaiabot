@@ -11,83 +11,85 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Icon from '@mdi/react'
+import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
+	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
+         mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
+import rcMode from '../icons/controller.svg'
+import goToRallyGreen from '../icons/go-to-rally-point-green.png'
+import goToRallyRed from '../icons/go-to-rally-point-red.png'
+import Button from '@mui/material/Button';
+import { Settings } from './Settings'
+import { Missions } from './Missions'
+import { error, success, warning, info} from '../libs/notifications';
 
 // TurfJS
 import * as turf from '@turf/turf';
 
 let prec = 2
 
-let commandList = [
-    {
+let commands = {
+    active: {
         enumString: 'ACTIVATE',
         description: 'Activate Bot',
         statesAvailable: [
             /^.+__IDLE$/
         ]
     },
-    {
+    nextTask: {
         enumString: 'NEXT_TASK',
         description: 'Next Task',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
-    {
+    goHome: {
         enumString: 'RETURN_TO_HOME',
         description: 'Return to Home',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
-    {
+    stop: {
         enumString: 'STOP',
         description: 'Stop',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
-    {
+    play: {
+        enumString: 'START_MISSION',
+        description: 'Play mission',
+        statesNotAvailable: [
+            /^.+__IDLE$/
+        ]
+    },
+    rcMode: {
+        enumString: 'RC_MISSION',
+        description: 'RC mission',
+        statesNotAvailable: [
+            /^.+__IDLE$/
+        ]
+    },
+    recover: {
         enumString: 'RECOVERED',
         description: 'Recover Bot',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
-    {
+    shutdown: {
         enumString: 'SHUTDOWN',
         description: 'Shutdown Bot',
-        statesAvailable: [
-            /^POST_DEPLOYMENT__IDLE$/,
-            /^PRE_DEPLOYMENT__.+$/
-        ]
     },
-    {
+    restartServices: {
         enumString: 'RESTART_ALL_SERVICES',
         description: 'Restart Services'
     },
-    {
+    reboot: {
         enumString: 'REBOOT_COMPUTER',
         description: 'Reboot Bot'
-    },
-    {
-        enumString: 'SHUTDOWN_COMPUTER',
-        description: 'Force Shutdown'
     }
-]
-
-function getAvailableCommands(missionState) {
-    return commandList.filter((command) => {
-        let statesAvailable = command.statesAvailable
-        if (statesAvailable == null) {
-            return true
-        }
-
-        for (let stateAvailable of statesAvailable) {
-            if (stateAvailable.test(missionState)) return true;
-        }
-
-        return false;
-    })
 }
 
 function issueCommand(api, botId, command) {
@@ -102,29 +104,93 @@ function issueCommand(api, botId, command) {
     }
 }
 
-function getCommandSelectElement(api, bot) {
-    let availableCommands = getAvailableCommands(bot.missionState)
+function issueMissionCommand(api, bot_mission, botId) {
 
-    return (
-        <select onChange={(evt) => { 
-            issueCommand(api, bot.botId, availableCommands[evt.target.value])
-            evt.target.selectedIndex = -1
-        }} value={-1}>
+    if (bot_mission != ""
+            && confirm("Are you sure you'd like to run mission for bot: " + botId + "?")) {
+        // Set the speed values
+        let speeds = Settings.read('mission.plan.speeds')
+        if (speeds != null && bot_mission.plan != null) {
+            bot_mission.plan.speeds = speeds
+        }
 
-            <option value="-1" key="-1">...</option>
+        console.debug('Running Mission:')
+        console.debug(bot_mission)
 
-            {
-                availableCommands.map((command, index) => {
-                    return <option value={index} key={index}>{command.description}</option>
-                })            
+        api.postCommand(bot_mission).then(response => {
+            if (response.message) {
+                error(response.message)
             }
+        })
+    }   
+}
 
-        </select>
-    )
+function runRCMode(bot) {
+    let botId = bot.botId;
+    if (botId == null) {
+        warning("No bots selected")
+        return ""
+    }
+
+    var datum_location = bot?.location 
+
+    if (datum_location == null) {
+        const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+
+        if (!confirm(warning_string)) {
+            return ""
+        }
+
+        datum_location = {lat: 0, lon: 0}
+    }
+
+    return Missions.RCMode(botId, datum_location)[botId];
+}
+
+// Check if there is a mission to run
+function runMission(botId, missions) {
+    console.log(missions);
+    if (missions[botId]) {
+        info('Submitted mission for bot: ' + botId);
+        return missions[botId];
+    }
+    else {
+        error('No mission set for bot ' + botId);
+        return "";
+    }
+}
+
+// Check mission state for disabling button
+function disableButton(command, missionState)
+{
+    let disable = false;
+    let statesAvailable = command.statesAvailable
+    let statesNotAvailable = command.statesNotAvailable
+    if (statesAvailable != null
+            && statesAvailable != undefined) {
+
+        for (let stateAvailable of statesAvailable) {
+            if (!stateAvailable.test(missionState)) disable = true; break;
+        }
+    }
+
+    if (statesNotAvailable != null
+        || statesNotAvailable != undefined) {
+        for (let stateNotAvailable of statesNotAvailable) {
+            if (stateNotAvailable.test(missionState)) disable = true; break;
+        }
+    }
+
+    let disableButton = {class: '', isDisabled: disable};
+    if(disable)
+    {
+        disableButton.class = "inactive";
+    }
+    return disableButton;
 }
 
 // Get the table row for the health of the vehicle
-function healthRow(bot) {
+function healthRow(bot, allInfo) {
     let healthClassName = {
         "HEALTH__OK": "healthOK",
         "HEALTH__DEGRADED": "healthDegraded",
@@ -143,19 +209,34 @@ function healthRow(bot) {
         return <div key={warning} className='healthDegraded'>{warning}</div>
     })
 
-    return (
-        <tr>
-            <td>Health</td>
-            <td>
-                {healthStateElement}
-                {errorElements}
-                {warningElements}
-            </td>
-        </tr>
-    )
+    if(allInfo)
+    {
+        return (
+            <tr>
+                <td>Health</td>
+                <td>
+                    {healthStateElement}
+                    {errorElements}
+                    {warningElements}
+                </td>
+            </tr>
+        )
+    }
+    else
+    {
+        return (
+            <tr>
+                <td>Health</td>
+                <td>
+                    {healthStateElement}
+                </td>
+            </tr>
+        )
+    }
+
 }
 
-export function BotDetailsComponent(bot, hub, api, closeWindow) {
+export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -203,16 +284,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(prec);
     }
 
-    let vccVoltageClassName = ''
-    if(bot.vccVoltage <= 18 &&
-        bot.vccVoltage > 16) 
-    {
-        vccVoltageClassName = 'healthDegraded';
-    } 
-    else if(bot.vccVoltage < 16)
-    {
-        vccVoltageClassName = 'healthFailed';
-    }
+    let missionState = bot.missionState;
 
     return (
         <div id='botDetailsBox'>
@@ -221,23 +293,13 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     <h2 className="name">{`Bot ${bot?.botId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td>Command</td>
-                            <td>
-                                { getCommandSelectElement(api, bot) }
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
                 <Accordion defaultExpanded className="accordion">
                     <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Mission Status</Typography>
+                        <Typography>Quick Look</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -246,7 +308,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                     <td>Status Age</td>
                                     <td>{statusAge} s</td>
                                 </tr>
-                                {healthRow(bot)}
+                                {healthRow(bot, false)}
                                 <tr>
                                     <td>Distance from Hub</td>
                                     <td>{distToHub} m</td>
@@ -263,10 +325,93 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                                     <td>Distance to Goal</td>
                                     <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
                                 </tr>
-                                <tr className={vccVoltageClassName}>
+                                <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Commands</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Button className={disableButton(commands.stop, missionState).class + " button-jcc stopMission"} 
+                                disabled={disableButton(commands.stop, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.stop) }}>
+                            <Icon path={mdiStop} title="Stop Mission"/>
+                        </Button>
+
+                        <Button className={disableButton(commands.play, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.play, missionState).isDisabled} 
+                                onClick={() => { issueMissionCommand(api, runMission(bot.botId, missions), bot.botId) }}>
+                            <Icon path={mdiPlay} title="Run Mission"/>
+                        </Button>
+
+                        <Button className={disableButton(commands.nextTask, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.nextTask, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.nextTask) }}>
+                            <Icon path={mdiSkipNext} title="Next Task"/>
+                        </Button>
+
+                        <Button className="button-jcc inactive" disabled>
+                            <Icon path={mdiPause} title="Pause Mission"/>
+                        </Button>
+
+                        <Button className={disableButton(commands.active, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.active, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.active) }}>
+                            <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
+                        </Button>
+
+                        <Button className={disableButton(commands.rcMode, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.rcMode, missionState).isDisabled}  
+                                onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.botId) }}>
+                            <img src={rcMode} alt="Activate RC Mode"></img>
+                        </Button>
+
+                        <Button className={disableButton(commands.recover, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.recover, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.recover) }}>
+                            <Icon path={mdiDownload} title="Recover"/>
+                        </Button>
+                        
+                        <Button className={disableButton(commands.shutdown, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.shutdown, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.shutdown) }}>
+                            <Icon path={mdiPower} title="Shutdown"/>
+                        </Button>
+                        
+                        <Button className={disableButton(commands.reboot, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.reboot, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.reboot) }}>
+                            <Icon path={mdiRestartAlert} title="Reboot"/>
+                        </Button>
+                        <Button className={disableButton(commands.restartServices, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.restartServices, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.botId, commands.restartServices) }}>
+                            <Icon path={mdiRestart} title="Restart Services"/>
+                        </Button>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Health Details</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                {healthRow(bot, true)}
                             </tbody>
                         </table>
                     </AccordionDetails>
@@ -359,7 +504,7 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Temperature/Depth/Salinity</Typography>
+                        <Typography>Sensor Data</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -386,12 +531,12 @@ export function BotDetailsComponent(bot, hub, api, closeWindow) {
                     aria-controls="panel1a-content"
                     id="panel1a-header"
                     >
-                        <Typography>Battery</Typography>
+                        <Typography>Power</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
                             <tbody>
-                                <tr className={vccVoltageClassName}>
+                                <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
@@ -427,6 +572,8 @@ export function HubDetailsComponent(hub, api, closeWindow) {
         statusAgeClassName = 'healthDegraded'
     }
 
+    let missionState = hub.missionState;
+
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
@@ -434,30 +581,62 @@ export function HubDetailsComponent(hub, api, closeWindow) {
                     <h2 className="name">{`Hub ${hub?.hubId}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <table id="botDetailsTable">
-                    <tbody>
-                        <tr>
-                            <td>Command</td>
-                            <td>
-                                { getCommandSelectElement(api, hub) }
-                            </td>
-                        </tr>
-                        {healthRow(hub)}
-                        <tr>
-                            <td>Latitude</td>
-                            <td>{formatLatitude(hub.location?.lat)}</td>
-                        </tr>
-                        <tr>
-                            <td>Longitude</td>
-                            <td>{formatLongitude(hub.location?.lon)}</td>
-                        </tr>
-                        <tr className={statusAgeClassName}>
-                            <td>Status Age</td>
-                            <td>{statusAge} s</td>
-                        </tr>
 
-                    </tbody>
-                </table>
+                <Accordion defaultExpanded className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Quick Look</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <table>
+                            <tbody>
+                                {healthRow(hub)}
+                                <tr>
+                                    <td>Latitude</td>
+                                    <td>{formatLatitude(hub.location?.lat)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Longitude</td>
+                                    <td>{formatLongitude(hub.location?.lon)}</td>
+                                </tr>
+                                <tr className={statusAgeClassName}>
+                                    <td>Status Age</td>
+                                    <td>{statusAge} s</td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion className="accordion">
+                    <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls="panel1a-content"
+                    id="panel1a-header"
+                    >
+                        <Typography>Commands</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Button className={disableButton(commands.shutdown, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.shutdown, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, hub.hubId, commands.shutdown) }}>
+                            <Icon path={mdiPower} title="Shutdown"/>
+                        </Button>
+                        <Button className={disableButton(commands.reboot, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.reboot, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, hub.hubId, commands.reboot) }}>
+                            <Icon path={mdiRestartAlert} title="Reboot"/>
+                        </Button>
+                        <Button className={disableButton(commands.restartServices, missionState).class + " button-jcc"} 
+                                disabled={disableButton(commands.restartServices, missionState).isDisabled} 
+                                onClick={() => { issueCommand(api, hub.hubId, commands.restartServices) }}>
+                            <Icon path={mdiRestart} title="Restart Services"/>
+                        </Button>
+                    </AccordionDetails>
+                </Accordion>
             </div>
         </div>
     )
