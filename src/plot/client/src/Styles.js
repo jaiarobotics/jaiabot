@@ -43,7 +43,7 @@ export function goal(goalIndex, goal, isActive) {
     return new Style({
         image: new Icon({
             src: src,
-            color: isActive ? 'darkgreen' : '#eee',
+            color: isActive ? 'chartreuse' : '#eee',
             anchor: [0.5, 1]
         }),
         text: new Text({
