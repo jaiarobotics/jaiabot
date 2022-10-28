@@ -1,4 +1,4 @@
-import {Map, View} from 'ol';
+import { Map, View} from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import TileWMS from 'ol/source/TileWMS';
@@ -12,11 +12,12 @@ import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
-import {Circle as CircleStyle, Fill, Style} from 'ol/style';
-import * as Styles from './Styles'
-import * as Popup from './Popup'
-import * as Template from './Template'
+import { Circle as CircleStyle, Fill, Style } from 'ol/style';
+import * as Styles from './gui/Styles'
+import * as Popup from './gui/Popup'
+import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
+import { createMissionFeatures } from './gui/MissionFeatures'
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -438,29 +439,8 @@ export default class JaiaMap {
 
             const active_goal_index = active_goal?.active_goal
 
-            // Add markers for each waypoint
-            var missionLineStringCoordinates = []
-
-            for (const [goal_index, goal] of command.plan.goal.entries()) {
-                const location = goal.location
-
-                if (location == null) {
-                    continue
-                }
-
-                {
-                    // OpenLayers
-                    const markerFeature = createMarker2(this.openlayersMap, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == active_goal_index)})
-                    this.missionVectorSource.addFeature(markerFeature)
-                }
-
-                missionLineStringCoordinates.push(fromLonLat([location.lon, location.lat]))
-            }
-
-            // Add a linestring for the mission path
-            const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
-            missionPathFeature.setStyle(Styles.missionPath)
-            this.missionVectorSource.addFeature(missionPathFeature)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, command, active_goal_index)
+            this.missionVectorSource.addFeatures(missionFeatures)
         }
     
         updateTaskAnnotations() {
