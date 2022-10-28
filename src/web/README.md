@@ -11,6 +11,11 @@ cd command_control
 ./build.sh
 ```
 
+```
+cd jaiabot/web
+pip install -r requirements.txt
+```
+
 This will place the product into the `command_control/dist/client` directory.
 
 ## Engineering
