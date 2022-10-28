@@ -18,10 +18,14 @@ module.exports = {
           'style-loader',
           'css-loader'
         ]
-      }
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif)$/,
+        type: 'asset/resource',
+      },      
     ]
   },
-  resolve : {extensions : [ '*', '.js', '*.ts' ]},
+  resolve : {extensions : [ '*', '.js' ]},
   output : {
     path : path.resolve(__dirname, './dist'),
     filename : 'bundle.js',

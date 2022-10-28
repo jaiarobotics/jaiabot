@@ -88,6 +88,8 @@ import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
 import { deepcopy, areEqual } from './Utilities';
 
+import * as MissionFeatures from './gui/MissionFeatures'
+
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
 // import 'jquery-ui/themes/base/theme.css';
@@ -2707,84 +2709,11 @@ export default class CommandControl extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let transformed_pts = goals.map((goal) => {
-				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
-			})
-
 			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
 
 			// Add our goals
-			for (let [goal_index, goal] of goals.entries()) {
-				let pt = transformed_pts[goal_index]
-				const olPoint = new OlPoint(pt)
-
-				var waypointIconName
-
-				if (goal_index === 0) {
-					waypointIconName = "start"
-				}
-				else if (goal_index === goals.length - 1) {
-					waypointIconName = "stop"
-				}
-				else {
-					waypointIconName = "waypoint"
-				}
-
-				// Is this the bot's current target goal / waypoint?
-				const is_active = (goal_index == active_goal_index)
-
-				const waypointStyle = is_active ? "Active" : (selected ? "Selected" : "Unselected")
-
-				var style = new OlStyle({
-					image: new OlIcon({
-						src: Icons[waypointIconName + waypointStyle]
-					})
-				})
-
-				if (waypointIconName === "waypoint") {
-					let previous_pt = transformed_pts[goal_index - 1]
-					style.getImage().setRotation(Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0]))
-					style.getImage().setRotateWithView(true)
-				}
-
-				let waypointFeature = new OlFeature({ geometry: olPoint })
-				waypointFeature.setStyle(style)
-				waypointFeature.goal = missions[botId]?.plan?.goal?.[goal_index]
-				features.push(waypointFeature)
-
-				// Annotation feature (if present)
-				const annotationNames = { DIVE: "dive", SURFACE_DRIFT: "drift", STATION_KEEP: "stationkeep" }
-				const annotationName = annotationNames[goal.task?.type]
-
-				if (annotationName != null) {
-					const annotationFeature = new OlFeature({
-						geometry: olPoint
-					})
-					annotationFeature.setStyle(new OlStyle({
-						image: new OlIcon({
-							src: Icons[annotationName + waypointStyle]
-						})
-					}))
-
-					features.push(annotationFeature)
-				}
-
-			}
-
-			// Draw lines between waypoints
-			if (selected) {
-				lineStyle = selectedLineStyle
-				color = selectedColor
-			}
-			else {
-				lineStyle = defaultLineStyle
-				color = unselectedColor
-			}
-
-			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
-			lineStringFeature.setStyle(lineStyle)
-			features.push(lineStringFeature)
-
+			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index)
+			features.push(...missionFeatures)
 		}
 
 		// Add Home, if available
@@ -2937,6 +2866,8 @@ export default class CommandControl extends React.Component {
 				this.missionPlanningLayer.setZIndex(2000);
 			}
 		}
+
+		console.log(features)
 
 		let vectorSource = new OlVectorSource({
 			features: features

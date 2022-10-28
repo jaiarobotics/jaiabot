@@ -1,17 +1,27 @@
 import Stroke from 'ol/style/Stroke';
-import {Circle as CircleStyle, Fill, Icon, Style, Text} from 'ol/style';
+import { Fill, Icon, Style, Text} from 'ol/style';
 import { Point } from 'ol/geom';
+import arrowHead from './arrowHead.svg'
+import bottomStrike from './bottomStrike.svg'
+import driftTaskPacket from './driftTaskPacket.svg'
+import end from './end.svg'
+import start from './start.svg'
+import bot from './bot.svg'
+import taskDive from './taskDive.svg'
+import taskDrift from './taskDrift.svg'
+import taskNone from './taskNone.svg'
+import taskStationKeep from './taskStationKeep.svg'
 
 export const startMarker = new Style({
     image: new Icon({
-        src: '/start.svg',
+        src: start,
         anchor: [1/16, 1]
     })
 })
 
 export const endMarker = new Style({
     image: new Icon({
-        src: '/end.svg',
+        src: end,
         anchor: [1/16, 1]
     })
 })
@@ -19,7 +29,7 @@ export const endMarker = new Style({
 export function botMarker(heading) {
     return new Style({
         image: new Icon({
-            src: '/bot.svg',
+            src: bot,
             anchor: [0.5, 0.5],
             rotation: heading * Math.PI / 180,
             rotateWithView: true
@@ -31,13 +41,13 @@ export function botMarker(heading) {
 // Markers for the mission goals
 export function goal(goalIndex, goal, isActive) {
     const srcMap = {
-        'DIVE': '/taskDive.svg',
-        'STATION_KEEP': '/taskStationKeep.svg',
-        'SURFACE_DRIFT': '/taskDrift.svg',
-        'NONE': '/taskNone.svg'        
+        'DIVE': taskDive,
+        'STATION_KEEP': taskStationKeep,
+        'SURFACE_DRIFT': taskDrift,
+        'NONE': taskNone       
     }
 
-    const src = srcMap[goal.task?.type ?? 'NONE'] ?? '/taskNone.svg'
+    const src = srcMap[goal.task?.type ?? 'NONE'] ?? taskNone
     console.log(goal, src)
 
     return new Style({
@@ -75,7 +85,7 @@ export function diveTask(dive) {
 
     return new Style({
         image: new Icon({
-            src: '/bottomStrike.svg',
+            src: bottomStrike,
             color: color
         }),
         text: new Text({
@@ -97,7 +107,7 @@ export function driftTask(drift) {
 
     return new Style({
         image: new Icon({
-            src: '/driftTaskPacket.svg',
+            src: driftTaskPacket,
             color: color,
             rotateWithView: true,
             rotation: drift.estimated_drift.heading * Math.PI / 180.0,
@@ -138,7 +148,7 @@ export function missionPath(feature) {
             new Style({
                 geometry: new Point(midpoint),
                 image: new Icon({
-                    src: 'arrowHead.svg',
+                    src: arrowHead,
                     anchor: [1, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
