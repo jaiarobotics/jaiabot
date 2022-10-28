@@ -429,8 +429,6 @@ export default class JaiaMap {
                 return
             }
 
-            console.log(command)
-
             // This assumes that we have an active_goal_dict with only one botId!
             const active_goals_array = this.active_goal_dict[botId]
 

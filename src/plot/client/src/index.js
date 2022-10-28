@@ -200,7 +200,6 @@ class LogApp extends React.Component {
             let plots =
                 this.state.plots 
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
-                console.log('set plotNeedsRefresh to true')
           }
         })
         .catch(err => {alert(err)})
@@ -293,7 +292,6 @@ class LogApp extends React.Component {
       self.map.updatePath()
     })
 
-    console.log('refreshed plots, setting plotNeedsRefresh to false')
     this.setState({plotNeedsRefresh: false})
   }
 
