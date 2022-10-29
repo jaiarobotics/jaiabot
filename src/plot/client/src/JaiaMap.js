@@ -18,6 +18,9 @@ import * as Popup from './gui/Popup'
 import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
+import { createBotFeature } from './gui/BotFeature'
+import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
+
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -391,13 +394,16 @@ export default class JaiaMap {
                 return
             }
 
-            for (const path_point_array of this.path_point_arrays) {
+            console.log(this.path_point_arrays)
+
+            for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
+
                 const point = bisect(path_point_array, (point) => {
                     return timestamp_micros - point[0]
                 })
                 if (point == null) continue;
 
-                const botFeature = createMarker2(this.openlayersMap, {title: "Bot", time: point[0], lon: point[2], lat: point[1], style: Styles.botMarker(point[3])})
+                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]], point[3])
                 this.botVectorSource.addFeature(botFeature)
             }
 
@@ -444,75 +450,16 @@ export default class JaiaMap {
         }
     
         updateTaskAnnotations() {
-
             this.taskPacketVectorSource.clear()
 
-            // Helper to convert from latlon obj to array
-            function to_array(latlon) {
-                return [latlon.lat, latlon.lon]
-            }
-
-            // Helper to get dive / drift description from dictionary
-            function description_of(obj, descriptors) {
-                var s = ''
-
-                for (const key in descriptors) {
-                    const name = descriptors[key][0]
-                    const units = descriptors[key][1]
-
-                    if (obj[key] != null) {
-                        s = s + name + ': ' + obj[key].toFixed(2) + ' ' + units + '<br>'
-                    }
-                }
-
-                return s
-            }
-
-            var bounds = []
-
             for (const task_packet of this.task_packets ?? []) {
-
                 // Discard the lower-precision DCCL task packets
                 if (task_packet._scheme_ == 2) {
                     continue
                 }
 
-                // Drift markers
-                const drift = task_packet.drift
-
-                if (drift.drift_duration != 0) {
-
-                    const d_start = to_array(drift.start_location)
-                    const d_end = to_array(drift.end_location)
-
-                    const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
-
-                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Surface Drift', lon: drift.start_location.lon, lat: drift.start_location.lat, style: Styles.driftTask(drift), popupHTML: d_hover}))
-                }
-
-                // Dive markers
-
-                const dive = task_packet.dive
-
-                const d_start = to_array(dive.start_location)
-
-                const descriptors = {
-                    'depth_achieved': ['Depth achieved', 'm'],
-                    'duration_to_acquire_gps': ['Duration to acquire GPS', 's'],
-                    'powered_rise_rate': ['Powered rise rate', 'm/s'],
-                    'unpowered_rise_rate': ['Unpowered rise rate', 'm/s']
-                }
-
-                const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${description_of(dive, descriptors)}`
-
-                if (dive.depth_achieved != 0) {
-                    this.taskPacketVectorSource.addFeature(createMarker2(this.openlayersMap, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.diveTask(dive), popupHTML: d_description}))
-                }
-
+                this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
             }
-
         }
 
     }
-    
-    

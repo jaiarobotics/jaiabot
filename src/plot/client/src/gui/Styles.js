@@ -26,13 +26,27 @@ export const endMarker = new Style({
     })
 })
 
-export function botMarker(heading) {
+export function botMarker(text, heading) {
+    const headingRadians = heading * Math.PI / 180
+    const dx = Math.sin(-headingRadians)
+    const dy = Math.cos(headingRadians)
+    const r = 15
+
     return new Style({
         image: new Icon({
             src: bot,
             anchor: [0.5, 0.5],
-            rotation: heading * Math.PI / 180,
+            rotation: headingRadians,
             rotateWithView: true
+        }),
+        text: new Text({
+            text: new String(text),
+            font: 'bold 13pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            offsetX: r * dx,
+            offsetY: r * dy
         })
     })
 }
@@ -48,7 +62,6 @@ export function goal(goalIndex, goal, isActive) {
     }
 
     const src = srcMap[goal.task?.type ?? 'NONE'] ?? taskNone
-    console.log(goal, src)
 
     return new Style({
         image: new Icon({
@@ -81,7 +94,7 @@ export function diveTask(dive) {
     }
 
     // Icon color
-    const color = dive.bottom_dive ? 'red': 'white'
+    const color = 'white'
 
     return new Style({
         image: new Icon({
@@ -108,7 +121,9 @@ export function driftTask(drift) {
     return new Style({
         image: new Icon({
             src: driftTaskPacket,
+            anchor: [0.5, 1.0],
             color: color,
+            scale: drift.estimated_drift.speed / 0.2,
             rotateWithView: true,
             rotation: drift.estimated_drift.heading * Math.PI / 180.0,
         }),

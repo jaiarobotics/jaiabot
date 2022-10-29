@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="21.713839pt"
-   height="32.570759pt"
-   viewBox="0 0 7.6601595 11.49024"
+   width="43.427673pt"
+   height="65.14151pt"
+   viewBox="0 0 15.320318 22.980477"
    version="1.1"
    id="svg11179"
    inkscape:version="1.2.1 (0f2f062aeb, 2022-09-21, custom)"
@@ -20,13 +20,13 @@
      borderopacity="0.25"
      inkscape:showpageshadow="2"
      inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
+     inkscape:pagecheckerboard="true"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showgrid="true"
-     inkscape:zoom="23.900548"
-     inkscape:cx="13.242374"
-     inkscape:cy="21.484863"
+     inkscape:zoom="10.589122"
+     inkscape:cx="35.272046"
+     inkscape:cy="46.037811"
      inkscape:window-width="3368"
      inkscape:window-height="1369"
      inkscape:window-x="72"
@@ -36,8 +36,8 @@
     <inkscape:grid
        type="xygrid"
        id="grid11663"
-       originx="-1.4615867"
-       originy="0.55834915" />
+       originx="2.3684923"
+       originy="6.3034674" />
   </sodipodi:namedview>
   <defs
      id="defs11176" />
@@ -45,16 +45,17 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-1.4615868,0.55834913)">
+     transform="translate(2.3684922,6.3034674)">
     <path
-       style="opacity:0.85;fill:#c80022;stroke:#000000;stroke-width:0.353131"
-       d="M 1.7638889,10.583333 5.2916666,0 8.8194442,10.583333 5.2916666,8.8194442 Z"
+       style="opacity:1;fill:#eeeeee;fill-opacity:1;stroke:#000000;stroke-width:0.706261;stroke-dasharray:none"
+       d="M -1.7638887,15.979895 5.2916667,-5.1867706 12.347222,15.979895 5.2916667,12.452118 Z"
        id="path11665" />
-    <circle
-       style="fill:#c80022;stroke:#000000;stroke-width:0.353131"
+    <ellipse
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.353013"
        id="path11724"
-       cx="5.2916665"
-       cy="5.2916665"
-       r="0.35277778" />
+       cy="5.2917843"
+       cx="5.291667"
+       rx="0.35266012"
+       ry="0.35266" />
   </g>
 </svg>
