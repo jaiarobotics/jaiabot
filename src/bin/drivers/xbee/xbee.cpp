@@ -74,10 +74,11 @@ XBeeDevice::XBeeDevice()
 
 void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
                          const std::string& _my_node_id, const uint16_t network_id,
-                         const bool p_should_discover_peers)
+                         const bool p_should_discover_peers, const std::string& xbee_info_location)
 {
     my_node_id = _my_node_id;
     should_discover_peers = p_should_discover_peers;
+    my_xbee_info_location_ = xbee_info_location;
 
     port->open(port_name);
     port->set_option(serial_port_base::baud_rate(baud_rate));
@@ -507,6 +508,15 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         uint32_t lower_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
         my_serial_number |= ((SerialNumber)lower_serial_number);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
+
+        // Write to xbee_info file our serial number and node id for the radio
+        // This is currently read in by the jaiabot_metadata app
+        std::ofstream xbeeFile;
+        xbeeFile.open(my_xbee_info_location_);
+        xbeeFile << "  node_id: '" << my_node_id << "'\n";
+        xbeeFile << "  serial_number: "
+                 << "'0x00" << std::hex << my_serial_number << "'";
+        xbeeFile.close();
 
         // Broadcast our node_id, and request everyone else's node_id
         send_node_id(broadcast_serial_number, true);

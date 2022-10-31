@@ -82,6 +82,12 @@ class Metadata : public ApplicationBase
         metadata.set_goby_version(goby::VERSION_STRING);
         metadata.set_moos_version(MOOS_VERSION);
 
+        if (cfg().has_xbee())
+        {
+            metadata.set_xbee_node_id(cfg().xbee().node_id());
+            metadata.set_xbee_serial_number(cfg().xbee().serial_number());
+        }
+
         glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
 
         interprocess().publish<groups::metadata>(metadata);

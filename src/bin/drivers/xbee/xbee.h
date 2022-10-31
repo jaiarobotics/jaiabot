@@ -31,6 +31,10 @@
 #include <queue>
 #include <boost/asio.hpp>   // for serial_port
 
+// basic file operations
+#include <fstream>
+#include <iostream>
+
 #include "xbee.pb.h"
 
 using namespace std;
@@ -57,7 +61,8 @@ class XBeeDevice
   public:
     XBeeDevice();
     void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
-                 const uint16_t network_id, const bool should_discover_peers);
+                 const uint16_t network_id, const bool should_discover_peers,
+                 const std::string& xbee_info_location);
     void shutdown();
 
     vector<NodeId> get_peers();
@@ -177,6 +182,8 @@ class XBeeDevice
 
     // Transmission Failure Count
     uint16_t transimission_failure_count_{0};
+
+    std::string my_xbee_info_location_{""};
 };
 #endif
 
