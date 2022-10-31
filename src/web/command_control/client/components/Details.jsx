@@ -329,6 +329,10 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
+                                <tr>
+                                    <td>Battery Percentage</td>
+                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                </tr>
                             </tbody>
                         </table>
                     </AccordionDetails>
@@ -536,6 +540,10 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                     <AccordionDetails>
                         <table>
                             <tbody>
+                                <tr>
+                                    <td>Battery Percentage</td>
+                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                </tr>
                                 <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
