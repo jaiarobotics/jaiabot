@@ -508,6 +508,7 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         uint32_t lower_serial_number = big_to_native(*((uint32_t*)&response->command_data_start));
         my_serial_number |= ((SerialNumber)lower_serial_number);
         glog.is_verbose() && glog << "serial_number= " << std::hex << my_serial_number << std::dec << " node_id= " << my_node_id  << " (this device)" << endl;
+        glog.is_verbose() && glog << "File location: " << my_xbee_info_location_ << endl;
 
         // Write to xbee_info file our serial number and node id for the radio
         // This is currently read in by the jaiabot_metadata app
