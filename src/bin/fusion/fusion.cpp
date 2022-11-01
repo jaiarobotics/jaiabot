@@ -31,6 +31,7 @@
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
+#include "goby/util/sci.h" // for linear_interpolate
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/messages/arduino.pb.h"
@@ -421,6 +422,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
             if (arduino_response.has_vccvoltage())
             {
                 latest_bot_status_.set_vcc_voltage(arduino_response.vccvoltage());
+
+                //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
+                std::map<float, float> voltage_to_battery_percent_{
+                    {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
+                    {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
+
+                latest_bot_status_.set_battery_percent(goby::util::linear_interpolate(
+                    arduino_response.vccvoltage(), voltage_to_battery_percent_));
             }
 
             if (arduino_response.has_vcccurrent())
