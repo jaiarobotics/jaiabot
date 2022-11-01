@@ -89,6 +89,7 @@ import { getTransform } from 'ol/proj';
 import { deepcopy, areEqual } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
+import { createBotFeature } from './gui/BotFeature'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -1846,7 +1847,7 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = new OlFeature({});
+			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading)
 
 			botFeature.setId(bot_id);
 
