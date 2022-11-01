@@ -537,6 +537,9 @@ export default class CommandControl extends React.Component {
 			moveTolerance: 20
 		});
 
+		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
+		taskData.map = map
+
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
 		this.measureInteraction = new OlDrawInteraction({
@@ -996,7 +999,8 @@ export default class CommandControl extends React.Component {
 				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
-				taskData.getTaskPacketDiveBottomInfoLayer()
+				taskData.getTaskPacketDiveBottomInfoLayer(),
+				taskData.taskPacketInfoLayer
 			]
 		})
 
@@ -1811,7 +1815,7 @@ export default class CommandControl extends React.Component {
 			let hub = hubs[hubId];
 
 			// ID
-			const hub_id = hub.hubId
+			const hub_id = hub.hub_id
 			// Geometry
 			const hubLatitude = hub.location?.lat
 			const hubLongitude = hub.location?.lon
@@ -1835,7 +1839,7 @@ export default class CommandControl extends React.Component {
 			let bot = bots[botId]
 
 			// ID
-			const bot_id = bot.botId
+			const bot_id = bot.bot_id
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
@@ -2868,8 +2872,6 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		console.log(features)
-
 		let vectorSource = new OlVectorSource({
 			features: features
 		})
@@ -2921,12 +2923,11 @@ export default class CommandControl extends React.Component {
 			let selectedBotId = this.selectedBotId() ?? 0
 			
 			this.missions[selectedBotId] = this.missions['selectedBotId']
-			this.missions[selectedBotId].botId = selectedBotId
+			this.missions[selectedBotId].bot_id = selectedBotId
 			delete this.missions['selectedBotId']
 		}
 
 		this.updateMissionLayer()
-		console.log('Loaded mission: ', this.missions)
 	}
 
 	// Currently selected botId
@@ -3112,7 +3113,7 @@ export default class CommandControl extends React.Component {
 	generateMissions(surveyPolygonGeoCoords) {
 		let bot_list = [];
 		for (const bot in this.podStatus.bots) {
-			bot_list.push(this.podStatus.bots[bot]['botId'])
+			bot_list.push(this.podStatus.bots[bot]['bot_id'])
 		}
 
 		this.api.postMissionFilesCreate({
@@ -3328,16 +3329,16 @@ export default class CommandControl extends React.Component {
 		let hubs = Object.values(this.podStatus?.hubs ?? {})
 		
 		function compare_by_hubId(hub1, hub2) {
-			return hub1.hubId - hub2.hubId
+			return hub1.hub_id - hub2.hub_id
 		}
 
 		function compare_by_botId(bot1, bot2) {
-			return bot1.botId - bot2.botId
+			return bot1.bot_id - bot2.bot_id
 		}
 
 		function bothub_to_div(bothub) {
-			let botId = bothub.botId
-			let hubId = bothub.hubId
+			let botId = bothub.bot_id
+			let hubId = bothub.hub_id
 			
 			if (botId != null) {
 				var key = 'bot-' + botId

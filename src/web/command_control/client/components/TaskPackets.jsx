@@ -16,9 +16,9 @@ import {
 import OlFeature from 'ol/Feature';
 import OlIcon from 'ol/style/Icon';
 import OlPoint from 'ol/geom/Point';
-import diveLocation from '../icons/task_packet/DiveLocation.png'
+import diveLocationIcon from '../icons/task_packet/DiveLocation.png'
 import currentDirection from '../icons/task_packet/Arrow.png'
-import bottomDiveLocation from '../icons/task_packet/X-white.png'
+import bottomDiveLocationIcon from '../icons/task_packet/X-white.png'
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
@@ -26,6 +26,7 @@ import { Vector as VectorLayer } from "ol/layer"
 import GeoJSON from 'ol/format/GeoJSON'
 import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
 import {asString} from 'ol/color'
+import {createTaskPacketFeatures} from './gui/TaskPacketFeatures'
 
 const POLL_INTERVAL = 5000
 
@@ -108,12 +109,25 @@ export class TaskData {
             source: null,
           })
 
-        this.taskPacketDriftInfoLayer = new VectorLayer({
+          this.taskPacketDriftInfoLayer = new VectorLayer({
             title: 'Drift Info',
             zIndex: 1001,
             opacity: 1,
             source: null,
           })
+
+
+          this.taskPacketSource = new VectorSource({
+            features: []
+          })
+
+          this.taskPacketInfoLayer = new VectorLayer({
+            title: 'Task Packets',
+            zIndex: 1001,
+            opacity: 1,
+            source: this.taskPacketSource,
+          })
+
     }
 
     updateContourPlot() {
@@ -136,34 +150,34 @@ export class TaskData {
     /*
     Task Packet Example
     0: 
-    botId: 0
+    bot_id: 0
     dive: 
-        bottomDive: false
-        depthAchieved: 1
-        diveRate: 0.5
-        durationToAcquireGps: 0.3
+        bottom_dive: false
+        depth_achieved: 1
+        dive_rate: 0.5
+        duration_to_acquire_gps: 0.3
         measurement: Array(1)
             0: 
-            {meanDepth: 1, meanTemperature: 15, meanSalinity: 20}
+            {mean_depth: 1, mean_temperature: 15, mean_salinity: 20}
             length: 1
-        startLocation: 
+        start_location: 
             lat: 41.487142
             lon: -71.259441 
-        unpoweredRiseRate: 0.3
-        poweredRiseRate: 0.5
+        unpowered_rise_rate: 0.3
+        powered_rise_rate: 0.5
     drift: 
-        driftDuration: 0
-        estimatedDrift:
+        drift_duration: 0
+        estimated_drift:
             speed: 0
             heading: 180
-        endLocation: 
+        end_location: 
             lat: 41.487135
             lon: -71.259441
-        startLocation: 
+        start_location: 
             lat: 41.487136
             lon: -71.259441
-        endTime: "1664484912000000"
-        startTime: "1664484905000000"
+        end_time: "1664484912000000"
+        start_time: "1664484905000000"
         type: "DIVE"
     */
 
@@ -173,13 +187,13 @@ export class TaskData {
         let taskDiveBottomFeatures = []
         let taskDiveBottomInfoFeatures = []
 
-        for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
+        for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
             if(taskPacket.type == "DIVE")
             {            
                 let divePacket = taskPacket.dive;
                 let iconStyle = new OlStyle({
                     image: new OlIcon({
-                        src: diveLocation,
+                        src: diveLocationIcon,
                         // the real size of your icon
                         size: [319, 299],
                         // the scale factor
@@ -190,8 +204,8 @@ export class TaskData {
                 let iconInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
-                        text : `Depth (m): ` + divePacket.depthAchieved 
-                             + '\nDiveRate (m/s): ' + divePacket.diveRate,
+                        text : `Depth (m): ` + divePacket.depth_achieved 
+                             + '\nDiveRate (m/s): ' + divePacket.dive_rate,
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
@@ -206,7 +220,7 @@ export class TaskData {
 
                 let iconBottomStyle = new OlStyle({
                     image: new OlIcon({
-                        src: bottomDiveLocation,
+                        src: bottomDiveLocationIcon,
                         // the real size of your icon
                         size: [225, 225],
                         // the scale factor
@@ -217,7 +231,7 @@ export class TaskData {
                 let iconBottomInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
-                        text : `Bottom Depth (m): ` + divePacket.depthAchieved,
+                        text : `Bottom Depth (m): ` + divePacket.depth_achieved,
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
@@ -231,8 +245,8 @@ export class TaskData {
                 });
 
                 let task_calcs = this.calculateDiveDrift(taskPacket);
-                let dive_lon = task_calcs.diveLocation.lon;
-                let dive_lat = task_calcs.diveLocation.lat;
+                let dive_lon = task_calcs.dive_location.lon;
+                let dive_lat = task_calcs.dive_location.lat;
                 let pt = equirectangular_to_mercator([dive_lon, dive_lat])
 
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
@@ -282,15 +296,15 @@ export class TaskData {
         let taskDriftFeatures = []
         let taskDriftInfoFeatures = []
 
-        for (let [botId, taskPacket] of Object.entries(this.taskPackets)) {
+        for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
             if(taskPacket.type == "DIVE" ||
                taskPacket.type == "SURFACE_DRIFT")
             {
                 let driftPacket = taskPacket.drift;
 
                 if(taskPacket?.drift != null 
-                    && taskPacket.drift?.driftDuration != null
-                    && driftPacket.driftDuration > 0)
+                    && taskPacket.drift?.drift_duration != null
+                    && driftPacket.drift_duration > 0)
                 {
 
                     let task_calcs = this.calculateDiveDrift(taskPacket);
@@ -312,7 +326,7 @@ export class TaskData {
                     let iconInfoStyle = new OlStyle({
                         text : new OlText({
                             font : `15px Calibri,sans-serif`,
-                            text : `Duration (s): ` + driftPacket.driftDuration 
+                            text : `Duration (s): ` + driftPacket.drift_duration 
                                 + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
                                 + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
                             scale: 1,
@@ -327,7 +341,7 @@ export class TaskData {
                         })
                     });
 
-                    let pt = equirectangular_to_mercator([driftPacket.endLocation.lon, driftPacket.endLocation.lat])
+                    let pt = equirectangular_to_mercator([driftPacket.end_location.lon, driftPacket.end_location.lat])
                     let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     driftFeature.setStyle(iconStyle)   
@@ -361,7 +375,7 @@ export class TaskData {
         if(taskPacket.type == "DIVE")
         {
             divePacket = taskPacket.dive;
-            task_calcs = {diveLocation: divePacket.startLocation, driftSpeed: 0, driftDirection: 0};
+            task_calcs = {dive_location: divePacket.start_location, driftSpeed: 0, driftDirection: 0};
         } 
         else
         {
@@ -369,46 +383,46 @@ export class TaskData {
         }
         
         if(taskPacket?.drift != null 
-            && taskPacket.drift?.driftDuration != null
-            && taskPacket.drift.driftDuration > 0)
+            && taskPacket.drift?.drift_duration != null
+            && taskPacket.drift.drift_duration > 0)
         {
             driftPacket = taskPacket.drift;
 
-            let drift_start = [driftPacket.startLocation.lon, driftPacket.startLocation.lat];
-            let drift_end = [driftPacket.endLocation.lon, driftPacket.endLocation.lat];
+            let drift_start = [driftPacket.start_location.lon, driftPacket.start_location.lat];
+            let drift_end = [driftPacket.end_location.lon, driftPacket.end_location.lat];
 
             let drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start);
 
             if(taskPacket.type == "DIVE"
                 && taskPacket?.dive != null
-                && taskPacket?.diveRate != null
-                && taskPacket?.diveRate > 0)
+                && taskPacket?.dive_rate != null
+                && taskPacket?.dive_rate > 0)
             {
                 // Calculate the distance we traveled while acquiring gps
                 let distance_between_breach_point_and_acquire_gps 
-                    = divePacket.durationToAcquireGps * driftPacket.estimatedDrift.speed;
+                    = divePacket.duration_to_acquire_gps * driftPacket.estimated_drift.speed;
 
                 // Calculate the breach point
                 let breach_point = turf.destination(drift_start, 
                                                     distance_between_breach_point_and_acquire_gps, 
                                                     drift_to_dive_ascent_bearing, options);
 
-                let dive_start = [divePacket.startLocation.lon, divePacket.startLocation.lat];
+                let dive_start = [divePacket.start_location.lon, divePacket.start_location.lat];
 
 
                 // Calculate the total time the bot took to reach the required depth
-                let dive_total_descent_seconds = divePacket.diveRate * divePacket.depthAchieved;
+                let dive_total_descent_seconds = divePacket.dive_rate * divePacket.depth_achieved;
 
                 // Caclulate the total time the bot took to reach the surface
                 // This is assuming we are in either unpowered ascent or powered ascent
                 let dive_total_ascent_seconds = 0;
-                if(divePacket?.unpoweredRiseRate)
+                if(divePacket?.unpowered_rise_rate)
                 {
-                    dive_total_ascent_seconds = divePacket.unpoweredRiseRate * divePacket.depthAchieved;
+                    dive_total_ascent_seconds = divePacket.unpowered_rise_rate * divePacket.depth_achieved;
                 }
-                else if(divePacket?.poweredRiseRate)
+                else if(divePacket?.powered_rise_rate)
                 {
-                    dive_total_ascent_seconds = divePacket.poweredRiseRate * divePacket.depthAchieved;
+                    dive_total_ascent_seconds = divePacket.powered_rise_rate * divePacket.depth_achieved;
                 }
 
                 // Calculate the total time it took to dive to required depth 
@@ -435,19 +449,17 @@ export class TaskData {
 
                 let dive_lon = dive_location.geometry.coordinates[0];
                 let dive_lat = dive_location.geometry.coordinates[1];
-                task_calcs.diveLocation = {lat: dive_lat, lon: dive_lon};
+                task_calcs.dive_location = {lat: dive_lat, lon: dive_lon};
             }
 
-            task_calcs.driftSpeed = driftPacket.estimatedDrift.speed;
-            task_calcs.driftDirection = driftPacket.estimatedDrift.heading;
+            task_calcs.driftSpeed = driftPacket.estimated_drift.speed;
+            task_calcs.driftDirection = driftPacket.estimated_drift.heading;
         }
         return task_calcs;
     }
 
     _updateContourPlot() {
         jaiaAPI.getDepthContours().then((geojson) => {
-                console.log('geojson = ', geojson)
-
                 // Manually transform features from lon/lat to the view's projection.
                 var features = new GeoJSON().readFeatures(geojson)
                 features.forEach((feature) => {
@@ -478,20 +490,21 @@ export class TaskData {
     _pollTaskPackets() {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
 
-            console.log('taskPackets.length = ', taskPackets.length)
-            console.log('this.taskPackets.length = ', this.taskPackets.length)
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
 
-                console.log(this.taskPackets);
-
                 if (taskPackets.length >= 3) {
-                    console.log('Updating contour plot')
                     this._updateContourPlot()
                 }
 
             }
 
+            const taskPacketFeatures = taskPackets
+                .map((taskPacket) => { return createTaskPacketFeatures(this.map, taskPacket) }).flat()
+
+            this.taskPacketSource.clear()
+            this.taskPacketSource.addFeatures(taskPacketFeatures)
+            
             this.updateDiveLocations();
             this.updateDriftLocations();
         })

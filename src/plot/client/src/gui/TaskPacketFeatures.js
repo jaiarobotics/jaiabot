@@ -3,8 +3,6 @@ import * as Styles from "./Styles"
 
 
 export function createTaskPacketFeatures(map, taskPacket) {
-    console.log(taskPacket)
-
     // Helper to convert from latlon obj to array
     function to_array(latlon) {
         return [latlon.lat, latlon.lon]
