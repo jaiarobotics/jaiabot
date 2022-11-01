@@ -36,7 +36,7 @@ export function createTaskPacketFeatures(map, taskPacket) {
 
         const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
 
-        features.push(createMarker(map, {title: 'Surface Drift', lon: drift.start_location.lon, lat: drift.start_location.lat, style: Styles.driftTask(drift), popupHTML: d_hover}))
+        features.push(createMarker(map, {title: 'Surface Drift', lon: drift.start_location.lon, lat: drift.start_location.lat, style: Styles.driftTask(drift)}))
     }
 
     // Dive markers
@@ -53,7 +53,7 @@ export function createTaskPacketFeatures(map, taskPacket) {
         const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${description_of(dive, descriptors)}`
 
         if (dive.depth_achieved != 0) {
-            features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.diveTask(dive), popupHTML: d_description}))
+            features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.diveTask(dive)}))
         }
     }
 

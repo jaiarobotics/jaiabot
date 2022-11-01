@@ -116,14 +116,14 @@ export function diveTask(dive) {
 export function driftTask(drift) {
 
     // Icon color
-    const color = 'white'
+    const color = '#D07103'
 
     return new Style({
         image: new Icon({
             src: driftTaskPacket,
-            anchor: [0.5, 1.0],
+            anchor: [0.5, 0.908],
             color: color,
-            scale: drift.estimated_drift.speed / 0.2,
+            scale: [1.0, drift.estimated_drift.speed / 0.20],
             rotateWithView: true,
             rotation: drift.estimated_drift.heading * Math.PI / 180.0,
         }),

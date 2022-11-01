@@ -26,17 +26,12 @@ export function createMarker(map, parameters) {
     }
 
     // If we received a popupHTML, then use it
-    var popupElement
     if (parameters.popupHTML != null) {
-        popupElement = document.createElement('div')
+        var popupElement = document.createElement('div')
         popupElement.classList = "popup"
         popupElement.innerHTML = parameters.popupHTML
+        Popup.addPopup(map, markerFeature, popupElement)
     }
-    else {
-        popupElement = Template.get('markerPopup', parameters)
-    }
-
-    Popup.addPopup(map, markerFeature, popupElement)
 
     return markerFeature
 }
