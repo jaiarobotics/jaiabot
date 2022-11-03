@@ -10,7 +10,6 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import * as Icons from '../icons/Icons'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
@@ -123,8 +122,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 
-// import cmdIconDefault from '../icons/other_commands/default.png';
-
 import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
@@ -150,10 +147,6 @@ import { transform } from 'ol/proj';
 import homeIcon from '../icons/rally-point-red.svg'
 import rallyPointIcon from '../icons/rally-point-green.svg'
 import missionOrientationIcon from '../icons/compass.svg'
-import startIcon from '../icons/start.svg'
-import stopIcon from '../icons/stop.svg'
-import waypointIcon from '../icons/waypoint.svg'
-import rcMode from '../icons/controller.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
 
@@ -1945,7 +1938,6 @@ export default class CommandControl extends React.Component {
 			}
 
 			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
-			botFeature.set('remoteControlled', true)
 
 			botLayer.getSource().clear();
 			botLayer.getSource().addFeature(botFeature);
