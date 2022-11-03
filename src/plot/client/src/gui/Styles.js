@@ -12,6 +12,12 @@ import taskDrift from './taskDrift.svg'
 import taskNone from './taskNone.svg'
 import taskStationKeep from './taskStationKeep.svg'
 
+// Colors
+const defaultColor = 'white'
+const defaultPathColor = 'black'
+const activeGoalColor = 'chartreause'
+const selectedColor = 'turquoise'
+
 export const startMarker = new Style({
     image: new Icon({
         src: start,
@@ -26,7 +32,7 @@ export const endMarker = new Style({
     })
 })
 
-export function botMarker(text, heading) {
+export function botMarker(text, heading, isSelected) {
     const headingRadians = heading * Math.PI / 180
     const dx = Math.sin(-headingRadians)
     const dy = Math.cos(headingRadians)
@@ -35,6 +41,7 @@ export function botMarker(text, heading) {
     return new Style({
         image: new Icon({
             src: bot,
+            color: isSelected ? selectedColor : defaultColor,
             anchor: [0.5, 0.5],
             rotation: headingRadians,
             rotateWithView: true
@@ -53,7 +60,7 @@ export function botMarker(text, heading) {
 
 
 // Markers for the mission goals
-export function goal(goalIndex, goal, isActive) {
+export function goal(goalIndex, goal, isActive, isSelected) {
     const srcMap = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
@@ -66,7 +73,7 @@ export function goal(goalIndex, goal, isActive) {
     return new Style({
         image: new Icon({
             src: src,
-            color: isActive ? 'chartreuse' : '#eee',
+            color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
             anchor: [0.5, 1]
         }),
         text: new Text({
@@ -140,7 +147,7 @@ export function driftTask(drift) {
 
 // The mission path linestring
 export function missionPath(feature) {
-    const arrowColor = 'black'
+    const arrowColor = defaultPathColor
 
     const geometry = feature.getGeometry()
     const styles = [

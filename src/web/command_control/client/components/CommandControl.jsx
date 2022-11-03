@@ -1851,7 +1851,7 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading)
+			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading, this.isBotSelected(botId))
 
 			botFeature.setId(bot_id);
 
@@ -2708,7 +2708,7 @@ export default class CommandControl extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			let lineStyle, color
+			let lineStyle
 
 			let selected = this.isBotSelected(botId)
 
@@ -2717,7 +2717,7 @@ export default class CommandControl extends React.Component {
 			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
 
 			// Add our goals
-			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index)
+			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
 			features.push(...missionFeatures)
 		}
 
