@@ -1,5 +1,23 @@
+import { Feature } from 'ol'
+import { fromLonLat } from 'ol/proj.js'
 import { createMarker } from './Marker.js'
+import { LineString } from 'ol/geom'
 import * as Styles from "./Styles"
+
+
+function createDriftTaskFeature(map, drift) {
+    const projection = map.getView().getProjection()
+    const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
+    const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
+    const k = 120 / drift.drift_duration
+    const adjustedEnd = [start[0] + k * (end[0] - start[0]), start[1] + k * (end[1] - start[1])]
+
+    const coordinates = [start, adjustedEnd]
+    console.log(coordinates)
+    const feature = new Feature({geometry: new LineString(coordinates)})
+    feature.setStyle(Styles.driftArrow)
+    return feature
+}
 
 
 export function createTaskPacketFeatures(map, taskPacket) {
@@ -30,13 +48,7 @@ export function createTaskPacketFeatures(map, taskPacket) {
     const drift = taskPacket.drift
 
     if (drift != null && drift.drift_duration != 0) {
-
-        const d_start = to_array(drift.start_location)
-        const d_end = to_array(drift.end_location)
-
-        const d_hover = '<h3>Surface Drift</h3>Duration: ' + drift.drift_duration + ' s<br>Heading: ' + drift.estimated_drift.heading?.toFixed(2) + '°<br>Speed: ' + drift.estimated_drift.speed?.toFixed(2) + ' m/s'
-
-        features.push(createMarker(map, {title: 'Surface Drift', lon: drift.start_location.lon, lat: drift.start_location.lat, style: Styles.driftTask(drift)}))
+        features.push(createDriftTaskFeature(map, drift))
     }
 
     // Dive markers

@@ -17,6 +17,7 @@ const defaultColor = 'white'
 const defaultPathColor = 'black'
 const activeGoalColor = 'chartreause'
 const selectedColor = 'turquoise'
+const driftArrowColor = 'darkorange'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -177,6 +178,50 @@ export function missionPath(feature) {
                     color: arrowColor,
                 }),
                 zIndex: -1
+            })
+        );
+    });
+
+    return styles
+}
+
+// The drift task linestring
+export function driftArrow(feature) {
+    const color = driftArrowColor
+
+    const geometry = feature.getGeometry()
+    const styles = [
+        new Style({
+            stroke: new Stroke({
+                width: 6,
+                color: 'black'
+            })
+        }),
+        new Style({
+            stroke: new Stroke({
+                width: 4,
+                color: color
+            })
+        })
+    ]
+
+    geometry.forEachSegment(function (start, end) {
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+        const rotation = Math.atan2(dy, dx);
+
+        // arrows
+        styles.push(
+            new Style({
+                geometry: new Point(end),
+                image: new Icon({
+                    src: arrowHead,
+                    anchor: [0, 0.5],
+                    rotateWithView: true,
+                    rotation: -rotation,
+                    color: color,
+                }),
+                zIndex: 1
             })
         );
     });
