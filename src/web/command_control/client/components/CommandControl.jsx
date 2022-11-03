@@ -1909,7 +1909,8 @@ export default class CommandControl extends React.Component {
 				missionState: bot.missionState,
 				healthState: bot.healthState,
 				faultLevel: faultLevel,
-				isDisconnected: bot.isDisconnected
+				isDisconnected: bot.isDisconnected,
+				botId: botId
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1944,6 +1945,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
+			botFeature.set('remoteControlled', true)
 
 			botLayer.getSource().clear();
 			botLayer.getSource().addFeature(botFeature);

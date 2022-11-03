@@ -403,7 +403,8 @@ export default class JaiaMap {
                 })
                 if (point == null) continue;
 
-                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]], point[3])
+                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]])
+                botFeature.set('heading', point[3])
                 this.botVectorSource.addFeature(botFeature)
             }
 
@@ -445,7 +446,7 @@ export default class JaiaMap {
 
             const active_goal_index = active_goal?.active_goal
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, command, active_goal_index)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, command, active_goal_index, false)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     

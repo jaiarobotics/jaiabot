@@ -15,9 +15,11 @@ import taskStationKeep from './taskStationKeep.svg'
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'black'
-const activeGoalColor = 'chartreause'
+const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
+const disconnectedColor = 'red'
+const remoteControlledColor = 'mediumpurple'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -33,22 +35,37 @@ export const endMarker = new Style({
     })
 })
 
-export function botMarker(text, heading, isSelected) {
+export function botMarker(feature) {
+    const heading = feature.get('heading')
     const headingRadians = heading * Math.PI / 180
     const dx = Math.sin(-headingRadians)
     const dy = Math.cos(headingRadians)
     const r = 15
 
+    var color = defaultColor
+
+    if (feature.get('isDisconnected')) {
+        color = disconnectedColor
+    }
+    else if (feature.get('remoteControlled')) {
+        color = remoteControlledColor
+    }
+    else if (feature.get('selected')) {
+        color = selectedColor
+    }
+
+    const text = new String(feature.get('botId'))
+
     return new Style({
         image: new Icon({
             src: bot,
-            color: isSelected ? selectedColor : defaultColor,
+            color: color,
             anchor: [0.5, 0.5],
             rotation: headingRadians,
             rotateWithView: true
         }),
         text: new Text({
-            text: new String(text),
+            text: text,
             font: 'bold 13pt sans-serif',
             fill: new Fill({
                 color: 'black'
