@@ -364,9 +364,9 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                             <Icon path={mdiSkipNext} title="Next Task"/>
                         </Button>
 
-                        <Button className="button-jcc inactive" disabled>
+                        {/*<Button className="button-jcc inactive" disabled>
                             <Icon path={mdiPause} title="Pause Mission"/>
-                        </Button>
+                        </Button>*/}
 
                         <Button className={disableButton(commands.active, missionState).class + " button-jcc"} 
                                 disabled={disableButton(commands.active, missionState).isDisabled} 
