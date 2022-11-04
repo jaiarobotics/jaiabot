@@ -2708,7 +2708,7 @@ export default class CommandControl extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
+			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
 			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
