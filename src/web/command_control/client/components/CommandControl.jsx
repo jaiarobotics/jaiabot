@@ -10,7 +10,6 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import * as Icons from '../icons/Icons'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
@@ -88,6 +87,9 @@ import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
 import { deepcopy, areEqual } from './Utilities';
 
+import * as MissionFeatures from './gui/MissionFeatures'
+import { createBotFeature } from './gui/BotFeature'
+
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
 // import 'jquery-ui/themes/base/theme.css';
@@ -120,8 +122,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 
-// import cmdIconDefault from '../icons/other_commands/default.png';
-
 import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
@@ -147,10 +147,6 @@ import { transform } from 'ol/proj';
 import homeIcon from '../icons/rally-point-red.svg'
 import rallyPointIcon from '../icons/rally-point-green.svg'
 import missionOrientationIcon from '../icons/compass.svg'
-import startIcon from '../icons/start.svg'
-import stopIcon from '../icons/stop.svg'
-import waypointIcon from '../icons/waypoint.svg'
-import rcMode from '../icons/controller.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
 
@@ -533,6 +529,9 @@ export default class CommandControl extends React.Component {
 			loadTilesWhileInteracting: true,
 			moveTolerance: 20
 		});
+
+		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
+		taskData.map = map
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
@@ -993,7 +992,8 @@ export default class CommandControl extends React.Component {
 				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
-				taskData.getTaskPacketDiveBottomInfoLayer()
+				taskData.getTaskPacketDiveBottomInfoLayer(),
+				taskData.taskPacketInfoLayer
 			]
 		})
 
@@ -1808,7 +1808,7 @@ export default class CommandControl extends React.Component {
 			let hub = hubs[hubId];
 
 			// ID
-			const hub_id = hub.hubId
+			const hub_id = hub.hub_id
 			// Geometry
 			const hubLatitude = hub.location?.lat
 			const hubLongitude = hub.location?.lon
@@ -1832,7 +1832,7 @@ export default class CommandControl extends React.Component {
 			let bot = bots[botId]
 
 			// ID
-			const bot_id = bot.botId
+			const bot_id = bot.bot_id
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
@@ -1844,7 +1844,7 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = new OlFeature({});
+			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading, this.isBotSelected(botId))
 
 			botFeature.setId(bot_id);
 
@@ -1902,7 +1902,8 @@ export default class CommandControl extends React.Component {
 				missionState: bot.missionState,
 				healthState: bot.healthState,
 				faultLevel: faultLevel,
-				isDisconnected: bot.isDisconnected
+				isDisconnected: bot.isDisconnected,
+				botId: botId
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -2701,90 +2702,17 @@ export default class CommandControl extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			let lineStyle, color
+			let lineStyle
 
 			let selected = this.isBotSelected(botId)
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let transformed_pts = goals.map((goal) => {
-				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
-			})
-
 			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
 
 			// Add our goals
-			for (let [goal_index, goal] of goals.entries()) {
-				let pt = transformed_pts[goal_index]
-				const olPoint = new OlPoint(pt)
-
-				var waypointIconName
-
-				if (goal_index === 0) {
-					waypointIconName = "start"
-				}
-				else if (goal_index === goals.length - 1) {
-					waypointIconName = "stop"
-				}
-				else {
-					waypointIconName = "waypoint"
-				}
-
-				// Is this the bot's current target goal / waypoint?
-				const is_active = (goal_index == active_goal_index)
-
-				const waypointStyle = is_active ? "Active" : (selected ? "Selected" : "Unselected")
-
-				var style = new OlStyle({
-					image: new OlIcon({
-						src: Icons[waypointIconName + waypointStyle]
-					})
-				})
-
-				if (waypointIconName === "waypoint") {
-					let previous_pt = transformed_pts[goal_index - 1]
-					style.getImage().setRotation(Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0]))
-					style.getImage().setRotateWithView(true)
-				}
-
-				let waypointFeature = new OlFeature({ geometry: olPoint })
-				waypointFeature.setStyle(style)
-				waypointFeature.goal = missions[botId]?.plan?.goal?.[goal_index]
-				features.push(waypointFeature)
-
-				// Annotation feature (if present)
-				const annotationNames = { DIVE: "dive", SURFACE_DRIFT: "drift", STATION_KEEP: "stationkeep" }
-				const annotationName = annotationNames[goal.task?.type]
-
-				if (annotationName != null) {
-					const annotationFeature = new OlFeature({
-						geometry: olPoint
-					})
-					annotationFeature.setStyle(new OlStyle({
-						image: new OlIcon({
-							src: Icons[annotationName + waypointStyle]
-						})
-					}))
-
-					features.push(annotationFeature)
-				}
-
-			}
-
-			// Draw lines between waypoints
-			if (selected) {
-				lineStyle = selectedLineStyle
-				color = selectedColor
-			}
-			else {
-				lineStyle = defaultLineStyle
-				color = unselectedColor
-			}
-
-			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
-			lineStringFeature.setStyle(lineStyle)
-			features.push(lineStringFeature)
-
+			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
+			features.push(...missionFeatures)
 		}
 
 		// Add Home, if available
@@ -2989,12 +2917,11 @@ export default class CommandControl extends React.Component {
 			let selectedBotId = this.selectedBotId() ?? 0
 			
 			this.missions[selectedBotId] = this.missions['selectedBotId']
-			this.missions[selectedBotId].botId = selectedBotId
+			this.missions[selectedBotId].bot_id = selectedBotId
 			delete this.missions['selectedBotId']
 		}
 
 		this.updateMissionLayer()
-		console.log('Loaded mission: ', this.missions)
 	}
 
 	// Currently selected botId
@@ -3180,7 +3107,7 @@ export default class CommandControl extends React.Component {
 	generateMissions(surveyPolygonGeoCoords) {
 		let bot_list = [];
 		for (const bot in this.podStatus.bots) {
-			bot_list.push(this.podStatus.bots[bot]['botId'])
+			bot_list.push(this.podStatus.bots[bot]['bot_id'])
 		}
 
 		this.api.postMissionFilesCreate({
@@ -3220,9 +3147,9 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions"/>
 				</Button>
-				<Button id= "missionPause" className="button-jcc inactive" disabled>
+				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
 					<Icon path={mdiPause} title="Pause All Missions"/>
-				</Button>
+				</Button>*/}
 				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
@@ -3396,16 +3323,16 @@ export default class CommandControl extends React.Component {
 		let hubs = Object.values(this.podStatus?.hubs ?? {})
 		
 		function compare_by_hubId(hub1, hub2) {
-			return hub1.hubId - hub2.hubId
+			return hub1.hub_id - hub2.hub_id
 		}
 
 		function compare_by_botId(bot1, bot2) {
-			return bot1.botId - bot2.botId
+			return bot1.bot_id - bot2.bot_id
 		}
 
 		function bothub_to_div(bothub) {
-			let botId = bothub.botId
-			let hubId = bothub.hubId
+			let botId = bothub.bot_id
+			let hubId = bothub.hub_id
 			
 			if (botId != null) {
 				var key = 'bot-' + botId

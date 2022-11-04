@@ -30,4 +30,7 @@ message DeviceMetadata
 
     // no way yet to get this information, but will keep this as a placeholder
     optional string ivp_version = 5;
+
+    optional string xbee_node_id = 6;
+    optional string xbee_serial_number = 7; 
 }

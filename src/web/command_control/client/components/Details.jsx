@@ -329,6 +329,10 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>
                                 </tr>
+                                <tr>
+                                    <td>Battery Percentage</td>
+                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                </tr>
                             </tbody>
                         </table>
                     </AccordionDetails>
@@ -360,9 +364,9 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                             <Icon path={mdiSkipNext} title="Next Task"/>
                         </Button>
 
-                        <Button className="button-jcc inactive" disabled>
+                        {/*<Button className="button-jcc inactive" disabled>
                             <Icon path={mdiPause} title="Pause Mission"/>
-                        </Button>
+                        </Button>*/}
 
                         <Button className={disableButton(commands.active, missionState).class + " button-jcc"} 
                                 disabled={disableButton(commands.active, missionState).isDisabled} 
@@ -536,6 +540,10 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                     <AccordionDetails>
                         <table>
                             <tbody>
+                                <tr>
+                                    <td>Battery Percentage</td>
+                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                </tr>
                                 <tr>
                                     <td>Vcc Voltage</td>
                                     <td>{bot.vccVoltage?.toFixed(prec)} V</td>

@@ -1,3 +1,5 @@
+// Gets the template with id, and inserts innerHTML into all of its children using mappings, 
+// with the keys being id's, and the values being the innerHTML to insert
 export function get(id, mappings) {
     const template = document.querySelector('template')
     var div = template.content.querySelector('#' + id).cloneNode(true)
