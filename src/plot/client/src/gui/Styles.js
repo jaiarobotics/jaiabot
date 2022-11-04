@@ -40,7 +40,7 @@ export function botMarker(feature) {
     const headingRadians = heading * Math.PI / 180
     const dx = Math.sin(-headingRadians)
     const dy = Math.cos(headingRadians)
-    const r = 15
+    const r = 11
 
     var color = defaultColor
 
@@ -66,7 +66,7 @@ export function botMarker(feature) {
         }),
         text: new Text({
             text: text,
-            font: 'bold 13pt sans-serif',
+            font: 'bold 11pt sans-serif',
             fill: new Fill({
                 color: 'black'
             }),
