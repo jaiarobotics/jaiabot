@@ -3147,9 +3147,9 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions"/>
 				</Button>
-				<Button id= "missionPause" className="button-jcc inactive" disabled>
+				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
 					<Icon path={mdiPause} title="Pause All Missions"/>
-				</Button>
+				</Button>*/}
 				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
