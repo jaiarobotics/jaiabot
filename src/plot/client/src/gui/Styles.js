@@ -14,7 +14,7 @@ import taskStationKeep from './taskStationKeep.svg'
 
 // Colors
 const defaultColor = 'white'
-const defaultPathColor = 'black'
+const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
@@ -165,14 +165,21 @@ export function driftTask(drift) {
 
 // The mission path linestring
 export function missionPath(feature) {
-    const arrowColor = defaultPathColor
+    const pathColor = defaultPathColor
 
     const geometry = feature.getGeometry()
+
     const styles = [
         new Style({
             stroke: new Stroke({
+                width: 4,
+                color: 'black'
+            })
+        }),
+        new Style({
+            stroke: new Stroke({
                 width: 2,
-                color: arrowColor
+                color: pathColor
             })
         })
     ]
@@ -192,9 +199,9 @@ export function missionPath(feature) {
                     anchor: [1, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
-                    color: arrowColor,
+                    color: pathColor,
                 }),
-                zIndex: -1
+                zIndex: 1
             })
         );
     });
