@@ -185,10 +185,11 @@ def taskPacketsToContours(taskPackets):
     meshPoints = []
     for taskPacket in taskPackets:
         if 'dive' in taskPacket:
-            dive_packet = taskPacket['dive']
-            meshPoints.append([dive_packet['start_location']['lon'], dive_packet['start_location']['lat'], dive_packet['depth_achieved']])
+            dive = taskPacket['dive']
+            if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
+                meshPoints.append([dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']])
 
-    return getContourSegmentsForMeshPoints(meshPoints)
+    return getContourGeoJSON(meshPoints)
 
 
 if __name__ == '__main__':

@@ -158,6 +158,11 @@ class LogApp extends React.Component {
           this.map.updateWithTaskPackets(task_packets)
         })
 
+        // Get the depth contours
+        LogApi.get_depth_contours(this.state.chosen_logs).then((geoJSON) => {
+          this.map.updateWithDepthContourGeoJSON(geoJSON)
+        })
+
       }
       else {
         this.map.clear()

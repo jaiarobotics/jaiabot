@@ -20,7 +20,7 @@ import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
 import { createBotFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-
+import {geoJSONToDepthContourFeatures} from './gui/Contours'
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -156,7 +156,8 @@ export default class JaiaMap {
                     this.createBotPathLayer(),
                     this.createBotLayer(),
                     this.createMissionLayer(),
-                    this.createTaskPacketLayer()
+                    this.createTaskPacketLayer(),
+                    this.createDepthContourLayer()
                 ],
                 view: view,
                 controls: []
@@ -248,6 +249,16 @@ export default class JaiaMap {
                 title: 'Task Packets',
                 source: this.taskPacketVectorSource,
                 zIndex: 12
+            })
+        }
+
+        createDepthContourLayer() {
+            this.depthContourVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Depth Contours',
+                source: this.depthContourVectorSource,
+                zIndex: 13
             })
         }
     
@@ -368,6 +379,11 @@ export default class JaiaMap {
             this.updateMissionLayer(timestamp_micros)
         }
 
+        updateWithDepthContourGeoJSON(depthContourGeoJSON) {
+            this.depthContourFeatures = geoJSONToDepthContourFeatures(this.openlayersMap.getView().getProjection(), depthContourGeoJSON)
+            this.updateDepthContours()
+        }
+
         clear() {
             this.path_point_arrays = []
             this.command_dict = {}
@@ -461,6 +477,12 @@ export default class JaiaMap {
 
                 this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
             }
+        }
+
+        updateDepthContours() {
+            this.depthContourVectorSource.clear()
+
+            this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
         }
 
     }
