@@ -21,6 +21,7 @@ import { createMissionFeatures } from './gui/MissionFeatures'
 import { createBotFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
+import SourceXYZ from 'ol/source/XYZ'
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -194,6 +195,13 @@ export default class JaiaMap {
             return new LayerGroup({
                 title: 'Base Maps',
                 layers: [
+                    new TileLayer({
+                        title: 'Google Satellite & Roads',
+                        type: 'base',
+                        zIndex: 1,
+                        source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+                        wrapX: false
+                    }),
                     new TileLayer({
                         title: 'OpenStreetMap',
                         type: 'base',
