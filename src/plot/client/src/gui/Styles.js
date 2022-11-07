@@ -92,7 +92,7 @@ export function goal(goalIndex, goal, isActive, isSelected) {
         image: new Icon({
             src: src,
             color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
-            anchor: [0.5, 1]
+            anchor: [0.5, 1],
         }),
         text: new Text({
             text: new String(goalIndex),
@@ -100,8 +100,9 @@ export function goal(goalIndex, goal, isActive, isSelected) {
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: -15
-        })
+            offsetY: -15,
+        }),
+        zIndex: 2
     })
 }
 
@@ -196,7 +197,7 @@ export function missionPath(feature) {
                 geometry: new Point(midpoint),
                 image: new Icon({
                     src: arrowHead,
-                    anchor: [1, 0.5],
+                    anchor: [0.5, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
                     color: pathColor,
