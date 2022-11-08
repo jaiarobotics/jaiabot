@@ -33,3 +33,11 @@ export function addPopup(map, feature, popupElement) {
     });
 
 }
+
+export function addPopupHTML(map, feature, popupHTML) {
+    var popupElement = document.createElement('div')
+    popupElement.classList = "popup"
+    popupElement.innerHTML = popupHTML
+
+    addPopup(map, feature, popupElement)
+}
