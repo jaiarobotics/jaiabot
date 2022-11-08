@@ -18,7 +18,7 @@ import * as Popup from './gui/Popup'
 import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
-import { createBotFeature } from './gui/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
@@ -156,9 +156,10 @@ export default class JaiaMap {
                     this.createOpenlayersTileLayerGroup(),
                     this.createBotPathLayer(),
                     this.createBotLayer(),
+                    this.createCourseOverGroundLayer(),
                     this.createMissionLayer(),
                     this.createTaskPacketLayer(),
-                    this.createDepthContourLayer()
+                    this.createDepthContourLayer(),
                 ],
                 view: view,
                 controls: []
@@ -227,6 +228,16 @@ export default class JaiaMap {
                 title: 'Bot Path',
                 source: this.botPathVectorSource,
                 zIndex: 10
+            })
+        }
+
+        createCourseOverGroundLayer() {
+            this.courseOverGroundSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Course Over Ground',
+                source: this.courseOverGroundSource,
+                zIndex: 11
             })
         }
 
@@ -413,12 +424,11 @@ export default class JaiaMap {
         updateBotMarkers(timestamp_micros) {
             // OpenLayers
             this.botVectorSource.clear()
+            this.courseOverGroundSource.clear()
 
             if (timestamp_micros == null) {
                 return
             }
-
-            console.log(this.path_point_arrays)
 
             for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
 
@@ -427,9 +437,19 @@ export default class JaiaMap {
                 })
                 if (point == null) continue;
 
-                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]])
-                botFeature.set('heading', point[3])
+                const properties = {
+                    map: this.openlayersMap,
+                    botId: botId,
+                    lonLat: [point[2], point[1]],
+                    heading: point[3],
+                    courseOverGround: point[4]
+                }
+
+                const botFeature = createBotFeature(properties)
+                const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
+
                 this.botVectorSource.addFeature(botFeature)
+                this.courseOverGroundSource.addFeature(courseOverGroundArrow)
             }
 
         }

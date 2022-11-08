@@ -1,12 +1,13 @@
 import Stroke from 'ol/style/Stroke';
 import { Fill, Icon, Style, Text} from 'ol/style';
-import { Point } from 'ol/geom';
+import { LineString, Point } from 'ol/geom';
 import arrowHead from './arrowHead.svg'
 import bottomStrike from './bottomStrike.svg'
 import driftTaskPacket from './driftTaskPacket.svg'
 import end from './end.svg'
 import start from './start.svg'
 import bot from './bot.svg'
+import botCourseOverGround from './botCourseOverGround.svg'
 import taskDive from './taskDive.svg'
 import taskDrift from './taskDrift.svg'
 import taskNone from './taskNone.svg'
@@ -35,12 +36,19 @@ export const endMarker = new Style({
     })
 })
 
+const DEG = Math.PI / 180
+
 export function botMarker(feature) {
-    const heading = feature.get('heading')
-    const headingRadians = heading * Math.PI / 180
-    const dx = Math.sin(-headingRadians)
-    const dy = Math.cos(headingRadians)
-    const r = 11
+    const centerPosition = feature.getGeometry().getCoordinates()
+
+    function angleToXY(angle) {
+        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
+    }
+
+    const heading = feature.get('heading') * DEG
+    const headingDelta = angleToXY(heading)
+
+    const textOffsetRadius = 11
 
     var color = defaultColor
 
@@ -56,22 +64,41 @@ export function botMarker(feature) {
 
     const text = new String(feature.get('botId'))
 
+    return [ 
+        // Bot body marker
+        new Style({
+            image: new Icon({
+                src: bot,
+                color: color,
+                anchor: [0.5, 0.5],
+                rotation: heading,
+                rotateWithView: true
+            }),
+            text: new Text({
+                text: text,
+                font: 'bold 11pt sans-serif',
+                fill: new Fill({
+                    color: 'black'
+                }),
+                offsetX: -textOffsetRadius * headingDelta.x,
+                offsetY: -textOffsetRadius * headingDelta.y
+            })
+        })
+    ]
+}
+
+
+export function courseOverGroundArrow(feature) {
+    const courseOverGround = feature.get('courseOverGround') * DEG
+    const color = 'tomato'
+
     return new Style({
         image: new Icon({
-            src: bot,
+            src: botCourseOverGround,
             color: color,
-            anchor: [0.5, 0.5],
-            rotation: headingRadians,
+            anchor: [0.5, 1.0],
+            rotation: courseOverGround,
             rotateWithView: true
-        }),
-        text: new Text({
-            text: text,
-            font: 'bold 11pt sans-serif',
-            fill: new Fill({
-                color: 'black'
-            }),
-            offsetX: r * dx,
-            offsetY: r * dy
         })
     })
 }

@@ -1844,7 +1844,13 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading, this.isBotSelected(botId))
+			const botFeature = createBotFeature({
+				map: map,
+				botId: botId,
+				lonLat: [botLongitude, botLatitude],
+				heading: botHeading,
+				courseOverGround: bot.attitude?.course_over_ground
+			})
 
 			botFeature.setId(bot_id);
 

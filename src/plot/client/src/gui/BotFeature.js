@@ -4,16 +4,31 @@ import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 
 
-export function createBotFeature(map, botId, lonLat) {
+export function createBotFeature(properties) {
     var features = []
-    const projection = map.getView().getProjection()
+    const projection = properties.map.getView().getProjection()
 
     const feature = new Feature({
-        name: botId,
-        geometry: new Point(fromLonLat(lonLat, projection))
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
-    feature.set('botId', botId)
+    feature.setProperties(properties)
     feature.setStyle(Styles.botMarker)
+
+    return feature
+}
+
+
+export function createBotCourseOverGroundFeature(properties) {
+    var features = []
+    const projection = properties.map.getView().getProjection()
+
+    const feature = new Feature({
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection))
+    })
+    feature.setProperties(properties)
+    feature.setStyle(Styles.courseOverGroundArrow)
 
     return feature
 }
