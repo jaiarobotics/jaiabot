@@ -10,6 +10,10 @@ import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
 
+
+const APP_NAME = "Data Vision"
+
+
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
   return Date.parse(iso_date_string) * 1e3
@@ -54,7 +58,7 @@ class LogApp extends React.Component {
             display: "inline-block", verticalAlign: "text-bottom",
                 margin: "10pt"
           }
-        }>Logs</h2>
+        }>{APP_NAME}</h2>
             </div>
         </div>
 

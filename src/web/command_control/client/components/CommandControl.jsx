@@ -1838,7 +1838,7 @@ export default class CommandControl extends React.Component {
 			const botLongitude = bot.location?.lon
 			// Properties
 			const botHeading = bot.attitude?.heading
-			const botSpeed = bot.speed?.overGround
+			const botSpeed = bot.speed?.over_ground
 			const botTimestamp = new Date(null)
 			botTimestamp.setSeconds(bot.time / 1e6)
 
@@ -1854,7 +1854,7 @@ export default class CommandControl extends React.Component {
 
 			let faultLevel = 0
 
-			switch(bot.healthState) {
+			switch(bot.health_state) {
 				case "HEALTH__OK":
 					faultLevel = 0
 					faultLevel0Count ++
@@ -1899,8 +1899,8 @@ export default class CommandControl extends React.Component {
 				speed: botSpeed,
 				lastUpdated: parseFloat(bot.time),
 				lastUpdatedString: botTimestamp.toISOString(),
-				missionState: bot.missionState,
-				healthState: bot.healthState,
+				missionState: bot.mission_state,
+				healthState: bot.health_state,
 				faultLevel: faultLevel,
 				isDisconnected: bot.isDisconnected,
 				botId: botId
@@ -1937,7 +1937,7 @@ export default class CommandControl extends React.Component {
 				botFeature.set('tracked', true);
 			}
 
-			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
+			botFeature.set('remoteControlled', bot.mission_state?.includes('REMOTE_CONTROL') || false)
 
 			botLayer.getSource().clear();
 			botLayer.getSource().addFeature(botFeature);
@@ -2708,7 +2708,7 @@ export default class CommandControl extends React.Component {
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
+			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
 			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
@@ -3367,7 +3367,7 @@ export default class CommandControl extends React.Component {
 				'HEALTH__OK': 0,
 				'HEALTH__DEGRADED': 1,
 				'HEALTH__FAILED': 2
-			}[bothub.healthState] ?? 0
+			}[bothub.health_state] ?? 0
 
 			let faultLevelClass = 'faultLevel' + faultLevel
 			let selected = self.isBotSelected(botId) ? 'selected' : ''

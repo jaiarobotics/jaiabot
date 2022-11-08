@@ -11,7 +11,7 @@ import jaialogs
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabotplot interface")
+parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
 parser.add_argument("-d", dest="directory", type=str, default="/var/log/jaiabot/bot_offload", help="Path to find the goby / h5 files")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 args = parser.parse_args()
@@ -127,4 +127,4 @@ def getMOOSMessages():
 
 if __name__ == '__main__':
     logging.warning(f'Serving on port {args.port}')
-    app.run(host='0.0.0.0', port=args.port, debug=False)
+    app.run(host='0.0.0.0', port=args.port, debug=True)

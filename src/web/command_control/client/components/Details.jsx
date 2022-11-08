@@ -92,10 +92,10 @@ let commands = {
     }
 }
 
-function issueCommand(api, botId, command) {
+function issueCommand(api, bot_id, command) {
     if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
         let c = {
-            botId: botId,
+            bot_id: bot_id,
             type: command.enumString
         }
 
@@ -104,10 +104,10 @@ function issueCommand(api, botId, command) {
     }
 }
 
-function issueMissionCommand(api, bot_mission, botId) {
+function issueMissionCommand(api, bot_mission, bot_id) {
 
     if (bot_mission != ""
-            && confirm("Are you sure you'd like to run mission for bot: " + botId + "?")) {
+            && confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
         // Set the speed values
         let speeds = Settings.read('mission.plan.speeds')
         if (speeds != null && bot_mission.plan != null) {
@@ -126,8 +126,8 @@ function issueMissionCommand(api, bot_mission, botId) {
 }
 
 function runRCMode(bot) {
-    let botId = bot.botId;
-    if (botId == null) {
+    let bot_id = bot.bot_id;
+    if (bot_id == null) {
         warning("No bots selected")
         return ""
     }
@@ -144,24 +144,24 @@ function runRCMode(bot) {
         datum_location = {lat: 0, lon: 0}
     }
 
-    return Missions.RCMode(botId, datum_location)[botId];
+    return Missions.RCMode(bot_id, datum_location)[bot_id];
 }
 
 // Check if there is a mission to run
-function runMission(botId, missions) {
+function runMission(bot_id, missions) {
     console.log(missions);
-    if (missions[botId]) {
-        info('Submitted mission for bot: ' + botId);
-        return missions[botId];
+    if (missions[bot_id]) {
+        info('Submitted mission for bot: ' + bot_id);
+        return missions[bot_id];
     }
     else {
-        error('No mission set for bot ' + botId);
+        error('No mission set for bot ' + bot_id);
         return "";
     }
 }
 
 // Check mission state for disabling button
-function disableButton(command, missionState)
+function disableButton(command, mission_state)
 {
     let disable = false;
     let statesAvailable = command.statesAvailable
@@ -170,14 +170,14 @@ function disableButton(command, missionState)
             && statesAvailable != undefined) {
 
         for (let stateAvailable of statesAvailable) {
-            if (!stateAvailable.test(missionState)) disable = true; break;
+            if (!stateAvailable.test(mission_state)) disable = true; break;
         }
     }
 
     if (statesNotAvailable != null
         || statesNotAvailable != undefined) {
         for (let stateNotAvailable of statesNotAvailable) {
-            if (stateNotAvailable.test(missionState)) disable = true; break;
+            if (stateNotAvailable.test(mission_state)) disable = true; break;
         }
     }
 
@@ -195,9 +195,9 @@ function healthRow(bot, allInfo) {
         "HEALTH__OK": "healthOK",
         "HEALTH__DEGRADED": "healthDegraded",
         "HEALTH__FAILED": "healthFailed"
-    }[bot.healthState] ?? "healthOK"
+    }[bot.health_state] ?? "healthOK"
 
-    let healthStateElement = <div className={healthClassName}>{bot.healthState}</div>
+    let healthStateElement = <div className={healthClassName}>{bot.health_state}</div>
 
     let errors = bot.error ?? []
     let errorElements = errors.map((error) => {
@@ -252,8 +252,8 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
     }
 
     // Active Goal
-    let activeGoal = bot.activeGoal ?? "N/A"
-    let distToGoal = bot.distanceToActiveGoal ?? "N/A"
+    let activeGoal = bot.active_goal ?? "N/A"
+    let distToGoal = bot.distance_to_active_goal ?? "N/A"
 
     if(activeGoal != "N/A"
         && distToGoal == "N/A")
@@ -284,13 +284,13 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(prec);
     }
 
-    let missionState = bot.missionState;
+    let mission_state = bot.mission_state;
 
     return (
         <div id='botDetailsBox'>
             <div id="botDetailsComponent">
                 <div className='HorizontalFlexbox'>
-                    <h2 className="name">{`Bot ${bot?.botId}`}</h2>
+                    <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
                 <Accordion defaultExpanded className="accordion">
@@ -315,7 +315,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                 </tr>
                                 <tr>
                                     <td>Mission State</td>
-                                    <td style={{whiteSpace: "pre-line"}}>{bot.missionState?.replaceAll('__', '\n')}</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n')}</td>
                                 </tr>
                                 <tr>
                                     <td>Active Goal</td>
@@ -327,11 +327,11 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                 </tr>
                                 <tr>
                                     <td>Vcc Voltage</td>
-                                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
+                                    <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
                                 </tr>
                                 <tr>
                                     <td>Battery Percentage</td>
-                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                    <td>{bot.battery_percent?.toFixed(prec)} %</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -346,21 +346,21 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.stop, missionState).class + " button-jcc stopMission"} 
-                                disabled={disableButton(commands.stop, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.stop) }}>
+                        <Button className={disableButton(commands.stop, mission_state).class + " button-jcc stopMission"} 
+                                disabled={disableButton(commands.stop, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title="Stop Mission"/>
                         </Button>
 
-                        <Button className={disableButton(commands.play, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.play, missionState).isDisabled} 
-                                onClick={() => { issueMissionCommand(api, runMission(bot.botId, missions), bot.botId) }}>
+                        <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.play, mission_state).isDisabled} 
+                                onClick={() => { issueMissionCommand(api, runMission(bot.bot_id, missions), bot.bot_id) }}>
                             <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
 
-                        <Button className={disableButton(commands.nextTask, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.nextTask, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.nextTask) }}>
+                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
                             <Icon path={mdiSkipNext} title="Next Task"/>
                         </Button>
 
@@ -368,38 +368,38 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                             <Icon path={mdiPause} title="Pause Mission"/>
                         </Button>*/}
 
-                        <Button className={disableButton(commands.active, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.active, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.active) }}>
+                        <Button className={disableButton(commands.active, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.active, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.active) }}>
                             <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
                         </Button>
 
-                        <Button className={disableButton(commands.rcMode, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.rcMode, missionState).isDisabled}  
-                                onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.botId) }}>
+                        <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
+                                onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
                             <img src={rcMode} alt="Activate RC Mode"></img>
                         </Button>
 
-                        <Button className={disableButton(commands.recover, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.recover, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.recover) }}>
+                        <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.recover, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
                             <Icon path={mdiDownload} title="Recover"/>
                         </Button>
                         
-                        <Button className={disableButton(commands.shutdown, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.shutdown, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.shutdown) }}>
+                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
                         
-                        <Button className={disableButton(commands.reboot, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.reboot, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.reboot) }}>
+                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.reboot, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
                         </Button>
-                        <Button className={disableButton(commands.restartServices, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.restartServices, missionState).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.botId, commands.restartServices) }}>
+                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
                     </AccordionDetails>
@@ -449,11 +449,11 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                 </tr>
                                 <tr>
                                     <td>Ground Speed</td>
-                                    <td>{bot.speed?.overGround?.toFixed(prec)} m/s</td>
+                                    <td>{bot.speed?.over_ground?.toFixed(prec)} m/s</td>
                                 </tr>
                                 <tr>
                                     <td>Course Over Ground</td>
-                                    <td>{bot.attitude?.courseOverGround?.toFixed(prec)}</td>
+                                    <td>{bot.attitude?.course_over_ground?.toFixed(prec)}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -484,19 +484,19 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                 </tr> */}
                                 <tr>
                                     <td>Sys_Cal</td>
-                                    <td>{bot.calibrationStatus?.sys.toFixed(0)}</td>
+                                    <td>{bot.calibration_status?.sys.toFixed(0)}</td>
                                 </tr>
                                 <tr>
                                     <td>Gyro_Cal</td>
-                                    <td>{bot.calibrationStatus?.gyro.toFixed(0)}</td>
+                                    <td>{bot.calibration_status?.gyro.toFixed(0)}</td>
                                 </tr>
                                 <tr>
                                     <td>Accel_Cal</td>
-                                    <td>{bot.calibrationStatus?.accel.toFixed(0)}</td>
+                                    <td>{bot.calibration_status?.accel.toFixed(0)}</td>
                                 </tr>
                                 <tr>
                                     <td>Mag_Cal</td>
-                                    <td>{bot.calibrationStatus?.mag.toFixed(0)}</td>
+                                    <td>{bot.calibration_status?.mag.toFixed(0)}</td>
                                 </tr>
                             </tbody>
                         </table>              
@@ -542,11 +542,11 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                             <tbody>
                                 <tr>
                                     <td>Battery Percentage</td>
-                                    <td>{bot.batteryPercent?.toFixed(prec)} %</td>
+                                    <td>{bot.battery_percent?.toFixed(prec)} %</td>
                                 </tr>
                                 <tr>
                                     <td>Vcc Voltage</td>
-                                    <td>{bot.vccVoltage?.toFixed(prec)} V</td>
+                                    <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
                                 </tr>
                                 <tr>
                                     <td>Vcc Current</td>
@@ -580,7 +580,7 @@ export function HubDetailsComponent(hub, api, closeWindow) {
         statusAgeClassName = 'healthDegraded'
     }
 
-    let missionState = hub.missionState;
+    let mission_state = hub.mission_state;
 
     return (
         <div id='botDetailsBox'>
@@ -628,18 +628,18 @@ export function HubDetailsComponent(hub, api, closeWindow) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.shutdown, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.shutdown, missionState).isDisabled} 
+                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
-                        <Button className={disableButton(commands.reboot, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.reboot, missionState).isDisabled} 
+                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.reboot, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
                         </Button>
-                        <Button className={disableButton(commands.restartServices, missionState).class + " button-jcc"} 
-                                disabled={disableButton(commands.restartServices, missionState).isDisabled} 
+                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                                disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
