@@ -21,6 +21,7 @@
     "@mdi/js": "^7.0.96",
     "@mdi/react": "^1.6.1",
     "@mui/material": "^5.10.13",
+    "@mui/icons-material": "^5.10.9",
     "es6-promise": "^4.2.8",
     "isomorphic-fetch": "^3.0.0",
     "jquery": "^3.6.0",
