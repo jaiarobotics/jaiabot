@@ -19,12 +19,13 @@ export default class MissionSpeedSettingsPanel extends React.Component {
 
         this.state = {
             go_over_max_value: false,
-            max_speed_value: 3 
+            safe_speed_watch: 3,
+            speeds: {
+                transit: this.speeds.transit,
+                stationkeep_outer: this.speeds.stationkeep_outer
+            },
+            speed_max: 3 
         }
-    }
-
-    valuetext(value) {
-        return `${value}`;
     }
 
     render() {
@@ -40,35 +41,44 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                 </Typography>        
                             </td>
                             <td>
-                                {/****** Changing the max value will result in bot hardware failure ****** 
+                                {/****** Changing the max value may result in bot hardware failure ****** 
                                   ****** Please do not increase the max value unless you know the   ****** 
                                   ****** consequences                                               ******/}
                                 <Slider
                                     sx={{ width: 175, backgroundColor: 'white', color: 'black'}}
                                     aria-label="Transit"
-                                    key={`slider-${this.speeds.transit}`} 
                                     defaultValue={this.speeds.transit}
-                                    getAriaValueText={this.valuetext}
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
                                     min={0}
-                                    max={3}
-                                    onChange={(evt) => 
-                                    { 
-                                        if(evt.target.value <= this.state.max_speed_value || this.state.go_over_max_value)
+                                    max={this.state.speed_max}
+                                    onChange={
+                                        (evt) => 
                                         {
-                                            this.speeds.transit = evt.target.value; Settings.write(SPEED_SETTING_KEY, this.speeds) 
-                                        } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This could result in hardware failure)"))
-                                        {
-                                            this.setState({ go_over_max_value: true });
+                                            this.state.speeds.transit = evt.target.value; 
+
+                                            if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
+                                            {
+                                                //console.log("Less than max: " + evt.target.value);
+                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            {
+                                                this.setState({ go_over_max_value: true });
+                                                //console.log("more than max: " + evt.target.value);
+                                            } else
+                                            {
+                                                this.state.speeds.transit = this.state.safe_speed_watch; 
+                                                //console.log("did not confirm: " + this.state.safe_speed_watch);
+                                            }
+
+                                            Settings.write(SPEED_SETTING_KEY, this.state.speeds)
                                         }
-                                    }}
+                                    }
                                 />
                             </td>
                             <td>
                                 <Typography sx={{ width: 50 }}>
-                                    {this.speeds.transit} m/s
+                                    {this.state.speeds.transit} m/s
                                 </Typography>
                             </td>
                         </tr>
@@ -79,35 +89,44 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                 </Typography>
                             </td>
                             <td>
-                                {/****** Changing the max value will result in bot hardware failure ****** 
+                                {/****** Changing the max value may result in bot hardware failure ****** 
                                   ****** Please do not increase the max value unless you know the   ****** 
                                   ****** consequences                                               ******/}
                                 <Slider
                                     sx={{ width: 175, backgroundColor: 'white', color: 'black'}}
                                     aria-label="Station Keep"
-                                    key={`slider-${this.speeds.stationkeep_outer}`}
                                     defaultValue={this.speeds.stationkeep_outer}
-                                    getAriaValueText={this.valuetext}
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
                                     min={0}
-                                    max={3}
-                                    onChange={(evt) => 
-                                    { 
-                                        if(evt.target.value <= this.state.max_speed_value || this.state.go_over_max_value)
-                                        {
-                                            this.speeds.stationkeep_outer = evt.target.value; Settings.write(SPEED_SETTING_KEY, this.speeds)
-                                        } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This could result in hardware failure)"))
-                                        {
-                                            this.setState({ go_over_max_value: true });
+                                    max={this.state.speed_max}
+                                    onChange={
+                                        (evt) => 
+                                        { 
+                                            this.state.speeds.stationkeep_outer = evt.target.value; 
+
+                                            if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
+                                            {
+                                                //console.log("Less than max: " + evt.target.value);
+                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            {
+                                                this.setState({ go_over_max_value: true });
+                                                //console.log("more than max: " + evt.target.value);
+                                            } else
+                                            {
+                                                this.state.speeds.stationkeep_outer = this.state.safe_speed_watch; 
+                                                //console.log("did not confirm: " + this.state.safe_speed_watch);
+                                            }
+
+                                            Settings.write(SPEED_SETTING_KEY, this.state.speeds)
                                         }
-                                    }}
+                                    }
                                 />
                             </td>
                             <td>
                                 <Typography sx={{ width: 50 }}>
-                                    {this.speeds.stationkeep_outer} m/s
+                                    {this.state.speeds.stationkeep_outer} m/s
                                 </Typography>
                             </td>  
                         </tr>
