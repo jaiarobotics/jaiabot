@@ -1,6 +1,7 @@
 import React from 'react'
 import { Settings } from './Settings.jsx'
 import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
 
 let SPEED_SETTING_KEY = 'mission.plan.speeds'
 
@@ -10,16 +11,16 @@ export default class MissionSpeedSettingsPanel extends React.Component {
         super(props)
 
         const SPEED_DEFAULTS = {
-            transit: 5.0,
-            stationkeep_outer: 2.0
-        }
-
-        this.state = {
-            go_over_max_value: false,
-            max_speed_value: 5
+            transit: 2.0,
+            stationkeep_outer: 1.5
         }
 
         this.speeds = Settings.read(SPEED_SETTING_KEY) ?? SPEED_DEFAULTS
+
+        this.state = {
+            go_over_max_value: false,
+            max_speed_value: 3 
+        }
     }
 
     valuetext(value) {
@@ -34,22 +35,25 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>
-                                Transit
+                                <Typography>
+                                    Transit
+                                </Typography>        
                             </td>
                             <td>
                                 {/****** Changing the max value will result in bot hardware failure ****** 
                                   ****** Please do not increase the max value unless you know the   ****** 
                                   ****** consequences                                               ******/}
                                 <Slider
-                                    sx={{ width: 200, backgroundColor: 'white', color: 'black'}}
+                                    sx={{ width: 175, backgroundColor: 'white', color: 'black'}}
                                     aria-label="Transit"
+                                    key={`slider-${this.speeds.transit}`} 
                                     defaultValue={this.speeds.transit}
                                     getAriaValueText={this.valuetext}
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
                                     min={0}
-                                    max={5}
+                                    max={3}
                                     onChange={(evt) => 
                                     { 
                                         if(evt.target.value <= this.state.max_speed_value || this.state.go_over_max_value)
@@ -62,25 +66,33 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     }}
                                 />
                             </td>
+                            <td>
+                                <Typography sx={{ width: 50 }}>
+                                    {this.speeds.transit} m/s
+                                </Typography>
+                            </td>
                         </tr>
                         <tr>
                             <td>
-                                Station Keep
+                                <Typography>
+                                    Station Keep
+                                </Typography>
                             </td>
                             <td>
                                 {/****** Changing the max value will result in bot hardware failure ****** 
                                   ****** Please do not increase the max value unless you know the   ****** 
                                   ****** consequences                                               ******/}
                                 <Slider
-                                    sx={{ width: 200, backgroundColor: 'white', color: 'black'}}
+                                    sx={{ width: 175, backgroundColor: 'white', color: 'black'}}
                                     aria-label="Station Keep"
+                                    key={`slider-${this.speeds.stationkeep_outer}`}
                                     defaultValue={this.speeds.stationkeep_outer}
                                     getAriaValueText={this.valuetext}
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
                                     min={0}
-                                    max={5}
+                                    max={3}
                                     onChange={(evt) => 
                                     { 
                                         if(evt.target.value <= this.state.max_speed_value || this.state.go_over_max_value)
@@ -93,6 +105,11 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     }}
                                 />
                             </td>
+                            <td>
+                                <Typography sx={{ width: 50 }}>
+                                    {this.speeds.stationkeep_outer} m/s
+                                </Typography>
+                            </td>  
                         </tr>
                     </tbody>
                 </table>

@@ -67,20 +67,22 @@ jaiabot::apps::BotPidControl::BotPidControl()
     glog.is_verbose() && glog << "BotPidControl starting" << std::endl;
     glog.is_verbose() && glog << "Config: " << app_config.ShortDebugString() << std::endl;
 
-    // Setup speed => rpm table
-    if (app_config.has_use_rpm_table_for_speed()) {
-        use_rpm_table_for_speed = app_config.use_rpm_table_for_speed();
+    // Setup speed => throttle table
+    if (app_config.has_use_throttle_table_for_speed())
+    {
+        use_throttle_table_for_speed = app_config.use_throttle_table_for_speed();
     }
 
-    if (use_rpm_table_for_speed)
+    if (use_throttle_table_for_speed)
     {
-        if (app_config.rpm_table_size() < 2)
-            glog.is_die() && glog << "Must define at least two entries in the 'rpm_table' when "
-                                    "using 'use_rpm_table_for_speed == true'"
-                                 << std::endl;
+        if (app_config.throttle_table_size() < 2)
+            glog.is_die() &&
+                glog << "Must define at least two entries in the 'throttle_table' when "
+                        "using 'use_throttle_table_for_speed == true'"
+                     << std::endl;
 
-        for (const auto& entry : app_config.rpm_table())
-            speed_to_rpm_.insert(std::make_pair(entry.speed(), entry.rpm()));
+        for (const auto& entry : app_config.throttle_table())
+            speed_to_throttle_.insert(std::make_pair(entry.speed(), entry.throttle()));
     }
 
     // Create our PID objects
@@ -246,9 +248,13 @@ void jaiabot::apps::BotPidControl::loop()
                     processed_target_speed = max(0.5f, processed_target_speed);
                 }
 
-                if (use_rpm_table_for_speed) {
-                    throttle = goby::util::linear_interpolate(processed_target_speed, speed_to_rpm_);
-                    glog.is_debug2() && glog << group("main") << "using rpm table, processed_target_speed = " << processed_target_speed << " throttle = " << throttle << std::endl;
+                if (use_throttle_table_for_speed)
+                {
+                    throttle =
+                        goby::util::linear_interpolate(processed_target_speed, speed_to_throttle_);
+                    glog.is_debug2() &&
+                        glog << group("main") << "using throttle table, processed_target_speed = "
+                             << processed_target_speed << " throttle = " << throttle << std::endl;
                 }
                 else {
                     // Compute new throttle value
