@@ -24,6 +24,7 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "jaiabot/messages/xbee_info.proto";
 
 package jaiabot.config;
 
@@ -35,4 +36,7 @@ message Metadata
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     // any specific configuration parameters for your application
+
+    // Xbee configuration
+    optional jaiabot.protobuf.XbeeInfo xbee = 10;
 }

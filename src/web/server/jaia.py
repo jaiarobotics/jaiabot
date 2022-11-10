@@ -32,13 +32,13 @@ def floatFrom(obj):
 
 
 class Interface:
-    # Dict from hubId => hubStatus
+    # Dict from hub_id => hubStatus
     hubs = {}
 
-    # Dict from botId => botStatus
+    # Dict from bot_id => botStatus
     bots = {}
 
-    # Dict from botId => engineeringStatus
+    # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
     # List of all TaskPackets received, with last known location of that bot
@@ -85,24 +85,24 @@ class Interface:
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
 
             if msg.HasField('bot_status'):
-                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status)
+                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status, preserving_proto_field_name=True)
 
                 # Set the time of last status to now
                 botStatus['lastStatusReceivedTime'] = now()
 
-                self.bots[botStatus['botId']] = botStatus
+                self.bots[botStatus['bot_id']] = botStatus
 
             if msg.HasField('engineering_status'):
-                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status)
-                self.bots_engineering[botEngineering['botId']] = botEngineering
+                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status, preserving_proto_field_name=True)
+                self.bots_engineering[botEngineering['bot_id']] = botEngineering
 
             if msg.HasField('hub_status'):
-                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status)
+                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status, preserving_proto_field_name=True)
 
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now()
 
-                self.hubs[hubStatus['hubId']] = hubStatus
+                self.hubs[hubStatus['hub_id']] = hubStatus
 
 
             if msg.HasField('task_packet'):
@@ -160,7 +160,7 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot['botId'],
+                'bot_id': bot['bot_id'],
                 'time': str(now()),
                 'type': 'STOP', 
             }
@@ -174,9 +174,37 @@ class Interface:
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot['botId'],
+                'bot_id': bot['bot_id'],
                 'time': str(now()),
                 'type': 'ACTIVATE' 
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
+    def post_all_recover(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'bot_id': bot['bot_id'],
+                'time': str(now()),
+                'type': 'RECOVERED' 
+            }
+            self.post_command(cmd)
+
+        return {'status': 'ok'}
+
+    def post_next_task_all(self):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'bot_id': bot['bot_id'],
+                'time': str(now()),
+                'type': 'NEXT_TASK'
             }
             self.post_command(cmd)
 
@@ -193,8 +221,8 @@ class Interface:
             # Add the time since last status
             bot['portalStatusAge'] = now() - bot['lastStatusReceivedTime']
 
-            if bot['botId'] in self.bots_engineering:
-                bot['engineering'] = self.bots_engineering[bot['botId']]
+            if bot['bot_id'] in self.bots_engineering:
+                bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
 
         status = {
@@ -219,7 +247,7 @@ class Interface:
         self.send_message_to_portal(msg)
 
     def process_task_packet(self, task_packet_message):
-        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
+        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message, preserving_proto_field_name=True)
         self.task_packets.append(task_packet)
 
     def get_task_packets(self):
@@ -233,6 +261,6 @@ class Interface:
         for task_packet in self.task_packets:
             if 'dive' in task_packet:
                 dive_packet = task_packet['dive']
-                mesh_points.append([dive_packet['startLocation']['lon'], dive_packet['startLocation']['lat'], dive_packet['depthAchieved']])
+                mesh_points.append([dive_packet['start_location']['lon'], dive_packet['start_location']['lat'], dive_packet['depth_achieved']])
 
         return contours.getContourGeoJSON(mesh_points)
