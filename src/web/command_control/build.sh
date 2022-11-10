@@ -49,9 +49,5 @@ fi
 
 echo "🟢 Building app package"
 
-pushd client/icons
-  make
-popd
-
 webpack --mode development --config ./webpack.config.js --output-path $output_path # --display errors-only
 echo "✅ Done"

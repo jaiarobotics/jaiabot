@@ -8,6 +8,21 @@
 
   </head>
 
+  <!-- Templates -->
+
+  <template>
+    
+    <div id="markerPopup" class="popup">
+      <h3 id="title"></h3>
+      <p id="time">Time: </p>
+      <p id="lon">Longitude: </p>
+      <p id="lat">Latitude: </p>
+    </div>
+
+  </template>
+
+<!-- Body -->
+
   <body id="body">
 
     <div class="maximized" id="root">
@@ -15,15 +30,15 @@
 
   </body>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<!-- jQuery -->
+
+  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
+
+<!-- Plotly -->
+
   <script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-  crossorigin=""/>
-  <!-- Make sure you put this AFTER Leaflet's CSS -->
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-    crossorigin=""></script>
+
+<!-- Bundle -->
 
   <script src="bundle.js"></script>
 

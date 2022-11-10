@@ -8,7 +8,11 @@ import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
-import Map from "./Map.js"
+import JaiaMap from "./JaiaMap.js"
+
+
+const APP_NAME = "Data Vision"
+
 
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
@@ -26,7 +30,10 @@ class LogApp extends React.Component {
       is_selecting_logs: false,
       chosen_logs : [],
       chosen_paths : [],
-      plots : []
+      plots : [],
+      layerSwitcherVisible: false,
+      plotNeedsRefresh: false,
+      mapNeedsRefresh: false
     }
   }
 
@@ -51,7 +58,7 @@ class LogApp extends React.Component {
             display: "inline-block", verticalAlign: "text-bottom",
                 margin: "10pt"
           }
-        }>Logs</h2>
+        }>{APP_NAME}</h2>
             </div>
         </div>
 
@@ -65,7 +72,7 @@ class LogApp extends React.Component {
         <PathSelector logs = {this.state.chosen_logs} key =
             {this.state.chosen_logs} on_select_path =
         {
-          this.path_was_selected.bind(this)
+          (path) => {this.didSelectPaths([path])}
         } />
 
           <div>
@@ -75,10 +82,8 @@ class LogApp extends React.Component {
 
         <LoadProfile did_select_plot_set =
         {
-          (paths) => {
-            LogApi.get_series(this.state.chosen_logs, paths)
-                .then(
-                    (series_array) => {this.setState({plots : series_array})})
+          (pathArray) => {
+            this.didSelectPaths(pathArray)
           }
         } />
 
@@ -107,11 +112,23 @@ class LogApp extends React.Component {
         <div className = "bottom_pane flexbox horizontal">
           { plotContainer }
 
-          <div className="map" id="map"></div>
+          <div id="mapPane">
+            <div className="openlayers-map" id="openlayers-map">
+            </div>
+            <div id="mapControls">
+              <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+              <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+            </div>
+          </div>
         </div>
         </div>
       </Router>
     )
+  }
+
+  togglerLayerSwitcher() {
+    var {layerSwitcherVisible} = this.state
+    this.setState({layerSwitcherVisible: !layerSwitcherVisible})
   }
 
   selectLogButtonPressed(evt) {
@@ -119,37 +136,44 @@ class LogApp extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.state.chosen_logs.length > 0) {
-      // Get map data
-      LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
-        this.map.setSeriesArray(seriesArray)
-      })
+    if (this.state.mapNeedsRefresh) {
+      if (this.state.chosen_logs.length > 0) {
+        // Get map data
+        LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+          this.map.setSeriesArray(seriesArray)
+        })
 
-      // Get the command dictionary (botId => [Command])
-      LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
-        this.map.updateWithCommands(command_dict)
-      })
+        // Get the command dictionary (botId => [Command])
+        LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
+          this.map.updateWithCommands(command_dict)
+        })
 
-      // Get the active_goals
-      LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
-        this.map.updateWithActiveGoal(active_goal_dict)
-      })
+        // Get the active_goals
+        LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
+          this.map.updateWithActiveGoal(active_goal_dict)
+        })
 
-      // Get the task packets
-      LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
-        this.map.updateWithTaskPackets(task_packets)
-      })
+        // Get the task packets
+        LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+          this.map.updateWithTaskPackets(task_packets)
+        })
 
+      }
+      else {
+        this.map.clear()
+      }
+
+      this.setState({mapNeedsRefresh: false})
     }
-    else {
-      this.map.clear()
+    
+    if (this.state.plotNeedsRefresh) {
+      this.refresh_plots()
     }
-    this.refresh_plots()
   }
 
   componentDidMount() {
     this.getElements()
-    this.map = new Map('map')
+    this.map = new JaiaMap('openlayers-map')
     this.update_log_dropdown()
   }
 
@@ -161,24 +185,25 @@ class LogApp extends React.Component {
   update_log_dropdown() {
     LogApi.get_logs().then(logs => {
       this.setState({logs})
+      // this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
     })
   }
 
   didSelectLogs(logs) {
     if (logs != null) {
-      this.setState({chosen_logs: logs })
+      this.setState({chosen_logs: logs, mapNeedsRefresh: true })
     }
 
     this.setState({is_selecting_logs: false})
   }
 
-  path_was_selected(path) {
-    LogApi.get_series(this.state.chosen_logs, [ path ])
+  didSelectPaths(pathArray) {
+    LogApi.get_series(this.state.chosen_logs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
                 this.state.plots 
-                this.setState({plots : plots.concat(series)})
+                this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
         .catch(err => {alert(err)})
@@ -270,6 +295,8 @@ class LogApp extends React.Component {
       self.map.timeRange = [t0, t1]
       self.map.updatePath()
     })
+
+    this.setState({plotNeedsRefresh: false})
   }
 
   open_moos_messages(time_range) {

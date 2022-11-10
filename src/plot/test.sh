@@ -6,7 +6,7 @@ function kill_server() {
     kill ${SERVER_PID}
 }
 
-server/jaiabot_plot.py -p 40011 -d /var/log/jaiabot/bot_offload/ &> jaiabot_plot.log &
+server/jaiabot_data_vision.py -p 40011 -d /var/log/jaiabot/bot_offload/ &> jaiabot_data_vision.log &
 SERVER_PID=$!
 echo Server pid = ${SERVER_PID}
 
