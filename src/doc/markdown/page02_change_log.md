@@ -2,6 +2,10 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.0.4
+
+* Fixed missing requirements file for web and plot applications.
+
 ### 1.0.3
 
 * Forgot to add Change log doc to release so users can follow changes easily
