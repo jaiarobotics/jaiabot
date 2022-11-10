@@ -7,7 +7,7 @@ import os
 
 template_files = [
     'jaiabot_log_converter.service.template',
-    'jaiabot_plot.service.template'
+    'jaiabot_data_vision.service.template'
 ]
 
 for template_file in template_files:
@@ -15,7 +15,7 @@ for template_file in template_files:
 
     # Substitution dictionary
     subst = {
-        'working_directory': '/opt/jaiabotplot/server',
+        'working_directory': '/opt/jaiabot_data_vision/server',
         'user': 'jaia'
     }
 

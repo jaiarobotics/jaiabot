@@ -5,6 +5,7 @@
 
 import React from 'react'
 import Settings from './Settings'
+import Button from '@mui/material/Button';
 
 export class GoalSettingsPanel extends React.Component {
 
@@ -55,7 +56,7 @@ export class GoalSettingsPanel extends React.Component {
                 { taskOptionsPanel }
 
                 <div className='HorizontalFlexbox'>
-                    <button onClick={this.closeClicked.bind(this)}>Close</button>
+                    <Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>
                 </div>
 
             </div>

@@ -34,7 +34,11 @@ class IMU:
     def setup(self):
         if not self.is_setup:
             self.i2c = board.I2C()
-            self.sensor = adafruit_bno055.BNO055_I2C(self.i2c)
+            try:
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x28)
+            except ValueError: # From I2CDevice if not on 0x28: ValueError("No I2C device at address: 0x%x" % self.device_address)
+                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x29)
+            
             self.sensor.mode = adafruit_bno055.NDOF_MODE
             self.is_setup = True
 

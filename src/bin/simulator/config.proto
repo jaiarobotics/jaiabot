@@ -93,7 +93,7 @@ message Simulator
     }];
     optional double salinity_stdev = 42;
 
-    optional ArduinoSimThread arduino = 60;
+    optional ArduinoSimThread arduino_config = 60;
 }
 
 message ArduinoSimThread
@@ -101,4 +101,9 @@ message ArduinoSimThread
     option (dccl.msg) = {
         unit_system: "si"
     };
+
+    optional int32 voltage_period = 1 [default = 1];
+    optional double voltage_step_decrease = 2 [default = 0.1];
+    optional double voltage_start = 3 [default = 24.0];
+    optional double reset_voltage_level = 4 [default = 15.0];
 }
