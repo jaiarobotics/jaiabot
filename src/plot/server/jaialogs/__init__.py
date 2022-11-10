@@ -298,17 +298,19 @@ def get_map(log_names):
 
     BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
     BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
+    BotStatus_heading_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/heading'
 
     seriesList = []
 
     for log in logs:
         lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
         lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
+        heading_series = Series(log=log, path=BotStatus_heading_path)
 
         thisSeries = []
 
         for i, lat in enumerate(lat_series.y_values):
-            thisSeries.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i]])
+            thisSeries.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i], heading_series.y_values[i]])
 
         seriesList.append(thisSeries)
 
