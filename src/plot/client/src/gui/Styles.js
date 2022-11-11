@@ -8,6 +8,7 @@ import end from './end.svg'
 import start from './start.svg'
 import bot from './bot.svg'
 import botCourseOverGround from './botCourseOverGround.svg'
+import botDesiredHeading from './botDesiredHeading.svg'
 import taskDive from './taskDive.svg'
 import taskDrift from './taskDrift.svg'
 import taskNone from './taskNone.svg'
@@ -90,7 +91,7 @@ export function botMarker(feature) {
 
 export function courseOverGroundArrow(feature) {
     const courseOverGround = feature.get('courseOverGround') * DEG
-    const color = 'tomato'
+    const color = 'green'
 
     return new Style({
         image: new Icon({
@@ -110,7 +111,7 @@ export function desiredHeadingArrow(feature) {
 
     return new Style({
         image: new Icon({
-            src: botCourseOverGround,
+            src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
             rotation: desiredHeading,
