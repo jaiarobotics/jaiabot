@@ -32,7 +32,7 @@ app = Flask(__name__)
 
 ####### Static files
 root = '../command_control/dist/client/'
-pid = '../engineering/'
+jed = '../jed/'
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path):
@@ -125,15 +125,15 @@ def update_mission_list():
     return JSONResponse([])
 
 
-######## PID control
+######## Jaiabot Engineer & Debug
 
-@app.route('/pid/<path>', methods=['GET'])
-def pidStaticFile(path):
-    return send_from_directory(pid, path)
+@app.route('/jed/<path>', methods=['GET'])
+def jedStaticFile(path):
+    return send_from_directory(jed, path)
 
-@app.route('/pid/', methods=['GET'])
-def pidRoot():
-    return pidStaticFile('index.html')
+@app.route('/jed/', methods=['GET'])
+def jedRoot():
+    return jedStaticFile('index.html')
 
 
 ######## Contour map
