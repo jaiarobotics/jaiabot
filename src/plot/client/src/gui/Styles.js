@@ -104,6 +104,22 @@ export function courseOverGroundArrow(feature) {
 }
 
 
+export function desiredHeadingArrow(feature) {
+    const desiredHeading = feature.get('desiredHeading') * DEG
+    const color = 'green'
+
+    return new Style({
+        image: new Icon({
+            src: botCourseOverGround,
+            color: color,
+            anchor: [0.5, 1.0],
+            rotation: desiredHeading,
+            rotateWithView: true
+        })
+    })
+}
+
+
 // Markers for the mission goals
 export function goal(goalIndex, goal, isActive, isSelected) {
     const srcMap = {

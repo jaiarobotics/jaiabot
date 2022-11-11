@@ -32,3 +32,18 @@ export function createBotCourseOverGroundFeature(properties) {
 
     return feature
 }
+
+
+export function createBotDesiredHeadingFeature(properties) {
+    var features = []
+    const projection = properties.map.getView().getProjection()
+
+    const feature = new Feature({
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection))
+    })
+    feature.setProperties(properties)
+    feature.setStyle(Styles.desiredHeadingArrow)
+
+    return feature
+}

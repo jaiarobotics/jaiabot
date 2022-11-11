@@ -18,7 +18,7 @@ import * as Popup from './gui/Popup'
 import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
-import { createBotCourseOverGroundFeature, createBotFeature } from './gui/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
@@ -442,7 +442,8 @@ export default class JaiaMap {
                     botId: botId,
                     lonLat: [point[2], point[1]],
                     heading: point[3],
-                    courseOverGround: point[4]
+                    courseOverGround: point[4],
+                    desiredHeading: point[5]
                 }
 
                 const botFeature = createBotFeature(properties)
@@ -450,6 +451,11 @@ export default class JaiaMap {
 
                 this.botVectorSource.addFeature(botFeature)
                 this.courseOverGroundSource.addFeature(courseOverGroundArrow)
+
+                if (properties.desiredHeading != null) {
+                    const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
+                    this.courseOverGroundSource.addFeature(desiredHeadingArrow)
+                }
             }
 
         }
