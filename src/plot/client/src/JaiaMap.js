@@ -135,6 +135,11 @@ export default class JaiaMap {
             // Time range for the visible path
             this.timeRange = null
 
+            // Time range for the entire log set
+            this.totalTimeRange = null
+
+            this.timestamp = null
+
             this.task_packets = []
 
             this.setupOpenlayersMap(openlayersMapDivId)
@@ -311,6 +316,16 @@ export default class JaiaMap {
                 // Filter to only keep points within the time range
                 var path = []
                 for (const pt of ptArray) {
+                    // Contribute to totalTimeRange
+                    if (this.totalTimeRange == null) {
+                        this.totalTimeRange = [pt[0], pt[0]]
+                    }
+                    else {
+                        if (pt[0] < this.totalTimeRange[0]) this.totalTimeRange[0] = pt[0]
+                        if (pt[0] > this.totalTimeRange[1]) this.totalTimeRange[1] = pt[0]
+                    }
+
+                    // Only plot map points within the chart's time window                    
                     if (pt[0] > timeRange[1]) {
                         break
                     }
@@ -318,6 +333,7 @@ export default class JaiaMap {
                     if (pt[0] > timeRange[0]) {
                         path.push(this.fromLonLat([pt[2], pt[1]])) // API gives lat/lon, OpenLayers uses lon/lat
                     }
+
                 }
 
                 // const pathLineString = new LineString(path)
@@ -394,8 +410,26 @@ export default class JaiaMap {
         }
     
         updateToTimestamp(timestamp_micros) {
+            this.timestamp = timestamp_micros
+            // console.log('updateToTimestamp', timestamp_micros, this.timestamp)
+
             this.updateBotMarkers(timestamp_micros)
             this.updateMissionLayer(timestamp_micros)
+        }
+
+        getTimestamp() {
+            // console.log('get timestamp', this.timestamp)
+            return this.timestamp
+        }
+
+        updateToTimeFraction(timeFraction) {
+            const totalTimeRange = this.totalTimeRange
+            if (totalTimeRange == null) {
+                return
+            }
+
+            const timestamp = totalTimeRange[0] + timeFraction * (totalTimeRange[1] - totalTimeRange[0])
+            this.updateToTimestamp(timestamp)
         }
 
         updateWithDepthContourGeoJSON(depthContourGeoJSON) {

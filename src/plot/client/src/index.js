@@ -9,6 +9,7 @@ import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
+import TimeSlider from "./TimeSlider.js"
 
 
 const APP_NAME = "Data Vision"
@@ -33,7 +34,9 @@ class LogApp extends React.Component {
       plots : [],
       layerSwitcherVisible: false,
       plotNeedsRefresh: false,
-      mapNeedsRefresh: false
+      mapNeedsRefresh: false,
+      timeFraction: null,
+      t: null
     }
   }
 
@@ -113,11 +116,21 @@ class LogApp extends React.Component {
           { plotContainer }
 
           <div id="mapPane">
-            <div className="openlayers-map" id="openlayers-map">
-            </div>
-            <div id="mapControls">
-              <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
-              <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+            <div className="flexbox vertical" style={{height:'100%'}}>
+              <div style={{width:'100%', flexGrow:1}}>
+                <div className="openlayers-map" id="openlayers-map">
+                </div>
+                <div id="mapControls">
+                  <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+                  <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                </div>
+              </div>
+              <div id="mapTime" className="mapTime">{(new Date(this.state.t / 1e3)).toISOString()}</div>
+              <TimeSlider fraction={this.state.timeFraction} onValueChanged={(fraction) => { 
+                this.map.updateToTimeFraction(fraction)
+                const t = this.map.getTimestamp()
+                this.setState({timeFraction: fraction, t: t })
+              }}></TimeSlider>
             </div>
           </div>
         </div>
@@ -125,6 +138,8 @@ class LogApp extends React.Component {
       </Router>
     )
   }
+
+
 
   togglerLayerSwitcher() {
     var {layerSwitcherVisible} = this.state
