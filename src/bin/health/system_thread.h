@@ -132,6 +132,7 @@ class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoS
     bool voltage_low_{false};
     bool voltage_very_low_{false};
     bool voltage_critically_low_{false};
+    bool watch_battery_percentage_{false};
     goby::time::SteadyClock::time_point vvcvoltage_last_updated_{std::chrono::seconds(0)};
 };
 
