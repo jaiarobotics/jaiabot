@@ -4,6 +4,7 @@ import * as DiveParameters from './DiveParameters'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
+import Button from '@mui/material/Button';
 
 export default class EngineeringPanel extends React.Component {
 
@@ -33,11 +34,11 @@ export default class EngineeringPanel extends React.Component {
 						<b>Engineering Panels</b><br />						
 					</div>
 					<div className="panel">
-						<button type="button" onClick={function() {
+						<Button className="button-jcc" onClick={function() {
 							window.location.assign('/pid/')
 						} }>
 							JaiaBot Engineer & Debug
-						</button>
+						</Button>
 					</div>
 
 					<PIDGainsPanel bots={self.state.bots} />

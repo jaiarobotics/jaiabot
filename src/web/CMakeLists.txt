@@ -3,6 +3,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.py DESTINATION ${project_SHARE_
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/jaia.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/missions.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/contours.py DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server/app.wsgi DESTINATION ${project_SHARE_DIR}/jaiabot/web/server)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
 set(command_control_outdir ${project_SHARE_DIR}/jaiabot/web/command_control/dist/client)
