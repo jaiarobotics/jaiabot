@@ -38,9 +38,10 @@ export default function TimeSlider(props) {
             return
         }
     
+        const timeSlider = document.getElementById('TimeSlider')
         const nativeEvent = evt.nativeEvent
 
-        const fraction = nativeEvent.offsetX / nativeEvent.target.offsetWidth
+        const fraction = nativeEvent.offsetX / timeSlider.offsetWidth
         const t = props.tMin + fraction * (props.tMax - props.tMin)
 
         props.onValueChanged?.(t)

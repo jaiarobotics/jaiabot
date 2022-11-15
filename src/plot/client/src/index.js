@@ -53,8 +53,6 @@ class LogApp extends React.Component {
         <div id="plot" className="plot"></div>
     </div>
 
-    console.log('this.state = ', this.state)
-
     return (
       <Router>
         <div><div className = "vertical flexbox top_pane padded">
@@ -297,6 +295,7 @@ class LogApp extends React.Component {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = iso_date_to_micros(dateString)
       self.map.updateToTimestamp(date_timestamp_micros)
+      self.setState({t: date_timestamp_micros})
     })
 
     this.plot_div_element.on('plotly_unhover',
