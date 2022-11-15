@@ -87,8 +87,14 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
-    bool is_driver_compatible_{false};
+    /**
+     * TODO: make this var false
+     * Then get the current version of the arduino driver
+     * Check to see if the arduino code is compatible
+     */
+    bool is_driver_compatible_{true};
     bool is_settings_ack_{false};
+    //This needs to be grabbed at runtime
     std::string app_version = "1.0.0~beta0+18+g2350a1a-0~ubuntu20.04.1";
 };
 
@@ -172,12 +178,27 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                        << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
 
+                // 9 is the settings status
+                // TODO investigate enums with arduino protos
+                // TODO remove this code block (Need version control working)
+                if (arduino_response.status_code() == 9)
+                {
+                    is_settings_ack_ = true;
+                }
+
                 if (arduino_version_compatibility_table_.count(arduino_response.version()))
                 {
                     if (arduino_version_compatibility_table_.at(arduino_response.version())
                             .count(app_version))
                     {
                         is_driver_compatible_ = true;
+
+                        // 9 is the settings status
+                        // TODO investigate enums with arduino protos
+                        if (arduino_response.status_code() == 9)
+                        {
+                            is_settings_ack_ = true;
+                        }
                     }
                 }
             }

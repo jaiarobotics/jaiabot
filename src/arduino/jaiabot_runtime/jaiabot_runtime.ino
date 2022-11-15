@@ -56,8 +56,16 @@ int target_port_elevator = 1500;
 int target_rudder = 1500;
 
 // Motor
-int current_motor = 1500;
-int target_motor = 1500;
+int motor_tracked = 1500;
+int motor_target = 1500;
+int motor_actual = 1500;
+
+// Motor Bounds
+int motor_min_forward = 1600;
+int motor_min_reverse = 1400;
+
+int motor_max_forward = 1900;
+int motor_max_reverse = 1100;
 
 // Motor Steps
 constexpr int motor_max_step_forward_faster = 3;
@@ -229,37 +237,54 @@ void setup()
 
 
 int32_t clamp(int32_t v, int32_t min, int32_t max) {
+  if (v == motor_neutral) return motor_neutral;
   if (v < min) return min;
   if (v > max) return max;
   return v;
 }
 
+int32_t motor_forward_clamp(int32_t v, int32_t forward_start) {
+  if (v == motor_neutral) return motor_neutral;
+  if (v < forward_start) return forward_start;
+  return v;
+}
+
+int32_t motor_reverse_clamp(int32_t v, int32_t reverse_start) {
+  if (v == motor_neutral) return motor_neutral;
+  if (v > reverse_start) return reverse_start;
+  return v;
+}
+
 void writeToActuators()
 {
-  // If we are going forward and we are trying to go faster
-  if (target_motor > 1500 && target_motor > current_motor)
+  // If we want to go forward faster
+  if (motor_target > motor_neutral && motor_target > motor_tracked)
   {
-      current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
+      motor_tracked += min(motor_target - motor_tracked, motor_max_step_forward_faster);
+      motor_actual = motor_forward_clamp(motor_tracked, motor_min_forward);
   }
-  // If we are going forward and we are trying to go slower
-  else if (target_motor > 1500 && target_motor < current_motor ||
-            target_motor == 1500 && current_motor > 1500)
+  // If we want to go forward slower (including stopping)
+  else if (motor_target > motor_neutral && motor_target < motor_tracked ||
+            motor_target == motor_neutral && motor_tracked > motor_neutral)
   {
-      current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
+      motor_tracked -= min(motor_tracked - motor_target, motor_max_step_forward_slower);
+      motor_actual = motor_forward_clamp(motor_tracked, motor_min_forward);
   }
   // If we are going reverse and we are trying to go slower
-  else if (target_motor < 1500 && target_motor > current_motor ||
-            target_motor == 1500 && current_motor < 1500)
+  else if (motor_target < motor_neutral && motor_target > motor_tracked ||
+            motor_target == motor_neutral && motor_tracked < motor_neutral)
   {
-      current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
+      motor_tracked += min(motor_target - motor_tracked, motor_max_step_reverse_slower);
+      motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
   // If we are going reverse and we are trying to go faster
-  else if (target_motor < 1500 && target_motor < current_motor)
+  else if (motor_target < motor_neutral && motor_target < motor_tracked)
   {
-      current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
+      motor_tracked -= min(motor_tracked - motor_target, motor_max_step_reverse_faster);
+      motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
 
-  motor_servo.writeMicroseconds(current_motor);
+  motor_servo.writeMicroseconds(motor_actual);
   rudder_servo.writeMicroseconds(target_rudder);
   stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
   port_elevator_servo.writeMicroseconds(target_port_elevator);
@@ -359,7 +384,7 @@ void loop()
     if(command.has_actuators)
     {
       // The commanded targets
-      target_motor = command.actuators.motor;
+      motor_target = command.actuators.motor;
       target_rudder = command.actuators.rudder;
       target_stbd_elevator = command.actuators.stbd_elevator;
       target_port_elevator = command.actuators.port_elevator;
@@ -376,6 +401,8 @@ void loop()
     } 
     else if(command.has_settings)
     {
+      motor_min_forward = command.settings.forward_start;
+      motor_min_reverse = command.settings.reverse_start;
       //Send Ack that we successfully received command
       send_ack(SETTINGS);
     }
@@ -396,7 +423,7 @@ void handle_timeout() {
 }
 
 void halt_all() {
-  target_motor = motor_neutral;
+  motor_target = motor_neutral;
   target_rudder = rudder_neutral;
   target_stbd_elevator = stbd_elevator_neutral;
   target_port_elevator = port_elevator_neutral;
