@@ -11,6 +11,9 @@
 #include "jaiabot/messages/nanopb/arduino.pb.h"
 #include "crc16.h"
 
+// Indicates the code version
+const int arduino_version = 1;
+
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
 // TODO: Add CRC32?
@@ -53,8 +56,16 @@ int target_port_elevator = 1500;
 int target_rudder = 1500;
 
 // Motor
-int current_motor = 1500;
-int target_motor = 1500;
+int motor_tracked = 1500;
+int motor_target = 1500;
+int motor_actual = 1500;
+
+// Motor Bounds
+int motor_min_forward = 1600;
+int motor_min_reverse = 1400;
+
+int motor_max_forward = 1900;
+int motor_max_reverse = 1100;
 
 // Motor Steps
 constexpr int motor_max_step_forward_faster = 3;
@@ -96,7 +107,8 @@ enum AckCode {
   MESSAGE_TOO_BIG = 5,
   MESSAGE_WRONG_SIZE = 6,
   MESSAGE_DECODE_ERROR = 7,
-  CRC_ERROR = 8
+  CRC_ERROR = 8,
+  SETTINGS = 9
 };
 
 double Vcccurrent_rolling_average() {
@@ -165,6 +177,7 @@ void send_ack(AckCode code, uint32_t crc=0, uint32_t calculated_crc=0)
   // Vcccurrent
   ack.vcccurrent = Vcccurrent_rolling_average();
   ack.has_vcccurrent = true;
+  ack.version = arduino_version;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
@@ -224,37 +237,54 @@ void setup()
 
 
 int32_t clamp(int32_t v, int32_t min, int32_t max) {
+  if (v == motor_neutral) return motor_neutral;
   if (v < min) return min;
   if (v > max) return max;
   return v;
 }
 
+int32_t motor_forward_clamp(int32_t v, int32_t forward_start) {
+  if (v == motor_neutral) return motor_neutral;
+  if (v < forward_start) return forward_start;
+  return v;
+}
+
+int32_t motor_reverse_clamp(int32_t v, int32_t reverse_start) {
+  if (v == motor_neutral) return motor_neutral;
+  if (v > reverse_start) return reverse_start;
+  return v;
+}
+
 void writeToActuators()
 {
-  // If we are going forward and we are trying to go faster
-  if (target_motor > 1500 && target_motor > current_motor)
+  // If we want to go forward faster
+  if (motor_target > motor_neutral && motor_target > motor_tracked)
   {
-      current_motor += min(target_motor - current_motor, motor_max_step_forward_faster);
+      motor_tracked += min(motor_target - motor_tracked, motor_max_step_forward_faster);
+      motor_actual = motor_forward_clamp(motor_tracked, motor_min_forward);
   }
-  // If we are going forward and we are trying to go slower
-  else if (target_motor > 1500 && target_motor < current_motor ||
-            target_motor == 1500 && current_motor > 1500)
+  // If we want to go forward slower (including stopping)
+  else if (motor_target > motor_neutral && motor_target < motor_tracked ||
+            motor_target == motor_neutral && motor_tracked > motor_neutral)
   {
-      current_motor -= min(current_motor - target_motor, motor_max_step_forward_slower);
+      motor_tracked -= min(motor_tracked - motor_target, motor_max_step_forward_slower);
+      motor_actual = motor_forward_clamp(motor_tracked, motor_min_forward);
   }
   // If we are going reverse and we are trying to go slower
-  else if (target_motor < 1500 && target_motor > current_motor ||
-            target_motor == 1500 && current_motor < 1500)
+  else if (motor_target < motor_neutral && motor_target > motor_tracked ||
+            motor_target == motor_neutral && motor_tracked < motor_neutral)
   {
-      current_motor += min(target_motor - current_motor, motor_max_step_reverse_slower);
+      motor_tracked += min(motor_target - motor_tracked, motor_max_step_reverse_slower);
+      motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
   // If we are going reverse and we are trying to go faster
-  else if (target_motor < 1500 && target_motor < current_motor)
+  else if (motor_target < motor_neutral && motor_target < motor_tracked)
   {
-      current_motor -= min(current_motor - target_motor, motor_max_step_reverse_faster);
+      motor_tracked -= min(motor_tracked - motor_target, motor_max_step_reverse_faster);
+      motor_actual = motor_reverse_clamp(motor_tracked, motor_min_reverse);
   }
 
-  motor_servo.writeMicroseconds(current_motor);
+  motor_servo.writeMicroseconds(motor_actual);
   rudder_servo.writeMicroseconds(target_rudder);
   stbd_elevator_servo.writeMicroseconds(target_stbd_elevator);
   port_elevator_servo.writeMicroseconds(target_port_elevator);
@@ -351,21 +381,31 @@ void loop()
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     } 
 
-    // The commanded targets
-    target_motor = command.motor;
-    target_rudder = command.rudder;
-    target_stbd_elevator = command.stbd_elevator;
-    target_port_elevator = command.port_elevator;
-    target_led_switch_on = command.led_switch_on;
+    if(command.has_actuators)
+    {
+      // The commanded targets
+      motor_target = command.actuators.motor;
+      target_rudder = command.actuators.rudder;
+      target_stbd_elevator = command.actuators.stbd_elevator;
+      target_port_elevator = command.actuators.port_elevator;
+      target_led_switch_on = command.actuators.led_switch_on; 
+      // Set the timeout vars
+      t_last_command = millis();
+      command_timeout = command.actuators.timeout * 1000;
 
-    // Set the timeout vars
-    t_last_command = millis();
-    command_timeout = command.timeout * 1000;
+      // char message[256];
+      // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
 
-    // char message[256];
-    // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-    //Send Ack that we successfully received command
-    send_ack(ACK);
+      //Send Ack that we successfully received command
+      send_ack(ACK);
+    } 
+    else if(command.has_settings)
+    {
+      motor_min_forward = command.settings.forward_start;
+      motor_min_reverse = command.settings.reverse_start;
+      //Send Ack that we successfully received command
+      send_ack(SETTINGS);
+    }
   }
 
 }
@@ -383,7 +423,7 @@ void handle_timeout() {
 }
 
 void halt_all() {
-  target_motor = motor_neutral;
+  motor_target = motor_neutral;
   target_rudder = rudder_neutral;
   target_stbd_elevator = stbd_elevator_neutral;
   target_port_elevator = port_elevator_neutral;
@@ -393,4 +433,6 @@ void halt_all() {
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
 PB_BIND(jaiabot_protobuf_ArduinoCommand, jaiabot_protobuf_ArduinoCommand, 2)
+PB_BIND(jaiabot_protobuf_ArduinoActuators, jaiabot_protobuf_ArduinoActuators, 2)
+PB_BIND(jaiabot_protobuf_ArduinoSettings, jaiabot_protobuf_ArduinoSettings, 2)
 PB_BIND(jaiabot_protobuf_ArduinoResponse, jaiabot_protobuf_ArduinoResponse, 2)

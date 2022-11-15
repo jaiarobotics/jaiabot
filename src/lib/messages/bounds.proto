@@ -12,12 +12,8 @@ message MotorBounds {
 		optional int32 reverseStart = 2 [default = 1400];
 		optional int32 max_reverse = 3 [default = 1320];
 		optional int32 throttle_zero_net_buoyancy = 4 [default = -35];
-		optional int32 motor_max_step_forward_faster = 5 [default = 4];
-		optional int32 motor_max_step_forward_slower = 6 [default = 12];
-		optional int32 motor_max_step_reverse_faster = 7 [default = 4];
-		optional int32 motor_max_step_reverse_slower = 8 [default = 12];
-		optional int32 throttle_dive = 9 [default = -35];
-		optional int32 throttle_ascent = 10 [default = 25];
+		optional int32 throttle_dive = 5 [default = -35];
+		optional int32 throttle_ascent = 6 [default = 25];
 	}
 
 message Bounds{
