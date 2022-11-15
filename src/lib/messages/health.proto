@@ -39,7 +39,7 @@ enum Error
     ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR = 26;
     ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC = 27;
     ERROR__FAILED__JAIABOT_LOG_CONVERTER = 28;
-    ERROR__FAILED__JAIABOT_DATA_VISION = 29;
+    ERROR__FAILED__JAIABOT_PLOT = 29;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
