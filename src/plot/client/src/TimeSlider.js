@@ -38,7 +38,9 @@ export default function TimeSlider(props) {
             return
         }
     
-        const fraction = evt.clientX / evt.target.clientWidth
+        const nativeEvent = evt.nativeEvent
+
+        const fraction = nativeEvent.offsetX / nativeEvent.target.offsetWidth
         const t = props.tMin + fraction * (props.tMax - props.tMin)
 
         props.onValueChanged?.(t)
@@ -51,7 +53,7 @@ export default function TimeSlider(props) {
     const elapsedTimeString = durationStringFromSeconds((t - props.tMin) / 1e6)
 
     var slider = (
-        <div className='TimeSlider flexbox vertical' onMouseDown={mouseEvent} onMouseMove={mouseEvent}>
+        <div id="TimeSlider" className='TimeSlider flexbox vertical' onMouseDown={mouseEvent} onMouseMove={mouseEvent}>
             <div className='TimeSliderBack'>
                 {TimeSliderPast(fraction ?? 0)}
             </div>
@@ -64,7 +66,8 @@ export default function TimeSlider(props) {
 }
 
 function TimeSliderPast(fraction) {
+    const widthPercent = Math.min(100, Math.max(0, fraction * 100))
     return (
-        <div className='TimeSliderPast' style={{width: `${fraction * 100}%`}}></div>
+        <div className='TimeSliderPast' style={{width: `${widthPercent}%`}}></div>
     )
 }
