@@ -6,16 +6,24 @@
 import React from 'react'
 import { Settings } from './Settings'
 
-export var currentParameters = Settings.read('diveParameters') || {
+export var currentDiveParameters = Settings.read('diveParameters') || {
     maxDepth: 1,
     depthInterval: 1,
-    holdTime: 0,
+    holdTime: 0
+}
+
+export var currentDriftParameters = Settings.read('driftParameters') || {
     driftTime: 0
 }
 
-function setParameter(parameterName, event) {
-    currentParameters[parameterName] = Number(event.target.value)
-    Settings.write('diveParameters', currentParameters)
+function setDiveParameter(parameterName, event) {
+    currentDiveParameters[parameterName] = Number(event.target.value)
+    Settings.write('diveParameters', currentDiveParameters)
+}
+
+function setDriftParameter(parameterName, event) {
+    currentDriftParameters[parameterName] = Number(event.target.value)
+    Settings.write('driftParameters', currentDriftParameters)
 }
 
 export function panel() {
@@ -26,19 +34,19 @@ export function panel() {
                 <tbody>
                     <tr key="max_depth">
                         <td>Max Depth</td>
-                        <td><input type="text" id="dive_max_depth" defaultValue={currentParameters.maxDepth} onChange={setParameter.bind(null, 'maxDepth')} /></td>
+                        <td><input type="text" id="dive_max_depth" defaultValue={currentDiveParameters.maxDepth} onChange={setDiveParameter.bind(null, 'maxDepth')} /></td>
                     </tr>
                     <tr key="dive_depth_interval">
                         <td>Depth Interval</td>
-                        <td><input type="text" id="dive_depth_interval" defaultValue={currentParameters.depthInterval} onChange={setParameter.bind(null, 'depthInterval')} /></td>
+                        <td><input type="text" id="dive_depth_interval" defaultValue={currentDiveParameters.depthInterval} onChange={setDiveParameter.bind(null, 'depthInterval')} /></td>
                     </tr>
                     <tr key="hold_time">
                         <td>Hold Time</td>
-                        <td><input type="text" id="dive_hold_time" defaultValue={currentParameters.holdTime} onChange={setParameter.bind(null, 'holdTime')} /></td>
+                        <td><input type="text" id="dive_hold_time" defaultValue={currentDiveParameters.holdTime} onChange={setDiveParameter.bind(null, 'holdTime')} /></td>
                     </tr>
                     <tr key="drift_time">
                         <td>Drift Time</td>
-                        <td><input type="text" id="drift_time" defaultValue={currentParameters.drift_time} onChange={setParameter.bind(null, 'driftTime')} /></td>
+                        <td><input type="text" id="drift_time" defaultValue={currentDriftParameters.driftTime} onChange={setDriftParameter.bind(null, 'driftTime')} /></td>
                     </tr>
                 </tbody>
             </table>

@@ -137,7 +137,7 @@ jaiabot::apps::Simulator::Simulator()
             goby::middleware::io::UDPPointToPointThread<salinity_udp_in, salinity_udp_out>;
         launch_thread<SalinityUDPThread>(cfg().salinity_udp_config());
 
-        launch_thread<ArduinoSimThread>(cfg().arduino());
+        launch_thread<ArduinoSimThread>(cfg().arduino_config());
     }
 
     goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
@@ -164,6 +164,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             [this](const goby::middleware::protobuf::DatumUpdate& datum_update) {
                 geodesy_.reset(new goby::util::UTMGeodesy({datum_update.datum().lat_with_units(),
                                                            datum_update.datum().lon_with_units()}));
+                moos().comms().Notify("USM_RESET", "x=0, y=0, speed=0, heading=0, depth=0");
             });
 
         std::vector<std::string> nav_buffer_params(

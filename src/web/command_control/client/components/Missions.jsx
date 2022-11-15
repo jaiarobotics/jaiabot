@@ -106,7 +106,8 @@ export class Missions {
             type: 'REMOTE_CONTROL_TASK',
             rcTask: {
                 type: "DIVE",
-                dive: DiveParameters.currentParameters
+                dive: DiveParameters.currentDiveParameters,
+                surfaceDrift: DiveParameters.currentDriftParameters
             }
         }
 

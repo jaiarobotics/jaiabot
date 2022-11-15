@@ -46,46 +46,7 @@ namespace apps
 class Metadata : public ApplicationBase
 {
   public:
-    Metadata() : ApplicationBase(0.0 * si::hertz)
-    {
-        auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
-        string jaia_device_name;
-        if (jaia_name_c)
-        {
-            jaia_device_name = string(jaia_name_c);
-        }
-        else
-        {
-            char buffer[256];
-            if (gethostname(buffer, 256) == 0)
-            {
-                jaia_device_name = string(buffer);
-            }
-            else
-            {
-                jaia_device_name = "<No Name>";
-            }
-        }
-
-        DeviceMetadata metadata;
-        metadata.set_name(jaia_device_name);
-        auto& jaiabot_version = *metadata.mutable_jaiabot_version();
-        jaiabot_version.set_major(JAIABOT_VERSION_MAJOR);
-        jaiabot_version.set_minor(JAIABOT_VERSION_MINOR);
-        jaiabot_version.set_patch(JAIABOT_VERSION_PATCH);
-
-#ifdef JAIABOT_VERSION_GITHASH
-        jaiabot_version.set_git_hash(JAIABOT_VERSION_GITHASH);
-        jaiabot_version.set_git_branch(JAIABOT_VERSION_GITBRANCH);
-#endif
-
-        metadata.set_goby_version(goby::VERSION_STRING);
-        metadata.set_moos_version(MOOS_VERSION);
-
-        glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
-
-        interprocess().publish<groups::metadata>(metadata);
-    }
+    Metadata() : ApplicationBase(1.0 / 600.0 * si::hertz) {}
 
   private:
     void loop() override;
@@ -102,4 +63,47 @@ int main(int argc, char* argv[])
 void jaiabot::apps::Metadata::loop()
 {
     // called at frequency passed to SingleThreadApplication (ApplicationBase)
+    auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
+    string jaia_device_name;
+    if (jaia_name_c)
+    {
+        jaia_device_name = string(jaia_name_c);
+    }
+    else
+    {
+        char buffer[256];
+        if (gethostname(buffer, 256) == 0)
+        {
+            jaia_device_name = string(buffer);
+        }
+        else
+        {
+            jaia_device_name = "<No Name>";
+        }
+    }
+
+    DeviceMetadata metadata;
+    metadata.set_name(jaia_device_name);
+    auto& jaiabot_version = *metadata.mutable_jaiabot_version();
+    jaiabot_version.set_major(JAIABOT_VERSION_MAJOR);
+    jaiabot_version.set_minor(JAIABOT_VERSION_MINOR);
+    jaiabot_version.set_patch(JAIABOT_VERSION_PATCH);
+
+#ifdef JAIABOT_VERSION_GITHASH
+    jaiabot_version.set_git_hash(JAIABOT_VERSION_GITHASH);
+    jaiabot_version.set_git_branch(JAIABOT_VERSION_GITBRANCH);
+#endif
+
+    metadata.set_goby_version(goby::VERSION_STRING);
+    metadata.set_moos_version(MOOS_VERSION);
+
+    if (cfg().has_xbee())
+    {
+        metadata.set_xbee_node_id(cfg().xbee().node_id());
+        metadata.set_xbee_serial_number(cfg().xbee().serial_number());
+    }
+
+    glog.is_verbose() && glog << "DeviceMetadata: " << metadata.ShortDebugString() << std::endl;
+
+    interprocess().publish<groups::metadata>(metadata);
 }

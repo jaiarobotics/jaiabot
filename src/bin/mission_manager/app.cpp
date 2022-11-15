@@ -368,6 +368,26 @@ void jaiabot::apps::MissionManager::loop()
             }
         }
     }
+    else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
+    {
+        report.set_active_goal(in_mission->goal_index());
+
+        if (machine_->mission_plan().recovery().has_recover_at_final_goal())
+        {
+            if (machine_->mission_plan().recovery().recover_at_final_goal())
+            {
+                *report.mutable_active_goal_location() =
+                    machine_->mission_plan()
+                        .goal()
+                        .Get(machine_->mission_plan().goal_size() - 1)
+                        .location();
+            }
+        }
+        else if (machine_->mission_plan().recovery().has_location())
+        {
+            *report.mutable_active_goal_location() = machine_->mission_plan().recovery().location();
+        }
+    }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
 

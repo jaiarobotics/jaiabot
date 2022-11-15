@@ -18,7 +18,11 @@ module.exports = {
           'style-loader',
           'css-loader'
         ]
-      }
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif)$/,
+        type: 'asset/resource',
+      },      
     ]
   },
   resolve : {extensions : [ '*', '.js' ]},
