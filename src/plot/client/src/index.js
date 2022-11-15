@@ -36,7 +36,9 @@ class LogApp extends React.Component {
       plotNeedsRefresh: false,
       mapNeedsRefresh: false,
       timeFraction: null,
-      t: null
+      t: null, // Currently selected time
+      tMin: null, // Minimum time for these logs
+      tMax: null, // Maximum time for these logs
     }
   }
 
@@ -50,6 +52,8 @@ class LogApp extends React.Component {
     const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
         <div id="plot" className="plot"></div>
     </div>
+
+    console.log('this.state = ', this.state)
 
     return (
       <Router>
@@ -125,11 +129,9 @@ class LogApp extends React.Component {
                   <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
                 </div>
               </div>
-              <div id="mapTime" className="mapTime">{(new Date(this.state.t / 1e3)).toISOString()}</div>
-              <TimeSlider fraction={this.state.timeFraction} onValueChanged={(fraction) => { 
-                this.map.updateToTimeFraction(fraction)
-                const t = this.map.getTimestamp()
-                this.setState({timeFraction: fraction, t: t })
+              <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
+                this.map.updateToTimestamp(t)
+                this.setState({t: t })
               }}></TimeSlider>
             </div>
           </div>
@@ -156,6 +158,7 @@ class LogApp extends React.Component {
         // Get map data
         LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
           this.map.setSeriesArray(seriesArray)
+          this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.t})
         })
 
         // Get the command dictionary (botId => [Command])

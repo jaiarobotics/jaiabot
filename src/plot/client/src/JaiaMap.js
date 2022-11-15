@@ -67,25 +67,6 @@ function dateStringFromMicros(timestamp_micros) {
 }
 
 
-// Creates an OpenLayers marker feature with a popup
-function createMarker(map, title, point, style) {
-    const time = point[0]
-    const lonLat = [point[2], point[1]]
-    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-
-    const markerFeature = new Feature({
-        name: title ?? 'Marker',
-        geometry: new Point(coordinate)
-    })
-    markerFeature.setStyle(style)
-
-    const popupData = {title: title, time:dateStringFromMicros(time), lon: lonLat[0], lat: lonLat[1]}
-    Popup.addPopup(map, markerFeature, Template.get('markerPopup', popupData))
-
-    return markerFeature
-}
-
-
 // Creates an OpenLayers marker feature with a popup using options
 // parameters: {title?, lon, lat, style?, time?, popupHTML?}
 function createMarker2(map, parameters) {
@@ -136,7 +117,8 @@ export default class JaiaMap {
             this.timeRange = null
 
             // Time range for the entire log set
-            this.totalTimeRange = null
+            this.tMin = null
+            this.tMax = null
 
             this.timestamp = null
 
@@ -316,21 +298,18 @@ export default class JaiaMap {
                 // Filter to only keep points within the time range
                 var path = []
                 for (const pt of ptArray) {
-                    // Contribute to totalTimeRange
-                    if (this.totalTimeRange == null) {
-                        this.totalTimeRange = [pt[0], pt[0]]
-                    }
-                    else {
-                        if (pt[0] < this.totalTimeRange[0]) this.totalTimeRange[0] = pt[0]
-                        if (pt[0] > this.totalTimeRange[1]) this.totalTimeRange[1] = pt[0]
-                    }
+
+                    // Contribute to tMin and tMax
+                    const t = pt[0]
+                    if (this.tMin == null || t < this.tMin) this.tMin = t
+                    if (this.tMax == null || t > this.tMax) this.tMax = t
 
                     // Only plot map points within the chart's time window                    
-                    if (pt[0] > timeRange[1]) {
+                    if (t > timeRange[1]) {
                         break
                     }
 
-                    if (pt[0] > timeRange[0]) {
+                    if (t > timeRange[0]) {
                         path.push(this.fromLonLat([pt[2], pt[1]])) // API gives lat/lon, OpenLayers uses lon/lat
                     }
 
@@ -420,16 +399,6 @@ export default class JaiaMap {
         getTimestamp() {
             // console.log('get timestamp', this.timestamp)
             return this.timestamp
-        }
-
-        updateToTimeFraction(timeFraction) {
-            const totalTimeRange = this.totalTimeRange
-            if (totalTimeRange == null) {
-                return
-            }
-
-            const timestamp = totalTimeRange[0] + timeFraction * (totalTimeRange[1] - totalTimeRange[0])
-            this.updateToTimestamp(timestamp)
         }
 
         updateWithDepthContourGeoJSON(depthContourGeoJSON) {
