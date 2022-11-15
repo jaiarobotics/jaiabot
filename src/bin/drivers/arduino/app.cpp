@@ -32,6 +32,7 @@ using namespace std;
 #include "jaiabot/lora/serial.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
@@ -59,6 +60,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
 
     int64_t lastAckTime;
@@ -77,11 +79,17 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int port_elevator = 1500;
     int stbd_elevator = 1500;
 
-    // timeout
+    // Timeout
     int arduino_timeout = 5;
 
-    //LED
+    // LED
     bool led_switch_on = true;
+
+    // Version Table
+    std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
+    bool is_driver_compatible_{false};
+    bool is_settings_ack_{false};
+    std::string app_version = "1.0.0~beta0+18+g2350a1a-0~ubuntu20.04.1";
 };
 
 } // namespace apps
@@ -104,6 +112,31 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
+
+    // Creating Version Table
+    for (auto row : cfg().arduino_version_table())
+    {
+        uint32_t arduino_version = row.arduino_version();
+        for (auto app_versions : row.app_versions())
+        { arduino_version_compatibility_table_[arduino_version].insert(app_versions); }
+    }
+
+    for (auto row : arduino_version_compatibility_table_)
+    {
+        glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
+
+        for (auto app_version : row.second)
+        {
+            glog.is_verbose() && glog << group("main") << "\tapp_version: " << app_version
+                                      << std::endl;
+        }
+    }
+
+    std::string delimiter = "+";
+    std::string version = app_version.substr(0, app_version.find(delimiter));
+
+    glog.is_verbose() && glog << group("main") << "\tjaiabot-embedded version: " << version
+                              << std::endl;
 
     // Setup our bounds configuration
     bounds = cfg().bounds();
@@ -138,6 +171,15 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 glog.is_warn() && glog << group("arduino")
                                        << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
+
+                if (arduino_version_compatibility_table_.count(arduino_response.version()))
+                {
+                    if (arduino_version_compatibility_table_.at(arduino_response.version())
+                            .count(app_version))
+                    {
+                        is_driver_compatible_ = true;
+                    }
+                }
             }
 
             glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
@@ -222,42 +264,58 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
 void jaiabot::apps::ArduinoDriver::loop()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
-    arduino_cmd.set_timeout(arduino_timeout);
+    jaiabot::protobuf::ArduinoActuators arduino_actuators;
+    jaiabot::protobuf::ArduinoSettings arduino_settings;
 
-    // If command is too old, then zero the Arduino
-    if (_time_last_command_received != 0 &&
-        now_microseconds() - _time_last_command_received > timeout)
+    if (!is_settings_ack_)
     {
-        arduino_cmd.set_motor(1500);
-        arduino_cmd.set_rudder(bounds.rudder().center());
-        arduino_cmd.set_stbd_elevator(bounds.strb().center());
-        arduino_cmd.set_port_elevator(bounds.port().center());
-        arduino_cmd.set_led_switch_on(false);
-
-        // Publish interthread, so we can log it
-        interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
-
-        // Send the command to the Arduino
-        auto raw_output = lora::serialize(arduino_cmd);
-        interthread().publish<serial_out>(raw_output);
-
-        return;
+        arduino_settings.set_forward_start(bounds.motor().forwardstart());
+        arduino_settings.set_reverse_start(bounds.motor().reversestart());
+        *arduino_cmd.mutable_settings() = arduino_settings;
     }
-    // Don't use motor values of less power than the start bounds
-    int corrected_motor;
+    else if (is_settings_ack_ && is_driver_compatible_)
+    {
+        arduino_actuators.set_timeout(arduino_timeout);
 
-    if (target_motor > 1500)
-        corrected_motor = max(target_motor, bounds.motor().forwardstart());
-    else if (target_motor == 1500)
-        corrected_motor = target_motor;
-    else if (target_motor < 1500)
-        corrected_motor = min(target_motor, bounds.motor().reversestart());
+        // If command is too old, then zero the Arduino
+        if (_time_last_command_received != 0 &&
+            now_microseconds() - _time_last_command_received > timeout)
+        {
+            arduino_actuators.set_motor(1500);
+            arduino_actuators.set_rudder(bounds.rudder().center());
+            arduino_actuators.set_stbd_elevator(bounds.strb().center());
+            arduino_actuators.set_port_elevator(bounds.port().center());
+            arduino_actuators.set_led_switch_on(false);
 
-    arduino_cmd.set_motor(corrected_motor);
-    arduino_cmd.set_rudder(rudder);
-    arduino_cmd.set_stbd_elevator(stbd_elevator);
-    arduino_cmd.set_port_elevator(port_elevator);
-    arduino_cmd.set_led_switch_on(led_switch_on);
+            *arduino_cmd.mutable_actuators() = arduino_actuators;
+
+            // Publish interthread, so we can log it
+            interprocess().publish<jaiabot::groups::arduino_from_pi>(arduino_cmd);
+
+            // Send the command to the Arduino
+            auto raw_output = lora::serialize(arduino_cmd);
+            interthread().publish<serial_out>(raw_output);
+
+            return;
+        }
+        // Don't use motor values of less power than the start bounds
+        int corrected_motor;
+
+        if (target_motor > 1500)
+            corrected_motor = max(target_motor, bounds.motor().forwardstart());
+        else if (target_motor == 1500)
+            corrected_motor = target_motor;
+        else if (target_motor < 1500)
+            corrected_motor = min(target_motor, bounds.motor().reversestart());
+
+        arduino_actuators.set_motor(corrected_motor);
+        arduino_actuators.set_rudder(rudder);
+        arduino_actuators.set_stbd_elevator(stbd_elevator);
+        arduino_actuators.set_port_elevator(port_elevator);
+        arduino_actuators.set_led_switch_on(led_switch_on);
+
+        *arduino_cmd.mutable_actuators() = arduino_actuators;
+    }
 
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
@@ -267,4 +325,23 @@ void jaiabot::apps::ArduinoDriver::loop()
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
     interthread().publish<serial_out>(raw_output);
+}
+
+void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    if (!is_driver_compatible_)
+    {
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+        glog.is_warn() &&
+            glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VERSION__MISMATCH_ARDUINO)
+                 << std::endl;
+    }
+
+    health.set_state(health_state);
 }

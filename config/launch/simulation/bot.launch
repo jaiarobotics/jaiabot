@@ -15,6 +15,7 @@ jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager) -vvv -n
 goby_gps <(../../gen/bot.py goby_gps)
 goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
+jaiabot_driver_arduino <(../../gen/bot.py jaiabot_driver_arduino)
 
 # vehicle MOOS components
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos

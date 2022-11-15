@@ -11,6 +11,9 @@
 #include "jaiabot/messages/nanopb/arduino.pb.h"
 #include "crc16.h"
 
+// Indicates the code version
+const int arduino_version = 1;
+
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
 // TODO: Add CRC32?
@@ -96,7 +99,8 @@ enum AckCode {
   MESSAGE_TOO_BIG = 5,
   MESSAGE_WRONG_SIZE = 6,
   MESSAGE_DECODE_ERROR = 7,
-  CRC_ERROR = 8
+  CRC_ERROR = 8,
+  SETTINGS = 9
 };
 
 double Vcccurrent_rolling_average() {
@@ -165,6 +169,7 @@ void send_ack(AckCode code, uint32_t crc=0, uint32_t calculated_crc=0)
   // Vcccurrent
   ack.vcccurrent = Vcccurrent_rolling_average();
   ack.has_vcccurrent = true;
+  ack.version = arduino_version;
 
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
@@ -351,21 +356,29 @@ void loop()
       // send_ack(DEBUG, PB_GET_ERROR(&stream));
     } 
 
-    // The commanded targets
-    target_motor = command.motor;
-    target_rudder = command.rudder;
-    target_stbd_elevator = command.stbd_elevator;
-    target_port_elevator = command.port_elevator;
-    target_led_switch_on = command.led_switch_on;
+    if(command.has_actuators)
+    {
+      // The commanded targets
+      target_motor = command.actuators.motor;
+      target_rudder = command.actuators.rudder;
+      target_stbd_elevator = command.actuators.stbd_elevator;
+      target_port_elevator = command.actuators.port_elevator;
+      target_led_switch_on = command.actuators.led_switch_on; 
+      // Set the timeout vars
+      t_last_command = millis();
+      command_timeout = command.actuators.timeout * 1000;
 
-    // Set the timeout vars
-    t_last_command = millis();
-    command_timeout = command.timeout * 1000;
+      // char message[256];
+      // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
 
-    // char message[256];
-    // sprintf(message, "%ld, %ld, %ld, %ld", command.motor, command.rudder, command.stbd_elevator, command.port_elevator);
-    //Send Ack that we successfully received command
-    send_ack(ACK);
+      //Send Ack that we successfully received command
+      send_ack(ACK);
+    } 
+    else if(command.has_settings)
+    {
+      //Send Ack that we successfully received command
+      send_ack(SETTINGS);
+    }
   }
 
 }
@@ -393,4 +406,6 @@ void halt_all() {
 // from feather.pb.c - would be better to just add the file to the sketch
 // but unclear how to do some from Arduino
 PB_BIND(jaiabot_protobuf_ArduinoCommand, jaiabot_protobuf_ArduinoCommand, 2)
+PB_BIND(jaiabot_protobuf_ArduinoActuators, jaiabot_protobuf_ArduinoActuators, 2)
+PB_BIND(jaiabot_protobuf_ArduinoSettings, jaiabot_protobuf_ArduinoSettings, 2)
 PB_BIND(jaiabot_protobuf_ArduinoResponse, jaiabot_protobuf_ArduinoResponse, 2)
