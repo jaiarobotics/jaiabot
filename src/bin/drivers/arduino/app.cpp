@@ -62,6 +62,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
   private:
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
 
     int64_t lastAckTime;
@@ -120,6 +122,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     for (auto row : cfg().arduino_version_table())
     {
         uint32_t arduino_version = row.arduino_version();
+
         for (auto app_versions : row.app_versions())
         { arduino_version_compatibility_table_[arduino_version].insert(app_versions); }
     }
@@ -180,10 +183,15 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                     if (arduino_version_compatibility_table_.at(arduino_response.version())
                             .count(app_version_))
                     {
+                        glog.is_verbose() && glog << group("main")
+                                                  << "Arduino Driver is compatible: " << std::endl;
                         is_driver_compatible_ = true;
 
                         if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
                         {
+                            glog.is_verbose() &&
+                                glog << group("main")
+                                     << "Settings were Ack by arduino: " << std::endl;
                             is_settings_ack_ = true;
                         }
                     }
@@ -343,13 +351,17 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
 
     if (!is_driver_compatible_)
     {
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
-        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
-        glog.is_warn() &&
-            glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VERSION__MISMATCH_ARDUINO)
-                 << std::endl;
+        check_last_report(health, health_state);
     }
 
     health.set_state(health_state);
+}
+
+void jaiabot::apps::ArduinoDriver::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    health_state = goby::middleware::protobuf::HEALTH__FAILED;
+    health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+        ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
 }
