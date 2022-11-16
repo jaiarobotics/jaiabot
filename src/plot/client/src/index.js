@@ -12,9 +12,13 @@ import JaiaMap from "./JaiaMap.js"
 import TimeSlider from "./TimeSlider.js"
 import { bisect } from "./bisect.js"
 import { DataTable } from "./DataTable.js"
-
+import { mdiDownload } from '@mdi/js'
+import Icon from '@mdi/react'
+import { reverseSubArray } from "ol/array.js"
 
 const APP_NAME = "Data Vision"
+
+const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
 
 
 // Convert from an ISO date string to microsecond UNIX timestamp
@@ -101,13 +105,7 @@ class LogApp extends React.Component {
               this.forceUpdate()
             }}>Save Profile</button>
 
-            <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
-              () => {
-
-                const t_range = this.get_plot_range()
-                this.open_moos_messages(t_range)
-              }
-            }>Download MOOS Messages...</button>
+            {this.downloadCSVButton()}
 
             <button className="padded" onClick={() => {
               this.map.clear()
@@ -321,8 +319,92 @@ class LogApp extends React.Component {
     this.setState({plotNeedsRefresh: false})
   }
 
+  moosMessagesButton() {
+    return (
+      <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
+        () => {
+  
+          const t_range = this.get_plot_range()
+          this.open_moos_messages(t_range)
+        }
+      }>Download MOOS Messages...</button>
+    )
+  }
+
   open_moos_messages(time_range) {
     LogApi.get_moos(this.state.chosen_logs, time_range)
+  }
+
+  downloadCSVButton() {
+
+    function downloadCSV(evt) {
+      const tRange = this.get_plot_range()
+
+      var csvText = ''
+
+      const plots = this.state.plots
+      const plotNames = plots.map((plot) => { return plot.title })
+
+      // Header row
+      csvText = 'Time,_utime_,' + plotNames.join(',') + '\n'
+
+      var t = tRange[0]
+      const STEP = 1e6 // microseconds
+
+      // Indices into the series
+      var indices = Array(plots.length).fill(0)
+      console.log(indices)
+
+      while (t < tRange[1]) {
+        t += STEP
+        const timeString = (new Date(t / 1e3)).toISOString()
+        var csvLine = `${timeString},${t}`
+
+        var done = true // Finish when none of the series are incrementing their indices
+        var nonempty = false
+
+        for (const [plotIndex, plot] of plots.entries()) {
+          var index = indices[plotIndex]
+
+          if (index != plot._utime_.length - 1) {
+            done = false
+          }
+
+          while (index < plot._utime_.length - 1 && plot._utime_[index + 1] < t) {
+            index ++
+          }
+
+          var value = plot._utime_[index] < t ? plot.series_y[index] : null
+          if (value != null) nonempty = true;
+
+          csvLine += `,${value}`
+
+          indices[plotIndex] = index
+        }
+
+        if (nonempty) {
+          csvText += (csvLine + '\n')
+        }
+
+        if (done) break;
+      }
+
+      const blob = new Blob([csvText], {type: "text/csv"})
+
+      var link = window.document.createElement('a')
+      link.href = window.URL.createObjectURL(blob)
+      // Construct filename dynamically and set to link.download
+      link.download = 'missionData.csv'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
+    return (
+      <button className="padded" disabled={this.state.plots.length == 0} onClick={ downloadCSV.bind(this) } hovertext="Download CSV" style={{width: "auto", verticalAlign: "middle"}}>
+        <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
+      </button>
+    )
   }
 
 }
