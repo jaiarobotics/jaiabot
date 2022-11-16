@@ -98,19 +98,6 @@ constexpr int VccVoltage = A0;
 
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
-enum AckCode {
-  STARTUP = 0,
-  ACK = 1,
-  TIMEOUT = 2,
-  PREFIX_READ_ERROR = 3,
-  MAGIC_WRONG = 4,
-  MESSAGE_TOO_BIG = 5,
-  MESSAGE_WRONG_SIZE = 6,
-  MESSAGE_DECODE_ERROR = 7,
-  CRC_ERROR = 8,
-  SETTINGS = 9
-};
-
 double Vcccurrent_rolling_average() {
 
   //for rolling average
