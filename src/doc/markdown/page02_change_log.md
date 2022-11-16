@@ -2,6 +2,12 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.1.0
+
+* New ramping logic that makes the motor ramping smoother
+* New ability to send forward and reserve start motor speeds from the bounds file (/etc/jaiabot)
+* Added boiler code for arduino version control
+
 ### 1.0.4
 
 * Fixed missing requirements file for web and plot applications.

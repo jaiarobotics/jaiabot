@@ -2,7 +2,13 @@ syntax = "proto2";
 
 package jaiabot.protobuf;
 
-message ArduinoCommand
+message ArduinoSettings
+{
+    required sint32 forward_start = 1;
+    required sint32 reverse_start = 2;
+}
+
+message ArduinoActuators
 {
     // Values to control the motor, surfaces, etc.
     required sint32 motor = 1;
@@ -13,6 +19,11 @@ message ArduinoCommand
     required bool led_switch_on = 6;
 }
 
+message ArduinoCommand
+{
+    optional ArduinoSettings settings = 1;
+    optional ArduinoActuators actuators = 2;
+}
 
 message ArduinoResponse
 {
@@ -24,4 +35,5 @@ message ArduinoResponse
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;
+    optional uint32 version = 52 [default = 0];
 }
