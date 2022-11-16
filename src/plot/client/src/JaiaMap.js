@@ -22,36 +22,7 @@ import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHea
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
-
-// Performs a binary search on a sorted array, using a function f to determine ordering
-function bisect(sorted_array, f) {
-    let start = 0, end = sorted_array.length - 1
-    
-    // target is before the beginning of the array, so return null
-    if (f(sorted_array[start]) < 0) {
-        return null
-    }
-
-    // Iterate while start not meets end
-    while (start <= end) {
-        if (end - start <= 1)
-            return sorted_array[start]
-
-            // Find the mid index
-            let mid = Math.floor((start + end) / 2)
-
-            // Find which half we're in
-            if (f(sorted_array[mid]) < 0) {
-                end = mid
-            }
-        else {
-            start = mid
-        }
-    }
-
-    return null
-}
-
+import {bisect} from './bisect'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros) {
@@ -437,7 +408,7 @@ export default class JaiaMap {
 
                 const point = bisect(path_point_array, (point) => {
                     return timestamp_micros - point[0]
-                })
+                })?.[1]
                 if (point == null) continue;
 
                 const properties = {
@@ -484,7 +455,7 @@ export default class JaiaMap {
 
             const command = bisect(command_array, (command) => {
                 return timestamp_micros - command._utime_
-            })
+            })?.[1]
 
             if (command == null) {
                 return
@@ -495,7 +466,7 @@ export default class JaiaMap {
 
             const active_goal = bisect(active_goals_array, (active_goal) => {
                 return timestamp_micros - active_goal._utime_
-            })
+            })?.[1]
 
             const active_goal_index = active_goal?.active_goal
 

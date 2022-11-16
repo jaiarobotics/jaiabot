@@ -276,3 +276,22 @@ li::marker {
     bottom: 0pt;
     margin: 10pt;
 }
+
+.dataTable {
+    width: 100%;
+}
+
+.dataTable>table {
+    width: 100%;
+    padding: 10pt;
+}
+
+th {
+    background-color: lightskyblue;
+    margin: 5pt;
+    text-align: left;
+}
+
+td.dataKey {
+    width: 30%;
+}

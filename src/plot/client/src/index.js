@@ -10,6 +10,8 @@ import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
 import TimeSlider from "./TimeSlider.js"
+import { bisect } from "./bisect.js"
+import { DataTable } from "./DataTable.js"
 
 
 const APP_NAME = "Data Vision"
@@ -30,7 +32,6 @@ class LogApp extends React.Component {
       logs : [],
       is_selecting_logs: false,
       chosen_logs : [],
-      chosen_paths : [],
       plots : [],
       layerSwitcherVisible: false,
       plotNeedsRefresh: false,
@@ -51,6 +52,7 @@ class LogApp extends React.Component {
     // Show the plots, if present
     const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
         <div id="plot" className="plot"></div>
+        {DataTable(this.state.plots, this.state.t)}
     </div>
 
     return (
@@ -138,8 +140,6 @@ class LogApp extends React.Component {
       </Router>
     )
   }
-
-
 
   togglerLayerSwitcher() {
     var {layerSwitcherVisible} = this.state
