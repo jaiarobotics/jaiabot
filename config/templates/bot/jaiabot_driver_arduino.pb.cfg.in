@@ -7,3 +7,18 @@ serial_arduino {
 }
 
 $jaiabot_driver_arduino_bounds
+
+arduino_version_table: {
+    arduino_version: 0
+    app_versions: ""
+}
+
+arduino_version_table: {
+    arduino_version: 1
+    app_versions: "1.0.0"
+    app_versions: "1.0.1"
+    app_versions: "1.0.2"
+    app_versions: "1.0.3"
+    app_versions: "1.0.4"
+    app_versions: "1.0.4~beta0"
+}
