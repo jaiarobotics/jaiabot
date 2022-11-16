@@ -34,6 +34,7 @@ using namespace std;
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
+#include "jaiabot/version.h"
 
 #define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
 
@@ -87,15 +88,11 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
-    /**
-     * TODO: make this var false
-     * Then get the current version of the arduino driver
-     * Check to see if the arduino code is compatible
-     */
-    bool is_driver_compatible_{true};
+
+    bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
-    //This needs to be grabbed at runtime
-    std::string app_version = "1.0.0~beta0+18+g2350a1a-0~ubuntu20.04.1";
+    std::string app_version_{VERSION_STRING};
+    std::string delimiter_{"+"};
 };
 
 } // namespace apps
@@ -138,10 +135,10 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         }
     }
 
-    std::string delimiter = "+";
-    std::string version = app_version.substr(0, app_version.find(delimiter));
+    // Let's just get the major, minor, and patch number without git hash
+    app_version_ = app_version_.substr(0, app_version_.find(delimiter_));
 
-    glog.is_verbose() && glog << group("main") << "\tjaiabot-embedded version: " << version
+    glog.is_verbose() && glog << group("main") << "\tarduino driver version: " << app_version_
                               << std::endl;
 
     // Setup our bounds configuration
@@ -172,30 +169,20 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-            if (arduino_response.status_code() > 1)
+            if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
             {
                 glog.is_warn() && glog << group("arduino")
                                        << "ArduinoResponse: " << arduino_response.ShortDebugString()
                                        << std::endl;
 
-                // 9 is the settings status
-                // TODO investigate enums with arduino protos
-                // TODO remove this code block (Need version control working)
-                if (arduino_response.status_code() == 9)
-                {
-                    is_settings_ack_ = true;
-                }
-
                 if (arduino_version_compatibility_table_.count(arduino_response.version()))
                 {
                     if (arduino_version_compatibility_table_.at(arduino_response.version())
-                            .count(app_version))
+                            .count(app_version_))
                     {
                         is_driver_compatible_ = true;
 
-                        // 9 is the settings status
-                        // TODO investigate enums with arduino protos
-                        if (arduino_response.status_code() == 9)
+                        if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
                         {
                             is_settings_ack_ = true;
                         }

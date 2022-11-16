@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/coroner.proto";
+import "jaiabot/messages/arduino.proto";
 
 package jaiabot.protobuf;
 
@@ -332,7 +333,7 @@ message ArduinoStatus
     option (dccl.msg) = {
         unit_system: "si"
     };
-    optional sint32 code = 1 [default = 1];
+    optional ArduinoStatusCode code = 1;
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];;

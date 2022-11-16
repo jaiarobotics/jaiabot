@@ -15,10 +15,8 @@ arduino_version_table: {
 
 arduino_version_table: {
     arduino_version: 1
-    app_versions: "1.0.0"
-    app_versions: "1.0.1"
-    app_versions: "1.0.2"
-    app_versions: "1.0.3"
-    app_versions: "1.0.4"
-    app_versions: "1.0.4~beta0"
+    app_versions: "1.1.1"
+    app_versions: "1.1.1~beta0"
+    app_versions: "1.2.0"
+    app_versions: "1.2.0~beta0"
 }
