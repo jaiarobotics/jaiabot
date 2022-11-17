@@ -11,4 +11,4 @@ popd
 pushd server
     ./build_messages.sh
     ./app.py $1
-popd server
+popd

@@ -831,7 +831,7 @@ function updateStatus(status) {
     innerHTML += "<tr>"
     innerHTML += "<td>" + bot.botId + "</td>"
 
-    innerHTML += "<td>" + bot.missionState + "</td>"
+    innerHTML += "<td>" + bot.mission_state + "</td>"
 
     let bot_location = bot.location || null
     let hub_location = hub?.location || null
@@ -843,9 +843,9 @@ function updateStatus(status) {
 
     innerHTML += "<td>" + (bot.depth?.toFixed(1) || "?") + "</td>"
 
-    innerHTML += "<td>" + (bot.speed?.overGround?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.speed?.over_ground?.toFixed(1) || "?") + "</td>"
     innerHTML +=
-        "<td>" + (bot.attitude?.courseOverGround?.toFixed(1) || "?") + "</td>"
+        "<td>" + (bot.attitude?.course_over_ground?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot.attitude?.heading?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot.attitude?.pitch?.toFixed(1) || "?") + "</td>"
     innerHTML += "<td>" + (bot.attitude?.roll?.toFixed(1) || "?") + "</td>"
@@ -854,15 +854,15 @@ function updateStatus(status) {
 
     innerHTML += "<td>" + (bot.salinity?.toFixed(1) || "?") + "</td>"
 
-    innerHTML += "<td>" + (bot.vccVoltage?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vccCurrent?.toFixed(1) || "?") + "</td>"
-    innerHTML += "<td>" + (bot.vvCurrent?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.vcc_voltage?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.vcc_current?.toFixed(1) || "?") + "</td>"
+    innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>"
 
     innerHTML +=
-        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
+        "<td>" + Math.max(0.0, bot.portal_status_age / 1e6).toFixed(0) + "</td>"
 
-    lastCommandTime = bot.lastCommandTime
-                          ? ((now_us - bot.lastCommandTime) / 1e6).toFixed(0)
+    lastCommandTime = bot.last_command_time
+                          ? ((now_us - bot.last_command_time) / 1e6).toFixed(0)
                           : ""
     innerHTML += "<td>" + lastCommandTime + "</td>"
 

@@ -5,6 +5,7 @@
 
 import React from 'react'
 import Settings from './Settings'
+import Button from '@mui/material/Button';
 
 export class MissionSettingsPanel extends React.Component {
 
@@ -120,8 +121,8 @@ export class MissionSettingsPanel extends React.Component {
 
                     <hr/>
                     <div className='HorizontalFlexbox'>
-                        <button onClick={this.closeClicked.bind(this)}>Close</button>
-                        <button onClick={this.applyMissionClicked.bind(this)}>Apply</button>
+                        <Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>
+                        <Button className="button-jcc" onClick={this.applyMissionClicked.bind(this)}>Apply</Button>
                     </div>
 
                     <hr/>
