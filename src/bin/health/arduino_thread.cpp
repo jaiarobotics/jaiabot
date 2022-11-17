@@ -36,7 +36,7 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
     battery_voltage_low_level_ = cfg.battery_voltage_low_level();
     battery_voltage_very_low_level_ = cfg.battery_voltage_very_low_level();
     battery_voltage_critically_low_level_ = cfg.battery_voltage_critically_low_level();
-    watch_battery_percentage_ = cfg.watch_battery_percentage();
+    watch_battery_voltage_ = cfg.watch_battery_voltage();
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             last_arduino_report_time_ = goby::time::SteadyClock::now();
@@ -48,7 +48,7 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
             status_.set_crc(arduino_response.crc());
             status_.set_calculated_crc(arduino_response.calculated_crc());
 
-            if (arduino_response.has_vccvoltage() && !watch_battery_percentage_)
+            if (arduino_response.has_vccvoltage() && watch_battery_voltage_)
             {
                 if (arduino_response.vccvoltage() < battery_voltage_critically_low_level_)
                 {

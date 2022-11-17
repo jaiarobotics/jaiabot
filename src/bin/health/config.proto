@@ -77,7 +77,7 @@ message ArduinoStatusConfig
     optional float battery_voltage_very_low_level = 12 [default = 18];
     optional float battery_voltage_critically_low_level = 13 [default = 17.75];
     optional int32 vvcvoltage_report_timeout_seconds = 14 [default = 20];
-    optional bool watch_battery_percentage = 15 [default = true];
+    optional bool watch_battery_voltage = 15 [default = false];
 }
 
 message Health

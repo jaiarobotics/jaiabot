@@ -63,4 +63,6 @@ message Fusion
 
     repeated jaiabot.protobuf.MissionState include_imu_detection_states = 38;
 
+    optional bool watch_battery_percentage = 39 [default = true];
+
 }
