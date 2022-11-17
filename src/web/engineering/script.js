@@ -678,7 +678,7 @@ function getVisibleCommand() {
       case 0:   
         if(el("throttleSlider").value > SAFE_BOT_SPEED)
         {
-          warningStatusInner = "<label style='color:red; display: inline-block;'>You are running above the safe speed level for the bot? (This may result in hardware failure)</label>"
+          warningStatusInner = "<label style='color:red; display: inline-block; font-size:24pt'>You are running above the safe speed level for the bot? (This may result in hardware failure)</label>"
         }
         else
         {
@@ -702,6 +702,7 @@ function getVisibleCommand() {
     // Man is dead!  Send zero throttle...
     pid_control.throttle = 0
     delete pid_control.speed
+    warningStatusInner = "";
   }
   
   // Rudder
