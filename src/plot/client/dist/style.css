@@ -22,7 +22,6 @@
 
 .plotcontainer {
     overflow: auto;
-    height: 100%;
     flex: 1 1 50%;
 }
 
@@ -61,6 +60,7 @@
 
 .bottomPane {
     flex-grow: 1;
+    height: 80%;
 }
 
 .jaia-icon {
@@ -224,7 +224,6 @@ li::marker {
 #mapPane {
     display: block;
     position: relative;
-    height: 100%;
     flex: 1 1 50%;
 }
 
@@ -344,4 +343,15 @@ td.dataKey {
 
 .plotButtonBar {
     margin: 4pt;
+}
+
+.rightJustify {
+    display: "inline-block";
+    position: "absolute";
+    top: 10pt;
+    right: 10pt;
+}
+
+.growable {
+    flex-grow: 1;
 }

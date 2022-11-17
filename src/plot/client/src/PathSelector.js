@@ -17,7 +17,7 @@ export default class PathSelector extends React.Component {
     }
 
     componentDidMount() {
-        this.update_path_options()
+        this.update_path_options(true)
     }
 
     render() {
@@ -43,7 +43,6 @@ export default class PathSelector extends React.Component {
 
         <div className="buttonSection section">
             <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
-            <button className="padded" onClick={this.selectClicked.bind(this)}>Select</button>
         </div>
       </div>
       )
@@ -53,11 +52,7 @@ export default class PathSelector extends React.Component {
         this.props.didCancel?.()
     }
 
-    selectClicked(evt) {
-
-    }
-
-    update_path_options() {
+    update_path_options(shouldAutoselect) {
         // Clear options
         this.setState({next_path_segments: []})
 
@@ -81,15 +76,15 @@ export default class PathSelector extends React.Component {
                 this.props.didSelectPath?.(this.state.chosen_path)
 
                 // Reset the selector
-                this.setState({chosen_path: ''}, this.update_path_options.bind(this))
+                this.setState({chosen_path: ''}, this.update_path_options.bind(this, shouldAutoselect))
 
                 return
             }
 
             // Only one option, so select it and go to the nexxt level
-            if (paths.length == 1) {
+            if (shouldAutoselect && paths.length == 1) {
                 let chosen_path = this.state.chosen_path + '/' + paths[0]
-                this.setState({chosen_path}, this.update_path_options.bind(this))
+                this.setState({chosen_path}, this.update_path_options.bind(this, shouldAutoselect))
                 return
             }
 
@@ -100,7 +95,7 @@ export default class PathSelector extends React.Component {
 
     didSelectPathSegmentRow(nextPathSegment) {
         let chosen_path = this.state.chosen_path + '/' + nextPathSegment
-        this.setState({chosen_path: chosen_path}, this.update_path_options.bind(this))
+        this.setState({chosen_path: chosen_path}, this.update_path_options.bind(this, true))
     }
 
     nextPathSegmentRows() {
@@ -119,7 +114,7 @@ export default class PathSelector extends React.Component {
             chosen_path = chosen_path.substring(0, location)
         }
 
-        this.setState({chosen_path}, this.update_path_options.bind(this))
+        this.setState({chosen_path}, this.update_path_options.bind(this, false))
     }
 
 }

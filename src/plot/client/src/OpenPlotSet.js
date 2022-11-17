@@ -1,5 +1,7 @@
+import { mdiTrashCan } from "@mdi/js";
 import React from "react"
 import PlotProfiles from "./PlotProfiles";
+import Icon from "@mdi/react";
 
 // Dropdown menu showing all of the available logs to choose from
 export class OpenPlotSet extends React.Component {
@@ -16,8 +18,13 @@ export class OpenPlotSet extends React.Component {
         const plotSetItems = Object.keys(this.state.plotSets).map((name, index) => {
             const key = `${name}-${index}`
 
-            const row = <div key={key} onClick={ this.didClickPlotSet.bind(this, name) } className="padded listItem">
-                {name}
+            const row = <div key={key} onClick={ this.didClickPlotSet.bind(this, name) } className="padded listItem horizontal flexbox">
+                <div className="growable">
+                    {name}
+                </div>
+                <button title="Delete" className="button" onClick={ this.didClickDeletePlotSet.bind(this, name) }>
+                    <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+                </button>
             </div>
 
             return row
@@ -38,6 +45,12 @@ export class OpenPlotSet extends React.Component {
             </div>
           </div>
         )
+    }
+
+    didClickDeletePlotSet(name, evt) {
+        PlotProfiles.delete_profile(name)
+        this.setState({plotSets: PlotProfiles.plot_profiles()})
+        evt.stopPropagation()
     }
 
     didClickPlotSet(name) {

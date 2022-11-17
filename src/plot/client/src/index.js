@@ -11,7 +11,7 @@ import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
 import TimeSlider from "./TimeSlider.js"
 import { DataTable } from "./DataTable.js"
-import { mdiClose, mdiDownload, mdiFolderOpen, mdiPlus, mdiTrashCan } from '@mdi/js'
+import { mdiClose, mdiContentSave, mdiDownload, mdiFloppy, mdiFloppyVariant, mdiFolderOpen, mdiPlus, mdiTrashCan } from '@mdi/js'
 import Icon from '@mdi/react'
 import { downloadCSV } from "./DownloadCSV.js"
 import { OpenPlotSet } from "./OpenPlotSet.js"
@@ -48,7 +48,8 @@ class LogApp extends React.Component {
       // Plot selection
       isPathSelectorDisplayed: false,
 
-      isOpenPlotSetDisplayed: false
+      // Plot sets
+      isOpenPlotSetDisplayed: false,
     }
   }
 
@@ -71,16 +72,6 @@ class LogApp extends React.Component {
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
             <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
-          </div>
-
-          <div>
-            <button className="padded" onClick={() => {
-              let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
-              let plot_profile = this.state.plots.map((series) => series.path)
-              PlotProfiles.save_profile(plot_profile_name, plot_profile)
-              this.forceUpdate()
-            }}>Save Profile</button>
-
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -200,7 +191,7 @@ class LogApp extends React.Component {
         })
         .catch(err => {alert(err)})
 
-    this.setState({pathSelectorOpen: false})
+    this.setState({isPathSelectorDisplayed: false})
   }
 
   get_plot_range() {
@@ -321,6 +312,9 @@ class LogApp extends React.Component {
         <button title="Load Plot Set" className="plotButton" onClick={ this.loadPlotSetClicked.bind(this) }>
           <Icon path={mdiFolderOpen} size={1} style={{verticalAlign: "middle"}}></Icon>
         </button>
+        <button title="Save Plot Set" className="plotButton" onClick={ this.savePlotSetClicked.bind(this) }>
+          <Icon path={mdiContentSave} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
         <button title="Download CSV" className="plotButton" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} }>
           <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
         </button>
@@ -335,7 +329,7 @@ class LogApp extends React.Component {
 
     if (this.state.isPathSelectorDisplayed) {
       var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
-      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({pathSelectorOpen: false})} } /> 
+      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } /> 
     }
     else {
       var pathSelector = null
@@ -343,7 +337,7 @@ class LogApp extends React.Component {
 
     let deleteButtons = this.state.plots.map((plot, plotIndex) => {
       return (
-        <button title="Clear Plots" className="plotButton" onClick={ this.deletePlotClicked.bind(this, plotIndex) } key={plot.title + '-deleteButton'}>
+        <button title="Clear Plots" className="plotButton" onClick={ this.deletePlotClicked.bind(this, plotIndex) } key={plotIndex + '-deleteButton'}>
           <Icon path={mdiClose} size={1} style={{verticalAlign: "middle"}}></Icon>
         </button>
       )
@@ -369,7 +363,8 @@ class LogApp extends React.Component {
   }
 
   addPlotClicked() {
-    this.setState({pathSelectorOpen: true, plotSelectorPathComponents: []})
+    console.log('hello?')
+    this.setState({isPathSelectorDisplayed: true})
   }
 
   clearPlotsClicked() {
@@ -389,6 +384,17 @@ class LogApp extends React.Component {
   didOpenPlotSet(plotSet) {
     this.setState({isOpenPlotSetDisplayed: false})
     this.didSelectPaths(plotSet)
+  }
+
+  savePlotSetClicked() {
+    const plotSetName = prompt("Please name this plot set")
+
+    if (PlotProfiles.exists(plotSetName)) {
+      if (!confirm(`Are you sure you want to overwrite plot set named \"${plotSetName}?`)) return
+    }
+
+    let pathNames = this.state.plots.map((series) => series.path)
+    PlotProfiles.save_profile(plotSetName, pathNames)
   }
 
 }

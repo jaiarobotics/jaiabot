@@ -12,7 +12,7 @@ export function DataTable(plots, timestamp_micros) {
 
     const dataRows = (
       <tbody>
-        {plots.map((plot) => {
+        {plots.map((plot, plotIndex) => {
           const index = bisect(plot._utime_, (_utime_) => {
             return timestamp_micros - _utime_
           })?.[0]
@@ -28,7 +28,7 @@ export function DataTable(plots, timestamp_micros) {
             valueString = value?.toPrecision(6) ?? "-"
           }
 
-          return <tr key={plot.title}>
+          return <tr key={plot.title + plotIndex}>
             <td className="dataKey">{plot.title}</td>
             <td>{valueString}</td>
           </tr>
