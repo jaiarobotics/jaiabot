@@ -11,9 +11,10 @@ import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
 import TimeSlider from "./TimeSlider.js"
 import { DataTable } from "./DataTable.js"
-import { mdiClose, mdiDownload, mdiPlus, mdiTrashCan } from '@mdi/js'
+import { mdiClose, mdiDownload, mdiFolderOpen, mdiPlus, mdiTrashCan } from '@mdi/js'
 import Icon from '@mdi/react'
 import { downloadCSV } from "./DownloadCSV.js"
+import { OpenPlotSet } from "./OpenPlotSet.js"
 
 const APP_NAME = "Data Vision"
 
@@ -45,8 +46,9 @@ class LogApp extends React.Component {
       tMax: null, // Maximum time for these logs
 
       // Plot selection
-      pathSelectorOpen: false,
-      plotSelectorPathComponents: []
+      isPathSelectorDisplayed: false,
+
+      isOpenPlotSetDisplayed: false
     }
   }
 
@@ -72,8 +74,6 @@ class LogApp extends React.Component {
           </div>
 
           <div>
-            <LoadProfile did_select_plot_set={ this.didSelectPaths.bind(this) } />
-
             <button className="padded" onClick={() => {
               let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
               let plot_profile = this.state.plots.map((series) => series.path)
@@ -318,6 +318,9 @@ class LogApp extends React.Component {
         <button title="Add Plot" className="plotButton" onClick={ this.addPlotClicked.bind(this) }>
           <Icon path={mdiPlus} size={1} style={{verticalAlign: "middle"}}></Icon>
         </button>
+        <button title="Load Plot Set" className="plotButton" onClick={ this.loadPlotSetClicked.bind(this) }>
+          <Icon path={mdiFolderOpen} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
         <button title="Download CSV" className="plotButton" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} }>
           <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
         </button>
@@ -330,7 +333,7 @@ class LogApp extends React.Component {
       var actionBar = null
     }
 
-    if (this.state.pathSelectorOpen) {
+    if (this.state.isPathSelectorDisplayed) {
       var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
       {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({pathSelectorOpen: false})} } /> 
     }
@@ -346,6 +349,8 @@ class LogApp extends React.Component {
       )
     })
 
+    const openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet={ this.didOpenPlotSet.bind(this) }></OpenPlotSet> : null
+
     return (
       <div className="plotcontainer">
         <h2>Plots</h2>
@@ -358,6 +363,7 @@ class LogApp extends React.Component {
           </div>
         </div>
         { DataTable(this.state.plots, this.state.t)}
+        { openPlotSet }
       </div>
     )
   }
@@ -374,6 +380,15 @@ class LogApp extends React.Component {
     let {plots} = this.state
     plots.splice(plotIndex, 1)
     this.setState({plots: plots, plotNeedsRefresh: true})
+  }
+
+  loadPlotSetClicked() {
+    this.setState({isOpenPlotSetDisplayed: true})
+  }
+
+  didOpenPlotSet(plotSet) {
+    this.setState({isOpenPlotSetDisplayed: false})
+    this.didSelectPaths(plotSet)
   }
 
 }
