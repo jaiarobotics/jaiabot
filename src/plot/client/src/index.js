@@ -11,7 +11,7 @@ import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
 import TimeSlider from "./TimeSlider.js"
 import { DataTable } from "./DataTable.js"
-import { mdiDownload } from '@mdi/js'
+import { mdiClose, mdiDownload, mdiPlus, mdiTrashCan } from '@mdi/js'
 import Icon from '@mdi/react'
 import { downloadCSV } from "./DownloadCSV.js"
 
@@ -43,6 +43,10 @@ class LogApp extends React.Component {
       t: null, // Currently selected time
       tMin: null, // Minimum time for these logs
       tMax: null, // Maximum time for these logs
+
+      // Plot selection
+      pathSelectorOpen: false,
+      plotSelectorPathComponents: []
     }
   }
 
@@ -52,50 +56,23 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
 
-    // Show the plots, if present
-    const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
-        <div id="plot" className="plot"></div>
-        {DataTable(this.state.plots, this.state.t)}
-    </div>
-
     return (
       <Router>
-        <div><div className = "vertical flexbox top_pane padded">
-
-        <div className = "row"><div>
-        <img src = "/favicon.png" className = "jaia-icon" /><h2 style = {
-          {
-            display: "inline-block", verticalAlign: "text-bottom",
-                margin: "10pt"
-          }
-        }>{APP_NAME}</h2>
+        <div className="vertical flexbox maximized">
+          <div className = "vertical flexbox top_pane padded">
+            <div className = "row">
+              <img src = "/favicon.png" className = "jaia-icon" />
+              <h2 className="appName">{APP_NAME}</h2>
             </div>
-        </div>
-
-        <span>
-          <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-          <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
-        </span>
-
-        { log_selector }
-
-        <PathSelector logs = {this.state.chosen_logs} key =
-            {this.state.chosen_logs} on_select_path =
-        {
-          (path) => {this.didSelectPaths([path])}
-        } />
+          </div>
 
           <div>
-            <button className="padded" onClick={() => {
-              this.setState({plots: []})
-            }}>Clear Plots</button>
+            <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+            <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
+          </div>
 
-        <LoadProfile did_select_plot_set =
-        {
-          (pathArray) => {
-            this.didSelectPaths(pathArray)
-          }
-        } />
+          <div>
+            <LoadProfile did_select_plot_set={ this.didSelectPaths.bind(this) } />
 
             <button className="padded" onClick={() => {
               let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
@@ -104,36 +81,33 @@ class LogApp extends React.Component {
               this.forceUpdate()
             }}>Save Profile</button>
 
-            {this.downloadCSVButton()}
+          </div>
 
-            <button className="padded" onClick={() => {
-              this.map.clear()
-            }}>Clear Map</button>
+          <div className = "bottomPane flexbox horizontal">
+            { this.plotSection() }
 
-        </div>
-        </div>
-
-        <div className = "bottom_pane flexbox horizontal">
-          { plotContainer }
-
-          <div id="mapPane">
-            <div className="flexbox vertical" style={{height:'100%'}}>
-              <div style={{width:'100%', flexGrow:1}}>
-                <div className="openlayers-map" id="openlayers-map">
+            <div id="mapPane">
+              <div className="flexbox vertical" style={{height:'100%'}}>
+                <div style={{width:'100%', flexGrow:1}}>
+                  <div className="openlayers-map" id="openlayers-map"></div>
+                  <div id="mapControls">
+                    <div id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+                    <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                    <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
+                      <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+                    </button>
+                  </div>
                 </div>
-                <div id="mapControls">
-                  <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
-                  <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
-                </div>
+                <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
+                  this.map.updateToTimestamp(t)
+                  this.setState({t: t })
+                }}></TimeSlider>
               </div>
-              <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
-                this.map.updateToTimestamp(t)
-                this.setState({t: t })
-              }}></TimeSlider>
             </div>
           </div>
+          { log_selector }
         </div>
-        </div>
+
       </Router>
     )
   }
@@ -225,6 +199,8 @@ class LogApp extends React.Component {
           }
         })
         .catch(err => {alert(err)})
+
+    this.setState({pathSelectorOpen: false})
   }
 
   get_plot_range() {
@@ -334,12 +310,70 @@ class LogApp extends React.Component {
     LogApi.get_moos(this.state.chosen_logs, time_range)
   }
 
-  downloadCSVButton() {
+  // Plot Section
+
+  plotSection() {
+    if (this.state.chosen_logs.length > 0) {
+      var actionBar = <div className="plotButtonBar">
+        <button title="Add Plot" className="plotButton" onClick={ this.addPlotClicked.bind(this) }>
+          <Icon path={mdiPlus} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+        <button title="Download CSV" className="plotButton" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} }>
+          <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
+        </button>
+        <button title="Clear Plots" className="plotButton" onClick={ this.clearPlotsClicked.bind(this) }>
+          <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+      </div>
+    }
+    else {
+      var actionBar = null
+    }
+
+    if (this.state.pathSelectorOpen) {
+      var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
+      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({pathSelectorOpen: false})} } /> 
+    }
+    else {
+      var pathSelector = null
+    }
+
+    let deleteButtons = this.state.plots.map((plot, plotIndex) => {
+      return (
+        <button title="Clear Plots" className="plotButton" onClick={ this.deletePlotClicked.bind(this, plotIndex) } key={plot.title + '-deleteButton'}>
+          <Icon path={mdiClose} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+      )
+    })
+
     return (
-      <button className="padded" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} } hovertext="Download CSV" style={{width: "auto", verticalAlign: "middle"}}>
-        <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
-      </button>
+      <div className="plotcontainer">
+        <h2>Plots</h2>
+        {actionBar}
+        {pathSelector}
+        <div className="horizontal flexbox">
+          <div id="plot" className="plot"></div>
+          <div className="vertical flexbox deleteButtonSection">
+            { deleteButtons }
+          </div>
+        </div>
+        { DataTable(this.state.plots, this.state.t)}
+      </div>
     )
+  }
+
+  addPlotClicked() {
+    this.setState({pathSelectorOpen: true, plotSelectorPathComponents: []})
+  }
+
+  clearPlotsClicked() {
+    this.setState({plots: [], plotNeedsRefresh: true})
+  }
+
+  deletePlotClicked(plotIndex) {
+    let {plots} = this.state
+    plots.splice(plotIndex, 1)
+    this.setState({plots: plots, plotNeedsRefresh: true})
   }
 
 }

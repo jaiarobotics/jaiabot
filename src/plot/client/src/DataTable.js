@@ -2,6 +2,8 @@ import React from "react"
 import { bisect } from "./bisect"
 
 export function DataTable(plots, timestamp_micros) {
+    if (plots.length == 0) return null
+
     const headerRow = (
       <thead>
         <tr><th>Key</th><th>Value</th></tr>
