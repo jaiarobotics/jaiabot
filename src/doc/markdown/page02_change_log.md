@@ -2,6 +2,11 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.1.2
+
+* Fixed IMU port switching
+* Added warning in JED for throttle control
+
 ### 1.1.1
 
 * Changing health enum ERROR__FAILED__JAIABOT_DATA_VISION -> ERROR__FAILED__JAIABOT_PLOT 
