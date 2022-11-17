@@ -1,6 +1,9 @@
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
 let warningStatusInner = ""
+//****** Changing the SAFE_BOT_SPEED may result in bot hardware failure   ****** 
+//****** Please do not increase the SAFE_BOT_SPEED unless you know the  ****** 
+//****** consequences                                                     ******
 let SAFE_BOT_SPEED = 60;
 
 
