@@ -91,7 +91,7 @@ export function botMarker(feature) {
 
 export function courseOverGroundArrow(feature) {
     const courseOverGround = feature.get('courseOverGround') * DEG
-    const color = 'green'
+    const color = feature.get('selected') ? selectedColor : defaultColor
 
     return new Style({
         image: new Icon({
@@ -107,7 +107,7 @@ export function courseOverGroundArrow(feature) {
 
 export function desiredHeadingArrow(feature) {
     const desiredHeading = feature.get('desiredHeading') * DEG
-    const color = 'green'
+    const color = feature.get('selected') ? selectedColor : defaultColor
 
     return new Style({
         image: new Icon({

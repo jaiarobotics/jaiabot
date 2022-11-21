@@ -256,5 +256,4 @@ class Interface:
     # Contour map
 
     def get_depth_contours(self):
-
         return contours.taskPacketsToContours(self.task_packets)

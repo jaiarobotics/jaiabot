@@ -150,6 +150,11 @@ import missionOrientationIcon from '../icons/compass.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
 
+import taskNone from './gui/taskNone.svg'
+import taskDive from './gui/taskDive.svg'
+import taskDrift from './gui/taskDrift.svg'
+import taskStationKeep from './gui/taskStationKeep.svg'
+
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
@@ -2470,20 +2475,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	setGrid2Style(self, feature, taskType) {
-		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+		let gridStyle = new OlIcon({ src: taskNone })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				gridStyle = new OlIcon({ src: taskDive })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				gridStyle = new OlIcon({ src: taskNone })
 				break;
 			default:
 				break;
@@ -2500,20 +2505,20 @@ export default class CommandControl extends React.Component {
 
 		// console.log(taskType);
 
-		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+		let gridStyle = new OlIcon({ src: taskNone })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				gridStyle = new OlIcon({ src: taskDive })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				gridStyle = new OlIcon({ src: taskNone })
 				break;
 			default:
 				break;

@@ -34,15 +34,15 @@ message BotPidControl
     optional PIDGains pitch_pid_gains = 70;
 
     // Speed => rpm table
-    optional bool use_rpm_table_for_speed = 31;
+    optional bool use_throttle_table_for_speed = 31;
 
-    message RPMSpeedEntry
+    message ThrottleSpeedEntry
     {
         required double speed = 1
             [(dccl.field).units = {derived_dimensions: "velocity"}];
-        required int32 rpm = 2;
+        required int32 throttle = 2;
     }
-    repeated RPMSpeedEntry rpm_table = 32;
+    repeated ThrottleSpeedEntry throttle_table = 32;
 
     optional jaiabot.protobuf.Bounds bounds = 80;
 }

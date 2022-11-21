@@ -550,11 +550,11 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                                 </tr>
                                 <tr>
                                     <td>Vcc Current</td>
-                                    <td>{bot.vccCurrent?.toFixed(prec)} A</td>
+                                    <td>{bot.vcc_current?.toFixed(prec)} A</td>
                                 </tr>
                                 <tr>
                                     <td>5v Current</td>
-                                    <td>{bot.vvCurrent?.toFixed(prec)} A</td>
+                                    <td>{bot.vv_current?.toFixed(prec)} A</td>
                                 </tr>
                             </tbody>
                         </table>   
