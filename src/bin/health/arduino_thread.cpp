@@ -48,31 +48,34 @@ jaiabot::apps::ArduinoStatusThread::ArduinoStatusThread(
             status_.set_crc(arduino_response.crc());
             status_.set_calculated_crc(arduino_response.calculated_crc());
 
-            if (arduino_response.has_vccvoltage() && watch_battery_voltage_)
+            if (arduino_response.has_vccvoltage())
             {
-                if (arduino_response.vccvoltage() < battery_voltage_critically_low_level_)
+                if (watch_battery_voltage_)
                 {
-                    voltage_critically_low_ = true;
-                    voltage_very_low_ = false;
-                    voltage_low_ = false;
-                }
-                else if (arduino_response.vccvoltage() < battery_voltage_very_low_level_)
-                {
-                    voltage_critically_low_ = false;
-                    voltage_very_low_ = true;
-                    voltage_low_ = false;
-                }
-                else if (arduino_response.vccvoltage() < battery_voltage_low_level_)
-                {
-                    voltage_critically_low_ = false;
-                    voltage_very_low_ = false;
-                    voltage_low_ = true;
-                }
-                else
-                {
-                    voltage_critically_low_ = false;
-                    voltage_very_low_ = false;
-                    voltage_low_ = false;
+                    if (arduino_response.vccvoltage() < battery_voltage_critically_low_level_)
+                    {
+                        voltage_critically_low_ = true;
+                        voltage_very_low_ = false;
+                        voltage_low_ = false;
+                    }
+                    else if (arduino_response.vccvoltage() < battery_voltage_very_low_level_)
+                    {
+                        voltage_critically_low_ = false;
+                        voltage_very_low_ = true;
+                        voltage_low_ = false;
+                    }
+                    else if (arduino_response.vccvoltage() < battery_voltage_low_level_)
+                    {
+                        voltage_critically_low_ = false;
+                        voltage_very_low_ = false;
+                        voltage_low_ = true;
+                    }
+                    else
+                    {
+                        voltage_critically_low_ = false;
+                        voltage_very_low_ = false;
+                        voltage_low_ = false;
+                    }
                 }
 
                 vvcvoltage_last_updated_ = goby::time::SteadyClock::now();

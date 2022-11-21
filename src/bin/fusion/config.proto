@@ -63,6 +63,10 @@ message Fusion
 
     repeated jaiabot.protobuf.MissionState include_imu_detection_states = 38;
 
+    // Battery configurations
     optional bool watch_battery_percentage = 39 [default = true];
+    optional float battery_percentage_low_level = 40 [default = 30];
+    optional float battery_percentage_very_low_level = 41 [default = 20];
+    optional float battery_percentage_critically_low_level = 42 [default = 10];
 
 }

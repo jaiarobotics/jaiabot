@@ -96,9 +96,6 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
     // Battery Percentage Health
-    float battery_percentage_low_level_{0};
-    float battery_percentage_very_low_level_{0};
-    float battery_percentage_critically_low_level_{0};
     bool watch_battery_percentage_{false};
 
     enum class DataType
@@ -610,12 +607,32 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
 
     if (watch_battery_percentage_)
     {
-        if (battery_percentage < battery_percentage_critically_low_level_) {}
-        else if (battery_percentage < battery_percentage_very_low_level_)
+        if (latest_bot_status_.battery_percent() < cfg().battery_percentage_critically_low_level())
         {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
+                                          protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY)
+                                   << std::endl;
         }
-        else if (battery_percentage < battery_percentage_low_level_)
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_very_low_level())
         {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY)
+                     << std::endl;
+        }
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__VEHICLE__LOW_BATTERY)
+                     << std::endl;
         }
     }
 
