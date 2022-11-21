@@ -2,6 +2,12 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.1.3
+
+* GPS requirements were to tight. We loosened the pdop and hdop requirements.
+* PDOP <= 2.2 (GOOD)
+* HDOP <= 1.3 (GOOD)
+
 ### 1.1.2
 
 * Fixed IMU port switching
