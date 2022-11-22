@@ -2,9 +2,14 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.1.4
+
+* GPS requirements were to tight. We increased the number of degraded checks to determine bad gps
+* total_gps_degraded_fix_checks: 1 -> 2
+
 ### 1.1.3
 
-* GPS requirements were to tight. We loosened the pdop and hdop requirements.
+* GPS requirements were to tight. We loosened the pdop and hdop requirements
 * PDOP <= 2.2 (GOOD)
 * HDOP <= 1.3 (GOOD)
 
