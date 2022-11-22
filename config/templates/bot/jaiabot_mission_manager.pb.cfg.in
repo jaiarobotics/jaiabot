@@ -27,7 +27,7 @@ surfacing_timeout: 35  #  (optional) (default=600)
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 10 # (optional) (default=5)
 total_gps_fix_checks: 15 # (optional) (default=5)
-total_gps_degraded_fix_checks: 1 # (optional) (default=1)
+total_gps_degraded_fix_checks: 2 # (optional) (default=1)
 gps_hdop_fix: 1.3 # (optional) (default=1)
 gps_pdop_fix: 2.2 # (optional) (default=1.5)
 
