@@ -28,4 +28,11 @@ message PortalToClientMessage
     optional Engineering engineering_status = 2;
     optional HubStatus hub_status = 3;
     optional TaskPacket task_packet = 4;
+
+    message VersionInfo {
+        required string version = 1;
+        optional string change_log = 2;
+    }
+
+    optional VersionInfo version_info = 5; 
 }

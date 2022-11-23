@@ -39,4 +39,12 @@ message ArduinoDriverConfig
     required goby.middleware.protobuf.SerialConfig serial_arduino = 11;
 
     required jaiabot.protobuf.Bounds bounds = 20;
+
+    message ArduinoVersionTable
+    {
+        required uint32 arduino_version = 1;
+        repeated string app_versions = 2;
+    }
+
+    repeated ArduinoVersionTable arduino_version_table = 21;
 }
