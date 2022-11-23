@@ -10,7 +10,7 @@ install: all
 	sudo mkdir -p /var/log/jaiabot/bot_offload
 	sudo chmod ugo+rwx /var/log/jaiabot/bot_offload
 
-	rsync -aP server client /opt/jaiabot_data_vision
+	rsync -aLP server client /opt/jaiabot_data_vision
 	cd /opt/jaiabot_data_vision/server; sudo ./install_services.py
 
 	sudo systemctl daemon-reload

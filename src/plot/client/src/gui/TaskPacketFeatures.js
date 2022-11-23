@@ -13,7 +13,6 @@ function createDriftTaskFeature(map, drift) {
     const adjustedEnd = [start[0] + k * (end[0] - start[0]), start[1] + k * (end[1] - start[1])]
 
     const coordinates = [start, adjustedEnd]
-    console.log(coordinates)
     const feature = new Feature({geometry: new LineString(coordinates)})
     feature.setStyle(Styles.driftArrow)
     return feature
