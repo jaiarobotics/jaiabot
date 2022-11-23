@@ -104,6 +104,12 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
     boost::optional<double> salinity;
 };
 
+struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
+{
+    double hdop;
+    double pdop;
+};
+
 STATECHART_EVENT(EvResumeMovement)
 struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
 {
@@ -537,7 +543,50 @@ struct ReacquireGPSTaskCommon : boost::statechart::state<Derived, Parent>,
             this->post_event(statechart::EvGPSFix());
         }
     };
+
     ~ReacquireGPSTaskCommon(){};
+
+    void gps(const EvVehicleGPS& ev)
+    {
+        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        {
+            // Increment gps fix checks until we are > the threshold for confirming gps fix
+            if (gps_fix_check_incr_ < this->cfg().total_gps_fix_checks())
+            {
+                goby::glog.is_debug1() && goby::glog << "GPS has a good fix, but has not "
+                                                        "reached threshold for total checks"
+                                                        " "
+                                                     << gps_fix_check_incr_ << " < "
+                                                     << this->cfg().total_gps_fix_checks()
+                                                     << std::endl;
+                // Increment until we reach total gps fix checks
+                gps_fix_check_incr_++;
+            }
+            else
+            {
+                goby::glog.is_debug1() &&
+                    goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
+                               << " <= " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
+                               << " <= " << this->cfg().gps_pdop_fix()
+                               << " Reset incr for gps degraded fix" << std::endl;
+
+                // Post Event for gps fix
+                this->post_event(statechart::EvGPSFix());
+            }
+        }
+        else
+        {
+            // Reset gps fix incrementor
+            gps_fix_check_incr_ = 1;
+        }
+    }
+
+    using reactions =
+        boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSTaskCommon,
+                                                              &ReacquireGPSTaskCommon::gps>>;
+
+  private:
+    int gps_fix_check_incr_{1};
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
@@ -624,10 +673,48 @@ struct Transit : boost::statechart::state<Transit, Movement>,
         post_event(EvPerformTask());
     }
 
+    void gps(const EvVehicleGPS& ev)
+    {
+        if ((ev.hdop <= cfg().gps_hdop_fix()) && (ev.pdop <= cfg().gps_pdop_fix()))
+        {
+            gps_degraded_fix_check_incr_ = 1;
+        }
+        else
+        {
+            // Increment degraded checks until we are > the threshold for confirming degraded gps
+            if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
+            {
+                goby::glog.is_debug1() && goby::glog << "GPS has a degraded fix, but has not "
+                                                        "reached threshold for total checks: "
+                                                        " "
+                                                     << gps_degraded_fix_check_incr_ << " < "
+                                                     << cfg().total_gps_degraded_fix_checks()
+                                                     << std::endl;
+
+                // Increment until we reach total gps degraded fix checks
+                gps_degraded_fix_check_incr_++;
+            }
+            else
+            {
+                goby::glog.is_debug1() &&
+                    goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
+                               << " > " << cfg().gps_hdop_fix() << ", pdop is " << ev.pdop << " > "
+                               << cfg().gps_pdop_fix() << " Reset incr for gps fix" << std::endl;
+
+                // Post Event for no gps fix
+                post_event(statechart::EvGPSNoFix());
+            }
+        }
+    }
+
     using reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, Transit, &Transit::gps>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+
+  private:
+    int gps_degraded_fix_check_incr_{1};
 };
 
 struct ReacquireGPS
