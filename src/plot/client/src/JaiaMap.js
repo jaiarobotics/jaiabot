@@ -18,9 +18,10 @@ import * as Popup from './gui/Popup'
 import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
-import { createBotFeature } from './gui/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-
+import {geoJSONToDepthContourFeatures} from './gui/Contours'
+import SourceXYZ from 'ol/source/XYZ'
 
 // Performs a binary search on a sorted array, using a function f to determine ordering
 function bisect(sorted_array, f) {
@@ -155,8 +156,10 @@ export default class JaiaMap {
                     this.createOpenlayersTileLayerGroup(),
                     this.createBotPathLayer(),
                     this.createBotLayer(),
+                    this.createCourseOverGroundLayer(),
                     this.createMissionLayer(),
-                    this.createTaskPacketLayer()
+                    this.createTaskPacketLayer(),
+                    this.createDepthContourLayer(),
                 ],
                 view: view,
                 controls: []
@@ -194,6 +197,13 @@ export default class JaiaMap {
                 title: 'Base Maps',
                 layers: [
                     new TileLayer({
+                        title: 'Google Satellite & Roads',
+                        type: 'base',
+                        zIndex: 1,
+                        source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+                        wrapX: false
+                    }),
+                    new TileLayer({
                         title: 'OpenStreetMap',
                         type: 'base',
                         zIndex: 1,
@@ -218,6 +228,16 @@ export default class JaiaMap {
                 title: 'Bot Path',
                 source: this.botPathVectorSource,
                 zIndex: 10
+            })
+        }
+
+        createCourseOverGroundLayer() {
+            this.courseOverGroundSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Course Over Ground',
+                source: this.courseOverGroundSource,
+                zIndex: 11
             })
         }
 
@@ -248,6 +268,16 @@ export default class JaiaMap {
                 title: 'Task Packets',
                 source: this.taskPacketVectorSource,
                 zIndex: 12
+            })
+        }
+
+        createDepthContourLayer() {
+            this.depthContourVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Depth Contours',
+                source: this.depthContourVectorSource,
+                zIndex: 13
             })
         }
     
@@ -368,6 +398,11 @@ export default class JaiaMap {
             this.updateMissionLayer(timestamp_micros)
         }
 
+        updateWithDepthContourGeoJSON(depthContourGeoJSON) {
+            this.depthContourFeatures = geoJSONToDepthContourFeatures(this.openlayersMap.getView().getProjection(), depthContourGeoJSON)
+            this.updateDepthContours()
+        }
+
         clear() {
             this.path_point_arrays = []
             this.command_dict = {}
@@ -389,12 +424,11 @@ export default class JaiaMap {
         updateBotMarkers(timestamp_micros) {
             // OpenLayers
             this.botVectorSource.clear()
+            this.courseOverGroundSource.clear()
 
             if (timestamp_micros == null) {
                 return
             }
-
-            console.log(this.path_point_arrays)
 
             for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
 
@@ -403,9 +437,25 @@ export default class JaiaMap {
                 })
                 if (point == null) continue;
 
-                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]])
-                botFeature.set('heading', point[3])
+                const properties = {
+                    map: this.openlayersMap,
+                    botId: botId,
+                    lonLat: [point[2], point[1]],
+                    heading: point[3],
+                    courseOverGround: point[4],
+                    desiredHeading: point[5]
+                }
+
+                const botFeature = createBotFeature(properties)
+                const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
+
                 this.botVectorSource.addFeature(botFeature)
+                this.courseOverGroundSource.addFeature(courseOverGroundArrow)
+
+                if (properties.desiredHeading != null) {
+                    const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
+                    this.courseOverGroundSource.addFeature(desiredHeadingArrow)
+                }
             }
 
         }
@@ -461,6 +511,12 @@ export default class JaiaMap {
 
                 this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
             }
+        }
+
+        updateDepthContours() {
+            this.depthContourVectorSource.clear()
+
+            this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
         }
 
     }
