@@ -20,11 +20,6 @@ const APP_NAME = "Data Vision"
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
 
-
-
-const APP_NAME = "Data Vision"
-
-
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
   return Date.parse(iso_date_string) * 1e3
