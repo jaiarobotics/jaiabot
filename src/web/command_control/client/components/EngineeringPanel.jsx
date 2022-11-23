@@ -35,7 +35,7 @@ export default class EngineeringPanel extends React.Component {
 					</div>
 					<div className="panel">
 						<Button className="button-jcc" onClick={function() {
-							window.location.assign('/pid/')
+							window.location.assign('/jed/')
 						} }>
 							JaiaBot Engineer & Debug
 						</Button>

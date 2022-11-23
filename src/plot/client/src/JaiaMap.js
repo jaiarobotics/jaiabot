@@ -18,39 +18,11 @@ import * as Popup from './gui/Popup'
 import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
-import { createBotFeature } from './gui/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-
-
-// Performs a binary search on a sorted array, using a function f to determine ordering
-function bisect(sorted_array, f) {
-    let start = 0, end = sorted_array.length - 1
-    
-    // target is before the beginning of the array, so return null
-    if (f(sorted_array[start]) < 0) {
-        return null
-    }
-
-    // Iterate while start not meets end
-    while (start <= end) {
-        if (end - start <= 1)
-            return sorted_array[start]
-
-            // Find the mid index
-            let mid = Math.floor((start + end) / 2)
-
-            // Find which half we're in
-            if (f(sorted_array[mid]) < 0) {
-                end = mid
-            }
-        else {
-            start = mid
-        }
-    }
-
-    return null
-}
-
+import {geoJSONToDepthContourFeatures} from './gui/Contours'
+import SourceXYZ from 'ol/source/XYZ'
+import {bisect} from './bisect'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros) {
@@ -63,25 +35,6 @@ function dateStringFromMicros(timestamp_micros) {
         second: '2-digit',
         timeZoneName: 'short'
     })
-}
-
-
-// Creates an OpenLayers marker feature with a popup
-function createMarker(map, title, point, style) {
-    const time = point[0]
-    const lonLat = [point[2], point[1]]
-    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-
-    const markerFeature = new Feature({
-        name: title ?? 'Marker',
-        geometry: new Point(coordinate)
-    })
-    markerFeature.setStyle(style)
-
-    const popupData = {title: title, time:dateStringFromMicros(time), lon: lonLat[0], lat: lonLat[1]}
-    Popup.addPopup(map, markerFeature, Template.get('markerPopup', popupData))
-
-    return markerFeature
 }
 
 
@@ -134,6 +87,12 @@ export default class JaiaMap {
             // Time range for the visible path
             this.timeRange = null
 
+            // Time range for the entire log set
+            this.tMin = null
+            this.tMax = null
+
+            this.timestamp = null
+
             this.task_packets = []
 
             this.setupOpenlayersMap(openlayersMapDivId)
@@ -155,8 +114,10 @@ export default class JaiaMap {
                     this.createOpenlayersTileLayerGroup(),
                     this.createBotPathLayer(),
                     this.createBotLayer(),
+                    this.createCourseOverGroundLayer(),
                     this.createMissionLayer(),
-                    this.createTaskPacketLayer()
+                    this.createTaskPacketLayer(),
+                    this.createDepthContourLayer(),
                 ],
                 view: view,
                 controls: []
@@ -194,6 +155,13 @@ export default class JaiaMap {
                 title: 'Base Maps',
                 layers: [
                     new TileLayer({
+                        title: 'Google Satellite & Roads',
+                        type: 'base',
+                        zIndex: 1,
+                        source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+                        wrapX: false
+                    }),
+                    new TileLayer({
                         title: 'OpenStreetMap',
                         type: 'base',
                         zIndex: 1,
@@ -218,6 +186,16 @@ export default class JaiaMap {
                 title: 'Bot Path',
                 source: this.botPathVectorSource,
                 zIndex: 10
+            })
+        }
+
+        createCourseOverGroundLayer() {
+            this.courseOverGroundSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Course Over Ground',
+                source: this.courseOverGroundSource,
+                zIndex: 11
             })
         }
 
@@ -248,6 +226,16 @@ export default class JaiaMap {
                 title: 'Task Packets',
                 source: this.taskPacketVectorSource,
                 zIndex: 12
+            })
+        }
+
+        createDepthContourLayer() {
+            this.depthContourVectorSource = new VectorSource()
+
+            return new VectorLayer({
+                title: 'Depth Contours',
+                source: this.depthContourVectorSource,
+                zIndex: 13
             })
         }
     
@@ -281,13 +269,21 @@ export default class JaiaMap {
                 // Filter to only keep points within the time range
                 var path = []
                 for (const pt of ptArray) {
-                    if (pt[0] > timeRange[1]) {
+
+                    // Contribute to tMin and tMax
+                    const t = pt[0]
+                    if (this.tMin == null || t < this.tMin) this.tMin = t
+                    if (this.tMax == null || t > this.tMax) this.tMax = t
+
+                    // Only plot map points within the chart's time window                    
+                    if (t > timeRange[1]) {
                         break
                     }
 
-                    if (pt[0] > timeRange[0]) {
+                    if (t > timeRange[0]) {
                         path.push(this.fromLonLat([pt[2], pt[1]])) // API gives lat/lon, OpenLayers uses lon/lat
                     }
+
                 }
 
                 // const pathLineString = new LineString(path)
@@ -364,8 +360,21 @@ export default class JaiaMap {
         }
     
         updateToTimestamp(timestamp_micros) {
+            this.timestamp = timestamp_micros
+            // console.log('updateToTimestamp', timestamp_micros, this.timestamp)
+
             this.updateBotMarkers(timestamp_micros)
             this.updateMissionLayer(timestamp_micros)
+        }
+
+        getTimestamp() {
+            // console.log('get timestamp', this.timestamp)
+            return this.timestamp
+        }
+
+        updateWithDepthContourGeoJSON(depthContourGeoJSON) {
+            this.depthContourFeatures = geoJSONToDepthContourFeatures(this.openlayersMap.getView().getProjection(), depthContourGeoJSON)
+            this.updateDepthContours()
         }
 
         clear() {
@@ -389,23 +398,38 @@ export default class JaiaMap {
         updateBotMarkers(timestamp_micros) {
             // OpenLayers
             this.botVectorSource.clear()
+            this.courseOverGroundSource.clear()
 
             if (timestamp_micros == null) {
                 return
             }
 
-            console.log(this.path_point_arrays)
-
             for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
 
                 const point = bisect(path_point_array, (point) => {
                     return timestamp_micros - point[0]
-                })
+                })?.[1]
                 if (point == null) continue;
 
-                const botFeature = createBotFeature(this.openlayersMap, botId, [point[2], point[1]])
-                botFeature.set('heading', point[3])
+                const properties = {
+                    map: this.openlayersMap,
+                    botId: botId,
+                    lonLat: [point[2], point[1]],
+                    heading: point[3],
+                    courseOverGround: point[4],
+                    desiredHeading: point[5]
+                }
+
+                const botFeature = createBotFeature(properties)
+                const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
+
                 this.botVectorSource.addFeature(botFeature)
+                this.courseOverGroundSource.addFeature(courseOverGroundArrow)
+
+                if (properties.desiredHeading != null) {
+                    const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
+                    this.courseOverGroundSource.addFeature(desiredHeadingArrow)
+                }
             }
 
         }
@@ -431,7 +455,7 @@ export default class JaiaMap {
 
             const command = bisect(command_array, (command) => {
                 return timestamp_micros - command._utime_
-            })
+            })?.[1]
 
             if (command == null) {
                 return
@@ -442,7 +466,7 @@ export default class JaiaMap {
 
             const active_goal = bisect(active_goals_array, (active_goal) => {
                 return timestamp_micros - active_goal._utime_
-            })
+            })?.[1]
 
             const active_goal_index = active_goal?.active_goal
 
@@ -461,6 +485,12 @@ export default class JaiaMap {
 
                 this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
             }
+        }
+
+        updateDepthContours() {
+            this.depthContourVectorSource.clear()
+
+            this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
         }
 
     }

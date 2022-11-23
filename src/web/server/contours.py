@@ -173,12 +173,32 @@ def getContourGeoJSON(meshPoints, contourCount=10):
     return geojson(linestrings)
 
 
+def taskPacketsToContours(taskPackets):
+    """Return a GeoJSON containing contours for a set of task packets
+
+    Args:
+        taskPackets (iterable): An iterable of task packets as represented by dicts
+
+    Returns:
+        dict: a GeoJSON dictionary
+    """
+    meshPoints = []
+    for taskPacket in taskPackets:
+        if 'dive' in taskPacket:
+            dive = taskPacket['dive']
+            if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
+                meshPoints.append([dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']])
+
+    return getContourGeoJSON(meshPoints)
+
+
 if __name__ == '__main__':
     meshPoints = [
         [10, 10, 1],
-        [15, 10, 2],
+        [15, 15, 2],
         [20, 10, 2],
         [17, 10, 2]
     ]
 
     json.dump(getContourGeoJSON(meshPoints), open(os.path.expanduser('~/test.json'), 'w'))
+

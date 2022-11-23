@@ -9,10 +9,16 @@ import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
 import JaiaMap from "./JaiaMap.js"
-
+import TimeSlider from "./TimeSlider.js"
+import { bisect } from "./bisect.js"
+import { DataTable } from "./DataTable.js"
+import { mdiDownload } from '@mdi/js'
+import Icon from '@mdi/react'
+import { reverseSubArray } from "ol/array.js"
 
 const APP_NAME = "Data Vision"
 
+const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
 
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
@@ -29,11 +35,14 @@ class LogApp extends React.Component {
       logs : [],
       is_selecting_logs: false,
       chosen_logs : [],
-      chosen_paths : [],
       plots : [],
       layerSwitcherVisible: false,
       plotNeedsRefresh: false,
-      mapNeedsRefresh: false
+      mapNeedsRefresh: false,
+      timeFraction: null,
+      t: null, // Currently selected time
+      tMin: null, // Minimum time for these logs
+      tMax: null, // Maximum time for these logs
     }
   }
 
@@ -46,6 +55,7 @@ class LogApp extends React.Component {
     // Show the plots, if present
     const plotContainer = <div className="plotcontainer" hidden={this.state.plots.length == 0}>
         <div id="plot" className="plot"></div>
+        {DataTable(this.state.plots, this.state.t)}
     </div>
 
     return (
@@ -94,13 +104,7 @@ class LogApp extends React.Component {
               this.forceUpdate()
             }}>Save Profile</button>
 
-            <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
-              () => {
-
-                const t_range = this.get_plot_range()
-                this.open_moos_messages(t_range)
-              }
-            }>Download MOOS Messages...</button>
+            {this.downloadCSVButton()}
 
             <button className="padded" onClick={() => {
               this.map.clear()
@@ -113,11 +117,19 @@ class LogApp extends React.Component {
           { plotContainer }
 
           <div id="mapPane">
-            <div className="openlayers-map" id="openlayers-map">
-            </div>
-            <div id="mapControls">
-              <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
-              <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+            <div className="flexbox vertical" style={{height:'100%'}}>
+              <div style={{width:'100%', flexGrow:1}}>
+                <div className="openlayers-map" id="openlayers-map">
+                </div>
+                <div id="mapControls">
+                  <div id="layerSwitcherToggler" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+                  <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                </div>
+              </div>
+              <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
+                this.map.updateToTimestamp(t)
+                this.setState({t: t })
+              }}></TimeSlider>
             </div>
           </div>
         </div>
@@ -141,6 +153,7 @@ class LogApp extends React.Component {
         // Get map data
         LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
           this.map.setSeriesArray(seriesArray)
+          this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.t})
         })
 
         // Get the command dictionary (botId => [Command])
@@ -156,6 +169,11 @@ class LogApp extends React.Component {
         // Get the task packets
         LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
+        })
+
+        // Get the depth contours
+        LogApi.get_depth_contours(this.state.chosen_logs).then((geoJSON) => {
+          this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
       }
@@ -274,6 +292,7 @@ class LogApp extends React.Component {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = iso_date_to_micros(dateString)
       self.map.updateToTimestamp(date_timestamp_micros)
+      self.setState({t: date_timestamp_micros})
     })
 
     this.plot_div_element.on('plotly_unhover',
@@ -299,8 +318,92 @@ class LogApp extends React.Component {
     this.setState({plotNeedsRefresh: false})
   }
 
+  moosMessagesButton() {
+    return (
+      <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
+        () => {
+  
+          const t_range = this.get_plot_range()
+          this.open_moos_messages(t_range)
+        }
+      }>Download MOOS Messages...</button>
+    )
+  }
+
   open_moos_messages(time_range) {
     LogApi.get_moos(this.state.chosen_logs, time_range)
+  }
+
+  downloadCSVButton() {
+
+    function downloadCSV(evt) {
+      const tRange = this.get_plot_range()
+
+      var csvText = ''
+
+      const plots = this.state.plots
+      const plotNames = plots.map((plot) => { return plot.title })
+
+      // Header row
+      csvText = 'Time,_utime_,' + plotNames.join(',') + '\n'
+
+      var t = tRange[0]
+      const STEP = 1e6 // microseconds
+
+      // Indices into the series
+      var indices = Array(plots.length).fill(0)
+      console.log(indices)
+
+      while (t < tRange[1]) {
+        t += STEP
+        const timeString = (new Date(t / 1e3)).toISOString()
+        var csvLine = `${timeString},${t}`
+
+        var done = true // Finish when none of the series are incrementing their indices
+        var nonempty = false
+
+        for (const [plotIndex, plot] of plots.entries()) {
+          var index = indices[plotIndex]
+
+          if (index != plot._utime_.length - 1) {
+            done = false
+          }
+
+          while (index < plot._utime_.length - 1 && plot._utime_[index + 1] < t) {
+            index ++
+          }
+
+          var value = plot._utime_[index] < t ? plot.series_y[index] : null
+          if (value != null) nonempty = true;
+
+          csvLine += `,${value}`
+
+          indices[plotIndex] = index
+        }
+
+        if (nonempty) {
+          csvText += (csvLine + '\n')
+        }
+
+        if (done) break;
+      }
+
+      const blob = new Blob([csvText], {type: "text/csv"})
+
+      var link = window.document.createElement('a')
+      link.href = window.URL.createObjectURL(blob)
+      // Construct filename dynamically and set to link.download
+      link.download = 'missionData.csv'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
+    return (
+      <button className="padded" disabled={this.state.plots.length == 0} onClick={ downloadCSV.bind(this) } hovertext="Download CSV" style={{width: "auto", verticalAlign: "middle"}}>
+        <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
+      </button>
+    )
   }
 
 }
