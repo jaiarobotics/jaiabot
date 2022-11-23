@@ -13,6 +13,7 @@ import datetime
 import os
 
 import numpy
+import bisect
 
 from .objects import *
 from .moos_messages import *
@@ -237,6 +238,13 @@ class Series:
         else:
             logging.warning(f'Not enough values to sort.  len(utime) = {len(self.utime)}, len(y_values) = {len(self.y_values)}')
 
+    def getValueAtTime(self, t):
+        index = bisect.bisect_left(self.utime, t)
+        if index == 0:
+            return None
+        else:
+            return self.y_values[index - 1]
+
 
 def get_series(log_names, paths):
     '''Get a series'''
@@ -299,18 +307,32 @@ def get_map(log_names):
     BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
     BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
     BotStatus_heading_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/heading'
+    BotStatus_course_over_ground_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/course_over_ground'
+    DesiredSetpoints_heading_path = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/helm_course/heading'
 
     seriesList = []
+    desired_heading_series = Series()
 
     for log in logs:
         lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
         lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
         heading_series = Series(log=log, path=BotStatus_heading_path)
+        course_over_ground_series = Series(log=log, path=BotStatus_course_over_ground_path)
 
         thisSeries = []
 
+        desired_heading_series = Series(log=log, path=DesiredSetpoints_heading_path)
+
         for i, lat in enumerate(lat_series.y_values):
-            thisSeries.append([lat_series.utime[i], lat_series.y_values[i], lon_series.y_values[i], heading_series.y_values[i]])
+            most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
+            thisSeries.append([
+                lat_series.utime[i], 
+                lat_series.y_values[i], 
+                lon_series.y_values[i], 
+                heading_series.y_values[i], 
+                course_over_ground_series.y_values[i], 
+                most_recent_desired_heading
+            ])
 
         seriesList.append(thisSeries)
 

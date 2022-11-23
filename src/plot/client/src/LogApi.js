@@ -83,6 +83,14 @@ export class LogApi {
     return this.get_json(url.toString())
   }
 
+  // Get depth_contours
+  static get_depth_contours(logs) {
+    var url = new URL('depth-contours', window.location.origin)
+    url.searchParams.append('log', logs.join(','))
+
+    return this.get_json(url.toString())
+  }
+
   static get_moos(logs, time_range) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
