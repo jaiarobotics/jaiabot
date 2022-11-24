@@ -61,7 +61,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);
@@ -109,7 +109,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);
