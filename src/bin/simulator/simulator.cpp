@@ -270,7 +270,14 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     rmc.course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
-    double heading_error = (double)std::rand() / (RAND_MAX)*heading_rand_max_;
+    double heading_error = 0;
+
+    if (heading_rand_max_ != 0)
+    {
+        heading_error = (double)std::rand() / (RAND_MAX)*heading_rand_max_;
+    }
+
+    glog.is_verbose() && glog << "Heading Error: " << heading_error << std::endl;
 
     hdt.true_heading = (moos_buffer["NAV_HEADING"].GetDouble() + heading_error) * degree::degrees;
     {

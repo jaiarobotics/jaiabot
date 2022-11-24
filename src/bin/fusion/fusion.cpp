@@ -253,7 +253,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
 
         if (euler_angles.has_gamma())
         {
-            auto pitch = euler_angles.gamma_with_units();
+            // Flip sign when reading pitch values.
+            // This is based on how the imu is situated
+            // in the bot.
+            auto pitch = -euler_angles.gamma_with_units();
             latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
             latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
