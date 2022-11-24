@@ -210,7 +210,7 @@ export function driftTask(drift) {
 
 // The mission path linestring
 export function missionPath(feature) {
-    const pathColor = defaultPathColor
+    const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
 
     const geometry = feature.getGeometry()
 

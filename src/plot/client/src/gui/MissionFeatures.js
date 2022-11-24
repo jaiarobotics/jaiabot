@@ -45,6 +45,7 @@ export function createMissionFeatures(map, command, activeGoalIndex, isSelected)
 
     // Add a linestring for the mission path
     const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
+    missionPathFeature.set("isSelected", isSelected)
     missionPathFeature.setStyle(Styles.missionPath)
     features.push(missionPathFeature)
 
