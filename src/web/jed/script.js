@@ -1,5 +1,11 @@
 let FINE_CONTROL_KEY = "ShiftRight"
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft"
+let warningStatusInner = ""
+//****** Changing the SAFE_BOT_SPEED may result in bot hardware failure   ****** 
+//****** Please do not increase the SAFE_BOT_SPEED unless you know the  ****** 
+//****** consequences                                                     ******
+let SAFE_BOT_SPEED = 60;
+
 
 // Gets an element with this id
 function el(id) {
@@ -426,29 +432,47 @@ pitchGains = new PIDGains('pitch', 'pitch')
 //////// Dive Button 
 
 function diveButtonOnClick() {
-  var engineering_command = getVisibleCommand()
-  var pid_control = engineering_command.pid_control
-  pid_control.timeout = timeoutSlider.value
+    var engineering_command = getVisibleCommand()
+    var pid_control = engineering_command.pid_control
+    pid_control.timeout = timeoutSlider.value
+  
+    // Stop sending commands until
+    blockSendingUntil = Date.now() + pid_control.timeout * 1000
 
-  // Stop sending commands until
-  blockSendingUntil = Date.now() + pid_control.timeout * 1000
+    let isSendCommand = false;
 
-  switch (diveTabbedSections.activeIndex) {
-    case 0: // Manual
-      pid_control.throttle = -diveManualSlider.value
-      break;
-    case 1: // PID
-      delete pid_control.throttle
-      pid_control.depth = {
-        target : divePIDSlider.value,
-        Kp : diveGains.Kp,
-        Ki : diveGains.Ki,
-        Kd : diveGains.Kd
-      };
-      break;
-  }
+    if(diveManualSlider.value <= SAFE_BOT_SPEED)
+    {
+      isSendCommand = true;
+    }
+    else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
+    {
+      isSendCommand = true;
+    }
 
-  sendCommand(engineering_command)
+    if(isSendCommand)
+    {
+      switch (diveTabbedSections.activeIndex) {
+        case 0: // Manual
+          pid_control.throttle = -diveManualSlider.value
+          break;
+        case 1: // PID
+          delete pid_control.throttle
+          pid_control.depth = {
+            target : divePIDSlider.value,
+            Kp : diveGains.Kp,
+            Ki : diveGains.Ki,
+            Kd : diveGains.Kd
+          };
+          break;
+      }
+      console.log("Sent command")
+      sendCommand(engineering_command)
+    }
+    else
+    {
+      console.log("Did not send command")
+    }
 }
 
 function sendCommand(command) {
@@ -651,7 +675,15 @@ function getVisibleCommand() {
 
     // Throttle
     switch(throttleTabbedSections.activeIndex) {
-      case 0:
+      case 0:   
+        if(el("throttleSlider").value > SAFE_BOT_SPEED)
+        {
+          warningStatusInner = "<label style='color:red; display: inline-block; font-size:24pt'>You are running above the safe speed level for the bot? (This may result in hardware failure)</label>"
+        }
+        else
+        {
+          warningStatusInner = ""
+        }
         pid_control.throttle = el("throttleSlider").value
         delete pid_control.speed
         break;
@@ -670,6 +702,7 @@ function getVisibleCommand() {
     // Man is dead!  Send zero throttle...
     pid_control.throttle = 0
     delete pid_control.speed
+    warningStatusInner = "";
   }
   
   // Rudder
@@ -849,6 +882,8 @@ function updateStatus(status) {
 
   loggingStatus.innerHTML = loggingStatusInner;
   table.innerHTML = innerHTML
+  warningStatus = el("warningStatus")
+  warningStatus.innerHTML = warningStatusInner;
 }
 
 function getSelectedBotId() { return $("#botSelect")[0].value || "0" }

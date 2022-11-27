@@ -8,6 +8,7 @@ import os
 import math
 
 import jaialogs
+import contours
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -123,6 +124,18 @@ def getMOOSMessages():
         return JSONErrorResponse("Missing log filename")
 
     return Response(jaialogs.get_moos_messages(log_names, t_start, t_end), mimetype='text/csv')
+
+
+@app.route('/depth-contours', methods=['GET'])
+def getDepthContours():
+    '''Get a GeoJSON of contours for the depth soundings in this mission'''
+    log_names = parse_log_filenames(request.args.get('log'))
+
+    if log_names is None:
+        return JSONErrorResponse("Missing log filename")
+
+    taskPackets = jaialogs.get_task_packets(log_names)
+    return JSONResponse(contours.taskPacketsToContours(taskPackets))
 
 
 if __name__ == '__main__':

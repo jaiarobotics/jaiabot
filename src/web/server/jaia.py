@@ -257,10 +257,4 @@ class Interface:
 
     def get_depth_contours(self):
 
-        mesh_points = []
-        for task_packet in self.task_packets:
-            if 'dive' in task_packet:
-                dive_packet = task_packet['dive']
-                mesh_points.append([dive_packet['start_location']['lon'], dive_packet['start_location']['lat'], dive_packet['depth_achieved']])
-
-        return contours.getContourGeoJSON(mesh_points)
+        return contours.taskPacketsToContours(self.task_packets)
