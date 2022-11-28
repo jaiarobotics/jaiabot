@@ -121,13 +121,6 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
-
-                if (state_pair.second == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
-                {
-                    // Reset after dive
-                    gps_fix_check_incr_ = 1;
-                    gps_degraded_fix_check_incr_ = 1;
-                }
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
