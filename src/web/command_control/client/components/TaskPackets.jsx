@@ -23,10 +23,10 @@ import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
 import { Vector as VectorLayer } from "ol/layer"
-import GeoJSON from 'ol/format/GeoJSON'
 import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
 import {asString} from 'ol/color'
 import {createTaskPacketFeatures} from './gui/TaskPacketFeatures'
+import { geoJSONToDepthContourFeatures } from "./gui/Contours"
 
 const POLL_INTERVAL = 5000
 
@@ -460,27 +460,10 @@ export class TaskData {
 
     _updateContourPlot() {
         jaiaAPI.getDepthContours().then((geojson) => {
-                // Manually transform features from lon/lat to the view's projection.
-                var features = new GeoJSON().readFeatures(geojson)
-                features.forEach((feature) => {
-                    // Transform to the map's mercator projection
-                    feature.getGeometry().transform(equirectangular, mercator)
-
-                    const properties = feature.getProperties()
-                    const color = properties.color
-
-                    feature.setStyle(new Style({
-                        stroke: new Stroke({
-                            color: color,
-                            width: 2.0
-                        })
-                    }))
-
-                })
+                const features = geoJSONToDepthContourFeatures(mercator, geojson)
 
                 const vectorSource = new VectorSource({
-                    features: features,
-                    projection: equirectangular
+                    features: features
                 })
               
                 this.contourLayer.setSource(vectorSource)

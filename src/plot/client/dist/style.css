@@ -13,21 +13,20 @@
 }
 
 .path {
+    height: 15pt;
     padding: 4pt;
     background-color: #ddddddff;
     border-radius: 4pt;
-    display: inline-block;
+    flex-grow: 1;
 }
 
 .plotcontainer {
     overflow: auto;
-    height: 100%;
     flex: 1 1 50%;
 }
 
 .plot {
-    left: 10pt;
-    right: 10pt;
+    flex-grow: 1;
 }
 
 .flexbox {
@@ -59,12 +58,9 @@
     background-color: #eeeeeeff;
 }
 
-.bottom_pane {
-    position: absolute;
-    top: 220px;
-    bottom: 0pt;
-    left: 0pt;
-    right: 0pt;
+.bottomPane {
+    flex-grow: 1;
+    height: 80%;
 }
 
 .jaia-icon {
@@ -94,7 +90,6 @@ button {
     position: fixed;
     left: 25%;
     top: 25%;
-    bottom: 25%;
     right: 25%;
     padding: 10px;
     z-index: 10000;
@@ -114,10 +109,6 @@ button {
     box-shadow: 2pt 2pt 10pt darkgray;
 }
 
-.logSelector.dialog {
-    height: 400pt;
-}
-
 .dialog > .section {
     margin-bottom: 10pt;
 }
@@ -133,10 +124,10 @@ button {
     margin-bottom: 8pt;
 }
 
-.logList {
+.list {
     background-color: white;
     border-color: lightgray;
-    height: 220pt;
+    height: 270pt;
     overflow-y: auto;
 }
 
@@ -144,11 +135,15 @@ button {
     text-align: right;
 }
 
-.logItem {
+.listItem {
     -webkit-user-select: none; /* Safari */        
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+/Edge */
     user-select: none; /* Standard */
+}
+
+.listItem:hover {
+    background-color: lightblue;
 }
 
 .fleetCell {
@@ -172,7 +167,7 @@ button {
 }
 
 .selected {
-    background-color: lightblue;
+    background-color: lightskyblue;
 }
 
 #logList {
@@ -193,20 +188,12 @@ button {
 
 #layerSwitcherToggler {
     display: inline-block;
-    vertical-align: text-top;
-    padding: 10pt;
-    border-width: 1pt;
-    border-color: black;
-    border-style: solid;
-    border-radius: 4pt;
-    background-color: lightgray;
-    margin: 10pt;
-    user-select: none;
+    position:relative;
 }
 
 #layerSwitcher {
     display: inline-block;
-    vertical-align: text-top;
+    vertical-align:top;
     margin: 10pt;
     padding: 10pt 40pt 10pt 10pt;
     border-width: 1pt;
@@ -237,7 +224,134 @@ li::marker {
 #mapPane {
     display: block;
     position: relative;
-    height: 100%;
     flex: 1 1 50%;
 }
 
+.TimeSlider {
+    background-color: #000000ee;
+    width: 100%;
+    height: 40pt;
+    position: absolute;
+    bottom: 0pt;
+    user-select: none;
+}
+
+.TimeSliderBack {
+    background-color: slategray;
+    height: 10pt;
+    position: absolute;
+    top: 0pt;
+    left: 0pt;
+    right: 0pt;
+    pointer-events: none;
+}
+
+.TimeSliderPast {
+    position: absolute;
+    background-color: red;
+    height: 100%;
+    left: 0pt;
+    top: 0pt;
+    bottom: 0pt;
+    pointer-events: none;
+}
+
+.TimeSliderStatus {
+    position: absolute;
+    color: azure;
+    bottom: 0pt;
+    margin: 10pt;
+}
+
+.dataTable {
+    width: 100%;
+}
+
+.dataTable>table {
+    width: 100%;
+    padding: 10pt;
+}
+
+th {
+    background-color: lightskyblue;
+    margin: 5pt;
+    text-align: left;
+}
+
+td.dataKey {
+    width: 30%;
+}
+
+.appName {
+    display: inline-block;
+    vertical-align: text-bottom;
+    margin: 10pt;
+}
+
+.plotButton {
+    vertical-align: middle;
+    width: auto;
+    padding: 20pt;
+    border: none;
+    border-radius: 4pt;
+    background-color: #0000;
+}
+
+.plotButton:hover {
+    background-color: lightgray;
+}
+
+.button {
+    vertical-align: middle;
+    width: auto;
+    border: none;
+    border-radius: 4pt;
+    background-color: #0000;
+}
+
+.button:hover {
+    background-color: lightgray;
+}
+
+.mapButton {
+    display: block;
+    position: absolute;
+    padding: 10pt;
+    border-width: 1pt;
+    border-color: black;
+    border-style: solid;
+    border-radius: 4pt;
+    background-color: lightgray;
+    margin: 10pt;
+    user-select: none;
+    width: auto;
+    height: auto;
+}
+
+.mapButton:hover {
+    background-color: darkgray;
+}
+
+#clearMapButton {
+    top: 0pt;
+    right: 0pt;
+}
+
+.deleteButtonSection {
+    justify-content: space-evenly;
+}
+
+.plotButtonBar {
+    margin: 4pt;
+}
+
+.rightJustify {
+    display: "inline-block";
+    position: "absolute";
+    top: 10pt;
+    right: 10pt;
+}
+
+.growable {
+    flex-grow: 1;
+}

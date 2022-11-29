@@ -150,11 +150,6 @@ import missionOrientationIcon from '../icons/compass.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
 
-import taskNone from './gui/taskNone.svg'
-import taskDive from './gui/taskDive.svg'
-import taskDrift from './gui/taskDrift.svg'
-import taskStationKeep from './gui/taskStationKeep.svg'
-
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
@@ -1849,7 +1844,13 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = createBotFeature(map, botId, [botLongitude, botLatitude], botHeading, this.isBotSelected(botId))
+			const botFeature = createBotFeature({
+				map: map,
+				botId: botId,
+				lonLat: [botLongitude, botLatitude],
+				heading: botHeading,
+				courseOverGround: bot.attitude?.course_over_ground
+			})
 
 			botFeature.setId(bot_id);
 
@@ -2469,20 +2470,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	setGrid2Style(self, feature, taskType) {
-		let gridStyle = new OlIcon({ src: taskNone })
+		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: taskDive })
+				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: taskDrift })
+				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: taskStationKeep })
+				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: taskNone })
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
 				break;
 			default:
 				break;
@@ -2499,20 +2500,20 @@ export default class CommandControl extends React.Component {
 
 		// console.log(taskType);
 
-		let gridStyle = new OlIcon({ src: taskNone })
+		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: taskDive })
+				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: taskDrift })
+				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: taskStationKeep })
+				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: taskNone })
+				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
 				break;
 			default:
 				break;

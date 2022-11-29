@@ -2,6 +2,22 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.1.2
+
+* Fixed IMU port switching
+* Added warning in JED for throttle control
+
+### 1.1.1
+
+* Changing health enum ERROR__FAILED__JAIABOT_DATA_VISION -> ERROR__FAILED__JAIABOT_PLOT 
+  * The release does not support this change yet
+
+### 1.1.0
+
+* New ramping logic that makes the motor ramping smoother
+* New ability to send forward and reserve start motor speeds from the bounds file (/etc/jaiabot)
+* Added boiler code for arduino version control
+
 ### 1.0.4
 
 * Fixed missing requirements file for web and plot applications.
