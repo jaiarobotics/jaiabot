@@ -2165,6 +2165,7 @@ export default class CommandControl extends React.Component {
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
 			this.missions = this.undoMissionsStack.pop()
+			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
 	}
