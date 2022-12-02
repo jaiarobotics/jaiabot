@@ -215,13 +215,13 @@ export async function getFromStore1(key) {
 }
 
 function saveVisibleLayers() {
-	Settings.write("visibleLayers", visibleLayers)
+	Settings.mapVisibleLayers.set(visibleLayers)
 }
 
 let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
+	visibleLayers = new Set(Settings.mapVisibleLayers.get() || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -855,24 +855,24 @@ export default class CommandControl extends React.Component {
 		this.sendStop = this.sendStop.bind(this);
 
 		// center persistence
-		map.getView().setCenter(Settings.read("center") || equirectangular_to_mercator([-71.272237, 41.663559]))
+		map.getView().setCenter(Settings.mapCenter.get() || equirectangular_to_mercator([-71.272237, 41.663559]))
 
 		map.getView().on('change:center', function() {
-			Settings.write('center', map.getView().getCenter())
+			Settings.mapCenter.set(map.getView().getCenter())
 		})
 
 		// zoomLevel persistence
-		map.getView().setZoom(Settings.read("zoomLevel") || 2)
+		map.getView().setZoom(Settings.mapZoomLevel.get() || 2)
 
 		map.getView().on('change:resolution', function() {
-			Settings.write('zoomLevel', map.getView().getZoom())
+			Settings.mapZoomLevel.set(map.getView().getZoom())
 		})
 
 		// rotation persistence
-		map.getView().setRotation(Settings.read("rotation") || 0)
+		map.getView().setRotation(Settings.mapRotation.get() || 0)
 
 		map.getView().on('change:rotation', function() {
-			Settings.write('rotation', map.getView().getRotation())
+			Settings.mapRotation.set(map.getView().getRotation())
 		})
 		
 	}
@@ -2883,7 +2883,7 @@ export default class CommandControl extends React.Component {
 	// Runs a mission
 	_runMission(bot_mission) {
 		// Set the speed values
-		let speeds = Settings.read('mission.plan.speeds')
+		let speeds = Settings.missionPlanSpeeds.get()
 		if (speeds != null && bot_mission.plan != null) {
 			bot_mission.plan.speeds = speeds
 		}
