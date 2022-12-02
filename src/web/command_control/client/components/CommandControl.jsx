@@ -1189,6 +1189,18 @@ export default class CommandControl extends React.Component {
 			// BotDetails number key shortcuts
 			if (e.code.startsWith('Digit')) {
 				const botId = Number(e.code[5])
+
+				if (e.shiftKey) {
+					this.api.postCommand({
+						bot_id: botId,
+						type: "STOP"
+					})
+
+					info("Stopped bot " + botId)
+
+					return
+				}
+
 				this.toggleBot(botId)
 				return
 			}
