@@ -874,7 +874,7 @@ export default class CommandControl extends React.Component {
 		map.getView().on('change:rotation', function() {
 			Settings.write('rotation', map.getView().getRotation())
 		})
-		
+
 	}
 
 	clearMissionPlanningState() {
@@ -1182,9 +1182,18 @@ export default class CommandControl extends React.Component {
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
-		// Undo button
+		// Hotkeys
 		function KeyPress(e) {
 			let evtobj = window.event? event : e
+
+			// BotDetails number key shortcuts
+			if (e.code.startsWith('Digit')) {
+				const botId = Number(e.code[5])
+				this.toggleBot(botId)
+				return
+			}
+
+			// Undo
 			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
 				this.restoreUndo()
 			}
@@ -2076,6 +2085,11 @@ export default class CommandControl extends React.Component {
 
 	selectBot(bot_id) {
 		this.selectBots([bot_id]);
+	}
+
+	toggleBot(bot_id) {
+		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
+		this.selectBots(botsToSelect)
 	}
 
 	selectBots(bot_ids) {
