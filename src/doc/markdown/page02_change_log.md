@@ -2,6 +2,12 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.2.0
+
+* Added ability to change bot status rate in the Engineering Panel
+  * Rate can be applied to single bot or to the entire fleet
+* Updated MAC Cycle time from 1 second to 0.5 seconds
+
 ### 1.1.4
 
 * GPS requirements were to tight. We increased the number of degraded checks to determine bad gps
