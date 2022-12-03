@@ -30,7 +30,7 @@ export default class EngineeringPanel extends React.Component {
 			<div id="engineeringPanel" className="column-right">
 				<div className="panelsContainerVertical">
 					<div className="panel" >
-						<b>Engineering Panels</b><br />						
+						<b>Engineering Panels (Beta)</b><br />						
 					</div>
 					<div className="panel">
 						<button type="button" onClick={function() {

@@ -59,4 +59,7 @@ message Fusion
     // timeout in seconds
     optional int32 imu_restart_timeout = 36 [default = 30]; 
 
+    // Rate in milliseconds
+    optional int32 send_bot_status_rate = 37 [default = 500]; 
+
 }

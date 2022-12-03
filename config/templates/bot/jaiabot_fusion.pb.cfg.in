@@ -31,3 +31,6 @@ imu_restart_timeout: 30 # default (30 seconds)
 
 # fusion runs at 2hz
 total_imu_issue_checks: 15
+
+# Set the rate to send bot status in milliseconds
+send_bot_status_rate: 500 # default (500 milliseconds)
