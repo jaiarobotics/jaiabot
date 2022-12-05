@@ -57,11 +57,31 @@ message PIDControl {
     optional bool led_switch_on = 13;
 }
 
+enum BotStatusRate
+{
+    BotStatusRate_2_Hz = 0;
+    BotStatusRate_1_Hz = 1;
+    BotStatusRate_2_SECONDS = 2;
+    BotStatusRate_5_SECONDS = 3;
+    BotStatusRate_10_SECONDS = 4;
+    BotStatusRate_20_SECONDS = 5;
+    BotStatusRate_40_SECONDS = 6;
+    BotStatusRate_60_SECONDS = 7;
+}
+
 message Engineering
 {
+    /*
+    Actual maximum size of message: 83 bytes / 664 bits
+            dccl.id head...........................8
+            user head..............................0
+            body.................................649
+            padding to full byte...................7
+    Allowed maximum size of message: 200 bytes / 1600 bits
+    */
     option (dccl.msg) = {
         id: 127
-        max_bytes: 250
+        max_bytes: 200
         codec_version: 3
         unit_system: "si"
     };
@@ -75,6 +95,8 @@ message Engineering
     optional PIDControl pid_control = 3;
 
     optional bool engineering_messages_enabled = 13;
+
+    optional BotStatusRate send_bot_status_rate = 14 [default = BotStatusRate_2_Hz];
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

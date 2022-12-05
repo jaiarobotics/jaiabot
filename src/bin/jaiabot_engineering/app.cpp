@@ -66,8 +66,8 @@ int main(int argc, char* argv[])
                                                                                           argv));
 }
 
-jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1.0 / (5.0 * si::seconds)) {
-
+jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * si::hertz)
+{
     // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
     groups::engineering_command_this_bot.reset(
         new goby::middleware::DynamicGroup(jaiabot::groups::engineering_command, cfg().bot_id()));
@@ -79,8 +79,18 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1.0 / 
         // jaiabot_pid_control
         interprocess()
             .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::PIDControl>(
-                [this](const jaiabot::protobuf::PIDControl& pid_control)
-                { latest_engineering.mutable_pid_control()->CopyFrom(pid_control); });
+                [this](const jaiabot::protobuf::PIDControl& pid_control) {
+                    latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
+                });
+
+        interprocess().subscribe<jaiabot::groups::engineering_status>(
+            [this](const jaiabot::protobuf::Engineering& engineering_status) {
+                if (engineering_status.has_send_bot_status_rate())
+                {
+                    latest_engineering.set_send_bot_status_rate(
+                        engineering_status.send_bot_status_rate());
+                }
+            });
     }
 
     // Intervehicle subscribe for commands from engineering
@@ -109,7 +119,6 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1.0 / 
             },
             *groups::engineering_command_this_bot, command_subscriber);
     }
-
 }
 
 jaiabot::apps::JaiabotEngineering::~JaiabotEngineering()

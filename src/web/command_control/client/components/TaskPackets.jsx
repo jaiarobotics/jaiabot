@@ -424,8 +424,8 @@ export class TaskData {
     _pollTaskPackets() {
         jaiaAPI.getTaskPackets().then((taskPackets) => {
 
-            console.log('taskPackets.length = ', taskPackets.length)
-            console.log('this.taskPackets.length = ', this.taskPackets.length)
+            //console.log('taskPackets.length = ', taskPackets.length)
+            //console.log('this.taskPackets.length = ', this.taskPackets.length)
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
 
