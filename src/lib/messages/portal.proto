@@ -4,12 +4,15 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/engineering.proto";
 import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
 message ClientToPortalMessage
 {
     option (dccl.msg) = {
+        max_bytes: 1024
+        codec_version: 3
         unit_system: "si"
     };
 
@@ -21,6 +24,8 @@ message ClientToPortalMessage
 message PortalToClientMessage
 {
     option (dccl.msg) = {
+        max_bytes: 1024
+        codec_version: 3
         unit_system: "si"
     };
 
@@ -34,5 +39,9 @@ message PortalToClientMessage
         optional string change_log = 2;
     }
 
-    optional VersionInfo version_info = 5; 
+    optional VersionInfo version_info = 5;
+    
+    // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
+    optional MissionPlan active_mission_plan = 6;
+
 }

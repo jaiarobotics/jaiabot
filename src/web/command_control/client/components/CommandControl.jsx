@@ -1831,6 +1831,11 @@ export default class CommandControl extends React.Component {
 		for (let botId in bots) {
 			let bot = bots[botId]
 
+			const active_mission_plan = bot.active_mission_plan
+			if (active_mission_plan != null) {
+				console.log(`Bot ${botId} has an active mission with ${active_mission_plan.goal.length} goals.`)
+			}
+
 			// ID
 			const bot_id = bot.bot_id
 			// Geometry
