@@ -64,6 +64,11 @@ def postCommand():
     response = jaia_interface.post_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
+@app.route('/jaia/takeControl', methods=['POST'])
+def postTakeControl():
+    response = jaia_interface.post_take_control(clientId=request.headers['clientId'])
+    return JSONResponse(response)
+
 @app.route('/jaia/allStop', methods=['POST'])
 def postAllStop():
     response = jaia_interface.post_all_stop(clientId=request.headers['clientId'])

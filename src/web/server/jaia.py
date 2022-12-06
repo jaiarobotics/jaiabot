@@ -145,6 +145,10 @@ class Interface:
         if self.pingCount > 1:
             self.messages['error'] = 'No response from jaiabot_web_portal app'
 
+    def post_take_control(self, clientId):
+        self.setControllingClientId(clientId)
+        return {'status': 'ok'}
+
     def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
         logging.debug(f'Sending command: {command}')
@@ -168,7 +172,7 @@ class Interface:
                 'time': str(now()),
                 'type': 'STOP', 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
 
         self.setControllingClientId(clientId)
 
@@ -184,7 +188,7 @@ class Interface:
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
 
         self.setControllingClientId(clientId)
 
@@ -200,7 +204,7 @@ class Interface:
                 'time': str(now()),
                 'type': 'RECOVERED' 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
 
         self.setControllingClientId(clientId)
 
@@ -216,7 +220,7 @@ class Interface:
                 'time': str(now()),
                 'type': 'NEXT_TASK'
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
 
         self.setControllingClientId(clientId)
 
@@ -258,9 +262,15 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
-        self.setControllingClientId(clientId)
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
 
+        self.controllingClientId = clientId
         self.send_message_to_portal(msg)
+
+        return {'status': 'ok'}
 
     def process_task_packet(self, task_packet_message):
         task_packet = google.protobuf.json_format.MessageToDict(task_packet_message, preserving_proto_field_name=True)

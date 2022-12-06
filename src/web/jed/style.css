@@ -409,3 +409,13 @@ input.manualOrPidButton:hover {
   background-color: azure;
   border: 2pt solid darkgray
 }
+
+.controlling {
+  border-style: none;
+}
+
+.noncontrolling {
+  border-style: solid;
+  border-width: 3pt;
+  border-color: red;
+}

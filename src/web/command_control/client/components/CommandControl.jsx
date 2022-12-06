@@ -84,7 +84,7 @@ import {
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
-import { getTransform } from 'ol/proj';
+import { getTransform, toUserResolution } from 'ol/proj';
 import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
@@ -2165,6 +2165,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendStop() {
+		if (!this.takeControl()) return
+
 		this.api.allStop().then(response => {
 			if (response.message) {
 				error(response.message)
@@ -2194,6 +2196,15 @@ export default class CommandControl extends React.Component {
 		return `${Math.round(length * 100) / 100} m`;
 	}
 
+	weAreInControl() {
+		return (this.podStatus.controllingClientId == this.api.clientId) || this.podStatus.controllingClientId == null
+	}
+
+	takeControl() {
+		if (this.weAreInControl()) return true;
+		return confirm('WARNING:  Another client is currently controlling the pod.  Click OK to take control of the pod.')
+	}
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -2206,6 +2217,9 @@ export default class CommandControl extends React.Component {
 			surveyPolygonActive
 		} = this.state;
 		
+		// Are we currently in control of the bots?
+		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
+
 		let self = this
 
 		let bots = this.podStatus?.bots
@@ -2281,7 +2295,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div id="axui_container">
+			<div id="axui_container" className={containerClasses}>
 
 				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
 
@@ -2497,9 +2511,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	setGridStyle(self, taskType) {
-
-		// console.log(taskType);
-
 		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
 
 		switch(taskType) {
@@ -2900,6 +2911,8 @@ export default class CommandControl extends React.Component {
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions) {
+		if (!this.takeControl()) return
+
 		let botIds = Object.keys(missions)
 		botIds.sort()
 
@@ -2947,6 +2960,8 @@ export default class CommandControl extends React.Component {
 
 	// Runs the currently loaded mission
 	runLoadedMissions(botIds=[]) {
+		if (!this.takeControl()) return
+
 		if (botIds.length == 0) {
 			botIds = Object.keys(this.missions)
 		}
@@ -3111,6 +3126,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
+		if (!this.takeControl()) return;
+
 		let bot_list = [];
 		for (const bot in this.podStatus.bots) {
 			bot_list.push(this.podStatus.bots[bot]['bot_id'])
@@ -3227,6 +3244,8 @@ export default class CommandControl extends React.Component {
 	}
 	
 	activateAllClicked(evt) {
+		if (!this.takeControl()) return;
+
 		this.api.allActivate().then(response => {
 			if (response.message) {
 				error(response.message)
@@ -3238,6 +3257,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	nextTaskAllClicked(evt) {
+		if (!this.takeControl()) return;
+
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
 				error(response.message)
@@ -3248,16 +3269,18 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-        recoverAllClicked(evt) {
-                this.api.allRecover().then(response => {
-                        if (response.message) {
-                                error(response.message)
-                        }
-                        else {
-                                info("Sent Recover All")
-                        }
-                })
-        }
+	recoverAllClicked(evt) {
+		if (!this.takeControl()) return
+
+		this.api.allRecover().then(response => {
+				if (response.message) {
+						error(response.message)
+				}
+				else {
+						info("Sent Recover All")
+				}
+		})
+	}
 
 	runRCMode() {
 		let botId = this.selectedBotId()
@@ -3291,6 +3314,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendFlag(evt) {
+		if (!this.takeControl()) return
+
 		// Send a user flag, to get recorded in the bot's logs
 		let botId = this.selectedBotIds().at(-1) || 0
 		let engineeringCommand = {
