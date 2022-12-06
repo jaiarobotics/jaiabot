@@ -7,6 +7,20 @@ let warningStatusInner = ""
 let SAFE_BOT_SPEED = 60;
 
 
+function randomBase57(stringLength) {
+  const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+
+  var s = ''
+  for (let i = 0; i < stringLength; i++) {
+      s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+  }
+  return s
+}
+
+
+const clientId = randomBase57(22) // UUID-length
+
+
 // Gets an element with this id
 function el(id) {
   element = document.getElementById(id)
@@ -477,10 +491,11 @@ function diveButtonOnClick() {
 
 function sendCommand(command) {
   console.debug('Sending: ', command)
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/jaia/pid-command", true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify(command));
+  var xhr = new XMLHttpRequest()
+  xhr.open("POST", "/jaia/pid-command", true)
+  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.setRequestHeader('clientId', clientId)
+  xhr.send(JSON.stringify(command))
 }
 
 ///////
