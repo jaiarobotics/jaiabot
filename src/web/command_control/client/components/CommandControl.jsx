@@ -85,7 +85,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { getTransform } from 'ol/proj';
-import { deepcopy, areEqual } from './Utilities';
+import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
 import { createBotFeature } from './gui/BotFeature'
@@ -255,6 +255,8 @@ export default class CommandControl extends React.Component {
 		super(props);
 
 		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
+		this.clientId = randomBase57(22) // 22 bytes of base57 is similar to 16 bytes (UUID length) of binary data
+		console.debug(`clientId = ${this.clientId}`)
 
 		this.api = jaiaAPI
 

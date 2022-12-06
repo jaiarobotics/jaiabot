@@ -54,3 +54,13 @@ export function deepcopy(aObject) {
 export function areEqual(a, b) {
     return JSON.stringify(a) == JSON.stringify(b)
 }
+
+export function randomBase57(stringLength) {
+    const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+
+    var s = ''
+    for (let i = 0; i < stringLength; i++) {
+        s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+    }
+    return s
+}
