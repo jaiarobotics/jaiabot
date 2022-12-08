@@ -2434,6 +2434,8 @@ export default class CommandControl extends React.Component {
 
 				{missionSettingsPanel}
 
+				{this.takeControlPanel()}
+
 				{this.commandDrawer()}
 
 				{this.state.loadMissionPanel}
@@ -2444,6 +2446,22 @@ export default class CommandControl extends React.Component {
 				
 			</div>
 		);
+	}
+
+	takeControlPanel() {
+		if (this.weAreInControl()) {
+			return null
+		}
+
+		const takeControl = (evt) => {
+			this.api.takeControl()
+		}
+
+		return (
+			<div className="take-control-panel">Another client is in control of this pod
+				<button onClick={takeControl}>Take Control</button>
+			</div>
+		)
 	}
 
 	locationFromCoordinate(coordinate) {
