@@ -11,8 +11,6 @@ package jaiabot.protobuf;
 message ClientToPortalMessage
 {
     option (dccl.msg) = {
-        max_bytes: 1024
-        codec_version: 3
         unit_system: "si"
     };
 
@@ -24,8 +22,6 @@ message ClientToPortalMessage
 message PortalToClientMessage
 {
     option (dccl.msg) = {
-        max_bytes: 1024
-        codec_version: 3
         unit_system: "si"
     };
 
