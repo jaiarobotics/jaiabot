@@ -1,8 +1,6 @@
 import { Settings } from './Settings'
 import { Missions } from './Missions'
 
-let KEY = 'savedMissionsV1'
-
 var missionLibraryLocalStorage
 
 export class MissionLibraryLocalStorage {
@@ -15,7 +13,7 @@ export class MissionLibraryLocalStorage {
     }
 
     constructor() {
-        this.savedMissions = Settings.read(KEY) || Missions.defaultMissions()
+        this.savedMissions = Settings.savedMissions.get() || Missions.defaultMissions()
     }
 
     missionNames() {
@@ -36,7 +34,7 @@ export class MissionLibraryLocalStorage {
         }
 
         this.savedMissions[key] = JSON.parse(JSON.stringify(mission))
-        Settings.write(KEY, this.savedMissions)
+        Settings.savedMissions.set(this.savedMissions)
     }
 
     deleteMission(key) {
@@ -45,7 +43,7 @@ export class MissionLibraryLocalStorage {
         }
 
         delete this.savedMissions[key]
-        Settings.write(KEY, this.savedMissions)
+        Settings.savedMissions.set(this.savedMissions)
     }
 
 }
