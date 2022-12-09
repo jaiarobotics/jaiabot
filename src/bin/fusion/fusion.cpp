@@ -95,6 +95,9 @@ class Fusion : public ApplicationBase
     int imu_issue_hdg_incr_{1};
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
 
+    // Battery Percentage Health
+    bool watch_battery_percentage_{false};
+
     enum class DataType
     {
         GPS_FIX,
@@ -178,6 +181,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
         include_imu_detection_states_.insert(dsm);
     }
+
+    watch_battery_percentage_ = cfg().watch_battery_percentage();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -431,8 +436,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                     {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
                     {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
 
-                latest_bot_status_.set_battery_percent(goby::util::linear_interpolate(
-                    arduino_response.vccvoltage(), voltage_to_battery_percent_));
+                float battery_percentage = goby::util::linear_interpolate(
+                    arduino_response.vccvoltage(), voltage_to_battery_percent_);
+    
+                latest_bot_status_.set_battery_percent(battery_percentage);
             }
 
             if (arduino_response.has_vcccurrent())
@@ -596,6 +603,37 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
         health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
         glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
                                << std::endl;
+    }
+
+    if (watch_battery_percentage_)
+    {
+        if (latest_bot_status_.battery_percent() < cfg().battery_percentage_critically_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
+                                          protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY)
+                                   << std::endl;
+        }
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_very_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY)
+                     << std::endl;
+        }
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__VEHICLE__LOW_BATTERY)
+                     << std::endl;
+        }
     }
 
     for (const auto& ep : missing_data_errors_)
