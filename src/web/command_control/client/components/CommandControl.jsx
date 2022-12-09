@@ -215,13 +215,13 @@ export async function getFromStore1(key) {
 }
 
 function saveVisibleLayers() {
-	Settings.write("visibleLayers", visibleLayers)
+	Settings.mapVisibleLayers.set(visibleLayers)
 }
 
 let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
+	visibleLayers = new Set(Settings.mapVisibleLayers.get() || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -855,26 +855,26 @@ export default class CommandControl extends React.Component {
 		this.sendStop = this.sendStop.bind(this);
 
 		// center persistence
-		map.getView().setCenter(Settings.read("center") || equirectangular_to_mercator([-71.272237, 41.663559]))
+		map.getView().setCenter(Settings.mapCenter.get() || equirectangular_to_mercator([-71.272237, 41.663559]))
 
 		map.getView().on('change:center', function() {
-			Settings.write('center', map.getView().getCenter())
+			Settings.mapCenter.set(map.getView().getCenter())
 		})
 
 		// zoomLevel persistence
-		map.getView().setZoom(Settings.read("zoomLevel") || 2)
+		map.getView().setZoom(Settings.mapZoomLevel.get() || 2)
 
 		map.getView().on('change:resolution', function() {
-			Settings.write('zoomLevel', map.getView().getZoom())
+			Settings.mapZoomLevel.set(map.getView().getZoom())
 		})
 
 		// rotation persistence
-		map.getView().setRotation(Settings.read("rotation") || 0)
+		map.getView().setRotation(Settings.mapRotation.get() || 0)
 
 		map.getView().on('change:rotation', function() {
-			Settings.write('rotation', map.getView().getRotation())
+			Settings.mapRotation.set(map.getView().getRotation())
 		})
-		
+
 	}
 
 	clearMissionPlanningState() {
@@ -971,6 +971,13 @@ export default class CommandControl extends React.Component {
 
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
+		this.activeMissionLayer = new OlVectorLayer({
+			title: 'Active Missions',
+			source: new OlVectorSource(),
+			zIndex: 999,
+			opacity: 0.5
+		})
+
 		this.missionPlanningLayer = new OlVectorLayer({
 			name: 'missionPlanningLayer',
 			title: 'Mission Planning'
@@ -1008,6 +1015,7 @@ export default class CommandControl extends React.Component {
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
+			this.activeMissionLayer,
 			this.missionPlanningLayer,
 			this.exclusionsLayer,
 			this.botsLayerGroup,
@@ -1182,9 +1190,30 @@ export default class CommandControl extends React.Component {
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
-		// Undo button
+		// Hotkeys
 		function KeyPress(e) {
 			let evtobj = window.event? event : e
+
+			// BotDetails number key shortcuts
+			if (e.code.startsWith('Digit')) {
+				const botId = Number(e.code[5])
+
+				if (e.shiftKey) {
+					this.api.postCommand({
+						bot_id: botId,
+						type: "STOP"
+					})
+
+					info("Stopped bot " + botId)
+
+					return
+				}
+
+				this.toggleBot(botId)
+				return
+			}
+
+			// Undo
 			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
 				this.restoreUndo()
 			}
@@ -1815,6 +1844,26 @@ export default class CommandControl extends React.Component {
 		}
 	}*/
 
+	updateActiveMissionLayer() {
+		const bots = this.podStatus.bots
+
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const active_mission_plan = bot.active_mission_plan
+			if (active_mission_plan != null) {
+				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(botId))
+				allFeatures.push(...features)
+			}
+		}
+
+		let source = this.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
 	updateBotsLayer() {
 		const { selectedBotsFeatureCollection } = this.state;
 		let bots = this.podStatus.bots
@@ -2027,6 +2076,7 @@ export default class CommandControl extends React.Component {
 					}
 
 					this.updateBotsLayer()
+					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
 					if (this.state.mode !== 'missionPlanning') {
 						this.updateMissionLayer()
@@ -2076,6 +2126,11 @@ export default class CommandControl extends React.Component {
 
 	selectBot(bot_id) {
 		this.selectBots([bot_id]);
+	}
+
+	toggleBot(bot_id) {
+		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
+		this.selectBots(botsToSelect)
 	}
 
 	selectBots(bot_ids) {
@@ -2148,8 +2203,9 @@ export default class CommandControl extends React.Component {
 		// Do any alterations to the mission set
 		func(this.missions)
 
-		// If something was changed, then place the old mission set into the undoMissions
+		// If something was changed
 		if (oldMissions != this.missions) {
+			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
@@ -2160,6 +2216,7 @@ export default class CommandControl extends React.Component {
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
 			this.missions = this.undoMissionsStack.pop()
+			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
 	}
@@ -2299,7 +2356,7 @@ export default class CommandControl extends React.Component {
 							$('#mapLayersButton').toggleClass('active');
 						}}
 					>
-						<FontAwesomeIcon icon={faLayerGroup} />
+						<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
 					</Button>
 					{measureActive ? (
 						<div>
@@ -2312,7 +2369,7 @@ export default class CommandControl extends React.Component {
 									this.setState({ measureActive: false });
 								}}
 							>
-								<FontAwesomeIcon icon={faRuler} />
+								<FontAwesomeIcon icon={faRuler} title="Measurement Result" />
 							</Button>
 						</div>
 					) : (
@@ -2324,12 +2381,12 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first measure point');
 							}}
 						>
-							<FontAwesomeIcon icon={faRuler} />
+							<FontAwesomeIcon icon={faRuler} title="Measure Distance"/>
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2338,14 +2395,13 @@ export default class CommandControl extends React.Component {
 								this.zoomToAll(true);
 								this.trackBot('all');
 							}}
-							title="Follow All"
 						>
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Follow All" />
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2355,7 +2411,7 @@ export default class CommandControl extends React.Component {
 								this.trackBot('pod');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Pod" />
 						</Button>
 					)}
 
@@ -2374,7 +2430,7 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit} />
+								<FontAwesomeIcon icon={faEdit} title="Stop Editing Survey Polygon" />
 							</Button>
 					) : (
 						<Button
@@ -2393,12 +2449,12 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit} />
+							<FontAwesomeIcon icon={faEdit} title="Edit Survey Polygon" />
 						</Button>
 					)}
 
-					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) }>
-						<FontAwesomeIcon icon={faWrench} />
+					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) } >
+						<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
 					</Button>
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
@@ -2717,8 +2773,11 @@ export default class CommandControl extends React.Component {
 			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
-			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
-			features.push(...missionFeatures)
+			const plan = missions[botId].plan
+			if (plan != null) {
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, plan, active_goal_index, selected)
+				features.push(...missionFeatures)
+			}
 		}
 
 		// Add Home, if available
@@ -2883,7 +2942,7 @@ export default class CommandControl extends React.Component {
 	// Runs a mission
 	_runMission(bot_mission) {
 		// Set the speed values
-		let speeds = Settings.read('mission.plan.speeds')
+		let speeds = Settings.missionPlanSpeeds.get()
 		if (speeds != null && bot_mission.plan != null) {
 			bot_mission.plan.speeds = speeds
 		}
@@ -2966,23 +3025,31 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Clears the currently active mission
+	// trash button, delete button, clear button
 	deleteClicked() {
 		let selectedBotId = this.selectedBotId()
 		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
 
 		if (confirm('Delete mission for ' + botString + '?')) {
 			if (selectedBotId != null) {
-				delete this.missions[selectedBotId]
+				this.changeMissions(() => {
+					delete this.missions[selectedBotId]
+				})
 			}
 			else {
-				this.missions = {}
+				this.changeMissions(() => {
+					this.missions = {}
+				})
 			}
+
 			this.setState({
 				surveyPolygonFeature: null,
 				surveyPolygonGeoCoords: null,
 				surveyPolygonCoords: null,
-				surveyPolygonChanged: false
-			});
+				surveyPolygonChanged: false,
+				goalBeingEdited: null 			// Because goals may have been deleted, we should set the goalBeingEdited to null
+			})
+
 			this.updateMissionLayer()
 		}
 	}
@@ -3139,19 +3206,19 @@ export default class CommandControl extends React.Component {
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
 				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
-					<img src={rallyPointIcon} alt="Set Rally Point"></img>
+					<img src={rallyPointIcon} title="Set Start Rally" />
 				</Button>
 				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
-					<img src={goToRallyGreen} alt="Go To Rally Green"></img>
+					<img src={goToRallyGreen} title="Go To Start Rally" />
 				</Button>
 				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
-					<img src={homeIcon} alt="Set Rally Finish"></img>
+					<img src={homeIcon} title="Set Finish Rally" />
 				</Button>
 				<Button className="button-jcc" id="goHome" onClick={this.goHomeClicked.bind(this)}>
-					<img src={goToRallyRed} alt="Go To Rally Red"></img>
+					<img src={goToRallyRed} title="Go To Finish Rally" />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
-				    <Icon path={mdiStop} title="Stop All Missions"/>
+				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
 				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
 					<Icon path={mdiPause} title="Pause All Missions"/>
