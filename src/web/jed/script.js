@@ -614,12 +614,15 @@ function handleKey(key) {
 
 rudderCenter = localStorage.getItem("rudderCenter") || 0.0
 el("rudderSlider").value = rudderCenter
+el("rudderValue").innerHTML = rudderCenter
 
 portCenter = localStorage.getItem("portCenter") || 0.0
 el("portElevatorSlider").value = portCenter
+el("portElevatorValue").innerHTML = portCenter
 
 stbdCenter = localStorage.getItem("stbdCenter") || 0.0
 el("stbdElevatorSlider").value = stbdCenter
+el("stbdElevatorValue").innerHTML = stbdCenter
 
 el("rudderCenter").onclick =
     function(e) {
