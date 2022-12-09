@@ -2148,8 +2148,9 @@ export default class CommandControl extends React.Component {
 		// Do any alterations to the mission set
 		func(this.missions)
 
-		// If something was changed, then place the old mission set into the undoMissions
+		// If something was changed
 		if (oldMissions != this.missions) {
+			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
@@ -2160,6 +2161,7 @@ export default class CommandControl extends React.Component {
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
 			this.missions = this.undoMissionsStack.pop()
+			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
 	}
@@ -2299,7 +2301,7 @@ export default class CommandControl extends React.Component {
 							$('#mapLayersButton').toggleClass('active');
 						}}
 					>
-						<FontAwesomeIcon icon={faLayerGroup} />
+						<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
 					</Button>
 					{measureActive ? (
 						<div>
@@ -2312,7 +2314,7 @@ export default class CommandControl extends React.Component {
 									this.setState({ measureActive: false });
 								}}
 							>
-								<FontAwesomeIcon icon={faRuler} />
+								<FontAwesomeIcon icon={faRuler} title="Measurement Result" />
 							</Button>
 						</div>
 					) : (
@@ -2324,12 +2326,12 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first measure point');
 							}}
 						>
-							<FontAwesomeIcon icon={faRuler} />
+							<FontAwesomeIcon icon={faRuler} title="Measure Distance"/>
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2338,14 +2340,13 @@ export default class CommandControl extends React.Component {
 								this.zoomToAll(true);
 								this.trackBot('all');
 							}}
-							title="Follow All"
 						>
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Follow All" />
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2355,7 +2356,7 @@ export default class CommandControl extends React.Component {
 								this.trackBot('pod');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Pod" />
 						</Button>
 					)}
 
@@ -2374,7 +2375,7 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit} />
+								<FontAwesomeIcon icon={faEdit} title="Stop Editing Survey Polygon" />
 							</Button>
 					) : (
 						<Button
@@ -2393,12 +2394,12 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit} />
+							<FontAwesomeIcon icon={faEdit} title="Edit Survey Polygon" />
 						</Button>
 					)}
 
-					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) }>
-						<FontAwesomeIcon icon={faWrench} />
+					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) } >
+						<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
 					</Button>
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
@@ -2966,23 +2967,31 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Clears the currently active mission
+	// trash button, delete button, clear button
 	deleteClicked() {
 		let selectedBotId = this.selectedBotId()
 		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
 
 		if (confirm('Delete mission for ' + botString + '?')) {
 			if (selectedBotId != null) {
-				delete this.missions[selectedBotId]
+				this.changeMissions(() => {
+					delete this.missions[selectedBotId]
+				})
 			}
 			else {
-				this.missions = {}
+				this.changeMissions(() => {
+					this.missions = {}
+				})
 			}
+
 			this.setState({
 				surveyPolygonFeature: null,
 				surveyPolygonGeoCoords: null,
 				surveyPolygonCoords: null,
-				surveyPolygonChanged: false
-			});
+				surveyPolygonChanged: false,
+				goalBeingEdited: null 			// Because goals may have been deleted, we should set the goalBeingEdited to null
+			})
+
 			this.updateMissionLayer()
 		}
 	}
@@ -3139,19 +3148,19 @@ export default class CommandControl extends React.Component {
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
 				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
-					<img src={rallyPointIcon} alt="Set Rally Point"></img>
+					<img src={rallyPointIcon} title="Set Start Rally" />
 				</Button>
 				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
-					<img src={goToRallyGreen} alt="Go To Rally Green"></img>
+					<img src={goToRallyGreen} title="Go To Start Rally" />
 				</Button>
 				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
-					<img src={homeIcon} alt="Set Rally Finish"></img>
+					<img src={homeIcon} title="Set Finish Rally" />
 				</Button>
 				<Button className="button-jcc" id="goHome" onClick={this.goHomeClicked.bind(this)}>
-					<img src={goToRallyRed} alt="Go To Rally Red"></img>
+					<img src={goToRallyRed} title="Go To Finish Rally" />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
-				    <Icon path={mdiStop} title="Stop All Missions"/>
+				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
 				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
 					<Icon path={mdiPause} title="Pause All Missions"/>

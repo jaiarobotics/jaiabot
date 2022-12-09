@@ -377,7 +377,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                         <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
                                 onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
-                            <img src={rcMode} alt="Activate RC Mode"></img>
+                            <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                         </Button>
 
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
