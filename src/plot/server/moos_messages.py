@@ -1,6 +1,6 @@
 from dataclasses import field
 import h5py
-from .objects import *
+from objects import *
 import logging
 import math
 import csv
