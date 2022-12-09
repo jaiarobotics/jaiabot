@@ -7,6 +7,24 @@ let warningStatusInner = ""
 let SAFE_BOT_SPEED = 60;
 
 
+function randomBase57(stringLength) {
+  const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+
+  var s = ''
+  for (let i = 0; i < stringLength; i++) {
+      s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+  }
+  return s
+}
+
+
+const clientId = randomBase57(22) // UUID-length
+headers = {
+  'clientId': clientId,
+  'Content-Type': 'application/json'
+}
+var inControl = true
+
 // Gets an element with this id
 function el(id) {
   element = document.getElementById(id)
@@ -466,7 +484,6 @@ function diveButtonOnClick() {
           };
           break;
       }
-      console.log("Sent command")
       sendCommand(engineering_command)
     }
     else
@@ -476,11 +493,16 @@ function diveButtonOnClick() {
 }
 
 function sendCommand(command) {
-  console.debug('Sending: ', command)
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/jaia/pid-command", true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify(command));
+  if (!inControl) return
+
+  fetch('/jaia/pid-command', {method: 'POST', headers: headers, body: JSON.stringify(command)})
+  .then((response) => response.json())
+  .then((response) => {
+    if (response.status != 'ok') {
+      alert(response.message)
+    }
+  })
+
 }
 
 ///////
@@ -765,34 +787,39 @@ function sendVisibleCommand() {
 
   let command = getVisibleCommand()
   sendCommand(command)
-    
+
   // Get vehicle status
   
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/jaia/status", true);
-  xhr.onload = function (e) {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        updateStatus(JSON.parse(xhr.responseText))
-      } else {
-        console.error(xhr.statusText);
-        el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
-      }
-    }
-  };
-  xhr.onerror = function (e) {
-    console.error(xhr.statusText);
-    el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
-  };
-  xhr.send(null);
+  fetch('/jaia/status', {headers: headers})
+  .then((response) => response.json())
+  .then((response) => {
+    updateStatus(response)
+  })
+  .catch((e) => {
+    console.error(e)
+    el("statusTable").innerHTML = "Connection error: " + e
+  })
+
 }
 
 const interval = setInterval(sendVisibleCommand, 100);
 
 var hub_location = null
+var oldControllingClientId = ''
 
 // Updates the status element with a status response object
 function updateStatus(status) {
+
+  ///// Is this client in control?
+  inControl = (status.controllingClientId == clientId) || status.controllingClientId == null
+
+  document.getElementById('takeControlButton').style.display = inControl ? 'none' : 'inline'
+
+  const controlClass = inControl ? 'controlling' : 'noncontrolling'
+  document.getElementById('body').setAttribute('class', controlClass)
+
+  //////
+
   bots = status["bots"]
   hubs = status["hubs"]
 
@@ -980,4 +1007,9 @@ function onMouseDownDeadMansSwitch(evt) {
 
 function onMouseUpDeadMansSwitch(evt) {
   DeadMansSwitch.setOn(false)
+}
+
+function takeControl(evt) {
+  fetch('/jaia/takeControl', {method: 'POST', headers: {clientId: clientId}})
+  .then((response) => response.json())
 }

@@ -48,6 +48,9 @@ class Interface:
     # List of all TaskPackets received, with last known location of that bot
     task_packets = []
 
+    # ClientId that is currently in control
+    controllingClientId = None
+
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -156,7 +159,11 @@ class Interface:
         if self.pingCount > 1:
             self.messages['error'] = 'No response from jaiabot_web_portal app'
 
-    def post_command(self, command_dict):
+    def post_take_control(self, clientId):
+        self.setControllingClientId(clientId)
+        return {'status': 'ok'}
+
+    def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
         logging.debug(f'Sending command: {command}')
         command.time = now()
@@ -164,11 +171,12 @@ class Interface:
         msg.command.CopyFrom(command)
         
         if self.send_message_to_portal(msg):
+            self.setControllingClientId(clientId)
             return {'status': 'ok'}
         else:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
-    def post_all_stop(self):
+    def post_all_stop(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
@@ -178,11 +186,13 @@ class Interface:
                 'time': str(now()),
                 'type': 'STOP', 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
-    def post_all_activate(self):
+    def post_all_activate(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
@@ -192,11 +202,13 @@ class Interface:
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
-    def post_all_recover(self):
+    def post_all_recover(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
@@ -206,11 +218,13 @@ class Interface:
                 'time': str(now()),
                 'type': 'RECOVERED' 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
-    def post_next_task_all(self):
+    def post_next_task_all(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
@@ -220,7 +234,9 @@ class Interface:
                 'time': str(now()),
                 'type': 'NEXT_TASK'
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
@@ -240,6 +256,7 @@ class Interface:
 
 
         status = {
+            'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
             'bots': self.bots,
             'messages': self.messages
@@ -253,12 +270,21 @@ class Interface:
 
         return status
 
-    def post_engineering_command(self, command):
+    def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
         cmd.time = now()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
+
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
+
+        self.controllingClientId = clientId
         self.send_message_to_portal(msg)
+
+        return {'status': 'ok'}
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
@@ -279,3 +305,11 @@ class Interface:
     def get_depth_contours(self):
 
         return contours.taskPacketsToContours(self.task_packets)
+
+    # Controlling clientId
+
+    def setControllingClientId(self, clientId):
+        if clientId != self.controllingClientId:
+            logging.warning(f'Client {clientId} has taken control')
+        self.controllingClientId = clientId
+
