@@ -971,6 +971,13 @@ export default class CommandControl extends React.Component {
 
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
+		this.activeMissionLayer = new OlVectorLayer({
+			title: 'Active Missions',
+			source: new OlVectorSource(),
+			zIndex: 999,
+			opacity: 0.5
+		})
+
 		this.missionPlanningLayer = new OlVectorLayer({
 			name: 'missionPlanningLayer',
 			title: 'Mission Planning'
@@ -1008,6 +1015,7 @@ export default class CommandControl extends React.Component {
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
+			this.activeMissionLayer,
 			this.missionPlanningLayer,
 			this.exclusionsLayer,
 			this.botsLayerGroup,
@@ -1836,6 +1844,26 @@ export default class CommandControl extends React.Component {
 		}
 	}*/
 
+	updateActiveMissionLayer() {
+		const bots = this.podStatus.bots
+
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const active_mission_plan = bot.active_mission_plan
+			if (active_mission_plan != null) {
+				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(botId))
+				allFeatures.push(...features)
+			}
+		}
+
+		let source = this.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
 	updateBotsLayer() {
 		const { selectedBotsFeatureCollection } = this.state;
 		let bots = this.podStatus.bots
@@ -2048,6 +2076,7 @@ export default class CommandControl extends React.Component {
 					}
 
 					this.updateBotsLayer()
+					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
 					if (this.state.mode !== 'missionPlanning') {
 						this.updateMissionLayer()
@@ -2744,8 +2773,11 @@ export default class CommandControl extends React.Component {
 			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
-			const missionFeatures = MissionFeatures.createMissionFeatures(map, missions[botId], active_goal_index, selected)
-			features.push(...missionFeatures)
+			const plan = missions[botId].plan
+			if (plan != null) {
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, plan, active_goal_index, selected)
+				features.push(...missionFeatures)
+			}
 		}
 
 		// Add Home, if available
