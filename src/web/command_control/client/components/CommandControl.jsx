@@ -2148,8 +2148,9 @@ export default class CommandControl extends React.Component {
 		// Do any alterations to the mission set
 		func(this.missions)
 
-		// If something was changed, then place the old mission set into the undoMissions
+		// If something was changed
 		if (oldMissions != this.missions) {
+			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
@@ -2160,6 +2161,7 @@ export default class CommandControl extends React.Component {
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
 			this.missions = this.undoMissionsStack.pop()
+			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
 	}
@@ -2966,23 +2968,31 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Clears the currently active mission
+	// trash button, delete button, clear button
 	deleteClicked() {
 		let selectedBotId = this.selectedBotId()
 		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
 
 		if (confirm('Delete mission for ' + botString + '?')) {
 			if (selectedBotId != null) {
-				delete this.missions[selectedBotId]
+				this.changeMissions(() => {
+					delete this.missions[selectedBotId]
+				})
 			}
 			else {
-				this.missions = {}
+				this.changeMissions(() => {
+					this.missions = {}
+				})
 			}
+
 			this.setState({
 				surveyPolygonFeature: null,
 				surveyPolygonGeoCoords: null,
 				surveyPolygonCoords: null,
-				surveyPolygonChanged: false
-			});
+				surveyPolygonChanged: false,
+				goalBeingEdited: null 			// Because goals may have been deleted, we should set the goalBeingEdited to null
+			})
+
 			this.updateMissionLayer()
 		}
 	}

@@ -15,8 +15,8 @@ import os
 import numpy
 import bisect
 
-from .objects import *
-from .moos_messages import *
+from objects import *
+from moos_messages import *
 
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
