@@ -1,12 +1,27 @@
 import { mdiArrowLeft } from "@mdi/js"
-import React from "react"
+import React from 'react'
 import { LogApi } from "./LogApi"
 import Icon from "@mdi/react"
+
+interface PathSelectorProps {
+    logs: Array<string>
+    didCancel: () => undefined
+    didSelectPath: (path: string) => undefined
+}
+
+interface PathSelectorState {
+    logs: Array<string>
+    chosen_path: string
+    next_path_segments: Array<string>
+}
 
 // Dropdown menu showing all of the available logs to choose from
 export default class PathSelector extends React.Component {
 
-    constructor(props) {
+    props: PathSelectorProps
+    state: PathSelectorState
+
+    constructor(props: PathSelectorProps) {
         super(props)
 
         this.state = {
@@ -48,11 +63,11 @@ export default class PathSelector extends React.Component {
       )
     }
 
-    cancelClicked(evt) {
+    cancelClicked(evt: Event) {
         this.props.didCancel?.()
     }
 
-    update_path_options(shouldAutoselect) {
+    update_path_options(shouldAutoselect: boolean) {
         // Clear options
         this.setState({next_path_segments: []})
 
@@ -93,7 +108,7 @@ export default class PathSelector extends React.Component {
         })
     }
 
-    didSelectPathSegmentRow(nextPathSegment) {
+    didSelectPathSegmentRow(nextPathSegment: string) {
         let chosen_path = this.state.chosen_path + '/' + nextPathSegment
         this.setState({chosen_path: chosen_path}, this.update_path_options.bind(this, true))
     }

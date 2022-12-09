@@ -1,7 +1,10 @@
 import React from "react"
+import {Plot} from "./Plot"
 import { bisect } from "./bisect"
 
-export function DataTable(plots, timestamp_micros) {
+type PlotList = Array<Plot>
+
+export function DataTable(plots: PlotList, timestamp_micros: number) {
     if (plots.length == 0) return null
 
     const headerRow = (

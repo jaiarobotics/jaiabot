@@ -1,5 +1,5 @@
 // Performs a binary search on a sorted array, using a function f to determine ordering
-export function bisect(sorted_array, f) {
+export function bisect<T>(sorted_array: Array<T>, f: (t: T) => number) {
     let start = 0, end = sorted_array.length - 1
     
     // target is before the beginning of the array, so return null

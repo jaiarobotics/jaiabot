@@ -1,8 +1,14 @@
-import React from 'react'
+import React = require("react")
 
-import PlotProfiles from './PlotProfiles.js'
+import {PlotProfiles} from './PlotProfiles'
 
-export default function LoadProfile(props) {
+type PlotSet = Array<string>
+
+interface LoadProfileProps {
+  did_select_plot_set: (plot_set: PlotSet) => undefined
+}
+
+export default function LoadProfile(props: LoadProfileProps) {
   let plot_profiles = PlotProfiles.plot_profiles()
 
   var plot_profile_names = Object.keys(plot_profiles)

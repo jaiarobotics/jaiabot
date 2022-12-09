@@ -1,20 +1,27 @@
+import {
+  mdiClose,
+  mdiContentSave,
+  mdiDownload,
+  mdiFloppy,
+  mdiFloppyVariant,
+  mdiFolderOpen,
+  mdiPlus,
+  mdiTrashCan
+} from '@mdi/js'
+import Icon from '@mdi/react'
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { BrowserRouter as Router, Routes, Route } 
-       from "react-router-dom"
+import {BrowserRouter as Router, Route, Routes} from "react-router-dom"
 
-import LoadProfile from "./LoadProfile.js"
-import {LogApi} from "./LogApi.js"
-import LogSelector from "./LogSelector.js"
-import PathSelector from "./PathSelector.js"
-import PlotProfiles from "./PlotProfiles.js"
-import JaiaMap from "./JaiaMap.js"
-import TimeSlider from "./TimeSlider.js"
-import { DataTable } from "./DataTable.js"
-import { mdiClose, mdiContentSave, mdiDownload, mdiFloppy, mdiFloppyVariant, mdiFolderOpen, mdiPlus, mdiTrashCan } from '@mdi/js'
-import Icon from '@mdi/react'
-import { downloadCSV } from "./DownloadCSV.js"
-import { OpenPlotSet } from "./OpenPlotSet.js"
+import {DataTable} from "./DataTable"
+import {downloadCSV} from "./DownloadCSV"
+import JaiaMap from "./JaiaMap"
+import {LogApi} from "./LogApi"
+import LogSelector from "./LogSelector"
+import {OpenPlotSet} from "./OpenPlotSet"
+import PathSelector from "./PathSelector"
+import {PlotProfiles} from "./PlotProfiles"
+import TimeSlider from "./TimeSlider"
 
 const APP_NAME = "Data Vision"
 
@@ -303,25 +310,39 @@ class LogApp extends React.Component {
 
   // Plot Section
 
-  plotSection() {
-    if (this.state.chosen_logs.length > 0) {
-      var actionBar = <div className="plotButtonBar">
-        <button title="Add Plot" className="plotButton" onClick={ this.addPlotClicked.bind(this) }>
-          <Icon path={mdiPlus} size={1} style={{verticalAlign: "middle"}}></Icon>
-        </button>
-        <button title="Load Plot Set" className="plotButton" onClick={ this.loadPlotSetClicked.bind(this) }>
-          <Icon path={mdiFolderOpen} size={1} style={{verticalAlign: "middle"}}></Icon>
-        </button>
-        <button title="Save Plot Set" className="plotButton" onClick={ this.savePlotSetClicked.bind(this) }>
-          <Icon path={mdiContentSave} size={1} style={{verticalAlign: "middle"}}></Icon>
-        </button>
-        <button title="Download CSV" className="plotButton" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} }>
-          <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
-        </button>
-        <button title="Clear Plots" className="plotButton" onClick={ this.clearPlotsClicked.bind(this) }>
-          <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
-        </button>
-      </div>
+    plotSection() {
+      if (this.state.chosen_logs.length > 0) {
+        var actionBar = <div className = "plotButtonBar"><
+            button title = "Add Plot" className =
+                "plotButton" onClick = {this.addPlotClicked.bind(this)}><
+            Icon path = {mdiPlus} size = {1} style =
+                {{ verticalAlign: "middle" }}></Icon>
+        </button><
+            button title = "Load Plot Set" className =
+                "plotButton" onClick = {this.loadPlotSetClicked.bind(this)}><
+            Icon path = {mdiFolderOpen} size = {1} style =
+                {{ verticalAlign: "middle" }}></Icon>
+        </button><
+            button title = "Save Plot Set" className =
+                "plotButton" onClick = {this.savePlotSetClicked.bind(
+                    this)}><Icon path = {mdiContentSave} size = {1} style = {
+          { verticalAlign: "middle" }
+        }></Icon>
+        </button><
+            button title = "Download CSV" className = "plotButton" disabled =
+                {this.state.plots.length == 0} onClick = {
+                  () => { downloadCSV(this.state.plots, this.get_plot_range()) }
+                }><Icon
+                       path = {mdiDownload} size = {1} style = {
+                         { verticalAlign: "middle" }
+                       }></Icon>CSV
+        </button><
+            button title = "Clear Plots" className =
+                "plotButton" onClick = {this.clearPlotsClicked.bind(
+                    this)}><Icon path = {mdiTrashCan} size = {1} style = {
+          { verticalAlign: "middle" }
+        }></Icon>
+        </button></div>
     }
     else {
       var actionBar = null
@@ -329,74 +350,68 @@ class LogApp extends React.Component {
 
     if (this.state.isPathSelectorDisplayed) {
       var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
-      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } /> 
-    }
-    else {
-      var pathSelector = null
-    }
+      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } />
+      } else {
+        var pathSelector = null
+      }
 
-    let deleteButtons = this.state.plots.map((plot, plotIndex) => {
-      return (
-        <button title="Clear Plots" className="plotButton" onClick={ this.deletePlotClicked.bind(this, plotIndex) } key={plotIndex + '-deleteButton'}>
-          <Icon path={mdiClose} size={1} style={{verticalAlign: "middle"}}></Icon>
-        </button>
-      )
-    })
+      let deleteButtons = this.state.plots.map(
+          (plot, plotIndex) => {return (
+              <button title = "Clear Plots" className =
+                   "plotButton" onClick = {this.deletePlotClicked.bind(
+                       this, plotIndex)} key = {plotIndex + '-deleteButton'}>
+              <Icon path = {mdiClose} size = {1} style =
+                   {{ verticalAlign: "middle" }}></Icon>
+        </button>)})
 
-    const openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet={ this.didOpenPlotSet.bind(this) }></OpenPlotSet> : null
+      const openPlotSet = this.state.isOpenPlotSetDisplayed
+          ? <OpenPlotSet didSelectPlotSet = {this.didOpenPlotSet.bind(this)}>
+          </OpenPlotSet> : null
 
     return (
       <div className="plotcontainer">
-        <h2>Plots</h2>
-        {actionBar}
-        {pathSelector}
-        <div className="horizontal flexbox">
-          <div id="plot" className="plot"></div>
+        <h2>Plots</h2>{actionBar} {
+              pathSelector}<div className = "horizontal flexbox">
+          <div id = "plot" className = "plot">
+          </div>
           <div className="vertical flexbox deleteButtonSection">
             { deleteButtons }
           </div>
-        </div>
+          </div>
         { DataTable(this.state.plots, this.state.t)}
         { openPlotSet }
-      </div>
-    )
-  }
-
-  addPlotClicked() {
-    console.log('hello?')
-    this.setState({isPathSelectorDisplayed: true})
-  }
-
-  clearPlotsClicked() {
-    this.setState({plots: [], plotNeedsRefresh: true})
-  }
-
-  deletePlotClicked(plotIndex) {
-    let {plots} = this.state
-    plots.splice(plotIndex, 1)
-    this.setState({plots: plots, plotNeedsRefresh: true})
-  }
-
-  loadPlotSetClicked() {
-    this.setState({isOpenPlotSetDisplayed: true})
-  }
-
-  didOpenPlotSet(plotSet) {
-    this.setState({isOpenPlotSetDisplayed: false})
-    this.didSelectPaths(plotSet)
-  }
-
-  savePlotSetClicked() {
-    const plotSetName = prompt("Please name this plot set")
-
-    if (PlotProfiles.exists(plotSetName)) {
-      if (!confirm(`Are you sure you want to overwrite plot set named \"${plotSetName}?`)) return
+      </div>)
     }
 
-    let pathNames = this.state.plots.map((series) => series.path)
-    PlotProfiles.save_profile(plotSetName, pathNames)
-  }
+    addPlotClicked() { this.setState({isPathSelectorDisplayed : true}) }
 
+    clearPlotsClicked() { this.setState({plots : [], plotNeedsRefresh : true}) }
+
+    deletePlotClicked(plotIndex) {
+      let {plots} = this.state
+      plots.splice(plotIndex, 1) 
+      this.setState({plots : plots, plotNeedsRefresh : true})
+    }
+
+    loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }
+
+    didOpenPlotSet(plotSet) {
+      this.setState({isOpenPlotSetDisplayed : false}) 
+      this.didSelectPaths(plotSet)
+    }
+
+    savePlotSetClicked() {
+      const plotSetName = prompt("Please name this plot set")
+
+      if (PlotProfiles.exists(plotSetName)) {
+        if (!confirm(`Are you sure you want to overwrite plot set named \"${
+                plotSetName}?`))
+          return
+      }
+
+      let pathNames = this.state.plots.map((series) => series.path)
+      PlotProfiles.save_profile(plotSetName, pathNames)
+    }
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
