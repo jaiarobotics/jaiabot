@@ -543,19 +543,19 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
         if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
         {
             // Reset Counter For Degraded Checks
-            gps_degraded_fix_check_incr_ = 1;
+            gps_degraded_fix_check_incr_ = 0;
         }
         else
         {
             // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ < this->cfg().total_gps_degraded_fix_checks())
+            if (gps_degraded_fix_check_incr_ < (this->cfg().total_gps_degraded_fix_checks() - 1))
             {
-                goby::glog.is_debug2() && goby::glog << "GPS has a degraded fix, but has not "
-                                                        "reached threshold for total checks: "
-                                                        " "
-                                                     << gps_degraded_fix_check_incr_ << " < "
-                                                     << this->cfg().total_gps_degraded_fix_checks()
-                                                     << std::endl;
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a degraded fix, but has not "
+                                  "reached threshold for total checks: "
+                                  " "
+                               << gps_degraded_fix_check_incr_ << " < "
+                               << (this->cfg().total_gps_degraded_fix_checks() - 1) << std::endl;
 
                 // Increment until we reach total gps degraded fix checks
                 gps_degraded_fix_check_incr_++;
@@ -579,7 +579,7 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
                                                               &AcquiredGPSCommon::gps>>;
 
   private:
-    int gps_degraded_fix_check_incr_{1};
+    int gps_degraded_fix_check_incr_{0};
 };
 
 // Base class for all Task ReacquireGPS as these do nearly the same thing.
@@ -606,13 +606,13 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
         if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < this->cfg().total_gps_fix_checks())
+            if (gps_fix_check_incr_ < (this->cfg().total_gps_fix_checks() - 1))
             {
                 goby::glog.is_debug2() && goby::glog << "GPS has a good fix, but has not "
                                                         "reached threshold for total checks"
                                                         " "
                                                      << gps_fix_check_incr_ << " < "
-                                                     << this->cfg().total_gps_fix_checks()
+                                                     << (this->cfg().total_gps_fix_checks() - 1)
                                                      << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
@@ -632,7 +632,7 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
         else
         {
             // Reset gps fix incrementor
-            gps_fix_check_incr_ = 1;
+            gps_fix_check_incr_ = 0;
         }
     }
 
@@ -641,7 +641,7 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
                                                               &ReacquireGPSCommon::gps>>;
 
   private:
-    int gps_fix_check_incr_{1};
+    int gps_fix_check_incr_{0};
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
