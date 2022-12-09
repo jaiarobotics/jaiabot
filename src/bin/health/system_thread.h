@@ -126,13 +126,6 @@ class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoS
   private:
     jaiabot::protobuf::ArduinoStatus status_;
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
-    float battery_voltage_low_level_{0};
-    float battery_voltage_very_low_level_{0};
-    float battery_voltage_critically_low_level_{0};
-    bool voltage_low_{false};
-    bool voltage_very_low_{false};
-    bool voltage_critically_low_{false};
-    bool watch_battery_voltage_{false};
     goby::time::SteadyClock::time_point vvcvoltage_last_updated_{std::chrono::seconds(0)};
 };
 
