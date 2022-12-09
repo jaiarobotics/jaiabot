@@ -92,7 +92,11 @@ let commands = {
     }
 }
 
+let takeControlFunction = null;
+
 function issueCommand(api, bot_id, command) {
+    if (!takeControlFunction()) return;
+
     if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
         let c = {
             bot_id: bot_id,
@@ -106,10 +110,12 @@ function issueCommand(api, bot_id, command) {
 
 function issueMissionCommand(api, bot_mission, bot_id) {
 
+    if (!takeControlFunction()) return;
+
     if (bot_mission != ""
             && confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
         // Set the speed values
-        let speeds = Settings.read('mission.plan.speeds')
+        let speeds = Settings.missionPlanSpeeds.get()
         if (speeds != null && bot_mission.plan != null) {
             bot_mission.plan.speeds = speeds
         }
@@ -236,7 +242,7 @@ function healthRow(bot, allInfo) {
 
 }
 
-export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
+export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeControl) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -285,6 +291,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
     }
 
     let mission_state = bot.mission_state;
+    takeControlFunction = takeControl;
 
     return (
         <div id='botDetailsBox'>
@@ -377,7 +384,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
                         <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
                                 onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
-                            <img src={rcMode} alt="Activate RC Mode"></img>
+                            <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                         </Button>
 
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
