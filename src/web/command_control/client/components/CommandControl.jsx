@@ -2287,7 +2287,8 @@ export default class CommandControl extends React.Component {
 												hubs?.[0], 
 												this.api, 
 												this.missions, 
-												closeDetails);
+												closeDetails,
+												this.takeControl.bind(this));
 				break;
 			case null:
 				detailsBox = null;

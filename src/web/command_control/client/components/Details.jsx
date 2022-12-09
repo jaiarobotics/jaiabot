@@ -92,7 +92,11 @@ let commands = {
     }
 }
 
+let takeControlFunction = null;
+
 function issueCommand(api, bot_id, command) {
+    if (!takeControlFunction()) return;
+
     if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
         let c = {
             bot_id: bot_id,
@@ -105,6 +109,8 @@ function issueCommand(api, bot_id, command) {
 }
 
 function issueMissionCommand(api, bot_mission, bot_id) {
+
+    if (!takeControlFunction()) return;
 
     if (bot_mission != ""
             && confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
@@ -236,7 +242,7 @@ function healthRow(bot, allInfo) {
 
 }
 
-export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
+export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeControl) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -285,6 +291,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow) {
     }
 
     let mission_state = bot.mission_state;
+    takeControlFunction = takeControl;
 
     return (
         <div id='botDetailsBox'>
