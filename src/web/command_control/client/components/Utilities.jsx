@@ -64,3 +64,15 @@ export function randomBase57(stringLength) {
     }
     return s
 }
+
+export function downloadToFile(data, mimeType, fileName) {
+    const blob = new Blob([data], {type: mimeType})
+
+    var link = window.document.createElement('a')
+    link.href = window.URL.createObjectURL(blob)
+    // Construct filename dynamically and set to link.download
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+}

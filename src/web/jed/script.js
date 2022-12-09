@@ -842,21 +842,23 @@ function updateStatus(status) {
   let now_us = Date.now() * 1e3
 
   for (const [botId, bot] of Object.entries(bots)) {
+    console.log(bot)
+
     loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
     if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||
         bot.missionState == "POST_DEPLOYMENT__IDLE") {
-      loggingStatusInnerDown += bot.botId + ", "
+      loggingStatusInnerDown += bot.bot_id + ", "
       isNotLogging = true;
     }
     else {
-      loggingStatusInnerUp += bot.botId + ", "
+      loggingStatusInnerUp += bot.bot_id + ", "
       isLogging = true;
     }
 
     innerHTML += "<tr>"
-    innerHTML += "<td>" + bot.botId + "</td>"
+    innerHTML += "<td>" + bot.bot_id + "</td>"
 
     innerHTML += "<td>" + bot.mission_state + "</td>"
 
@@ -886,7 +888,7 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>"
 
     innerHTML +=
-        "<td>" + Math.max(0.0, bot.portal_status_age / 1e6).toFixed(0) + "</td>"
+        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
 
     lastCommandTime = bot.last_command_time
                           ? ((now_us - bot.last_command_time) / 1e6).toFixed(0)

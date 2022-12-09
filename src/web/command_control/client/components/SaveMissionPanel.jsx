@@ -7,8 +7,9 @@ import React from 'react'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from '@mdi/js'
 import Button from '@mui/material/Button';
+import { downloadToFile } from './Utilities';
 
 export class SaveMissionPanel extends React.Component {
 
@@ -54,6 +55,9 @@ export class SaveMissionPanel extends React.Component {
         let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
             <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
                 <Icon path={mdiDelete}></Icon>
+            </Button>
+            <Button className="button-jcc" onClick={this.downloadClicked.bind(this)}>
+                <Icon path={mdiFolderDownload}></Icon>
             </Button>
             <div className='flexSpacer'></div>
             <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
@@ -106,6 +110,10 @@ export class SaveMissionPanel extends React.Component {
 
     cancelClicked() {
         this.props.onDone?.()
+    }
+
+    downloadClicked() {
+        downloadToFile(JSON.stringify(this.props.missions), 'application/json', 'mission.json')
     }
 
 }

@@ -115,7 +115,7 @@ function issueMissionCommand(api, bot_mission, bot_id) {
     if (bot_mission != ""
             && confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
         // Set the speed values
-        let speeds = Settings.read('mission.plan.speeds')
+        let speeds = Settings.missionPlanSpeeds.get()
         if (speeds != null && bot_mission.plan != null) {
             bot_mission.plan.speeds = speeds
         }
@@ -384,7 +384,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                         <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
                                 onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
-                            <img src={rcMode} alt="Activate RC Mode"></img>
+                            <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                         </Button>
 
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 

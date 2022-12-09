@@ -31,6 +31,10 @@ def floatFrom(obj):
         return None
 
 
+def protobufMessageToDict(message):
+    return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
+
+
 class Interface:
     # Dict from hub_id => hubStatus
     hubs = {}
@@ -69,7 +73,7 @@ class Interface:
 
             # Get PortalToClientMessage
             try:
-                data = self.sock.recv(256)
+                data = self.sock.recv(1024)
                 self.process_portal_to_client_message(data)
 
             except socket.timeout:
@@ -84,23 +88,33 @@ class Interface:
                 pass
 
             msg = PortalToClientMessage()
-            byteCount = msg.ParseFromString(data)
+
+            try:
+                byteCount = msg.ParseFromString(data)
+            except:
+                logging.error(f"Couldn't parse protobuf data of size: {len(data)}")
+                return
+
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
 
             if msg.HasField('bot_status'):
-                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status, preserving_proto_field_name=True)
+                botStatus = protobufMessageToDict(msg.bot_status)
 
                 # Set the time of last status to now
                 botStatus['lastStatusReceivedTime'] = now()
 
-                self.bots[botStatus['bot_id']] = botStatus
+                bot_id = botStatus['bot_id']
+                self.bots[bot_id] = botStatus
+
+                if msg.HasField('active_mission_plan'):
+                    self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
             if msg.HasField('engineering_status'):
-                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status, preserving_proto_field_name=True)
+                botEngineering = protobufMessageToDict(msg.engineering_status)
                 self.bots_engineering[botEngineering['bot_id']] = botEngineering
 
             if msg.HasField('hub_status'):
-                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status, preserving_proto_field_name=True)
+                hubStatus = protobufMessageToDict(msg.hub_status)
 
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now()
@@ -273,8 +287,15 @@ class Interface:
         return {'status': 'ok'}
 
     def process_task_packet(self, task_packet_message):
-        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message, preserving_proto_field_name=True)
+        task_packet = protobufMessageToDict(task_packet_message)
         self.task_packets.append(task_packet)
+
+    def process_active_mission_plan(self, bot_id, active_mission_plan):
+        try:
+            active_mission_plan_dict = protobufMessageToDict(active_mission_plan)
+            self.bots[bot_id]['active_mission_plan'] = active_mission_plan_dict
+        except IndexError:
+            logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
     def get_task_packets(self):
         return self.task_packets
