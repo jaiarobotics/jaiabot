@@ -71,7 +71,7 @@ constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
                                              goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command",
                                               goby::middleware::Group::broadcast_group};
-constexpr goby::middleware::Group dive_packet{"jaiabot::dive_packet",
+constexpr goby::middleware::Group task_packet{"jaiabot::task_packet",
                                               goby::middleware::Group::broadcast_group};
 constexpr goby::middleware::Group engineering_command{"jaiabot::engineering_command",
                                                       goby::middleware::Group::broadcast_group};

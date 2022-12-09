@@ -45,6 +45,8 @@ namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 using UDPEndPoint = goby::middleware::protobuf::UDPEndPoint;
 
+typedef int BotId;
+
 // We need to define a comparison operator, so we can build a set of UDPEndPoint
 namespace goby
 {
@@ -87,9 +89,13 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
   private:
     unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
 
+    map<BotId, jaiabot::protobuf::MissionPlan> active_mission_plans;
+
     void loop() override;
 
     void process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg);
+    void handle_command(const jaiabot::protobuf::Command& command);
+
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
 };
 
@@ -138,13 +144,20 @@ jaiabot::apps::WebPortal::WebPortal()
 
     // Subscribe to bot statuses coming in over intervehicle
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
-        [this](const jaiabot::protobuf::BotStatus& dccl_nav) {
+        [this](const jaiabot::protobuf::BotStatus& bot_status)
+        {
             glog.is_debug2() && glog << group("main")
-                                     << "Received DCCL nav: " << dccl_nav.ShortDebugString()
+                                     << "Received BotStatus: " << bot_status.ShortDebugString()
                                      << endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
-            *message.mutable_bot_status() = dccl_nav;
+            *message.mutable_bot_status() = bot_status;
+
+            // If this bot has an active mission, let's attach that too
+            if (active_mission_plans.count(bot_status.bot_id()) > 0)
+            {
+                *message.mutable_active_mission_plan() = active_mission_plans[bot_status.bot_id()];
+            }
 
             send_message_to_client(message);
         });
@@ -169,6 +182,15 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_engineering_status() = engineering_status;
+
+            send_message_to_client(message);
+        });
+
+    // Subscribe to TaskPackets
+    interprocess().subscribe<jaiabot::groups::task_packet>(
+        [this](const jaiabot::protobuf::TaskPacket& task_packet) {
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_task_packet() = task_packet;
 
             send_message_to_client(message);
         });
@@ -200,13 +222,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 
     if (msg.has_command())
     {
-        using jaiabot::protobuf::Command;
-        auto command = msg.command();
-
-        glog.is_debug2() && glog << group("main")
-                                 << "Sending command to hub_manager: " << command.ShortDebugString()
-                                 << endl;
-        interprocess().publish<jaiabot::groups::hub_command_full>(command);
+        handle_command(msg.command());
     }
 }
 
@@ -235,5 +251,24 @@ void jaiabot::apps::WebPortal::send_message_to_client(
 
         glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString()
                                  << endl;
+    }
+}
+
+void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& command)
+{
+    using jaiabot::protobuf::Command;
+
+    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager: " << command.ShortDebugString()
+                             << endl;
+
+    goby::middleware::Publisher<Command> command_publisher(
+        {}, [](Command& cmd, const goby::middleware::Group& group)
+        { cmd.set_bot_id(group.numeric()); });
+
+    interprocess().publish<jaiabot::groups::hub_command_full>(command);
+
+    if (command.has_plan())
+    {
+        active_mission_plans[command.bot_id()] = command.plan();
     }
 }

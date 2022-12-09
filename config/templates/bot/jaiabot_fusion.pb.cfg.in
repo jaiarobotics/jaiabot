@@ -2,3 +2,42 @@ $app_block
 $interprocess_block
 
 bot_id: $bot_id
+
+is_sim: $fusion_in_simulation
+
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+
+imu_heading_course_max_diff: 45 # In Degrees
+course_over_ground_timeout: 3 # timeout in seconds
+
+# STOP_BOT
+# USE_COG
+# USE_CORRECTION
+# RESTART_BOT
+# REBOOT_BOT
+# REPORT_IMU
+imu_issue_solution: RESTART_IMU_PY
+
+# Seconds
+imu_restart_timeout: 30 # default (30 seconds)
+
+# fusion runs at 2hz
+total_imu_issue_checks: 10
+
+include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
+include_course_error_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
+include_course_error_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
+
+include_imu_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+include_imu_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
+include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
+include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP

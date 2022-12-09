@@ -5,9 +5,24 @@ module.exports = {
   devtool : 'inline-source-map',
   entry : path.resolve(__dirname, './src/index.js'),
   module : {
-    rules : [
-      {test : /\.(js)$/, exclude : /node_modules/, use : [ 'babel-loader' ]},
-      {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]}
+    rules :
+    [ 
+      {
+        test : /\.(js)$/, 
+        exclude : /node_modules/, 
+        use : [ 'babel-loader' ]
+      },       
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          'css-loader'
+        ]
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif)$/,
+        type: 'asset/resource',
+      },      
     ]
   },
   resolve : {extensions : [ '*', '.js' ]},

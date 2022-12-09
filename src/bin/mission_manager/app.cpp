@@ -118,8 +118,17 @@ jaiabot::apps::MissionManager::MissionManager()
             const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
 
             if (state_pair.first)
+            {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
+
+                if (state_pair.second == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
+                {
+                    // Reset after dive
+                    gps_fix_check_incr_ = 1;
+                    gps_degraded_fix_check_incr_ = 1;
+                }
+            }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
                                           << std::endl;
@@ -251,10 +260,87 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            if (tpv.has_mode() &&
-                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
-                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
-                machine_->process_event(statechart::EvGPSFix());
+            machine_->set_gps_tpv(tpv);
+        });
+
+    // subscribe for GPS data (to reacquire gps)
+    interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
+        [this](const goby::middleware::protobuf::gpsd::SkyView& sky) {
+            glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop()
+                                     << ", PDOP: " << sky.pdop() << std::endl;
+
+            if (sky.has_hdop() && sky.has_pdop() && (sky.hdop() <= cfg().gps_hdop_fix()) &&
+                (sky.pdop() <= cfg().gps_pdop_fix()))
+            {
+                // Increment gps fix checks until we are > the threshold for confirming gps fix
+                if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
+                {
+                    glog.is_debug1() && glog << "GPS has a good fix, but has not "
+                                                "reached threshold for total checks"
+                                                " "
+                                             << gps_fix_check_incr_ << " < "
+                                             << cfg().total_gps_fix_checks() << std::endl;
+                    // Increment until we reach total gps fix checks
+                    gps_fix_check_incr_++;
+                }
+                else
+                {
+                    glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
+                                             << sky.hdop() << " <= " << cfg().gps_hdop_fix()
+                                             << ", pdop is " << sky.pdop()
+                                             << " <= " << cfg().gps_pdop_fix()
+                                             << " Reset incr for gps degraded fix" << std::endl;
+
+                    // Post Event for gps fix
+                    machine_->process_event(statechart::EvGPSFix());
+
+                    // Reset degraded fix check as we received hdop below cfg().gps_hdop_fix()
+                    // and pdop is below cfg().gps_pdop_fix()
+                    gps_degraded_fix_check_incr_ = 1;
+                }
+            }
+            else
+            {
+                // Increment degraded checks until we are > the threshold for confirming degraded gps
+                if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
+                {
+                    glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
+                                                "reached threshold for total checks: "
+                                                " "
+                                             << gps_degraded_fix_check_incr_ << " < "
+                                             << cfg().total_gps_degraded_fix_checks() << std::endl;
+
+                    // Increment until we reach total gps degraded fix checks
+                    gps_degraded_fix_check_incr_++;
+                }
+                else
+                {
+                    glog.is_debug1() &&
+                        glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << sky.hdop()
+                             << " > " << cfg().gps_hdop_fix() << ", pdop is " << sky.pdop() << " > "
+                             << cfg().gps_pdop_fix() << " Reset incr for gps fix" << std::endl;
+
+                    // Post Event for no gps fix
+                    machine_->process_event(statechart::EvGPSNoFix());
+
+                    // Reset if gps hdop is above cfg().gps_hdop_fix()
+                    // and pdop is above cfg().gps_pdop_fix()
+                    gps_fix_check_incr_ = 1;
+                }
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
+            glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
+                                     << std::endl;
+
+            switch (imu_issue.solution())
+            {
+                case protobuf::IMUIssue::STOP_BOT:
+                    machine_->process_event(statechart::EvStop());
+                    break;
+            }
         });
 }
 
@@ -294,6 +380,26 @@ void jaiabot::apps::MissionManager::loop()
             {
                 *report.mutable_active_goal_location() = in_mission->current_goal()->location();
             }
+        }
+    }
+    else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
+    {
+        report.set_active_goal(in_mission->goal_index());
+
+        if (machine_->mission_plan().recovery().has_recover_at_final_goal())
+        {
+            if (machine_->mission_plan().recovery().recover_at_final_goal())
+            {
+                *report.mutable_active_goal_location() =
+                    machine_->mission_plan()
+                        .goal()
+                        .Get(machine_->mission_plan().goal_size() - 1)
+                        .location();
+            }
+        }
+        else if (machine_->mission_plan().recovery().has_location())
+        {
+            *report.mutable_active_goal_location() = machine_->mission_plan().recovery().location();
         }
     }
 

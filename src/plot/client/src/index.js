@@ -8,7 +8,18 @@ import {LogApi} from "./LogApi.js"
 import LogSelector from "./LogSelector.js"
 import PathSelector from "./PathSelector.js"
 import PlotProfiles from "./PlotProfiles.js"
-import Map from "./Map.js"
+import JaiaMap from "./JaiaMap.js"
+import TimeSlider from "./TimeSlider.js"
+import { DataTable } from "./DataTable.js"
+import { mdiClose, mdiContentSave, mdiDownload, mdiFloppy, mdiFloppyVariant, mdiFolderOpen, mdiPlus, mdiTrashCan } from '@mdi/js'
+import Icon from '@mdi/react'
+import { downloadCSV } from "./DownloadCSV.js"
+import { OpenPlotSet } from "./OpenPlotSet.js"
+
+const APP_NAME = "Data Vision"
+
+const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
+
 
 // Convert from an ISO date string to microsecond UNIX timestamp
 function iso_date_to_micros(iso_date_string) {
@@ -21,103 +32,131 @@ class LogApp extends React.Component {
   constructor(props) {
     super(props)
 
-        this.state = {
+    this.state = {
       logs : [],
+      is_selecting_logs: false,
       chosen_logs : [],
-      chosen_paths : [],
-      plots : []
+      plots : [],
+      layerSwitcherVisible: false,
+      plotNeedsRefresh: false,
+      mapNeedsRefresh: false,
+      timeFraction: null,
+      t: null, // Currently selected time
+      tMin: null, // Minimum time for these logs
+      tMax: null, // Maximum time for these logs
+
+      // Plot selection
+      isPathSelectorDisplayed: false,
+
+      // Plot sets
+      isOpenPlotSetDisplayed: false,
     }
   }
 
   render() {
+    const self = this;
+
+    // Show log selection box?
+    const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+
     return (
       <Router>
-        <div><div className = "vertical flexbox top_pane padded">
-
-        <div className = "row"><div>
-        <img src = "/favicon.png" className = "jaia-icon" /><h2 style = {
-          {
-            display: "inline-block", verticalAlign: "text-bottom",
-                margin: "10pt"
-          }
-        }>Logs</h2>
+        <div className="vertical flexbox maximized">
+          <div className = "vertical flexbox top_pane padded">
+            <div className = "row">
+              <img src = "/favicon.png" className = "jaia-icon" />
+              <h2 className="appName">{APP_NAME}</h2>
             </div>
-        </div>
-
-          <LogSelector logs={this.state.logs} log_was_selected={this.log_was_selected.bind(this)} />
-
-        <PathSelector logs = {this.state.chosen_logs} key =
-            {this.state.chosen_logs} on_select_path =
-        {
-          this.path_was_selected.bind(this)
-        } />
-
-          <div>
-            <button className="padded" onClick={() => {
-              this.setState({plots: []})
-            }}>Clear Plots</button>
-
-        <LoadProfile did_select_plot_set =
-        {
-          (paths) => {
-            LogApi.get_series(this.state.chosen_logs, paths)
-                .then(
-                    (series_array) => {this.setState({plots : series_array})})
-          }
-        } />
-
-            <button className="padded" onClick={() => {
-              let plot_profile_name = prompt('Save this set of plots as:', 'New Profile')
-              let plot_profile = this.state.plots.map((series) => series.path)
-              PlotProfiles.save_profile(plot_profile_name, plot_profile)
-              this.forceUpdate()
-            }}>Save Profile</button>
-
-            <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
-              () => {
-
-                const t_range = this.get_plot_range()
-                this.open_moos_messages(t_range)
-              }
-            }>Download MOOS Messages...</button>
-
-        </div>
-        </div>
-
-        <div className = "bottom_pane">
-          <div className="plotcontainer">
-            <div id="plot" className="plot"></div>
           </div>
 
-          <div className="map" id="map"></div>
+          <div>
+            <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
+            <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
+          </div>
+
+          <div className = "bottomPane flexbox horizontal">
+            { this.plotSection() }
+
+            <div id="mapPane">
+              <div className="flexbox vertical" style={{height:'100%'}}>
+                <div style={{width:'100%', flexGrow:1}}>
+                  <div className="openlayers-map" id="openlayers-map"></div>
+                  <div id="mapControls">
+                    <div id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+                    <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                    <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
+                      <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+                    </button>
+                  </div>
+                </div>
+                <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
+                  this.map.updateToTimestamp(t)
+                  this.setState({t: t })
+                }}></TimeSlider>
+              </div>
+            </div>
+          </div>
+          { log_selector }
         </div>
-        </div>
+
       </Router>
     )
   }
 
+  togglerLayerSwitcher() {
+    var {layerSwitcherVisible} = this.state
+    this.setState({layerSwitcherVisible: !layerSwitcherVisible})
+  }
+
+  selectLogButtonPressed(evt) {
+    this.setState({is_selecting_logs: true})
+  }
+
   componentDidUpdate() {
-    if (this.state.chosen_logs.length > 0) {
-      // Get map data
-      LogApi.get_map(this.state.chosen_logs).then((points) => {
-        this.map.updateWithPoints(points)
-      })
+    if (this.state.mapNeedsRefresh) {
+      if (this.state.chosen_logs.length > 0) {
+        // Get map data
+        LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+          this.map.setSeriesArray(seriesArray)
+          this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.t})
+        })
 
-      // Get the command dictionary (botId => [Command])
-      LogApi.get_commands(this.state.chosen_logs)
-          .then((command_dict) => {this.map.updateWithCommands(command_dict)})
+        // Get the command dictionary (botId => [Command])
+        LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
+          this.map.updateWithCommands(command_dict)
+        })
 
-      // Get the active_goals
-      LogApi.get_active_goal(this.state.chosen_logs)
-          .then((active_goal_dict) => {
-                    this.map.updateWithActiveGoal(active_goal_dict)})
+        // Get the active_goals
+        LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
+          this.map.updateWithActiveGoal(active_goal_dict)
+        })
+
+        // Get the task packets
+        LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+          this.map.updateWithTaskPackets(task_packets)
+        })
+
+        // Get the depth contours
+        LogApi.get_depth_contours(this.state.chosen_logs).then((geoJSON) => {
+          this.map.updateWithDepthContourGeoJSON(geoJSON)
+        })
+
+      }
+      else {
+        this.map.clear()
+      }
+
+      this.setState({mapNeedsRefresh: false})
     }
-    this.refresh_plots()
+    
+    if (this.state.plotNeedsRefresh) {
+      this.refresh_plots()
+    }
   }
 
   componentDidMount() {
     this.getElements()
-    this.map = new Map('map')
+    this.map = new JaiaMap('openlayers-map')
     this.update_log_dropdown()
   }
 
@@ -129,23 +168,30 @@ class LogApp extends React.Component {
   update_log_dropdown() {
     LogApi.get_logs().then(logs => {
       this.setState({logs})
+      // this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
     })
   }
 
-  log_was_selected(evt) {
-    this.setState({chosen_logs: [ evt.target.value] })
+  didSelectLogs(logs) {
+    if (logs != null) {
+      this.setState({chosen_logs: logs, mapNeedsRefresh: true })
+    }
+
+    this.setState({is_selecting_logs: false})
   }
 
-  path_was_selected(path) {
-    LogApi.get_series(this.state.chosen_logs, [ path ])
+  didSelectPaths(pathArray) {
+    LogApi.get_series(this.state.chosen_logs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
                 this.state.plots 
-                this.setState({plots : plots.concat(series)})
+                this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
         .catch(err => {alert(err)})
+
+    this.setState({isPathSelectorDisplayed: false})
   }
 
   get_plot_range() {
@@ -213,6 +259,7 @@ class LogApp extends React.Component {
       let dateString = data.points[0].data.x[data.points[0].pointIndex] 
       let date_timestamp_micros = iso_date_to_micros(dateString)
       self.map.updateToTimestamp(date_timestamp_micros)
+      self.setState({t: date_timestamp_micros})
     })
 
     this.plot_div_element.on('plotly_unhover',
@@ -234,10 +281,120 @@ class LogApp extends React.Component {
       self.map.timeRange = [t0, t1]
       self.map.updatePath()
     })
+
+    this.setState({plotNeedsRefresh: false})
+  }
+
+  moosMessagesButton() {
+    return (
+      <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
+        () => {
+  
+          const t_range = this.get_plot_range()
+          this.open_moos_messages(t_range)
+        }
+      }>Download MOOS Messages...</button>
+    )
   }
 
   open_moos_messages(time_range) {
     LogApi.get_moos(this.state.chosen_logs, time_range)
+  }
+
+  // Plot Section
+
+  plotSection() {
+    if (this.state.chosen_logs.length > 0) {
+      var actionBar = <div className="plotButtonBar">
+        <button title="Add Plot" className="plotButton" onClick={ this.addPlotClicked.bind(this) }>
+          <Icon path={mdiPlus} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+        <button title="Load Plot Set" className="plotButton" onClick={ this.loadPlotSetClicked.bind(this) }>
+          <Icon path={mdiFolderOpen} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+        <button title="Save Plot Set" className="plotButton" onClick={ this.savePlotSetClicked.bind(this) }>
+          <Icon path={mdiContentSave} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+        <button title="Download CSV" className="plotButton" disabled={this.state.plots.length == 0} onClick={ () => { downloadCSV(this.state.plots, this.get_plot_range())} }>
+          <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>CSV
+        </button>
+        <button title="Clear Plots" className="plotButton" onClick={ this.clearPlotsClicked.bind(this) }>
+          <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+      </div>
+    }
+    else {
+      var actionBar = null
+    }
+
+    if (this.state.isPathSelectorDisplayed) {
+      var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
+      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } /> 
+    }
+    else {
+      var pathSelector = null
+    }
+
+    let deleteButtons = this.state.plots.map((plot, plotIndex) => {
+      return (
+        <button title="Clear Plots" className="plotButton" onClick={ this.deletePlotClicked.bind(this, plotIndex) } key={plotIndex + '-deleteButton'}>
+          <Icon path={mdiClose} size={1} style={{verticalAlign: "middle"}}></Icon>
+        </button>
+      )
+    })
+
+    const openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet={ this.didOpenPlotSet.bind(this) }></OpenPlotSet> : null
+
+    return (
+      <div className="plotcontainer">
+        <h2>Plots</h2>
+        {actionBar}
+        {pathSelector}
+        <div className="horizontal flexbox">
+          <div id="plot" className="plot"></div>
+          <div className="vertical flexbox deleteButtonSection">
+            { deleteButtons }
+          </div>
+        </div>
+        { DataTable(this.state.plots, this.state.t)}
+        { openPlotSet }
+      </div>
+    )
+  }
+
+  addPlotClicked() {
+    console.log('hello?')
+    this.setState({isPathSelectorDisplayed: true})
+  }
+
+  clearPlotsClicked() {
+    this.setState({plots: [], plotNeedsRefresh: true})
+  }
+
+  deletePlotClicked(plotIndex) {
+    let {plots} = this.state
+    plots.splice(plotIndex, 1)
+    this.setState({plots: plots, plotNeedsRefresh: true})
+  }
+
+  loadPlotSetClicked() {
+    this.setState({isOpenPlotSetDisplayed: true})
+  }
+
+  didOpenPlotSet(plotSet) {
+    this.setState({isOpenPlotSetDisplayed: false})
+    this.didSelectPaths(plotSet)
+  }
+
+  savePlotSetClicked() {
+    const plotSetName = prompt("Please name this plot set")
+
+    if (PlotProfiles.exists(plotSetName)) {
+      if (!confirm(`Are you sure you want to overwrite plot set named \"${plotSetName}?`)) return
+    }
+
+    let pathNames = this.state.plots.map((series) => series.path)
+    PlotProfiles.save_profile(plotSetName, pathNames)
   }
 
 }

@@ -110,9 +110,11 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
     interprocess().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
       auto s = std::string(data.data());
       auto fields = split(s, ",");
-      if (fields.size() < 10) {
-        glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s << std::endl;
-        return;
+      if (fields.size() < 14)
+      {
+          glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s
+                                 << std::endl;
+          return;
       }
 
       int index = 0;
@@ -132,6 +134,11 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_gravity()->set_x(std::stod(fields[index++]));
       output.mutable_gravity()->set_y(std::stod(fields[index++]));
       output.mutable_gravity()->set_z(std::stod(fields[index++]));
+
+      output.mutable_calibration_status()->set_sys(std::stod(fields[index++]));
+      output.mutable_calibration_status()->set_gyro(std::stod(fields[index++]));
+      output.mutable_calibration_status()->set_accel(std::stod(fields[index++]));
+      output.mutable_calibration_status()->set_mag(std::stod(fields[index++]));
 
       glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
 
