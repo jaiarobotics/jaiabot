@@ -19,14 +19,14 @@ function dateStringFromMicros(timestamp_micros) {
 }
 
 
-export function createMissionFeatures(map, command, activeGoalIndex, isSelected) {
+export function createMissionFeatures(map, plan, activeGoalIndex, isSelected) {
     var features = []
     const projection = map.getView().getProjection()
 
     // Add markers for each waypoint
     var missionLineStringCoordinates = []
 
-    for (const [goal_index, goal] of command.plan.goal.entries()) {
+    for (const [goal_index, goal] of plan.goal.entries()) {
         const location = goal.location
 
         if (location == null) {

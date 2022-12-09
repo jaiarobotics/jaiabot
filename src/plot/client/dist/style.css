@@ -236,6 +236,10 @@ li::marker {
     user-select: none;
 }
 
+.TimeSlider:hover {
+    cursor: pointer;
+}
+
 .TimeSliderBack {
     background-color: slategray;
     height: 10pt;

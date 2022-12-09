@@ -2,24 +2,19 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
+import { randomBase57 } from '../client/components/Utilities';
+
 export class JaiaAPI {
-  constructor(url = 'http://192.168.42.1:5000', debug = false) {
+  constructor(clientId, url = 'http://192.168.42.1:5000', debug = false) {
+    this.clientId = clientId
+    console.debug(`JaiaAPI clientId = ${clientId}`)
     this.url = url;
 
     this.debug = debug;
-    this.commonGetOpts = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8'
-      }
-    };
-    this.commonPostOpts = {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8'
-      }
-    };
+    this.headers = {
+      'Content-Type' : 'application/json; charset=utf-8',
+      'clientId': this.clientId
+    }
   }
 
   hit(method, endpoint, requestBody) {
@@ -29,7 +24,7 @@ export class JaiaAPI {
     }
     return fetch(`${this.url}${endpoint}`, {
              method,
-             headers : {'Content-Type' : 'application/json; charset=utf-8'},
+             headers : this.headers,
              body : JSON.stringify(requestBody)
            })
         .then(
@@ -78,7 +73,7 @@ export class JaiaAPI {
 
   getDepthContours() { return this.get('jaia/depth-contours') }
 
-  allStop() { return this.post('jaia/allStop', null) }
+  allStop() { return this.post('jaia/allStop') }
 
   allActivate() { return this.post('jaia/allActivate', null) }
 
@@ -87,6 +82,8 @@ export class JaiaAPI {
   allRecover() { return this.post('jaia/allRecover', null) }
 
   postCommand(command) { return this.post('jaia/command', command) }
+
+  takeControl() { return this.post('jaia/takeControl', null) }
 
   postEngineering(engineeringCommand) {
     return this.post('jaia/pid-command', engineeringCommand)
@@ -100,4 +97,4 @@ export class JaiaAPI {
   getContourMapBounds() { return this.get('jaia/contour-bounds') }
 }
 
-export const jaiaAPI = new JaiaAPI('/', false)
+export const jaiaAPI = new JaiaAPI(randomBase57(22), '/', false)
