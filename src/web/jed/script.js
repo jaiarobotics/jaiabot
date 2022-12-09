@@ -612,53 +612,33 @@ function handleKey(key) {
 
 ////////// Setup Centers /////////
 
-function getCookie(cname) {
-  let name = cname + "=";
-  let decodedCookie = decodeURIComponent(document.cookie);
-  let ca = decodedCookie.split(';');
-  for(let i = 0; i <ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return "";
-}
-
-rudderCenter = getCookie("rudderCenter") || 0.0
+rudderCenter = localStorage.getItem("rudderCenter") || 0.0
 el("rudderSlider").value = rudderCenter
 
-portCenter   = getCookie("portCenter") || 0.0
+portCenter = localStorage.getItem("portCenter") || 0.0
 el("portElevatorSlider").value = portCenter
 
-stbdCenter   = getCookie("stbdCenter") || 0.0
+stbdCenter = localStorage.getItem("stbdCenter") || 0.0
 el("stbdElevatorSlider").value = stbdCenter
-
-function setCookie(cname, cvalue) {
-  document.cookie = cname + "=" + cvalue + ";";
-}
 
 el("rudderCenter").onclick =
     function(e) {
   rudderCenter = Number(el("rudderSlider").value)
-  setCookie("rudderCenter", rudderCenter)
+  localStorage.setItem("rudderCenter", rudderCenter)
 }
 
     el("portElevatorCenter")
         .onclick =
         function(e) {
   portCenter = Number(el("portElevatorSlider").value)
-  setCookie("portCenter", portCenter)
+  localStorage.setItem("portCenter", portCenter)
 }
 
         el("stbdElevatorCenter")
             .onclick =
             function(e) {
   stbdCenter = Number(el("stbdElevatorSlider").value)
-  setCookie("stbdCenter", stbdCenter)
+  localStorage.setItem("stbdCenter", stbdCenter)
 }
 
 ////////// Command Sender //////////////
