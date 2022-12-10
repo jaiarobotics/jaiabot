@@ -43,6 +43,7 @@ module.exports = (env, argv) => [
       },
       module : {
         rules : [
+          {test : /\.tsx?$/, exclude : [ /node_modules/], use : [ 'ts-loader' ]},
           {
             test : /\.(js|jsx)$/,
             exclude : /node_modules/,
@@ -85,7 +86,7 @@ module.exports = (env, argv) => [
           {test : /\.geojson$/, use : [ 'json-loader' ]}
         ]
       },
-      resolve : {extensions : [ '*', '.js', '.jsx' ]},
+      resolve : {extensions : [ '*', '.js', '.jsx', '.ts', '.tsx' ]},
       devServer : {
         contentBase : false,  // Don't have any non-webpack content (see
                               // HtmlWebpackPlugin and CopyWebpackPlugin below)
