@@ -1,11 +1,17 @@
-import { Feature } from "ol"
+import { Feature, Map } from "ol"
 import { Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 
 
-export function createBotFeature(properties) {
-    var features = []
+interface Properties {
+    map: Map,
+    botId: number
+    lonLat: Array<number>
+}
+
+
+export function createBotFeature(properties: Properties) {
     const projection = properties.map.getView().getProjection()
 
     const feature = new Feature({
@@ -19,8 +25,7 @@ export function createBotFeature(properties) {
 }
 
 
-export function createBotCourseOverGroundFeature(properties) {
-    var features = []
+export function createBotCourseOverGroundFeature(properties: Properties) {
     const projection = properties.map.getView().getProjection()
 
     const feature = new Feature({
@@ -34,8 +39,7 @@ export function createBotCourseOverGroundFeature(properties) {
 }
 
 
-export function createBotDesiredHeadingFeature(properties) {
-    var features = []
+export function createBotDesiredHeadingFeature(properties: Properties) {
     const projection = properties.map.getView().getProjection()
 
     const feature = new Feature({

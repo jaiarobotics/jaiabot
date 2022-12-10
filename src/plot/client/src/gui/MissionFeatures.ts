@@ -3,9 +3,9 @@ import { LineString, Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 import { createMarker } from './Marker'
+import {Command} from './ProtoBufMessages'
 
-
-export function createMissionFeatures(map, command, activeGoalIndex, isSelected) {
+export function createMissionFeatures(map: Map, command: Command, activeGoalIndex: number, isSelected: boolean) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -22,7 +22,6 @@ export function createMissionFeatures(map, command, activeGoalIndex, isSelected)
         {
             // OpenLayers
             const markerFeature = createMarker(map, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == activeGoalIndex, isSelected)})
-            markerFeature.goal = goal
             features.push(markerFeature)
         }
 

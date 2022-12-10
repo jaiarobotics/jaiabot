@@ -22,9 +22,9 @@ function dateStringFromMicros(timestamp_micros: number): string {
 interface MarkerParameters {
     lon: number
     lat: number
-    popupHTML: string | undefined
-    title: string | undefined
-    style: Style | undefined
+    popupHTML?: string
+    title?: string
+    style?: Style
 }
 
 
