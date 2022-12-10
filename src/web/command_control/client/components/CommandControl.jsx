@@ -2355,7 +2355,7 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
+				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 

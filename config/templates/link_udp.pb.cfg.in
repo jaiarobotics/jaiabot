@@ -13,7 +13,7 @@ link {
     }
     mac { 
         type: MAC_FIXED_DECENTRALIZED 
-        slot { src: $modem_id type: DATA slot_seconds: 1 }
+        slot { src: $modem_id type: DATA slot_seconds: 0.5 }
     }
 
     # Buffer values for the forwarded subscription (message sent to set up the subscription itself)

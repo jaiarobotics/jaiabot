@@ -286,6 +286,19 @@ class Interface:
 
         return {'status': 'ok'}
 
+    def post_ep_command(self, command, clientId):
+        cmd = google.protobuf.json_format.ParseDict(command, Engineering())
+        cmd.time = now()
+        msg = ClientToPortalMessage()
+        msg.engineering_command.CopyFrom(cmd)
+
+        self.controllingClientId = clientId
+        self.send_message_to_portal(msg)
+
+        self.setControllingClientId(clientId)
+
+        return {'status': 'ok'}
+
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
         self.task_packets.append(task_packet)
