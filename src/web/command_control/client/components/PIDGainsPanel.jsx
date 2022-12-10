@@ -6,6 +6,7 @@
 import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
+import Button from '@mui/material/Button';
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
 let pid_gains = ['Kp', 'Ki', 'Kd']
@@ -64,7 +65,7 @@ export class PIDGainsPanel extends React.Component {
             </div>
 
         let engineering = bots[self.botId]?.engineering
-        let bot_status_rate = engineering?.sendBotStatusRate ?? 'BotStatusRate_2_Hz';
+        let bot_status_rate = engineering?.send_bot_status_rate ?? 'BotStatusRate_2_Hz';
         let show_rate = "N/A";
 
         if (engineering) {
@@ -96,9 +97,7 @@ export class PIDGainsPanel extends React.Component {
                                             let botId_pid_type_gain = self.botId + "_" + pid_type_gain
             
                                             return (
-                                                <td key={botId_pid_type_gain}>
-                                                    <input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={engineering?.pidControl?.[pid_type]?.[pid_gain] ?? "-"} />
-                                                </td>
+                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={engineering?.pid_control?.[pid_type]?.[pid_gain] ?? "-"} /></td>
                                             )
                                         })
                                     }
@@ -160,12 +159,12 @@ export class PIDGainsPanel extends React.Component {
                 {
                     pidGainsTable(engineering)
                 }
-                <button type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</button>
+                <Button className="button-jcc" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
                 {
                     botStatusRateTable(engineering)
                 }
-                <button type="button" id="submit_bot_status_rate" onClick={this.submitBotStatusRate.bind(this)}>Change Selected Bot Status Rate</button>
-                <button type="button" id="submit_all_bot_status_rate" onClick={this.submitAllBotStatusRate.bind(this)}>Change All Bot Status Rate</button>
+                <Button className="button-jcc" type="button" id="submit_bot_status_rate" onClick={this.submitBotStatusRate.bind(this)}>Change Selected Bot Status Rate</Button>
+                <Button className="button-jcc" type="button" id="submit_all_bot_status_rate" onClick={this.submitAllBotStatusRate.bind(this)}>Change All Bot Status Rate</Button>
             </div>
         )
     
@@ -177,6 +176,8 @@ export class PIDGainsPanel extends React.Component {
     }
 
     submitGains() {
+        if (!this.props.control()) return;
+
         let botId = $("#pid_gains_bot_selector").val()
         info("Submit gains for botId: " + botId)
         let engineering_command = {
@@ -193,14 +194,13 @@ export class PIDGainsPanel extends React.Component {
 
         debug(JSON.stringify(engineering_command))
 
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/jaia/pid-command", true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify(engineering_command));
+        this.props.api.postEngineeringPanel(engineering_command);
     }
 
     submitBotStatusRate()
     {
+        if (!this.props.control()) return;
+
         let botId = $("#pid_gains_bot_selector").val()
         info("Submit BotStatusRate for botId: " + botId)
 
@@ -210,19 +210,17 @@ export class PIDGainsPanel extends React.Component {
         }
 
         debug(JSON.stringify(engineering_command))
-        console.log(engineering_command );
 
         if($("#status_rate_input").val() != -1)
         {
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "/jaia/pid-command", true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(JSON.stringify(engineering_command));
+            this.props.api.postEngineeringPanel(engineering_command);
         }
     }
 
     submitAllBotStatusRate()
     {
+        if (!this.props.control()) return;
+
         info("Submit BotStatusRate for All Bots: ")
         for(let bot in this.state.bots)
         {
@@ -235,10 +233,7 @@ export class PIDGainsPanel extends React.Component {
     
             if($("#status_rate_input").val() != -1)
             {
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/jaia/pid-command", true);
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify(engineering_command));
+                this.props.api.postEngineeringPanel(engineering_command);
             }
         }
     }

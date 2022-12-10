@@ -5,15 +5,15 @@ bot_id: $bot_id
 
 is_sim: $fusion_in_simulation
 
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS
-discard_location_modes: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
-discard_location_modes: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS
-discard_location_modes: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
-discard_location_modes: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT
+discard_location_states: IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
+discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
 imu_heading_course_max_diff: 45 # In Degrees
 course_over_ground_timeout: 3 # timeout in seconds
@@ -29,8 +29,23 @@ imu_issue_solution: RESTART_IMU_PY
 # Seconds
 imu_restart_timeout: 30 # default (30 seconds)
 
-# fusion runs at 2hz
+# fusion runs at 5hz
 total_imu_issue_checks: 15
 
 # Set the rate to send bot status in milliseconds
 send_bot_status_rate: 500 # default (500 milliseconds)
+
+include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
+include_course_error_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
+include_course_error_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
+
+include_imu_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+include_imu_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
+include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
+include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
+
+watch_battery_percentage: true # (default = true)
+battery_percentage_low_level: 30 # (default = 30)
+battery_percentage_very_low_level: 20 # (default = 20)
+battery_percentage_critically_low_level: 10 # (default = 10)

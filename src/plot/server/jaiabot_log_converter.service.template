@@ -1,5 +1,5 @@
 [Unit]
-Description=jaiabot_plot_web
+Description=jaiabot_data_vision_web
 
 [Service]
 User=${user}

@@ -1,5 +1,7 @@
+import { mdiArrowLeft } from "@mdi/js"
 import React from "react"
 import { LogApi } from "./LogApi"
+import Icon from "@mdi/react"
 
 // Dropdown menu showing all of the available logs to choose from
 export default class PathSelector extends React.Component {
@@ -10,29 +12,47 @@ export default class PathSelector extends React.Component {
         this.state = {
             logs: props.logs,
             chosen_path: '',
-            next_path_segments: []
+            next_path_segments: [],
         }
     }
 
     componentDidMount() {
-        this.update_path_options()
+        this.update_path_options(true)
     }
 
     render() {
       return (
-      <div>
-        <div className="inline padded">Add Series</div>
-        <div className="path padded">
-            {this.state.chosen_path}
+      <div className="centered dialog vertical flexbox">
+        <div className="dialogHeader">Add Series</div>
+        <div className="section">
+            <div className="horizontal flexbox">
+                <button className="padded button" title="Back" onClick={this.backClicked.bind(this)}>
+                    <Icon path={mdiArrowLeft} size={1} style={{verticalAlign: "middle"}}></Icon>
+                </button>
+                <div className="path padded">
+                    {this.state.chosen_path}
+                </div>
+            </div>
         </div>
-        <select name="path" id="path" className="padded" onChange={this.did_select_path_option.bind(this)}>
-            {this.get_path_option_elements()}
-        </select>
+
+        <div className="section">
+            <div className="list">
+                { this.nextPathSegmentRows() }
+            </div>
+        </div>
+
+        <div className="buttonSection section">
+            <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
+        </div>
       </div>
       )
     }
 
-    update_path_options() {
+    cancelClicked(evt) {
+        this.props.didCancel?.()
+    }
+
+    update_path_options(shouldAutoselect) {
         // Clear options
         this.setState({next_path_segments: []})
 
@@ -53,18 +73,18 @@ export default class PathSelector extends React.Component {
                 console.log('Selected path = ', this.state.chosen_path)
 
                 // Callback
-                this.props.on_select_path?.(this.state.chosen_path)
+                this.props.didSelectPath?.(this.state.chosen_path)
 
                 // Reset the selector
-                this.setState({chosen_path: ''}, this.update_path_options.bind(this))
+                this.setState({chosen_path: ''}, this.update_path_options.bind(this, shouldAutoselect))
 
                 return
             }
 
             // Only one option, so select it and go to the nexxt level
-            if (paths.length == 1) {
+            if (shouldAutoselect && paths.length == 1) {
                 let chosen_path = this.state.chosen_path + '/' + paths[0]
-                this.setState({chosen_path}, this.update_path_options.bind(this))
+                this.setState({chosen_path}, this.update_path_options.bind(this, shouldAutoselect))
                 return
             }
 
@@ -73,18 +93,28 @@ export default class PathSelector extends React.Component {
         })
     }
 
-    get_path_option_elements() {
-        let default_option = [ <option key={"undefined"}>Select</option> ]
-        let options = this.state.next_path_segments.map(path_option => {
-            return <option value={path_option} key={path_option}>{path_option}</option>
-        })
-
-        return default_option.concat(options)
+    didSelectPathSegmentRow(nextPathSegment) {
+        let chosen_path = this.state.chosen_path + '/' + nextPathSegment
+        this.setState({chosen_path: chosen_path}, this.update_path_options.bind(this, true))
     }
 
-    did_select_path_option(evt) {
-        let chosen_path = this.state.chosen_path + '/' + evt.target.value
-        this.setState({chosen_path}, this.update_path_options.bind(this))
+    nextPathSegmentRows() {
+        return this.state.next_path_segments.map((nextPathSegment) => {
+            var className = "padded listItem"
+            return <div className={className} onClick={this.didSelectPathSegmentRow.bind(this, nextPathSegment)}>{nextPathSegment}</div>
+        })
+    }
+
+    backClicked() {
+        var {chosen_path} = this.state
+
+        const location = chosen_path.lastIndexOf('/')
+
+        if (location != -1) {
+            chosen_path = chosen_path.substring(0, location)
+        }
+
+        this.setState({chosen_path}, this.update_path_options.bind(this, false))
     }
 
 }

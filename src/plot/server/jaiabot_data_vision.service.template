@@ -1,0 +1,10 @@
+[Unit]
+Description=jaiabot_data_vision
+
+[Service]
+User=${user}
+WorkingDirectory=${working_directory}
+ExecStart=${working_directory}/jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload
+
+[Install]
+WantedBy=multi-user.target

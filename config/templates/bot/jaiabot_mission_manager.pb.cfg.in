@@ -26,16 +26,25 @@ surfacing_timeout: 35  #  (optional) (default=600)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 10 # (optional) (default=5)
-total_gps_fix_checks: 15 # (optional) (default=5)
-total_gps_degraded_fix_checks: 2 # (optional) (default=1)
-gps_hdop_fix: 1.3 # (optional) (default=1)
-gps_pdop_fix: 2.2 # (optional) (default=1.5)
+
+# GPS Requirements in Transit
+total_gps_fix_checks: 10 # (optional) (default=10)
+total_gps_degraded_fix_checks: 2 # (optional) (default=2)
+gps_hdop_fix: 1.3 # (optional) (default=1.3)
+gps_pdop_fix: 2.2 # (optional) (default=2.2)
+
+# GPS Requirements after a Dive 
+total_after_dive_gps_fix_checks: 15 # (optional) (default=15)
+gps_after_dive_hdop_fix: 1.3 # (optional) (default=1.3)
+gps_after_dive_pdop_fix: 2.2 # (optional) (default=2.2)
 
 data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 
 # Can enable one or more test modes to override normal operational settings
-test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
+#test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
 #test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
 
 # test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
+
+is_sim: $mission_manager_in_simulation

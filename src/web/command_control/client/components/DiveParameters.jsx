@@ -6,18 +6,6 @@
 import React from 'react'
 import { Settings } from './Settings'
 
-export var currentParameters = Settings.read('diveParameters') || {
-    maxDepth: 1,
-    depthInterval: 1,
-    holdTime: 0,
-    driftTime: 0
-}
-
-function setParameter(parameterName, event) {
-    currentParameters[parameterName] = Number(event.target.value)
-    Settings.write('diveParameters', currentParameters)
-}
-
 export function panel() {
     return (
         <div className="panel">
@@ -26,19 +14,19 @@ export function panel() {
                 <tbody>
                     <tr key="max_depth">
                         <td>Max Depth</td>
-                        <td><input type="text" id="dive_max_depth" defaultValue={currentParameters.maxDepth} onChange={setParameter.bind(null, 'maxDepth')} /></td>
+                        <td><input type="text" id="dive_max_depth" defaultValue={Settings.diveMaxDepth.get()} onChange={(evt) => { Settings.diveMaxDepth.set(Number(evt.target.value)) }} /></td>
                     </tr>
                     <tr key="dive_depth_interval">
                         <td>Depth Interval</td>
-                        <td><input type="text" id="dive_depth_interval" defaultValue={currentParameters.depthInterval} onChange={setParameter.bind(null, 'depthInterval')} /></td>
+                        <td><input type="text" id="dive_depth_interval" defaultValue={Settings.diveDepthInterval.get()} onChange={(evt) => { Settings.diveDepthInterval.set(Number(evt.target.value)) }} /></td>
                     </tr>
                     <tr key="hold_time">
                         <td>Hold Time</td>
-                        <td><input type="text" id="dive_hold_time" defaultValue={currentParameters.holdTime} onChange={setParameter.bind(null, 'holdTime')} /></td>
+                        <td><input type="text" id="dive_hold_time" defaultValue={Settings.diveHoldTime.get()} onChange={(evt) => { Settings.diveHoldTime.set(Number(evt.target.value)) }} /></td>
                     </tr>
                     <tr key="drift_time">
                         <td>Drift Time</td>
-                        <td><input type="text" id="drift_time" defaultValue={currentParameters.drift_time} onChange={setParameter.bind(null, 'driftTime')} /></td>
+                        <td><input type="text" id="drift_time" defaultValue={Settings.driftTime.get()} onChange={(evt) => { Settings.driftTime.set(Number(evt.target.value)) }} /></td>
                     </tr>
                 </tbody>
             </table>

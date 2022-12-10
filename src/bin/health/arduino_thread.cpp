@@ -50,13 +50,13 @@ void jaiabot::apps::ArduinoStatusThread::issue_status_summary()
 {
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::arduino_to_pi>(status_);
     status_.Clear();
 }
 
 void jaiabot::apps::ArduinoStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
     //Check to see if the arduino is responding
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
         goby::time::SteadyClock::now())

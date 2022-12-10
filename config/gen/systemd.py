@@ -242,10 +242,10 @@ jaiabot_apps=[
      'template': 'jaiabot_log_converter.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_LOG_CONVERTER',
      'runs_on': Type.HUB},
-    {'exe': 'jaiabot_plot',
-     'description': 'jaiabot_plot visualize log data',
-     'template': 'jaiabot_plot.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_PLOT',
+    {'exe': 'jaiabot_data_vision',
+     'description': 'jaiabot_data_vision visualize log data',
+     'template': 'jaiabot_data_vision.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
      'runs_on': Type.HUB}
 ]
 
