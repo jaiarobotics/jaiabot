@@ -1,6 +1,6 @@
 import { Feature } from 'ol'
 import { fromLonLat } from 'ol/proj.js'
-import { createMarker } from './Marker.js'
+import { createMarker } from './Marker'
 import { LineString } from 'ol/geom'
 import * as Styles from "./Styles"
 

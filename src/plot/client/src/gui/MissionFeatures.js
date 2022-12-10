@@ -2,21 +2,7 @@ import { Feature, Map } from "ol"
 import { LineString, Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
-import { createMarker } from './Marker.js'
-
-
-// Get date description from microsecond timestamp
-function dateStringFromMicros(timestamp_micros) {
-    return new Date(timestamp_micros / 1e3).toLocaleDateString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short'
-    })
-}
+import { createMarker } from './Marker'
 
 
 export function createMissionFeatures(map, command, activeGoalIndex, isSelected) {
