@@ -23,11 +23,9 @@ import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
-import { TaskPacket } from '../dist/src/gui/ProtoBufMessages';
+import { TaskPacket, Command } from './gui/ProtoBufMessages';
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
-
-import { Command } from './gui/ProtoBufMessages'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
