@@ -15,13 +15,17 @@ import {BrowserRouter as Router, Route, Routes} from "react-router-dom"
 
 import {DataTable} from "./DataTable"
 import {downloadCSV} from "./DownloadCSV"
-import JaiaMap from "./JaiaMap"
+import JaiaMap from './JaiaMap'
 import {LogApi} from "./LogApi"
 import LogSelector from "./LogSelector"
 import {OpenPlotSet} from "./OpenPlotSet"
 import PathSelector from "./PathSelector"
 import {PlotProfiles} from "./PlotProfiles"
 import TimeSlider from "./TimeSlider"
+import {Plot} from './Plot'
+import {Log} from './Log'
+
+var Plotly = require('plotly.js-dist')
 
 const APP_NAME = "Data Vision"
 
@@ -29,18 +33,48 @@ const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeSt
 
 
 // Convert from an ISO date string to microsecond UNIX timestamp
-function iso_date_to_micros(iso_date_string) {
+function iso_date_to_micros(iso_date_string: string) {
   return Date.parse(iso_date_string) * 1e3
+}
+
+
+interface LogAppProps {
+
+}
+
+
+interface State {
+  logs: Log[]
+  is_selecting_logs: boolean
+  chosen_logs: string[]
+  plots: Plot[]
+  layerSwitcherVisible: boolean
+  plotNeedsRefresh: boolean
+  mapNeedsRefresh: boolean
+  timeFraction: number | null
+  t: number | null // Currently selected time
+  tMin: number | null // Minimum time for these logs
+  tMax: number | null // Maximum time for these logs
+
+  // Plot selection
+  isPathSelectorDisplayed: boolean
+
+  // Plot sets
+  isOpenPlotSetDisplayed: boolean
 }
 
 
 class LogApp extends React.Component {
 
-  constructor(props) {
+  state: State
+  map: JaiaMap
+  plot_div_element: any
+
+  constructor(props: LogAppProps) {
     super(props)
 
     this.state = {
-      logs : [],
+      logs: [],
       is_selecting_logs: false,
       chosen_logs : [],
       plots : [],
@@ -115,7 +149,7 @@ class LogApp extends React.Component {
     this.setState({layerSwitcherVisible: !layerSwitcherVisible})
   }
 
-  selectLogButtonPressed(evt) {
+  selectLogButtonPressed(evt: Event) {
     this.setState({is_selecting_logs: true})
   }
 
@@ -125,7 +159,7 @@ class LogApp extends React.Component {
         // Get map data
         LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
           this.map.setSeriesArray(seriesArray)
-          this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.t})
+          this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
@@ -169,7 +203,7 @@ class LogApp extends React.Component {
 
   getElements() {
     // Get global element names for the functions that are still using them
-    this.plot_div_element = document.getElementById('plot')
+    this.plot_div_element = document.getElementById('plot') as Plotly.PlotlyHTMLElement
   }
 
   update_log_dropdown() {
@@ -179,7 +213,7 @@ class LogApp extends React.Component {
     })
   }
 
-  didSelectLogs(logs) {
+  didSelectLogs(logs?: Log[]) {
     if (logs != null) {
       this.setState({chosen_logs: logs, mapNeedsRefresh: true })
     }
@@ -187,7 +221,7 @@ class LogApp extends React.Component {
     this.setState({is_selecting_logs: false})
   }
 
-  didSelectPaths(pathArray) {
+  didSelectPaths(pathArray: string[]) {
     LogApi.get_series(this.state.chosen_logs, pathArray)
         .then((series) => {
           if (series != null) {
@@ -202,7 +236,8 @@ class LogApp extends React.Component {
   }
 
   get_plot_range() {
-    const range = this.plot_div_element.layout?.xaxis?.range
+    let plotlyElement = this.plot_div_element as any
+    const range = plotlyElement.layout?.xaxis?.range
     if (range == null) {
       return [0, 2**60]
     }
@@ -217,8 +252,8 @@ class LogApp extends React.Component {
       return
     }
 
-    var data = [];
-    var layout = {showlegend : false};
+    var data: Plotly.Data[] = [];
+    var layout: any = {showlegend : false};
 
     for (let [plot_index, series] of this.state.plots.entries()) {
       // Plot the data in series_list
@@ -231,7 +266,7 @@ class LogApp extends React.Component {
       // Add to the data array
       let yaxis = 'y' + (plot_index + 1)
 
-      let trace = {
+      let trace: Plotly.Data = {
         name : series.title,
         x : dates,
         y : series.series_y,
@@ -242,7 +277,7 @@ class LogApp extends React.Component {
         mode : 'lines+markers'
       }
 
-                  data.push(trace)
+      data.push(trace)
     }
 
     layout.grid = {rows : data.length, columns : 1, pattern : 'coupled'}
@@ -255,38 +290,38 @@ class LogApp extends React.Component {
       layout.xaxis = current_layout_xaxis
     }
 
-    Plotly.newPlot(this.plot_div_element, data, layout)
+    Plotly.newPlot(this.plot_div_element, data, layout).then(() => {
+      // Apply plot range to map path
+      this.map.timeRange = this.get_plot_range()
 
-    // Apply plot range to map path
-    this.map.timeRange = this.get_plot_range()
+      // Setup the triggers
+      let self = this
+      this.plot_div_element.on('plotly_hover', function(data: Plotly.PlotHoverEvent) {
+        let dateString = String(data.points[0].data.x[data.points[0].pointIndex])
+        let date_timestamp_micros = iso_date_to_micros(dateString)
+        self.map.updateToTimestamp(date_timestamp_micros)
+        self.setState({t: date_timestamp_micros})
+      })
 
-    // Setup the triggers
-    let self = this
-    this.plot_div_element.on('plotly_hover', function(data) {
-      let dateString = data.points[0].data.x[data.points[0].pointIndex] 
-      let date_timestamp_micros = iso_date_to_micros(dateString)
-      self.map.updateToTimestamp(date_timestamp_micros)
-      self.setState({t: date_timestamp_micros})
-    })
+      this.plot_div_element.on('plotly_unhover',
+                          function(data: Plotly.PlotHoverEvent) { self.map.updateToTimestamp(null) })
 
-    this.plot_div_element.on('plotly_unhover',
-                        function(data) { self.map.updateToTimestamp(null) })
+      // Zooming into plots
+      this.plot_div_element.on('plotly_relayout', function(eventdata: Plotly.PlotRelayoutEvent) {
 
-    // Zooming into plots
-    this.plot_div_element.on('plotly_relayout', function(eventdata) {
+        // When autorange, zoom out to the whole set of points
+        if (eventdata['xaxis.autorange']) {
+          self.map.timeRange = null
+          self.map.updatePath()
+          return
+        }
 
-      // When autorange, zoom out to the whole set of points
-      if (eventdata['xaxis.autorange']) {
-        self.map.timeRange = null
+        const t0 = iso_date_to_micros(String(eventdata['xaxis.range[0]']))
+        const t1 = iso_date_to_micros(String(eventdata['xaxis.range[1]']))
+
+        self.map.timeRange = [t0, t1]
         self.map.updatePath()
-        return
-      }
-
-      const t0 = iso_date_to_micros(eventdata['xaxis.range[0]'])
-      const t1 = iso_date_to_micros(eventdata['xaxis.range[1]'])
-
-      self.map.timeRange = [t0, t1]
-      self.map.updatePath()
+      })
     })
 
     this.setState({plotNeedsRefresh: false})
@@ -304,15 +339,17 @@ class LogApp extends React.Component {
     )
   }
 
-  open_moos_messages(time_range) {
+  open_moos_messages(time_range: number[]) {
     LogApi.get_moos(this.state.chosen_logs, time_range)
   }
 
   // Plot Section
 
     plotSection() {
+      var actionBar: JSX.Element | null
+
       if (this.state.chosen_logs.length > 0) {
-        var actionBar = <div className = "plotButtonBar"><
+        actionBar = <div className = "plotButtonBar"><
             button title = "Add Plot" className =
                 "plotButton" onClick = {this.addPlotClicked.bind(this)}><
             Icon path = {mdiPlus} size = {1} style =
@@ -345,14 +382,15 @@ class LogApp extends React.Component {
         </button></div>
     }
     else {
-      var actionBar = null
+      actionBar = null
     }
 
+    var pathSelector: JSX.Element | null
     if (this.state.isPathSelectorDisplayed) {
-      var pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
-      {this.state.chosen_logs} didSelectPath={ (path) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } />
+      pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
+      {this.state.chosen_logs.join(',')} didSelectPath={ (path: string) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } />
       } else {
-        var pathSelector = null
+        pathSelector = null
       }
 
       let deleteButtons = this.state.plots.map(
@@ -364,9 +402,9 @@ class LogApp extends React.Component {
                    {{ verticalAlign: "middle" }}></Icon>
         </button>)})
 
-      const openPlotSet = this.state.isOpenPlotSetDisplayed
-          ? <OpenPlotSet didSelectPlotSet = {this.didOpenPlotSet.bind(this)}>
-          </OpenPlotSet> : null
+      var openPlotSet: JSX.Element | null
+      
+      openPlotSet = this.state.isOpenPlotSetDisplayed ? <OpenPlotSet didSelectPlotSet = {this.didOpenPlotSet.bind(this)} /> : null
 
     return (
       <div className="plotcontainer">
@@ -387,7 +425,7 @@ class LogApp extends React.Component {
 
     clearPlotsClicked() { this.setState({plots : [], plotNeedsRefresh : true}) }
 
-    deletePlotClicked(plotIndex) {
+    deletePlotClicked(plotIndex: number) {
       let {plots} = this.state
       plots.splice(plotIndex, 1) 
       this.setState({plots : plots, plotNeedsRefresh : true})
@@ -395,7 +433,7 @@ class LogApp extends React.Component {
 
     loadPlotSetClicked() { this.setState({isOpenPlotSetDisplayed : true}) }
 
-    didOpenPlotSet(plotSet) {
+    didOpenPlotSet(plotSet: string[]) {
       this.setState({isOpenPlotSetDisplayed : false}) 
       this.didSelectPaths(plotSet)
     }

@@ -2,7 +2,7 @@ import React = require("react")
 
 import {PlotProfiles} from './PlotProfiles'
 
-type PlotSet = Array<string>
+type PlotSet = string[]
 
 interface LoadProfileProps {
   did_select_plot_set: (plot_set: PlotSet) => undefined

@@ -7,7 +7,7 @@ import * as Styles from "./Styles"
 interface Properties {
     map: Map,
     botId: number
-    lonLat: Array<number>
+    lonLat: number[]
 }
 
 

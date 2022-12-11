@@ -30,7 +30,7 @@ interface TimeSliderProps {
     tMin: number
     tMax: number
     t: number
-    onValueChanged: (t: number) => undefined
+    onValueChanged: (t: number) => void
 }
 
 export default function TimeSlider(props: TimeSliderProps) {
