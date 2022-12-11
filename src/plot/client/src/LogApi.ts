@@ -32,7 +32,7 @@ export class LogApi {
   }
 
   // Get a series corresponding to a set of log files and paths
-  static get_series(logs: Array<string>, paths: Array<string>) {
+  static get_series(logs: string[], paths: string[]) {
     var url = new URL('series', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('path', paths.join(','))
@@ -43,7 +43,7 @@ export class LogApi {
   // Gets all of the logs and associated metadata for each
   static get_logs() { return this.get_json('/logs') }
 
-  static get_paths(logs: Array<string>, root_path: string) {
+  static get_paths(logs: string[], root_path: string) {
     var url = new URL('paths', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('root_path', root_path)
@@ -52,7 +52,7 @@ export class LogApi {
   }
 
   // Get map points
-  static get_map(logs: Array<string>) {
+  static get_map(logs: string[]) {
     var url = new URL('map', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -60,7 +60,7 @@ export class LogApi {
   }
 
   // Get commands
-  static get_commands(logs: Array<string>) {
+  static get_commands(logs: string[]) {
     var url = new URL('commands', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -68,7 +68,7 @@ export class LogApi {
   }
 
   // Get active_goals
-  static get_active_goal(logs: Array<string>) {
+  static get_active_goal(logs: string[]) {
     var url = new URL('active_goal', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -76,7 +76,7 @@ export class LogApi {
   }
 
   // Get task_packets
-  static get_task_packets(logs: Array<string>) {
+  static get_task_packets(logs: string[]) {
     var url = new URL('task_packet', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -84,14 +84,14 @@ export class LogApi {
   }
 
   // Get depth_contours
-  static get_depth_contours(logs: Array<string>) {
+  static get_depth_contours(logs: string[]) {
     var url = new URL('depth-contours', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
     return this.get_json(url.toString())
   }
 
-  static get_moos(logs: Array<string>, time_range: Array<number>) {
+  static get_moos(logs: string[], time_range: number[]) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('t_start', String(time_range[0]))

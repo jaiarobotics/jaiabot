@@ -8,7 +8,7 @@ const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const end = require('./end.svg') as string
-const start = require('./start.svg') as string
+const start = require('./start.svg')
 const bot = require('./bot.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
@@ -47,7 +47,7 @@ interface XYCoordinate {
     y: number
 }
 
-export function botMarker(feature: Feature): Array<Style> {
+export function botMarker(feature: Feature): Style[] {
     const geometry = feature.getGeometry() as Point
     const centerPosition = geometry.getCoordinates()
 

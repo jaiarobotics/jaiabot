@@ -70,10 +70,8 @@ module.exports = (env, argv) => [
               }
             }
           },
-          {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]}, {
-            test : /\.(png|woff|woff2|eot|ttf|svg)$/,
-            use : [ {loader : 'url-loader', options : {limit : 100000}} ]
-          },
+          {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]},
+          {test : /\.(png|svg|jpg|jpeg|gif)$/, type : 'asset/resource'},
           {
             test : /\.less$/,
             use : [

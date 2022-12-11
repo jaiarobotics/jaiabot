@@ -1,9 +1,10 @@
 import GeoJSON from 'ol/format/GeoJSON'
 import {Style, Stroke} from 'ol/style'
+import { Projection } from 'ol/proj';
 
 const equirectangular = 'EPSG:4326'
 
-export function geoJSONToDepthContourFeatures(projection: string, geojson: object) {
+export function geoJSONToDepthContourFeatures(projection: Projection, geojson: object) {
     // Manually transform features from lon/lat to the view's projection.
     var features = new GeoJSON().readFeatures(geojson)
     features.forEach((feature) => {

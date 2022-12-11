@@ -1,4 +1,4 @@
-export type Profile = Array<string>
+export type Profile = string[]
 export type ProfileLibrary = { [key: string]: Profile }
 
 export class PlotProfiles {

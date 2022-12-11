@@ -1,5 +1,7 @@
 import React, { ReactElement } from "react"
 
+import {Log} from './Log'
+
 function duration_string_from_seconds(duration_seconds: number) {
     var components = []
 
@@ -38,19 +40,11 @@ function save(key: string, value: string) {
     }
 }
 
-interface Log {
-    filename: string
-    fleet: string
-    bot: string
-    timestamp: number
-    duration: number
-}
-
 type LogDict = {[key: string]: {[key: string]: {[key: string]: Log}}}
 
 interface LogSelectorProps {
-    logs: Array<Log>
-    didSelectLogs: (logs: Array<string>) => undefined
+    logs: Log[]
+    didSelectLogs: (logs: string[]) => undefined
 }
 
 interface LogSelectorState {
@@ -182,7 +176,7 @@ export default class LogSelector extends React.Component {
         this.setState({selectedLogs})
     }
 
-    getFilteredLogs(): Array<Log> {
+    getFilteredLogs(): Log[] {
         const { fromDate, toDate, log_dict } = this.state
 
         function stringToTimestamp(str: string) {
@@ -200,7 +194,7 @@ export default class LogSelector extends React.Component {
             to_timestamp = to_timestamp + 24 * 60 * 60
         }
 
-        var log_array: Array<Log> = []
+        var log_array: Log[] = []
 
         for (const fleet in log_dict) {
             if (this.state.fleet != null && this.state.fleet != fleet) continue;
@@ -242,7 +236,7 @@ export default class LogSelector extends React.Component {
         return stateUpdate
     }
 
-    static log_dict(logs: Array<Log>) {
+    static log_dict(logs: Log[]) {
         var log_dict: LogDict = {}
 
         for (let log of logs) {
@@ -262,7 +256,7 @@ export default class LogSelector extends React.Component {
         return log_dict
     }
 
-    dict_options(dict: {[key: string]: any}): Array<ReactElement> {
+    dict_options(dict: {[key: string]: any}): ReactElement[] {
         let names = Object.keys(dict)
         names.sort()
 

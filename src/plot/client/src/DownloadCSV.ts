@@ -1,6 +1,6 @@
 import {Plot} from './Plot'
 
-export function downloadCSV(plots: Array<Plot>, tRange: Array<number>) {
+export function downloadCSV(plots: Plot[], tRange: number[]) {
     var csvText = ''
     const plotNames = plots.map((plot) => { return plot.title })
 

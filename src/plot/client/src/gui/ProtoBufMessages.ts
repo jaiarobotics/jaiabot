@@ -15,12 +15,14 @@ export interface Goal {
 
 
 export interface Plan {
-    goal: Array<Goal>
+    goal: Goal[]
 }
 
 
 export interface Command {
+    _utime_: number
     plan: Plan
+    type: string
 }
 
 // Task Packets
@@ -34,8 +36,8 @@ export interface DiveTask {
     unpowered_rise_rate?: number
 }
 
-export function DiveTaskDescription(dive: DiveTask): Array<string> {
-    var rows: Array<string> = [
+export function DiveTaskDescription(dive: DiveTask): string[] {
+    var rows: string[] = [
         `Depth achieved: ${dive.depth_achieved.toFixed(2)} m`
     ]
 
@@ -61,6 +63,7 @@ export interface DriftTask {
 }
 
 export interface TaskPacket {
+    _scheme_: number
     drift?: DriftTask
     dive?: DiveTask
 }

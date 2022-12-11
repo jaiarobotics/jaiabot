@@ -4,15 +4,15 @@ import { LogApi } from "./LogApi"
 import Icon from "@mdi/react"
 
 interface PathSelectorProps {
-    logs: Array<string>
-    didCancel: () => undefined
-    didSelectPath: (path: string) => undefined
+    logs: string[]
+    didCancel: () => void
+    didSelectPath: (path: string) => void
 }
 
 interface PathSelectorState {
-    logs: Array<string>
+    logs: string[]
     chosen_path: string
-    next_path_segments: Array<string>
+    next_path_segments: string[]
 }
 
 // Dropdown menu showing all of the available logs to choose from
@@ -114,9 +114,9 @@ export default class PathSelector extends React.Component {
     }
 
     nextPathSegmentRows() {
-        return this.state.next_path_segments.map((nextPathSegment) => {
+        return this.state.next_path_segments.map((nextPathSegment, index) => {
             var className = "padded listItem"
-            return <div className={className} onClick={this.didSelectPathSegmentRow.bind(this, nextPathSegment)}>{nextPathSegment}</div>
+            return <div key={index} className={className} onClick={this.didSelectPathSegmentRow.bind(this, nextPathSegment)}>{nextPathSegment}</div>
         })
     }
 

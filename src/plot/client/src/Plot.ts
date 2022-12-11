@@ -1,6 +1,8 @@
 export interface Plot {
     title: string
-    _utime_: Array<number>
-    series_y: Array<number>
-    hovertext: Array<string>
+    y_axis_title: string
+    _utime_: number[]
+    series_y: number[]
+    hovertext: string[]
+    path: string
 }
