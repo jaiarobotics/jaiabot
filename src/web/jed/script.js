@@ -6,7 +6,6 @@ let warningStatusInner = ""
 //****** consequences                                                     ******
 let SAFE_BOT_SPEED = 60;
 
-
 function randomBase57(stringLength) {
   const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
 

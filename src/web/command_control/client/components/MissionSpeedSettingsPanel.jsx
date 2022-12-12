@@ -13,7 +13,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
             stationkeep_outer: 1.5
         }
 
-        this.speeds = Settings.missionPlanSpeeds ?? SPEED_DEFAULTS
+        this.speeds = Settings.missionPlanSpeeds.get() ?? SPEED_DEFAULTS
 
         this.state = {
             go_over_max_value: false,

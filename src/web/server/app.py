@@ -94,6 +94,11 @@ def postPidCommand():
     jaia_interface.post_engineering_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
+@app.route('/jaia/ep-command', methods=['POST'])
+def postEngineeringPanel():
+    jaia_interface.post_ep_command(request.json, clientId=request.headers['clientId'])
+    return JSONResponse({"status": "ok"})
+
 ######## Map tiles
 
 @app.route('/tiles/index', methods=['GET'])

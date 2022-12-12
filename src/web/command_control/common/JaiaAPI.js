@@ -83,6 +83,10 @@ export class JaiaAPI {
 
   postCommand(command) { return this.post('jaia/command', command) }
 
+  postEngineeringPanel(engineeringPanelCommand) {
+      return this.post('jaia/ep-command', engineeringPanelCommand)
+  }
+
   takeControl() { return this.post('jaia/takeControl', null) }
 
   postEngineering(engineeringCommand) {

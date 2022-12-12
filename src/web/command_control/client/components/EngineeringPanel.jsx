@@ -31,7 +31,7 @@ export default class EngineeringPanel extends React.Component {
 			<div id="engineeringPanel" className="column-right">
 				<div className="panelsContainerVertical">
 					<div className="panel" >
-						<b>Engineering Panels</b><br />						
+						<b>Engineering Panels (Beta)</b><br />						
 					</div>
 					<div className="panel">
 						<Button className="button-jcc" onClick={function() {
@@ -41,7 +41,7 @@ export default class EngineeringPanel extends React.Component {
 						</Button>
 					</div>
 
-					<PIDGainsPanel bots={self.state.bots} />
+					<PIDGainsPanel bots={self.state.bots}  control={this.props.control} api={this.api} />
 
 					{
 						DiveParameters.panel()

@@ -35,11 +35,11 @@ def wifi_remotes(this_node_id, number_vehicles):
 hub_node_id=0
 
 def wifi_mac_slots(node_id):
-    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 1 max_frame_bytes: 128 }\n'
+    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.5 max_frame_bytes: 128 }\n'
     return slots
 
 def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 1 max_frame_bytes: 200 }\n'
+    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.5 max_frame_bytes: 200 }\n'
     return slots
 
 def xbee_config():
