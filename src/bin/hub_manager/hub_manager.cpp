@@ -373,11 +373,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 }
             }
             // Set the next starting index for the next fragment
-            goal_index = goal_max_index - 1;
+            goal_index = goal_max_index;
 
             // Save fragment in vector
             command_fragments.push_back(command_fragment);
         }
+
+        for (auto frag : command_fragments)
+        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
     }
 
     goby::middleware::Publisher<Command> command_publisher(

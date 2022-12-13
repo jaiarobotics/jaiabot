@@ -557,10 +557,14 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     }
                     *goal->mutable_location() = fragment.second.plan().goal(goal_index).location();
                 }
+                glog.is_debug2() && glog << "fragment: " << fragment.second.DebugString()
+                                         << std::endl;
             }
             return true;
         }
+        return false;
     }
+    return false;
 }
 
 bool jaiabot::apps::MissionManager::health_considered_ok(
