@@ -31,18 +31,25 @@ def floatFrom(obj):
         return None
 
 
+def protobufMessageToDict(message):
+    return google.protobuf.json_format.MessageToDict(message, preserving_proto_field_name=True)
+
+
 class Interface:
-    # Dict from hubId => hubStatus
+    # Dict from hub_id => hubStatus
     hubs = {}
 
-    # Dict from botId => botStatus
+    # Dict from bot_id => botStatus
     bots = {}
 
-    # Dict from botId => engineeringStatus
+    # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
     # List of all TaskPackets received, with last known location of that bot
     task_packets = []
+
+    # ClientId that is currently in control
+    controllingClientId = None
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -66,7 +73,8 @@ class Interface:
 
             # Get PortalToClientMessage
             try:
-                data = self.sock.recv(256)
+                # 1 MB (1000000 bytes)
+                data = self.sock.recv(1000000)
                 self.process_portal_to_client_message(data)
 
             except socket.timeout:
@@ -81,28 +89,38 @@ class Interface:
                 pass
 
             msg = PortalToClientMessage()
-            byteCount = msg.ParseFromString(data)
+
+            try:
+                byteCount = msg.ParseFromString(data)
+            except:
+                logging.error(f"Couldn't parse protobuf data of size: {len(data)}")
+                return
+
             logging.debug(f'Received PortalToClientMessage: {msg} ({byteCount} bytes)')
 
             if msg.HasField('bot_status'):
-                botStatus = google.protobuf.json_format.MessageToDict(msg.bot_status)
+                botStatus = protobufMessageToDict(msg.bot_status)
 
                 # Set the time of last status to now
                 botStatus['lastStatusReceivedTime'] = now()
 
-                self.bots[botStatus['botId']] = botStatus
+                bot_id = botStatus['bot_id']
+                self.bots[bot_id] = botStatus
+
+                if msg.HasField('active_mission_plan'):
+                    self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
             if msg.HasField('engineering_status'):
-                botEngineering = google.protobuf.json_format.MessageToDict(msg.engineering_status)
-                self.bots_engineering[botEngineering['botId']] = botEngineering
+                botEngineering = protobufMessageToDict(msg.engineering_status)
+                self.bots_engineering[botEngineering['bot_id']] = botEngineering
 
             if msg.HasField('hub_status'):
-                hubStatus = google.protobuf.json_format.MessageToDict(msg.hub_status)
+                hubStatus = protobufMessageToDict(msg.hub_status)
 
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now()
 
-                self.hubs[hubStatus['hubId']] = hubStatus
+                self.hubs[hubStatus['hub_id']] = hubStatus
 
 
             if msg.HasField('task_packet'):
@@ -142,7 +160,11 @@ class Interface:
         if self.pingCount > 1:
             self.messages['error'] = 'No response from jaiabot_web_portal app'
 
-    def post_command(self, command_dict):
+    def post_take_control(self, clientId):
+        self.setControllingClientId(clientId)
+        return {'status': 'ok'}
+
+    def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
         logging.debug(f'Sending command: {command}')
         command.time = now()
@@ -150,35 +172,72 @@ class Interface:
         msg.command.CopyFrom(command)
         
         if self.send_message_to_portal(msg):
+            self.setControllingClientId(clientId)
             return {'status': 'ok'}
         else:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
-    def post_all_stop(self):
+    def post_all_stop(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot['botId'],
+                'bot_id': bot['bot_id'],
                 'time': str(now()),
                 'type': 'STOP', 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
-    def post_all_activate(self):
+    def post_all_activate(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
         for bot in self.bots.values():
             cmd = {
-                'botId': bot['botId'],
+                'bot_id': bot['bot_id'],
                 'time': str(now()),
                 'type': 'ACTIVATE' 
             }
-            self.post_command(cmd)
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
+
+        return {'status': 'ok'}
+
+    def post_all_recover(self, clientId):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'bot_id': bot['bot_id'],
+                'time': str(now()),
+                'type': 'RECOVERED' 
+            }
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
+
+        return {'status': 'ok'}
+
+    def post_next_task_all(self, clientId):
+        if self.read_only:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
+        for bot in self.bots.values():
+            cmd = {
+                'bot_id': bot['bot_id'],
+                'time': str(now()),
+                'type': 'NEXT_TASK'
+            }
+            self.post_command(cmd, clientId)
+
+        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
@@ -193,11 +252,12 @@ class Interface:
             # Add the time since last status
             bot['portalStatusAge'] = now() - bot['lastStatusReceivedTime']
 
-            if bot['botId'] in self.bots_engineering:
-                bot['engineering'] = self.bots_engineering[bot['botId']]
+            if bot['bot_id'] in self.bots_engineering:
+                bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
 
         status = {
+            'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
             'bots': self.bots,
             'messages': self.messages
@@ -211,16 +271,45 @@ class Interface:
 
         return status
 
-    def post_engineering_command(self, command):
+    def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
         cmd.time = now()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
+
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
+
+        self.controllingClientId = clientId
         self.send_message_to_portal(msg)
 
+        return {'status': 'ok'}
+
+    def post_ep_command(self, command, clientId):
+        cmd = google.protobuf.json_format.ParseDict(command, Engineering())
+        cmd.time = now()
+        msg = ClientToPortalMessage()
+        msg.engineering_command.CopyFrom(cmd)
+
+        self.controllingClientId = clientId
+        self.send_message_to_portal(msg)
+
+        self.setControllingClientId(clientId)
+
+        return {'status': 'ok'}
+
     def process_task_packet(self, task_packet_message):
-        task_packet = google.protobuf.json_format.MessageToDict(task_packet_message)
+        task_packet = protobufMessageToDict(task_packet_message)
         self.task_packets.append(task_packet)
+
+    def process_active_mission_plan(self, bot_id, active_mission_plan):
+        try:
+            active_mission_plan_dict = protobufMessageToDict(active_mission_plan)
+            self.bots[bot_id]['active_mission_plan'] = active_mission_plan_dict
+        except IndexError:
+            logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
     def get_task_packets(self):
         return self.task_packets
@@ -229,10 +318,12 @@ class Interface:
 
     def get_depth_contours(self):
 
-        mesh_points = []
-        for task_packet in self.task_packets:
-            if 'dive' in task_packet:
-                dive_packet = task_packet['dive']
-                mesh_points.append([dive_packet['startLocation']['lon'], dive_packet['startLocation']['lat'], dive_packet['depthAchieved']])
+        return contours.taskPacketsToContours(self.task_packets)
 
-        return contours.getContourGeoJSON(mesh_points)
+    # Controlling clientId
+
+    def setControllingClientId(self, clientId):
+        if clientId != self.controllingClientId:
+            logging.warning(f'Client {clientId} has taken control')
+        self.controllingClientId = clientId
+

@@ -7,7 +7,9 @@ import React from 'react'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from '@mdi/js'
+import Button from '@mui/material/Button';
+import { downloadToFile } from './Utilities';
 
 export class SaveMissionPanel extends React.Component {
 
@@ -51,12 +53,15 @@ export class SaveMissionPanel extends React.Component {
 
         // Buttons
         let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
-            <button onClick={this.deleteClicked.bind(this)}>
+            <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
                 <Icon path={mdiDelete}></Icon>
-            </button>
+            </Button>
+            <Button className="button-jcc" onClick={this.downloadClicked.bind(this)}>
+                <Icon path={mdiFolderDownload}></Icon>
+            </Button>
             <div className='flexSpacer'></div>
-            <button onClick={this.cancelClicked.bind(this)}>Cancel</button>
-            <button onClick={this.saveClicked.bind(this)}>Save</button>
+            <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
+            <Button className="button-jcc" onClick={this.saveClicked.bind(this)}>Save</Button>
         </div>)
 
         return (<div className="LoadMissionPanel centered rounded shadowed">
@@ -105,6 +110,10 @@ export class SaveMissionPanel extends React.Component {
 
     cancelClicked() {
         this.props.onDone?.()
+    }
+
+    downloadClicked() {
+        downloadToFile(JSON.stringify(this.props.missions), 'application/json', 'mission.json')
     }
 
 }

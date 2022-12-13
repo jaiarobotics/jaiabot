@@ -31,6 +31,7 @@ message Command
         MISSION_PLAN = 1;
         ACTIVATE = 2;
         START_MISSION = 3;
+        MISSION_PLAN_FRAGMENT = 4;
 
         // during any mission
         NEXT_TASK = 10;
@@ -68,16 +69,16 @@ message Command
 message BotStatus
 {
     /*
-    Actual maximum size of message: 49 bytes / 392 bits
+    Actual maximum size of message: 50 bytes / 400 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................381
-            padding to full byte...................3
-    Allowed maximum size of message: 49 bytes / 392 bits
+            body.................................388
+            padding to full byte...................4
+    Allowed maximum size of message: 50 bytes / 400 bits
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 49
+        max_bytes: 50
         codec_version: 3
         unit_system: "si"
     };
@@ -153,8 +154,8 @@ message BotStatus
 
     optional MissionState mission_state = 40;
 
-    // bounds should match MissionPlan.goal max_repeat value
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 13 }];
+    // bounds should match MissionPlan.goal max_repeat value * expected_fragments max
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 41 }];
     optional double distance_to_active_goal = 42 [(dccl.field) = {
         min: 0
         max: 1000
@@ -200,11 +201,17 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
-    optional IMUData.CalibrationStatus calibration_status = 57;
+    optional IMUData.CalibrationStatus calibration_status = 58;
     
-    optional double hdop = 58 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional double pdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional double battery_percent = 57 [(dccl.field) = { 
+        min: 0 
+        max: 100 
+        precision: 0
+    }];
 }
 
 message DriftPacket

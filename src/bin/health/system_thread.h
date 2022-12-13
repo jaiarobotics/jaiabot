@@ -126,6 +126,7 @@ class ArduinoStatusThread : public HealthMonitorThread<jaiabot::config::ArduinoS
   private:
     jaiabot::protobuf::ArduinoStatus status_;
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point vvcvoltage_last_updated_{std::chrono::seconds(0)};
 };
 
 } // namespace apps

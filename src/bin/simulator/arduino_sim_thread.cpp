@@ -32,13 +32,33 @@ using namespace std;
 jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg)
     : SimulatorThread(cfg, "arduino_simulator", 1.0 * boost::units::si::hertz)
 {
+    voltage_step_decrease_ = cfg.voltage_step_decrease();
+    voltage_period_ = cfg.voltage_period();
+    voltage_start_ = cfg.voltage_start();
+    reset_voltage_level_ = cfg.reset_voltage_level();
 }
 
 void jaiabot::apps::ArduinoSimThread::loop()
 {
+    auto now = goby::time::SteadyClock::now();
+
     // publish arduino status
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
     arduino_response.set_version(1);
+
+    // publish gps sky data
+    if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)
+    {
+        voltage_start_ = voltage_start_ - voltage_step_decrease_;
+        arduino_response.set_vccvoltage(voltage_start_);
+        voltage_updated_ = goby::time::SteadyClock::now();
+
+        if (voltage_start_ < reset_voltage_level_)
+        {
+            voltage_start_ = cfg().voltage_start();
+        }
+    }
+
     interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }

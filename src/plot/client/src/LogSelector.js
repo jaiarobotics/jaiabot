@@ -78,7 +78,7 @@ export default class LogSelector extends React.Component {
             const key = `${log.fleet}-${log.bot}-${log.timestamp}`
             const className = (self.state.selectedLogs.has(log)) ? "selected" : ""
 
-            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded logItem " + className}>
+            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
                 <div className="fleetCell">
                     {log.fleet}
                 </div>
@@ -125,7 +125,7 @@ export default class LogSelector extends React.Component {
 
             <div className="section">
                 {logHeader}
-                <div className="logList">{logItems}</div>
+                <div className="list">{logItems}</div>
             </div>
 
             <div className="buttonSection section">

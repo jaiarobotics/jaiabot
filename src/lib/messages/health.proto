@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "goby/middleware/protobuf/coroner.proto";
-import "jaiabot/messages/arduino.proto";
 
 package jaiabot.protobuf;
 
@@ -40,7 +39,7 @@ enum Error
     ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR = 26;
     ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC = 27;
     ERROR__FAILED__JAIABOT_LOG_CONVERTER = 28;
-    ERROR__FAILED__JAIABOT_PLOT = 29;
+    ERROR__FAILED__JAIABOT_DATA_VISION = 29;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -112,7 +111,7 @@ enum Error
     ERROR__VEHICLE__MISSING_DATA_BATTERY = 602;
 
     ERROR__VERSION__MISMATCH_ARDUINO = 700;
-};
+}
 
 enum Warning
 {
@@ -333,7 +332,7 @@ message ArduinoStatus
     option (dccl.msg) = {
         unit_system: "si"
     };
-    optional ArduinoStatusCode code = 1;
+    optional sint32 code = 1 [default = 1];
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];;

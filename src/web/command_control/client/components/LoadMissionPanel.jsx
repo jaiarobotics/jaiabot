@@ -7,7 +7,8 @@ import React from 'react'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderUpload } from '@mdi/js'
+import Button from '@mui/material/Button';
 
 export class LoadMissionPanel extends React.Component {
 
@@ -40,12 +41,15 @@ export class LoadMissionPanel extends React.Component {
 
         // Buttons
         let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
-            <button onClick={this.deleteClicked.bind(this)}>
+            <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
                 <Icon path={mdiDelete}></Icon>
-            </button>
+            </Button>
+            <Button className="button-jcc" onClick={this.uploadClicked.bind(this)}>
+                <Icon path={mdiFolderUpload}></Icon>
+            </Button>
             <div className='flexSpacer'></div>
-            <button onClick={this.cancelClicked.bind(this)}>Cancel</button>
-            <button onClick={this.loadClicked.bind(this)}>Load</button>
+            <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
+            <Button className="button-jcc" onClick={this.loadClicked.bind(this)}>Load</Button>
         </div>)
 
         return (<div className="LoadMissionPanel centered rounded shadowed">
@@ -80,6 +84,34 @@ export class LoadMissionPanel extends React.Component {
 
     cancelClicked() {
         this.props.onCancel?.()
+    }
+
+    uploadClicked() {
+        let input = document.createElement('input')
+        input.type = 'file'
+        input.onchange = _ => {
+            let file = input.files[0]
+
+            // setting up the reader
+            var reader = new FileReader();
+            reader.readAsText(file, 'UTF-8');
+
+            // here we tell the reader what to do when it's done reading...
+            reader.onload = readerEvent => {
+                var content = readerEvent.target.result // this is the content!
+
+                // try to read the mission as JSON
+                try {
+                    let mission = JSON.parse(content)
+                    this.props.selectedMission?.(mission)
+                }
+                catch (err) {
+                    alert("Error: " + err)
+                }
+            }
+        }
+
+        input.click()
     }
 
 }

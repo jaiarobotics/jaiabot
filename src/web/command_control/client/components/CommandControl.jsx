@@ -10,7 +10,6 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import * as Icons from '../icons/Icons'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
@@ -20,7 +19,12 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiLanDisconnect, mdiLightningBoltCircle, mdiFlagVariantPlus } from '@mdi/js'
+import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, 
+	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
+	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
+    mdiStop, mdiPause} from '@mdi/js'
+
+import Button from '@mui/material/Button';
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -80,8 +84,11 @@ import {
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
-import { getTransform } from 'ol/proj';
-import { deepcopy, areEqual } from './Utilities';
+import { getTransform, toUserResolution } from 'ol/proj';
+import { deepcopy, areEqual, randomBase57 } from './Utilities';
+
+import * as MissionFeatures from './gui/MissionFeatures'
+import { createBotFeature } from './gui/BotFeature'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -115,8 +122,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 
-// import cmdIconDefault from '../icons/other_commands/default.png';
-
 import jaiabot_icon from '../icons/jaiabot.png'
 
 // const element = <FontAwesomeIcon icon={faCoffee} />
@@ -142,12 +147,18 @@ import { transform } from 'ol/proj';
 import homeIcon from '../icons/rally-point-red.svg'
 import rallyPointIcon from '../icons/rally-point-green.svg'
 import missionOrientationIcon from '../icons/compass.svg'
-import startIcon from '../icons/start.svg'
-import stopIcon from '../icons/stop.svg'
-import waypointIcon from '../icons/waypoint.svg'
+import goToRallyGreen from '../icons/go-to-rally-point-green.png'
+import goToRallyRed from '../icons/go-to-rally-point-red.png'
+
+import taskNone from './gui/taskNone.svg'
+import taskDive from './gui/taskDive.svg'
+import taskDrift from './gui/taskDrift.svg'
+import taskStationKeep from './gui/taskStationKeep.svg'
+
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
+
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -209,13 +220,13 @@ export async function getFromStore1(key) {
 }
 
 function saveVisibleLayers() {
-	Settings.write("visibleLayers", visibleLayers)
+	Settings.mapVisibleLayers.set(visibleLayers)
 }
 
 let visibleLayers = new Set()
 
 function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.read('visibleLayers') || ['OpenStreetMap', 'NOAA ENC Charts'])
+	visibleLayers = new Set(Settings.mapVisibleLayers.get() || ['OpenStreetMap', 'NOAA ENC Charts'])
 }
 
 function makeLayerSavable(layer) {
@@ -523,6 +534,9 @@ export default class CommandControl extends React.Component {
 			loadTilesWhileInteracting: true,
 			moveTolerance: 20
 		});
+
+		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
+		taskData.map = map
 
 		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
 
@@ -846,26 +860,26 @@ export default class CommandControl extends React.Component {
 		this.sendStop = this.sendStop.bind(this);
 
 		// center persistence
-		map.getView().setCenter(Settings.read("center") || equirectangular_to_mercator([-71.272237, 41.663559]))
+		map.getView().setCenter(Settings.mapCenter.get() || equirectangular_to_mercator([-71.272237, 41.663559]))
 
 		map.getView().on('change:center', function() {
-			Settings.write('center', map.getView().getCenter())
+			Settings.mapCenter.set(map.getView().getCenter())
 		})
 
 		// zoomLevel persistence
-		map.getView().setZoom(Settings.read("zoomLevel") || 2)
+		map.getView().setZoom(Settings.mapZoomLevel.get() || 2)
 
 		map.getView().on('change:resolution', function() {
-			Settings.write('zoomLevel', map.getView().getZoom())
+			Settings.mapZoomLevel.set(map.getView().getZoom())
 		})
 
 		// rotation persistence
-		map.getView().setRotation(Settings.read("rotation") || 0)
+		map.getView().setRotation(Settings.mapRotation.get() || 0)
 
 		map.getView().on('change:rotation', function() {
-			Settings.write('rotation', map.getView().getRotation())
+			Settings.mapRotation.set(map.getView().getRotation())
 		})
-		
+
 	}
 
 	clearMissionPlanningState() {
@@ -962,6 +976,13 @@ export default class CommandControl extends React.Component {
 
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
+		this.activeMissionLayer = new OlVectorLayer({
+			title: 'Active Missions',
+			source: new OlVectorSource(),
+			zIndex: 999,
+			opacity: 0.5
+		})
+
 		this.missionPlanningLayer = new OlVectorLayer({
 			name: 'missionPlanningLayer',
 			title: 'Mission Planning'
@@ -983,7 +1004,8 @@ export default class CommandControl extends React.Component {
 				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
-				taskData.getTaskPacketDiveBottomInfoLayer()
+				taskData.getTaskPacketDiveBottomInfoLayer(),
+				taskData.taskPacketInfoLayer
 			]
 		})
 
@@ -998,6 +1020,7 @@ export default class CommandControl extends React.Component {
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
+			this.activeMissionLayer,
 			this.missionPlanningLayer,
 			this.exclusionsLayer,
 			this.botsLayerGroup,
@@ -1172,9 +1195,30 @@ export default class CommandControl extends React.Component {
 		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
 
 
-		// Undo button
+		// Hotkeys
 		function KeyPress(e) {
 			let evtobj = window.event? event : e
+
+			// BotDetails number key shortcuts
+			if (e.code.startsWith('Digit')) {
+				const botId = Number(e.code[5])
+
+				if (e.shiftKey) {
+					this.api.postCommand({
+						bot_id: botId,
+						type: "STOP"
+					})
+
+					info("Stopped bot " + botId)
+
+					return
+				}
+
+				this.toggleBot(botId)
+				return
+			}
+
+			// Undo
 			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
 				this.restoreUndo()
 			}
@@ -1798,12 +1842,32 @@ export default class CommandControl extends React.Component {
 			let hub = hubs[hubId];
 
 			// ID
-			const hub_id = hub.hubId
+			const hub_id = hub.hub_id
 			// Geometry
 			const hubLatitude = hub.location?.lat
 			const hubLongitude = hub.location?.lon
 		}
 	}*/
+
+	updateActiveMissionLayer() {
+		const bots = this.podStatus.bots
+
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const active_mission_plan = bot.active_mission_plan
+			if (active_mission_plan != null) {
+				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(botId))
+				allFeatures.push(...features)
+			}
+		}
+
+		let source = this.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
 
 	updateBotsLayer() {
 		const { selectedBotsFeatureCollection } = this.state;
@@ -1822,19 +1886,25 @@ export default class CommandControl extends React.Component {
 			let bot = bots[botId]
 
 			// ID
-			const bot_id = bot.botId
+			const bot_id = bot.bot_id
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
 			// Properties
 			const botHeading = bot.attitude?.heading
-			const botSpeed = bot.speed?.overGround
+			const botSpeed = bot.speed?.over_ground
 			const botTimestamp = new Date(null)
 			botTimestamp.setSeconds(bot.time / 1e6)
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
-			const botFeature = new OlFeature({});
+			const botFeature = createBotFeature({
+				map: map,
+				botId: botId,
+				lonLat: [botLongitude, botLatitude],
+				heading: botHeading,
+				courseOverGround: bot.attitude?.course_over_ground
+			})
 
 			botFeature.setId(bot_id);
 
@@ -1844,7 +1914,7 @@ export default class CommandControl extends React.Component {
 
 			let faultLevel = 0
 
-			switch(bot.healthState) {
+			switch(bot.health_state) {
 				case "HEALTH__OK":
 					faultLevel = 0
 					faultLevel0Count ++
@@ -1889,10 +1959,11 @@ export default class CommandControl extends React.Component {
 				speed: botSpeed,
 				lastUpdated: parseFloat(bot.time),
 				lastUpdatedString: botTimestamp.toISOString(),
-				missionState: bot.missionState,
-				healthState: bot.healthState,
+				missionState: bot.mission_state,
+				healthState: bot.health_state,
 				faultLevel: faultLevel,
-				isDisconnected: bot.isDisconnected
+				isDisconnected: bot.isDisconnected,
+				botId: botId
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1926,7 +1997,7 @@ export default class CommandControl extends React.Component {
 				botFeature.set('tracked', true);
 			}
 
-			botFeature.set('remoteControlled', bot.missionState?.includes('REMOTE_CONTROL') || false)
+			botFeature.set('remoteControlled', bot.mission_state?.includes('REMOTE_CONTROL') || false)
 
 			botLayer.getSource().clear();
 			botLayer.getSource().addFeature(botFeature);
@@ -2010,6 +2081,7 @@ export default class CommandControl extends React.Component {
 					}
 
 					this.updateBotsLayer()
+					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
 					if (this.state.mode !== 'missionPlanning') {
 						this.updateMissionLayer()
@@ -2059,6 +2131,11 @@ export default class CommandControl extends React.Component {
 
 	selectBot(bot_id) {
 		this.selectBots([bot_id]);
+	}
+
+	toggleBot(bot_id) {
+		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
+		this.selectBots(botsToSelect)
 	}
 
 	selectBots(bot_ids) {
@@ -2131,8 +2208,9 @@ export default class CommandControl extends React.Component {
 		// Do any alterations to the mission set
 		func(this.missions)
 
-		// If something was changed, then place the old mission set into the undoMissions
+		// If something was changed
 		if (oldMissions != this.missions) {
+			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
@@ -2143,11 +2221,14 @@ export default class CommandControl extends React.Component {
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
 			this.missions = this.undoMissionsStack.pop()
+			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
 	}
 
 	sendStop() {
+		if (!this.takeControl()) return
+
 		this.api.allStop().then(response => {
 			if (response.message) {
 				error(response.message)
@@ -2177,6 +2258,15 @@ export default class CommandControl extends React.Component {
 		return `${Math.round(length * 100) / 100} m`;
 	}
 
+	weAreInControl() {
+		return (this.podStatus.controllingClientId == this.api.clientId) || this.podStatus.controllingClientId == null
+	}
+
+	takeControl() {
+		if (this.weAreInControl()) return true;
+		return confirm('WARNING:  Another client is currently controlling the pod.  Click OK to take control of the pod.')
+	}
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -2188,6 +2278,9 @@ export default class CommandControl extends React.Component {
 			measureActive,
 			surveyPolygonActive
 		} = this.state;
+		
+		// Are we currently in control of the bots?
+		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
 
 		let self = this
 
@@ -2245,13 +2338,19 @@ export default class CommandControl extends React.Component {
 		switch (detailsBoxItem?.type) {
 			case 'hub':
 				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				
 				break;
 			case 'bot':
 				//**********************
 				// TO DO  
 				// the following line assumes fleets to only have hub0 in use
 				//**********************
-				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], hubs?.[0], this.api, closeDetails);
+				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
+												hubs?.[0], 
+												this.api, 
+												this.missions, 
+												closeDetails,
+												this.takeControl.bind(this));
 				break;
 			case null:
 				detailsBox = null;
@@ -2259,9 +2358,9 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div id="axui_container">
+			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} />
+				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -2270,80 +2369,75 @@ export default class CommandControl extends React.Component {
 				<div id="layerinfo">&nbsp;</div>
 
 				<div id="viewControls">
-					<button
-						type="button"
+					<Button
+						className="button-jcc"
 						onClick={() => {
 							$('#mapLayers').toggle('blind', { direction: 'right' });
 							$('#mapLayersButton').toggleClass('active');
 						}}
 					>
-						<FontAwesomeIcon icon={faLayerGroup} />
-					</button>
+						<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
+					</Button>
 					{measureActive ? (
 						<div>
 							<div id="measureResult" />
-							<button
-								type="button"
-								className="active"
+							<Button
+								className="button-jcc active"
 								onClick={() => {
 									// this.measureInteraction.finishDrawing();
 									this.changeInteraction();
 									this.setState({ measureActive: false });
 								}}
 							>
-								<FontAwesomeIcon icon={faRuler} />
-							</button>
+								<FontAwesomeIcon icon={faRuler} title="Measurement Result" />
+							</Button>
 						</div>
 					) : (
-						<button
-							type="button"
+						<Button
+							className="button-jcc"
 							onClick={() => {
 								this.setState({ measureActive: true });
 								this.changeInteraction(this.measureInteraction, 'crosshair');
 								info('Touch map to set first measure point');
 							}}
 						>
-							<FontAwesomeIcon icon={faRuler} />
-						</button>
+							<FontAwesomeIcon icon={faRuler} title="Measure Distance"/>
+						</Button>
 					)}
 					{trackingTarget === 'all' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow All" className="active">
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
+						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Unfollow" />
+						</Button>
 					) : (
-						<button
-							type="button"
+						<Button
+							className="button-jcc"
 							onClick={() => {
 								this.zoomToAll(true);
 								this.trackBot('all');
 							}}
-							title="Follow All"
 						>
-							<FontAwesomeIcon icon={faMapMarkedAlt} />
-						</button>
+							<FontAwesomeIcon icon={faMapMarkedAlt} title="Follow All" />
+						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
-						<button type="button" onClick={this.trackBot.bind(this, '')} title="Unfollow Pod" className="active">
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
+						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Unfollow" />
+						</Button>
 					) : (
-						<button
-							type="button"
+						<Button
+							className="button-jcc"
 							onClick={() => {
 								this.zoomToAllBots(true);
 								this.trackBot('pod');
 							}}
-							title="Follow Pod"
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} />
-						</button>
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Pod" />
+						</Button>
 					)}
 
 					{surveyPolygonActive ? (
-							<button
-								type="button"
-								className="active"
-								title="Edit Survey Plan"
+							<Button
+								className="button-jcc active"
 								onClick={() => {
 									this.changeInteraction();
 									this.setState({
@@ -2356,12 +2450,11 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit} />
-							</button>
+								<FontAwesomeIcon icon={faEdit} title="Stop Editing Survey Polygon" />
+							</Button>
 					) : (
-						<button
-							type="button"
-							title="Edit Survey Plan"
+						<Button
+							className="button-jcc"
 							onClick={() => {
 								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
@@ -2376,13 +2469,13 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit} />
-						</button>
+							<FontAwesomeIcon icon={faEdit} title="Edit Survey Polygon" />
+						</Button>
 					)}
 
-					<button type="button" title="Engineering" onClick={ this.toggleEngineeringPanel.bind(this) }>
-						<FontAwesomeIcon icon={faWrench} />
-					</button>
+					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) } >
+						<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+					</Button>
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
@@ -2403,6 +2496,8 @@ export default class CommandControl extends React.Component {
 
 				{missionSettingsPanel}
 
+				{this.takeControlPanel()}
+
 				{this.commandDrawer()}
 
 				{this.state.loadMissionPanel}
@@ -2410,8 +2505,25 @@ export default class CommandControl extends React.Component {
 				{this.state.saveMissionPanel}
 
 				{this.disconnectionPanel()}
+				
 			</div>
 		);
+	}
+
+	takeControlPanel() {
+		if (this.weAreInControl()) {
+			return null
+		}
+
+		const takeControl = (evt) => {
+			this.api.takeControl()
+		}
+
+		return (
+			<div className="take-control-panel">Another client is in control of this pod
+				<button onClick={takeControl}>Take Control</button>
+			</div>
+		)
 	}
 
 	locationFromCoordinate(coordinate) {
@@ -2452,20 +2564,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	setGrid2Style(self, feature, taskType) {
-		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+		let gridStyle = new OlIcon({ src: taskNone })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				gridStyle = new OlIcon({ src: taskDive })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				gridStyle = new OlIcon({ src: taskNone })
 				break;
 			default:
 				break;
@@ -2482,20 +2594,20 @@ export default class CommandControl extends React.Component {
 
 		// console.log(taskType);
 
-		let gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+		let gridStyle = new OlIcon({ src: taskNone })
 
 		switch(taskType) {
 			case 'DIVE':
-				gridStyle = new OlIcon({ src: Icons["diveUnselected"] })
+				gridStyle = new OlIcon({ src: taskDive })
 				break;
 			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: Icons["driftUnselected"] })
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: Icons["stationkeepUnselected"] })
+				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
 			case 'NONE':
-				gridStyle = new OlIcon({ src: Icons["waypointUnselected"] })
+				gridStyle = new OlIcon({ src: taskNone })
 				break;
 			default:
 				break;
@@ -2503,6 +2615,7 @@ export default class CommandControl extends React.Component {
 
 		return gridStyle
 	}
+
 
 	surveyStyle(self, feature, taskType) {
 			// console.log('WHAT IS GOING ON!!!!');
@@ -2690,90 +2803,20 @@ export default class CommandControl extends React.Component {
 
 		for (let botId in missions) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			let lineStyle, color
+			let lineStyle
 
 			let selected = this.isBotSelected(botId)
 
 			let goals = missions[botId]?.plan?.goal || []
 
-			let transformed_pts = goals.map((goal) => {
-				return equirectangular_to_mercator([goal.location.lon, goal.location.lat])
-			})
-
-			let active_goal_index = this.podStatus?.bots?.[botId]?.activeGoal
+			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
-			for (let [goal_index, goal] of goals.entries()) {
-				let pt = transformed_pts[goal_index]
-				const olPoint = new OlPoint(pt)
-
-				var waypointIconName
-
-				if (goal_index === 0) {
-					waypointIconName = "start"
-				}
-				else if (goal_index === goals.length - 1) {
-					waypointIconName = "stop"
-				}
-				else {
-					waypointIconName = "waypoint"
-				}
-
-				// Is this the bot's current target goal / waypoint?
-				const is_active = (goal_index == active_goal_index)
-
-				const waypointStyle = is_active ? "Active" : (selected ? "Selected" : "Unselected")
-
-				var style = new OlStyle({
-					image: new OlIcon({
-						src: Icons[waypointIconName + waypointStyle]
-					})
-				})
-
-				if (waypointIconName === "waypoint") {
-					let previous_pt = transformed_pts[goal_index - 1]
-					style.getImage().setRotation(Math.PI / 2 - Math.atan2(pt[1] - previous_pt[1], pt[0] - previous_pt[0]))
-					style.getImage().setRotateWithView(true)
-				}
-
-				let waypointFeature = new OlFeature({ geometry: olPoint })
-				waypointFeature.setStyle(style)
-				waypointFeature.goal = missions[botId]?.plan?.goal?.[goal_index]
-				features.push(waypointFeature)
-
-				// Annotation feature (if present)
-				const annotationNames = { DIVE: "dive", SURFACE_DRIFT: "drift", STATION_KEEP: "stationkeep" }
-				const annotationName = annotationNames[goal.task?.type]
-
-				if (annotationName != null) {
-					const annotationFeature = new OlFeature({
-						geometry: olPoint
-					})
-					annotationFeature.setStyle(new OlStyle({
-						image: new OlIcon({
-							src: Icons[annotationName + waypointStyle]
-						})
-					}))
-
-					features.push(annotationFeature)
-				}
-
+			const plan = missions[botId].plan
+			if (plan != null) {
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, plan, active_goal_index, selected)
+				features.push(...missionFeatures)
 			}
-
-			// Draw lines between waypoints
-			if (selected) {
-				lineStyle = selectedLineStyle
-				color = selectedColor
-			}
-			else {
-				lineStyle = defaultLineStyle
-				color = unselectedColor
-			}
-
-			let lineStringFeature = new OlFeature({ geometry: new OlLineString(transformed_pts), name: "Bot Path" })
-			lineStringFeature.setStyle(lineStyle)
-			features.push(lineStringFeature)
-
 		}
 
 		// Add Home, if available
@@ -2938,7 +2981,7 @@ export default class CommandControl extends React.Component {
 	// Runs a mission
 	_runMission(bot_mission) {
 		// Set the speed values
-		let speeds = Settings.read('mission.plan.speeds')
+		let speeds = Settings.missionPlanSpeeds.get()
 		if (speeds != null && bot_mission.plan != null) {
 			bot_mission.plan.speeds = speeds
 		}
@@ -2955,6 +2998,8 @@ export default class CommandControl extends React.Component {
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions) {
+		if (!this.takeControl()) return
+
 		let botIds = Object.keys(missions)
 		botIds.sort()
 
@@ -2978,12 +3023,11 @@ export default class CommandControl extends React.Component {
 			let selectedBotId = this.selectedBotId() ?? 0
 			
 			this.missions[selectedBotId] = this.missions['selectedBotId']
-			this.missions[selectedBotId].botId = selectedBotId
+			this.missions[selectedBotId].bot_id = selectedBotId
 			delete this.missions['selectedBotId']
 		}
 
 		this.updateMissionLayer()
-		console.log('Loaded mission: ', this.missions)
 	}
 
 	// Currently selected botId
@@ -3003,6 +3047,8 @@ export default class CommandControl extends React.Component {
 
 	// Runs the currently loaded mission
 	runLoadedMissions(botIds=[]) {
+		if (!this.takeControl()) return
+
 		if (botIds.length == 0) {
 			botIds = Object.keys(this.missions)
 		}
@@ -3022,23 +3068,31 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Clears the currently active mission
+	// trash button, delete button, clear button
 	deleteClicked() {
 		let selectedBotId = this.selectedBotId()
 		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
 
 		if (confirm('Delete mission for ' + botString + '?')) {
 			if (selectedBotId != null) {
-				delete this.missions[selectedBotId]
+				this.changeMissions(() => {
+					delete this.missions[selectedBotId]
+				})
 			}
 			else {
-				this.missions = {}
+				this.changeMissions(() => {
+					this.missions = {}
+				})
 			}
+
 			this.setState({
 				surveyPolygonFeature: null,
 				surveyPolygonGeoCoords: null,
 				surveyPolygonCoords: null,
-				surveyPolygonChanged: false
-			});
+				surveyPolygonChanged: false,
+				goalBeingEdited: null 			// Because goals may have been deleted, we should set the goalBeingEdited to null
+			})
+
 			this.updateMissionLayer()
 		}
 	}
@@ -3167,9 +3221,11 @@ export default class CommandControl extends React.Component {
 	}
 
 	generateMissions(surveyPolygonGeoCoords) {
+		if (!this.takeControl()) return;
+
 		let bot_list = [];
 		for (const bot in this.podStatus.bots) {
-			bot_list.push(this.podStatus.bots[bot]['botId'])
+			bot_list.push(this.podStatus.bots[bot]['bot_id'])
 		}
 
 		this.api.postMissionFilesCreate({
@@ -3188,47 +3244,52 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Command Drawer
-
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
-				<button id= "activate-all-bots" type="button" title="Activate All Bots" onClick={this.activateAllClicked.bind(this)}>
-					<Icon path={mdiLightningBoltCircle} title="Activate All Bots"/>
-				</button>
-				<button type="button" title="RC Mode" onClick={this.runRCMode.bind(this)}>
-					RC<br />Mode
-				</button>
-				<button type="button" title="RC Dive" onClick={this.runRCDive.bind(this)}>
-					RC<br />Dive
-				</button>
-				<button type="button" id="setRallyPoint" title="Set Rally Point" onClick={this.setRallyPointClicked.bind(this)}>
-					Rally<br />Start
-				</button>
-				<button type="button" id="setHome" title="Rally Finish" onClick={this.setHomeClicked.bind(this)}>
-					Rally<br />Finish
-				</button>
-				<button type="button" id="goHome" title="Go Home" onClick={this.goHomeClicked.bind(this)}>
-					Goto<br />Rally Finish
-				</button>
-				<button type="button" style={{"backgroundColor":"red"}} title="Stop All Missions" onClick={this.sendStop.bind(this)}>
-					STOP<br />ALL
-				</button>
-				<button id= "missionStartStop" type="button" title="Run Mission" onClick={this.playClicked.bind(this)}>
+				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
+					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
+				</Button>
+				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
+					<img src={rallyPointIcon} title="Set Start Rally" />
+				</Button>
+				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
+					<img src={goToRallyGreen} title="Go To Start Rally" />
+				</Button>
+				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
+					<img src={homeIcon} title="Set Finish Rally" />
+				</Button>
+				<Button className="button-jcc" id="goHome" onClick={this.goHomeClicked.bind(this)}>
+					<img src={goToRallyRed} title="Go To Finish Rally" />
+				</Button>
+				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
+				    <Icon path={mdiStop} title="Stop All Missions" />
+				</Button>
+				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
+					<Icon path={mdiPause} title="Pause All Missions"/>
+				</Button>*/}
+				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
-				</button>
-				<button type="button" title="Load Mission" onClick={this.loadMissionButtonClicked.bind(this)}>
+				</Button>
+				<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
+					<Icon path={mdiSkipNext} title="All Next Task"/>
+				</Button>
+				<Button id= "missionRecover" className="button-jcc" onClick={this.recoverAllClicked.bind(this)}>
+					<Icon path={mdiDownload} title="Recover All"/>
+				</Button>
+				<Button className="button-jcc" onClick={this.loadMissionButtonClicked.bind(this)}>
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
-				</button>
-				<button type="button" title="Save Mission" onClick={this.saveMissionButtonClicked.bind(this)}>
+				</Button>
+				<Button className="button-jcc" onClick={this.saveMissionButtonClicked.bind(this)}>
 					<Icon path={mdiContentSave} title="Save Mission"/>
-				</button>
-				<button type="button" title="Clear Mission" onClick={this.deleteClicked.bind(this)}>
+				</Button>
+				<Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
 					<Icon path={mdiDelete} title="Clear Mission"/>
-				</button>
+				</Button>
 				{ this.undoButton() }					
-				<button type="button" title="Flag" onClick={this.sendFlag.bind(this)}>
+				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
-				</button>
+				</Button>
 			</div>
 
 		)
@@ -3258,7 +3319,7 @@ export default class CommandControl extends React.Component {
 	undoButton() {
 		let disabled = (this.undoMissionsStack.length == 0)
 		let inactive = disabled ? " inactive" : ""
-		return (<button type="button" className={"globalCommand" + inactive} title="Undo" onClick={this.restoreUndo.bind(this)} disabled={disabled}>Undo</button>)
+		return (<Button className={"globalCommand" + inactive + " button-jcc"} onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
 	setHomeClicked(evt) {
@@ -3276,8 +3337,10 @@ export default class CommandControl extends React.Component {
 	playClicked(evt) {
 		this.runLoadedMissions(this.selectedBotIds())
 	}
-
+	
 	activateAllClicked(evt) {
+		if (!this.takeControl()) return;
+
 		this.api.allActivate().then(response => {
 			if (response.message) {
 				error(response.message)
@@ -3285,6 +3348,32 @@ export default class CommandControl extends React.Component {
 			else {
 				info("Sent Activate All")
 			}
+		})
+	}
+
+	nextTaskAllClicked(evt) {
+		if (!this.takeControl()) return;
+
+		this.api.nextTaskAll().then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+			else {
+				info("Sent Next Task All")
+			}
+		})
+	}
+
+	recoverAllClicked(evt) {
+		if (!this.takeControl()) return
+
+		this.api.allRecover().then(response => {
+				if (response.message) {
+						error(response.message)
+				}
+				else {
+						info("Sent Recover All")
+				}
 		})
 	}
 
@@ -3320,6 +3409,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendFlag(evt) {
+		if (!this.takeControl()) return
+
 		// Send a user flag, to get recorded in the bot's logs
 		let botId = this.selectedBotIds().at(-1) || 0
 		let engineeringCommand = {
@@ -3358,16 +3449,16 @@ export default class CommandControl extends React.Component {
 		let hubs = Object.values(this.podStatus?.hubs ?? {})
 		
 		function compare_by_hubId(hub1, hub2) {
-			return hub1.hubId - hub2.hubId
+			return hub1.hub_id - hub2.hub_id
 		}
 
 		function compare_by_botId(bot1, bot2) {
-			return bot1.botId - bot2.botId
+			return bot1.bot_id - bot2.bot_id
 		}
 
 		function bothub_to_div(bothub) {
-			let botId = bothub.botId
-			let hubId = bothub.hubId
+			let botId = bothub.bot_id
+			let hubId = bothub.hub_id
 			
 			if (botId != null) {
 				var key = 'bot-' + botId
@@ -3402,7 +3493,7 @@ export default class CommandControl extends React.Component {
 				'HEALTH__OK': 0,
 				'HEALTH__DEGRADED': 1,
 				'HEALTH__FAILED': 2
-			}[bothub.healthState] ?? 0
+			}[bothub.health_state] ?? 0
 
 			let faultLevelClass = 'faultLevel' + faultLevel
 			let selected = self.isBotSelected(botId) ? 'selected' : ''

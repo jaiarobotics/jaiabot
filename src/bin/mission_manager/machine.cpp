@@ -118,7 +118,7 @@ jaiabot::statechart::predeployment::Idle::~Idle()
 // Movement::Transit
 jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     typename StateBase::my_context c)
-    : StateBase(c)
+    : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     if (goal)
@@ -148,7 +148,7 @@ jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
 // Recovery::Transit
 jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     typename StateBase::my_context c)
-    : StateBase(c)
+    : AcquiredGPSCommon<Transit, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT>(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -178,7 +178,8 @@ jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()
 // Recovery::StationKeep
 jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : StateBase(c)
+    : AcquiredGPSCommon<StationKeep, Recovery,
+                        protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -354,8 +355,11 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
                                  << "\n post_event(EvDepthTargetReached());"
                                  << "\n"
                                  << std::endl;
-        post_event(EvDepthTargetReached());
+
+        // Set depth achieved if we have reached our goal depth
+        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
         dive_pdescent_debug_.set_depth_reached(true);
+        post_event(EvDepthTargetReached());
     }
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
@@ -403,6 +407,10 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
                  << "\n"
                  << std::endl;
         context<Dive>().set_seafloor_reached(ev.depth);
+
+        // Set depth achieved if we had a bottoming timeout
+        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
         // used to correct dive rate calculation
         duration_correction_ = (now - last_depth_change_time_);
         post_event(EvDepthTargetReached());
@@ -684,10 +692,29 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
             << std::endl;
 }
 
+// Dive::ReacquireGPS
+jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
+    {
+        // in indoor mode, simply post that we've received a fix
+        // (even though we haven't as there's no GPS)
+        post_event(statechart::EvGPSFix());
+    }
+}
+
+jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGPS()
+{
+    end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
+    context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
+}
+
 // Task::StationKeep
 jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : StateBase(c)
+    : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
@@ -732,7 +759,8 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::RemoteControl
 // Movement::RemoteControl::StationKeep
 jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::StationKeep(
     typename StateBase::my_context c)
-    : StateBase(c)
+    : AcquiredGPSCommon<StationKeep, RemoteControl,
+                        protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP>(c)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
         this->machine().mission_plan().speeds().transit_with_units(),
@@ -878,6 +906,12 @@ void jaiabot::statechart::postdeployment::DataOffload::loop(const EvLoop&)
     if (offload_complete_)
     {
         offload_thread_->join();
+
+        if (cfg().is_sim())
+        {
+            offload_success_ = true;
+        }
+
         if (!offload_success_)
             this->machine().insert_warning(
                 jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);

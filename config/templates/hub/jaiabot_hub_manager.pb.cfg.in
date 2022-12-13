@@ -6,7 +6,7 @@ $managed_bot_ids
 status_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
-        # buffer configuration for BotStatus messages
+        # buffer configuration for BotStatus/EngineeringStatus messages
         buffer {
             ack_required: false
             blackout_time: 1
@@ -18,11 +18,10 @@ status_sub_cfg {
     }
 }
 
-
 task_packet_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
-        # buffer configuration for BotStatus messages
+        # buffer configuration for TaskPacket messages
         buffer {
             ack_required: true
             blackout_time: 0

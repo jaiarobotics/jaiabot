@@ -3,8 +3,6 @@ import { Settings } from './Settings.jsx'
 import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 
-let SPEED_SETTING_KEY = 'mission.plan.speeds'
-
 export default class MissionSpeedSettingsPanel extends React.Component {
 
     constructor(props) {
@@ -15,7 +13,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
             stationkeep_outer: 1.5
         }
 
-        this.speeds = Settings.read(SPEED_SETTING_KEY) ?? SPEED_DEFAULTS
+        this.speeds = Settings.missionPlanSpeeds.get() ?? SPEED_DEFAULTS
 
         this.state = {
             go_over_max_value: false,
@@ -61,7 +59,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);
@@ -71,7 +69,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                                 //console.log("did not confirm: " + this.state.safe_speed_watch);
                                             }
 
-                                            Settings.write(SPEED_SETTING_KEY, this.state.speeds)
+                                            Settings.missionPlanSpeeds.set(this.state.speeds)
                                         }
                                     }
                                 />
@@ -109,7 +107,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
                                                 //console.log("Less than max: " + evt.target.value);
-                                            } else if(confirm("Are you sure you'd like to run above the max speed level for the bot? (This may result in hardware failure)"))
+                                            } else if(confirm("Are you sure you'd like to run above the safe speed level for the bot? (This may result in hardware failure)"))
                                             {
                                                 this.setState({ go_over_max_value: true });
                                                 //console.log("more than max: " + evt.target.value);
@@ -119,7 +117,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                                 //console.log("did not confirm: " + this.state.safe_speed_watch);
                                             }
 
-                                            Settings.write(SPEED_SETTING_KEY, this.state.speeds)
+                                            Settings.missionPlanSpeeds.set(this.state.speeds)
                                         }
                                     }
                                 />

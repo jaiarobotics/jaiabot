@@ -90,7 +90,6 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
-
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
     std::string app_version_{VERSION_STRING};
@@ -122,7 +121,6 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     for (auto row : cfg().arduino_version_table())
     {
         uint32_t arduino_version = row.arduino_version();
-
         for (auto app_versions : row.app_versions())
         { arduino_version_compatibility_table_[arduino_version].insert(app_versions); }
     }
