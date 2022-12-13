@@ -1,12 +1,23 @@
 import { mdiTrashCan } from "@mdi/js";
 import React from "react"
-import PlotProfiles from "./PlotProfiles";
+import {Profile, ProfileLibrary, PlotProfiles} from "./PlotProfiles";
 import Icon from "@mdi/react";
+
+interface OpenPlotSetProps {
+    didSelectPlotSet: (plotSet: Profile) => undefined
+}
+
+interface OpenPlotSetState {
+    plotSets: ProfileLibrary
+}
 
 // Dropdown menu showing all of the available logs to choose from
 export class OpenPlotSet extends React.Component {
 
-    constructor(props) {
+    props: OpenPlotSetProps
+    state: OpenPlotSetState
+
+    constructor(props: OpenPlotSet) {
         super(props)
 
         this.state = {
@@ -47,13 +58,13 @@ export class OpenPlotSet extends React.Component {
         )
     }
 
-    didClickDeletePlotSet(name, evt) {
+    didClickDeletePlotSet(name: string, evt: Event) {
         PlotProfiles.delete_profile(name)
         this.setState({plotSets: PlotProfiles.plot_profiles()})
         evt.stopPropagation()
     }
 
-    didClickPlotSet(name) {
+    didClickPlotSet(name: string, evt: Event) {
         this.props.didSelectPlotSet?.(this.state.plotSets[name])
     }
 

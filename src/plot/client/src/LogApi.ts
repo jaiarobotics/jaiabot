@@ -2,14 +2,13 @@
 export class LogApi {
 
   // Do a JSON GET request
-  static get_json(url_string) {
+  static get_json(url_string: string) {
     var request = new Request(url_string, {
       method : 'GET',
       headers : new Headers({'Content-Type' : 'application/json'})
     })
 
     return fetch(request)
-        .catch(err => {console.error(err)})
         .then(resp => resp.json())
         .then(response_object => {
           // If there's an error message in there, we need to throw it
@@ -19,10 +18,11 @@ export class LogApi {
             return response_object
           }
         })
+        .catch(err => {console.error(err)})
   }
 
   // Download a GET request
-  static download_file(url) {
+  static download_file(url: string) {
     return fetch(url, { method: 'GET' })
     .then( res => res.blob() )
     .then( blob => {
@@ -32,7 +32,7 @@ export class LogApi {
   }
 
   // Get a series corresponding to a set of log files and paths
-  static get_series(logs, paths) {
+  static get_series(logs: string[], paths: string[]) {
     var url = new URL('series', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('path', paths.join(','))
@@ -43,7 +43,7 @@ export class LogApi {
   // Gets all of the logs and associated metadata for each
   static get_logs() { return this.get_json('/logs') }
 
-  static get_paths(logs, root_path) {
+  static get_paths(logs: string[], root_path: string) {
     var url = new URL('paths', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('root_path', root_path)
@@ -52,7 +52,7 @@ export class LogApi {
   }
 
   // Get map points
-  static get_map(logs) {
+  static get_map(logs: string[]) {
     var url = new URL('map', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -60,7 +60,7 @@ export class LogApi {
   }
 
   // Get commands
-  static get_commands(logs) {
+  static get_commands(logs: string[]) {
     var url = new URL('commands', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -68,7 +68,7 @@ export class LogApi {
   }
 
   // Get active_goals
-  static get_active_goal(logs) {
+  static get_active_goal(logs: string[]) {
     var url = new URL('active_goal', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -76,7 +76,7 @@ export class LogApi {
   }
 
   // Get task_packets
-  static get_task_packets(logs) {
+  static get_task_packets(logs: string[]) {
     var url = new URL('task_packet', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
@@ -84,18 +84,18 @@ export class LogApi {
   }
 
   // Get depth_contours
-  static get_depth_contours(logs) {
+  static get_depth_contours(logs: string[]) {
     var url = new URL('depth-contours', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
     return this.get_json(url.toString())
   }
 
-  static get_moos(logs, time_range) {
+  static get_moos(logs: string[], time_range: number[]) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
-    url.searchParams.append('t_start', time_range[0])
-    url.searchParams.append('t_end', time_range[1])
+    url.searchParams.append('t_start', String(time_range[0]))
+    url.searchParams.append('t_end', String(time_range[1]))
 
     return this.download_file(url.toString())
   }

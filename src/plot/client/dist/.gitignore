@@ -1,3 +1,4 @@
 *.js
 bundle.js.LICENSE.txt
 *.svg
+src/
