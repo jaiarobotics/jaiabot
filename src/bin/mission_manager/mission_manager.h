@@ -36,6 +36,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
     void handle_command(const protobuf::Command& command);
+    bool handle_command_fragment(const protobuf::Command& input_command_fragment,
+                                 protobuf::Command& out_command);
 
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
 
@@ -43,6 +45,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
   private:
     std::unique_ptr<statechart::MissionManagerStateMachine> machine_;
+    std::map<uint64_t, std::map<uint8_t, protobuf::Command>> track_command_fragments;
 
     std::set<jaiabot::config::MissionManager::EngineeringTestMode> test_modes_;
     std::set<jaiabot::protobuf::Error> ignore_errors_;
