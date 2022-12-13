@@ -35,6 +35,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -74,6 +75,7 @@ class HubManager : public ApplicationBase
     }
 
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
+    void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
 
   private:
@@ -159,6 +161,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
                     subscriber);
         }
     }
+    interprocess().subscribe<jaiabot::groups::hub_command_full>(
+        [this](const protobuf::Command& input_command) { handle_command(input_command); });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
@@ -270,4 +274,142 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
     // republish
     interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+}
+
+void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command)
+{
+    using protobuf::Command;
+    auto command = input_command;
+    std::vector<Command> command_fragments;
+
+    //Get the max repeat size from dccl field
+    int goal_max_size = protobuf::MissionPlan::descriptor()
+                            ->FindFieldByName("goal")
+                            ->options()
+                            .GetExtension(dccl::field)
+                            .max_repeat();
+    int fragment_index = 0;
+    int goal_max_index = 0;
+    int goal_index = 0;
+
+    glog.is_debug1() && glog << group("main")
+                             << "Received Full Command: " << input_command.ShortDebugString()
+                             << std::endl;
+
+    // Check message type if it is Mission Plan then check the goal size
+    // if the goal size is less than the max -> handle as usual
+    // Otherwise create command fragments
+    if (command.type() == Command::MISSION_PLAN && command.plan().goal_size() > goal_max_size)
+    {
+        double command_fragments_expected =
+            std::ceil((double)command.plan().goal_size() / (double)goal_max_size);
+
+        glog.is_debug1() && glog << group("main") << "Expected: " << command_fragments_expected
+                                 << ", Size: " << command.plan().goal_size()
+                                 << ", Max Size: " << goal_max_size << std::endl;
+
+        for (fragment_index = 0; fragment_index < command_fragments_expected; fragment_index++)
+        {
+            glog.is_debug1() && glog << group("main") << "Fragment Index: " << fragment_index
+                                     << ", Fragment Expected: " << command_fragments_expected
+                                     << std::endl;
+            Command command_fragment;
+            command_fragment.set_bot_id(command.bot_id());
+            command_fragment.set_time(command.time());
+            command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
+
+            // The initial fragment is going to have more data
+            if (command.plan().has_start() && fragment_index == 0)
+            {
+                command_fragment.mutable_plan()->set_start(command.plan().start());
+            }
+
+            if (command.plan().has_movement() && fragment_index == 0)
+            {
+                command_fragment.mutable_plan()->set_movement(command.plan().movement());
+            }
+
+            if (command.plan().has_recovery() && fragment_index == 0)
+            {
+                *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
+            }
+
+            command_fragment.mutable_plan()->set_fragment_index(fragment_index);
+
+            command_fragment.mutable_plan()->set_expected_fragments(command_fragments_expected);
+
+            goal_max_index = goal_max_index + goal_max_size;
+
+            glog.is_debug1() && glog << group("main") << "Goal Index: " << goal_max_index
+                                     << ", max size: " << goal_max_size
+                                     << ", Total goal size: " << command.plan().goal_size()
+                                     << ", Goal index: " << goal_index << std::endl;
+
+            // Loop through goals and add to fragment
+            for (; goal_index < command.plan().goal_size(); goal_index++)
+            {
+                if (goal_index < goal_max_index)
+                {
+                    glog.is_debug1() && glog << group("main") << "Goal max size: " << goal_max_size
+                                             << ", goal index: " << goal_index
+                                             << ", Total goal size: " << command.plan().goal_size()
+                                             << std::endl;
+
+                    protobuf::MissionPlan::Goal* goal = command_fragment.mutable_plan()->add_goal();
+                    if (command.plan().goal(goal_index).has_name())
+                    {
+                        goal->set_name(command.plan().goal(goal_index).name());
+                    }
+                    if (command.plan().goal(goal_index).has_task())
+                    {
+                        *goal->mutable_task() = command.plan().goal(goal_index).task();
+                    }
+                    *goal->mutable_location() = command.plan().goal(goal_index).location();
+                }
+                else
+                {
+                    // Break loop if we reach our max goal index
+                    break;
+                }
+            }
+            // Set the next starting index for the next fragment
+            goal_index = goal_max_index;
+
+            // Save fragment in vector
+            command_fragments.push_back(command_fragment);
+        }
+
+        for (auto frag : command_fragments)
+        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
+    }
+
+    goby::middleware::Publisher<Command> command_publisher(
+        {}, [](Command& cmd, const goby::middleware::Group& group) {
+            cmd.set_bot_id(group.numeric());
+        });
+
+    if (!command_fragments.empty())
+    {
+        // Loop through each fragment and send
+        for (const auto& command_fragment : command_fragments)
+        {
+            glog.is_debug2() && glog << group("main") << "Sending command fragment: "
+                                     << command_fragment.ShortDebugString() << std::endl;
+
+            intervehicle().publish_dynamic(
+                command_fragment,
+                goby::middleware::DynamicGroup(jaiabot::groups::hub_command,
+                                               command_fragment.bot_id()),
+                command_publisher);
+        }
+    }
+    else
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "Sending command: " << command.ShortDebugString() << std::endl;
+
+        intervehicle().publish_dynamic(
+            command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
+            command_publisher);
+    }
 }
