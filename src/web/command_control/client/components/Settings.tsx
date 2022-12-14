@@ -2,12 +2,15 @@
 
 class Setting {
 
-    constructor(key, defaultValue=null) {
+    key: string
+    defaultValue: any | null
+
+    constructor(key: string, defaultValue: any=null) {
         this.key = key
         this.defaultValue = defaultValue
     }
 
-    set(value) {
+    set(value: any | null) {
         localStorage.setItem(this.key, JSON.stringify(value))
     }
 

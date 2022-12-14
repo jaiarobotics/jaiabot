@@ -10,7 +10,7 @@
 
 import React from 'react'
 import { Settings } from './Settings'
-import { Missions } from './Missions'
+import { Missions, SELECTED_BOT_ID } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
@@ -2541,14 +2541,14 @@ export default class CommandControl extends React.Component {
 
 			if (!(botId in missions)) {
 				missions[botId] = {
-					botId: botId,
+					bot_id: botId,
 					time: '1642891753471247',
 					type: 'MISSION_PLAN',
 					plan: {
 						start: 'START_IMMEDIATELY',
 						movement: 'TRANSIT',
 						goal: [],
-						recovery: {recoverAtFinalGoal: true}
+						recovery: {recover_at_final_goal: true}
 					}
 				}
 			}
@@ -2922,7 +2922,7 @@ export default class CommandControl extends React.Component {
 				bot_goals.push(bot_goal)
 
 				let mission_dict = {
-					botId: Number(key),
+					bot_id: number(key),
 					time: millisecondsSinceEpoch,
 					type: "MISSION_PLAN",
 					plan: {
@@ -2930,7 +2930,7 @@ export default class CommandControl extends React.Component {
 						movement: "TRANSIT",
 						goal: bot_goals,
 						recovery: {
-							recoverAtFinalGoal: true
+							recover_at_final_goal: true
 						}
 					}
 				}
@@ -3010,13 +3010,15 @@ export default class CommandControl extends React.Component {
 		this.missions = deepcopy(missions)
 
 		// selectedBotId is a placeholder for the currently selected botId
-		if ('selectedBotId' in this.missions) {
+		if (SELECTED_BOT_ID in this.missions) {
 			let selectedBotId = this.selectedBotId() ?? 0
 			
-			this.missions[selectedBotId] = this.missions['selectedBotId']
+			this.missions[selectedBotId] = this.missions[SELECTED_BOT_ID]
 			this.missions[selectedBotId].bot_id = selectedBotId
-			delete this.missions['selectedBotId']
+			delete this.missions[SELECTED_BOT_ID]
 		}
+
+		console.log(this.missions)
 
 		this.updateMissionLayer()
 	}
@@ -3405,7 +3407,7 @@ export default class CommandControl extends React.Component {
 		// Send a user flag, to get recorded in the bot's logs
 		let botId = this.selectedBotIds().at(-1) || 0
 		let engineeringCommand = {
-			botId: botId,
+			bot_id: botId,
 			flag: this.flagNumber
 		}
 

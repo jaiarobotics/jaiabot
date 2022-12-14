@@ -1,15 +1,16 @@
 import { Settings } from './Settings'
-import { Missions } from './Missions'
-
-var missionLibraryLocalStorage
+import { PodMissionLibrary, PodMission, Missions } from './Missions'
 
 export class MissionLibraryLocalStorage {
+    savedMissions: PodMissionLibrary
+
+    static missionLibraryLocalStorage: MissionLibraryLocalStorage
 
     static shared() {
-        if (missionLibraryLocalStorage == null) {
-            missionLibraryLocalStorage = new MissionLibraryLocalStorage()
+        if (MissionLibraryLocalStorage.missionLibraryLocalStorage == null) {
+            MissionLibraryLocalStorage.missionLibraryLocalStorage = new MissionLibraryLocalStorage()
         }
-        return missionLibraryLocalStorage
+        return MissionLibraryLocalStorage.missionLibraryLocalStorage
     }
 
     constructor() {
@@ -20,15 +21,16 @@ export class MissionLibraryLocalStorage {
         return Object.keys(this.savedMissions).sort()
     }
 
-    hasMission(name) {
+    hasMission(name: string) {
         return (name in this.savedMissions)
     }
 
-    loadMission(key) {
+    loadMission(key: string) {
+        console.log('loadMission: ', this.savedMissions[key])
         return this.savedMissions[key]
     }
 
-    saveMission(key, mission) {
+    saveMission(key: string, mission: PodMission) {
         if (key == null) {
             return
         }
@@ -37,7 +39,7 @@ export class MissionLibraryLocalStorage {
         Settings.savedMissions.set(this.savedMissions)
     }
 
-    deleteMission(key) {
+    deleteMission(key: string) {
         if (key == null) {
             return
         }

@@ -2,7 +2,7 @@ import Stroke from 'ol/style/Stroke';
 import { Fill, Icon, Style, Text} from 'ol/style';
 import { LineString, Point } from 'ol/geom';
 import {Feature} from 'ol'
-import {Goal, DiveTask} from './ProtoBufMessages'
+import {Goal, DivePacket} from './JAIAProtobuf'
 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
@@ -160,7 +160,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
 
 
 // Markers for dives
-export function diveTask(dive: DiveTask) {
+export function divePacket(dive: DivePacket) {
 
     // Depth text
     var text = dive.depth_achieved?.toFixed(1)

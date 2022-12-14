@@ -5,10 +5,36 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
 import Button from '@mui/material/Button';
+import {JaiaAPI} from '../../common/JaiaAPI'
+import {BotStatus, Engineering} from './gui/JAIAProtobuf'
+
+
+interface APIBotStatus extends BotStatus {
+	engineering: Engineering
+}
+
+
+interface Props {
+	api: JaiaAPI
+	bots: {[key: number]: APIBotStatus}
+	getSelectedBotId: () => number
+	control: () => boolean
+}
+
+
+interface State {
+	bots: {[key: number]: APIBotStatus}
+}
+
 
 export default class EngineeringPanel extends React.Component {
+	api: JaiaAPI
+	getSelectedBotId: () => number
 
-    constructor(props) {
+	props: Props
+	state: State
+
+    constructor(props: Props) {
         super(props)
         this.api = props.api
         this.getSelectedBotId = props.getSelectedBotId
@@ -18,7 +44,7 @@ export default class EngineeringPanel extends React.Component {
         }
     }
 
-    static getDerivedStateFromProps(props) {
+    static getDerivedStateFromProps(props: Props) {
         return {
             bots: props.bots
         }

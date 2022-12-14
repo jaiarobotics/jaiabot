@@ -23,9 +23,20 @@ import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
-import { TaskPacket, Command } from './gui/ProtoBufMessages';
+import { TaskPacket, Command } from './gui/JAIAProtobuf';
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
+
+
+// Logs have an added _utime_ field on Commands
+interface LogCommand extends Command {
+    _utime_: number
+}
+
+interface LogTaskPacket extends TaskPacket {
+    _scheme_: number
+}
+
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -104,7 +115,7 @@ export default class JaiaMap {
     tMin?: number = null
     tMax?: number = null
     timestamp?: number = null
-    task_packets: TaskPacket[] = []
+    task_packets: LogTaskPacket[] = []
     openlayersMap: Map
     openlayersProjection: Projection
     botPathVectorSource = new VectorSource()
@@ -113,7 +124,7 @@ export default class JaiaMap {
     missionVectorSource = new VectorSource()
     taskPacketVectorSource = new VectorSource()
     depthContourVectorSource = new VectorSource()
-    command_dict: {[key: number]: Command[]}
+    command_dict: {[key: number]: LogCommand[]}
     depthContourFeatures: Feature[]
 
     constructor(openlayersMapDivId: string) {
@@ -373,11 +384,11 @@ export default class JaiaMap {
         }
 
         // Commands and markers for bot and goals
-        updateWithCommands(command_dict: {[key: number]: Command[]}) {
+        updateWithCommands(command_dict: {[key: number]: LogCommand[]}) {
             this.command_dict = command_dict
         }
 
-        updateWithTaskPackets(task_packets: TaskPacket[]) {
+        updateWithTaskPackets(task_packets: LogTaskPacket[]) {
             this.task_packets = task_packets
             this.updateTaskAnnotations()
         }
@@ -497,7 +508,7 @@ export default class JaiaMap {
 
             const active_goal_index = active_goal?.active_goal
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, command, active_goal_index, false)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, command.plan, active_goal_index, false)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     

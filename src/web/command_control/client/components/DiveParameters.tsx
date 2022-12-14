@@ -5,8 +5,26 @@
 
 import React from 'react'
 import { Settings } from './Settings'
+import { DiveParameters, DriftParameters } from './gui/JAIAProtobuf'
 
-export function panel() {
+
+export function currentDiveParameters(): DiveParameters {
+    return {
+        max_depth: Settings.diveHoldTime.get(),
+        depth_interval: Settings.diveDepthInterval.get(),
+        hold_time: Settings.diveHoldTime.get()
+    }
+}
+
+
+export function currentDriftParameters(): DriftParameters {
+    return {
+        drift_time: Settings.driftTime.get()
+    }
+}
+
+
+export function panel(): JSX.Element {
     return (
         <div className="panel">
             <label>RC Dive Parameters</label>

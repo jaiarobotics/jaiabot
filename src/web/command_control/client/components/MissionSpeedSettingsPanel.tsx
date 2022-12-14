@@ -1,14 +1,33 @@
 import React from 'react'
-import { Settings } from './Settings.jsx'
-import Slider from '@mui/material/Slider';
+import { Settings } from './Settings'
+import Slider, { SliderClassKey } from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
+import {Speeds} from './gui/JAIAProtobuf'
+
+
+interface Props {
+
+}
+
+
+interface State {
+    go_over_max_value: boolean
+    safe_speed_watch: number
+    speeds: Speeds
+    speed_max: number
+}
+
 
 export default class MissionSpeedSettingsPanel extends React.Component {
 
-    constructor(props) {
+    speeds: Speeds
+
+    state: State
+
+    constructor(props: Props) {
         super(props)
 
-        const SPEED_DEFAULTS = {
+        const SPEED_DEFAULTS: Speeds = {
             transit: 2.0,
             stationkeep_outer: 1.5
         }
@@ -54,7 +73,8 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     onChange={
                                         (evt) => 
                                         {
-                                            this.state.speeds.transit = evt.target.value; 
+                                            let target = evt.target as any
+                                            this.state.speeds.transit = target.value; 
 
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {
@@ -102,7 +122,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     onChange={
                                         (evt) => 
                                         { 
-                                            this.state.speeds.stationkeep_outer = evt.target.value; 
+                                            this.state.speeds.stationkeep_outer = (evt.target as any).value; 
 
                                             if(this.state.speed_max <= this.state.safe_speed_watch || this.state.go_over_max_value)
                                             {

@@ -3,16 +3,16 @@ import { LineString, Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 import { createMarker } from './Marker'
-import {Command} from './ProtoBufMessages'
+import { MissionPlan } from './JAIAProtobuf';
 
-export function createMissionFeatures(map: Map, command: Command, activeGoalIndex: number, isSelected: boolean) {
+export function createMissionFeatures(map: Map, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
     var features = []
     const projection = map.getView().getProjection()
 
     // Add markers for each waypoint
     var missionLineStringCoordinates = []
 
-    for (const [goal_index, goal] of command.plan.goal.entries()) {
+    for (const [goal_index, goal] of plan.goal.entries()) {
         const location = goal.location
 
         if (location == null) {
