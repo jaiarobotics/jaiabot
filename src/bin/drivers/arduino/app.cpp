@@ -90,6 +90,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Version Table
     std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
+    std::map<uint32_t, std::set<std::string>> arduino_version_incompatibility_table_;
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
     std::string app_version_{VERSION_STRING};
@@ -117,21 +118,45 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     using SerialThread = jaiabot::lora::SerialThreadLoRaFeather<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
 
-    // Creating Version Table
+    // Creating Compatible Version Table
     for (auto row : cfg().arduino_version_table())
     {
         uint32_t arduino_version = row.arduino_version();
-        for (auto app_versions : row.app_versions())
-        { arduino_version_compatibility_table_[arduino_version].insert(app_versions); }
+        for (auto app_versions_compatible : row.app_versions_compatible())
+        { arduino_version_compatibility_table_[arduino_version].insert(app_versions_compatible); }
     }
 
     for (auto row : arduino_version_compatibility_table_)
     {
         glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
 
-        for (auto app_version : row.second)
+        for (auto app_versions_compatible : row.second)
         {
-            glog.is_verbose() && glog << group("main") << "\tapp_version: " << app_version
+            glog.is_verbose() && glog << group("main")
+                                      << "\tapp_version compatible: " << app_versions_compatible
+                                      << std::endl;
+        }
+    }
+
+    // Creating Incompatible Version Table
+    for (auto row : cfg().arduino_version_table())
+    {
+        uint32_t arduino_version = row.arduino_version();
+        for (auto app_versions_incompatible : row.app_versions_incompatible())
+        {
+            arduino_version_incompatibility_table_[arduino_version].insert(
+                app_versions_incompatible);
+        }
+    }
+
+    for (auto row : arduino_version_incompatibility_table_)
+    {
+        glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
+
+        for (auto app_versions_incompatible : row.second)
+        {
+            glog.is_verbose() && glog << group("main")
+                                      << "\tapp_version incompatible: " << app_versions_incompatible
                                       << std::endl;
         }
     }

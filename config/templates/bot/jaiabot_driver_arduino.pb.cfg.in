@@ -10,11 +10,10 @@ $jaiabot_driver_arduino_bounds
 
 arduino_version_table: {
     arduino_version: 0
-    app_versions: ""
+    app_versions_compatible: ""
 }
 
 arduino_version_table: {
     arduino_version: 1
-    app_versions: "1.2.0"
-    app_versions: "1.2.0~beta0"
+    app_versions_incompatible: ""
 }
