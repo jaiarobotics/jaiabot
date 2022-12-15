@@ -184,7 +184,9 @@ const sidebarInitialWidth = 0;
 const sidebarMinWidth = 0;
 const sidebarMaxWidth = 1500;
 
-const POLLING_INTERVAL_MS = 500
+const POLLING_INTERVAL_MS = 300;
+
+const MAX_GOALS = 42;
 
 // export async function doDatabaseStuff() {
 // 	const dbPromise = await openDB('tile-store', 1, {
@@ -335,7 +337,18 @@ export default class CommandControl extends React.Component {
 			surveyExclusions: null,
 			selectedFeatures: null,
 			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
-			detailsBoxItem: null
+			detailsBoxItem: null,
+			detailsExpanded: {
+				quickLook: true,
+				commands: false,
+				health: false,
+				gps: false,
+				imu: false,
+				sensor: false,
+				power: false,
+			},
+			mapLayerActive: false, 
+			engineeringPanelActive: false
 		};
 
 		this.surveyExclusionsStyle = null;
@@ -1199,29 +1212,41 @@ export default class CommandControl extends React.Component {
 		function KeyPress(e) {
 			let evtobj = window.event? event : e
 
-			// BotDetails number key shortcuts
-			if (e.code.startsWith('Digit')) {
-				const botId = Number(e.code[5])
+			switch (e.target.tagName.toLowerCase()) {
+				case "input":
+				case "textarea":
+				case "select":
+				case "button":
+				// ...and so on for other elements you want to exclude;
+				// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
+				  break;
+				default:
+					// BotDetails number key shortcuts
+					if (e.code.startsWith('Digit')) {
+						const botId = Number(e.code[5])
 
-				if (e.shiftKey) {
-					this.api.postCommand({
-						bot_id: botId,
-						type: "STOP"
-					})
+						if (e.shiftKey) {
+							this.api.postCommand({
+								bot_id: botId,
+								type: "STOP"
+							})
 
-					info("Stopped bot " + botId)
+							info("Stopped bot " + botId)
 
-					return
-				}
+							return
+						}
 
-				this.toggleBot(botId)
-				return
-			}
+						this.toggleBot(botId)
+						return
+					}
 
-			// Undo
-			if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
-				this.restoreUndo()
-			}
+					// Undo
+					if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
+						this.restoreUndo()
+					}
+
+				  	break;
+			  }
 		}
 
 		document.onkeydown = KeyPress.bind(this)
@@ -2157,6 +2182,7 @@ export default class CommandControl extends React.Component {
 		this.setState({ selectedBotsFeatureCollection });
 
 		if (bot_ids.length > 0) {
+			info("Click on the map to create goals for bot "+ bot_ids[0]);
 			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
 		}
 
@@ -2264,7 +2290,7 @@ export default class CommandControl extends React.Component {
 
 	takeControl() {
 		if (this.weAreInControl()) return true;
-		return confirm('WARNING:  Another client is currently controlling the pod.  Click OK to take control of the pod.')
+		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2276,7 +2302,9 @@ export default class CommandControl extends React.Component {
 			botsLayerCollection,
 			trackingTarget,
 			measureActive,
-			surveyPolygonActive
+			surveyPolygonActive,
+			mapLayerActive,
+			engineeringPanelActive
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2337,7 +2365,10 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
+												this.api, 
+												closeDetails, 
+												this.state.detailsExpanded);
 				
 				break;
 			case 'bot':
@@ -2350,9 +2381,10 @@ export default class CommandControl extends React.Component {
 												this.api, 
 												this.missions, 
 												closeDetails,
-												this.takeControl.bind(this));
+												this.takeControl.bind(this),
+												this.state.detailsExpanded);
 				break;
-			case null:
+			default:
 				detailsBox = null;
 				break;
 		}
@@ -2369,15 +2401,30 @@ export default class CommandControl extends React.Component {
 				<div id="layerinfo">&nbsp;</div>
 
 				<div id="viewControls">
-					<Button
-						className="button-jcc"
-						onClick={() => {
-							$('#mapLayers').toggle('blind', { direction: 'right' });
-							$('#mapLayersButton').toggleClass('active');
-						}}
-					>
-						<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
-					</Button>
+
+					{mapLayerActive ? (
+						<Button className="button-jcc active"
+							onClick={() => {
+								this.setState({mapLayerActive: false}); 
+								$('#mapLayers').toggle('blind', { direction: 'right' });
+								$('#mapLayersButton').toggleClass('active');
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
+						</Button>
+
+					) : (
+						<Button className="button-jcc"
+							onClick={() => {
+								this.setState({mapLayerActive: true}); 
+								$('#mapLayers').toggle('blind', { direction: 'right' });
+								$('#mapLayersButton').toggleClass('active');
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
+						</Button>
+					)}
+
 					{measureActive ? (
 						<div>
 							<div id="measureResult" />
@@ -2431,7 +2478,7 @@ export default class CommandControl extends React.Component {
 								this.trackBot('pod');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Pod" />
+							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Team" />
 						</Button>
 					)}
 
@@ -2450,7 +2497,7 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit} title="Stop Editing Survey Polygon" />
+								<FontAwesomeIcon icon={faEdit} title="Stop Editing Optimized Mission Survey" />
 							</Button>
 					) : (
 						<Button
@@ -2469,13 +2516,28 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit} title="Edit Survey Polygon" />
+							<FontAwesomeIcon icon={faEdit} title="Edit Optimized Mission Survey" />
 						</Button>
 					)}
+					
+					{engineeringPanelActive ? (
+						<Button className="button-jcc active" onClick={() => {
+								this.setState({engineeringPanelActive: false}); 
+								this.toggleEngineeringPanel();
+							}} 
+						>
+							<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+						</Button>
 
-					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) } >
-						<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
-					</Button>
+					) : (
+						<Button className="button-jcc" onClick={() => {
+							this.setState({engineeringPanelActive: true}); 
+							this.toggleEngineeringPanel();
+						}} 
+						>
+							<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+						</Button>
+					)}
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
@@ -2520,8 +2582,8 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div className="take-control-panel">Another client is in control of this pod
-				<button onClick={takeControl}>Take Control</button>
+			<div className="take-control-panel">Another client is in control of this team
+				<Button className="button-jcc" id="takeControlButton" onClick={takeControl}>Take Control</Button>
 			</div>
 		)
 	}
@@ -2557,9 +2619,14 @@ export default class CommandControl extends React.Component {
 					}
 				}
 			}
-
-			missions[botId].plan.goal.push({location: location})
-
+			if(missions[botId].plan.goal.length < MAX_GOALS)
+			{
+				missions[botId].plan.goal.push({location: location})
+			}
+			else
+			{
+				warning("Max Goals is currently set to "+ MAX_GOALS +"!");
+			}
 		})
 	}
 
