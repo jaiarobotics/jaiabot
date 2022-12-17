@@ -3155,10 +3155,15 @@ export default class CommandControl extends React.Component {
 		});
 
 		if (feature) {
+			console.log("Checkpoint A: ", feature)
+
+			let goal = feature.get('goal')
 
 			// Clicked on a goal / waypoint
-			if (feature.goal != null) {
-				this.state.goalBeingEdited = feature.goal
+			if (goal != null) {
+				console.log("Checkpoint B: ", goal)
+				this.setState({goalBeingEdited: goal})
+				console.log("Checkpoint C: ", this.state.goalBeingEdited)
 				return false
 			}
 
@@ -3171,7 +3176,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on mission planning point
-			if (feature.goal === null) {
+			if (goal === null) {
 				if (this.state.mode === 'missionPlanning') {
 					this.state.selectedFeatures = feature;
 				}

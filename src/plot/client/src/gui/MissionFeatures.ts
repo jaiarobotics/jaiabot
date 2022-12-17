@@ -22,6 +22,7 @@ export function createMissionFeatures(map: Map, plan: MissionPlan, activeGoalInd
         {
             // OpenLayers
             const markerFeature = createMarker(map, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == activeGoalIndex, isSelected)})
+            markerFeature.setProperties({goal: goal})
             features.push(markerFeature)
         }
 

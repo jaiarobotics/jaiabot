@@ -3,29 +3,45 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import React from 'react'
+import React, { FormEvent } from 'react'
 import Button from '@mui/material/Button';
-import { Settings } from './Settings'
+import { Setting, Settings } from './Settings'
+import { Goal, TaskType, DiveParameters, DriftParameters } from './gui/JAIAProtobuf';
+import * as DiveDriftSettings from './DiveParameters';
+
+
+interface Props {
+    goal: Goal
+    onClose: () => void
+    onChange: () => void
+}
+
+
+interface State {
+    goal: Goal
+}
+
 
 export class GoalSettingsPanel extends React.Component {
 
-    constructor(props) {
+    props: Props
+    state: State
+
+    constructor(props: Props) {
         super(props)
 
         this.state = {
             goal: props.goal
         }
 
-        this.onClose = props.onClose
-        this.onChange = props.onChange
     }
 
     componentDidUpdate() {
-        this.onChange?.()
+        this.props.onChange?.()
     }
 
     render() {
-        self = this
+        let self = this
 
         var taskOptionsPanel
         let taskType = this.state.goal.task?.type
@@ -47,7 +63,7 @@ export class GoalSettingsPanel extends React.Component {
             Goal Settings
             <div>
                 Task
-                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value) } defaultValue={taskType ?? "NONE"}>
+                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
                     <option value="NONE">None</option>
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
@@ -64,7 +80,7 @@ export class GoalSettingsPanel extends React.Component {
         )
     }
 
-    changeTaskType(taskType) {
+    changeTaskType(taskType: TaskType) {
         let {goal} = this.state
 
         if (taskType == goal.task?.type) {
@@ -75,14 +91,8 @@ export class GoalSettingsPanel extends React.Component {
             case 'DIVE':
                 goal.task = {
                     type: taskType,
-                    dive: {
-                        max_depth: Settings.diveMaxDepth.get(),
-                        depth_interval: Settings.diveDepthInterval.get(),
-                        hold_time: Settings.diveHoldTime.get()
-                    },
-                    surface_drift: {
-                        drift_time: Settings.driftTime.get()
-                    }
+                    dive: DiveDriftSettings.currentDiveParameters(),
+                    surface_drift: DiveDriftSettings.currentDriftParameters()
                 }
                 break;
             case 'SURFACE_DRIFT':
@@ -136,20 +146,21 @@ export class GoalSettingsPanel extends React.Component {
         )
     }
 
-    changeParameter(evt) {
+    changeParameter(evt: FormEvent) {
         let {goal} = this.state
 
-        const key = evt.target.name
-        const value = Number(evt.target.value)
+        let target = evt.target as any
+        const key = target.name as (keyof DiveParameters) | (keyof DriftParameters)
+        const value = Number(target.value)
 
         const settingMap = {
             max_depth: Settings.diveMaxDepth,
             hold_time: Settings.diveHoldTime,
             depth_interval: Settings.diveDepthInterval,
             drift_time: Settings.driftTime
-        }
+        };
 
-        settingMap[key].set(value)
+        (settingMap[key] as Setting).set(value)
 
         if(key != "drift_time")
         {
@@ -181,12 +192,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     closeClicked() {
-        this.onClose?.()
-    }
-
-    applyClicked() {
-        let {goal} = this.state
-        this.onApply?.(goal)
+        this.props.onClose?.()
     }
 
 }

@@ -1,6 +1,6 @@
 // Saving and loading settings from browser's localStorage
 
-class Setting {
+export class Setting {
 
     key: string
     defaultValue: any | null
