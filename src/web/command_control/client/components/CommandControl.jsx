@@ -1668,24 +1668,14 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		const botFeature = new OlFeature({
-			name: bot_id,
-			geometry: new OlPoint([0, 0])
-		});
-
-		botFeature.setId(bot_id);
-		botFeature.setStyle(getBoatStyle(map));
-
 		const botLayer = new OlVectorLayer({
 			name: bot_id,
 			title: bot_id,
 			source: new OlVectorSource({
 				wrapX: false,
-				features: new OlCollection([botFeature], { unique: true })
+				features: new OlCollection([], { unique: true })
 			})
 		});
-
-		botLayer.setStyle(getBoatStyle(map));
 
 		botLayer.bot_id = bot_id;
 
