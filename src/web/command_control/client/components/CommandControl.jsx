@@ -3155,15 +3155,11 @@ export default class CommandControl extends React.Component {
 		});
 
 		if (feature) {
-			console.log("Checkpoint A: ", feature)
-
 			let goal = feature.get('goal')
 
 			// Clicked on a goal / waypoint
 			if (goal != null) {
-				console.log("Checkpoint B: ", goal)
 				this.setState({goalBeingEdited: goal})
-				console.log("Checkpoint C: ", this.state.goalBeingEdited)
 				return false
 			}
 
