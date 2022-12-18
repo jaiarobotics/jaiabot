@@ -107,13 +107,7 @@ import 'jquery-ui/ui/effects/effect-blind';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-	faGripVertical,
-	faCrosshairs,
-	faChevronDown,
-	faChevronLeft,
-	faDharmachakra,
 	faMapMarkerAlt,
-	faMapPin,
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
@@ -124,14 +118,11 @@ import {
 
 import jaiabot_icon from '../icons/jaiabot.png'
 
-// const element = <FontAwesomeIcon icon={faCoffee} />
-
 import {BotDetailsComponent, HubDetailsComponent} from './Details'
-import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
+import { jaiaAPI } from '../../common/JaiaAPI';
 
 import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
-import JsonAPI from '../../common/JsonAPI';
 
 // jQuery UI touch punch
 import punchJQuery from '../libs/jquery.ui.touch-punch';
@@ -153,7 +144,7 @@ import goToRallyRed from '../icons/go-to-rally-point-red.png'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
-
+import { persistVisibility } from './VisibleLayerPersistance'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -176,8 +167,6 @@ const mercator_to_equirectangular = getTransform(mercator, equirectangular);
 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
-const sidebarMinWidth = 0;
-const sidebarMaxWidth = 1500;
 
 const POLLING_INTERVAL_MS = 500
 
@@ -213,37 +202,6 @@ export async function addToStore1(key, value) {
 export async function getFromStore1(key) {
   return (await idbStore.db1).get("store1", key);
 }
-
-function saveVisibleLayers() {
-	Settings.mapVisibleLayers.set(visibleLayers)
-}
-
-let visibleLayers = new Set()
-
-function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.mapVisibleLayers.get() || ['OpenStreetMap', 'NOAA ENC Charts'])
-}
-
-function makeLayerSavable(layer) {
-	let title = layer.get("title")
-
-	// Set visible if it should be
-	let visible = visibleLayers.has(title)
-	layer.set("visible", visible)
-
-	// Catch change in visible state
-	layer.on("change:visible", () => {
-		if (layer.getVisible()) {
-			visibleLayers.add(title)
-		}
-		else {
-			visibleLayers.delete(title)
-		}
-		saveVisibleLayers()
-	})
-}
-
-loadVisibleLayers()
 
 // ===========================================================================================================================
 
@@ -370,7 +328,7 @@ export default class CommandControl extends React.Component {
 				wrapX: false
 			})
 		].forEach((layer) => {
-			makeLayerSavable(layer);
+			persistVisibility(layer);
 			chartLayerCollection.push(layer);
 		});
 
@@ -397,7 +355,7 @@ export default class CommandControl extends React.Component {
 				wrapX: false
 			})
 		].forEach((layer) => {
-			makeLayerSavable(layer);
+			persistVisibility(layer);
 			baseLayerCollection.push(layer);
 		});
 
@@ -1868,10 +1826,6 @@ export default class CommandControl extends React.Component {
 		const { selectedBotsFeatureCollection } = this.state;
 		let bots = this.podStatus.bots
 
-		let faultLevel0Count = 0;
-		let faultLevel1Count = 0;
-		let faultLevel2Count = 0;
-
 		const { trackingTarget } = this.state;
 
 		const botExtents = {};
@@ -1912,15 +1866,12 @@ export default class CommandControl extends React.Component {
 			switch(bot.health_state) {
 				case "HEALTH__OK":
 					faultLevel = 0
-					faultLevel0Count ++
 					break;
 				case "HEALTH__DEGRADED":
 					faultLevel = 1
-					faultLevel1Count ++
 					break;
 				default:
 					faultLevel = 2
-					faultLevel2Count ++
 					break;
 			}
 
