@@ -34,10 +34,6 @@ import * as turf from '@turf/turf';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 */
-// IndexedDB
-import { openDB, deleteDB, wrap, unwrap } from 'idb';
-import { idb } from 'idb';
-
 // Openlayers
 import OlMap from 'ol/Map';
 import {
@@ -53,8 +49,6 @@ import OlText from 'ol/style/Text'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
-import OlTileWMS from 'ol/source/TileWMS';
-import { TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
 import OlGraticule from 'ol/layer/Graticule';
 import { Vector as OlVectorSource } from 'ol/source';
@@ -144,6 +138,8 @@ import SoundEffects from './SoundEffects'
 import { persistVisibility } from './VisibleLayerPersistance'
 
 import { KMZ } from './KMZ'
+import { createChartLayerGroup } from './ChartLayers'
+import { createBaseLayerGroup } from './BaseLayers'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -167,39 +163,6 @@ const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500
 
-// export async function doDatabaseStuff() {
-// 	const dbPromise = await openDB('tile-store', 1, {
-// 		upgrade(db) {
-// 			db.createObjectStore('tiles');
-// 		},
-// 		blocked() {
-// 			// …
-// 		},
-// 		blocking() {
-// 			// …
-// 		},
-// 		terminated() {
-// 			// …
-// 		},
-// 	});
-// }
-
-export const idbStore = {
-	db1: openDB("db1", 1,  {
-		upgrade(db) {
-			db.createObjectStore('store1');
-		},
-	})
-}
-
-export async function addToStore1(key, value) {
-  return (await idbStore.db1).add("store1", value, key);
-}
-
-export async function getFromStore1(key) {
-  return (await idbStore.db1).get("store1", key);
-}
-
 // ===========================================================================================================================
 
 // ===========================================================================================================================
@@ -221,25 +184,16 @@ export default class CommandControl extends React.Component {
 		this.flagNumber = 1
 
 		this.state = {
-			error: {},
 			// User interaction modes
 			mode: '',
 			currentInteraction: null,
 			mapZoomLevel: 14,
-			controlSpeed: 0,
 			controlHeading: 0,
 			accelerationProfileIndex: 0,
 			commandDrawerOpen: false,
 			// Map layers
 			botsLayerCollection: new OlCollection([], { unique: true }),
-			chartLayerCollection: new OlCollection([], { unique: true }),
-			baseLayerCollection: new OlCollection([], { unique: true }),
 			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
-			liveCommand: {
-				type: '',
-				parameters: [],
-				formationParameters: [0, 0, 0, 10]
-			},
 			// incoming data
 			lastBotCount: 0,
 			botExtents: {},
@@ -284,7 +238,6 @@ export default class CommandControl extends React.Component {
 			surveyPolygonChanged: false,
 			surveyExclusions: null,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null
 		};
 
@@ -293,68 +246,7 @@ export default class CommandControl extends React.Component {
 		this.missionPlanMarkers = new Map();
 		this.missionPlanMarkerExtents = new Map();
 
-		const { chartLayerCollection } = this.state;
-
-		this.chartLayerGroup = new OlLayerGroup({
-			title: 'Overlays',
-			layers: chartLayerCollection,
-			fold: 'open'
-		});
-
-		const { baseLayerCollection } = this.state;
-
-		// Configure the basemap layers
-		[
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
-				wrapX: false
-			})
-		].forEach((layer) => {
-			persistVisibility(layer);
-			chartLayerCollection.push(layer);
-		});
-
-		this.chartLayerGroup = new OlLayerGroup({
-			title: 'Charts and Imagery',
-			layers: chartLayerCollection,
-			fold: 'open'
-		});
-
-		// Configure the basemap layers
-		[
-			new OlTileLayer({
-				title: 'Google Satellite & Roads',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'OpenStreetMap',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceOsm(),
-				wrapX: false
-			})
-		].forEach((layer) => {
-			persistVisibility(layer);
-			baseLayerCollection.push(layer);
-		});
+		this.chartLayerGroup = createChartLayerGroup()
 
 		// Measure tool
 
@@ -825,57 +717,6 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	cacheTileLoad() {
-		this.state.noaaEncSource.setTileLoadFunction(function(tile, url) {
-			const image = tile.getImage();
-
-			getFromStore1(url).then(blob => {
-				if (!blob) {
-					// use online url
-					image.src = url;
-
-					// Let's add the tile to the cache since we missed it
-					fetch(url).then(response => {
-						if (response.ok) {
-							response.blob().then(blob => {
-								addToStore1(url, blob).then(p => {
-									// console.log('added urlkey1 to store');
-									// console.log(p);
-								}).catch(() => {
-									// console.log('urlkey1 already exists');
-								});
-							});
-						}
-					});
-					return;
-				}
-
-				const objUrl = URL.createObjectURL(blob);
-				image.onload = function() {
-					URL.revokeObjectURL(objUrl);
-				};
-				image.src = objUrl;
-			}).catch(() => {
-				image.src = url;
-
-				// Let's add the tile to the cache since we missed it
-				fetch(url).then(response => {
-					if (response.ok) {
-						response.blob().then(blob => {
-							addToStore1(url, blob).then(p => {
-								// console.log('added urlkey1 to store');
-								// console.log(p);
-							}).catch(() => {
-								// console.log('urlkey1 already exists');
-							});
-						});
-					}
-				});
-			});
-		})
-	}
-
-
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
 		this.activeMissionLayer = new OlVectorLayer({
@@ -894,8 +735,6 @@ export default class CommandControl extends React.Component {
 			title: 'Mission Exclusion Areas'
 		});
 
-		this.cacheTileLoad();
-
 		this.measurementLayerGroup = new OlLayerGroup({
 			title: 'Measurements',
 			fold: 'close',
@@ -911,12 +750,10 @@ export default class CommandControl extends React.Component {
 			]
 		})
 
+		this.baseLayerGroup = createBaseLayerGroup()
+
 		let layers = [
-			new OlLayerGroup({
-				title: 'Map',
-				fold: 'open',
-				layers: this.state.baseLayerCollection
-			}),
+			this.baseLayerGroup,
 			this.chartLayerGroup,
 			this.measurementLayerGroup,
 			this.graticuleLayer,
@@ -1071,21 +908,6 @@ export default class CommandControl extends React.Component {
 			this.setState({
 				mapZoomLevel: map.getView().getZoom()
 			});
-		});
-
-		/*
-		This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-		*/
-
-		const { controlSpeed } = this.state;
-		$('#speedSlider').slider({
-			max: 100,
-			min: 0,
-			orientation: 'horizontal',
-			value: controlSpeed,
-			slide(ui) {
-				us.sendThrottle(ui.value);
-			}
 		});
 
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
@@ -1974,9 +1796,6 @@ export default class CommandControl extends React.Component {
 				}
 			},
 			(err) => {
-				this.setState({
-					error: err
-				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
 				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 			}
