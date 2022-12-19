@@ -2543,11 +2543,11 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.changeMissions((missions) => {
-
+			let millisecondsSinceEpoch = new Date().getTime();
 			if (!(botId in missions)) {
 				missions[botId] = {
 					botId: botId,
-					time: '1642891753471247',
+					time:  millisecondsSinceEpoch,
 					type: 'MISSION_PLAN',
 					plan: {
 						start: 'START_IMMEDIATELY',
@@ -2575,6 +2575,9 @@ export default class CommandControl extends React.Component {
 				break;
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
+				break;
+			case 'SURF_ZONE':
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })
@@ -2605,6 +2608,9 @@ export default class CommandControl extends React.Component {
 				break;
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
+				break;
+			case 'SURF_ZONE':
+				gridStyle = new OlIcon({ src: taskDrift })
 				break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })

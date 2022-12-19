@@ -37,6 +37,9 @@ export class GoalSettingsPanel extends React.Component {
             case 'SURFACE_DRIFT':
                 taskOptionsPanel = this.driftOptionsPanel()
                 break;
+            case 'SURF_ZONE':
+                taskOptionsPanel = <div></div>
+                break;
             default:
                 taskOptionsPanel = <div></div>
                 break;
@@ -52,6 +55,7 @@ export class GoalSettingsPanel extends React.Component {
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
                     <option value="STATION_KEEP">Station Keep</option>
+                    <option value="SURF_ZONE">Surf Zone</option>
                 </select>
                 { taskOptionsPanel }
 
@@ -94,6 +98,11 @@ export class GoalSettingsPanel extends React.Component {
                 }
                 break;
             case 'STATION_KEEP':
+                goal.task = {
+                    type: taskType
+                }
+                break;
+            case 'SURF_ZONE':
                 goal.task = {
                     type: taskType
                 }

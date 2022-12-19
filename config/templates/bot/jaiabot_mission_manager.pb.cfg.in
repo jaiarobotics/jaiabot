@@ -27,6 +27,10 @@ surfacing_timeout: 35  #  (optional) (default=600)
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 10 # (optional) (default=5)
 
+# Surf Zone Task
+surf_zone_timeout: 0 # (optional) (default=0)
+surf_zone_heading: 180 # (optional) (default=0)
+
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
 total_gps_degraded_fix_checks: 2 # (optional) (default=2)

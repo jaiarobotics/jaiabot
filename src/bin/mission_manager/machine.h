@@ -169,7 +169,6 @@ namespace movement
 // dummy state whose role is to dynmically transit to the correct substate
 // based on the current mission
 struct MovementSelection;
-
 struct Transit;
 struct ReacquireGPS;
 struct RemoteControl;
@@ -191,6 +190,7 @@ struct TaskSelection;
 struct ReacquireGPS;
 struct StationKeep;
 struct SurfaceDrift;
+struct SurfZone;
 struct Dive;
 namespace dive
 {
@@ -1006,6 +1006,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                 case protobuf::MissionTask::DIVE: return transit<Dive>();
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
+                case protobuf::MissionTask::SURF_ZONE: return transit<SurfZone>();
             }
         }
 
@@ -1057,6 +1058,24 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
                                  protobuf::IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT>(c)
     {
     }
+};
+
+struct SurfZone
+    : boost::statechart::state<SurfZone, Task>, 
+      Notify<SurfZone, protobuf::IN_MISSION__UNDERWAY__TASK__SURF_ZONE,
+             protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<SurfZone, Task>;
+    SurfZone(typename StateBase::my_context c);
+    ~SurfZone();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, SurfZone, &SurfZone::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>

@@ -66,6 +66,13 @@ message MissionManager
     // The pdop value to check against to determine gps fix after a dive
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
+    // surf zone timeout ends the surf zone task
+    optional double surf_zone_timeout = 41
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // surf zone heading indicates where the bot should drive while in the surf task
+    optional double surf_zone_heading = 42 [default = 0];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;

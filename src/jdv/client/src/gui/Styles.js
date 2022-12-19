@@ -127,11 +127,11 @@ export function goal(goalIndex, goal, isActive, isSelected) {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
+        'SURF_ZONE': taskDrift,
         'NONE': taskNone       
     }
 
     const src = srcMap[goal.task?.type ?? 'NONE'] ?? taskNone
-
     return new Style({
         image: new Icon({
             src: src,
