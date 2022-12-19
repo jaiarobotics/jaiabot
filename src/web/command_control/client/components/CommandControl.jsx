@@ -2625,7 +2625,7 @@ export default class CommandControl extends React.Component {
 			}
 			else
 			{
-				warning("Max Goals is currently set to "+ MAX_GOALS +"!");
+				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
 			}
 		})
 	}
