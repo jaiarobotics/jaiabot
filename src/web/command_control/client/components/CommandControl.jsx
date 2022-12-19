@@ -38,8 +38,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { openDB, deleteDB, wrap, unwrap } from 'idb';
 import { idb } from 'idb';
 
-import JSZip from 'jszip';
-
 // Openlayers
 import OlMap from 'ol/Map';
 import {
@@ -121,7 +119,6 @@ import jaiabot_icon from '../icons/jaiabot.png'
 import {BotDetailsComponent, HubDetailsComponent} from './Details'
 import { jaiaAPI } from '../../common/JaiaAPI';
 
-import shapes from '../libs/shapes';
 import tooltips from '../libs/tooltips';
 
 // jQuery UI touch punch
@@ -146,6 +143,8 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
 import { persistVisibility } from './VisibleLayerPersistance'
 
+import { KMZ } from './KMZ'
+
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
@@ -155,8 +154,6 @@ const COLOR_SELECTED = lessVars.selectedColor;
 
 punchJQuery($);
 // jqueryDrawer($);
-
-const { getBoatStyle } = shapes;
 
 // Sorry, map is a global because it really gets used from everywhere
 let map;
@@ -404,54 +401,6 @@ export default class CommandControl extends React.Component {
 			// fold: 'open',
 			layers: botsLayerCollection
 		});
-
-		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
-		const zip = new JSZip();
-
-		function getKMLData(buffer) {
-			let kmlData;
-			zip.load(buffer);
-			const kmlFile = zip.file(/\.kml$/i)[0];
-			if (kmlFile) {
-				kmlData = kmlFile.asText();
-			}
-			return kmlData;
-		}
-
-		function getKMLImage(href) {
-			const index = window.location.href.lastIndexOf('/');
-			if (index !== -1) {
-				const kmlFile = zip.file(href.slice(index + 1));
-				if (kmlFile) {
-					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
-				}
-			}
-			return href;
-		}
-
-		// Define a KMZ format class by subclassing ol/format/KML
-
-		class KMZ extends KML {
-			constructor(opt_options) {
-				const options = opt_options || {};
-				options.iconUrlFunction = getKMLImage;
-				super(options);
-			}
-
-			getType() {
-				return 'arraybuffer';
-			}
-
-			readFeature(source, options) {
-				const kmlData = getKMLData(source);
-				return super.readFeature(kmlData, options);
-			}
-
-			readFeatures(source, options) {
-				const kmlData = getKMLData(source);
-				return super.readFeatures(kmlData, options);
-			}
-		}
 
 		// Define DragAndDrop interaction
 		this.dragAndDropInteraction = new DragAndDropInteraction({
