@@ -98,7 +98,7 @@ class Fusion : public ApplicationBase
     // Milliseconds
     int send_bot_status_rate_{500};
     protobuf::BotStatusRate engineering_bot_status_rate_{
-        protobuf::BotStatusRate::BotStatusRate_2_Hz};
+        protobuf::BotStatusRate::BotStatusRate_1_Hz};
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};

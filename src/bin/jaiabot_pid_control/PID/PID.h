@@ -97,6 +97,7 @@ public:
         sampletime = 100;
 
         set_direction(E_PID_DIRECT);
+
         tune(kp, ki, kd);
 
         lasttime = t_milliseconds() - sampletime;
@@ -139,6 +140,10 @@ public:
         lasttime = t_milliseconds();
     }
 
+    /**
+     * @brief Negative PIDs for throttle_depth_pid (Input positive, output negative)
+     * 
+     */
     void tune(float kp, float ki, float kd)
     {
         // Check for validity

@@ -15,7 +15,7 @@ command_sub_cfg {
             blackout_time: 0
             max_queue: 3
             newest_first: true
-            ttl: 600
+            ttl: 60
             value_base: 1000
         }
     }

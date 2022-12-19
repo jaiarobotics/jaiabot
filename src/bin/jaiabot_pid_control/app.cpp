@@ -99,6 +99,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     throttle_speed_pid->set_limits(0.0, 100.0);
     throttle_speed_pid->set_auto();
 
+    /**
+     * @brief Negative PIDs for throttle_depth_pid (Input positive, output negative)
+     * 
+     */
     if (cfg().has_throttle_depth_pid_gains())
     {
         auto& gains = cfg().throttle_depth_pid_gains();
@@ -671,9 +675,9 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
 
 void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings) {
     pid_settings->set_target(pid->get_setpoint());
-    pid_settings->set_kp(pid->get_Kp());
-    pid_settings->set_ki(pid->get_Ki());
-    pid_settings->set_kd(pid->get_Kd());
+    pid_settings->set_kp(std::abs(pid->get_Kp()));
+    pid_settings->set_ki(std::abs(pid->get_Ki()));
+    pid_settings->set_kd(std::abs(pid->get_Kd()));
 }
 
 // Engineering status

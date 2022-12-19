@@ -33,7 +33,7 @@ imu_restart_timeout: 30 # default (30 seconds)
 total_imu_issue_checks: 15
 
 # Set the rate to send bot status in milliseconds
-send_bot_status_rate: 500 # default (500 milliseconds)
+send_bot_status_rate: 1000 # default (1000 milliseconds)
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
