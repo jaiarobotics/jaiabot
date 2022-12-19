@@ -297,7 +297,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(prec)
+    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(1)
 
     let statusAgeClassName = ''
     if (statusAge > 30) {
@@ -650,7 +650,7 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6).toFixed(0)
+    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6).toFixed(1)
 
     var statusAgeClassName = ''
     if (statusAge > 30) {

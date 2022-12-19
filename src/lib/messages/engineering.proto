@@ -96,7 +96,7 @@ message Engineering
 
     optional bool engineering_messages_enabled = 13;
 
-    optional BotStatusRate send_bot_status_rate = 14 [default = BotStatusRate_2_Hz];
+    optional BotStatusRate send_bot_status_rate = 14 [default = BotStatusRate_1_Hz];
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];
