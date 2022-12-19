@@ -141,6 +141,8 @@ import { KMZ } from './KMZ'
 import { createChartLayerGroup } from './ChartLayers'
 import { createBaseLayerGroup } from './BaseLayers'
 
+import { BotListPanel } from './BotListPanel'
+
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
@@ -2190,7 +2192,11 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					{this.botsList()}
+					<BotListPanel podStatus={this.podStatus} 
+						selectedBotId={this.selectedBotId()} 
+						trackedBotId={this.trackingTarget}
+						didClickBot={this.didClickBot.bind(this)}
+						didClickHub={this.didClickHub.bind(this)} />
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
@@ -2212,6 +2218,26 @@ export default class CommandControl extends React.Component {
 				
 			</div>
 		);
+	}
+
+	didClickBot(bot_id) {
+		if (this.isBotSelected(bot_id)) {
+			this.selectBots([])
+		}
+		else {
+			this.selectBot(bot_id)
+		}
+	}
+
+	didClickHub(hub_id) {
+		const item = {'type': 'hub', id: hub_id}
+
+		if (areEqual(this.state.detailsBoxItem, item)) {
+			this.setState({detailsBoxItem: null})
+		}
+		else {
+			this.setState({detailsBoxItem: item})
+		}
 	}
 
 	takeControlPanel() {
@@ -3143,91 +3169,6 @@ export default class CommandControl extends React.Component {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
-	}
-
-	botsList() {
-		let self = this
-
-		let bots = Object.values(this.podStatus?.bots ?? {})
-		let hubs = Object.values(this.podStatus?.hubs ?? {})
-		
-		function compare_by_hubId(hub1, hub2) {
-			return hub1.hub_id - hub2.hub_id
-		}
-
-		function compare_by_botId(bot1, bot2) {
-			return bot1.bot_id - bot2.bot_id
-		}
-
-		function bothub_to_div(bothub) {
-			let botId = bothub.bot_id
-			let hubId = bothub.hub_id
-			
-			if (botId != null) {
-				var key = 'bot-' + botId
-				var bothubClass = 'bot-item'
-
-				var onClickFunction = () => {
-					if (self.isBotSelected(botId)) {
-						self.selectBots([])
-					}
-					else {
-						self.selectBot(botId)
-					}
-				}
-			}
-			else {
-				var key = 'hub-' + hubId
-				var bothubClass = 'hub-item'
-
-				var onClickFunction = () => {
-					const item = {'type': 'hub', id: hubId}
-
-					if (areEqual(self.state.detailsBoxItem, item)) {
-						self.setState({detailsBoxItem: null})
-					}
-					else {
-						self.setState({detailsBoxItem: item})
-					}
-				}
-			}
-
-			let faultLevel = {
-				'HEALTH__OK': 0,
-				'HEALTH__DEGRADED': 1,
-				'HEALTH__FAILED': 2
-			}[bothub.health_state] ?? 0
-
-			let faultLevelClass = 'faultLevel' + faultLevel
-			let selected = self.isBotSelected(botId) ? 'selected' : ''
-			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
-
-			//For now we are naming HUB, HUB with no id
-			//In the future we will have to revisit this
-			return (
-				<div
-					key={key}
-					onClick={
-						onClickFunction
-					}
-					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
-				>
-					{botId ?? "HUB"} 
-				</div>
-			);
-		}
-
-
-		return (
-			<div id="botsList">
-				{
-					hubs.sort(compare_by_hubId).map(bothub_to_div)
-				}
-				{
-					bots.sort(compare_by_botId).map(bothub_to_div)
-				}
-			</div>
-		)
 	}
 
 	disconnectionPanel() {
