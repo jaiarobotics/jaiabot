@@ -1,15 +1,12 @@
 import { HubStatus, BotStatus, HealthState } from "./gui/JAIAProtobuf"
 import React = require("react")
+import { PodStatus } from "./PortalStatus"
 
-interface PodStatus {
-    hubs: HubStatus[],
-    bots: BotStatus[]
-}
 
 interface Props {
     podStatus: PodStatus | null
     selectedBotId: number | null
-    trackedBotId: number | null
+    trackedBotId: string | number | null
     didClickBot: (bot_id: number) => void
     didClickHub: (hub_id: number) => void
 }

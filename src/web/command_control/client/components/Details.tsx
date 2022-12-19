@@ -23,19 +23,11 @@ import { error, warning, info} from '../libs/notifications';
 // TurfJS
 import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
-import { Command, CommandType, BotStatus, HubStatus } from './gui/JAIAProtobuf';
-import { MissionState } from '../../../../plot/client/src/gui/JAIAProtobuf';
+import { Command, CommandType, BotStatus, HubStatus, MissionState } from './gui/JAIAProtobuf';
+import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
+
 
 let prec = 2
-
-
-interface PortalBotStatus extends BotStatus {
-    portalStatusAge: number
-}
-
-interface PortalHubStatus extends HubStatus {
-    portalStatusAge: number
-}
 
 
 interface CommandInfo {

@@ -2,7 +2,7 @@ import Stroke from 'ol/style/Stroke';
 import { Fill, Icon, Style, Text} from 'ol/style';
 import { LineString, Point } from 'ol/geom';
 import {Feature} from 'ol'
-import {Goal, DivePacket} from './JAIAProtobuf'
+import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
@@ -130,7 +130,7 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 // Markers for the mission goals
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType, isActive: boolean, isSelected: boolean) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
@@ -138,14 +138,21 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
         'NONE': taskNone       
     }
 
-    const src = srcMap[goal.task?.type ?? 'NONE'] ?? taskNone
+    const src = srcMap[taskType ?? 'NONE'] ?? taskNone
+
+    return new Icon({
+        src: src,
+        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
+        anchor: [0.5, 1],
+    })
+}
+
+
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
+    let icon = goalIcon(goal.task.type, isActive, isSelected)
 
     return new Style({
-        image: new Icon({
-            src: src,
-            color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
-            anchor: [0.5, 1],
-        }),
+        image: icon,
         text: new Text({
             text: String(goalIndex),
             font: '12pt sans-serif',

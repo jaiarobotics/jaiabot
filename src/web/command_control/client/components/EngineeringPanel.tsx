@@ -6,24 +6,19 @@ import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
-import {BotStatus, Engineering} from './gui/JAIAProtobuf'
-
-
-interface APIBotStatus extends BotStatus {
-	engineering: Engineering
-}
+import { PortalBotStatus } from './PortalStatus';
 
 
 interface Props {
 	api: JaiaAPI
-	bots: {[key: number]: APIBotStatus}
+	bots: {[key: number]: PortalBotStatus}
 	getSelectedBotId: () => number
 	control: () => boolean
 }
 
 
 interface State {
-	bots: {[key: number]: APIBotStatus}
+	bots: {[key: number]: PortalBotStatus}
 }
 
 

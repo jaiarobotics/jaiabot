@@ -5,17 +5,17 @@
 
 import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
-import { DiveParameters, DriftParameters, Goal, TaskType } from './gui/JAIAProtobuf';
+import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './gui/JAIAProtobuf';
 
 
 interface Props {
     goal: Goal
     style: any
     mission_params: any
-    bot_list: number[]
+    bot_list?: {[key: string]: BotStatus}
 
     onClose: () => void
-    onChange: () => void
+    onChange?: () => void
     onMissionApply: () => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
@@ -26,7 +26,7 @@ interface State {
     goal: Goal
     style: any
     mission_params: any
-    bot_list: number[]
+    bot_list?: {[key: string]: BotStatus}
 }
 
 
@@ -36,7 +36,7 @@ export class MissionSettingsPanel extends React.Component {
     state: State
 
     onClose: () => void
-    onChange: () => void
+    onChange?: () => void
     onMissionApply: () => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
