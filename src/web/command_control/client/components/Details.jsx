@@ -11,7 +11,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Icon from '@mdi/react'
+import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
@@ -26,15 +26,13 @@ import { error, success, warning, info} from '../libs/notifications';
 // TurfJS
 import * as turf from '@turf/turf';
 
-import { withStyles } from '@material-ui/styles';
-
-const Button = withStyles({
-  root: {
-    "&.Mui-disabled": {
-      pointerEvents: "auto"
-    }
-  }
-})(MuiButton);
+// const Button = withStyles({
+//   root: {
+//     "&.Mui-disabled": {
+//       pointerEvents: "auto"
+//     }
+//   }
+// })(MuiButton);
 
 let prec = 2
 
@@ -406,62 +404,62 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.stop, mission_state).class + " button-jcc stopMission"} 
+                        <MuiButton className={disableButton(commands.stop, mission_state).class + " button-jcc stopMission"} 
                                 disabled={disableButton(commands.stop, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title="Stop Mission"/>
-                        </Button>
+                        </MuiButton>
 
-                        <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.play, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.play, mission_state).isDisabled} 
                                 onClick={() => { issueMissionCommand(api, runMission(bot.bot_id, missions), bot.bot_id) }}>
                             <Icon path={mdiPlay} title="Run Mission"/>
-                        </Button>
+                        </MuiButton>
 
-                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
                             <Icon path={mdiSkipNext} title="Next Task"/>
-                        </Button>
+                        </MuiButton>
 
-                        {/*<Button className="button-jcc inactive" disabled>
+                        {/*<MuiButton className="button-jcc inactive" disabled>
                             <Icon path={mdiPause} title="Pause Mission"/>
-                        </Button>*/}
+                        </MuiButton>*/}
 
-                        <Button className={disableButton(commands.active, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.active, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.active, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.active) }}>
                             <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
-                        </Button>
+                        </MuiButton>
 
-                        <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
                                 onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
                             <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
-                        </Button>
+                        </MuiButton>
 
-                        <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.recover, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
                             <Icon path={mdiDownload} title="Recover"/>
-                        </Button>
+                        </MuiButton>
                         
-                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
-                        </Button>
+                        </MuiButton>
                         
-                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.reboot, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
-                        </Button>
-                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                        </MuiButton>
+                        <MuiButton className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
-                        </Button>
+                        </MuiButton>
                     </AccordionDetails>
                 </Accordion>
                 <Accordion 
@@ -716,21 +714,21 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                        <MuiButton className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
-                        </Button>
-                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                        </MuiButton>
+                        <MuiButton className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.reboot, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
-                        </Button>
-                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                        </MuiButton>
+                        <MuiButton className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, hub.hubId, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
-                        </Button>
+                        </MuiButton>
                     </AccordionDetails>
                 </Accordion>
             </div>

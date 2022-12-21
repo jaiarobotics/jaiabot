@@ -188,6 +188,10 @@ const POLLING_INTERVAL_MS = 300;
 
 const MAX_GOALS = 42;
 
+String.prototype.endsWith = function(suffix) {
+	return this.slice(this.length - suffix.length, this.length) == suffix
+}
+
 // export async function doDatabaseStuff() {
 // 	const dbPromise = await openDB('tile-store', 1, {
 // 		upgrade(db) {
@@ -1988,7 +1992,8 @@ export default class CommandControl extends React.Component {
 				healthState: bot.health_state,
 				faultLevel: faultLevel,
 				isDisconnected: bot.isDisconnected,
-				botId: botId
+				botId: botId,
+				isReacquiringGPS: bot.mission_state.endsWith('REACQUIRE_GPS')
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
