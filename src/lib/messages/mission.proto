@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "jaiabot/messages/geographic_coordinate.proto";
 import "dccl/option_extensions.proto";
+import "goby/middleware/protobuf/gpsd.proto";
 
 package jaiabot.protobuf;
 
@@ -282,4 +283,13 @@ message IvPBehaviorReport
     {
         TransitReport transit = 1;
     }
+}
+
+message MissionTpvMeetsGpsReq
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }

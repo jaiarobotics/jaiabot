@@ -253,6 +253,7 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            current_tpv_ = tpv;
             machine_->set_gps_tpv(tpv);
         });
 
@@ -268,6 +269,13 @@ jaiabot::apps::MissionManager::MissionManager()
                 ev.hdop = sky.hdop();
                 ev.pdop = sky.pdop();
                 machine_->process_event(ev);
+
+                // Publish TPV that meets our mission requirements
+                if (current_tpv_.IsInitialized())
+                {
+                    interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
+                        current_tpv_);
+                }
             }
         });
 
@@ -427,6 +435,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::NEXT_TASK:
+            machine_->process_event(statechart::EvWaypointReached());
             machine_->process_event(statechart::EvTaskComplete());
             break;
 

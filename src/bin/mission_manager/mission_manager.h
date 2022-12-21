@@ -55,6 +55,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     // at the equator or the poles
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
+
+    goby::middleware::protobuf::gpsd::TimePositionVelocity current_tpv_;
 };
 
 } // namespace apps

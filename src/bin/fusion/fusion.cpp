@@ -43,8 +43,11 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
+#include <bits/stdc++.h>
 #include <cmath>
 #include <math.h>
+#include <queue>
+
 #define earthRadiusKm 6371.0
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
@@ -79,6 +82,7 @@ class Fusion : public ApplicationBase
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
     double degrees_difference(const double& heading, const double& course);
+    double linear_regression();
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -102,6 +106,15 @@ class Fusion : public ApplicationBase
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
+
+    // GPS Good Reading
+    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_meets_gps_req_;
+
+    // Goal Dist History
+    std::queue<double> current_goal_dist_history_;
+
+    // Current Goal
+    int current_goal_{0};
 
     enum class DataType
     {
@@ -464,23 +477,42 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
             if (report.has_active_goal())
+            {
                 latest_bot_status_.set_active_goal(report.active_goal());
+                if (current_goal_ != report.active_goal())
+                {
+                    current_goal_ = report.active_goal();
+
+                    // Clear current_goal_dist_history_ to start new with update goal
+                    std::queue<double> empty;
+                    std::swap(current_goal_dist_history_, empty);
+                }
+            }
             else
+            {
                 latest_bot_status_.clear_active_goal();
+            }
+
             if (report.has_active_goal_location())
             {
-                if (latest_bot_status_.has_location())
+                if (tpv_meets_gps_req_.has_location())
                 {
-                    if (latest_bot_status_.location().has_lat() &&
-                        latest_bot_status_.location().has_lon())
+                    if (tpv_meets_gps_req_.location().has_lat() &&
+                        tpv_meets_gps_req_.location().has_lon())
                     {
                         double distance = distanceToGoal(report.active_goal_location().lat(),
                                                          report.active_goal_location().lon(),
-                                                         latest_bot_status_.location().lat(),
-                                                         latest_bot_status_.location().lon());
+                                                         tpv_meets_gps_req_.location().lat(),
+                                                         tpv_meets_gps_req_.location().lon());
                         // Set distance in meters
                         distance = distance * (1000);
                         latest_bot_status_.set_distance_to_active_goal(distance);
+                        if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
+                        {
+                            linear_regression();
+                            current_goal_dist_history_.pop();
+                        }
+                        current_goal_dist_history_.push(distance);
                     }
                 }
             }
@@ -550,6 +582,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             if (sky.has_pdop())
             {
                 latest_bot_status_.set_pdop(sky.pdop());
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::mission_tpv_meets_gps_req>(
+        [this](const jaiabot::protobuf::MissionTpvMeetsGpsReq& tpv_meets_gps_req) {
+            if (tpv_meets_gps_req.has_tpv())
+            {
+                tpv_meets_gps_req_ = tpv_meets_gps_req.tpv();
             }
         });
 }
@@ -893,4 +933,13 @@ double jaiabot::apps::Fusion::degrees_difference(const double& heading, const do
     {
         return 360 - absDiff;
     }
+}
+
+double jaiabot::apps::Fusion::linear_regression()
+{
+    double a,b;
+
+    double xsum=0, x2sum=0, ysum=0, xysum=0;
+
+
 }
