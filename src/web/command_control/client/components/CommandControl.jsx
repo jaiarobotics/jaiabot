@@ -188,6 +188,9 @@ const POLLING_INTERVAL_MS = 300;
 
 const MAX_GOALS = 42;
 
+// Store Previous Mission History
+let previous_mission_history;
+
 // export async function doDatabaseStuff() {
 // 	const dbPromise = await openDB('tile-store', 1, {
 // 		upgrade(db) {
@@ -1215,8 +1218,6 @@ export default class CommandControl extends React.Component {
 			switch (e.target.tagName.toLowerCase()) {
 				case "input":
 				case "textarea":
-				case "select":
-				case "button":
 				// ...and so on for other elements you want to exclude;
 				// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
 				  break;
@@ -1876,7 +1877,6 @@ export default class CommandControl extends React.Component {
 
 	updateActiveMissionLayer() {
 		const bots = this.podStatus.bots
-
 		let allFeatures = []
 
 		for (let botId in bots) {
@@ -2182,7 +2182,6 @@ export default class CommandControl extends React.Component {
 		this.setState({ selectedBotsFeatureCollection });
 
 		if (bot_ids.length > 0) {
-			info("Click on the map to create goals for bot "+ bot_ids[0]);
 			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
 		}
 
@@ -2227,15 +2226,26 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	changeMissions(func) {
+	changeMissions(func, previousMissions) {
 		// Save a backup of the current mission set
 		let oldMissions = deepcopy(this.missions)
+
+		if(previousMissions != null
+			|| previousMissions != undefined)
+		{
+			oldMissions = deepcopy(previousMissions);
+		}
 
 		// Do any alterations to the mission set
 		func(this.missions)
 
+		//console.log(oldMissions);
+		//console.log(this.missions);
+
 		// If something was changed
-		if (oldMissions != this.missions) {
+		if (JSON.stringify(oldMissions) != JSON.stringify(this.missions) ) {
+			console.log("The old mission does not equal new mission");
+
 			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
@@ -2246,7 +2256,9 @@ export default class CommandControl extends React.Component {
 
 	restoreUndo() {
 		if (this.undoMissionsStack.length > 1) {
+			
 			this.missions = this.undoMissionsStack.pop()
+			console.log(this.missions);
 			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		}
@@ -2317,7 +2329,16 @@ export default class CommandControl extends React.Component {
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
-			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
+			goalSettingsPanel = <GoalSettingsPanel 
+									goal={this.state.goalBeingEdited} 
+									onChange={() => { this.updateMissionLayer() }} 
+									onClose={() => 
+										{ 
+											this.state.goalBeingEdited = null; 
+											this.changeMissions(() => {}, previous_mission_history);
+										}
+									} 
+								/>
 		}
 
 		// Add mission generation form to UI if the survey polygon has changed.
@@ -2599,17 +2620,18 @@ export default class CommandControl extends React.Component {
 
 	addWaypointAt(location) {
 		let botId = this.selectedBotIds().at(-1)
+		let millisecondsSinceEpoch = new Date().getTime();
 
 		if (botId == null) {
 			return
 		}
 
 		this.changeMissions((missions) => {
-
+			
 			if (!(botId in missions)) {
 				missions[botId] = {
 					botId: botId,
-					time: '1642891753471247',
+					time:  millisecondsSinceEpoch,
 					type: 'MISSION_PLAN',
 					plan: {
 						start: 'START_IMMEDIATELY',
@@ -2621,13 +2643,14 @@ export default class CommandControl extends React.Component {
 			}
 			if(missions[botId].plan.goal.length < MAX_GOALS)
 			{
-				missions[botId].plan.goal.push({location: location})
+				missions[botId].plan.goal.push({location: location})	
 			}
 			else
 			{
 				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
 			}
 		})
+
 	}
 
 	setGrid2Style(self, feature, taskType) {
@@ -3068,6 +3091,12 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		let botIds = Object.keys(missions)
+		console.log(missions);
+		if (missions.length == 0) {
+			botIds = Object.keys(this.missions)
+			console.log(this.missions);
+		}
+
 		botIds.sort()
 
 		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
@@ -3232,6 +3261,7 @@ export default class CommandControl extends React.Component {
 
 			// Clicked on a goal / waypoint
 			if (feature.goal != null) {
+				previous_mission_history = deepcopy(this.missions);
 				this.state.goalBeingEdited = feature.goal
 				return false
 			}
@@ -3320,7 +3350,7 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
 					<img src={rallyPointIcon} title="Set Start Rally" />
 				</Button>
-				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
+				<Button className="button-jcc" id="goToRallyGreen" onClick={this.goToRallyGreen.bind(this)}>
 					<img src={goToRallyGreen} title="Go To Start Rally" />
 				</Button>
 				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
@@ -3399,6 +3429,27 @@ export default class CommandControl extends React.Component {
 
 	goHomeClicked(evt) {
 		this.returnToHome()
+	}
+
+	goToRallyGreen(evt) {
+		if (!this.state.rallyPointLocation) {
+			alert('No green rally point selected.  Click on the map to select a green rally location and try again.')
+			return
+		}
+
+		let goToRallyGreenMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.state.rallyPointLocation))
+		console.log(goToRallyGreenMission);
+		if (goToRallyGreenMission.length == 0)
+		{
+			console.log(this.podStatus.bots);
+			for(let bot in this.podStatus.bots)
+			{
+				goToRallyGreenMission.push(Missions.missionWithWaypoints(bot, this.state.rallyPointLocation))
+			}
+		}
+		console.log(goToRallyGreenMission);
+		this.runMissions(goToRallyGreenMission)
+		//this.runLoadedMissions(this.selectedBotIds())
 	}
 
 	playClicked(evt) {
