@@ -58,6 +58,12 @@
 
 ![](../figures/power-board-leds.png)
 
+## Raspberry Pi Pinout
+| Pin    | Description | Notes            |
+| --:    | ---         | ---              |
+| GPIO10 | IMU Reset   |                  |
+| GPIO26 | XBee Reset  |                  |
+
 ## Logic Board Lights
 | Indicator | Description                            |
 | --:       | ---                                    |
@@ -67,10 +73,19 @@
 
 ![](../figures/logic-board-leds.png)
 
+## RF Board J4 Pinout
+| Pin | Description   |
+| --: | ---           |
+|  1  | GND_RF        |
+|  2  | XBEE_SPI_CS   |
+|  3  | XBEE_SPI_CLK  |
+|  4  | XBEE_SPI_POCI |
+|  5  | XBEE_SPI_CIPO |
+
 ## I2C Addresses
-| Address | Device                               |
-| --:     | ---                                  |
-| 0x28    | Adafruit IMU Breakout - Bosch BNO055 |
-| 0x64    | Atlas Scientific Salinity Sensor     |
-| 0x76    | Blue Robotics Bar30 Pressure Sensor  |
-| 0x42    | uBlox NEO-M8M-0 GPS                  |
+| Address | Device                                  |
+| --:     | ---                                     |
+| 0x28    | Adafruit IMU Breakout - Bosch BNO055    |
+| 0x64    | Atlas Scientific EC-OEM Salinity Sensor |
+| 0x76    | Blue Robotics Bar30 Pressure Sensor     |
+| 0x42    | uBlox NEO-M8M-0 GPS                     |
