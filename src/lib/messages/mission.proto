@@ -82,7 +82,7 @@ message MissionTask
             (dccl.field) = {
                 min: 0
                 max: 100
-                precision: 0
+                precision: 1
                 units { base_dimensions: "L" }
             }
         ];
@@ -155,7 +155,7 @@ message MissionPlan
         optional MissionTask task = 3;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 13];
 
     message Recovery
     {
