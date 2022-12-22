@@ -1339,6 +1339,9 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
     using StateBase = boost::statechart::state<Stopped, Recovery>;
     Stopped(typename StateBase::my_context c);
     ~Stopped() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
 } // namespace recovery
 

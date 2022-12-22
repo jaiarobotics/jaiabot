@@ -348,7 +348,7 @@ void jaiabot::apps::NTPStatusThread::health(goby::middleware::protobuf::ThreadHe
     {
         if (!status_.has_system_sync_peer())
         {
-            demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
+            demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                 ->add_warning(protobuf::WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED);
         }
