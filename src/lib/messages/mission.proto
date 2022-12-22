@@ -32,6 +32,7 @@ enum MissionState
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 126;
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 127;
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 128;
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 129;
 
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
@@ -70,6 +71,7 @@ message MissionTask
         DIVE = 1;
         STATION_KEEP = 2;
         SURFACE_DRIFT = 3;
+        CONSTANT_HEADING = 4;
     }
     optional TaskType type = 1 [default = NONE];
 
@@ -229,10 +231,43 @@ message IvPBehaviorUpdate
         optional bool center_activate = 6 [default = false];
     }
 
+    message ConstantHeadingUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional double heading = 2 [(dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+    }
+
+    message ConstantSpeedUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional double speed = 2 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+    }
+
     oneof behavior
     {
         TransitUpdate transit = 1;
         StationkeepUpdate stationkeep = 2;
+        ConstantHeadingUpdate constantHeading = 3;
+        ConstantSpeedUpdate constantSpeed = 4;
     }
 }
 

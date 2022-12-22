@@ -66,6 +66,16 @@ message MissionManager
     // The pdop value to check against to determine gps fix after a dive
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
+    // constant heading timeout ends the constant heading task
+    optional double constant_heading_timeout = 41
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // constant heading indicates where the bot should drive while in the constant heading task
+    optional double constant_heading = 42 [default = 0];
+
+    // constant heading speed indicates the speed the bot should drive while in the constant heading task (m/s)
+    optional double constant_heading_speed = 43 [default = 1];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
