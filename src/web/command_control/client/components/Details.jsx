@@ -11,7 +11,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Icon from '@mdi/react'
+import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
@@ -25,7 +25,6 @@ import { error, success, warning, info} from '../libs/notifications';
 
 // TurfJS
 import * as turf from '@turf/turf';
-
 import { withStyles } from '@material-ui/styles';
 
 const Button = withStyles({
