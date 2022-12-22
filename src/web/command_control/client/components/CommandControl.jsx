@@ -2668,6 +2668,9 @@ export default class CommandControl extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
+			//case 'CONSTANT_HEADING':
+			//	gridStyle = new OlIcon({ src: taskDrift })
+			//	break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })
 				break;
@@ -2698,6 +2701,9 @@ export default class CommandControl extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
+			//case 'CONSTANT_HEADING':
+			//	gridStyle = new OlIcon({ src: taskDrift })
+			//	break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })
 				break;
