@@ -350,7 +350,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                     <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <p>Click on the map to create goals</p>
+                <h3 className="name">Click on the map to create goals</h3>
                 <Accordion 
                     expanded={isExpanded.quickLook} 
                     onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
