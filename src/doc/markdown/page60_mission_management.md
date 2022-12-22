@@ -42,6 +42,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 				- PoweredAscent: Bot is performing a powered ascent to the surface.
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 				- SurfaceDrift: Bot is drifting to estimate currents.
+			* ConstantHeading: Bot is driving on a constant heading for a certain time
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
@@ -101,6 +102,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
 - EvGPSFix: GPS Fix received
 - EvGPSNoFix: GPS No Fix received
+- EvVehicleGPS: GPS data received
 
 #### Internal events
 
