@@ -20,7 +20,7 @@ const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
-const disconnectedColor = 'red'
+const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
 
 export const startMarker = new Style({
@@ -127,7 +127,7 @@ export function goal(goalIndex, goal, isActive, isSelected) {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        'SURF_ZONE': taskDrift,
+        //'CONSTANT_HEADING': taskDrift,
         'NONE': taskNone       
     }
 

@@ -350,6 +350,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                     <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
+                <h3 className="name">Click on the map to create goals</h3>
                 <Accordion 
                     expanded={isExpanded.quickLook} 
                     onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
@@ -443,12 +444,27 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.recover, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
-                            <Icon path={mdiDownload} title="Recover"/>
+                            <Icon path={mdiDownload} title="Data Offload"/>
                         </Button>
                         
                         <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.bot_id, commands.shutdown) }}>
+                                onClick={() => 
+                                    { 
+                                        if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
+                                        {
+                                            if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
+                                            {
+                                                issueCommand(api, bot.bot_id, commands.shutdown);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            issueCommand(api, bot.bot_id, commands.shutdown);
+                                        }
+                                    }
+                                }
+                        >
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
                         

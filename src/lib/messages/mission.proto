@@ -32,7 +32,7 @@ enum MissionState
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 126;
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 127;
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 128;
-    IN_MISSION__UNDERWAY__TASK__SURF_ZONE = 129;
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 129;
 
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
@@ -71,7 +71,7 @@ message MissionTask
         DIVE = 1;
         STATION_KEEP = 2;
         SURFACE_DRIFT = 3;
-        SURF_ZONE = 4;
+        CONSTANT_HEADING = 4;
     }
     optional TaskType type = 1 [default = NONE];
 
@@ -82,7 +82,7 @@ message MissionTask
             (dccl.field) = {
                 min: 0
                 max: 100
-                precision: 0
+                precision: 1
                 units { base_dimensions: "L" }
             }
         ];
@@ -155,7 +155,7 @@ message MissionPlan
         optional MissionTask task = 3;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 13];
 
     message Recovery
     {

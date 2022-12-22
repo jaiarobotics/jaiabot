@@ -190,7 +190,7 @@ struct TaskSelection;
 struct ReacquireGPS;
 struct StationKeep;
 struct SurfaceDrift;
-struct SurfZone;
+struct ConstantHeading;
 struct Dive;
 namespace dive
 {
@@ -1006,7 +1006,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                 case protobuf::MissionTask::DIVE: return transit<Dive>();
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
-                case protobuf::MissionTask::SURF_ZONE: return transit<SurfZone>();
+                case protobuf::MissionTask::CONSTANT_HEADING: return transit<ConstantHeading>();
             }
         }
 
@@ -1060,19 +1060,19 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
     }
 };
 
-struct SurfZone
-    : boost::statechart::state<SurfZone, Task>, 
-      Notify<SurfZone, protobuf::IN_MISSION__UNDERWAY__TASK__SURF_ZONE,
+struct ConstantHeading
+    : boost::statechart::state<ConstantHeading, Task>, 
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
              protobuf::SETPOINT_IVP_HELM>
 {
-    using StateBase = boost::statechart::state<SurfZone, Task>;
-    SurfZone(typename StateBase::my_context c);
-    ~SurfZone();
+    using StateBase = boost::statechart::state<ConstantHeading, Task>;
+    ConstantHeading(typename StateBase::my_context c);
+    ~ConstantHeading();
 
     void loop(const EvLoop&);
 
     using reactions = boost::mpl::list<
-        boost::statechart::in_state_reaction<EvLoop, SurfZone, &SurfZone::loop>>;
+        boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
 
   private:
     goby::time::SteadyClock::time_point setpoint_stop_;
@@ -1358,6 +1358,9 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
     using StateBase = boost::statechart::state<Stopped, Recovery>;
     Stopped(typename StateBase::my_context c);
     ~Stopped() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
 } // namespace recovery
 
