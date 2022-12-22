@@ -7,6 +7,7 @@ import driftTaskPacket from './driftTaskPacket.svg'
 import end from './end.svg'
 import start from './start.svg'
 import bot from './bot.svg'
+import satellite from './satellite.svg'
 import botCourseOverGround from './botCourseOverGround.svg'
 import botDesiredHeading from './botDesiredHeading.svg'
 import taskDive from './taskDive.svg'
@@ -65,7 +66,7 @@ export function botMarker(feature) {
 
     const text = new String(feature.get('botId'))
 
-    return [ 
+    var style = [ 
         // Bot body marker
         new Style({
             image: new Icon({
@@ -86,6 +87,22 @@ export function botMarker(feature) {
             })
         })
     ]
+
+    if (feature.get('isReacquiringGPS')) {
+        style.push(
+            new Style({
+                image: new Icon({
+                    src: satellite,
+                    color: color,
+                    anchor: [0.5, -1.25],
+                    rotation: heading,
+                    rotateWithView: true
+                })
+            })
+        )
+    }
+
+    return style
 }
 
 
