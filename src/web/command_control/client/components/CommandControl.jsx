@@ -2330,16 +2330,17 @@ export default class CommandControl extends React.Component {
 
 		let goalSettingsPanel = '';
 		if (this.state.goalBeingEdited != null) {
-			goalSettingsPanel = <GoalSettingsPanel 
-									goal={this.state.goalBeingEdited} 
-									onChange={() => { this.updateMissionLayer() }} 
-									onClose={() => 
-										{ 
-											this.state.goalBeingEdited = null; 
-											this.changeMissions(() => {}, previous_mission_history);
-										}
-									} 
-								/>
+			goalSettingsPanel = 
+				<GoalSettingsPanel 
+					goal={this.state.goalBeingEdited} 
+					onChange={() => { this.updateMissionLayer() }} 
+					onClose={() => 
+						{ 
+							this.state.goalBeingEdited = null; 
+							this.changeMissions(() => {}, previous_mission_history);
+						}
+					} 
+				/>
 		}
 
 		// Add mission generation form to UI if the survey polygon has changed.
