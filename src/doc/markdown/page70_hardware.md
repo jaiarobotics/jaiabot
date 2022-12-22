@@ -73,14 +73,14 @@
 
 ![](../figures/logic-board-leds.png)
 
-## RF Board J4 Pinut
+## RF Board J4 Pinout
 | Pin | Description   |
 | --: | ---           |
 |  1  | GND_RF        |
 |  2  | XBEE_SPI_CS   |
 |  3  | XBEE_SPI_CLK  |
 |  4  | XBEE_SPI_POCI |
-|  5  | XBEE_SPI_COPI |
+|  5  | XBEE_SPI_CIPO |
 
 ## I2C Addresses
 | Address | Device                                  |
