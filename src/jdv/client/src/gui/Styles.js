@@ -20,7 +20,7 @@ const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
-const disconnectedColor = 'red'
+const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
 
 export const startMarker = new Style({
