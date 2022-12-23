@@ -102,7 +102,6 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
 - EvGPSFix: GPS Fix received
 - EvGPSNoFix: GPS No Fix received
-- EvVehicleGPS: GPS data received
 
 #### Internal events
 
@@ -111,6 +110,7 @@ These are not shown on the diagram but used for providing data to the state mach
 - EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
 - EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
 - EvMeasurement: Sensor data measurement. 
+- EvVehicleGPS: Triggered when new GPS data is received.
 
 #### Unimplemented Events
 
