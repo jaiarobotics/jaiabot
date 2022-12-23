@@ -4,8 +4,8 @@
 /* eslint-disable no-unused-vars */
 
 import React from 'react'
-import Settings from './Settings'
 import Button from '@mui/material/Button';
+import { Settings } from './Settings'
 
 export class GoalSettingsPanel extends React.Component {
 
@@ -37,6 +37,9 @@ export class GoalSettingsPanel extends React.Component {
             case 'SURFACE_DRIFT':
                 taskOptionsPanel = this.driftOptionsPanel()
                 break;
+            //case 'CONSTANT_HEADING':
+            //    taskOptionsPanel = <div></div>
+            //    break;
             default:
                 taskOptionsPanel = <div></div>
                 break;
@@ -52,6 +55,7 @@ export class GoalSettingsPanel extends React.Component {
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
                     <option value="STATION_KEEP">Station Keep</option>
+                    {/*<option value="CONSTANT_HEADING">Constant Heading</option>*/}
                 </select>
                 { taskOptionsPanel }
 
@@ -76,12 +80,12 @@ export class GoalSettingsPanel extends React.Component {
                 goal.task = {
                     type: taskType,
                     dive: {
-                        max_depth: 10,
-                        depth_interval: 10,
-                        hold_time: 1
+                        max_depth: Settings.diveMaxDepth.get(),
+                        depth_interval: Settings.diveDepthInterval.get(),
+                        hold_time: Settings.diveHoldTime.get()
                     },
                     surface_drift: {
-                        drift_time: 10
+                        drift_time: Settings.driftTime.get()
                     }
                 }
                 break;
@@ -89,7 +93,7 @@ export class GoalSettingsPanel extends React.Component {
                 goal.task = {
                     type: taskType,
                     surface_drift: {
-                        drift_time: 10
+                        drift_time: Settings.driftTime.get()
                     }
                 }
                 break;
@@ -98,6 +102,11 @@ export class GoalSettingsPanel extends React.Component {
                     type: taskType
                 }
                 break;
+            //case 'CONSTANT_HEADING':
+            //    goal.task = {
+            //        type: taskType
+            //    }
+            //    break;
             default:
                 goal.task = null
                 break;
@@ -116,19 +125,19 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -136,11 +145,20 @@ export class GoalSettingsPanel extends React.Component {
         )
     }
 
-    changeDiveParameter(evt) {
+    changeParameter(evt) {
         let {goal} = this.state
 
         const key = evt.target.name
-        const value = evt.target.value
+        const value = Number(evt.target.value)
+
+        const settingMap = {
+            max_depth: Settings.diveMaxDepth,
+            hold_time: Settings.diveHoldTime,
+            depth_interval: Settings.diveDepthInterval,
+            drift_time: Settings.driftTime
+        }
+
+        settingMap[key].set(value)
 
         if(key != "drift_time")
         {
@@ -163,23 +181,12 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         )
-    }
-
-    changeDriftParameter(evt) {
-        let {goal} = this.state
-
-        const key = evt.target.name
-        const value = evt.target.value
-
-        goal.task.surface_drift[key] = value
-
-        this.setState({goal})
     }
 
     closeClicked() {

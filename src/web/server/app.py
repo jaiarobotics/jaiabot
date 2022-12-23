@@ -56,34 +56,47 @@ def getStatus():
 def getPackets():
     return JSONResponse(jaia_interface.get_task_packets())
 
+
+####### Commands
+
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
-    response = jaia_interface.post_command(request.json)
+    response = jaia_interface.post_command(request.json, clientId=request.headers['clientId'])
+    return JSONResponse(response)
+
+@app.route('/jaia/takeControl', methods=['POST'])
+def postTakeControl():
+    response = jaia_interface.post_take_control(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/allStop', methods=['POST'])
 def postAllStop():
-    response = jaia_interface.post_all_stop()
+    response = jaia_interface.post_all_stop(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/allActivate', methods=['POST'])
 def postAllActivate():
-    response = jaia_interface.post_all_activate()
+    response = jaia_interface.post_all_activate(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/nextTaskAll', methods=['POST'])
 def postNextTaskAll():
-    response = jaia_interface.post_next_task_all()
+    response = jaia_interface.post_next_task_all(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/allRecover', methods=['POST'])
 def postAllRecover():
-    response = jaia_interface.post_all_recover()
+    response = jaia_interface.post_all_recover(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/pid-command', methods=['POST'])
 def postPidCommand():
-    jaia_interface.post_engineering_command(request.json)
+    jaia_interface.post_engineering_command(request.json, clientId=request.headers['clientId'])
+    return JSONResponse({"status": "ok"})
+
+@app.route('/jaia/ep-command', methods=['POST'])
+def postEngineeringPanel():
+    jaia_interface.post_ep_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
 ######## Map tiles

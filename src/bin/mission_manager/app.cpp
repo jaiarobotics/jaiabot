@@ -121,13 +121,6 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
-
-                if (state_pair.second == protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS)
-                {
-                    // Reset after dive
-                    gps_fix_check_incr_ = 1;
-                    gps_degraded_fix_check_incr_ = 1;
-                }
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
@@ -153,10 +146,24 @@ jaiabot::apps::MissionManager::MissionManager()
             cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
 
         intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& command) {
-                handle_command(command);
-                // republish for logging purposes
-                interprocess().publish<jaiabot::groups::hub_command>(command);
+            [this](const protobuf::Command& input_command) {
+                if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+                {
+                    protobuf::Command out_command;
+                    bool command_valid = handle_command_fragment(input_command, out_command);
+                    if (command_valid)
+                    {
+                        handle_command(out_command);
+                        // republish for logging purposes
+                        interprocess().publish<jaiabot::groups::hub_command>(out_command);
+                    }
+                }
+                else
+                {
+                    handle_command(input_command);
+                    // republish for logging purposes
+                    interprocess().publish<jaiabot::groups::hub_command>(input_command);
+                }
             },
             *groups::hub_command_this_bot, command_subscriber);
     }
@@ -255,64 +262,12 @@ jaiabot::apps::MissionManager::MissionManager()
             glog.is_debug2() && glog << "Received GPS HDOP: " << sky.hdop()
                                      << ", PDOP: " << sky.pdop() << std::endl;
 
-            if (sky.has_hdop() && sky.has_pdop() && (sky.hdop() <= cfg().gps_hdop_fix()) &&
-                (sky.pdop() <= cfg().gps_pdop_fix()))
+            if (sky.has_hdop() && sky.has_pdop())
             {
-                // Increment gps fix checks until we are > the threshold for confirming gps fix
-                if (gps_fix_check_incr_ < cfg().total_gps_fix_checks())
-                {
-                    glog.is_debug1() && glog << "GPS has a good fix, but has not "
-                                                "reached threshold for total checks"
-                                                " "
-                                             << gps_fix_check_incr_ << " < "
-                                             << cfg().total_gps_fix_checks() << std::endl;
-                    // Increment until we reach total gps fix checks
-                    gps_fix_check_incr_++;
-                }
-                else
-                {
-                    glog.is_debug1() && glog << "GPS has a good fix, Post EvGPSFix, hdop is "
-                                             << sky.hdop() << " <= " << cfg().gps_hdop_fix()
-                                             << ", pdop is " << sky.pdop()
-                                             << " <= " << cfg().gps_pdop_fix()
-                                             << " Reset incr for gps degraded fix" << std::endl;
-
-                    // Post Event for gps fix
-                    machine_->process_event(statechart::EvGPSFix());
-
-                    // Reset degraded fix check as we received hdop below cfg().gps_hdop_fix()
-                    // and pdop is below cfg().gps_pdop_fix()
-                    gps_degraded_fix_check_incr_ = 1;
-                }
-            }
-            else
-            {
-                // Increment degraded checks until we are > the threshold for confirming degraded gps
-                if (gps_degraded_fix_check_incr_ < cfg().total_gps_degraded_fix_checks())
-                {
-                    glog.is_debug1() && glog << "GPS has a degraded fix, but has not "
-                                                "reached threshold for total checks: "
-                                                " "
-                                             << gps_degraded_fix_check_incr_ << " < "
-                                             << cfg().total_gps_degraded_fix_checks() << std::endl;
-
-                    // Increment until we reach total gps degraded fix checks
-                    gps_degraded_fix_check_incr_++;
-                }
-                else
-                {
-                    glog.is_debug1() &&
-                        glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << sky.hdop()
-                             << " > " << cfg().gps_hdop_fix() << ", pdop is " << sky.pdop() << " > "
-                             << cfg().gps_pdop_fix() << " Reset incr for gps fix" << std::endl;
-
-                    // Post Event for no gps fix
-                    machine_->process_event(statechart::EvGPSNoFix());
-
-                    // Reset if gps hdop is above cfg().gps_hdop_fix()
-                    // and pdop is above cfg().gps_pdop_fix()
-                    gps_fix_check_incr_ = 1;
-                }
+                statechart::EvVehicleGPS ev;
+                ev.hdop = sky.hdop();
+                ev.pdop = sky.pdop();
+                machine_->process_event(ev);
             }
         });
 
@@ -504,10 +459,114 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             // handled by jaiabot_health
         case protobuf::Command::SHUTDOWN_COMPUTER:
         case protobuf::Command::REBOOT_COMPUTER:
+            interprocess().publish<jaiabot::groups::powerstate_command>(command);
+            break;
         case protobuf::Command::RESTART_ALL_SERVICES:
             interprocess().publish<jaiabot::groups::powerstate_command>(command);
             break;
     }
+}
+
+bool jaiabot::apps::MissionManager::handle_command_fragment(
+    const protobuf::Command& input_command_fragment, protobuf::Command& out_command)
+{
+    // Index -> Command
+    std::map<uint8_t, protobuf::Command> inner_map;
+    glog.is_debug1() && glog << "Received command fragment: "
+                             << input_command_fragment.ShortDebugString() << std::endl;
+
+    // Time is used as the unique identifier
+    if (track_command_fragments.count(input_command_fragment.time()))
+    {
+        glog.is_debug1() && glog << "Found fragment time: " << std::endl;
+        if (track_command_fragments.at(input_command_fragment.time())
+                .count(input_command_fragment.plan().fragment_index()))
+        {
+            // All set, already have the data
+            glog.is_debug1() && glog << "Already have fragment index: " << std::endl;
+        }
+        else
+        {
+            // Add the fragment
+            track_command_fragments[input_command_fragment.time()]
+                                   [input_command_fragment.plan().fragment_index()] =
+                                       input_command_fragment;
+
+            glog.is_debug1() && glog << "Add fragment index: " << std::endl;
+        }
+    }
+    else
+    {
+        glog.is_debug1() && glog << "New fragment time, clear map and add fragment: " << std::endl;
+        //Let's only track one multi-message
+        track_command_fragments.clear();
+        inner_map.insert(
+            std::make_pair(input_command_fragment.plan().fragment_index(), input_command_fragment));
+        track_command_fragments.insert(std::make_pair(input_command_fragment.time(), inner_map));
+    }
+
+    glog.is_debug1() && glog << "track_command_fragments.at(input_command_fragment.time()).size(): "
+                             << track_command_fragments.at(input_command_fragment.time()).size()
+                             << ", Expected Fragments: "
+                             << input_command_fragment.plan().expected_fragments() << std::endl;
+
+    // We have reached the expected
+    // Put the command together
+    if (track_command_fragments.at(input_command_fragment.time()).size() ==
+        input_command_fragment.plan().expected_fragments())
+    {
+        // Verify index 0 is in map
+        if (track_command_fragments.at(input_command_fragment.time()).count(0))
+        {
+            //Initial fragment has mission details
+            protobuf::Command initial_fragment =
+                track_command_fragments.at(input_command_fragment.time()).at(0);
+
+            out_command.set_bot_id(initial_fragment.bot_id());
+            out_command.set_time(initial_fragment.time());
+            out_command.set_type(protobuf::Command::MISSION_PLAN);
+
+            if (initial_fragment.plan().has_start())
+            {
+                out_command.mutable_plan()->set_start(initial_fragment.plan().start());
+            }
+
+            if (initial_fragment.plan().has_movement())
+            {
+                out_command.mutable_plan()->set_movement(initial_fragment.plan().movement());
+            }
+
+            if (initial_fragment.plan().has_recovery())
+            {
+                *out_command.mutable_plan()->mutable_recovery() =
+                    initial_fragment.plan().recovery();
+            }
+
+            // Loop through fragments and all the waypoints in each
+            for (const auto fragment : track_command_fragments.at(input_command_fragment.time()))
+            {
+                for (int goal_index = 0; goal_index < fragment.second.plan().goal_size();
+                     goal_index++)
+                {
+                    protobuf::MissionPlan::Goal* goal = out_command.mutable_plan()->add_goal();
+                    if (fragment.second.plan().goal(goal_index).has_name())
+                    {
+                        goal->set_name(fragment.second.plan().goal(goal_index).name());
+                    }
+                    if (fragment.second.plan().goal(goal_index).has_task())
+                    {
+                        *goal->mutable_task() = fragment.second.plan().goal(goal_index).task();
+                    }
+                    *goal->mutable_location() = fragment.second.plan().goal(goal_index).location();
+                }
+                glog.is_debug2() && glog << "fragment: " << fragment.second.DebugString()
+                                         << std::endl;
+            }
+            return true;
+        }
+        return false;
+    }
+    return false;
 }
 
 bool jaiabot::apps::MissionManager::health_considered_ok(
@@ -537,6 +596,5 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         // no errors found that were not excluded, so health is considered OK
         return true;
     }
-
     return false;
 }

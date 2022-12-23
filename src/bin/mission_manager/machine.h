@@ -104,6 +104,12 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
     boost::optional<double> salinity;
 };
 
+struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
+{
+    double hdop;
+    double pdop;
+};
+
 STATECHART_EVENT(EvResumeMovement)
 struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
 {
@@ -163,7 +169,6 @@ namespace movement
 // dummy state whose role is to dynmically transit to the correct substate
 // based on the current mission
 struct MovementSelection;
-
 struct Transit;
 struct ReacquireGPS;
 struct RemoteControl;
@@ -185,6 +190,7 @@ struct TaskSelection;
 struct ReacquireGPS;
 struct StationKeep;
 struct SurfaceDrift;
+struct ConstantHeading;
 struct Dive;
 namespace dive
 {
@@ -521,14 +527,69 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
 
 namespace underway
 {
+// Base class for all AcquiredGPS as these do nearly the same thing.
+// "Derived" MUST be a child state of Task
+template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
+struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
+                           Notify<Derived, state, protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<Derived, Parent>;
+    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c){};
+
+    ~AcquiredGPSCommon(){};
+
+    void gps(const EvVehicleGPS& ev)
+    {
+        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        {
+            // Reset Counter For Degraded Checks
+            gps_degraded_fix_check_incr_ = 0;
+        }
+        else
+        {
+            // Increment degraded checks until we are > the threshold for confirming degraded gps
+            if (gps_degraded_fix_check_incr_ < (this->cfg().total_gps_degraded_fix_checks() - 1))
+            {
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a degraded fix, but has not "
+                                  "reached threshold for total checks: "
+                                  " "
+                               << gps_degraded_fix_check_incr_ << " < "
+                               << (this->cfg().total_gps_degraded_fix_checks() - 1) << std::endl;
+
+                // Increment until we reach total gps degraded fix checks
+                gps_degraded_fix_check_incr_++;
+            }
+            else
+            {
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
+                               << " > " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
+                               << " > " << this->cfg().gps_pdop_fix() << " Reset incr for gps fix"
+                               << std::endl;
+
+                // Post Event for no gps fix
+                this->post_event(statechart::EvGPSNoFix());
+            }
+        }
+    }
+
+    using reactions =
+        boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
+
+  private:
+    int gps_degraded_fix_check_incr_{0};
+};
+
 // Base class for all Task ReacquireGPS as these do nearly the same thing.
 // "Derived" MUST be a child state of Task
 template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
-struct ReacquireGPSTaskCommon : boost::statechart::state<Derived, Parent>,
-                                Notify<Derived, state, protobuf::SETPOINT_STOP>
+struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
+                            Notify<Derived, state, protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<Derived, Parent>;
-    ReacquireGPSTaskCommon(typename StateBase::my_context c) : StateBase(c)
+    ReacquireGPSCommon(typename StateBase::my_context c) : StateBase(c)
     {
         if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
         {
@@ -537,7 +598,50 @@ struct ReacquireGPSTaskCommon : boost::statechart::state<Derived, Parent>,
             this->post_event(statechart::EvGPSFix());
         }
     };
-    ~ReacquireGPSTaskCommon(){};
+
+    ~ReacquireGPSCommon(){};
+
+    void gps(const EvVehicleGPS& ev)
+    {
+        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        {
+            // Increment gps fix checks until we are > the threshold for confirming gps fix
+            if (gps_fix_check_incr_ < (this->cfg().total_gps_fix_checks() - 1))
+            {
+                goby::glog.is_debug2() && goby::glog << "GPS has a good fix, but has not "
+                                                        "reached threshold for total checks"
+                                                        " "
+                                                     << gps_fix_check_incr_ << " < "
+                                                     << (this->cfg().total_gps_fix_checks() - 1)
+                                                     << std::endl;
+                // Increment until we reach total gps fix checks
+                gps_fix_check_incr_++;
+            }
+            else
+            {
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
+                               << " <= " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
+                               << " <= " << this->cfg().gps_pdop_fix()
+                               << " Reset incr for gps degraded fix" << std::endl;
+
+                // Post Event for gps fix
+                this->post_event(statechart::EvGPSFix());
+            }
+        }
+        else
+        {
+            // Reset gps fix incrementor
+            gps_fix_check_incr_ = 0;
+        }
+    }
+
+    using reactions =
+        boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
+
+  private:
+    int gps_fix_check_incr_{0};
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
@@ -609,12 +713,9 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
     using reactions = boost::statechart::custom_reaction<EvMovementSelect>;
 };
 
-struct Transit : boost::statechart::state<Transit, Movement>,
-                 Notify<Transit, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT,
-                        protobuf::SETPOINT_IVP_HELM // waypoint
-                        >
+struct Transit
+    : AcquiredGPSCommon<Transit, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT>
 {
-    using StateBase = boost::statechart::state<Transit, Movement>;
     Transit(typename StateBase::my_context c);
     ~Transit();
 
@@ -627,21 +728,25 @@ struct Transit : boost::statechart::state<Transit, Movement>,
     using reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>,
-                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
-struct ReacquireGPS
-    : ReacquireGPSTaskCommon<ReacquireGPS, Movement,
-                             protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
+struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
+                                         protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>
 {
     ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSTaskCommon<ReacquireGPS, Movement,
-                                 protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>(c)
+        : ReacquireGPSCommon<ReacquireGPS, Movement,
+                             protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS>(c)
     {
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
 };
 
 struct RemoteControl
@@ -678,32 +783,36 @@ struct RemoteControlEndSelection
     using reactions = boost::statechart::custom_reaction<EvRCEndSelect>;
 };
 
-struct ReacquireGPS : ReacquireGPSTaskCommon<
-                          ReacquireGPS, RemoteControl,
-                          protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS>
+struct ReacquireGPS
+    : ReacquireGPSCommon<ReacquireGPS, RemoteControl,
+                         protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS>
 {
     ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSTaskCommon<
+        : ReacquireGPSCommon<
               ReacquireGPS, RemoteControl,
               protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS>(c)
     {
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
 };
 
 struct StationKeep
-    : boost::statechart::state<StationKeep, RemoteControl>,
-      Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP,
-             protobuf::SETPOINT_IVP_HELM // stationkeep
-             >
+    : AcquiredGPSCommon<StationKeep, RemoteControl,
+                        protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP>
 {
     using StateBase = boost::statechart::state<StationKeep, RemoteControl>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
 struct SurfaceDrift
@@ -897,6 +1006,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                 case protobuf::MissionTask::DIVE: return transit<Dive>();
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
+                case protobuf::MissionTask::CONSTANT_HEADING: return transit<ConstantHeading>();
             }
         }
 
@@ -911,29 +1021,33 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     using reactions = boost::statechart::custom_reaction<EvTaskSelect>;
 };
 
-struct ReacquireGPS : ReacquireGPSTaskCommon<ReacquireGPS, Task,
-                                             protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>
+struct ReacquireGPS
+    : ReacquireGPSCommon<ReacquireGPS, Task, protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>
 {
     ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSTaskCommon<ReacquireGPS, Task,
-                                 protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>(c)
+        : ReacquireGPSCommon<ReacquireGPS, Task,
+                             protobuf::IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS>(c)
     {
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, StationKeep>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
 };
 
-struct StationKeep : boost::statechart::state<StationKeep, Task>,
-                     Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP,
-                            protobuf::SETPOINT_IVP_HELM // stationkeep
-                            >
+struct StationKeep
+    : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>
 {
     using StateBase = boost::statechart::state<StationKeep, Task>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
@@ -944,6 +1058,24 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
                                  protobuf::IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT>(c)
     {
     }
+};
+
+struct ConstantHeading
+    : boost::statechart::state<ConstantHeading, Task>, 
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
+             protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<ConstantHeading, Task>;
+    ConstantHeading(typename StateBase::my_context c);
+    ~ConstantHeading();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
@@ -1094,26 +1226,58 @@ struct PoweredAscent
 };
 
 struct ReacquireGPS
-    : ReacquireGPSTaskCommon<ReacquireGPS, Dive,
-                             protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS>
+    : boost::statechart::state<ReacquireGPS, Dive>,
+      Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
+             protobuf::SETPOINT_STOP>
 {
-    ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSTaskCommon<ReacquireGPS, Dive,
-                                 protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS>(c)
-    {
-    }
-    ~ReacquireGPS()
-    {
-        end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
-        context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ -
-                                                                             start_time_);
-    };
+    using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
+    ReacquireGPS(typename StateBase::my_context c);
+    ~ReacquireGPS();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
+    void gps(const EvVehicleGPS& ev)
+    {
+        if ((ev.hdop <= this->cfg().gps_after_dive_hdop_fix()) &&
+            (ev.pdop <= this->cfg().gps_after_dive_pdop_fix()))
+        {
+            // Increment gps fix checks until we are > the threshold for confirming gps fix
+            if (gps_fix_check_incr_ < this->cfg().total_after_dive_gps_fix_checks())
+            {
+                goby::glog.is_debug1() &&
+                    goby::glog << "GPS has a good fix, but has not "
+                                  "reached threshold for total checks"
+                                  " "
+                               << gps_fix_check_incr_ << " < "
+                               << this->cfg().total_after_dive_gps_fix_checks() << std::endl;
+                // Increment until we reach total gps fix checks
+                gps_fix_check_incr_++;
+            }
+            else
+            {
+                goby::glog.is_debug1() &&
+                    goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
+                               << " <= " << this->cfg().gps_after_dive_hdop_fix() << ", pdop is "
+                               << ev.pdop << " <= " << this->cfg().gps_after_dive_pdop_fix()
+                               << " Reset incr for gps degraded fix" << std::endl;
+
+                // Post Event for gps fix
+                this->post_event(statechart::EvGPSFix());
+            }
+        }
+        else
+        {
+            // Reset gps fix incrementor
+            gps_fix_check_incr_ = 1;
+        }
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>,
+        boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()},
         end_time_;
+    int gps_fix_check_incr_{1};
 };
 
 struct SurfaceDrift
@@ -1144,46 +1308,48 @@ struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit
 
 namespace recovery
 {
-struct Transit : boost::statechart::state<Transit, Recovery>,
-                 Notify<Transit, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT,
-                        protobuf::SETPOINT_IVP_HELM // waypoint
-                        >
+struct Transit
+    : AcquiredGPSCommon<Transit, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__TRANSIT>
 {
-    using StateBase = boost::statechart::state<Transit, Recovery>;
     Transit(typename StateBase::my_context c);
     ~Transit();
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>,
-                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
-struct ReacquireGPS
-    : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
-                             protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>
+struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Recovery,
+                                         protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>
 {
     ReacquireGPS(typename StateBase::my_context c)
-        : ReacquireGPSTaskCommon<ReacquireGPS, Recovery,
-                                 protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>(c)
+        : ReacquireGPSCommon<ReacquireGPS, Recovery,
+                             protobuf::IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS>(c)
     {
     }
     ~ReacquireGPS(){};
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
-                                       boost::statechart::transition<EvGPSFix, StationKeep>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
+                         boost::statechart::transition<EvGPSFix, StationKeep>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
+                                                              &ReacquireGPSCommon::gps>>;
 };
 
-struct StationKeep : boost::statechart::state<StationKeep, Recovery>,
-                     Notify<StationKeep, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP,
-                            protobuf::SETPOINT_IVP_HELM // stationkeep
-                            >
+struct StationKeep : AcquiredGPSCommon<StationKeep, Recovery,
+                                       protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>
 {
     using StateBase = boost::statechart::state<StationKeep, Recovery>;
     StationKeep(typename StateBase::my_context c);
     ~StationKeep();
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvStop, Stopped>,
-                                       boost::statechart::transition<EvGPSNoFix, ReacquireGPS>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvStop, Stopped>,
+                         boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
@@ -1192,6 +1358,9 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
     using StateBase = boost::statechart::state<Stopped, Recovery>;
     Stopped(typename StateBase::my_context c);
     ~Stopped() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
 } // namespace recovery
 

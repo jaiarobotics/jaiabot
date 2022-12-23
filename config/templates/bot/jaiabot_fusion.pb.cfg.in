@@ -29,8 +29,11 @@ imu_issue_solution: RESTART_IMU_PY
 # Seconds
 imu_restart_timeout: 30 # default (30 seconds)
 
-# fusion runs at 2hz
-total_imu_issue_checks: 10
+# fusion runs at 5hz
+total_imu_issue_checks: 15
+
+# Set the rate to send bot status in milliseconds
+send_bot_status_rate: 1000 # default (1000 milliseconds)
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
@@ -41,3 +44,8 @@ include_imu_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_imu_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
+
+watch_battery_percentage: true # (default = true)
+battery_percentage_low_level: 30 # (default = 30)
+battery_percentage_very_low_level: 20 # (default = 20)
+battery_percentage_critically_low_level: 10 # (default = 10)

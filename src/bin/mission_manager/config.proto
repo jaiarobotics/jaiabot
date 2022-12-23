@@ -42,19 +42,39 @@ message MissionManager
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
 
-    // number of times to check the gps hdop is =< 1 and pdop is =< 1.5
+    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
     // when in reacquiring gps state
     optional uint32 total_gps_fix_checks = 34 [default = 10];
 
-    // number of times to check the gps hdop is > 1 and pdop is > 1.5
+    // number of times to check the gps hdop is > 1.3 and pdop is > 2.2
     // while in transit to go into reacquiring gps state
-    optional uint32 total_gps_degraded_fix_checks = 35 [default = 1];
+    optional uint32 total_gps_degraded_fix_checks = 35 [default = 2];
 
     // The hdop value to check against to determine gps fix
-    optional double gps_hdop_fix = 36 [default = 1];
+    optional double gps_hdop_fix = 36 [default = 1.3];
 
     // The pdop value to check against to determine gps fix
-    optional double gps_pdop_fix = 37 [default = 1.5];
+    optional double gps_pdop_fix = 37 [default = 2.2];
+
+    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
+    // when in reacquiring gps state after a dive
+    optional uint32 total_after_dive_gps_fix_checks = 38 [default = 15];
+
+    // The hdop value to check against to determine gps fix after a dive
+    optional double gps_after_dive_hdop_fix = 39 [default = 1.3];
+
+    // The pdop value to check against to determine gps fix after a dive
+    optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
+
+    // constant heading timeout ends the constant heading task
+    optional double constant_heading_timeout = 41
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
+    // constant heading indicates where the bot should drive while in the constant heading task
+    optional double constant_heading = 42 [default = 0];
+
+    // constant heading speed indicates the speed the bot should drive while in the constant heading task (m/s)
+    optional double constant_heading_speed = 43 [default = 1];
 
     enum RemoteControlSetpointEnd
     {

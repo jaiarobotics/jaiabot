@@ -32,6 +32,7 @@ enum MissionState
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 126;
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 127;
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 128;
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 129;
 
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
@@ -70,6 +71,7 @@ message MissionTask
         DIVE = 1;
         STATION_KEEP = 2;
         SURFACE_DRIFT = 3;
+        CONSTANT_HEADING = 4;
     }
     optional TaskType type = 1 [default = NONE];
 
@@ -80,7 +82,7 @@ message MissionTask
             (dccl.field) = {
                 min: 0
                 max: 100
-                precision: 0
+                precision: 1
                 units { base_dimensions: "L" }
             }
         ];
@@ -152,15 +154,15 @@ message MissionPlan
         required GeographicCoordinate location = 2;
         optional MissionTask task = 3;
     }
-    // max_repeat should match BotStatus.active_goal bounds
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 14];
+
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 13];
 
     message Recovery
     {
         optional bool recover_at_final_goal = 1 [default = true];
         optional GeographicCoordinate location = 2;
     }
-    required Recovery recovery = 4;
+    optional Recovery recovery = 4;
 
     message Speeds
     {
@@ -184,6 +186,8 @@ message MissionPlan
         ];
     }
     optional Speeds speeds = 5;
+    optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
+    optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
 }
 
 message IvPBehaviorUpdate
@@ -227,10 +231,43 @@ message IvPBehaviorUpdate
         optional bool center_activate = 6 [default = false];
     }
 
+    message ConstantHeadingUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional double heading = 2 [(dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+    }
+
+    message ConstantSpeedUpdate
+    {
+        // unit dimensions must match those used by MOOS-IvP
+        option (dccl.msg) = {
+            unit_system: "si"
+        };
+
+        required bool active = 1;
+
+        optional double speed = 2 [
+            (dccl.field).units = { base_dimensions: "LT^-1" }
+        ];  // meters/second
+    }
+
     oneof behavior
     {
         TransitUpdate transit = 1;
         StationkeepUpdate stationkeep = 2;
+        ConstantHeadingUpdate constantHeading = 3;
+        ConstantSpeedUpdate constantSpeed = 4;
     }
 }
 

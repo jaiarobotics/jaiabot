@@ -6,6 +6,23 @@ let warningStatusInner = ""
 //****** consequences                                                     ******
 let SAFE_BOT_SPEED = 60;
 
+function randomBase57(stringLength) {
+  const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
+
+  var s = ''
+  for (let i = 0; i < stringLength; i++) {
+      s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
+  }
+  return s
+}
+
+
+const clientId = randomBase57(22) // UUID-length
+headers = {
+  'clientId': clientId,
+  'Content-Type': 'application/json'
+}
+var inControl = true
 
 // Gets an element with this id
 function el(id) {
@@ -466,7 +483,6 @@ function diveButtonOnClick() {
           };
           break;
       }
-      console.log("Sent command")
       sendCommand(engineering_command)
     }
     else
@@ -476,11 +492,16 @@ function diveButtonOnClick() {
 }
 
 function sendCommand(command) {
-  console.debug('Sending: ', command)
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/jaia/pid-command", true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(JSON.stringify(command));
+  if (!inControl) return
+
+  fetch('/jaia/pid-command', {method: 'POST', headers: headers, body: JSON.stringify(command)})
+  .then((response) => response.json())
+  .then((response) => {
+    if (response.status != 'ok') {
+      alert(response.message)
+    }
+  })
+
 }
 
 ///////
@@ -612,53 +633,36 @@ function handleKey(key) {
 
 ////////// Setup Centers /////////
 
-function getCookie(cname) {
-  let name = cname + "=";
-  let decodedCookie = decodeURIComponent(document.cookie);
-  let ca = decodedCookie.split(';');
-  for(let i = 0; i <ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) == ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) == 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return "";
-}
-
-rudderCenter = getCookie("rudderCenter") || 0.0
+rudderCenter = localStorage.getItem("rudderCenter") || 0.0
 el("rudderSlider").value = rudderCenter
+el("rudderValue").innerHTML = rudderCenter
 
-portCenter   = getCookie("portCenter") || 0.0
+portCenter = localStorage.getItem("portCenter") || 0.0
 el("portElevatorSlider").value = portCenter
+el("portElevatorValue").innerHTML = portCenter
 
-stbdCenter   = getCookie("stbdCenter") || 0.0
+stbdCenter = localStorage.getItem("stbdCenter") || 0.0
 el("stbdElevatorSlider").value = stbdCenter
-
-function setCookie(cname, cvalue) {
-  document.cookie = cname + "=" + cvalue + ";";
-}
+el("stbdElevatorValue").innerHTML = stbdCenter
 
 el("rudderCenter").onclick =
     function(e) {
   rudderCenter = Number(el("rudderSlider").value)
-  setCookie("rudderCenter", rudderCenter)
+  localStorage.setItem("rudderCenter", rudderCenter)
 }
 
     el("portElevatorCenter")
         .onclick =
         function(e) {
   portCenter = Number(el("portElevatorSlider").value)
-  setCookie("portCenter", portCenter)
+  localStorage.setItem("portCenter", portCenter)
 }
 
         el("stbdElevatorCenter")
             .onclick =
             function(e) {
   stbdCenter = Number(el("stbdElevatorSlider").value)
-  setCookie("stbdCenter", stbdCenter)
+  localStorage.setItem("stbdCenter", stbdCenter)
 }
 
 ////////// Command Sender //////////////
@@ -765,34 +769,39 @@ function sendVisibleCommand() {
 
   let command = getVisibleCommand()
   sendCommand(command)
-    
+
   // Get vehicle status
   
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/jaia/status", true);
-  xhr.onload = function (e) {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        updateStatus(JSON.parse(xhr.responseText))
-      } else {
-        console.error(xhr.statusText);
-        el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
-      }
-    }
-  };
-  xhr.onerror = function (e) {
-    console.error(xhr.statusText);
-    el("statusTable").innerHTML = "Connection error: " + xhr.status + xhr.statusText
-  };
-  xhr.send(null);
+  fetch('/jaia/status', {headers: headers})
+  .then((response) => response.json())
+  .then((response) => {
+    updateStatus(response)
+  })
+  .catch((e) => {
+    console.error(e)
+    el("statusTable").innerHTML = "Connection error: " + e
+  })
+
 }
 
 const interval = setInterval(sendVisibleCommand, 100);
 
 var hub_location = null
+var oldControllingClientId = ''
 
 // Updates the status element with a status response object
 function updateStatus(status) {
+
+  ///// Is this client in control?
+  inControl = (status.controllingClientId == clientId) || status.controllingClientId == null
+
+  document.getElementById('takeControlButton').style.display = inControl ? 'none' : 'inline'
+
+  const controlClass = inControl ? 'controlling' : 'noncontrolling'
+  document.getElementById('body').setAttribute('class', controlClass)
+
+  //////
+
   bots = status["bots"]
   hubs = status["hubs"]
 
@@ -815,21 +824,23 @@ function updateStatus(status) {
   let now_us = Date.now() * 1e3
 
   for (const [botId, bot] of Object.entries(bots)) {
+    console.log(bot)
+
     loggingStatus = el("loggingStatus")
 
     // Alert user that data is not being logged
     if (bot.missionState == "PRE_DEPLOYMENT__IDLE" ||
         bot.missionState == "POST_DEPLOYMENT__IDLE") {
-      loggingStatusInnerDown += bot.botId + ", "
+      loggingStatusInnerDown += bot.bot_id + ", "
       isNotLogging = true;
     }
     else {
-      loggingStatusInnerUp += bot.botId + ", "
+      loggingStatusInnerUp += bot.bot_id + ", "
       isLogging = true;
     }
 
     innerHTML += "<tr>"
-    innerHTML += "<td>" + bot.botId + "</td>"
+    innerHTML += "<td>" + bot.bot_id + "</td>"
 
     innerHTML += "<td>" + bot.mission_state + "</td>"
 
@@ -859,7 +870,7 @@ function updateStatus(status) {
     innerHTML += "<td>" + (bot.vv_current?.toFixed(1) || "?") + "</td>"
 
     innerHTML +=
-        "<td>" + Math.max(0.0, bot.portal_status_age / 1e6).toFixed(0) + "</td>"
+        "<td>" + Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(0) + "</td>"
 
     lastCommandTime = bot.last_command_time
                           ? ((now_us - bot.last_command_time) / 1e6).toFixed(0)
@@ -978,4 +989,9 @@ function onMouseDownDeadMansSwitch(evt) {
 
 function onMouseUpDeadMansSwitch(evt) {
   DeadMansSwitch.setOn(false)
+}
+
+function takeControl(evt) {
+  fetch('/jaia/takeControl', {method: 'POST', headers: {clientId: clientId}})
+  .then((response) => response.json())
 }

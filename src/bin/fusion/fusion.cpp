@@ -94,6 +94,14 @@ class Fusion : public ApplicationBase
     int imu_issue_crs_hdg_incr_{1};
     int imu_issue_hdg_incr_{1};
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
+    // Milliseconds
+    int send_bot_status_rate_{500};
+    protobuf::BotStatusRate engineering_bot_status_rate_{
+        protobuf::BotStatusRate::BotStatusRate_1_Hz};
+
+    // Battery Percentage Health
+    bool watch_battery_percentage_{false};
 
     enum class DataType
     {
@@ -147,7 +155,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Fusion>(argc, argv));
 }
 
-jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
+jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 {
     init_node_status();
     init_bot_status();
@@ -178,6 +186,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         auto dsm = static_cast<jaiabot::protobuf::MissionState>(m);
         include_imu_detection_states_.insert(dsm);
     }
+
+    watch_battery_percentage_ = cfg().watch_battery_percentage();
+
+    send_bot_status_rate_ = cfg().send_bot_status_rate();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -431,8 +443,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
                     {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
                     {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
 
-                latest_bot_status_.set_battery_percent(goby::util::linear_interpolate(
-                    arduino_response.vccvoltage(), voltage_to_battery_percent_));
+                float battery_percentage = goby::util::linear_interpolate(
+                    arduino_response.vccvoltage(), voltage_to_battery_percent_);
+    
+                latest_bot_status_.set_battery_percent(battery_percentage);
             }
 
             if (arduino_response.has_vcccurrent())
@@ -493,6 +507,37 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(2 * si::hertz)
         [this](const jaiabot::protobuf::Engineering& command) {
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
+            if (command.has_send_bot_status_rate())
+            {
+                switch (command.send_bot_status_rate())
+                {
+                    case protobuf::BotStatusRate::BotStatusRate_2_Hz:
+                        send_bot_status_rate_ = 500;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_1_Hz:
+                        send_bot_status_rate_ = 1000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_2_SECONDS:
+                        send_bot_status_rate_ = 2000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_5_SECONDS:
+                        send_bot_status_rate_ = 5000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_10_SECONDS:
+                        send_bot_status_rate_ = 10000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_20_SECONDS:
+                        send_bot_status_rate_ = 20000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_40_SECONDS:
+                        send_bot_status_rate_ = 40000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_60_SECONDS:
+                        send_bot_status_rate_ = 60000;
+                        break;
+                }
+                engineering_bot_status_rate_ = command.send_bot_status_rate();
+            }
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
 
@@ -556,9 +601,18 @@ void jaiabot::apps::Fusion::loop()
 
     if (latest_bot_status_.IsInitialized())
     {
-        glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
-                                 << latest_bot_status_.ShortDebugString() << endl;
-        intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+        if ((last_bot_status_report_time_ + std::chrono::milliseconds(send_bot_status_rate_)) <=
+            goby::time::SteadyClock::now())
+        {
+            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+                                     << latest_bot_status_.ShortDebugString() << endl;
+            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+            last_bot_status_report_time_ = goby::time::SteadyClock::now();
+        }
+        jaiabot::protobuf::Engineering engineering_status;
+        engineering_status.set_bot_id(latest_bot_status_.bot_id());
+        engineering_status.set_send_bot_status_rate(engineering_bot_status_rate_);
+        interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
     }
 }
 
@@ -596,6 +650,37 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
         health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
         glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__IMU_ISSUE)
                                << std::endl;
+    }
+
+    if (watch_battery_percentage_)
+    {
+        if (latest_bot_status_.battery_percent() < cfg().battery_percentage_critically_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() && glog << jaiabot::protobuf::Error_Name(
+                                          protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY)
+                                   << std::endl;
+        }
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_very_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Error_Name(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY)
+                     << std::endl;
+        }
+        else if (latest_bot_status_.battery_percent() < cfg().battery_percentage_low_level())
+        {
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_warning(protobuf::WARNING__VEHICLE__LOW_BATTERY);
+            health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+            glog.is_warn() &&
+                glog << jaiabot::protobuf::Warning_Name(protobuf::WARNING__VEHICLE__LOW_BATTERY)
+                     << std::endl;
+        }
     }
 
     for (const auto& ep : missing_data_errors_)
