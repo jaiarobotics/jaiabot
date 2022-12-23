@@ -2,15 +2,15 @@
 
 ## Router Setup
 
-* Verify router is connected to a hotspot
+* Verify your hub router is connected to a hotspot
 * Select your hub router to connect (JAIA-HUB-WIFI-X) (X indicates fleet number)
-* Once connected open browser and verfiy that you have a connection
-* If you do not have connection follow these next steps:
-  * Log into router:
-    * Open browser and go to 10.23.X.1 (X indicates fleet number)
-    * Log into router (user: admin, password: admin, or what you have set this up to be)
+* Once connected, open a browser and verfiy that you have a connection
+* If you do not have a connection then follow these next steps:
+  * Log into your hub router:
+    * Open a browser and go to 10.23.X.1 (X indicates fleet number)
+    * Log into the hub router (user: admin, password: admin, or what you have set this up to be)
     * On the left hand toolbar select the 2.4 GHz WAN connection
-      * Setup hotspot connection by selecting one that is avaiable
+      * Setup a hotspot connection by selecting one that is avaiable
       * Click the save button
       * Verify that you have internet connection
 * Once you have connection move onto the next section
@@ -24,7 +24,7 @@ ssh -i /path/to/key jaia@10.23.X.10Y (X indicates fleet number and Y indicates b
 ## Select Jaiabot Version To Follow
 
 ```
-cat /etc/apt/sources.d/jaiabot.list
+cat /etc/apt/sources.list.d/jaiabot.list
 ```
 
 * All bots and hubs are setup to follow the release version
@@ -58,6 +58,6 @@ jaiabot-status
 
 ## Debugging
 
-* Make sure if you are upgrading you do the entire fleet
+* Make sure if you are upgrading that you do the entire fleet
 * This will limit any unexpected issues
 * If you get errors during this upgrade process please contact you jaia representative
