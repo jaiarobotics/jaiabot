@@ -2341,7 +2341,7 @@ export default class CommandControl extends React.Component {
 					onChange={() => { this.updateMissionLayer() }} 
 					onClose={() => 
 						{ 
-							this.state.goalBeingEdited = null; 
+							this.setState({goalBeingEdited: null})
 							this.changeMissions(() => {}, previous_mission_history);
 						}
 					} 
@@ -3276,9 +3276,11 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 
 			// Clicked on a goal / waypoint
-			if (feature.goal != null) {
+			let goal = feature.get('goal')
+
+			if (goal != null) {
 				previous_mission_history = deepcopy(this.missions);
-				this.state.goalBeingEdited = feature.goal
+				this.setState({goalBeingEdited: goal})
 				return false
 			}
 
@@ -3291,7 +3293,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on mission planning point
-			if (feature.goal === null) {
+			if (goal === null) {
 				if (this.state.mode === 'missionPlanning') {
 					this.state.selectedFeatures = feature;
 				}

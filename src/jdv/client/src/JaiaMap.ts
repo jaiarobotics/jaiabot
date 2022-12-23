@@ -7,7 +7,7 @@ import LayerGroup from 'ol/layer/Group';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import Polygon from 'ol/geom/Polygon';
-import { fromLonLat } from 'ol/proj';
+import { fromLonLat, Projection } from 'ol/proj';
 import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
@@ -23,9 +23,16 @@ import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
+import { TaskPacket, Command } from './gui/ProtoBufMessages';
+import Layer from 'ol/layer/Layer';
+import { Coordinate } from 'ol/coordinate';
 
 // Get date description from microsecond timestamp
-function dateStringFromMicros(timestamp_micros) {
+function dateStringFromMicros(timestamp_micros?: number): string | null {
+    if (timestamp_micros == null) {
+        return null
+    }
+
     return new Date(timestamp_micros / 1e3).toLocaleDateString(undefined, {
         day: '2-digit',
         month: 'short',
@@ -38,14 +45,24 @@ function dateStringFromMicros(timestamp_micros) {
 }
 
 
+interface MarkerParameters {
+    title?: string
+    lon: number
+    lat: number
+    style?: Style
+    timestamp?: number
+    popupHTML?: string
+}
+
+
 // Creates an OpenLayers marker feature with a popup using options
-// parameters: {title?, lon, lat, style?, time?, popupHTML?}
-function createMarker2(map, parameters) {
+function createMarker2(map: Map, parameters: MarkerParameters) {
     const lonLat = [parameters.lon, parameters.lat]
     const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+    const title = parameters.title ?? 'Marker'
 
     const markerFeature = new Feature({
-        name: parameters.title ?? 'Marker',
+        name: title,
         geometry: new Point(coordinate)
     })
 
@@ -53,21 +70,19 @@ function createMarker2(map, parameters) {
         markerFeature.setStyle(parameters.style)
     }
 
-    // Convert time to a string
-    if (parameters.time != null) {
-        parameters.time = dateStringFromMicros(parameters.time)
-    }
+    // Create the popup
+    const popupHTML = `
+        <div id="markerPopup" class="popup">
+        <h3 id="title">${title}</h3>
+        <p id="time">Time: ${dateStringFromMicros(parameters.timestamp)}</p>
+        <p id="lon">Longitude: ${parameters.lon}</p>
+        <p id="lat">Latitude: ${parameters.lat}</p>
+        </div>
+    `
 
-    // If we received a popupHTML, then use it
-    var popupElement
-    if (parameters.popupHTML != null) {
-        popupElement = document.createElement('div')
-        popupElement.classList = "popup"
-        popupElement.innerHTML = parameters.popupHTML
-    }
-    else {
-        popupElement = Template.get('markerPopup', parameters)
-    }
+    var popupContainer = document.createElement('div')
+    popupContainer.innerHTML = popupHTML.trim()
+    const popupElement = popupContainer.firstChild as HTMLDivElement
 
     Popup.addPopup(map, markerFeature, popupElement)
 
@@ -75,76 +90,83 @@ function createMarker2(map, parameters) {
 }
 
 
+interface ActiveGoal {
+    _utime_: number
+    active_goal: number
+}
+
+
 export default class JaiaMap {
 
-        constructor(openlayersMapDivId) {
+    path_point_arrays: number[][][] = []
+    active_goal_dict: {[key: number]: ActiveGoal[]} = {}
+    timeRange?: number[] = null
+    tMin?: number = null
+    tMax?: number = null
+    timestamp?: number = null
+    task_packets: TaskPacket[] = []
+    openlayersMap: Map
+    openlayersProjection: Projection
+    botPathVectorSource = new VectorSource()
+    courseOverGroundSource = new VectorSource()
+    botVectorSource = new VectorSource()
+    missionVectorSource = new VectorSource()
+    taskPacketVectorSource = new VectorSource()
+    depthContourVectorSource = new VectorSource()
+    command_dict: {[key: number]: Command[]}
+    depthContourFeatures: Feature[]
 
-            // An array of arrays of points.  Each array of points corresponds to a polyline for a bot path
-            this.path_point_arrays = []
+    constructor(openlayersMapDivId: string) {
+        this.setupOpenlayersMap(openlayersMapDivId)
 
-            this.active_goal_dict = {}
+        OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'), {})
+    }
 
-            // Time range for the visible path
-            this.timeRange = null
+    setupOpenlayersMap(openlayersMapDivId: string) {
+        const view = new View({
+            center: [0, 0],
+            zoom: 2
+        })
 
-            // Time range for the entire log set
-            this.tMin = null
-            this.tMax = null
+        this.openlayersProjection = view.getProjection()
 
-            this.timestamp = null
+        this.openlayersMap = new Map({
+            target: openlayersMapDivId,
+            layers: [
+                this.createOpenlayersTileLayerGroup(),
+                this.createBotPathLayer(),
+                this.createBotLayer(),
+                this.createCourseOverGroundLayer(),
+                this.createMissionLayer(),
+                this.createTaskPacketLayer(),
+                this.createDepthContourLayer(),
+            ],
+            view: view,
+            controls: []
+        })
 
-            this.task_packets = []
-
-            this.setupOpenlayersMap(openlayersMapDivId)
-
-            OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'))
-        }
-
-        setupOpenlayersMap(openlayersMapDivId) {
-            const view = new View({
-                center: [0, 0],
-                zoom: 2
+        // Dispatch click events to the feature, if it has an "onclick" property set
+        this.openlayersMap.on("click", (e) => {
+            this.openlayersMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
+                feature.get('onclick')?.(e)
             })
+        });
 
-            this.openlayersProjection = view.getProjection()
-
-            this.openlayersMap = new Map({
-                target: openlayersMapDivId,
-                layers: [
-                    this.createOpenlayersTileLayerGroup(),
-                    this.createBotPathLayer(),
-                    this.createBotLayer(),
-                    this.createCourseOverGroundLayer(),
-                    this.createMissionLayer(),
-                    this.createTaskPacketLayer(),
-                    this.createDepthContourLayer(),
-                ],
-                view: view,
-                controls: []
-            })
-
-            // Dispatch click events to the feature, if it has an "onclick" property set
-            this.openlayersMap.on("click", (e) => {
-                this.openlayersMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
-                    feature.get('onclick')?.(e)
-                })
-            });
-
-            // Change cursor to hand pointer, when hovering over a feature with an onclick property
-            this.openlayersMap.on("pointermove", function (evt) {
-                var hit = this.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
-                    return (feature.get('onclick') != null)
-                }); 
-                if (hit) {
-                    this.getTargetElement().style.cursor = 'pointer';
-                } else {
-                    this.getTargetElement().style.cursor = '';
-                }
-            });
-        }
+        // Change cursor to hand pointer, when hovering over a feature with an onclick property
+        this.openlayersMap.on("pointermove", function (evt) {
+            var hit = this.forEachFeatureAtPixel(evt.pixel, function(feature: Feature, layer: Layer) {
+                return (feature.get('onclick') != null)
+            }); 
+            if (hit) {
+                this.getTargetElement().style.cursor = 'pointer';
+            } else {
+                this.getTargetElement().style.cursor = '';
+            }
+        });
+    }
 
         // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view
-        fromLonLat(coordinate) {
+        fromLonLat(coordinate: Coordinate) {
             return fromLonLat(coordinate, this.openlayersProjection)
         }
 
@@ -152,95 +174,100 @@ export default class JaiaMap {
             const noaaEncSource = new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' })
 
             return new LayerGroup({
-                title: 'Base Maps',
+                properties: {
+                    title: 'Base Maps'
+                },
                 layers: [
                     new TileLayer({
-                        title: 'Google Satellite & Roads',
-                        type: 'base',
+                        properties: {
+                            title: 'Google Satellite & Roads',
+                            type: 'base',
+                        },
                         zIndex: 1,
                         source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-                        wrapX: false
                     }),
                     new TileLayer({
-                        title: 'OpenStreetMap',
-                        type: 'base',
+                        properties: {
+                            title: 'OpenStreetMap',
+                            type: 'base',
+                        },
                         zIndex: 1,
                         source: new OSM(),
-                        wrapX: false
                     }),
                     new TileLayer({
-                        title: 'NOAA ENC Charts',
+                        properties: {
+                            title: 'NOAA ENC Charts',
+                        },
                         opacity: 0.7,
                         zIndex: 2,
                         source: noaaEncSource,
-                        wrapX: false
                     }),
                 ]
             })
         }
 
         createBotPathLayer() {
-            this.botPathVectorSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Bot Path',
+                properties: {
+                    title: 'Bot Path',
+                },
                 source: this.botPathVectorSource,
                 zIndex: 10
             })
         }
 
         createCourseOverGroundLayer() {
-            this.courseOverGroundSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Course Over Ground',
+                properties: {
+                    title: 'Course Over Ground',
+                },
                 source: this.courseOverGroundSource,
                 zIndex: 11
             })
         }
 
         createBotLayer() {
-            this.botVectorSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Bot Icon',
+                properties: {
+                    title: 'Bot Icon',
+                },
                 source: this.botVectorSource,
                 zIndex: 13
             })
         }
     
         createMissionLayer() {
-            this.missionVectorSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Mission Plan',
-                source: this.missionVectorSource,
+                properties: {
+                        title: 'Mission Plan',
+                    },
+                    source: this.missionVectorSource,
                 zIndex: 11
             })
         }
     
         createTaskPacketLayer() {
-            this.taskPacketVectorSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Task Packets',
+                properties: {
+                    title: 'Task Packets',
+                },
                 source: this.taskPacketVectorSource,
                 zIndex: 12
             })
         }
 
         createDepthContourLayer() {
-            this.depthContourVectorSource = new VectorSource()
-
             return new VectorLayer({
-                title: 'Depth Contours',
+                properties: {
+                    title: 'Depth Contours',
+                },
                 source: this.depthContourVectorSource,
                 zIndex: 13
             })
         }
     
         // Set the array of paths
-        setSeriesArray(seriesArray) {
+        setSeriesArray(seriesArray: number[][][]) {
             this.path_point_arrays = seriesArray
             this.updatePath()
         }
@@ -253,7 +280,7 @@ export default class JaiaMap {
 
             const botLineColorArray = this.getBotLineColorArray()
 
-            for (const botIndex in this.path_point_arrays) {
+            for (const [botIndex, ptArray] of this.path_point_arrays.entries()) {
 
                 const ptArray = this.path_point_arrays[botIndex]
 
@@ -303,11 +330,11 @@ export default class JaiaMap {
 
                     // parameters: {title?, lon, lat, style?, time?, popupHTML?}
                     const startPt = ptArray[0]
-                    const startMarker = createMarker2(this.openlayersMap, {title: "Start", lon: startPt[2], lat: startPt[1], time: startPt[0], style: Styles.startMarker})
+                    const startMarker = createMarker2(this.openlayersMap, {title: "Start", lon: startPt[2], lat: startPt[1], timestamp: startPt[0], style: Styles.startMarker})
                     this.botPathVectorSource.addFeature(startMarker)
 
                     const endPt = ptArray[ptArray.length - 1]
-                    const endMarker = createMarker2(this.openlayersMap, {title: "End", lon: endPt[2], lat: endPt[1], time: endPt[0], style: Styles.endMarker})
+                    const endMarker = createMarker2(this.openlayersMap, {title: "End", lon: endPt[2], lat: endPt[1], timestamp: endPt[0], style: Styles.endMarker})
                     this.botPathVectorSource.addFeature(endMarker)
 
                 }
@@ -346,20 +373,20 @@ export default class JaiaMap {
         }
 
         // Commands and markers for bot and goals
-        updateWithCommands(command_dict) {
+        updateWithCommands(command_dict: {[key: number]: Command[]}) {
             this.command_dict = command_dict
         }
 
-        updateWithTaskPackets(task_packets) {
+        updateWithTaskPackets(task_packets: TaskPacket[]) {
             this.task_packets = task_packets
             this.updateTaskAnnotations()
         }
 
-        updateWithActiveGoal(active_goal_dict) {
+        updateWithActiveGoal(active_goal_dict: {[key: number]: ActiveGoal[]}) {
             this.active_goal_dict = active_goal_dict
         }
     
-        updateToTimestamp(timestamp_micros) {
+        updateToTimestamp(timestamp_micros: number) {
             this.timestamp = timestamp_micros
             // console.log('updateToTimestamp', timestamp_micros, this.timestamp)
 
@@ -367,12 +394,12 @@ export default class JaiaMap {
             this.updateMissionLayer(timestamp_micros)
         }
 
-        getTimestamp() {
+        getTimestamp(): number {
             // console.log('get timestamp', this.timestamp)
             return this.timestamp
         }
 
-        updateWithDepthContourGeoJSON(depthContourGeoJSON) {
+        updateWithDepthContourGeoJSON(depthContourGeoJSON: object) {
             this.depthContourFeatures = geoJSONToDepthContourFeatures(this.openlayersMap.getView().getProjection(), depthContourGeoJSON)
             this.updateDepthContours()
         }
@@ -395,7 +422,7 @@ export default class JaiaMap {
             this.updateTaskAnnotations()
         }
 
-        updateBotMarkers(timestamp_micros) {
+        updateBotMarkers(timestamp_micros?: number) {
             // OpenLayers
             this.botVectorSource.clear()
             this.courseOverGroundSource.clear()
@@ -408,7 +435,7 @@ export default class JaiaMap {
 
                 const point = bisect(path_point_array, (point) => {
                     return timestamp_micros - point[0]
-                })?.[1]
+                })?.value
                 if (point == null) continue;
 
                 const properties = {
@@ -434,7 +461,7 @@ export default class JaiaMap {
 
         }
 
-        updateMissionLayer(timestamp_micros) {
+        updateMissionLayer(timestamp_micros?: number) {
 
             // Clear OpenLayers layer
             this.missionVectorSource.clear()
@@ -449,13 +476,13 @@ export default class JaiaMap {
             }
 
             // This assumes that we have a command_dict with only one botId!
-            const botId = botId_array[0]
+            const botId = Number(botId_array[0])
 
             const command_array = this.command_dict[botId].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
 
             const command = bisect(command_array, (command) => {
                 return timestamp_micros - command._utime_
-            })?.[1]
+            })?.value
 
             if (command == null) {
                 return
@@ -466,11 +493,11 @@ export default class JaiaMap {
 
             const active_goal = bisect(active_goals_array, (active_goal) => {
                 return timestamp_micros - active_goal._utime_
-            })?.[1]
+            })?.value
 
             const active_goal_index = active_goal?.active_goal
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, command, active_goal_index, false)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, command.plan, active_goal_index, false)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     

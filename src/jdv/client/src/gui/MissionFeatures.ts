@@ -1,30 +1,17 @@
 import { Feature, Map } from "ol"
-import { LineString, Point } from "ol/geom"
+import { Coordinate } from "ol/coordinate"
+import { LineString, Geometry } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
-import { createMarker } from './Marker.js'
+import { createMarker } from './Marker'
+import { Plan } from './ProtoBufMessages'
 
-
-// Get date description from microsecond timestamp
-function dateStringFromMicros(timestamp_micros) {
-    return new Date(timestamp_micros / 1e3).toLocaleDateString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short'
-    })
-}
-
-
-export function createMissionFeatures(map, plan, activeGoalIndex, isSelected) {
-    var features = []
+export function createMissionFeatures(map: Map, plan: Plan, activeGoalIndex: number, isSelected: boolean) {
+    var features: Feature<Geometry>[] = []
     const projection = map.getView().getProjection()
 
     // Add markers for each waypoint
-    var missionLineStringCoordinates = []
+    var missionLineStringCoordinates: Coordinate[] = []
 
     for (const [goal_index, goal] of plan.goal.entries()) {
         const location = goal.location
@@ -36,7 +23,7 @@ export function createMissionFeatures(map, plan, activeGoalIndex, isSelected) {
         {
             // OpenLayers
             const markerFeature = createMarker(map, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == activeGoalIndex, isSelected)})
-            markerFeature.goal = goal
+            markerFeature.set("goal", goal)
             features.push(markerFeature)
         }
 

@@ -1,19 +1,22 @@
 import Stroke from 'ol/style/Stroke';
 import { Fill, Icon, Style, Text} from 'ol/style';
 import { LineString, Point } from 'ol/geom';
-import arrowHead from './arrowHead.svg'
-import bottomStrike from './bottomStrike.svg'
-import driftTaskPacket from './driftTaskPacket.svg'
-import end from './end.svg'
-import start from './start.svg'
-import bot from './bot.svg'
-import satellite from './satellite.svg'
-import botCourseOverGround from './botCourseOverGround.svg'
-import botDesiredHeading from './botDesiredHeading.svg'
-import taskDive from './taskDive.svg'
-import taskDrift from './taskDrift.svg'
-import taskNone from './taskNone.svg'
-import taskStationKeep from './taskStationKeep.svg'
+import {Feature} from 'ol'
+import {Goal, DiveTask} from './ProtoBufMessages'
+
+const arrowHead = require('./arrowHead.svg') as string
+const bottomStrike = require('./bottomStrike.svg') as string
+const driftTaskPacket = require('./driftTaskPacket.svg') as string
+const end = require('./end.svg') as string
+const start = require('./start.svg')
+const bot = require('./bot.svg') as string
+const botCourseOverGround = require('./botCourseOverGround.svg') as string
+const botDesiredHeading = require('./botDesiredHeading.svg') as string
+const taskDive = require('./taskDive.svg') as string
+const taskDrift = require('./taskDrift.svg') as string
+const taskNone = require('./taskNone.svg') as string
+const taskStationKeep = require('./taskStationKeep.svg') as string
+const satellite = require('./satellite.svg') as string
 
 // Colors
 const defaultColor = 'white'
@@ -40,10 +43,16 @@ export const endMarker = new Style({
 
 const DEG = Math.PI / 180
 
-export function botMarker(feature) {
-    const centerPosition = feature.getGeometry().getCoordinates()
+interface XYCoordinate {
+    x: number
+    y: number
+}
 
-    function angleToXY(angle) {
+export function botMarker(feature: Feature): Style[] {
+    const geometry = feature.getGeometry() as Point
+    const centerPosition = geometry.getCoordinates()
+
+    function angleToXY(angle: number): XYCoordinate {
         return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
     }
 
@@ -64,7 +73,7 @@ export function botMarker(feature) {
         color = selectedColor
     }
 
-    const text = new String(feature.get('botId'))
+    const text = String(feature.get('botId'))
 
     var style = [ 
         // Bot body marker
@@ -106,7 +115,7 @@ export function botMarker(feature) {
 }
 
 
-export function courseOverGroundArrow(feature) {
+export function courseOverGroundArrow(feature: Feature): Style {
     const courseOverGround = feature.get('courseOverGround') * DEG
     const color = 'green'
 
@@ -122,7 +131,7 @@ export function courseOverGroundArrow(feature) {
 }
 
 
-export function desiredHeadingArrow(feature) {
+export function desiredHeadingArrow(feature: Feature): Style {
     const desiredHeading = feature.get('desiredHeading') * DEG
     const color = 'green'
 
@@ -137,10 +146,9 @@ export function desiredHeadingArrow(feature) {
     })
 }
 
-
 // Markers for the mission goals
-export function goal(goalIndex, goal, isActive, isSelected) {
-    const srcMap = {
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
+    const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
@@ -156,7 +164,7 @@ export function goal(goalIndex, goal, isActive, isSelected) {
             anchor: [0.5, 1],
         }),
         text: new Text({
-            text: new String(goalIndex),
+            text: String(goalIndex),
             font: '12pt sans-serif',
             fill: new Fill({
                 color: 'black'
@@ -169,7 +177,7 @@ export function goal(goalIndex, goal, isActive, isSelected) {
 
 
 // Markers for dives
-export function diveTask(dive) {
+export function diveTask(dive: DiveTask) {
 
     // Depth text
     var text = dive.depth_achieved?.toFixed(1)
@@ -189,7 +197,7 @@ export function diveTask(dive) {
             color: color
         }),
         text: new Text({
-            text: new String(text),
+            text: String(text),
             font: '12pt sans-serif',
             fill: new Fill({
                 color: 'black'
@@ -199,8 +207,20 @@ export function diveTask(dive) {
     })
 }
 
+
+interface EstimatedDrift {
+    speed: number
+    heading: number
+}
+
+
+interface DriftTask {
+    estimated_drift: EstimatedDrift
+}
+
+
 // Markers for surface drift tasks
-export function driftTask(drift) {
+export function driftTask(drift: DriftTask) {
 
     // Icon color
     const color = '#D07103'
@@ -226,10 +246,10 @@ export function driftTask(drift) {
 }
 
 // The mission path linestring
-export function missionPath(feature) {
+export function missionPath(feature: Feature) {
     const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
 
-    const geometry = feature.getGeometry()
+    const geometry = feature.getGeometry() as LineString
 
     const styles = [
         new Style({
@@ -272,10 +292,10 @@ export function missionPath(feature) {
 }
 
 // The drift task linestring
-export function driftArrow(feature) {
+export function driftArrow(feature: Feature) {
     const color = driftArrowColor
 
-    const geometry = feature.getGeometry()
+    const geometry = feature.getGeometry() as LineString
     const styles = [
         new Style({
             stroke: new Stroke({

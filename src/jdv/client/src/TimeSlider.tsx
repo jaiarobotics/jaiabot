@@ -4,7 +4,7 @@ import React from 'react'
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
 
 
-function durationStringFromSeconds(duration_seconds) {
+function durationStringFromSeconds(duration_seconds: number): string {
     var components = []
 
     if (duration_seconds >= 3600) {
@@ -26,14 +26,20 @@ function durationStringFromSeconds(duration_seconds) {
     return components.join(', ')
 }
 
+interface TimeSliderProps {
+    tMin: number
+    tMax: number
+    t: number
+    onValueChanged: (t: number) => void
+}
 
-export default function TimeSlider(props) {
+export default function TimeSlider(props: TimeSliderProps) {
 
     if (props.tMin == null || props.tMax == null) {
         return (<div></div>)
     }
 
-    function mouseEvent(evt) {
+    function mouseEvent(evt: React.MouseEvent) {
         if (!(evt.buttons & 1)) {
             return
         }
@@ -66,7 +72,7 @@ export default function TimeSlider(props) {
 
 }
 
-function TimeSliderPast(fraction) {
+function TimeSliderPast(fraction: number) {
     const widthPercent = Math.min(100, Math.max(0, fraction * 100))
     return (
         <div className='TimeSliderPast' style={{width: `${widthPercent}%`}}></div>

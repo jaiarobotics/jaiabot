@@ -19,21 +19,22 @@ import rcMode from '../icons/controller.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
 import MuiButton from '@mui/material/Button';
+const Button = MuiButton
 import { Settings } from './Settings'
 import { Missions } from './Missions'
 import { error, success, warning, info} from '../libs/notifications';
 
 // TurfJS
 import * as turf from '@turf/turf';
-import { withStyles } from '@material-ui/styles';
+// import { withStyles } from '@material-ui/styles';
 
-const Button = withStyles({
-  root: {
-    "&.Mui-disabled": {
-      pointerEvents: "auto"
-    }
-  }
-})(MuiButton);
+// const Button = withStyles({
+//   root: {
+//     "&.Mui-disabled": {
+//       pointerEvents: "auto"
+//     }
+//   }
+// })(MuiButton);
 
 let prec = 2
 
