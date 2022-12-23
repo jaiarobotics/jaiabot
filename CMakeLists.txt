@@ -126,7 +126,7 @@ else()
 endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
-option(build_plot "Build plot ui code (requires npm)" ON)
+option(build_jdv "Build jdv ui code (requires npm)" ON)
 
 
 # configure the headers to build/include

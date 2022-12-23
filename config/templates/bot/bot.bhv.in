@@ -1,6 +1,8 @@
 initialize   MOOS_MANUAL_OVERRIDE = false
 initialize   JAIABOT_WAYPOINT_ACTIVE = false
 initialize   JAIABOT_STATIONKEEP_ACTIVE = false
+initialize   JAIABOT_CONSTANTHEADING_ACTIVE = false
+initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
 
 Behavior = BHV_Waypoint
 { 
@@ -44,8 +46,6 @@ Behavior = BHV_StationKeep
    // station_pt =  ...           
 }
 
-
-
 Behavior = BHV_ConstantDepth
 {
   name         = jaia_fixed_depth
@@ -55,4 +55,40 @@ Behavior = BHV_ConstantDepth
   duration     = no-time-limit
   peakwidth    = 3               // default
   summitdelta  = 50              // default
+}
+
+Behavior = BHV_ConstantHeading
+{
+  // General Behavior Parameters
+  // ---------------------------
+  name         = jaia_fixed_heading  
+  pwt          = 1000                  // default
+  condition    = JAIABOT_CONSTANTHEADING_ACTIVE = true
+  updates      = JAIABOT_CONSTANTHEADING_UPDATES
+
+  // Parameters specific to this behavior
+  // ------------------------------------
+  basewidth      = 10           // default
+  duration       = no-time-limit            // default
+  heading        = 0            // default
+  peakwidth      = 10           // default
+  summitdelta    = 25           // default
+}
+
+Behavior = BHV_ConstantSpeed
+{
+  // General Behavior Parameters
+  // ---------------------------
+  name         = jaia_fixed_speed
+  pwt          = 100                // default
+  condition    = JAIABOT_CONSTANTSPEED_ACTIVE = true
+  updates      = JAIABOT_CONSTANTSPEED_UPDATES
+
+  // Parameters specific to this behavior
+  // ------------------------------------
+  basewidth   = 0.2          // default
+  duration    = no-time-limit            // default
+  speed       = 1            // default
+  peakwidth   = 0            // default
+  summitdelta = 0            // default
 }
