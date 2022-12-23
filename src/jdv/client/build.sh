@@ -8,36 +8,20 @@ pushd "$DIR"
 output_path='dist'
 [[ ! -z "$1" ]] && output_path="$1"
 
-SUDO=
-[[ $UID -ne 0 ]] && SUDO=sudo
+if [ ! -d "${HOME}/.nvm" ]
+then
+	echo "nvm not installed! Installing..."; 
+  curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 
-function add_node_repo_to_host() {
-    # Add NodeSource repo if we haven't already
-                if [ ! -e /usr/lib/apt/methods/https ]; then
-                        apt-get -y install apt-transport-https
-                fi
-    if [ ! -f /etc/apt/sources.list.d/nodejs-latest.list ]
-    then
-      echo "Configuring local apt with NodeJS repository"
-      $SUDO apt-key adv --keyserver hkp://${KEYSERVER}:80 --recv-key 9FD3B784BC1C6FC31A8A0A1C1655A0AB68576280
-      $SUDO sh -c 'echo "deb http://deb.nodesource.com/node_10.x/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/nodejs-latest.list'
-      $SUDO apt-get update
-    fi
-}
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-which npm &> /dev/null || { 
-	echo "NPM not installed! Installing..."; 
-	add_node_repo_to_host
-	$SUDO apt-get update
-	$SUDO apt-get -y install nodejs npm
-	which npm &> /dev/null || { 
-		echo "NPM did not install successfully. Node version (should be 10.x):"
-		node --version
-		exit 2 
-	}
-}
+  nvm install v18.12.1
+  nvm use v18.12.1
+fi
 
-which webpack &> /dev/null || $SUDO npm install -g --no-audit webpack webpack-cli
+which webpack &> /dev/null || npm install -g --no-audit webpack webpack-cli
 
 if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
 then

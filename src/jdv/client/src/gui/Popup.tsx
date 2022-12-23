@@ -1,9 +1,12 @@
 import { Overlay } from "ol";
+import Map from "ol/Map"
+import Feature from "ol/Feature"
+import OlMapBrowserEvent from "ol/MapBrowserEvent"
 
 /*
 Add an html element as a popup to the OpenLayers feature
 */
-export function addPopup(map, feature, popupElement) {
+export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) {
 
     /**
      * Create an overlay to anchor the popup to the map.
@@ -26,7 +29,7 @@ export function addPopup(map, feature, popupElement) {
         return false;
     };
 
-    feature.set('onclick', function (evt) {
+    feature.set('onclick', function (evt: OlMapBrowserEvent<UIEvent>) {
         const coordinate = evt.coordinate;
         overlay.setPosition(coordinate);
         map.addOverlay(overlay)
@@ -34,9 +37,9 @@ export function addPopup(map, feature, popupElement) {
 
 }
 
-export function addPopupHTML(map, feature, popupHTML) {
-    var popupElement = document.createElement('div')
-    popupElement.classList = "popup"
+export function addPopupHTML(map: Map, feature: Feature, popupHTML: string) {
+    var popupElement = document.createElement('div') as HTMLDivElement
+    popupElement.classList.add("popup")
     popupElement.innerHTML = popupHTML
 
     addPopup(map, feature, popupElement)
