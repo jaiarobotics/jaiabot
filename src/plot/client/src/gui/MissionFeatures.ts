@@ -12,7 +12,9 @@ export function createMissionFeatures(map: Map, plan: MissionPlan, activeGoalInd
     // Add markers for each waypoint
     var missionLineStringCoordinates = []
 
-    for (const [goal_index, goal] of plan.goal.entries()) {
+    let goals = plan.goal ?? []
+
+    for (const [goal_index, goal] of goals.entries()) {
         const location = goal.location
 
         if (location == null) {

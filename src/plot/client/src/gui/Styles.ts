@@ -130,12 +130,12 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 // Markers for the mission goals
-export function goalIcon(taskType: TaskType, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        'NONE': taskNone       
+        'NONE': taskNone
     }
 
     const src = srcMap[taskType ?? 'NONE'] ?? taskNone
@@ -149,7 +149,7 @@ export function goalIcon(taskType: TaskType, isActive: boolean, isSelected: bool
 
 
 export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
-    let icon = goalIcon(goal.task.type, isActive, isSelected)
+    let icon = goalIcon(goal.task?.type, isActive, isSelected)
 
     return new Style({
         image: icon,

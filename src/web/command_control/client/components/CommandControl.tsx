@@ -114,10 +114,10 @@ const jaiabot_icon = require('../icons/jaiabot.png')
 import {BotDetailsComponent, HubDetailsComponent} from './Details'
 import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
 
-const tooltips = require('../libs/tooltips')
+import tooltips from '../libs/tooltips'
 
 // jQuery UI touch punch
-const punchJQuery = require('../libs/jquery.ui.touch-punch') as any
+import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { error, success, warning, info} from '../libs/notifications';
 
@@ -169,8 +169,8 @@ punchJQuery($);
 let map: OlMap
 const mercator = 'EPSG:3857'
 const equirectangular = 'EPSG:4326'
-const equirectangular_to_mercator = (input: number[]) => getTransform(equirectangular, mercator)(input, null, null)
-const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, equirectangular)(input, null, null)
+const equirectangular_to_mercator = (input: number[]) => getTransform(equirectangular, mercator)(input, undefined, undefined)
+const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, equirectangular)(input, undefined, undefined)
 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
@@ -410,7 +410,7 @@ export default class CommandControl extends React.Component {
 		taskData.map = map
 
 		this.coordinate_to_location_transform = (coordinate: number[]) => {
-			return getTransform(map.getView().getProjection(), equirectangular)(coordinate, null, null)
+			return getTransform(map.getView().getProjection(), equirectangular)(coordinate, undefined, undefined)
 		}
 
 		this.measureInteraction = new OlDrawInteraction({
@@ -501,7 +501,7 @@ export default class CommandControl extends React.Component {
 			(evt: DrawEvent) => {
 				this.setState({
 					surveyPolygonChanged: true,
-					mode: 'missionPlanning',
+					mode: Mode.MISSION_PLANNING,
 					missionPlanningFeature: null
 				});
 				this.updateMissionLayer();
@@ -665,7 +665,7 @@ export default class CommandControl extends React.Component {
 			(evt: DrawEvent) => {
 				this.setState({
 					surveyPolygonChanged: true,
-					mode: 'missionPlanning',
+					mode: Mode.MISSION_PLANNING,
 					missionPlanningFeature: evt.feature
 				});
 				this.updateMissionLayer();
@@ -1859,7 +1859,7 @@ export default class CommandControl extends React.Component {
 					this.updateBotsLayer()
 					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
-					if (this.state.mode !== 'missionPlanning') {
+					if (this.state.mode !== Mode.MISSION_PLANNING) {
 						this.updateMissionLayer()
 					}
 				}
@@ -2067,7 +2067,7 @@ export default class CommandControl extends React.Component {
 
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel: ReactElement = null
-		if (this.state.mode === 'missionPlanning') {
+		if (this.state.mode === Mode.MISSION_PLANNING) {
 			missionSettingsPanel = <MissionSettingsPanel
 				mission_params={this.state.missionParams}
 				bot_list={this.podStatus?.bots}
@@ -2229,7 +2229,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
+								this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
 									this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
 								if (this.state.missionParams.mission_type === 'editing')
@@ -2709,7 +2709,7 @@ export default class CommandControl extends React.Component {
 			// Place all the mission planning features in this for the missionLayer
 			let missionPlanningFeaturesList = [];
 
-			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === 'missionPlanning') {
+			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
@@ -2893,12 +2893,12 @@ export default class CommandControl extends React.Component {
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
 
-		if (this.state.mode == 'setHome') {
+		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
 
-		if (this.state.mode =='setRallyPoint') {
+		if (this.state.mode == Mode.SET_RALLY_POINT) {
 			this.placeRallyPointAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
@@ -2925,8 +2925,8 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on mission planning point
-			if (goal === null) {
-				if (this.state.mode === 'missionPlanning') {
+			if (goal == null) {
+				if (this.state.mode == Mode.MISSION_PLANNING) {
 					this.state.selectedFeatures = new OlCollection([ feature ])
 				}
 			}
@@ -2980,8 +2980,8 @@ export default class CommandControl extends React.Component {
 			"sample_spacing": this.state.missionParams.spacing,
 			"mission_type": this.state.missionBaseGoal.task,
 			"orientation": this.state.missionParams.orientation,
-			"home_lon": this.state.homeLocation['lon'],
-			"home_lat": this.state.homeLocation['lat'],
+			"home_lon": this.state.homeLocation?.['lon'],
+			"home_lat": this.state.homeLocation?.['lat'],
 			"survey_polygon": this.state.surveyPolygonGeoCoords,
 			//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
 		}).then(data => {

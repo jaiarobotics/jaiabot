@@ -2,7 +2,6 @@ import { Feature, Map } from "ol"
 import { Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
-import { courseOverGroundArrow } from '../../../../../plot/client/src/gui/Styles';
 
 
 interface Properties {
