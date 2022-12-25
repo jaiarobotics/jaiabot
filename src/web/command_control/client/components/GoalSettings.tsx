@@ -5,9 +5,9 @@
 
 import React, { FormEvent } from 'react'
 import Button from '@mui/material/Button';
-import { Setting, Settings } from './Settings'
+import { GlobalSettings, Save } from './Settings'
 import { Goal, TaskType, DiveParameters, DriftParameters } from './gui/JAIAProtobuf';
-import * as DiveDriftSettings from './DiveParameters';
+import { Global } from '@emotion/react';
 
 
 interface Props {
@@ -91,16 +91,14 @@ export class GoalSettingsPanel extends React.Component {
             case 'DIVE':
                 goal.task = {
                     type: taskType,
-                    dive: DiveDriftSettings.currentDiveParameters(),
-                    surface_drift: DiveDriftSettings.currentDriftParameters()
+                    dive: GlobalSettings.diveParameters,
+                    surface_drift: GlobalSettings.driftParameters
                 }
                 break;
             case 'SURFACE_DRIFT':
                 goal.task = {
                     type: taskType,
-                    surface_drift: {
-                        drift_time: Settings.driftTime.get()
-                    }
+                    surface_drift: GlobalSettings.driftParameters
                 }
                 break;
             case 'STATION_KEEP':
@@ -126,19 +124,19 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeParameter.bind(this))} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeParameter.bind(this)} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -146,32 +144,28 @@ export class GoalSettingsPanel extends React.Component {
         )
     }
 
-    changeParameter(evt: FormEvent) {
-        let {goal} = this.state
-
-        let target = evt.target as any
-        const key = target.name as (keyof DiveParameters) | (keyof DriftParameters)
+    changeDiveParameter(evt: FormEvent) {
+        const target = evt.target as any
+        const key = target.name as (keyof DiveParameters)
         const value = Number(target.value)
+        var {goal} = this.state
 
-        const settingMap = {
-            max_depth: Settings.diveMaxDepth,
-            hold_time: Settings.diveHoldTime,
-            depth_interval: Settings.diveDepthInterval,
-            drift_time: Settings.driftTime
-        };
+        goal.task.dive[key] = value
 
-        (settingMap[key] as Setting).set(value)
+        GlobalSettings.diveParameters[key] = value
+        Save(GlobalSettings.diveParameters)
+    }
 
-        if(key != "drift_time")
-        {
-            goal.task.dive[key] = value;
-        }
-        else
-        {
-            goal.task.surface_drift[key] = value;
-        }
+    changeDriftParameter(evt: FormEvent) {
+        const target = evt.target as any
+        const key = target.name as (keyof DriftParameters)
+        const value = Number(target.value)
+        var {goal} = this.state
 
-        this.setState({goal})
+        goal.task.surface_drift[key] = value
+
+        GlobalSettings.driftParameters[key] = value
+        Save(GlobalSettings.driftParameters)
     }
 
     driftOptionsPanel() {
@@ -183,7 +177,7 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>

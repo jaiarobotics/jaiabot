@@ -1,6 +1,6 @@
 import React from 'react'
 import { PIDGainsPanel } from './PIDGainsPanel'
-import * as DiveParameters from './DiveParameters'
+import { RCDiveParametersPanel } from './RCDiveParametersPanel'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
@@ -64,9 +64,7 @@ export default class EngineeringPanel extends React.Component {
 
 					<PIDGainsPanel bots={self.state.bots}  control={this.props.control} api={this.api} />
 
-					{
-						DiveParameters.panel()
-					}
+					<RCDiveParametersPanel />
 
                     <MissionSpeedSettingsPanel />
 

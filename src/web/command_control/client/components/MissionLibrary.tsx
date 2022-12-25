@@ -1,9 +1,9 @@
-import { Settings } from './Settings'
+import { Load, Save } from './Settings'
 import { PodMissionLibrary, PodMission, Missions } from './Missions'
 
-export class MissionLibraryLocalStorage {
-    savedMissions: PodMissionLibrary
+const savedMissions = Load<PodMissionLibrary>('savedMissions', Missions.defaultMissions())
 
+export class MissionLibraryLocalStorage {
     static missionLibraryLocalStorage: MissionLibraryLocalStorage
 
     static shared() {
@@ -14,20 +14,22 @@ export class MissionLibraryLocalStorage {
     }
 
     constructor() {
-        this.savedMissions = Settings.savedMissions.get() || Missions.defaultMissions()
     }
 
     missionNames() {
-        return Object.keys(this.savedMissions).sort()
+        let savedMissionNames = Object.keys(savedMissions).filter((value) => {
+            return value != '_localStorageKeyFunc'
+        }). sort()
+        return savedMissionNames
     }
 
     hasMission(name: string) {
-        return (name in this.savedMissions)
+        return (name in savedMissions)
     }
 
     loadMission(key: string) {
-        console.log('loadMission: ', this.savedMissions[key])
-        return this.savedMissions[key]
+        console.log('loadMission: ', savedMissions[key])
+        return savedMissions[key]
     }
 
     saveMission(key: string, mission: PodMission) {
@@ -35,8 +37,8 @@ export class MissionLibraryLocalStorage {
             return
         }
 
-        this.savedMissions[key] = JSON.parse(JSON.stringify(mission))
-        Settings.savedMissions.set(this.savedMissions)
+        savedMissions[key] = JSON.parse(JSON.stringify(mission))
+        Save(savedMissions)
     }
 
     deleteMission(key: string) {
@@ -44,8 +46,8 @@ export class MissionLibraryLocalStorage {
             return
         }
 
-        delete this.savedMissions[key]
-        Settings.savedMissions.set(this.savedMissions)
+        delete savedMissions[key]
+        Save(savedMissions)
     }
 
 }

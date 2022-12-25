@@ -3,8 +3,9 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import * as DiveParameters from './DiveParameters'
+import * as DiveParameters from './RCDiveParametersPanel'
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType, TaskType} from './gui/JAIAProtobuf'
+import { GlobalSettings } from './Settings'
 
 
 
@@ -114,8 +115,8 @@ export class Missions {
             type: CommandType.REMOTE_CONTROL_TASK,
             rc_task: {
                 type: TaskType.DIVE,
-                dive: DiveParameters.currentDiveParameters(),
-                surface_drift: DiveParameters.currentDriftParameters()
+                dive: GlobalSettings.diveParameters,
+                surface_drift: GlobalSettings.driftParameters
             }
         }
 

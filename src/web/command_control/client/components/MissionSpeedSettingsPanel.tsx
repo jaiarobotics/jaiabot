@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings } from './Settings'
+import { GlobalSettings, Save } from './Settings'
 import Slider, { SliderClassKey } from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import {Speeds} from './gui/JAIAProtobuf'
@@ -27,12 +27,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
     constructor(props: Props) {
         super(props)
 
-        const SPEED_DEFAULTS: Speeds = {
-            transit: 2.0,
-            stationkeep_outer: 1.5
-        }
-
-        this.speeds = Settings.missionPlanSpeeds.get() ?? SPEED_DEFAULTS
+        this.speeds = GlobalSettings.missionPlanSpeeds
 
         this.state = {
             go_over_max_value: false,
@@ -89,7 +84,8 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                                 //console.log("did not confirm: " + this.state.safe_speed_watch);
                                             }
 
-                                            Settings.missionPlanSpeeds.set(this.state.speeds)
+                                            Object.assign(GlobalSettings.missionPlanSpeeds, this.state.speeds)
+                                            Save(GlobalSettings.missionPlanSpeeds)
                                         }
                                     }
                                 />
@@ -137,7 +133,8 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                                 //console.log("did not confirm: " + this.state.safe_speed_watch);
                                             }
 
-                                            Settings.missionPlanSpeeds.set(this.state.speeds)
+                                            Object.assign(GlobalSettings.missionPlanSpeeds, this.state.speeds)
+                                            Save(GlobalSettings.missionPlanSpeeds)
                                         }
                                     }
                                 />

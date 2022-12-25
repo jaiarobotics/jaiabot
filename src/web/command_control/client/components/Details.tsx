@@ -16,9 +16,9 @@ import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline,
          mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 import Button from '@mui/material/Button';
-import { Settings } from './Settings'
 import { Missions, PodMission } from './Missions';
 import { error, warning, info} from '../libs/notifications';
+import { GlobalSettings } from './Settings';
 
 // TurfJS
 import * as turf from '@turf/turf';
@@ -123,10 +123,7 @@ function issueMissionCommand(api: JaiaAPI, bot_mission: Command, bot_id: number)
 
     if (confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
         // Set the speed values
-        let speeds = Settings.missionPlanSpeeds.get()
-        if (speeds != null && bot_mission.plan != null) {
-            bot_mission.plan.speeds = speeds
-        }
+        bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
 
         console.debug('Running Mission:')
         console.debug(bot_mission)

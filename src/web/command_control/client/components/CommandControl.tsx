@@ -9,7 +9,7 @@
 /* eslint-disable react/no-multi-comp */
 
 import React, { MouseEvent, ReactElement } from 'react'
-import { Settings } from './Settings'
+import { Load, Save, GlobalSettings } from './Settings'
 import { Missions, SELECTED_BOT_ID } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
@@ -181,6 +181,7 @@ const POLLING_INTERVAL_MS = 500
 
 // ===========================================================================================================================
 
+var mapSettings = GlobalSettings.mapSettings
 
 interface Props {
 
@@ -730,24 +731,27 @@ export default class CommandControl extends React.Component {
 		this.sendStop = this.sendStop.bind(this);
 
 		// center persistence
-		map.getView().setCenter(Settings.mapCenter.get() || equirectangular_to_mercator([-71.272237, 41.663559]))
+		map.getView().setCenter(mapSettings.center)
 
 		map.getView().on('change:center', function() {
-			Settings.mapCenter.set(map.getView().getCenter())
+			mapSettings.center = map.getView().getCenter()
+			Save(mapSettings)
 		})
 
 		// zoomLevel persistence
-		map.getView().setZoom(Settings.mapZoomLevel.get() || 2)
+		map.getView().setZoom(mapSettings.zoomLevel)
 
 		map.getView().on('change:resolution', function() {
-			Settings.mapZoomLevel.set(map.getView().getZoom())
+			mapSettings.zoomLevel = map.getView().getZoom()
+			Save(mapSettings)
 		})
 
 		// rotation persistence
-		map.getView().setRotation(Settings.mapRotation.get() || 0)
+		map.getView().setRotation(mapSettings.rotation)
 
 		map.getView().on('change:rotation', function() {
-			Settings.mapRotation.set(map.getView().getRotation())
+			mapSettings.rotation = map.getView().getRotation()
+			Save(mapSettings)
 		})
 
 	}
@@ -2735,10 +2739,7 @@ export default class CommandControl extends React.Component {
 	// Runs a mission
 	_runMission(bot_mission: Command) {
 		// Set the speed values
-		let speeds = Settings.missionPlanSpeeds.get()
-		if (speeds != null && bot_mission.plan != null) {
-			bot_mission.plan.speeds = speeds
-		}
+		bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
 
 		console.debug('Running Mission:')
 		console.debug(bot_mission)
