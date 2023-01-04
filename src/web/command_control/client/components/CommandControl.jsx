@@ -186,7 +186,7 @@ const sidebarMaxWidth = 1500;
 
 const POLLING_INTERVAL_MS = 300;
 
-const MAX_GOALS = 39;
+const MAX_GOALS = 30;
 
 // Store Previous Mission History
 let previous_mission_history;

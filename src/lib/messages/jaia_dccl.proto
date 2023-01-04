@@ -155,7 +155,7 @@ message BotStatus
     optional MissionState mission_state = 40;
 
     // bounds should match MissionPlan.goal max_repeat value * expected_fragments max
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 38 }];
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 29 }];
     optional double distance_to_active_goal = 42 [(dccl.field) = {
         min: 0
         max: 1000

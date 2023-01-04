@@ -448,6 +448,11 @@ void jaiabot::apps::MissionManager::loop()
                 }
             }
         }
+        else
+        {
+            // Report 0 if no goal timeout
+            report.set_active_goal_timeout(0);
+        }
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
