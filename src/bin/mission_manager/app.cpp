@@ -37,6 +37,8 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
+#define earthRadiusKm 6371.0
+
 namespace jaiabot
 {
 namespace apps
@@ -88,6 +90,16 @@ jaiabot::apps::MissionManager::MissionManager()
     glog.add_group("statechart", goby::util::Colors::yellow);
     glog.add_group("movement", goby::util::Colors::lt_green);
     glog.add_group("task", goby::util::Colors::lt_blue);
+
+    use_goal_timeout_ = cfg().use_goal_timeout();
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should detect goal timeout
+    for (auto gs : cfg().include_goal_timeout_states())
+    {
+        auto gts = static_cast<jaiabot::protobuf::MissionState>(gs);
+        include_goal_timeout_states_.insert(gts);
+    }
 
     for (auto m : cfg().test_mode())
     {
@@ -314,6 +326,8 @@ jaiabot::apps::MissionManager::~MissionManager()
 
 void jaiabot::apps::MissionManager::loop()
 {
+    double goal_speed = 0;
+    auto current_time = goby::time::SteadyClock::now();
     protobuf::MissionReport report;
     report.set_state(machine_->state());
 
@@ -330,6 +344,7 @@ void jaiabot::apps::MissionManager::loop()
                 *report.mutable_active_goal_location() = in_mission->current_goal()->location();
             }
         }
+        goal_speed = machine_->mission_plan().speeds().transit();
     }
     else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
     {
@@ -349,6 +364,89 @@ void jaiabot::apps::MissionManager::loop()
         else if (machine_->mission_plan().recovery().has_location())
         {
             *report.mutable_active_goal_location() = machine_->mission_plan().recovery().location();
+        }
+
+        goal_speed = machine_->mission_plan().speeds().stationkeep_outer();
+    }
+
+    if (current_tpv_.has_location() && report.has_active_goal_location())
+    {
+        // Check for an updated goal
+        if (current_goal_ != report.active_goal())
+        {
+            glog.is_debug2() && glog << "current goal does not equal active:" << std::endl;
+            current_goal_ = report.active_goal();
+
+            // Clear current_goal_dist_history_ to start new with update goal
+            std::queue<double> empty;
+            std::swap(current_goal_dist_history_, empty);
+
+            updated_goal_ = true;
+            last_goal_timeout_time_ = current_time;
+        }
+
+        double distance =
+            distanceToGoal(report.active_goal_location().lat(), report.active_goal_location().lon(),
+                           current_tpv_.location().lat(), current_tpv_.location().lon());
+        // Set distance in meters
+        distance = distance * (1000);
+        report.set_distance_to_active_goal(distance);
+
+        // Check the queue size to ensure it is less than max
+        if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
+        {
+            //linear_regression();
+            current_goal_dist_history_.pop();
+        }
+        current_goal_dist_history_.push(distance);
+
+        // First pass at implementing goal timeout
+        if (updated_goal_)
+        {
+            goal_timeout_ =
+                (distance / goal_speed) * cfg().goal_timeout_buffer_factor() +
+                (cfg().total_gps_fix_checks() * cfg().goal_timeout_reacquire_gps_attempts());
+
+            glog.is_debug2() &&
+                glog << "goal_timeout_: " << goal_timeout_ << " , distance: " << distance
+                     << " , goal_speed: " << goal_speed
+                     << " , goal_timeout_buffer_factor: " << cfg().goal_timeout_buffer_factor()
+                     << " , total_gps_fix_checks: " << cfg().total_gps_fix_checks()
+                     << " , goal_timeout_reacquire_gps_attempts: "
+                     << cfg().goal_timeout_reacquire_gps_attempts() << std::endl;
+            updated_goal_ = false;
+        }
+
+        // Check to see if operator wants to use goal timeout
+        // And Check to see if we are in correct state to detect goal timeout
+        if (use_goal_timeout_ && include_goal_timeout_states_.count(machine_->state()))
+        {
+            // Confirm goal_timeout_ is initialized
+            if (goal_timeout_)
+            {
+                // If current time is greater than the timeout, then go to next wpt
+                if ((last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) <= current_time)
+                {
+                    glog.is_debug2() && glog << "Goal timedout" << std::endl;
+                    machine_->process_event(statechart::EvWaypointReached());
+
+                    // Check config to see if we should skip task
+                    if (cfg().skip_goal_task())
+                    {
+                        machine_->process_event(statechart::EvTaskComplete());
+                    }
+                }
+                else
+                {
+                    auto goal_timeout = std::chrono::duration_cast<std::chrono::seconds>(
+                        (last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) -
+                        current_time);
+
+                    glog.is_debug2() && glog << "Goal time out: " << goal_timeout.count()
+                                             << std::endl;
+                    report.set_active_goal_timeout(goal_timeout.count());
+                }
+            }
         }
     }
 
@@ -604,4 +702,29 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         return true;
     }
     return false;
+}
+
+// This function converts decimal degrees to radians
+double jaiabot::apps::MissionManager::deg2rad(const double& deg) { return (deg * M_PI / 180); }
+
+/**
+ * Returns the distance between two points on the Earth.
+ * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+ * @param lat1d Latitude of the first point in degrees
+ * @param lon1d Longitude of the first point in degrees
+ * @param lat2d Latitude of the second point in degrees
+ * @param lon2d Longitude of the second point in degrees
+ * @return The distance between the two points in kilometers
+ */
+double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const double& lon1d,
+                                                     const double& lat2d, const double& lon2d)
+{
+    double lat1r, lon1r, lat2r, lon2r, u, v;
+    lat1r = deg2rad(lat1d);
+    lon1r = deg2rad(lon1d);
+    lat2r = deg2rad(lat2d);
+    lon2r = deg2rad(lon2d);
+    u = sin((lat2r - lat1r) / 2);
+    v = sin((lon2r - lon1r) / 2);
+    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }

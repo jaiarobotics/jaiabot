@@ -75,14 +75,10 @@ class Fusion : public ApplicationBase
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    double deg2rad(const double& deg);
-    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
-                          const double& lon2d);
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
     double degrees_difference(const double& heading, const double& course);
-    double linear_regression();
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -109,12 +105,6 @@ class Fusion : public ApplicationBase
 
     // GPS Good Reading
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_meets_gps_req_;
-
-    // Goal Dist History
-    std::queue<double> current_goal_dist_history_;
-
-    // Current Goal
-    int current_goal_{0};
 
     enum class DataType
     {
@@ -479,46 +469,15 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             if (report.has_active_goal())
             {
                 latest_bot_status_.set_active_goal(report.active_goal());
-                if (current_goal_ != report.active_goal())
+                latest_bot_status_.set_distance_to_active_goal(report.distance_to_active_goal());
+                if (report.has_active_goal_timeout())
                 {
-                    current_goal_ = report.active_goal();
-
-                    // Clear current_goal_dist_history_ to start new with update goal
-                    std::queue<double> empty;
-                    std::swap(current_goal_dist_history_, empty);
+                    latest_bot_status_.set_active_goal_timeout(report.active_goal_timeout());
                 }
             }
             else
             {
                 latest_bot_status_.clear_active_goal();
-            }
-
-            if (report.has_active_goal_location())
-            {
-                if (tpv_meets_gps_req_.has_location())
-                {
-                    if (tpv_meets_gps_req_.location().has_lat() &&
-                        tpv_meets_gps_req_.location().has_lon())
-                    {
-                        double distance = distanceToGoal(report.active_goal_location().lat(),
-                                                         report.active_goal_location().lon(),
-                                                         tpv_meets_gps_req_.location().lat(),
-                                                         tpv_meets_gps_req_.location().lon());
-                        // Set distance in meters
-                        distance = distance * (1000);
-                        latest_bot_status_.set_distance_to_active_goal(distance);
-                        if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
-                        {
-                            linear_regression();
-                            current_goal_dist_history_.pop();
-                        }
-                        current_goal_dist_history_.push(distance);
-                    }
-                }
-            }
-            else
-            {
-                latest_bot_status_.clear_distance_to_active_goal();
             }
         });
 
@@ -744,31 +703,6 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
     }*/
 }
 
-// This function converts decimal degrees to radians
-double jaiabot::apps::Fusion::deg2rad(const double& deg) { return (deg * M_PI / 180); }
-
-/**
- * Returns the distance between two points on the Earth.
- * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
- * @param lat1d Latitude of the first point in degrees
- * @param lon1d Longitude of the first point in degrees
- * @param lat2d Latitude of the second point in degrees
- * @param lon2d Longitude of the second point in degrees
- * @return The distance between the two points in kilometers
- */
-double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& lon1d,
-                                             const double& lat2d, const double& lon2d)
-{
-    double lat1r, lon1r, lat2r, lon2r, u, v;
-    lat1r = deg2rad(lat1d);
-    lon1r = deg2rad(lon1d);
-    lat2r = deg2rad(lat2d);
-    lon2r = deg2rad(lon2d);
-    u = sin((lat2r - lat1r) / 2);
-    v = sin((lon2r - lon1r) / 2);
-    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
-}
-
 /**
  * @brief Correcting heading After addition of Magnetic Declination
  * 
@@ -933,13 +867,4 @@ double jaiabot::apps::Fusion::degrees_difference(const double& heading, const do
     {
         return 360 - absDiff;
     }
-}
-
-double jaiabot::apps::Fusion::linear_regression()
-{
-    double a,b;
-
-    double xsum=0, x2sum=0, ysum=0, xysum=0;
-
-
 }
