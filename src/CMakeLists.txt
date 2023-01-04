@@ -35,6 +35,6 @@ if(build_web)
 endif()
 
 if(build_plot)
-  add_subdirectory(plot)
+  add_subdirectory(jdv)
 endif()
 
