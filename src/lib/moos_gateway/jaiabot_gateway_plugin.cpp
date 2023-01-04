@@ -86,6 +86,40 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
             break;
         }
 
+        case protobuf::IvPBehaviorUpdate::kConstantHeading:
+        {
+            glog.is_verbose() && glog << "kConstantHeading: " << update.ShortDebugString()
+                                      << std::endl;
+            std::stringstream update_ss;
+            if (update.constantheading().active())
+            {
+                update_ss << "heading=" << update.constantheading().heading();
+                moos().comms().Notify("JAIABOT_CONSTANTHEADING_UPDATES", update_ss.str());
+            }
+
+            moos().comms().Notify("JAIABOT_CONSTANTHEADING_ACTIVE",
+                                  update.constantheading().active() ? "true" : "false");
+
+            break;
+        }
+
+        case protobuf::IvPBehaviorUpdate::kConstantSpeed:
+        {
+            glog.is_verbose() && glog << "kConstantSpeed: " << update.ShortDebugString()
+                                      << std::endl;
+            std::stringstream update_ss;
+            if (update.constantspeed().active())
+            {
+                update_ss << "speed=" << update.constantspeed().speed();
+                moos().comms().Notify("JAIABOT_CONSTANTSPEED_UPDATES", update_ss.str());
+            }
+
+            moos().comms().Notify("JAIABOT_CONSTANTSPEED_ACTIVE",
+                                  update.constantspeed().active() ? "true" : "false");
+
+            break;
+        }
+
         case protobuf::IvPBehaviorUpdate::BEHAVIOR_NOT_SET: break;
     }
 }

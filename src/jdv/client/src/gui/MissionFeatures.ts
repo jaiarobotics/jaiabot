@@ -1,5 +1,6 @@
 import { Feature, Map } from "ol"
-import { LineString, Point } from "ol/geom"
+import { Coordinate } from "ol/coordinate"
+import { LineString, Geometry } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 import { createMarker } from './Marker'

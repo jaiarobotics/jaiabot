@@ -43,6 +43,7 @@ import {
 	Pointer as PointerInteraction,
 	defaults as defaultInteractions,
 	Interaction,
+	DragAndDrop,
 } from 'ol/interaction';
 import OlView from 'ol/View';
 import OlIcon from 'ol/style/Icon'
@@ -81,7 +82,6 @@ import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
 import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
-import { createBotFeature } from './gui/BotFeature'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -105,13 +105,14 @@ import {
 	faRuler,
 	faEdit,
 	faLayerGroup,
-	faWrench
+	faWrench,
+	IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 
 
 const jaiabot_icon = require('../icons/jaiabot.png')
 
-import {BotDetailsComponent, HubDetailsComponent} from './Details'
+import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
 import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
 
 import tooltips from '../libs/tooltips'
@@ -127,8 +128,8 @@ import 'reset-css';
 import '../style/CommandControl.less';
 import { transform } from 'ol/proj';
 
-const homeIcon = require('../icons/rally-point-red.svg')
-const rallyPointIcon = require('../icons/rally-point-green.svg')
+const rallyPointRedIcon = require('../icons/rally-point-red.svg')
+const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
 const missionOrientationIcon = require('../icons/compass.svg')
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
 const goToRallyRed = require('../icons/go-to-rally-point-red.png')
@@ -154,6 +155,8 @@ import { Feature as TFeature, Units } from '@turf/turf'
 import TileLayer from 'ol/layer/Tile'
 import { PodStatus } from './PortalStatus'
 import * as Styles from './gui/Styles'
+import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
+import { createBotFeature } from './gui/BotFeature'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -175,7 +178,16 @@ const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
-const POLLING_INTERVAL_MS = 500
+const POLLING_INTERVAL_MS = 300;
+
+const MAX_GOALS = 39;
+
+// Store Previous Mission History
+let previous_mission_history: any;
+
+String.prototype.endsWith = function(suffix) {
+	return this.slice(this.length - suffix.length, this.length) == suffix
+}
 
 // ===========================================================================================================================
 
@@ -191,7 +203,8 @@ enum Mode {
 	NONE = '',
 	MISSION_PLANNING = 'missionPlanning',
 	SET_HOME = 'setHome',
-	SET_RALLY_POINT = 'setRallyPoint'
+	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
+	SET_RALLY_POINT_RED = "setRallyPointRed"
 }
 
 interface MissionParams {
@@ -215,6 +228,7 @@ interface HubOrBot {
 }
 
 interface State {
+	engineeringPanelActive: boolean,
 	mode: Mode,
 	currentInteraction: Interaction | null,
 	selectedBotsFeatureCollection: OlCollection<OlFeature>,
@@ -225,7 +239,9 @@ interface State {
 	measureFeature?: OlFeature,
 	measureActive: boolean,
 	homeLocation?: GeographicCoordinate,
-	rallyPointLocation?: GeographicCoordinate,
+	rallyPointGreenLocation?: GeographicCoordinate,
+	rallyPointRedLocation?: GeographicCoordinate,
+	mapLayerActive: boolean,
 	missionParams: MissionParams,
 	missionPlans?: PodMission,
 	missionPlanningGrid?: any,
@@ -241,6 +257,7 @@ interface State {
 	surveyExclusions?: number[][],
 	selectedFeatures?: OlCollection<OlFeature>,
 	detailsBoxItem?: HubOrBot,
+	detailsExpanded: DetailsExpandedState,
 	goalBeingEdited?: Goal,
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
@@ -317,7 +334,8 @@ export default class CommandControl extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			homeLocation: null,
-			rallyPointLocation: null,
+			rallyPointGreenLocation: null,
+			rallyPointRedLocation: null,
 			missionParams: {
 				'mission_type': 'editing',
 				'num_bots': 4,
@@ -345,7 +363,19 @@ export default class CommandControl extends React.Component {
 			surveyPolygonChanged: false,
 			surveyExclusions: null,
 			selectedFeatures: null,
-			detailsBoxItem: null
+			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			detailsBoxItem: null,
+			detailsExpanded: {
+				quickLook: true,
+				commands: false,
+				health: false,
+				gps: false,
+				imu: false,
+				sensor: false,
+				power: false,
+			},
+			mapLayerActive: false, 
+			engineeringPanelActive: false
 		};
 
 		// Measure tool
@@ -861,6 +891,8 @@ export default class CommandControl extends React.Component {
 
 	componentDidMount() {
 
+		let test = "test"
+
 		//const backgroundColor = 0x000000;
 
 		/*////////////////////////////////////////*/
@@ -1000,32 +1032,40 @@ export default class CommandControl extends React.Component {
 
 		($('#mapLayers') as any).hide('blind', { direction: 'right' }, 0);
 
-
 		// Hotkeys
 		function KeyPress(e: KeyboardEvent) {
+			let target = e.target as any
 
-			// BotDetails number key shortcuts
-			if (e.code.startsWith('Digit')) {
-				const botId = Number(e.code[5])
+			switch (target.tagName.toLowerCase()) {
+				case "input":
+				case "textarea":
+				// ...and so on for other elements you want to exclude;
+				// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
+				  break;
+				default:
+					// BotDetails number key shortcuts
+					if (e.code.startsWith('Digit')) {
+						const botId = Number(e.code[5])
 
-				if (e.shiftKey) {
-					this.api.postCommand({
-						bot_id: botId,
-						type: "STOP"
-					})
+						if (e.shiftKey) {
+							this.api.postCommand({
+								bot_id: botId,
+								type: "STOP"
+							})
 
-					info("Stopped bot " + botId)
+							info("Stopped bot " + botId)
 
-					return
+							return
+						}
+
+						this.toggleBot(botId)
+						return
+					}
+
+				// Undo
+				if (e.keyCode == 90 && e.ctrlKey) {
+					this.restoreUndo()
 				}
-
-				this.toggleBot(botId)
-				return
-			}
-
-			// Undo
-			if (e.keyCode == 90 && e.ctrlKey) {
-				this.restoreUndo()
 			}
 		}
 
@@ -1069,7 +1109,7 @@ export default class CommandControl extends React.Component {
 		});
 
 		// Set addFeatures interaction
-		this.dragAndDropInteraction.on('addfeatures', function (event) {
+		this.dragAndDropInteraction.on('addfeatures', function (event: DragAndDropEvent) {
 			const vectorSource = new OlVectorSource({
 				features: event.features as any,
 			});
@@ -1138,7 +1178,7 @@ export default class CommandControl extends React.Component {
 		let surveyExclusionslistener: EventsKey
 		this.surveyExclusionsInteraction.on(
 			'drawstart',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({
 					surveyExclusions: null
 				})
@@ -1154,7 +1194,7 @@ export default class CommandControl extends React.Component {
 
 		this.surveyExclusionsInteraction.on(
 			'drawend',
-			(evt) => {
+			(evt: DrawEvent) => {
 				// console.log('surveyExclusionsInteraction drawend');
 
 				let featuresExclusions = [];
@@ -1281,6 +1321,7 @@ export default class CommandControl extends React.Component {
 		})
 
 		let surveyLineslistener: EventsKey
+
 		this.surveyLinesInteraction.on(
 			'drawstart',
 			(evt: DrawEvent) => {
@@ -1433,8 +1474,8 @@ export default class CommandControl extends React.Component {
 								missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
 							}
 
-							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat])), 2)
-							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.homeLocation.lon, this.state.homeLocation.lat])), 2)
+							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointGreenLocation.lon, this.state.rallyPointGreenLocation.lat])), 2)
+							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.rallyPointRedLocation.lon, this.state.rallyPointRedLocation.lat])), 2)
 
 							this.setState({
 								missionPlanningLines: alongLines,
@@ -1637,7 +1678,6 @@ export default class CommandControl extends React.Component {
 
 	updateActiveMissionLayer() {
 		const bots = this.podStatus.bots
-
 		let allFeatures = []
 
 		for (let botId in bots) {
@@ -1742,7 +1782,8 @@ export default class CommandControl extends React.Component {
 				healthState: bot.health_state,
 				faultLevel: faultLevel,
 				isDisconnected: bot.isDisconnected,
-				botId: botId
+				botId: botId,
+				isReacquiringGPS: bot.mission_state.endsWith('REACQUIRE_GPS')
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -1980,15 +2021,23 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	changeMissions(func: (mission: PodMission) => void) {
+	changeMissions(func: (mission: PodMission) => void, previousMissions: PodMission) {
 		// Save a backup of the current mission set
 		let oldMissions = deepcopy(this.missions)
+
+		if(previousMissions != null
+			|| previousMissions != undefined)
+		{
+			oldMissions = deepcopy(previousMissions);
+		}
 
 		// Do any alterations to the mission set
 		func(this.missions)
 
 		// If something was changed
-		if (oldMissions != this.missions) {
+		if (JSON.stringify(oldMissions) != JSON.stringify(this.missions) ) {
+			console.log("The old mission does not equal new mission");
+
 			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
@@ -1998,10 +2047,15 @@ export default class CommandControl extends React.Component {
 	}
 
 	restoreUndo() {
-		if (this.undoMissionsStack.length > 1) {
+		if (this.undoMissionsStack.length >= 1) {
+			
 			this.missions = this.undoMissionsStack.pop()
 			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
+		} 
+		else
+		{
+			info("There is no goal or task to undo!");
 		}
 	}
 
@@ -2043,7 +2097,7 @@ export default class CommandControl extends React.Component {
 
 	takeControl() {
 		if (this.weAreInControl()) return true;
-		return confirm('WARNING:  Another client is currently controlling the pod.  Click OK to take control of the pod.')
+		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2053,7 +2107,9 @@ export default class CommandControl extends React.Component {
 		const {
 			trackingTarget,
 			measureActive,
-			surveyPolygonActive
+			surveyPolygonActive,
+			mapLayerActive,
+			engineeringPanelActive
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2066,7 +2122,17 @@ export default class CommandControl extends React.Component {
 
 		let goalSettingsPanel: ReactElement = null
 		if (this.state.goalBeingEdited != null) {
-			goalSettingsPanel = <GoalSettingsPanel goal={this.state.goalBeingEdited} onChange={() => {this.updateMissionLayer()}} onClose={() => { this.state.goalBeingEdited = null }} />
+			goalSettingsPanel = 
+				<GoalSettingsPanel 
+					goal={this.state.goalBeingEdited} 
+					onChange={() => { this.updateMissionLayer() }} 
+					onClose={() => 
+						{ 
+							this.setState({goalBeingEdited: null})
+							this.changeMissions(() => {}, previous_mission_history);
+						}
+					} 
+				/>
 		}
 
 		// Add mission generation form to UI if the survey polygon has changed.
@@ -2114,7 +2180,10 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], this.api, closeDetails);
+				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
+												this.api, 
+												closeDetails, 
+												this.state.detailsExpanded);
 				
 				break;
 			case 'bot':
@@ -2127,9 +2196,10 @@ export default class CommandControl extends React.Component {
 												this.api, 
 												this.missions, 
 												closeDetails,
-												this.takeControl.bind(this));
+												this.takeControl.bind(this),
+												this.state.detailsExpanded);
 				break;
-			case null:
+			default:
 				detailsBox = null;
 				break;
 		}
@@ -2146,15 +2216,30 @@ export default class CommandControl extends React.Component {
 				<div id="layerinfo">&nbsp;</div>
 
 				<div id="viewControls">
-					<Button
-						className="button-jcc"
-						onClick={() => {
-							$('#mapLayers').toggle(0.25)
-							$('#mapLayersButton').toggleClass('active');
-						}}
-					>
-						<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-					</Button>
+
+					{mapLayerActive ? (
+						<Button className="button-jcc active"
+							onClick={() => {
+								this.setState({mapLayerActive: false}); 
+								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
+								$('#mapLayersButton').toggleClass('active');
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+						</Button>
+
+					) : (
+						<Button className="button-jcc"
+							onClick={() => {
+								this.setState({mapLayerActive: true}); 
+								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
+								$('#mapLayersButton').toggleClass('active');
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+						</Button>
+					)}
+
 					{measureActive ? (
 						<div>
 							<div id="measureResult" />
@@ -2227,7 +2312,7 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Survey Polygon" />
+								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
 							</Button>
 					) : (
 						<Button
@@ -2246,13 +2331,28 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit as any} title="Edit Survey Polygon" />
+							<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
 						</Button>
 					)}
+					
+					{engineeringPanelActive ? (
+						<Button className="button-jcc active" onClick={() => {
+								this.setState({engineeringPanelActive: false}); 
+								this.toggleEngineeringPanel();
+							}} 
+						>
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+						</Button>
 
-					<Button className="button-jcc" onClick={ this.toggleEngineeringPanel.bind(this) } >
-						<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-					</Button>
+					) : (
+						<Button className="button-jcc" onClick={() => {
+							this.setState({engineeringPanelActive: true}); 
+							this.toggleEngineeringPanel();
+						}} 
+						>
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+						</Button>
+					)}
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
@@ -2321,8 +2421,8 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div className="take-control-panel">Another client is in control of this pod
-				<button onClick={takeControl}>Take Control</button>
+			<div className="take-control-panel">Another client is in control of this team
+				<Button className="button-jcc" id="takeControlButton" onClick={takeControl}>Take Control</Button>
 			</div>
 		)
 	}
@@ -2338,17 +2438,18 @@ export default class CommandControl extends React.Component {
 
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotIds().at(-1)
+		let millisecondsSinceEpoch = new Date().getTime();
 
 		if (botId == null) {
 			return
 		}
 
 		this.changeMissions((missions) => {
-
+			
 			if (!(botId in missions)) {
 				missions[botId] = {
 					bot_id: botId,
-					time: 1642891753471247,
+					time: millisecondsSinceEpoch,
 					type: CommandType.MISSION_PLAN,
 					plan: {
 						start: MissionStart.START_IMMEDIATELY,
@@ -2358,10 +2459,16 @@ export default class CommandControl extends React.Component {
 					}
 				}
 			}
+			if(missions[botId].plan.goal.length < MAX_GOALS)
+			{
+				missions[botId].plan.goal.push({location: location})	
+			}
+			else
+			{
+				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
+			}
+		}, null)
 
-			missions[botId].plan.goal.push({location: location})
-
-		})
 	}
 
 	setGrid2Style(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
@@ -2513,16 +2620,16 @@ export default class CommandControl extends React.Component {
 		let surveyPolygonColor = '#051d61'
 		let surveyExclusionsColor = '#c40a0a'
 
-		let homeStyle = new OlStyle({
+		let rallyPointRedStyle = new OlStyle({
 			image: new OlIcon({
-				src: homeIcon,
+				src: rallyPointRedIcon,
 				scale: [0.5, 0.5]
 			})
 		})
 
-		let rallyPointStyle = new OlStyle({
+		let rallyPointGreenStyle = new OlStyle({
 			image: new OlIcon({
-				src: rallyPointIcon,
+				src: rallyPointGreenIcon,
 				scale: [0.5, 0.5]
 			})
 		})
@@ -2578,18 +2685,18 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Add Home, if available
-		if (this.state.homeLocation) {
-			let pt = equirectangular_to_mercator([this.state.homeLocation.lon, this.state.homeLocation.lat])
-			let homeFeature = new OlFeature({ geometry: new OlPoint(pt) })
-			homeFeature.setStyle(homeStyle)
-			features.push(homeFeature)
+		if (this.state.rallyPointRedLocation) {
+			let pt = equirectangular_to_mercator([this.state.rallyPointRedLocation.lon, this.state.rallyPointRedLocation.lat])
+			let rallyPointRedFeature = new OlFeature({ geometry: new OlPoint(pt) })
+			rallyPointRedFeature.setStyle(rallyPointRedStyle)
+			features.push(rallyPointRedFeature)
 		}
 
-		if (this.state.rallyPointLocation) {
-			let pt = equirectangular_to_mercator([this.state.rallyPointLocation.lon, this.state.rallyPointLocation.lat])
-			let rallyPointFeature = new OlFeature({ geometry: new OlPoint(pt) })
-			rallyPointFeature.setStyle(rallyPointStyle)
-			features.push(rallyPointFeature)
+		if (this.state.rallyPointGreenLocation) {
+			let pt = equirectangular_to_mercator([this.state.rallyPointGreenLocation.lon, this.state.rallyPointGreenLocation.lat])
+			let rallyPointGreenFeature = new OlFeature({ geometry: new OlPoint(pt) })
+			rallyPointGreenFeature.setStyle(rallyPointGreenStyle)
+			features.push(rallyPointGreenFeature)
 		}
 
 		if (this.state.surveyPolygonCoords) {
@@ -2631,10 +2738,10 @@ export default class CommandControl extends React.Component {
 			let bot_list = Object.keys(this.podStatus.bots);
 
 			// Bot rally point separation scheme
-			let rallyStartPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
+			let rallyStartPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointGreenLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
 			// console.log('rallyStartPoints');
 			// console.log(rallyStartPoints);
-			let rallyFinishPoints = this.findRallySeparation(deepcopy(bot_list), this.state.homeLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
+			let rallyFinishPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointRedLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
 			// console.log('rallyFinishPoints');
 			// console.log(rallyFinishPoints);
 
@@ -2755,7 +2862,12 @@ export default class CommandControl extends React.Component {
 	runMissions(missions: PodMission) {
 		if (!this.takeControl()) return
 
-		let botIds = Object.keys(missions)
+		let botIds = [];
+		for(let mission in missions)
+		{
+			botIds.push(missions[mission].bot_id);
+		}
+
 		botIds.sort()
 
 		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
@@ -2824,12 +2936,12 @@ export default class CommandControl extends React.Component {
 			if (selectedBotId != null) {
 				this.changeMissions(() => {
 					delete this.missions[selectedBotId]
-				})
+				}, undefined)
 			}
 			else {
 				this.changeMissions(() => {
 					this.missions = {}
-				})
+				}, undefined)
 			}
 
 			this.setState({
@@ -2899,8 +3011,13 @@ export default class CommandControl extends React.Component {
 			return false // Not a drag event
 		}
 
-		if (this.state.mode == Mode.SET_RALLY_POINT) {
-			this.placeRallyPointAtCoordinate(evt.coordinate)
+		if (this.state.mode == Mode.SET_RALLY_POINT_GREEN) {
+			this.placeRallyPointGreenAtCoordinate(evt.coordinate)
+			return false // Not a drag event
+		}
+
+		if (this.state.mode == Mode.SET_RALLY_POINT_RED) {
+			this.placeRallyPointRedAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
 
@@ -2909,10 +3026,11 @@ export default class CommandControl extends React.Component {
 		});
 
 		if (feature) {
+			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 
-			// Clicked on a goal / waypoint
 			if (goal != null) {
+				previous_mission_history = deepcopy(this.missions);
 				this.setState({goalBeingEdited: goal})
 				return false
 			}
@@ -2952,15 +3070,27 @@ export default class CommandControl extends React.Component {
 		this.updateMissionLayer()
 	}
 
-	placeRallyPointAtCoordinate(coordinate: number[]) {
+	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
-			rallyPointLocation: location,
+			rallyPointGreenLocation: location,
 			mode: ''
 		})
 
-		this.toggleMode(Mode.SET_RALLY_POINT)
+		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
+		this.updateMissionLayer()
+	}
+
+	placeRallyPointRedAtCoordinate(coordinate: number[]) {
+		let lonlat = mercator_to_equirectangular(coordinate)
+		let location = {lon: lonlat[0], lat: lonlat[1]}
+		this.setState({
+			rallyPointRedLocation: location,
+			mode: ''
+		})
+
+		this.toggleMode(Mode.SET_RALLY_POINT_RED)
 		this.updateMissionLayer()
 	}
 
@@ -2998,16 +3128,16 @@ export default class CommandControl extends React.Component {
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
-				<Button className="button-jcc" id="setRallyPoint" onClick={this.setRallyPointClicked.bind(this)}>
-					<img src={rallyPointIcon} title="Set Start Rally" />
+				<Button className="button-jcc" id="setRallyPointGreen" onClick={this.setRallyPointGreenClicked.bind(this)}>
+					<img src={rallyPointGreenIcon} title="Set Start Rally" />
 				</Button>
-				<Button className="button-jcc inactive" id="goToRallyGreen" disabled>
+				<Button className="button-jcc" id="goToRallyGreen" onClick={this.goToRallyGreen.bind(this)}>
 					<img src={goToRallyGreen} title="Go To Start Rally" />
 				</Button>
-				<Button className="button-jcc" id="setHome" onClick={this.setHomeClicked.bind(this)}>
-					<img src={homeIcon} title="Set Finish Rally" />
+				<Button className="button-jcc" id="setRallyPointRed" onClick={this.setRallyPointRedClicked.bind(this)}>
+					<img src={rallyPointRedIcon} title="Set Finish Rally" />
 				</Button>
-				<Button className="button-jcc" id="goHome" onClick={this.goHomeClicked.bind(this)}>
+				<Button className="button-jcc" id="goToRallyRed" onClick={this.goToRallyRed.bind(this)}>
 					<img src={goToRallyRed} title="Go To Finish Rally" />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
@@ -3065,21 +3195,59 @@ export default class CommandControl extends React.Component {
 	}
 
 	undoButton() {
-		let disabled = (this.undoMissionsStack.length == 0)
-		let inactive = disabled ? " inactive" : ""
-		return (<Button className={"globalCommand" + inactive + " button-jcc"} onClick={this.restoreUndo.bind(this)} disabled={disabled}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
+		return (<Button className={"globalCommand" + " button-jcc"} onClick={this.restoreUndo.bind(this)}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
 	setHomeClicked(evt: UIEvent) {
 		this.toggleMode(Mode.SET_HOME)
 	}
 
-	setRallyPointClicked(evt: UIEvent) {
-		this.toggleMode(Mode.SET_RALLY_POINT)
+	setRallyPointRedClicked(evt: Event) {
+		this.toggleMode(Mode.SET_RALLY_POINT_RED)
+	}
+
+	setRallyPointGreenClicked(evt: Event) {
+		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
 	}
 
 	goHomeClicked(evt: UIEvent) {
 		this.returnToHome()
+	}
+
+	goToRallyGreen(evt: UIEvent) {
+		if (!this.state.rallyPointGreenLocation) {
+			alert('No green rally point selected.  Click on the map to select a green rally location and try again.')
+			return
+		}
+
+		let goToRallyGreenMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointGreenLocation]))
+		if (goToRallyGreenMission.length == 0)
+		{
+			for(let bot in this.podStatus.bots)
+			{
+				goToRallyGreenMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation]))
+			}
+		}
+
+		this.runMissions(goToRallyGreenMission)
+	}
+
+	goToRallyRed(evt: UIEvent) {
+		if (!this.state.rallyPointRedLocation) {
+			alert('No red rally point selected.  Click on the map to select a red rally location and try again.')
+			return
+		}
+
+		let goToRallyRedMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointRedLocation]))
+		if (goToRallyRedMission.length == 0)
+		{
+			for(let bot in this.podStatus.bots)
+			{
+				goToRallyRedMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointRedLocation]))
+			}
+		}
+
+		this.runMissions(goToRallyRedMission)
 	}
 
 	playClicked(evt: UIEvent) {

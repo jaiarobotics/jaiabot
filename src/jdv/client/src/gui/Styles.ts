@@ -16,6 +16,8 @@ const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
 const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
+const satellite = require('./satellite.svg') as string
+
 
 // Colors
 const defaultColor = 'white'
@@ -23,7 +25,7 @@ const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
-const disconnectedColor = 'red'
+const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
 
 export const startMarker = new Style({
@@ -74,7 +76,7 @@ export function botMarker(feature: Feature): Style[] {
 
     const text = String(feature.get('botId'))
 
-    return [ 
+    var style = [ 
         // Bot body marker
         new Style({
             image: new Icon({
@@ -95,6 +97,22 @@ export function botMarker(feature: Feature): Style[] {
             })
         })
     ]
+
+    if (feature.get('isReacquiringGPS')) {
+        style.push(
+            new Style({
+                image: new Icon({
+                    src: satellite,
+                    color: color,
+                    anchor: [0.5, -1.25],
+                    rotation: heading,
+                    rotateWithView: true
+                })
+            })
+        )
+    }
+
+    return style
 }
 
 
@@ -196,6 +214,18 @@ export function divePacket(dive: DivePacket) {
         })
     })
 }
+
+
+interface EstimatedDrift {
+    speed: number
+    heading: number
+}
+
+
+interface DriftTask {
+    estimated_drift: EstimatedDrift
+}
+
 
 
 interface EstimatedDrift {

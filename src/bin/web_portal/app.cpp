@@ -258,16 +258,15 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
 {
     using jaiabot::protobuf::Command;
 
-    glog.is_debug2() && glog << group("main") << "Sending command: " << command.ShortDebugString()
+    glog.is_debug2() && glog << group("main")
+                             << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
 
     goby::middleware::Publisher<Command> command_publisher(
         {}, [](Command& cmd, const goby::middleware::Group& group)
         { cmd.set_bot_id(group.numeric()); });
 
-    intervehicle().publish_dynamic(
-        command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
-        command_publisher);
+    interprocess().publish<jaiabot::groups::hub_command_full>(command);
 
     if (command.has_plan())
     {

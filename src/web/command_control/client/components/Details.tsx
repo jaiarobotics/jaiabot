@@ -10,11 +10,13 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import Icon from '@mdi/react'
+import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
+const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
+const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
 import Button from '@mui/material/Button';
 import { Missions, PodMission } from './Missions';
 import { error, warning, info} from '../libs/notifications';
@@ -25,7 +27,6 @@ import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
 import { Command, CommandType, BotStatus, HubStatus, MissionState } from './gui/JAIAProtobuf';
 import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
-
 
 let prec = 2
 
@@ -42,7 +43,8 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.ACTIVATE,
         description: 'Activate Bot',
         statesAvailable: [
-            /^.+__IDLE$/
+            /^.+__IDLE$/,
+            /^PRE_DEPLOYMENT__FAILED$/
         ]
     },
     nextTask: {
@@ -64,42 +66,74 @@ let commands: {[key: string]: CommandInfo} = {
         description: 'Stop',
         statesAvailable: [
             /^IN_MISSION__.+$/
+        ],
+        statesNotAvailable: [
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
         ]
     },
     play: {
         commandType: CommandType.START_MISSION,
         description: 'Play mission',
-        statesNotAvailable: [
-            /^.+__IDLE$/
+        statesAvailable: [
+            /^IN_MISSION__.+$/,
+            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
         ]
     },
     rcMode: {
         commandType: CommandType.REMOTE_CONTROL_TASK,
         description: 'RC mission',
-        statesNotAvailable: [
-            /^.+__IDLE$/
+        statesAvailable: [
+            /^IN_MISSION__.+$/,
+            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
         ]
     },
     recover: {
         commandType: CommandType.RECOVERED,
         description: 'Recover Bot',
         statesAvailable: [
-            /^IN_MISSION__.+$/
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
         ]
     },
     shutdown: {
         commandType: CommandType.SHUTDOWN,
         description: 'Shutdown Bot',
+        statesAvailable: [
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
+            /^PRE_DEPLOYMENT.+$/,
+            /^POST_DEPLOYMENT.+$/,
+        ]
     },
     restartServices: {
         commandType: CommandType.RESTART_ALL_SERVICES,
-        description: 'Restart Services'
+        description: 'Restart Services',
+        statesAvailable: [
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
+            /^PRE_DEPLOYMENT.+$/,
+            /^POST_DEPLOYMENT.+$/,
+        ]
     },
     reboot: {
         commandType: CommandType.REBOOT_COMPUTER,
-        description: 'Reboot Bot'
+        description: 'Reboot Bot',
+        statesAvailable: [
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
+            /^PRE_DEPLOYMENT.+$/,
+            /^POST_DEPLOYMENT.+$/,
+        ]
     }
 }
+
+
+export interface DetailsExpandedState {
+    quickLook: boolean
+    commands: boolean
+    health: boolean
+    gps: boolean
+    imu: boolean
+    sensor: boolean
+    power: boolean
+}
+
 
 var takeControlFunction: () => boolean
 
@@ -179,16 +213,24 @@ function disableButton(command: CommandInfo, mission_state: MissionState)
     let statesNotAvailable = command.statesNotAvailable
     if (statesAvailable != null
             && statesAvailable != undefined) {
-
+        disable = true;
         for (let stateAvailable of statesAvailable) {
-            if (!stateAvailable.test(mission_state)) disable = true; break;
+            if (stateAvailable.test(mission_state))
+            {
+                disable = false; 
+                break;
+            }
         }
     }
 
     if (statesNotAvailable != null
         || statesNotAvailable != undefined) {
         for (let stateNotAvailable of statesNotAvailable) {
-            if (stateNotAvailable.test(mission_state)) disable = true; break;
+            if (stateNotAvailable.test(mission_state))
+            {
+                disable = true;
+                break;
+            }
         }
     }
 
@@ -247,7 +289,18 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, missions: PodMission, closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean) {
+function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyof DetailsExpandedState)
+{
+    if(isExpanded[accordian])
+    {
+        isExpanded[accordian] = false;
+    } else
+    {
+        isExpanded[accordian] = true;
+    }
+}
+
+export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, missions: PodMission, closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -292,7 +345,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
         let hubloc = turf.point([hub.location.lon, hub.location.lat]);
         var options = {units: 'meters' as turf.Units};
 
-        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(prec);
+        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1);
     }
 
     let mission_state = bot.mission_state;
@@ -305,11 +358,16 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
-                <Accordion defaultExpanded className="accordion">
+                <h3 className="name">Click on the map to create goals</h3>
+                <Accordion 
+                    expanded={isExpanded.quickLook} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>Quick Look</Typography>
                     </AccordionSummary>
@@ -320,14 +378,13 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     <td>Status Age</td>
                                     <td>{statusAge.toFixed(0)} s</td>
                                 </tr>
-                                {healthRow(bot, false)}
-                                <tr>
-                                    <td>Distance from Hub</td>
-                                    <td>{distToHub} m</td>
-                                </tr>
                                 <tr>
                                     <td>Mission State</td>
                                     <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n')}</td>
+                                </tr>
+                                <tr>
+                                    <td>Battery Percentage</td>
+                                    <td>{bot.battery_percent?.toFixed(prec)} %</td>
                                 </tr>
                                 <tr>
                                     <td>Active Goal</td>
@@ -338,22 +395,22 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     <td style={{whiteSpace: "pre-line"}}>{(distToGoal)}</td>
                                 </tr>
                                 <tr>
-                                    <td>Vcc Voltage</td>
-                                    <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
-                                </tr>
-                                <tr>
-                                    <td>Battery Percentage</td>
-                                    <td>{bot.battery_percent?.toFixed(prec)} %</td>
+                                    <td>Distance from Hub</td>
+                                    <td>{distToHub} m</td>
                                 </tr>
                             </tbody>
                         </table>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.commands} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "commands")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>Commands</Typography>
                     </AccordionSummary>
@@ -395,12 +452,27 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.recover, mission_state).isDisabled} 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
-                            <Icon path={mdiDownload} title="Recover"/>
+                            <Icon path={mdiDownload} title="Data Offload"/>
                         </Button>
                         
                         <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, bot.bot_id, commands.shutdown) }}>
+                                onClick={() => 
+                                    { 
+                                        if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
+                                        {
+                                            if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
+                                            {
+                                                issueCommand(api, bot.bot_id, commands.shutdown);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            issueCommand(api, bot.bot_id, commands.shutdown);
+                                        }
+                                    }
+                                }
+                        >
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
                         
@@ -416,13 +488,17 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </Button>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.health} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "health")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
-                        <Typography>Health Details</Typography>
+                        <Typography>Health</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -432,11 +508,15 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </table>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.gps} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "gps")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>GPS</Typography>
                     </AccordionSummary>
@@ -471,11 +551,15 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </table>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.imu} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "imu")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>IMU</Typography>
                     </AccordionSummary>
@@ -514,13 +598,17 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </table>              
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.sensor} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "sensor")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
-                        <Typography>Sensor Data</Typography>
+                        <Typography>Sensors</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <table>
@@ -541,11 +629,15 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </table>   
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.power} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "power")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>Power</Typography>
                     </AccordionSummary>
@@ -577,7 +669,8 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     )
 }
 
-export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>) {
+
+export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState) {
     if (hub == null) {
         return (<div></div>)
     }
@@ -600,11 +693,15 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
                     <div onClick={closeWindow} className="closeButton">⨯</div>
                 </div>
 
-                <Accordion defaultExpanded className="accordion">
+                <Accordion 
+                    expanded={isExpanded.quickLook} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>Quick Look</Typography>
                     </AccordionSummary>
@@ -629,11 +726,15 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
                         </table>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion className="accordion">
+                <Accordion 
+                    expanded={isExpanded.commands} 
+                    onChange={() => {changeDefaultExpanded(isExpanded, "commands")}}
+                    className="accordion"
+                >
                     <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
                     >
                         <Typography>Commands</Typography>
                     </AccordionSummary>
