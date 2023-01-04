@@ -104,7 +104,12 @@ export class GoalSettingsPanel extends React.Component {
                 break;
             case 'CONSTANT_HEADING':
                 goal.task = {
-                    type: taskType
+                    type: taskType,
+                    constant_heading: {
+                        heading: Settings.constantHeading.get(),
+                        time: Settings.constantHeadingTime.get(),
+                        speed: Settings.constantHeadingSpeed.get()
+                    }
                 }
                 break;
             default:
@@ -182,6 +187,23 @@ export class GoalSettingsPanel extends React.Component {
                         <tr>
                             <td>Drift Time</td>
                             <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        )
+    }
+
+    ConstantHeadingOptionsPanel() {
+        let surface_drift = this.state.goal.task.surface_drift
+
+        return (
+            <div>
+                <table className="DiveParametersTable">
+                    <tbody>
+                        <tr>
+                            <td>Drift Time</td>
+                            <td><input type="number" step="1" className="NumberInput" name="heading" defaultValue={constant_heading.heading} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>

@@ -1,7 +1,10 @@
 import React from "react"
+import {Plot} from "./Plot"
 import { bisect } from "./bisect"
 
-export function DataTable(plots, timestamp_micros) {
+type PlotList = Plot[]
+
+export function DataTable(plots: PlotList, timestamp_micros: number) {
     if (plots.length == 0) return null
 
     const headerRow = (
@@ -15,7 +18,7 @@ export function DataTable(plots, timestamp_micros) {
         {plots.map((plot, plotIndex) => {
           const index = bisect(plot._utime_, (_utime_) => {
             return timestamp_micros - _utime_
-          })?.[0]
+          })?.index
 
           const value = plot.series_y[index]
           const enumDescription = plot.hovertext?.[value]
