@@ -43,12 +43,8 @@
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
-#include <bits/stdc++.h>
 #include <cmath>
 #include <math.h>
-#include <queue>
-
-#define earthRadiusKm 6371.0
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 

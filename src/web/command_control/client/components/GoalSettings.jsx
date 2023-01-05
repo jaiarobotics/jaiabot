@@ -187,12 +187,38 @@ export class GoalSettingsPanel extends React.Component {
         const key = evt.target.name
         const value = Number(evt.target.value)
 
-        this.settingMap[key].set(value)
+        if(key == "constant_heading")
+        {
+            if(value <= 360 
+                && value >= 0)
+            {  
+                this.settingMap[key].set(value)
 
-        goal.task.constant_heading[key] = value;
+                goal.task.constant_heading[key] = value;
 
-        console.log(goal);
-        this.setState({goal})
+                this.setState({goal})
+            }
+        } 
+        else if(key == "constant_heading_speed")
+        {
+            if(value <= 3 
+                && value >= 0)
+            {
+                this.settingMap[key].set(value)
+
+                goal.task.constant_heading[key] = value;
+    
+                this.setState({goal})
+            }
+        } 
+        else
+        {
+            this.settingMap[key].set(value)
+
+            goal.task.constant_heading[key] = value;
+
+            this.setState({goal})
+        }
     }
 
     driftOptionsPanel() {
@@ -214,7 +240,7 @@ export class GoalSettingsPanel extends React.Component {
 
     ConstantHeadingOptionsPanel() {
         let constant_heading = this.state.goal.task.constant_heading
-        console.log(constant_heading);
+
         return (
             <div id="ConstantHeadingDiv">
                 <table className="ConstantHeadingParametersTable">
