@@ -3103,21 +3103,40 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		let botIds = [];
+		let botIdsInIdleState = [];
 		for(let mission in missions)
 		{
-			botIds.push(missions[mission].botId);
+			let botState = this.podStatus.bots[missions[mission].botId].mission_state;
+			console.log(botState);
+			if(botState == "PRE_DEPLOYMENT__IDLE"
+				|| botState == "POST_DEPLOYMENT__IDLE")
+			{
+				botIdsInIdleState.push(missions[mission].botId);
+			}
+			else
+			{
+				botIds.push(missions[mission].botId);
+			}
 		}
 
 		botIds.sort()
+		botIdsInIdleState.sort();
 
-		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-			for (let bot_id in missions) {
-				let mission = missions[bot_id]
-				this.missions[mission.bot_id] = deepcopy(mission)
-				this._runMission(mission)
+		if(botIdsInIdleState.length != 0)
+		{
+			warning("Please activate bots: " + botIdsInIdleState);
+		} 
+		else
+		{
+			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
+				for (let bot_id in missions) {
+					let mission = missions[bot_id]
+					this.missions[mission.bot_id] = deepcopy(mission)
+					this._runMission(mission)
+				}
+				success("Submitted missions")
+				this.updateMissionLayer()
 			}
-			success("Submitted missions")
-			this.updateMissionLayer()
 		}
 	}
 
@@ -3160,17 +3179,44 @@ export default class CommandControl extends React.Component {
 			botIds = Object.keys(this.missions)
 		}
 
-		if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
-			for (let bot_id of botIds) {
-				let mission = this.missions[bot_id]
-				if (mission) {
-					this._runMission(mission)
-				}
-				else {
-					error('No mission set for bot ' + bot_id)
-				}
+		const index = botIds.indexOf("undefined");
+		if (index > -1) { // only splice array when item is found
+			botIds.splice(index, 1); // 2nd parameter means remove one item only
+		}
+
+		let botIdsInIdleState = [];
+		for(let botId in botIds)
+		{
+			let botState = this.podStatus.bots[botIds[botId]].mission_state;
+
+			if(botState == "PRE_DEPLOYMENT__IDLE"
+				|| botState == "POST_DEPLOYMENT__IDLE")
+			{
+				botIdsInIdleState.push(botId);
 			}
-			info('Submitted missions for ' + botIds.length + ' bots')
+		}
+
+		botIds.sort()
+		botIdsInIdleState.sort();
+
+		if(botIdsInIdleState.length != 0)
+		{
+			warning("Please activate bots: " + botIdsInIdleState);
+		} 
+		else
+		{
+			if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
+				for (let bot_id of botIds) {
+					let mission = this.missions[bot_id]
+					if (mission) {
+						this._runMission(mission)
+					}
+					else {
+						error('No mission set for bot ' + bot_id)
+					}
+				}
+				info('Submitted missions for ' + botIds.length + ' bots')
+			}	
 		}
 	}
 

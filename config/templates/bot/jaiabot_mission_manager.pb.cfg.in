@@ -27,11 +27,6 @@ surfacing_timeout: 35  #  (optional) (default=30)
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 10 # (optional) (default=5)
 
-# Constant Heading Task
-constant_heading_timeout: 30 # (optional) (default=0)
-constant_heading: 270 # (optional) (default=0)
-constant_heading_speed: 1 # (optional) (default=1)
-
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
 total_gps_degraded_fix_checks: 2 # (optional) (default=2)
@@ -64,3 +59,7 @@ include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
 include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+
+# Bottom depth safety behavior
+min_depth_safety: 1 # (default = 2)
+min_depth_safety_skip_drift: false # (default = false)

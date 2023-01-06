@@ -67,15 +67,11 @@ message MissionManager
     // The pdop value to check against to determine gps fix after a dive
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
-    // Constant heading timeout ends the constant heading task
-    optional double constant_heading_timeout = 41
-        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+    // Min depth safety behavior
+    optional uint32 min_depth_safety = 41 [default = 2];
 
-    // Constant heading indicates where the bot should drive while in the constant heading task
-    optional double constant_heading = 42 [default = 0];
-
-    // Constant heading speed indicates the speed the bot should drive while in the constant heading task (m/s)
-    optional double constant_heading_speed = 43 [default = 1];
+    // Min depth skip drift task after reacquiring gps
+    optional bool min_depth_safety_skip_drift = 42 [default = false];
 
     // Time factor used to increase/decrease time to travel to goal
     optional double goal_timeout_buffer_factor = 44 [default = 1];
