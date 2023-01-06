@@ -494,6 +494,12 @@ struct InMission
         }
     }
 
+    void set_goal_index_to_final_goal()
+    {
+        // Sets goal index to be the final goal index
+        goal_index_ = (this->machine().mission_plan().goal_size() - 1);
+    }
+
     void set_mission_complete() { mission_complete_ = true; }
 
     using reactions =
@@ -955,7 +961,15 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
     {
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
         if (now >= drift_time_stop_)
+        {
             this->post_event(EvTaskComplete());
+
+            if (this->template context<Task>().task_packet().dive().reached_min_depth())
+            {
+                this->template context<InMission>().set_goal_index_to_final_goal();
+                this->post_event(statechart::EvReturnToHome());
+            }
+        }
 
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
@@ -1106,6 +1120,15 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
         dive_depths_.clear();
         dive_depths_.push_back(seafloor_depth);
         dive_packet().set_bottom_dive(true);
+
+        goby::glog.is_debug2() && goby::glog << "Seafloor Depth: " << seafloor_depth.value()
+                                             << " , Safety Depth: " << cfg().min_depth_safety()
+                                             << std::endl;
+
+        if (seafloor_depth.value() <= (cfg().min_depth_safety() + cfg().dive_depth_eps()))
+        {
+            dive_packet().set_reached_min_depth(true);
+        }
     }
 
   private:
@@ -1259,8 +1282,23 @@ struct ReacquireGPS
                                << ev.pdop << " <= " << this->cfg().gps_after_dive_pdop_fix()
                                << " Reset incr for gps degraded fix" << std::endl;
 
-                // Post Event for gps fix
-                this->post_event(statechart::EvGPSFix());
+                goby::glog.is_debug2() &&
+                    goby::glog << "Reached Min depth: "
+                               << context<Task>().task_packet().dive().reached_min_depth()
+                               << " , Skip drift: " << this->cfg().min_depth_safety_skip_drift()
+                               << std::endl;
+
+                if (context<Task>().task_packet().dive().reached_min_depth() &&
+                    this->cfg().min_depth_safety_skip_drift())
+                {
+                    context<InMission>().set_goal_index_to_final_goal();
+                    this->post_event(statechart::EvReturnToHome());
+                }
+                else
+                {
+                    // Post Event for gps fix
+                    this->post_event(statechart::EvGPSFix());
+                }
             }
         }
         else

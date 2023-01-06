@@ -332,16 +332,19 @@ message DivePacket
 
     // Did we reach seafloor?
     optional bool bottom_dive = 17 [default = false];
+
+    // Did we reach min depth?
+    optional bool reached_min_depth = 18 [default = false];
 }
 
 message TaskPacket
 {
     /*
     Actual maximum size of message: 197 bytes / 1576 bits
-            dccl.id head..........................16
-            user head..............................0
-            body................................1556
-            padding to full byte...................4
+        dccl.id head..........................16
+        user head..............................0
+        body................................1559
+        padding to full byte...................1
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {

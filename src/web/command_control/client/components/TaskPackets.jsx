@@ -153,6 +153,7 @@ export class TaskData {
     bot_id: 0
     dive: 
         bottom_dive: false
+        reached_min_depth: false
         depth_achieved: 1
         dive_rate: 0.5
         duration_to_acquire_gps: 0.3
@@ -228,10 +229,18 @@ export class TaskData {
                     })
                 });
 
+                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved;
+
+                if(divePacket.reached_min_depth)
+                {
+                    bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
+                                        + '\nReached Min Depth: ' + divePacket.reached_min_depth;
+                }
+
                 let iconBottomInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
-                        text : `Bottom Depth (m): ` + divePacket.depth_achieved,
+                        text : bottomDiveText,
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
@@ -262,7 +271,7 @@ export class TaskData {
                 taskDiveFeatures.push(diveFeature) 
                 taskDiveInfoFeatures.push(diveInfoFeature)
                 
-                if(divePacket.bottomDive)
+                if(divePacket.bottom_dive)
                 {
                     taskDiveBottomFeatures.push(diveBottomFeature) 
                     taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
