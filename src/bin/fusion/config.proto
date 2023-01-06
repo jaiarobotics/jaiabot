@@ -71,5 +71,4 @@ message Fusion
     optional float battery_percentage_low_level = 41 [default = 30];
     optional float battery_percentage_very_low_level = 42 [default = 20];
     optional float battery_percentage_critically_low_level = 43 [default = 10];
-
 }

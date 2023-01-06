@@ -21,7 +21,7 @@ then
   nvm use v18.12.1
 fi
 
-which webpack &> /dev/null || npm install -g --no-audit webpack webpack-cli
+npm install i -g --no-audit webpack webpack-cli
 
 if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
 then

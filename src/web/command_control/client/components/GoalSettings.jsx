@@ -18,6 +18,16 @@ export class GoalSettingsPanel extends React.Component {
 
         this.onClose = props.onClose
         this.onChange = props.onChange
+
+        this.settingMap = {
+            max_depth: Settings.diveMaxDepth,
+            hold_time: Settings.diveHoldTime,
+            depth_interval: Settings.diveHoldTime,
+            drift_time: Settings.driftTime,
+            constant_heading: Settings.constantHeading,
+            constant_heading_time: Settings.constantHeadingTime,
+            constant_heading_speed: Settings.constantHeadingSpeed,
+        }
     }
 
     componentDidUpdate() {
@@ -27,7 +37,7 @@ export class GoalSettingsPanel extends React.Component {
     render() {
         self = this
 
-        var taskOptionsPanel
+        let taskOptionsPanel = <div></div>
         let taskType = this.state.goal.task?.type
 
         switch (taskType) {
@@ -37,9 +47,9 @@ export class GoalSettingsPanel extends React.Component {
             case 'SURFACE_DRIFT':
                 taskOptionsPanel = this.driftOptionsPanel()
                 break;
-            //case 'CONSTANT_HEADING':
-            //    taskOptionsPanel = <div></div>
-            //    break;
+            case 'CONSTANT_HEADING':
+                taskOptionsPanel = this.ConstantHeadingOptionsPanel()
+                break;
             default:
                 taskOptionsPanel = <div></div>
                 break;
@@ -55,7 +65,7 @@ export class GoalSettingsPanel extends React.Component {
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
                     <option value="STATION_KEEP">Station Keep</option>
-                    {/*<option value="CONSTANT_HEADING">Constant Heading</option>*/}
+                    <option value="CONSTANT_HEADING">Constant Heading</option>
                 </select>
                 { taskOptionsPanel }
 
@@ -102,16 +112,21 @@ export class GoalSettingsPanel extends React.Component {
                     type: taskType
                 }
                 break;
-            //case 'CONSTANT_HEADING':
-            //    goal.task = {
-            //        type: taskType
-            //    }
-            //    break;
+            case 'CONSTANT_HEADING':
+                goal.task = {
+                    type: taskType,
+                    constant_heading: {
+                        constant_heading: Settings.constantHeading.get(),
+                        constant_heading_time: Settings.constantHeadingTime.get(),
+                        constant_heading_speed: Settings.constantHeadingSpeed.get()
+                    }
+                }
+                break;
             default:
                 goal.task = null
                 break;
         }
-        
+
         this.setState({goal})
     }
 
@@ -120,24 +135,24 @@ export class GoalSettingsPanel extends React.Component {
         let surface_drift = this.state.goal.task.surface_drift
 
         return (
-            <div>
+            <div id="DiveDiv">
                 <table className="DiveParametersTable">
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeParameter.bind(this))} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="max_depth" value={dive.max_depth} onChange={(this.changeParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeParameter.bind(this)} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" value={dive.depth_interval} onChange={this.changeParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="hold_time" value={dive.hold_time} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -147,18 +162,11 @@ export class GoalSettingsPanel extends React.Component {
 
     changeParameter(evt) {
         let {goal} = this.state
-
+        
         const key = evt.target.name
         const value = Number(evt.target.value)
 
-        const settingMap = {
-            max_depth: Settings.diveMaxDepth,
-            hold_time: Settings.diveHoldTime,
-            depth_interval: Settings.diveDepthInterval,
-            drift_time: Settings.driftTime
-        }
-
-        settingMap[key].set(value)
+        this.settingMap[key].set(value)
 
         if(key != "drift_time")
         {
@@ -172,16 +180,82 @@ export class GoalSettingsPanel extends React.Component {
         this.setState({goal})
     }
 
+    changeConstantHeadingParameter(evt)
+    {
+        let {goal} = this.state
+        
+        const key = evt.target.name
+        const value = Number(evt.target.value)
+
+        if(key == "constant_heading")
+        {
+            if(value <= 360 
+                && value >= 0)
+            {  
+                this.settingMap[key].set(value)
+
+                goal.task.constant_heading[key] = value;
+
+                this.setState({goal})
+            }
+        } 
+        else if(key == "constant_heading_speed")
+        {
+            if(value <= 3 
+                && value >= 0)
+            {
+                this.settingMap[key].set(value)
+
+                goal.task.constant_heading[key] = value;
+    
+                this.setState({goal})
+            }
+        } 
+        else
+        {
+            this.settingMap[key].set(value)
+
+            goal.task.constant_heading[key] = value;
+
+            this.setState({goal})
+        }
+    }
+
     driftOptionsPanel() {
         let surface_drift = this.state.goal.task.surface_drift
 
         return (
-            <div>
-                <table className="DiveParametersTable">
+            <div id="DriftDiv">
+                <table className="DriftParametersTable">
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" value={surface_drift.drift_time} onChange={this.changeParameter.bind(this)} /> s</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        )
+    }
+
+    ConstantHeadingOptionsPanel() {
+        let constant_heading = this.state.goal.task.constant_heading
+
+        return (
+            <div id="ConstantHeadingDiv">
+                <table className="ConstantHeadingParametersTable">
+                    <tbody>
+                        <tr>
+                            <td>Heading</td>
+                            <td><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
+                        </tr>
+                        <tr>
+                            <td>Time</td>
+                            <td><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
+                        </tr>
+                        <tr>
+                            <td>Speed</td>
+                            <td><input type="number" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
                         </tr>
                     </tbody>
                 </table>

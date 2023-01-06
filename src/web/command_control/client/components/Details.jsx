@@ -18,23 +18,13 @@ import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline,
 import rcMode from '../icons/controller.svg'
 import goToRallyGreen from '../icons/go-to-rally-point-green.png'
 import goToRallyRed from '../icons/go-to-rally-point-red.png'
-import MuiButton from '@mui/material/Button';
-const Button = MuiButton
+import Button from '@mui/material/Button';
 import { Settings } from './Settings'
 import { Missions } from './Missions'
 import { error, success, warning, info} from '../libs/notifications';
 
 // TurfJS
 import * as turf from '@turf/turf';
-// import { withStyles } from '@material-ui/styles';
-
-// const Button = withStyles({
-//   root: {
-//     "&.Mui-disabled": {
-//       pointerEvents: "auto"
-//     }
-//   }
-// })(MuiButton);
 
 let prec = 2
 
@@ -310,6 +300,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
     // Active Goal
     let activeGoal = bot.active_goal ?? "N/A"
     let distToGoal = bot.distance_to_active_goal ?? "N/A"
+    let goalTimeout = bot.active_goal_timeout ?? "N/A"
 
     if(activeGoal != "N/A"
         && distToGoal == "N/A")
@@ -326,6 +317,11 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
     {
         activeGoal = "Recovery"
         distToGoal = distToGoal + " m"
+    }
+
+    if(activeGoal != "N/A")
+    {
+        goalTimeout = goalTimeout + " s"
     }
 
     // Distance from hub
@@ -381,6 +377,10 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                                 <tr>
                                     <td>Active Goal</td>
                                     <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
+                                </tr>
+                                <tr>
+                                    <td>Active Goal Timeout</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{goalTimeout}</td>
                                 </tr>
                                 <tr>
                                     <td>Distance to Goal</td>
