@@ -266,7 +266,6 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             current_tpv_ = tpv;
-            machine_->set_gps_tpv(tpv);
         });
 
     // subscribe for GPS data (to reacquire gps)
@@ -287,6 +286,7 @@ jaiabot::apps::MissionManager::MissionManager()
                 {
                     interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
                         current_tpv_);
+                    machine_->set_gps_tpv(current_tpv_);
                 }
             }
         });

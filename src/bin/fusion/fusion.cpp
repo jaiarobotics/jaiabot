@@ -74,7 +74,7 @@ class Fusion : public ApplicationBase
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
-    double degrees_difference(const double& heading, const double& course);
+    double degrees_difference(const double& deg1, const double& deg2);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -87,12 +87,13 @@ class Fusion : public ApplicationBase
     int course_over_ground_timeout_{0};
     double previous_course_over_ground_{0};
     bool imu_issue_{false};
-    int imu_issue_crs_hdg_incr_{1};
-    int imu_issue_hdg_incr_{1};
+    int imu_issue_crs_hdg_incr_{0};
+    int imu_issue_hdg_incr_{0};
+    goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
-    int send_bot_status_rate_{500};
+    int send_bot_status_rate_{1000};
     protobuf::BotStatusRate engineering_bot_status_rate_{
         protobuf::BotStatusRate::BotStatusRate_1_Hz};
 
@@ -559,6 +560,8 @@ void jaiabot::apps::Fusion::init_bot_status() { latest_bot_status_.set_bot_id(cf
 
 void jaiabot::apps::Fusion::loop()
 {
+    auto now = goby::time::SteadyClock::now();
+
     // DCCL uses the real system clock to encode time, so "unwarp" the time first
     auto unwarped_time = goby::time::convert<goby::time::MicroTime>(
         goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
@@ -566,7 +569,7 @@ void jaiabot::apps::Fusion::loop()
     latest_bot_status_.set_time_with_units(unwarped_time);
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+        now)
     {
         glog.is_warn() && glog << "Timeout on health report" << std::endl;
         latest_bot_status_.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
@@ -579,15 +582,16 @@ void jaiabot::apps::Fusion::loop()
         if (!imu_issue_ && !cfg().is_sim())
         {
             // only detect imu issue if the current mode is included in include_imu_detection_modes_
-            if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
+            if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_timeout()) < now &&
+                include_imu_detection_states_.count(latest_bot_status_.mission_state()))
             {
                 //Let's detect imu issue
                 detect_imu_issue();
+                last_imu_detect_time_ = now;
             }
         }
-
-        if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
-            goby::time::SteadyClock::now())
+        else if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
+                 now)
         {
             // Reset imu issue vars
             imu_issue_ = false;
@@ -597,12 +601,12 @@ void jaiabot::apps::Fusion::loop()
     if (latest_bot_status_.IsInitialized())
     {
         if ((last_bot_status_report_time_ + std::chrono::milliseconds(send_bot_status_rate_)) <=
-            goby::time::SteadyClock::now())
+            now)
         {
             glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
-            last_bot_status_report_time_ = goby::time::SteadyClock::now();
+            last_bot_status_report_time_ = now;
         }
         jaiabot::protobuf::Engineering engineering_status;
         engineering_status.set_bot_id(latest_bot_status_.bot_id());
@@ -769,11 +773,12 @@ void jaiabot::apps::Fusion::detect_imu_issue()
                 // Make sure the diff is greater than the config max
                 if (diff >= cfg().imu_heading_course_max_diff())
                 {
-                    if (imu_issue_crs_hdg_incr_ < cfg().total_imu_issue_checks())
+                    if (imu_issue_crs_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
                     {
                         glog.is_debug1() && glog << "Have not reached threshold for total checks "
                                                  << imu_issue_crs_hdg_incr_ << " < "
-                                                 << cfg().total_imu_issue_checks() << std::endl;
+                                                 << (cfg().total_imu_issue_checks() - 1)
+                                                 << std::endl;
                         // Increment until we reach total_imu_issue_checks
                         imu_issue_crs_hdg_incr_++;
                     }
@@ -787,36 +792,21 @@ void jaiabot::apps::Fusion::detect_imu_issue()
                 else
                 {
                     // Reset increment
-                    imu_issue_crs_hdg_incr_ = 1;
+                    imu_issue_crs_hdg_incr_ = 0;
                 }
             }
-            else
-            {
-                // Reset increment
-                imu_issue_crs_hdg_incr_ = 1;
-            }
         }
-        else
-        {
-            // Reset increment
-            imu_issue_crs_hdg_incr_ = 1;
-        }
-    }
-    else
-    {
-        // Reset increment
-        imu_issue_crs_hdg_incr_ = 1;
     }
 
     if (!last_data_time_.count(DataType::HEADING) ||
         (last_data_time_[DataType::HEADING] + std::chrono::seconds(cfg().data_timeout_seconds()) <
          now))
     {
-        if (imu_issue_hdg_incr_ < cfg().total_imu_issue_checks())
+        if (imu_issue_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
         {
             glog.is_debug1() && glog << "Have not reached threshold for total checks "
                                      << imu_issue_hdg_incr_ << " < "
-                                     << cfg().total_imu_issue_checks() << std::endl;
+                                     << (cfg().total_imu_issue_checks() - 1) << std::endl;
             // Increment until we reach total_imu_issue_checks
             imu_issue_hdg_incr_++;
         }
@@ -830,30 +820,30 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     }
     else
     {
-        // Reset increment 
-        imu_issue_hdg_incr_ = 1;
+        // Reset increment
+        imu_issue_hdg_incr_ = 0;
     }
 
     if(imu_issue_)
     {
         last_imu_issue_report_time_ = now;
         // Reset hdg increment
-        imu_issue_hdg_incr_ = 1;
+        imu_issue_hdg_incr_ = 0;
         // Reset crs hdg increment
-        imu_issue_crs_hdg_incr_ = 1;
+        imu_issue_crs_hdg_incr_ = 0;
     }
 }
 
 /**
- * @brief The difference between heading and course
+ * @brief The difference between deg1 and deg2
  * 
- * @param heading double
- * @param course double
+ * @param deg1 double
+ * @param deg2 double
  * @return double 
  */
-double jaiabot::apps::Fusion::degrees_difference(const double& heading, const double& course)
+double jaiabot::apps::Fusion::degrees_difference(const double& deg1, const double& deg2)
 {
-    double absDiff = std::abs(heading - course);
+    double absDiff = std::abs(deg1 - deg2);
 
     if (absDiff <= 180)
     {
