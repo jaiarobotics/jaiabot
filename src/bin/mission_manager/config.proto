@@ -91,6 +91,24 @@ message MissionManager
     // States to detect goal timeout
     repeated jaiabot.protobuf.MissionState include_goal_timeout_states = 49;
 
+    // Time factor used to increase/decrease time to travel to goal
+    optional double goal_timeout_buffer_factor = 44 [default = 1];
+
+    // The number of reacquire attempts used to calculate goal timeout
+    optional uint32 goal_timeout_reacquire_gps_attempts = 45 [default = 2];
+
+    // Number of good gps locations to keep
+    optional uint32 tpv_history_max = 46 [default = 15];
+
+    // Used to indicate to use goal timeout
+    optional bool use_goal_timeout = 47 [default = true];
+
+    // Skip goal task if the bot timeouts trying to get to the goal
+    optional bool skip_goal_task = 48 [default = false];
+
+    // States to detect goal timeout
+    repeated jaiabot.protobuf.MissionState include_goal_timeout_states = 49;
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;

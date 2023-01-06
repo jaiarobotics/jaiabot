@@ -74,4 +74,5 @@ message Fusion
 
     // timeout in seconds
     optional int32 imu_detect_timeout = 44 [default = 1]; 
+
 }
