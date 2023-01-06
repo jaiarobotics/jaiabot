@@ -6,6 +6,7 @@ import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.config;
 
@@ -66,15 +67,33 @@ message MissionManager
     // The pdop value to check against to determine gps fix after a dive
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
-    // constant heading timeout ends the constant heading task
+    // Constant heading timeout ends the constant heading task
     optional double constant_heading_timeout = 41
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 
-    // constant heading indicates where the bot should drive while in the constant heading task
+    // Constant heading indicates where the bot should drive while in the constant heading task
     optional double constant_heading = 42 [default = 0];
 
-    // constant heading speed indicates the speed the bot should drive while in the constant heading task (m/s)
+    // Constant heading speed indicates the speed the bot should drive while in the constant heading task (m/s)
     optional double constant_heading_speed = 43 [default = 1];
+
+    // Time factor used to increase/decrease time to travel to goal
+    optional double goal_timeout_buffer_factor = 44 [default = 1];
+
+    // The number of reacquire attempts used to calculate goal timeout
+    optional uint32 goal_timeout_reacquire_gps_attempts = 45 [default = 2];
+
+    // Number of good gps locations to keep
+    optional uint32 tpv_history_max = 46 [default = 15];
+
+    // Used to indicate to use goal timeout
+    optional bool use_goal_timeout = 47 [default = true];
+
+    // Skip goal task if the bot timeouts trying to get to the goal
+    optional bool skip_goal_task = 48 [default = false];
+
+    // States to detect goal timeout
+    repeated jaiabot.protobuf.MissionState include_goal_timeout_states = 49;
 
     enum RemoteControlSetpointEnd
     {

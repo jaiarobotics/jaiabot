@@ -186,7 +186,7 @@ const sidebarMaxWidth = 1500;
 
 const POLLING_INTERVAL_MS = 300;
 
-const MAX_GOALS = 39;
+const MAX_GOALS = 30;
 
 // Store Previous Mission History
 let previous_mission_history;
@@ -2673,9 +2673,9 @@ export default class CommandControl extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
-			//case 'CONSTANT_HEADING':
-			//	gridStyle = new OlIcon({ src: taskDrift })
-			//	break;
+			case 'CONSTANT_HEADING':
+				gridStyle = new OlIcon({ src: taskDrift })
+				break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })
 				break;
@@ -2706,9 +2706,9 @@ export default class CommandControl extends React.Component {
 			case 'STATION_KEEP':
 				gridStyle = new OlIcon({ src: taskStationKeep })
 				break;
-			//case 'CONSTANT_HEADING':
-			//	gridStyle = new OlIcon({ src: taskDrift })
-			//	break;
+			case 'CONSTANT_HEADING':
+				gridStyle = new OlIcon({ src: taskDrift })
+				break;
 			case 'NONE':
 				gridStyle = new OlIcon({ src: taskNone })
 				break;

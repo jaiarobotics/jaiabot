@@ -152,7 +152,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        //'CONSTANT_HEADING': taskDrift,
+        'CONSTANT_HEADING': taskDrift,
         'NONE': taskNone       
     }
 

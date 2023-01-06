@@ -45,7 +45,6 @@
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
-#define earthRadiusKm 6371.0
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -72,9 +71,6 @@ class Fusion : public ApplicationBase
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    double deg2rad(const double& deg);
-    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
-                          const double& lon2d);
     boost::units::quantity<boost::units::degree::plane_angle>
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
@@ -102,6 +98,9 @@ class Fusion : public ApplicationBase
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
+
+    // GPS Good Reading
+    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_meets_gps_req_;
 
     enum class DataType
     {
@@ -464,29 +463,17 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
             if (report.has_active_goal())
-                latest_bot_status_.set_active_goal(report.active_goal());
-            else
-                latest_bot_status_.clear_active_goal();
-            if (report.has_active_goal_location())
             {
-                if (latest_bot_status_.has_location())
+                latest_bot_status_.set_active_goal(report.active_goal());
+                latest_bot_status_.set_distance_to_active_goal(report.distance_to_active_goal());
+                if (report.has_active_goal_timeout())
                 {
-                    if (latest_bot_status_.location().has_lat() &&
-                        latest_bot_status_.location().has_lon())
-                    {
-                        double distance = distanceToGoal(report.active_goal_location().lat(),
-                                                         report.active_goal_location().lon(),
-                                                         latest_bot_status_.location().lat(),
-                                                         latest_bot_status_.location().lon());
-                        // Set distance in meters
-                        distance = distance * (1000);
-                        latest_bot_status_.set_distance_to_active_goal(distance);
-                    }
+                    latest_bot_status_.set_active_goal_timeout(report.active_goal_timeout());
                 }
             }
             else
             {
-                latest_bot_status_.clear_distance_to_active_goal();
+                latest_bot_status_.clear_active_goal();
             }
         });
 
@@ -550,6 +537,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             if (sky.has_pdop())
             {
                 latest_bot_status_.set_pdop(sky.pdop());
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::mission_tpv_meets_gps_req>(
+        [this](const jaiabot::protobuf::MissionTpvMeetsGpsReq& tpv_meets_gps_req) {
+            if (tpv_meets_gps_req.has_tpv())
+            {
+                tpv_meets_gps_req_ = tpv_meets_gps_req.tpv();
             }
         });
 }
@@ -702,31 +697,6 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
         }
     }*/
-}
-
-// This function converts decimal degrees to radians
-double jaiabot::apps::Fusion::deg2rad(const double& deg) { return (deg * M_PI / 180); }
-
-/**
- * Returns the distance between two points on the Earth.
- * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
- * @param lat1d Latitude of the first point in degrees
- * @param lon1d Longitude of the first point in degrees
- * @param lat2d Latitude of the second point in degrees
- * @param lon2d Longitude of the second point in degrees
- * @return The distance between the two points in kilometers
- */
-double jaiabot::apps::Fusion::distanceToGoal(const double& lat1d, const double& lon1d,
-                                             const double& lat2d, const double& lon2d)
-{
-    double lat1r, lon1r, lat2r, lon2r, u, v;
-    lat1r = deg2rad(lat1d);
-    lon1r = deg2rad(lon1d);
-    lat2r = deg2rad(lat2d);
-    lon2r = deg2rad(lon2d);
-    u = sin((lat2r - lat1r) / 2);
-    v = sin((lon2r - lon1r) / 2);
-    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }
 
 /**

@@ -29,6 +29,10 @@ export let Settings = {
     diveHoldTime: new Setting("dive.hold_time", 1),
     driftTime: new Setting("drift.time", 10),
 
+    constantHeading: new Setting("constantHeading.constant_heading", 0),
+    constantHeadingTime: new Setting("constantHeading.constant_heading_time", 10),
+    constantHeadingSpeed: new Setting("constantHeading.constant_heading_speed", 1),
+
     mapVisibleLayers: new Setting("map.visibleLayers"),
     mapCenter: new Setting("map.center"),
     mapZoomLevel: new Setting("map.zoomLevel"),
