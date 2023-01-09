@@ -3107,6 +3107,7 @@ export default class CommandControl extends React.Component {
 		for(let mission in missions)
 		{
 			let botState = this.podStatus.bots[missions[mission].botId].mission_state;
+
 			if(botState == "PRE_DEPLOYMENT__IDLE"
 				|| botState == "POST_DEPLOYMENT__IDLE")
 			{

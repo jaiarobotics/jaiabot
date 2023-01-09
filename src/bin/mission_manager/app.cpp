@@ -289,6 +289,7 @@ jaiabot::apps::MissionManager::MissionManager()
                 {
                     interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
                         current_tpv_);
+                    machine_->set_gps_tpv(current_tpv_);
                 }
             }
         });

@@ -94,6 +94,7 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
     int bot_status_rate_{1000};
+
     protobuf::BotStatusRate engineering_bot_status_rate_{
         protobuf::BotStatusRate::BotStatusRate_1_Hz};
 
