@@ -155,6 +155,7 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     if (goal)
     {
+        context<InMission>().calculate_goal_dist();
         auto update = create_transit_update(
             goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().geodesy());

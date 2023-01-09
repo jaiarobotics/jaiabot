@@ -266,9 +266,6 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
             current_tpv_ = tpv;
-
-            // TODO make sure this meets gps requirements
-            machine_->set_gps_tpv(current_tpv_);
         });
 
     // subscribe for GPS data (to reacquire gps)
@@ -287,9 +284,14 @@ jaiabot::apps::MissionManager::MissionManager()
                 // Publish TPV that meets our mission requirements
                 if (current_tpv_.IsInitialized())
                 {
-                    interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
-                        current_tpv_);
-                    machine_->set_gps_tpv(current_tpv_);
+                    // Set gps tpv (This checks to see if it meets our gps reacquirements)
+                    machine_->set_gps_tpv(current_tpv_, sky);
+
+                    if (machine_->gps_tpv().IsInitialized())
+                    {
+                        interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
+                            machine_->gps_tpv());
+                    }
                 }
             }
         });
@@ -381,125 +383,45 @@ void jaiabot::apps::MissionManager::loop()
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
-    // only report the goal index when not in recovery
-    if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
+    // only report the goal index when in mission
+    if (in_mission)
     {
         report.set_active_goal(in_mission->goal_index());
-        if (in_mission->current_goal().has_value())
+        if (in_mission->current_goal_location().has_value())
+            *report.mutable_active_goal_location() = in_mission->current_goal_location().value();
+
+        if (in_mission->current_speed().has_value())
+            goal_speed = in_mission->current_speed().value();
+
+        if (in_mission->current_distance_to_goal().has_value())
         {
-            if (in_mission->current_goal()->has_location())
+            auto distance_to_goal = in_mission->current_distance_to_goal().value();
+            report.set_distance_to_active_goal(distance_to_goal);
+
+            // Report 0 if no goal timeout
+            report.set_active_goal_timeout(0);
+
+            // Check to see if operator wants to use goal timeout
+            // And Check to see if we are in correct state to detect goal timeout
+            if (use_goal_timeout_ && include_goal_timeout_states_.count(machine_->state()))
             {
-                *report.mutable_active_goal_location() = in_mission->current_goal()->location();
-            }
-        }
-        goal_speed = machine_->mission_plan().speeds().transit();
-    }
-    else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
-    {
-        report.set_active_goal(in_mission->goal_index());
-
-        if (machine_->mission_plan().recovery().has_recover_at_final_goal())
-        {
-            if (machine_->mission_plan().recovery().recover_at_final_goal())
-            {
-                *report.mutable_active_goal_location() =
-                    machine_->mission_plan()
-                        .goal()
-                        .Get(machine_->mission_plan().goal_size() - 1)
-                        .location();
-            }
-        }
-        else if (machine_->mission_plan().recovery().has_location())
-        {
-            *report.mutable_active_goal_location() = machine_->mission_plan().recovery().location();
-        }
-
-        goal_speed = machine_->mission_plan().speeds().stationkeep_outer();
-    }
-
-    if (current_tpv_.has_location() && report.has_active_goal_location())
-    {
-        // Check for an updated goal
-        if (current_goal_ != report.active_goal())
-        {
-            glog.is_debug2() && glog << "current goal does not equal active:" << std::endl;
-            current_goal_ = report.active_goal();
-
-            // Clear current_goal_dist_history_ to start new with update goal
-            std::queue<double> empty;
-            std::swap(current_goal_dist_history_, empty);
-
-            updated_goal_ = true;
-            last_goal_timeout_time_ = current_time;
-        }
-
-        double distance =
-            distanceToGoal(report.active_goal_location().lat(), report.active_goal_location().lon(),
-                           current_tpv_.location().lat(), current_tpv_.location().lon());
-        // Set distance in meters
-        distance = distance * (1000);
-        report.set_distance_to_active_goal(distance);
-
-        // Check the queue size to ensure it is less than max
-        if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
-        {
-            //linear_regression();
-            current_goal_dist_history_.pop();
-        }
-        current_goal_dist_history_.push(distance);
-
-        // First pass at implementing goal timeout
-        if (updated_goal_)
-        {
-            goal_timeout_ =
-                (distance / goal_speed) * cfg().goal_timeout_buffer_factor() +
-                (cfg().total_gps_fix_checks() * cfg().goal_timeout_reacquire_gps_attempts());
-
-            glog.is_debug2() &&
-                glog << "goal_timeout_: " << goal_timeout_ << " , distance: " << distance
-                     << " , goal_speed: " << goal_speed
-                     << " , goal_timeout_buffer_factor: " << cfg().goal_timeout_buffer_factor()
-                     << " , total_gps_fix_checks: " << cfg().total_gps_fix_checks()
-                     << " , goal_timeout_reacquire_gps_attempts: "
-                     << cfg().goal_timeout_reacquire_gps_attempts() << std::endl;
-            updated_goal_ = false;
-        }
-
-        // Check to see if operator wants to use goal timeout
-        // And Check to see if we are in correct state to detect goal timeout
-        if (use_goal_timeout_ && include_goal_timeout_states_.count(machine_->state()))
-        {
-            // Confirm goal_timeout_ is initialized
-            if (goal_timeout_)
-            {
-                // If current time is greater than the timeout, then go to next wpt
-                if ((last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) <= current_time)
+                // Is there still time left to get to goal?
+                if (in_mission->current_goal_timeout() > 0)
                 {
-                    glog.is_debug2() && glog << "Goal timedout" << std::endl;
-                    machine_->process_event(statechart::EvWaypointReached());
-
-                    // Check config to see if we should skip task
-                    if (cfg().skip_goal_task())
-                    {
-                        machine_->process_event(statechart::EvTaskComplete());
-                    }
+                    report.set_active_goal_timeout(in_mission->current_goal_timeout());
                 }
                 else
                 {
-                    auto goal_timeout = std::chrono::duration_cast<std::chrono::seconds>(
-                        (last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) -
-                        current_time);
+                    glog.is_debug2() && glog << "Goal timedout" << std::endl;
+                    //machine_->process_event(statechart::EvWaypointReached());
 
-                    glog.is_debug2() && glog << "Goal time out: " << goal_timeout.count()
-                                             << std::endl;
-                    report.set_active_goal_timeout(goal_timeout.count());
+                    // Check config to see if we should skip task
+                    if (in_mission->skip_goal_task())
+                    {
+                        //machine_->process_event(statechart::EvTaskComplete());
+                    }
                 }
             }
-        }
-        else
-        {
-            // Report 0 if no goal timeout
-            report.set_active_goal_timeout(0);
         }
     }
 
@@ -798,4 +720,36 @@ double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const 
     u = sin((lat2r - lat1r) / 2);
     v = sin((lon2r - lon1r) / 2);
     return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
+
+/**
+ * @brief Used to calculate slope from bots goal dist history.
+ * If the vehicle is making progress towards goal than the slope should
+ * be negative.
+ * 
+ * @param goal_dist_history 
+ * @return double (slope)
+ */
+double jaiabot::apps::MissionManager::linear_regression_slope(
+    const std::queue<std::pair<goby::time::SteadyClock::time_point, double>>& goal_dist_history)
+{
+    std::queue<std::pair<goby::time::SteadyClock::time_point, double>> copy_goal_dist_history;
+    std::vector<double> x;
+    std::vector<double> y;
+
+    // Copy queue values into separate vectors
+    while (!copy_goal_dist_history.empty())
+    {
+        x.push_back(copy_goal_dist_history.front().first.time_since_epoch().count());
+        y.push_back(copy_goal_dist_history.front().second);
+        copy_goal_dist_history.pop();
+    }
+
+    const auto n = x.size();
+    const auto s_x = std::accumulate(x.begin(), x.end(), 0.0);
+    const auto s_y = std::accumulate(y.begin(), y.end(), 0.0);
+    const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
+    const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
+    const auto a = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
+    return a;
 }

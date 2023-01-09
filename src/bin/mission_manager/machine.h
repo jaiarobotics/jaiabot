@@ -24,6 +24,12 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "machine_common.h"
 
+#include <algorithm>
+#include <iostream>
+#include <numeric>
+#include <queue>
+#include <vector>
+
 namespace jaiabot
 {
 namespace groups
@@ -303,11 +309,15 @@ struct MissionManagerStateMachine
             throw(goby::Exception("Uninitialized geodesy"));
     }
 
-    void set_gps_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+    void set_gps_tpv(const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv,
+                     const goby::middleware::protobuf::gpsd::SkyView& sky)
     {
-        tpv_ = tpv;
+        if ((sky.hdop() <= transit_hdop_req_) && (sky.pdop() <= transit_pdop_req_))
+        {
+            tpv_ = tpv;
+        }
     }
-    const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() { return tpv_; }
+    const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() const { return tpv_; }
 
     void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
     const double& transit_hdop_req() { return transit_hdop_req_; }
@@ -504,6 +514,128 @@ struct InMission
                 this->machine().mission_plan().goal(goal_index()));
     }
 
+    boost::optional<jaiabot::protobuf::GeographicCoordinate> current_goal_location() const
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        if (goal_index() >= this->machine().mission_plan().goal_size() ||
+            goal_index() == RECOVERY_GOAL_INDEX)
+        {
+            if (mission_plan.recovery().has_recover_at_final_goal())
+            {
+                if (mission_plan.recovery().recover_at_final_goal())
+                {
+                    return jaiabot::protobuf::GeographicCoordinate(
+                        this->machine()
+                            .mission_plan()
+                            .goal(mission_plan.goal_size() - 1)
+                            .location());
+                }
+                else
+                {
+                    return boost::none;
+                }
+            }
+            else if (mission_plan.recovery().has_location())
+            {
+                return jaiabot::protobuf::GeographicCoordinate(mission_plan.recovery().location());
+            }
+            else
+            {
+                return boost::none;
+            }
+        }
+        else
+        {
+            return jaiabot::protobuf::GeographicCoordinate(
+                this->machine().mission_plan().goal(goal_index()).location());
+        }
+    }
+
+    boost::optional<jaiabot::protobuf::GeographicCoordinate> recovery_goal_location() const
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        if (mission_plan.recovery().has_recover_at_final_goal())
+        {
+            if (mission_plan.recovery().recover_at_final_goal())
+            {
+                return jaiabot::protobuf::GeographicCoordinate(
+                    this->machine().mission_plan().goal(mission_plan.goal_size() - 1).location());
+            }
+        }
+        else if (mission_plan.recovery().has_location())
+        {
+            return jaiabot::protobuf::GeographicCoordinate(mission_plan.recovery().location());
+        }
+        else
+        {
+            return boost::none;
+        }
+    }
+
+    boost::optional<double> current_speed() const
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        if (goal_index() >= this->machine().mission_plan().goal_size() ||
+            goal_index() == RECOVERY_GOAL_INDEX)
+        {
+            return boost::optional<double>(mission_plan.speeds().stationkeep_outer());
+        }
+        else
+        {
+            return boost::optional<double>(mission_plan.speeds().transit());
+        }
+    }
+
+    boost::optional<double> current_distance_to_goal() const
+    {
+        auto current_location = this->machine().gps_tpv().location();
+        auto current_goal = current_goal_location().value();
+
+        if (current_location.has_lat() && current_location.has_lon() &&
+            current_goal_location().has_value())
+        {
+            double distance = distanceToGoal(current_goal.lat(), current_goal.lon(),
+                                             current_location.lat(), current_location.lon());
+
+            // Set distance in meters
+            distance = distance * (1000);
+
+            return boost::optional<double>(distance);
+        }
+        else
+        {
+            return boost::none;
+        }
+    }
+
+    boost::optional<int> total_goal_timeout() const
+    {
+        return boost::optional<int>(total_goal_timeout_);
+    }
+
+    int current_goal_timeout() const
+    {
+        auto current_time = goby::time::SteadyClock::now();
+        // Confirm goal_timeout_ is initialized
+        if (total_goal_timeout().has_value())
+        {
+            auto current_goal_timeout = std::chrono::duration_cast<std::chrono::seconds>(
+                (last_goal_timeout_time_ + std::chrono::seconds(total_goal_timeout_)) -
+                current_time);
+
+            goby::glog.is_debug2() &&
+                goby::glog << "Goal time out: " << current_goal_timeout.count() << std::endl;
+
+            return current_goal_timeout.count();
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    bool skip_goal_task() const { return skip_goal_task_; }
+
     protobuf::MissionPlan::Goal final_goal() const
     {
         const auto& mission_plan = this->machine().mission_plan();
@@ -520,6 +652,25 @@ struct InMission
             return boost::none;
         else
             return boost::optional<protobuf::MissionTask>(plan.goal(goal_index()).task());
+    }
+
+    void calculate_goal_dist()
+    {
+        auto current_time = goby::time::SteadyClock::now();
+
+        if (current_distance_to_goal().has_value() && current_speed().has_value())
+        {
+            total_goal_timeout_ =
+                (current_distance_to_goal().value() / current_speed().value()) *
+                    cfg().goal_timeout_buffer_factor() +
+                (cfg().total_gps_fix_checks() * cfg().goal_timeout_reacquire_gps_attempts());
+        }
+
+        // Clear current_goal_dist_history_ to start new with update goal
+        std::queue<std::pair<goby::time::SteadyClock::time_point, double>> empty;
+        std::swap(current_goal_dist_history_, empty);
+
+        last_goal_timeout_time_ = current_time;
     }
 
     void increment_goal_index()
@@ -545,6 +696,31 @@ struct InMission
 
     void set_mission_complete() { mission_complete_ = true; }
 
+    // This function converts decimal degrees to radians
+    double deg2rad(const double& deg) const { return (deg * M_PI / 180); }
+
+    /**
+     * Returns the distance between two points on the Earth.
+     * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+     * @param lat1d Latitude of the first point in degrees
+     * @param lon1d Longitude of the first point in degrees
+     * @param lat2d Latitude of the second point in degrees
+     * @param lon2d Longitude of the second point in degrees
+     * @return The distance between the two points in kilometers
+     */
+    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
+                          const double& lon2d) const
+    {
+        double lat1r, lon1r, lat2r, lon2r, u, v;
+        lat1r = deg2rad(lat1d);
+        lon1r = deg2rad(lon1d);
+        lat2r = deg2rad(lat2d);
+        lon2r = deg2rad(lon2d);
+        u = sin((lat2r - lat1r) / 2);
+        v = sin((lon2r - lon1r) / 2);
+        return 2.0 * earthRadiusKm_ * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+    }
+
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
                          boost::statechart::transition<EvRecovered, PostDeployment>>;
@@ -552,6 +728,11 @@ struct InMission
   private:
     int goal_index_{0};
     bool mission_complete_{false};
+    double earthRadiusKm_{6371.0};
+    int total_goal_timeout_{0};
+    goby::time::SteadyClock::time_point last_goal_timeout_time_{std::chrono::seconds(0)};
+    bool skip_goal_task_{cfg().skip_goal_task()};
+    std::queue<std::pair<goby::time::SteadyClock::time_point, double>> current_goal_dist_history_;
 };
 
 namespace inmission
