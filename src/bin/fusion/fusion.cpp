@@ -93,7 +93,7 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
-    int send_bot_status_rate_{1000};
+    int bot_status_rate_{1000};
     protobuf::BotStatusRate engineering_bot_status_rate_{
         protobuf::BotStatusRate::BotStatusRate_1_Hz};
 
@@ -189,7 +189,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     watch_battery_percentage_ = cfg().watch_battery_percentage();
 
-    send_bot_status_rate_ = cfg().send_bot_status_rate();
+    bot_status_rate_ = cfg().bot_status_rate();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -495,36 +495,34 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const jaiabot::protobuf::Engineering& command) {
             glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
 
-            if (command.has_send_bot_status_rate())
+            if (command.has_bot_status_rate())
             {
-                switch (command.send_bot_status_rate())
+                switch (command.bot_status_rate())
                 {
-                    case protobuf::BotStatusRate::BotStatusRate_2_Hz:
-                        send_bot_status_rate_ = 500;
-                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_2_Hz: bot_status_rate_ = 500; break;
                     case protobuf::BotStatusRate::BotStatusRate_1_Hz:
-                        send_bot_status_rate_ = 1000;
+                        bot_status_rate_ = 1000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_2_SECONDS:
-                        send_bot_status_rate_ = 2000;
+                        bot_status_rate_ = 2000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_5_SECONDS:
-                        send_bot_status_rate_ = 5000;
+                        bot_status_rate_ = 5000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_10_SECONDS:
-                        send_bot_status_rate_ = 10000;
+                        bot_status_rate_ = 10000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_20_SECONDS:
-                        send_bot_status_rate_ = 20000;
+                        bot_status_rate_ = 20000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_40_SECONDS:
-                        send_bot_status_rate_ = 40000;
+                        bot_status_rate_ = 40000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_60_SECONDS:
-                        send_bot_status_rate_ = 60000;
+                        bot_status_rate_ = 60000;
                         break;
                 }
-                engineering_bot_status_rate_ = command.send_bot_status_rate();
+                engineering_bot_status_rate_ = command.bot_status_rate();
             }
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
@@ -600,8 +598,7 @@ void jaiabot::apps::Fusion::loop()
 
     if (latest_bot_status_.IsInitialized())
     {
-        if ((last_bot_status_report_time_ + std::chrono::milliseconds(send_bot_status_rate_)) <=
-            now)
+        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
         {
             glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
@@ -610,7 +607,7 @@ void jaiabot::apps::Fusion::loop()
         }
         jaiabot::protobuf::Engineering engineering_status;
         engineering_status.set_bot_id(latest_bot_status_.bot_id());
-        engineering_status.set_send_bot_status_rate(engineering_bot_status_rate_);
+        engineering_status.set_bot_status_rate(engineering_bot_status_rate_);
         interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
     }
 }

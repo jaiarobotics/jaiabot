@@ -43,11 +43,11 @@ message MissionManager
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
 
-    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
+    // number of times to check the gps hdop and pdop
     // when in reacquiring gps state
     optional uint32 total_gps_fix_checks = 34 [default = 10];
 
-    // number of times to check the gps hdop is > 1.3 and pdop is > 2.2
+    // number of times to check the gps hdop and pdop
     // while in transit to go into reacquiring gps state
     optional uint32 total_gps_degraded_fix_checks = 35 [default = 2];
 
@@ -57,7 +57,7 @@ message MissionManager
     // The pdop value to check against to determine gps fix
     optional double gps_pdop_fix = 37 [default = 2.2];
 
-    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
+    // number of times to check the gps hdop and pdop 
     // when in reacquiring gps state after a dive
     optional uint32 total_after_dive_gps_fix_checks = 38 [default = 15];
 
