@@ -85,10 +85,50 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * s
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status) {
-                if (engineering_status.has_send_bot_status_rate())
+                if (engineering_status.has_bot_status_rate())
                 {
-                    latest_engineering.set_send_bot_status_rate(
-                        engineering_status.send_bot_status_rate());
+                    latest_engineering.set_bot_status_rate(engineering_status.bot_status_rate());
+                }
+                if (engineering_status.has_gps_requirements())
+                {
+                    if (engineering_status.gps_requirements().has_transit_hdop_req())
+                    {
+                        latest_engineering.mutable_gps_requirements()->set_transit_hdop_req(
+                            engineering_status.gps_requirements().transit_hdop_req());
+                    }
+                    if (engineering_status.gps_requirements().has_transit_pdop_req())
+                    {
+                        latest_engineering.mutable_gps_requirements()->set_transit_pdop_req(
+                            engineering_status.gps_requirements().transit_pdop_req());
+                    }
+                    if (engineering_status.gps_requirements().has_after_dive_hdop_req())
+                    {
+                        latest_engineering.mutable_gps_requirements()->set_after_dive_hdop_req(
+                            engineering_status.gps_requirements().after_dive_hdop_req());
+                    }
+                    if (engineering_status.gps_requirements().has_after_dive_pdop_req())
+                    {
+                        latest_engineering.mutable_gps_requirements()->set_after_dive_pdop_req(
+                            engineering_status.gps_requirements().after_dive_pdop_req());
+                    }
+                    if (engineering_status.gps_requirements().has_transit_gps_fix_checks())
+                    {
+                        latest_engineering.mutable_gps_requirements()->set_transit_gps_fix_checks(
+                            engineering_status.gps_requirements().transit_gps_fix_checks());
+                    }
+                    if (engineering_status.gps_requirements().has_transit_gps_degraded_fix_checks())
+                    {
+                        latest_engineering.mutable_gps_requirements()
+                            ->set_transit_gps_degraded_fix_checks(
+                                engineering_status.gps_requirements()
+                                    .transit_gps_degraded_fix_checks());
+                    }
+                    if (engineering_status.gps_requirements().has_after_dive_gps_fix_checks())
+                    {
+                        latest_engineering.mutable_gps_requirements()
+                            ->set_after_dive_gps_fix_checks(
+                                engineering_status.gps_requirements().after_dive_gps_fix_checks());
+                    }
                 }
             });
     }

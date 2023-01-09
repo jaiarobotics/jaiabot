@@ -65,9 +65,9 @@ export class PIDGainsPanel extends React.Component {
             </div>
 
         let engineering = bots[self.botId]?.engineering
-        let bot_status_rate = engineering?.send_bot_status_rate ?? 'BotStatusRate_2_Hz';
+        let bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz';
         let show_rate = "N/A";
-
+  
         if (engineering) {
             if(bot_status_rate != null
                 || bot_status_rate != undefined)
@@ -113,14 +113,56 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
-        function botStatusRateTable(engineering) {
+        function botRequirementsTable(engineering) {
             if (engineering) {
-                return  <table>
+                return  <table id="engineering_requirements_table">
                             <tbody>
                                 <tr>
                                     <td key="current_status_rate_label">Current Status Rate</td>
                                     <td key="current_status_rate">
                                         {show_rate}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_transit_hdop_req_label">Current Transit HDOP</td>
+                                    <td key="current_transit_hdop_req">
+                                        {engineering?.gps_requirements?.transit_hdop_req  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_transit_pdop_req_label">Current Transit PDOP</td>
+                                    <td key="current_transit_pdop_req">
+                                        {engineering?.gps_requirements?.transit_pdop_req  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_after_dive_hdop_req_label">Current After Dive HDOP</td>
+                                    <td key="current_after_dive_hdop_req">
+                                        {engineering?.gps_requirements?.after_dive_hdop_req  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_after_dive_pdop_req_label">Current After Dive PDOP</td>
+                                    <td key="current_after_dive_pdop_req">
+                                        {engineering?.gps_requirements?.after_dive_pdop_req  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_transit_gps_checks_label">Current Transit GPS Checks</td>
+                                    <td key="current_transit_gps_checks_req">
+                                        {engineering?.gps_requirements?.transit_gps_fix_checks  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_transit_gps_degraded_checks_label">Current Degraded GPS Checks</td>
+                                    <td key="current_transit_gps_degraded_checks_req">
+                                        {engineering?.gps_requirements?.transit_gps_degraded_fix_checks  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_after_dive_gps_checks_label">Current After Dive GPS Checks</td>
+                                    <td key="current_after_dive_gps_checks_req">
+                                        {engineering?.gps_requirements?.after_dive_gps_fix_checks  ?? "-"}
                                     </td>
                                 </tr>
                                 <tr>
@@ -143,6 +185,104 @@ export class PIDGainsPanel extends React.Component {
                                         </select>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td key="transit_hdop_req_label">Update Transit HDOP</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="transit_hdop_req_input" 
+                                            name="transit_hdop_req_input" 
+                                            defaultValue={engineering?.gps_requirements?.transit_hdop_req ?? "-"}
+                                            min="1"
+                                            max="100"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="transit_pdop_req_label">Update Transit PDOP</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="transit_pdop_req_input" 
+                                            name="transit_pdop_req_input" 
+                                            defaultValue={engineering?.gps_requirements?.transit_pdop_req ?? "-"} 
+                                            min="1"
+                                            max="100"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="after_dive_hdop_req_label">Update After Dive HDOP</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="after_dive_hdop_req_input" 
+                                            name="after_dive_hdop_req_input" 
+                                            defaultValue={engineering?.gps_requirements?.after_dive_hdop_req ?? "-"} 
+                                            min="1"
+                                            max="100"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="after_dive_pdop_req_label">Update After Dive PDOP</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="after_dive_pdop_req_input" 
+                                            name="after_dive_pdop_req_input" 
+                                            defaultValue={engineering?.gps_requirements?.after_dive_pdop_req ?? "-"} 
+                                            min="1"
+                                            max="100"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="transit_gps_checks_label">Update Transit GPS Checks</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="transit_gps_checks_input" 
+                                            name="transit_gps_checks_input" 
+                                            defaultValue={engineering?.gps_requirements?.transit_gps_fix_checks ?? "-"} 
+                                            min="1"
+                                            max="30"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="transit_gps_degraded_checks_label">Update Degraded GPS Checks</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="transit_gps_degraded_checks_input" 
+                                            name="transit_gps_degraded_checks_input" 
+                                            defaultValue={engineering?.gps_requirements?.transit_gps_degraded_fix_checks ?? "-"}
+                                            min="1"
+                                            max="30"
+                                            step="any" 
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="after_dive_gps_checks_label">Update After Dive GPS Checks</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="after_dive_gps_checks_input" 
+                                            name="after_dive_gps_checks_input" 
+                                            defaultValue={engineering?.gps_requirements?.after_dive_gps_fix_checks ?? "-"} 
+                                            min="1"
+                                            max="30"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
             }
@@ -161,10 +301,10 @@ export class PIDGainsPanel extends React.Component {
                 }
                 <Button className="button-jcc" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
                 {
-                    botStatusRateTable(engineering)
+                    botRequirementsTable(engineering)
                 }
-                <Button className="button-jcc" type="button" id="submit_bot_status_rate" onClick={this.submitBotStatusRate.bind(this)}>Change Selected Bot Status Rate</Button>
-                <Button className="button-jcc" type="button" id="submit_all_bot_status_rate" onClick={this.submitAllBotStatusRate.bind(this)}>Change All Bot Status Rate</Button>
+                <Button className="button-jcc" type="button" id="submit_bot_requirements" onClick={this.submitBotRequirements.bind(this)}>Update Selected Bot</Button>
+                <Button className="button-jcc" type="button" id="submit_all_bot_requirements" onClick={this.submitAllBotRequirements.bind(this)}>Update All Bots</Button>
             </div>
         )
     
@@ -197,44 +337,72 @@ export class PIDGainsPanel extends React.Component {
         this.props.api.postEngineeringPanel(engineering_command);
     }
 
-    submitBotStatusRate()
+    submitBotRequirements()
     {
         if (!this.props.control()) return;
 
         let botId = $("#pid_gains_bot_selector").val()
         info("Submit BotStatusRate for botId: " + botId)
 
+        let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
+        
+        if($("#status_rate_input").val() != -1)
+        {
+            bot_status_rate_change = $("#status_rate_input").val();
+        }
+
         let engineering_command = {
             botId: botId,
-            send_bot_status_rate:  $("#status_rate_input").val()
+            bot_status_rate: bot_status_rate_change,
+            gps_requirements: {
+                transit_hdop_req: $("#transit_hdop_req_input").val(),
+                transit_pdop_req: $("#transit_pdop_req_input").val(),
+                after_dive_hdop_req: $("#after_dive_hdop_req_input").val(),
+                after_dive_pdop_req: $("#after_dive_pdop_req_input").val(),
+                transit_gps_fix_checks: $("#transit_gps_checks_input").val(),
+                transit_gps_degraded_fix_checks: $("#transit_gps_degraded_checks_input").val(),
+                after_dive_gps_fix_checks: $("#after_dive_gps_checks_input").val(), 
+            }
         }
 
         debug(JSON.stringify(engineering_command))
 
-        if($("#status_rate_input").val() != -1)
-        {
-            this.props.api.postEngineeringPanel(engineering_command);
-        }
+        this.props.api.postEngineeringPanel(engineering_command);
     }
 
-    submitAllBotStatusRate()
+    submitAllBotRequirements()
     {
         if (!this.props.control()) return;
 
+        let botId = $("#pid_gains_bot_selector").val()
         info("Submit BotStatusRate for All Bots: ")
+
+        let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
+        
+        if($("#status_rate_input").val() != -1)
+        {
+            bot_status_rate_change = $("#status_rate_input").val();
+        }
+
         for(let bot in this.state.bots)
         {
             let engineering_command = {
                 botId: bot,
-                send_bot_status_rate:  $("#status_rate_input").val()
+                bot_status_rate: bot_status_rate_change,
+                gps_requirements: {
+                    transit_hdop_req: $("#transit_hdop_req_input").val(),
+                    transit_pdop_req: $("#transit_pdop_req_input").val(),
+                    after_dive_hdop_req: $("#after_dive_hdop_req_input").val(),
+                    after_dive_pdop_req: $("#after_dive_pdop_req_input").val(),
+                    transit_gps_fix_checks: $("#transit_gps_checks_input").val(),
+                    transit_gps_degraded_fix_checks: $("#transit_gps_degraded_checks_input").val(),
+                    after_dive_gps_fix_checks: $("#after_dive_gps_checks_input").val(), 
+                }
             }
     
             debug(JSON.stringify(engineering_command))
-    
-            if($("#status_rate_input").val() != -1)
-            {
-                this.props.api.postEngineeringPanel(engineering_command);
-            }
+
+            this.props.api.postEngineeringPanel(engineering_command);
         }
     }
 
