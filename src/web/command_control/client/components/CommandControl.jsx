@@ -3107,7 +3107,7 @@ export default class CommandControl extends React.Component {
 		for(let mission in missions)
 		{
 			let botState = this.podStatus.bots[missions[mission].botId].mission_state;
-			console.log(botState);
+
 			if(botState == "PRE_DEPLOYMENT__IDLE"
 				|| botState == "POST_DEPLOYMENT__IDLE")
 			{
@@ -3192,7 +3192,7 @@ export default class CommandControl extends React.Component {
 			if(botState == "PRE_DEPLOYMENT__IDLE"
 				|| botState == "POST_DEPLOYMENT__IDLE")
 			{
-				botIdsInIdleState.push(botId);
+				botIdsInIdleState.push(botIds[botId]);
 			}
 		}
 

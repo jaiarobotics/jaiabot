@@ -69,14 +69,35 @@ enum BotStatusRate
     BotStatusRate_60_SECONDS = 7;
 }
 
+message GPSRequirements
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double transit_hdop_req = 1 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double transit_pdop_req = 2 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double after_dive_hdop_req = 3 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double after_dive_pdop_req = 4 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional uint32 transit_gps_fix_checks = 5 [(dccl.field) = { min: 1 max: 30 }];
+
+    optional uint32 transit_gps_degraded_fix_checks = 6 [(dccl.field) = { min: 1 max: 30 }];
+
+    optional uint32 after_dive_gps_fix_checks = 7 [(dccl.field) = { min: 1 max: 30 }];
+}
+
 message Engineering
 {
     /*
-    Actual maximum size of message: 83 bytes / 664 bits
-            dccl.id head...........................8
-            user head..............................0
-            body.................................649
-            padding to full byte...................7
+    Actual maximum size of message: 92 bytes / 736 bits
+        dccl.id head...........................8
+        user head..............................0
+        body.................................721
+        padding to full byte...................7
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {
@@ -96,7 +117,9 @@ message Engineering
 
     optional bool engineering_messages_enabled = 13;
 
-    optional BotStatusRate send_bot_status_rate = 14 [default = BotStatusRate_1_Hz];
+    optional BotStatusRate bot_status_rate = 14 [default = BotStatusRate_1_Hz];
+
+    optional GPSRequirements gps_requirements = 15;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

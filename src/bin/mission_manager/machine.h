@@ -309,6 +309,42 @@ struct MissionManagerStateMachine
     }
     const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() { return tpv_; }
 
+    void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
+    const double& transit_hdop_req() { return transit_hdop_req_; }
+
+    void set_transit_pdop_req(const double& transit_pdop) { transit_pdop_req_ = transit_pdop; }
+    const double& transit_pdop_req() { return transit_pdop_req_; }
+
+    void set_after_dive_hdop_req(const double& after_dive_hdop)
+    {
+        after_dive_hdop_req_ = after_dive_hdop;
+    }
+    const double& after_dive_hdop_req() { return after_dive_hdop_req_; }
+
+    void set_after_dive_pdop_req(const double& after_dive_pdop)
+    {
+        after_dive_pdop_req_ = after_dive_pdop;
+    }
+    const double& after_dive_pdop_req() { return after_dive_pdop_req_; }
+
+    void set_transit_gps_fix_checks(const uint32_t& transit_gps_fix_checks)
+    {
+        transit_gps_fix_checks_ = transit_gps_fix_checks;
+    }
+    const uint32_t& transit_gps_fix_checks() { return transit_gps_fix_checks_; }
+
+    void set_transit_gps_degraded_fix_checks(const uint32_t& transit_gps_degraded_fix_checks)
+    {
+        transit_gps_degraded_fix_checks_ = transit_gps_degraded_fix_checks;
+    }
+    const uint32_t& transit_gps_degraded_fix_checks() { return transit_gps_degraded_fix_checks_; }
+
+    void set_after_dive_gps_fix_checks(const uint32_t& after_dive_gps_fix_checks)
+    {
+        after_dive_gps_fix_checks_ = after_dive_gps_fix_checks;
+    }
+    const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -317,6 +353,13 @@ struct MissionManagerStateMachine
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
     std::set<jaiabot::protobuf::Warning> warnings_;
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_;
+    double transit_hdop_req_{cfg().gps_hdop_fix()};
+    double transit_pdop_req_{cfg().gps_pdop_fix()};
+    double after_dive_hdop_req_{cfg().gps_after_dive_hdop_fix()};
+    double after_dive_pdop_req_{cfg().gps_after_dive_pdop_fix()};
+    uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
+    uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
+    uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
 };
 
 struct PreDeployment
@@ -546,7 +589,8 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Reset Counter For Degraded Checks
             gps_degraded_fix_check_incr_ = 0;
@@ -554,14 +598,16 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
         else
         {
             // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ < (this->cfg().total_gps_degraded_fix_checks() - 1))
+            if (gps_degraded_fix_check_incr_ <
+                (this->machine().transit_gps_degraded_fix_checks() - 1))
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, but has not "
                                   "reached threshold for total checks: "
                                   " "
                                << gps_degraded_fix_check_incr_ << " < "
-                               << (this->cfg().total_gps_degraded_fix_checks() - 1) << std::endl;
+                               << (this->machine().transit_gps_degraded_fix_checks() - 1)
+                               << std::endl;
 
                 // Increment until we reach total gps degraded fix checks
                 gps_degraded_fix_check_incr_++;
@@ -570,9 +616,9 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
-                               << " > " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " > " << this->cfg().gps_pdop_fix() << " Reset incr for gps fix"
-                               << std::endl;
+                               << " > " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " > " << this->machine().transit_pdop_req()
+                               << " Reset incr for gps fix" << std::endl;
 
                 // Post Event for no gps fix
                 this->post_event(statechart::EvGPSNoFix());
@@ -609,17 +655,18 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < (this->cfg().total_gps_fix_checks() - 1))
+            if (gps_fix_check_incr_ < (this->machine().transit_gps_fix_checks() - 1))
             {
-                goby::glog.is_debug2() && goby::glog << "GPS has a good fix, but has not "
-                                                        "reached threshold for total checks"
-                                                        " "
-                                                     << gps_fix_check_incr_ << " < "
-                                                     << (this->cfg().total_gps_fix_checks() - 1)
-                                                     << std::endl;
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a good fix, but has not "
+                                  "reached threshold for total checks"
+                                  " "
+                               << gps_fix_check_incr_ << " < "
+                               << (this->machine().transit_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -627,8 +674,8 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " <= " << this->cfg().gps_pdop_fix()
+                               << " <= " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().transit_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
                 // Post Event for gps fix
@@ -1259,18 +1306,18 @@ struct ReacquireGPS
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_after_dive_hdop_fix()) &&
-            (ev.pdop <= this->cfg().gps_after_dive_pdop_fix()))
+        if ((ev.hdop <= this->machine().after_dive_hdop_req()) &&
+            (ev.pdop <= this->machine().after_dive_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < this->cfg().total_after_dive_gps_fix_checks())
+            if (gps_fix_check_incr_ < (this->machine().after_dive_gps_fix_checks() - 1))
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, but has not "
                                   "reached threshold for total checks"
                                   " "
                                << gps_fix_check_incr_ << " < "
-                               << this->cfg().total_after_dive_gps_fix_checks() << std::endl;
+                               << (this->machine().after_dive_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -1278,8 +1325,8 @@ struct ReacquireGPS
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_after_dive_hdop_fix() << ", pdop is "
-                               << ev.pdop << " <= " << this->cfg().gps_after_dive_pdop_fix()
+                               << " <= " << this->machine().after_dive_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().after_dive_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
                 goby::glog.is_debug2() &&
@@ -1304,7 +1351,7 @@ struct ReacquireGPS
         else
         {
             // Reset gps fix incrementor
-            gps_fix_check_incr_ = 1;
+            gps_fix_check_incr_ = 0;
         }
     }
 
@@ -1315,7 +1362,7 @@ struct ReacquireGPS
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()},
         end_time_;
-    int gps_fix_check_incr_{1};
+    int gps_fix_check_incr_{0};
 };
 
 struct SurfaceDrift
