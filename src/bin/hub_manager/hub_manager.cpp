@@ -130,7 +130,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
         }
 
         {
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
+                cfg().engineering_status_sub_cfg();
             goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
                 *subscriber_cfg.mutable_intervehicle();
             intervehicle_cfg.add_publisher_id(id);

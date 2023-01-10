@@ -39,7 +39,9 @@ message HubManager
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
     required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
         12;
+    required goby.middleware.protobuf.TransporterConfig engineering_status_sub_cfg =
+        13;
 
-    optional int32 hub_id = 13 [default = 0];
-    optional int32 health_report_timeout_seconds = 14 [default = 20];
+    optional int32 hub_id = 14 [default = 0];
+    optional int32 health_report_timeout_seconds = 15 [default = 20];
 }
