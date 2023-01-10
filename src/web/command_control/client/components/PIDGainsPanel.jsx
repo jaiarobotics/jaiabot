@@ -66,7 +66,7 @@ export class PIDGainsPanel extends React.Component {
 
         let engineering = bots[self.botId]?.engineering
 
-        console.log(engineering);
+        //console.log(engineering);
 
         let bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz';
         let show_rate = "N/A";
