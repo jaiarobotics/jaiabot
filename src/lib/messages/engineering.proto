@@ -96,8 +96,8 @@ message Engineering
     Actual maximum size of message: 92 bytes / 736 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................721
-        padding to full byte...................7
+        body.................................723
+        padding to full byte...................5
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {
@@ -114,6 +114,8 @@ message Engineering
     }];
 
     optional PIDControl pid_control = 3;
+
+    optional bool query_engineering_status = 4 [default = false];
 
     optional bool engineering_messages_enabled = 13;
 

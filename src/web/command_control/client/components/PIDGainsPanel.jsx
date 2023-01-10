@@ -65,6 +65,9 @@ export class PIDGainsPanel extends React.Component {
             </div>
 
         let engineering = bots[self.botId]?.engineering
+
+        //console.log(engineering);
+
         let bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz';
         let show_rate = "N/A";
   
@@ -296,6 +299,8 @@ export class PIDGainsPanel extends React.Component {
                 {
                     botSelector
                 }
+                <Button className="button-jcc" type="button" id="query_engineering_status" onClick={this.queryEngineeringStatus.bind(this)}>Query Selected Status</Button>
+                <Button className="button-jcc" type="button" id="query_all_engineering_status" onClick={this.queryAllEngineeringStatus.bind(this)}>Query All Statuses</Button>
                 {
                     pidGainsTable(engineering)
                 }
@@ -313,6 +318,43 @@ export class PIDGainsPanel extends React.Component {
     didSelectBot(evt) {
         this.botId = evt.target.value
         this.forceUpdate()
+    }
+
+    queryEngineeringStatus() 
+    {
+        if (!this.props.control()) return;
+
+        let botId = $("#pid_gains_bot_selector").val()
+        info("Query Engineering Status for botId: " + botId)
+
+        let engineering_command = {
+            botId: botId,
+            query_engineering_status: true
+        }
+
+        debug(JSON.stringify(engineering_command))
+
+        this.props.api.postEngineeringPanel(engineering_command);
+    }
+
+    queryAllEngineeringStatus() 
+    {
+        if (!this.props.control()) return;
+
+        let botId = $("#pid_gains_bot_selector").val()
+        info("Query Engineering Status for All Bots")
+
+        for(let bot in this.state.bots)
+        {
+            let engineering_command = {
+                botId: bot,
+                query_engineering_status: true
+            }
+
+            debug(JSON.stringify(engineering_command))
+
+            this.props.api.postEngineeringPanel(engineering_command);
+        }
     }
 
     submitGains() {
