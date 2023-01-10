@@ -41,13 +41,13 @@ export default class EngineeringPanel extends React.Component {
 						</Button>
 					</div>
 
+					<MissionSpeedSettingsPanel />
+
 					<PIDGainsPanel bots={self.state.bots}  control={this.props.control} api={this.api} />
 
 					{
 						DiveParameters.panel()
 					}
-
-                    <MissionSpeedSettingsPanel />
 
 				</div>
 			</div>

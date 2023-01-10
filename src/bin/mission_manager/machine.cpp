@@ -155,7 +155,6 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
     if (goal)
     {
-        context<InMission>().calculate_goal_dist();
         auto update = create_transit_update(
             goal->location(), this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().geodesy());
@@ -169,6 +168,8 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
         glog.is_debug1() && glog << "Transit has no goal, recovering" << std::endl;
         post_event(EvReturnToHome());
     }
+    // Calculate Distance to goal from current position
+    context<InMission>().calculate_goal_dist();
 }
 
 jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
@@ -199,6 +200,8 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
                                        this->machine().geodesy());
     }
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+    // Calculate Distance to goal from current position
+    context<InMission>().calculate_goal_dist();
 }
 
 jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()

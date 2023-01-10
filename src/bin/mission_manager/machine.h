@@ -590,6 +590,7 @@ struct InMission
     {
         auto current_location = this->machine().gps_tpv().location();
         auto current_goal = current_goal_location().value();
+        auto current_time = goby::time::SteadyClock::now();
 
         if (current_location.has_lat() && current_location.has_lon() &&
             current_goal_location().has_value())
@@ -605,6 +606,22 @@ struct InMission
         else
         {
             return boost::none;
+        }
+    }
+
+    double add_to_goal_distance_history()
+    {
+        auto current_time = goby::time::SteadyClock::now();
+
+        if (current_distance_to_goal().has_value())
+        {
+            // Check the queue size to ensure it is less than max
+            if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
+            {
+                //linear_regression();
+                current_goal_dist_history_.pop();
+            }
+            //current_goal_dist_history_.push({current_di});
         }
     }
 
@@ -660,10 +677,10 @@ struct InMission
 
         if (current_distance_to_goal().has_value() && current_speed().has_value())
         {
-            total_goal_timeout_ =
-                (current_distance_to_goal().value() / current_speed().value()) *
-                    cfg().goal_timeout_buffer_factor() +
-                (cfg().total_gps_fix_checks() * cfg().goal_timeout_reacquire_gps_attempts());
+            total_goal_timeout_ = (current_distance_to_goal().value() / current_speed().value()) *
+                                      cfg().goal_timeout_buffer_factor() +
+                                  (this->machine().transit_gps_fix_checks() *
+                                   cfg().goal_timeout_reacquire_gps_attempts());
         }
 
         // Clear current_goal_dist_history_ to start new with update goal
@@ -959,12 +976,15 @@ struct Transit
         post_event(EvPerformTask());
     }
 
+    void loop(const EvLoop&) {}
+
     using reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>>;
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::in_state_reaction<EvLoop, Transit, &Transit::loop>>;
 };
 
 struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,

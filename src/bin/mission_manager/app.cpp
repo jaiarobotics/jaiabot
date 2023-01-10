@@ -413,12 +413,12 @@ void jaiabot::apps::MissionManager::loop()
                 else
                 {
                     glog.is_debug2() && glog << "Goal timedout" << std::endl;
-                    //machine_->process_event(statechart::EvWaypointReached());
+                    machine_->process_event(statechart::EvWaypointReached());
 
                     // Check config to see if we should skip task
                     if (in_mission->skip_goal_task())
                     {
-                        //machine_->process_event(statechart::EvTaskComplete());
+                        machine_->process_event(statechart::EvTaskComplete());
                     }
                 }
             }
