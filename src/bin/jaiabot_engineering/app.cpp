@@ -55,6 +55,8 @@ class JaiabotEngineering : public ApplicationBase
 
     // Engineering state to be published over intervehicle on a regular basis
     jaiabot::protobuf::Engineering latest_engineering;
+
+    bool queried_for_status_{false};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -153,6 +155,9 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * s
 
         intervehicle().subscribe_dynamic<jaiabot::protobuf::Engineering>(
             [this](const jaiabot::protobuf::Engineering& command) {
+                glog.is_debug1() && glog << "Engineering Command: " << command.ShortDebugString()
+                                         << std::endl;
+
                 handle_engineering_command(command);
                 // republish for logging purposes
                 interprocess().publish<jaiabot::groups::engineering_command>(command);
@@ -189,13 +194,20 @@ void jaiabot::apps::JaiabotEngineering::loop()
     latest_engineering.set_time_with_units(unwarped_time);
 
     // Publish our latest engineering_status message, that has been gathered up from other apps
-    if (latest_engineering.IsInitialized()) {
+    if (latest_engineering.IsInitialized() && queried_for_status_)
+    {
+        queried_for_status_ = false;
         glog.is_debug1() && glog << "Publishing latest_engineering over intervehicle(): " << latest_engineering.ShortDebugString() << std::endl;
         intervehicle().publish<jaiabot::groups::engineering_status>(latest_engineering);
     }
 }
 
 void jaiabot::apps::JaiabotEngineering::handle_engineering_command(const jaiabot::protobuf::Engineering& command) {
+    if (command.query_engineering_status())
+    {
+        queried_for_status_ = command.query_engineering_status();
+    }
+
     // Republish the command on interprocess, so it gets logged, and apps can respond to the commands
     interprocess().publish<jaiabot::groups::engineering_command>(command);
 }
