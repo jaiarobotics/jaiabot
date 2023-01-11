@@ -590,7 +590,6 @@ struct InMission
     {
         auto current_location = this->machine().gps_tpv().location();
         auto current_goal = current_goal_location().value();
-        auto current_time = goby::time::SteadyClock::now();
 
         if (current_location.has_lat() && current_location.has_lon() &&
             current_goal_location().has_value())
@@ -609,7 +608,7 @@ struct InMission
         }
     }
 
-    double add_to_goal_distance_history()
+    void add_to_goal_distance_history()
     {
         auto current_time = goby::time::SteadyClock::now();
 
@@ -618,10 +617,21 @@ struct InMission
             // Check the queue size to ensure it is less than max
             if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
             {
-                //linear_regression();
+                linear_regression_slope_ = linear_regression_slope(current_goal_dist_history_);
                 current_goal_dist_history_.pop();
             }
-            //current_goal_dist_history_.push({current_di});
+            current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
+        }
+    }
+    const bool making_forward_progress_to_goal() const
+    {
+        if (linear_regression_slope_ < 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 
@@ -738,6 +748,37 @@ struct InMission
         return 2.0 * earthRadiusKm_ * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
     }
 
+    /**
+ * @brief Used to calculate slope from bots goal dist history.
+ * If the vehicle is making progress towards goal than the slope should
+ * be negative.
+ *
+ * @param goal_dist_history
+ * @return double (slope)
+ */
+    double linear_regression_slope(
+        const std::queue<std::pair<goby::time::SteadyClock::time_point, double>>& goal_dist_history)
+    {
+        std::queue<std::pair<goby::time::SteadyClock::time_point, double>> copy_goal_dist_history;
+        std::vector<double> x;
+        std::vector<double> y;
+
+        // Copy queue values into separate vectors
+        while (!copy_goal_dist_history.empty())
+        {
+            x.push_back(copy_goal_dist_history.front().first.time_since_epoch().count());
+            y.push_back(copy_goal_dist_history.front().second);
+            copy_goal_dist_history.pop();
+        }
+
+        const auto n = x.size();
+        const auto s_x = std::accumulate(x.begin(), x.end(), 0.0);
+        const auto s_y = std::accumulate(y.begin(), y.end(), 0.0);
+        const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
+        const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
+        const auto a = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
+        return a;
+    }
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
                          boost::statechart::transition<EvRecovered, PostDeployment>>;
@@ -750,6 +791,7 @@ struct InMission
     goby::time::SteadyClock::time_point last_goal_timeout_time_{std::chrono::seconds(0)};
     bool skip_goal_task_{cfg().skip_goal_task()};
     std::queue<std::pair<goby::time::SteadyClock::time_point, double>> current_goal_dist_history_;
+    double linear_regression_slope_{-1};
 };
 
 namespace inmission
@@ -792,6 +834,12 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
         {
             // Reset Counter For Degraded Checks
             gps_degraded_fix_check_incr_ = 0;
+
+            // Add to current dist to goal in history queue.
+            // This is used to determine if we are making
+            // progress to next goal
+            //context<InMission>().add_to_goal_distance_history();
+            this->template context<InMission>().add_to_goal_distance_history();
         }
         else
         {
@@ -976,15 +1024,12 @@ struct Transit
         post_event(EvPerformTask());
     }
 
-    void loop(const EvLoop&) {}
-
     using reactions =
         boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
                                                               &Transit::waypoint_reached>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>,
-                         boost::statechart::in_state_reaction<EvLoop, Transit, &Transit::loop>>;
+                                                              &AcquiredGPSCommon::gps>>;
 };
 
 struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
