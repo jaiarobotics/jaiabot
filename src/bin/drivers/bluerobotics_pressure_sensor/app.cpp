@@ -128,7 +128,7 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
 
             protobuf::PressureTemperatureData data;
 
-            data.set_pressure_with_units(p_mbar);
+            data.set_pressure_raw_with_units(p_mbar);
             data.set_temperature_with_units(t_celsius);
 
             interprocess().publish<groups::pressure_temperature>(data);

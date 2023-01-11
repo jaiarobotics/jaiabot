@@ -22,6 +22,7 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
 
 namespace jaiabot
@@ -309,6 +310,39 @@ struct MissionManagerStateMachine
     }
     const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() { return tpv_; }
 
+    void calculate_pressure_adjusted(
+        const jaiabot::protobuf::PressureTemperatureData& pressure_temperature)
+    {
+        jaiabot::protobuf::PressureAdjustedData pa;
+
+        if (start_of_dive())
+        {
+            // Zero out pressure at the start
+            set_start_of_dive_pressure(pressure_temperature.pressure_raw());
+
+            // Reset
+            set_start_of_dive(false);
+        }
+
+        pa.set_pressure_raw(pressure_temperature.pressure_raw());
+        pa.set_pressure_raw_before_dive(start_of_dive_pressure());
+
+        auto pressure_adjusted = pa.pressure_raw() - pa.pressure_raw_before_dive();
+
+        pa.set_pressure_adjusted(pressure_adjusted);
+
+        interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
+    }
+
+    void set_start_of_dive(bool start_of_dive) { start_of_dive_ = start_of_dive; }
+    const bool& start_of_dive() { return start_of_dive_; }
+
+    void set_start_of_dive_pressure(double start_of_dive_pressure)
+    {
+        start_of_dive_pressure_ = start_of_dive_pressure;
+    }
+    const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
+
     void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
     const double& transit_hdop_req() { return transit_hdop_req_; }
 
@@ -360,6 +394,8 @@ struct MissionManagerStateMachine
     uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
     uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
+    bool start_of_dive_{false};
+    double start_of_dive_pressure_{0};
 };
 
 struct PreDeployment
