@@ -301,6 +301,8 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
+
+    this->machine().set_start_of_dive(true);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
