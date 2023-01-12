@@ -333,7 +333,7 @@ Use the all-in-one-script (`/scripts/docker_arm64_build-and-deploy.sh`):
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_arduino_type" can be set to one of: usb_old, usb_new, spi which will upload the ardui
+## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the ardui
 no code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appr
 opriate systemd services. If unset, the systemd services will not be installed and enabled
