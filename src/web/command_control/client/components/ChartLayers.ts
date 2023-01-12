@@ -87,7 +87,7 @@ export const gebcoLayer = new TileLayer({
         projection: 'EPSG:4326', 
         wrapX: false
     }),
-})
+});
 
 export function createChartLayerGroup() {
     // Configure the basemap layers
@@ -108,6 +108,10 @@ export function createChartLayerGroup() {
     });
 
     return new LayerGroup({
+        properties: {
+            title: 'Bathymetry',
+            fold: 'open'
+        },
         layers: layers
     })
 }

@@ -28,7 +28,7 @@ export function createBaseLayerGroup() {
 
     return new LayerGroup({
         properties: {
-            title: 'Maps',
+            title: 'Base Maps',
             fold: 'open',
         },
         layers: layers

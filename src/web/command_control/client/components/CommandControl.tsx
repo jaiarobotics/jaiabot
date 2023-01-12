@@ -302,9 +302,12 @@ export default class CommandControl extends React.Component {
 	surveyExclusionsInteraction: OlDrawInteraction
 
 	missionLayer: OlVectorLayer<OlVectorSource>
+
 	activeMissionLayer: OlVectorLayer<OlVectorSource>
 	missionPlanningLayer: OlVectorLayer<OlVectorSource>
 	exclusionsLayer: OlVectorLayer<OlVectorSource>
+	missionLayerGroup: OlLayerGroup
+
 	measurementLayerGroup: OlLayerGroup
 	baseLayerGroup: OlLayerGroup
 
@@ -851,6 +854,18 @@ export default class CommandControl extends React.Component {
 			}
 		});
 
+		this.missionLayerGroup = new OlLayerGroup({
+			properties: {
+				title: 'Mission',
+				fold: 'close',
+			},
+			layers: [
+				this.activeMissionLayer,
+				this.missionPlanningLayer,
+				this.exclusionsLayer,
+			]
+		})
+
 		this.measurementLayerGroup = new OlLayerGroup({
 			properties: { 
 				title: 'Measurements',
@@ -877,9 +892,7 @@ export default class CommandControl extends React.Component {
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
-			this.activeMissionLayer,
-			this.missionPlanningLayer,
-			this.exclusionsLayer,
+			this.missionLayerGroup,
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
