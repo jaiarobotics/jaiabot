@@ -138,6 +138,10 @@ textarea {
     font-weight: 500;
   }
 
+  input:invalid {
+    border: solid @error-color 3px;
+  }
+
   /******** CSS Bot Information ********************/
 
   #botsDrawer {
@@ -786,6 +790,13 @@ textarea {
         color: @cc-text-color;
       }
 
+      #engineering_requirements_table {
+        td {
+          text-align: left;
+          font-size: 16px;
+        }
+      }
+
       table {
         width: 100%;
         margin: 4px 0;
@@ -1188,3 +1199,4 @@ div.closeButton {
     border-style: none;
   }
 }
+
