@@ -180,7 +180,7 @@ const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 300;
 
-const MAX_GOALS = 39;
+const MAX_GOALS = 30;
 
 // Store Previous Mission History
 let previous_mission_history: any;
@@ -2875,22 +2875,41 @@ export default class CommandControl extends React.Component {
 	runMissions(missions: PodMission) {
 		if (!this.takeControl()) return
 
-		let botIds = [];
+		let botIds: number[] = [];
+		let botIdsInIdleState: number[] = [];
 		for(let mission in missions)
 		{
-			botIds.push(missions[mission].bot_id);
+			let botState = this.podStatus.bots[missions[mission].bot_id].mission_state;
+
+			if(botState == "PRE_DEPLOYMENT__IDLE"
+				|| botState == "POST_DEPLOYMENT__IDLE")
+			{
+				botIdsInIdleState.push(missions[mission].bot_id);
+			}
+			else
+			{
+				botIds.push(missions[mission].bot_id);
+			}
 		}
 
 		botIds.sort()
+		botIdsInIdleState.sort();
 
-		if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-			for (let bot_id in missions) {
-				let mission = missions[bot_id]
-				this.missions[mission.bot_id] = deepcopy(mission)
-				this._runMission(mission)
+		if(botIdsInIdleState.length != 0)
+		{
+			warning("Please activate bots: " + botIdsInIdleState);
+		} 
+		else
+		{
+			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
+				for (let bot_id in missions) {
+					let mission = missions[bot_id]
+					this.missions[mission.bot_id] = deepcopy(mission)
+					this._runMission(mission)
+				}
+				success("Submitted missions")
+				this.updateMissionLayer()
 			}
-			success("Submitted missions")
-			this.updateMissionLayer()
 		}
 	}
 
@@ -2925,17 +2944,39 @@ export default class CommandControl extends React.Component {
 			botIds = Object.keys(this.missions) as any
 		}
 
-		if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
-			for (let bot_id of botIds) {
-				let mission = this.missions[bot_id]
-				if (mission) {
-					this._runMission(mission)
-				}
-				else {
-					error('No mission set for bot ' + bot_id)
-				}
+		let botIdsInIdleState = [];
+		for(let botId in botIds)
+		{
+			let botState = this.podStatus.bots[botIds[botId]].mission_state;
+
+			if(botState == "PRE_DEPLOYMENT__IDLE"
+				|| botState == "POST_DEPLOYMENT__IDLE")
+			{
+				botIdsInIdleState.push(botIds[botId]);
 			}
-			info('Submitted missions for ' + botIds.length + ' bots')
+		}
+
+		botIds.sort()
+		botIdsInIdleState.sort();
+
+		if(botIdsInIdleState.length != 0)
+		{
+			warning("Please activate bots: " + botIdsInIdleState);
+		} 
+		else
+		{
+			if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
+				for (let bot_id of botIds) {
+					let mission = this.missions[bot_id]
+					if (mission) {
+						this._runMission(mission)
+					}
+					else {
+						error('No mission set for bot ' + bot_id)
+					}
+				}
+				info('Submitted missions for ' + botIds.length + ' bots')
+			}	
 		}
 	}
 
@@ -2971,12 +3012,15 @@ export default class CommandControl extends React.Component {
 
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
-		let botIds = []
+		let botIds: number[] = []
 
 		// Update feature in selected set
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 			const feature = selectedBotsFeatureCollection.item(i)
-			botIds.push(feature.getId() as number)
+			const botId = feature.getId() as number
+			if (botId != null) {
+				botIds.push(botId)
+			}
 		}
 
 		return botIds

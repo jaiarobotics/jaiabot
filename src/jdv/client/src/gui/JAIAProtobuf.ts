@@ -83,7 +83,6 @@ export interface FieldDescriptorProto {
     oneof_index?: number
     json_name?: string
     options?: FieldOptions
-    proto3_optional?: boolean
 }
 
 export interface OneofDescriptorProto {
@@ -260,6 +259,85 @@ export interface GeographicCoordinate {
     lon?: number
 }
 
+export interface LatLonPoint {
+    lat?: number
+    lon?: number
+    depth?: number
+    altitude?: number
+}
+
+export interface Waypoint {
+    name?: string
+    location?: LatLonPoint
+}
+
+export interface Route {
+    name?: string
+    point?: Waypoint[]
+}
+
+export interface Satellite {
+    prn?: number
+    az?: number
+    el?: number
+    ss?: number
+    used?: boolean
+    gnssid?: number
+    svid?: number
+    sigid?: number
+    freqid?: number
+    health?: number
+}
+
+export interface SkyView {
+    device?: string
+    time?: number
+    gdop?: number
+    hdop?: number
+    pdop?: number
+    tdop?: number
+    vdop?: number
+    xdop?: number
+    ydop?: number
+    nsat?: number
+    usat?: number
+    satellite?: Satellite[]
+}
+
+export interface Attitude {
+    device?: string
+    time?: number
+    heading?: number
+    pitch?: number
+    yaw?: number
+    roll?: number
+}
+
+export enum Mode {
+    ModeNotSeen = "ModeNotSeen",
+    ModeNoFix = "ModeNoFix",
+    Mode2D = "Mode2D",
+    Mode3D = "Mode3D",
+}
+
+export interface TimePositionVelocity {
+    device?: string
+    time?: number
+    mode?: Mode
+    location?: LatLonPoint
+    altitude?: number
+    track?: number
+    speed?: number
+    climb?: number
+    epc?: number
+    epd?: number
+    eps?: number
+    ept?: number
+    epv?: number
+    epx?: number
+    epy?: number
+}
+
 export enum MissionState {
     PRE_DEPLOYMENT__STARTING_UP = "PRE_DEPLOYMENT__STARTING_UP",
     PRE_DEPLOYMENT__IDLE = "PRE_DEPLOYMENT__IDLE",
@@ -283,6 +361,7 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = "IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT",
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS",
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT",
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = "IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING",
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = "IN_MISSION__UNDERWAY__RECOVERY__TRANSIT",
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = "IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP",
     IN_MISSION__UNDERWAY__RECOVERY__STOPPED = "IN_MISSION__UNDERWAY__RECOVERY__STOPPED",
@@ -295,10 +374,17 @@ export enum MissionState {
     POST_DEPLOYMENT__SHUTTING_DOWN = "POST_DEPLOYMENT__SHUTTING_DOWN",
 }
 
+export interface Speeds {
+    transit?: number
+    stationkeep_outer?: number
+}
+
 export interface MissionReport {
     state?: MissionState
     active_goal?: number
     active_goal_location?: GeographicCoordinate
+    distance_to_active_goal?: number
+    active_goal_timeout?: number
 }
 
 export enum TaskType {
@@ -306,6 +392,7 @@ export enum TaskType {
     DIVE = "DIVE",
     STATION_KEEP = "STATION_KEEP",
     SURFACE_DRIFT = "SURFACE_DRIFT",
+    CONSTANT_HEADING = "CONSTANT_HEADING",
 }
 
 export interface DiveParameters {
@@ -318,10 +405,17 @@ export interface DriftParameters {
     drift_time?: number
 }
 
+export interface ConstantHeadingParameters {
+    constant_heading?: number
+    constant_heading_time?: number
+    constant_heading_speed?: number
+}
+
 export interface MissionTask {
     type?: TaskType
     dive?: DiveParameters
     surface_drift?: DriftParameters
+    constant_heading?: ConstantHeadingParameters
 }
 
 export enum MissionStart {
@@ -345,17 +439,14 @@ export interface Recovery {
     location?: GeographicCoordinate
 }
 
-export interface Speeds {
-    transit?: number
-    stationkeep_outer?: number
-}
-
 export interface MissionPlan {
     start?: MissionStart
     movement?: MovementType
     goal?: Goal[]
     recovery?: Recovery
     speeds?: Speeds
+    fragment_index?: number
+    expected_fragments?: number
 }
 
 export interface TransitUpdate {
@@ -374,9 +465,21 @@ export interface StationkeepUpdate {
     center_activate?: boolean
 }
 
+export interface ConstantHeadingUpdate {
+    active?: boolean
+    heading?: number
+}
+
+export interface ConstantSpeedUpdate {
+    active?: boolean
+    speed?: number
+}
+
 export interface IvPBehaviorUpdate {
     transit?: TransitUpdate
     stationkeep?: StationkeepUpdate
+    constantHeading?: ConstantHeadingUpdate
+    constantSpeed?: ConstantSpeedUpdate
 }
 
 export interface TransitReport {
@@ -387,21 +490,8 @@ export interface IvPBehaviorReport {
     transit?: TransitReport
 }
 
-export interface LatLonPoint {
-    lat?: number
-    lon?: number
-    depth?: number
-    altitude?: number
-}
-
-export interface Waypoint {
-    name?: string
-    location?: LatLonPoint
-}
-
-export interface Route {
-    name?: string
-    point?: Waypoint[]
+export interface MissionTpvMeetsGpsReq {
+    tpv?: TimePositionVelocity
 }
 
 export interface NodeStatus {
@@ -804,6 +894,7 @@ export enum CommandType {
     MISSION_PLAN = "MISSION_PLAN",
     ACTIVATE = "ACTIVATE",
     START_MISSION = "START_MISSION",
+    MISSION_PLAN_FRAGMENT = "MISSION_PLAN_FRAGMENT",
     NEXT_TASK = "NEXT_TASK",
     RETURN_TO_HOME = "RETURN_TO_HOME",
     STOP = "STOP",
@@ -853,6 +944,7 @@ export interface BotStatus {
     mission_state?: MissionState
     active_goal?: number
     distance_to_active_goal?: number
+    active_goal_timeout?: number
     salinity?: number
     temperature?: number
     thermocouple_temperature?: number
@@ -892,6 +984,7 @@ export interface DivePacket {
     start_location?: GeographicCoordinate
     duration_to_acquire_gps?: number
     bottom_dive?: boolean
+    reached_min_depth?: boolean
 }
 
 export interface TaskPacket {
@@ -935,12 +1028,24 @@ export enum BotStatusRate {
     BotStatusRate_60_SECONDS = "BotStatusRate_60_SECONDS",
 }
 
+export interface GPSRequirements {
+    transit_hdop_req?: number
+    transit_pdop_req?: number
+    after_dive_hdop_req?: number
+    after_dive_pdop_req?: number
+    transit_gps_fix_checks?: number
+    transit_gps_degraded_fix_checks?: number
+    after_dive_gps_fix_checks?: number
+}
+
 export interface Engineering {
     bot_id?: number
     time?: number
     pid_control?: PIDControl
+    query_engineering_status?: boolean
     engineering_messages_enabled?: boolean
-    send_bot_status_rate?: BotStatusRate
+    bot_status_rate?: BotStatusRate
+    gps_requirements?: GPSRequirements
     flag?: number
 }
 

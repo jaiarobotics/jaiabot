@@ -1,6 +1,6 @@
 // Saving and loading settings from browser's localStorage
 
-import { DiveParameters, DriftParameters, Speeds } from "./gui/JAIAProtobuf"
+import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./gui/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 import $ from 'jquery'
 
@@ -49,6 +49,12 @@ export let GlobalSettings = {
     // Default drift parameters for dive and drift tasks
     driftParameters: Load<DriftParameters>('driftParameters', {
         drift_time: 10
+    }),
+
+    constantHeadingParameters: Load<ConstantHeadingParameters>('constantHeadingParameters', {
+        constant_heading: 0,
+        constant_heading_speed: 1,
+        constant_heading_time: 10
     }),
 
     // MissionPlan speeds

@@ -318,6 +318,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     // Active Goal
     let activeGoal = bot.active_goal ?? "N/A"
     let distToGoal = bot.distance_to_active_goal ?? "N/A"
+    let goalTimeout = bot.active_goal_timeout ?? "N/A"
 
     if(activeGoal != "N/A"
         && distToGoal == "N/A")
@@ -334,6 +335,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     {
         activeGoal = "Recovery"
         distToGoal = distToGoal + " m"
+    }
+
+    if(activeGoal != "N/A")
+    {
+        goalTimeout = goalTimeout + " s"
     }
 
     // Distance from hub
@@ -389,6 +395,10 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <tr>
                                     <td>Active Goal</td>
                                     <td style={{whiteSpace: "pre-line"}}>{activeGoal}</td>
+                                </tr>
+                                <tr>
+                                    <td>Active Goal Timeout</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{goalTimeout}</td>
                                 </tr>
                                 <tr>
                                     <td>Distance to Goal</td>

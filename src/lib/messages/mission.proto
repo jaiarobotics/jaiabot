@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "jaiabot/messages/geographic_coordinate.proto";
 import "dccl/option_extensions.proto";
+import "goby/middleware/protobuf/gpsd.proto";
 
 package jaiabot.protobuf;
 
@@ -48,6 +49,32 @@ enum MissionState
     POST_DEPLOYMENT__SHUTTING_DOWN = 204;
 }
 
+message Speeds
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double transit = 1 [
+        default = 2,
+        (dccl.field) = {
+            min: 0.1,
+            max: 6.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+    optional double stationkeep_outer = 2 [
+        default = 0.5,
+        (dccl.field) = {
+            min: 0.1,
+            max: 6.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+}
+
 message MissionReport
 {
     option (dccl.msg) = {
@@ -57,6 +84,20 @@ message MissionReport
     required MissionState state = 10;
     optional int32 active_goal = 11;
     optional GeographicCoordinate active_goal_location = 12;
+    optional double distance_to_active_goal = 13 [(dccl.field) = {
+        min: 0
+        max: 1000
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+    optional uint32 active_goal_timeout = 14 [
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
 }
 
 message MissionTask
@@ -124,6 +165,38 @@ message MissionTask
 
     // for type == SURFACE_DRIFT and type == DIVE
     optional DriftParameters surface_drift = 3;
+
+    message ConstantHeadingParameters
+    {
+        optional double constant_heading = 1 [(dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+
+        optional int32 constant_heading_time = 2 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: -1
+                units { base_dimensions: "T" }
+            }
+        ];
+
+        optional double constant_heading_speed = 3 [
+            default = 2,
+            (dccl.field) = {
+                min: 0.1,
+                max: 6.0,
+                precision: 1,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+    }
+
+    optional ConstantHeadingParameters constant_heading = 4;
 }
 
 message MissionPlan
@@ -155,7 +228,7 @@ message MissionPlan
         optional MissionTask task = 3;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 13];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 10];
 
     message Recovery
     {
@@ -164,27 +237,6 @@ message MissionPlan
     }
     optional Recovery recovery = 4;
 
-    message Speeds
-    {
-        optional double transit = 1 [
-            default = 2,
-            (dccl.field) = {
-                min: 0.1,
-                max: 6.0,
-                precision: 1,
-                units { base_dimensions: "LT^-1" }
-            }
-        ];
-        optional double stationkeep_outer = 2 [
-            default = 0.5,
-            (dccl.field) = {
-                min: 0.1,
-                max: 6.0,
-                precision: 1,
-                units { base_dimensions: "LT^-1" }
-            }
-        ];
-    }
     optional Speeds speeds = 5;
     optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
@@ -282,4 +334,13 @@ message IvPBehaviorReport
     {
         TransitReport transit = 1;
     }
+}
+
+message MissionTpvMeetsGpsReq
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }

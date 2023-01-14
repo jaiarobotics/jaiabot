@@ -153,7 +153,8 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        'NONE': taskNone
+        'CONSTANT_HEADING': taskDrift,
+        'NONE': taskNone       
     }
 
     const src = srcMap[taskType ?? 'NONE'] ?? taskNone

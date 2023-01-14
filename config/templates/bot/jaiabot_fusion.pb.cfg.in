@@ -29,11 +29,12 @@ imu_issue_solution: RESTART_IMU_PY
 # Seconds
 imu_restart_timeout: 30 # default (30 seconds)
 
-# fusion runs at 5hz
-total_imu_issue_checks: 15
+# IMU Detection
+imu_detect_timeout: 1 # second
+total_imu_issue_checks: 5 # 5 * imu_detect_timeout = time to detect
 
 # Set the rate to send bot status in milliseconds
-send_bot_status_rate: 1000 # default (1000 milliseconds)
+bot_status_rate: 1000 # default (1000 milliseconds)
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP

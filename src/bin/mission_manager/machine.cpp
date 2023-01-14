@@ -300,6 +300,8 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
+
+    this->machine().set_start_of_dive(true);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -728,11 +730,14 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+
     boost::units::quantity<boost::units::si::plane_angle> heading(
-        (cfg().constant_heading() * boost::units::degree::degrees));
+        (goal.get().task().constant_heading().constant_heading() * boost::units::degree::degrees));
 
     boost::units::quantity<boost::units::si::velocity> speed(
-        (cfg().constant_heading_speed() * boost::units::si::meters_per_second));
+        (goal.get().task().constant_heading().constant_heading_speed() *
+         boost::units::si::meters_per_second));
 
     jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
     jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
@@ -744,7 +749,7 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
 
     goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
-    int setpoint_seconds = cfg().constant_heading_timeout();
+    int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
     goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
     setpoint_stop_ = setpoint_start + setpoint_duration;
 }

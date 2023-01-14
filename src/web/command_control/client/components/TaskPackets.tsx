@@ -161,10 +161,18 @@ export class TaskData {
                     })
                 });
 
+                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved;
+
+                if(divePacket.reached_min_depth)
+                {
+                    bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
+                                        + '\nReached Min Depth: ' + divePacket.reached_min_depth;
+                }
+
                 let iconBottomInfoStyle = new OlStyle({
                     text : new OlText({
                         font : `15px Calibri,sans-serif`,
-                        text : `Bottom Depth (m): ` + divePacket.depth_achieved,
+                        text : bottomDiveText,
                         scale: 1,
                         fill: new OlFillStyle({color: 'white'}),
                         backgroundFill: new OlFillStyle({color: 'black'}),
