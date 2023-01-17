@@ -311,6 +311,12 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IMUIssue::STOP_BOT:
                     machine_->process_event(statechart::EvStop());
                     break;
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                default:
+                    //TODO Handle Default Case
+                    break;
             }
         });
 
