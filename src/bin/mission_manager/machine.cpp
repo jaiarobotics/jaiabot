@@ -259,6 +259,18 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
     task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
+
+    // Check to see if the current task is a dive.
+    // We want to set start of dive to true.
+    // This makes sure we capture the pressure before the dive begins.
+    if (current_task->type() == protobuf::MissionTask::DIVE)
+    {
+        this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
+        goby::glog.is_debug2() &&
+            goby::glog << "Task is a dive, set start pressure to adjust raw pressure: "
+                       << this->machine().start_of_dive_pressure() << std::endl;
+    }
 }
 
 jaiabot::statechart::inmission::underway::Task::~Task()
@@ -300,8 +312,6 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
-
-    this->machine().set_start_of_dive(true);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
