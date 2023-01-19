@@ -85,6 +85,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
             speed_to_throttle_.insert(std::make_pair(entry.speed(), entry.throttle()));
     }
 
+    full_speed_window = app_config.full_speed_window();
+    glog.is_warn() && glog << "full_speed_window = " << full_speed_window << endl;
+
     // Create our PID objects
     if (cfg().has_throttle_speed_pid_gains())
     {
@@ -233,11 +236,22 @@ void jaiabot::apps::BotPidControl::loop()
         case PID_SPEED:
 
             {
-                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
+                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
                 float speed_multiplier = 1.0;
 
                 if (_rudder_is_using_pid && actual_heading > -1000.0) {
-                    speed_multiplier = cos((actual_heading - target_heading) * M_PI / 180.0);
+                    // Apply a step function to the speed:
+                    //  * 100% of desired speed when we are with n degrees
+                    //  * Desired speed times dot product of heading error otherwise
+                    float heading_error_deg = actual_heading - target_heading;
+                    if (abs(heading_error_deg) < full_speed_window)
+                    {
+                        speed_multiplier = 1.0;
+                    }
+                    else
+                    {
+                        speed_multiplier = cos(heading_error_deg * M_PI / 180.0);
+                    }
                 }
                 else {
                     speed_multiplier = 1.0;
