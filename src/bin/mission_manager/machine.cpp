@@ -72,6 +72,37 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
     return update;
 }
 
+jaiabot::protobuf::IvPBehaviorUpdate
+create_constant_heading_update(quantity<si::plane_angle> heading)
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    jaiabot::protobuf::IvPBehaviorUpdate::ConstantHeadingUpdate& constantHeading =
+        *update.mutable_constantheading();
+
+    constantHeading.set_active(true);
+    constantHeading.set_heading_with_units(heading);
+
+    glog.is_verbose() && glog << group("movement")
+                              << "Sending update to pHelmIvP: " << update.ShortDebugString()
+                              << std::endl;
+    return update;
+}
+
+jaiabot::protobuf::IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
+{
+    jaiabot::protobuf::IvPBehaviorUpdate update;
+    jaiabot::protobuf::IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
+        *update.mutable_constantspeed();
+
+    constantSpeed.set_active(true);
+    constantSpeed.set_speed_with_units(speed);
+
+    glog.is_verbose() && glog << group("movement")
+                              << "Sending update to pHelmIvP: " << update.ShortDebugString()
+                              << std::endl;
+    return update;
+}
+
 // PreDeployment::StartingUp
 jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::my_context c)
     : StateBase(c)
@@ -228,6 +259,18 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
     task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
+
+    // Check to see if the current task is a dive.
+    // We want to set start of dive to true.
+    // This makes sure we capture the pressure before the dive begins.
+    if (current_task->type() == protobuf::MissionTask::DIVE)
+    {
+        this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
+        goby::glog.is_debug2() &&
+            goby::glog << "Task is a dive, set start pressure to adjust raw pressure: "
+                       << this->machine().start_of_dive_pressure() << std::endl;
+    }
 }
 
 jaiabot::statechart::inmission::underway::Task::~Task()
@@ -690,6 +733,52 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
         glog
             << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
             << std::endl;
+}
+
+// Movement::SurfTransit
+jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+
+    boost::units::quantity<boost::units::si::plane_angle> heading(
+        (goal.get().task().constant_heading().constant_heading() * boost::units::degree::degrees));
+
+    boost::units::quantity<boost::units::si::velocity> speed(
+        (goal.get().task().constant_heading().constant_heading_speed() *
+         boost::units::si::meters_per_second));
+
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+
+    constantHeadingUpdate = create_constant_heading_update(heading);
+    constantSpeedUpdate = create_constant_speed_update(speed);
+
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeading()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    constantHeadingUpdate.mutable_constantheading()->set_active(false);
+    constantSpeedUpdate.mutable_constantspeed()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+}
+
+void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvTaskComplete());
 }
 
 // Dive::ReacquireGPS

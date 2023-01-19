@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);

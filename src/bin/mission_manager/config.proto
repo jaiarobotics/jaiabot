@@ -6,6 +6,7 @@ import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.config;
 
@@ -42,11 +43,11 @@ message MissionManager
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];
 
-    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
+    // number of times to check the gps hdop and pdop
     // when in reacquiring gps state
     optional uint32 total_gps_fix_checks = 34 [default = 10];
 
-    // number of times to check the gps hdop is > 1.3 and pdop is > 2.2
+    // number of times to check the gps hdop and pdop
     // while in transit to go into reacquiring gps state
     optional uint32 total_gps_degraded_fix_checks = 35 [default = 2];
 
@@ -56,7 +57,7 @@ message MissionManager
     // The pdop value to check against to determine gps fix
     optional double gps_pdop_fix = 37 [default = 2.2];
 
-    // number of times to check the gps hdop is =< 1.3 and pdop is =< 2.2
+    // number of times to check the gps hdop and pdop 
     // when in reacquiring gps state after a dive
     optional uint32 total_after_dive_gps_fix_checks = 38 [default = 15];
 
@@ -66,6 +67,30 @@ message MissionManager
     // The pdop value to check against to determine gps fix after a dive
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
+    // Min depth safety behavior
+    optional uint32 min_depth_safety = 41 [default = 2];
+
+    // Min depth skip drift task after reacquiring gps
+    optional bool min_depth_safety_skip_drift = 42 [default = false];
+
+    // Time factor used to increase/decrease time to travel to goal
+    optional double goal_timeout_buffer_factor = 44 [default = 1];
+
+    // The number of reacquire attempts used to calculate goal timeout
+    optional uint32 goal_timeout_reacquire_gps_attempts = 45 [default = 2];
+
+    // Number of good gps locations to keep
+    optional uint32 tpv_history_max = 46 [default = 15];
+
+    // Used to indicate to use goal timeout
+    optional bool use_goal_timeout = 47 [default = true];
+
+    // Skip goal task if the bot timeouts trying to get to the goal
+    optional bool skip_goal_task = 48 [default = false];
+
+    // States to detect goal timeout
+    repeated jaiabot.protobuf.MissionState include_goal_timeout_states = 49;
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
@@ -73,6 +98,8 @@ message MissionManager
     }
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
+
+    optional uint32 imu_restart_seconds = 51 [default = 5];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload

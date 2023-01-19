@@ -39,6 +39,7 @@ constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
+constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
 // low control
@@ -56,6 +57,7 @@ constexpr goby::middleware::Group mission_ivp_behavior_report{
     "jaiabot::mission_ivp_behavior_report"};
 constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
+constexpr goby::middleware::Group mission_tpv_meets_gps_req{"jaiabot::mission_tpv_meets_gps_req"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};

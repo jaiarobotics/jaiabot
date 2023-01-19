@@ -69,16 +69,16 @@ message Command
 message BotStatus
 {
     /*
-    Actual maximum size of message: 50 bytes / 400 bits
+    Actual maximum size of message: 52 bytes / 416 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................388
-            padding to full byte...................4
-    Allowed maximum size of message: 50 bytes / 400 bits
+            body.................................402
+            padding to full byte...................6
+    Allowed maximum size of message: 52 bytes / 416 bits
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 50
+        max_bytes: 52
         codec_version: 3
         unit_system: "si"
     };
@@ -155,13 +155,21 @@ message BotStatus
     optional MissionState mission_state = 40;
 
     // bounds should match MissionPlan.goal max_repeat value * expected_fragments max
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 41 }];
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 29 }];
     optional double distance_to_active_goal = 42 [(dccl.field) = {
         min: 0
         max: 1000
         precision: 1
         units: { derived_dimensions: "length" }
     }];
+    optional uint32 active_goal_timeout = 43 [
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -324,16 +332,19 @@ message DivePacket
 
     // Did we reach seafloor?
     optional bool bottom_dive = 17 [default = false];
+
+    // Did we reach min depth?
+    optional bool reached_min_depth = 18 [default = false];
 }
 
 message TaskPacket
 {
     /*
     Actual maximum size of message: 197 bytes / 1576 bits
-            dccl.id head..........................16
-            user head..............................0
-            body................................1556
-            padding to full byte...................4
+        dccl.id head..........................16
+        user head..............................0
+        body................................1559
+        padding to full byte...................1
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {

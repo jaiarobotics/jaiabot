@@ -22,6 +22,7 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
 
 namespace jaiabot
@@ -88,6 +89,8 @@ STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
 STATECHART_EVENT(EvGPSNoFix)
+STATECHART_EVENT(EvIMURestart)
+STATECHART_EVENT(EvIMURestartCompleted)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
@@ -169,9 +172,9 @@ namespace movement
 // dummy state whose role is to dynmically transit to the correct substate
 // based on the current mission
 struct MovementSelection;
-
 struct Transit;
 struct ReacquireGPS;
+struct IMURestart;
 struct RemoteControl;
 namespace remotecontrol
 {
@@ -189,8 +192,10 @@ namespace task
 {
 struct TaskSelection;
 struct ReacquireGPS;
+struct IMURestart;
 struct StationKeep;
 struct SurfaceDrift;
+struct ConstantHeading;
 struct Dive;
 namespace dive
 {
@@ -208,6 +213,7 @@ namespace recovery
 {
 struct Transit;
 struct ReacquireGPS;
+struct IMURestart;
 struct StationKeep;
 struct Stopped;
 } // namespace recovery
@@ -309,6 +315,73 @@ struct MissionManagerStateMachine
     }
     const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() { return tpv_; }
 
+    void calculate_pressure_adjusted(
+        const jaiabot::protobuf::PressureTemperatureData& pressure_temperature)
+    {
+        jaiabot::protobuf::PressureAdjustedData pa;
+
+        set_current_pressure(pressure_temperature.pressure_raw());
+
+        pa.set_pressure_raw(pressure_temperature.pressure_raw());
+        pa.set_pressure_raw_before_dive(start_of_dive_pressure());
+
+        auto pressure_adjusted = pa.pressure_raw() - pa.pressure_raw_before_dive();
+
+        goby::glog.is_debug2() &&
+            goby::glog << "Pressure RAW: " << pa.pressure_raw()
+                       << ", Pressure RAW Start of Dive: " << pa.pressure_raw_before_dive()
+                       << ", Adjusted: " << pressure_adjusted << std::endl;
+
+        pa.set_pressure_adjusted(pressure_adjusted);
+
+        interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
+    }
+
+    void set_start_of_dive_pressure(double start_of_dive_pressure)
+    {
+        start_of_dive_pressure_ = start_of_dive_pressure;
+    }
+    const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
+
+    void set_current_pressure(double current_pressure) { current_pressure_ = current_pressure; }
+    const double& current_pressure() { return current_pressure_; }
+
+    void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
+    const double& transit_hdop_req() { return transit_hdop_req_; }
+
+    void set_transit_pdop_req(const double& transit_pdop) { transit_pdop_req_ = transit_pdop; }
+    const double& transit_pdop_req() { return transit_pdop_req_; }
+
+    void set_after_dive_hdop_req(const double& after_dive_hdop)
+    {
+        after_dive_hdop_req_ = after_dive_hdop;
+    }
+    const double& after_dive_hdop_req() { return after_dive_hdop_req_; }
+
+    void set_after_dive_pdop_req(const double& after_dive_pdop)
+    {
+        after_dive_pdop_req_ = after_dive_pdop;
+    }
+    const double& after_dive_pdop_req() { return after_dive_pdop_req_; }
+
+    void set_transit_gps_fix_checks(const uint32_t& transit_gps_fix_checks)
+    {
+        transit_gps_fix_checks_ = transit_gps_fix_checks;
+    }
+    const uint32_t& transit_gps_fix_checks() { return transit_gps_fix_checks_; }
+
+    void set_transit_gps_degraded_fix_checks(const uint32_t& transit_gps_degraded_fix_checks)
+    {
+        transit_gps_degraded_fix_checks_ = transit_gps_degraded_fix_checks;
+    }
+    const uint32_t& transit_gps_degraded_fix_checks() { return transit_gps_degraded_fix_checks_; }
+
+    void set_after_dive_gps_fix_checks(const uint32_t& after_dive_gps_fix_checks)
+    {
+        after_dive_gps_fix_checks_ = after_dive_gps_fix_checks;
+    }
+    const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -317,6 +390,15 @@ struct MissionManagerStateMachine
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
     std::set<jaiabot::protobuf::Warning> warnings_;
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_;
+    double transit_hdop_req_{cfg().gps_hdop_fix()};
+    double transit_pdop_req_{cfg().gps_pdop_fix()};
+    double after_dive_hdop_req_{cfg().gps_after_dive_hdop_fix()};
+    double after_dive_pdop_req_{cfg().gps_after_dive_pdop_fix()};
+    uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
+    uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
+    uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
+    double start_of_dive_pressure_{0};
+    double current_pressure_{0};
 };
 
 struct PreDeployment
@@ -494,6 +576,12 @@ struct InMission
         }
     }
 
+    void set_goal_index_to_final_goal()
+    {
+        // Sets goal index to be the final goal index
+        goal_index_ = (this->machine().mission_plan().goal_size() - 1);
+    }
+
     void set_mission_complete() { mission_complete_ = true; }
 
     using reactions =
@@ -540,7 +628,8 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Reset Counter For Degraded Checks
             gps_degraded_fix_check_incr_ = 0;
@@ -548,14 +637,16 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
         else
         {
             // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ < (this->cfg().total_gps_degraded_fix_checks() - 1))
+            if (gps_degraded_fix_check_incr_ <
+                (this->machine().transit_gps_degraded_fix_checks() - 1))
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, but has not "
                                   "reached threshold for total checks: "
                                   " "
                                << gps_degraded_fix_check_incr_ << " < "
-                               << (this->cfg().total_gps_degraded_fix_checks() - 1) << std::endl;
+                               << (this->machine().transit_gps_degraded_fix_checks() - 1)
+                               << std::endl;
 
                 // Increment until we reach total gps degraded fix checks
                 gps_degraded_fix_check_incr_++;
@@ -564,9 +655,9 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
-                               << " > " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " > " << this->cfg().gps_pdop_fix() << " Reset incr for gps fix"
-                               << std::endl;
+                               << " > " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " > " << this->machine().transit_pdop_req()
+                               << " Reset incr for gps fix" << std::endl;
 
                 // Post Event for no gps fix
                 this->post_event(statechart::EvGPSNoFix());
@@ -603,17 +694,18 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < (this->cfg().total_gps_fix_checks() - 1))
+            if (gps_fix_check_incr_ < (this->machine().transit_gps_fix_checks() - 1))
             {
-                goby::glog.is_debug2() && goby::glog << "GPS has a good fix, but has not "
-                                                        "reached threshold for total checks"
-                                                        " "
-                                                     << gps_fix_check_incr_ << " < "
-                                                     << (this->cfg().total_gps_fix_checks() - 1)
-                                                     << std::endl;
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a good fix, but has not "
+                                  "reached threshold for total checks"
+                                  " "
+                               << gps_fix_check_incr_ << " < "
+                               << (this->machine().transit_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -621,8 +713,8 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " <= " << this->cfg().gps_pdop_fix()
+                               << " <= " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().transit_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
                 // Post Event for gps fix
@@ -642,6 +734,42 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
 
   private:
     int gps_fix_check_incr_{0};
+};
+
+// Base class for all Task IMURestart as these do nearly the same thing.
+// "Derived" MUST be a child state of Task
+template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
+struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
+                          Notify<Derived, state, protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<Derived, Parent>;
+    IMURestartCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        goby::time::SteadyClock::time_point imu_restart_start = goby::time::SteadyClock::now();
+
+        // Read in configurable time to stay in IMU Restart State
+        int imu_restart_seconds = this->cfg().imu_restart_seconds();
+        goby::time::SteadyClock::duration imu_restart_duration =
+            std::chrono::seconds(imu_restart_seconds);
+        imu_restart_time_stop_ = imu_restart_start + imu_restart_duration;
+    };
+
+    ~IMURestartCommon(){};
+
+    void loop(const EvLoop&)
+    {
+        goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+        if (now >= imu_restart_time_stop_)
+        {
+            this->post_event(EvIMURestartCompleted());
+        }
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point imu_restart_time_stop_;
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
@@ -730,7 +858,8 @@ struct Transit
                                                               &Transit::waypoint_reached>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>>;
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>>;
 };
 
 struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
@@ -747,6 +876,21 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
         boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
                                                               &ReacquireGPSCommon::gps>>;
+};
+
+struct IMURestart
+    : IMURestartCommon<IMURestart, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Movement,
+                           protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
 };
 
 struct RemoteControl
@@ -955,7 +1099,15 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
     {
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
         if (now >= drift_time_stop_)
+        {
             this->post_event(EvTaskComplete());
+
+            if (this->template context<Task>().task_packet().dive().reached_min_depth())
+            {
+                this->template context<InMission>().set_goal_index_to_final_goal();
+                this->post_event(statechart::EvReturnToHome());
+            }
+        }
 
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
@@ -1006,6 +1158,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                 case protobuf::MissionTask::DIVE: return transit<Dive>();
                 case protobuf::MissionTask::STATION_KEEP: return transit<StationKeep>();
                 case protobuf::MissionTask::SURFACE_DRIFT: return transit<SurfaceDrift>();
+                case protobuf::MissionTask::CONSTANT_HEADING: return transit<ConstantHeading>();
             }
         }
 
@@ -1036,6 +1189,20 @@ struct ReacquireGPS
                                                               &ReacquireGPSCommon::gps>>;
 };
 
+struct IMURestart
+    : IMURestartCommon<IMURestart, Task, protobuf::IN_MISSION__UNDERWAY__TASK__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Task, protobuf::IN_MISSION__UNDERWAY__TASK__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, StationKeep>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+};
+
 struct StationKeep
     : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>
 {
@@ -1046,7 +1213,8 @@ struct StationKeep
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>>;
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>>;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
@@ -1057,6 +1225,24 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
                                  protobuf::IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT>(c)
     {
     }
+};
+
+struct ConstantHeading
+    : boost::statechart::state<ConstantHeading, Task>,
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
+             protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<ConstantHeading, Task>;
+    ConstantHeading(typename StateBase::my_context c);
+    ~ConstantHeading();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
@@ -1087,6 +1273,15 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
         dive_depths_.clear();
         dive_depths_.push_back(seafloor_depth);
         dive_packet().set_bottom_dive(true);
+
+        goby::glog.is_debug2() && goby::glog << "Seafloor Depth: " << seafloor_depth.value()
+                                             << " , Safety Depth: " << cfg().min_depth_safety()
+                                             << std::endl;
+
+        if (seafloor_depth.value() <= (cfg().min_depth_safety() + cfg().dive_depth_eps()))
+        {
+            dive_packet().set_reached_min_depth(true);
+        }
     }
 
   private:
@@ -1217,18 +1412,18 @@ struct ReacquireGPS
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_after_dive_hdop_fix()) &&
-            (ev.pdop <= this->cfg().gps_after_dive_pdop_fix()))
+        if ((ev.hdop <= this->machine().after_dive_hdop_req()) &&
+            (ev.pdop <= this->machine().after_dive_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < this->cfg().total_after_dive_gps_fix_checks())
+            if (gps_fix_check_incr_ < (this->machine().after_dive_gps_fix_checks() - 1))
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, but has not "
                                   "reached threshold for total checks"
                                   " "
                                << gps_fix_check_incr_ << " < "
-                               << this->cfg().total_after_dive_gps_fix_checks() << std::endl;
+                               << (this->machine().after_dive_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -1236,18 +1431,33 @@ struct ReacquireGPS
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_after_dive_hdop_fix() << ", pdop is "
-                               << ev.pdop << " <= " << this->cfg().gps_after_dive_pdop_fix()
+                               << " <= " << this->machine().after_dive_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().after_dive_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
-                // Post Event for gps fix
-                this->post_event(statechart::EvGPSFix());
+                goby::glog.is_debug2() &&
+                    goby::glog << "Reached Min depth: "
+                               << context<Task>().task_packet().dive().reached_min_depth()
+                               << " , Skip drift: " << this->cfg().min_depth_safety_skip_drift()
+                               << std::endl;
+
+                if (context<Task>().task_packet().dive().reached_min_depth() &&
+                    this->cfg().min_depth_safety_skip_drift())
+                {
+                    context<InMission>().set_goal_index_to_final_goal();
+                    this->post_event(statechart::EvReturnToHome());
+                }
+                else
+                {
+                    // Post Event for gps fix
+                    this->post_event(statechart::EvGPSFix());
+                }
             }
         }
         else
         {
             // Reset gps fix incrementor
-            gps_fix_check_incr_ = 1;
+            gps_fix_check_incr_ = 0;
         }
     }
 
@@ -1258,7 +1468,7 @@ struct ReacquireGPS
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()},
         end_time_;
-    int gps_fix_check_incr_{1};
+    int gps_fix_check_incr_{0};
 };
 
 struct SurfaceDrift
@@ -1298,6 +1508,7 @@ struct Transit
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>>;
 };
@@ -1319,6 +1530,22 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Recovery,
                                                               &ReacquireGPSCommon::gps>>;
 };
 
+struct IMURestart
+    : IMURestartCommon<IMURestart, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Recovery,
+                           protobuf::IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::transition<EvIMURestartCompleted, StationKeep>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+};
+
 struct StationKeep : AcquiredGPSCommon<StationKeep, Recovery,
                                        protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>
 {
@@ -1329,6 +1556,7 @@ struct StationKeep : AcquiredGPSCommon<StationKeep, Recovery,
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvStop, Stopped>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>>;
 };
@@ -1339,6 +1567,9 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
     using StateBase = boost::statechart::state<Stopped, Recovery>;
     Stopped(typename StateBase::my_context c);
     ~Stopped() {}
+
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
 } // namespace recovery
 
