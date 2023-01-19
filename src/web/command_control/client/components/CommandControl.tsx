@@ -327,7 +327,7 @@ export default class CommandControl extends React.Component {
 			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
 			// incoming data
 			botExtents: {},
-			trackingTarget: '',
+			trackingTarget: null,
 			viewportPadding: [
 				viewportDefaultPadding,
 				viewportDefaultPadding,
@@ -1627,7 +1627,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (stopTracking) {
-			this.trackBot('');
+			this.trackBot(null);
 		}
 
 		const floatCoords = [coords[0], coords[1]];
@@ -1651,7 +1651,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (stopTracking) {
-			this.trackBot('');
+			this.trackBot(null);
 		}
 		const { viewportPadding } = this.state;
 		const size = map.getSize();
@@ -2022,7 +2022,7 @@ export default class CommandControl extends React.Component {
 		} else if (id === 'pod') {
 			this.zoomToAllBots(true);
 			info('Following pod');
-		} else if (id !== '') {
+		} else if (id !== null) {
 			this.zoomToBot(id as number, true);
 			info(`Following bot ${id}`);
 		} else if (trackingTarget === 'all') {
