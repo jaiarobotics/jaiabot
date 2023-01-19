@@ -133,19 +133,19 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
+                            <td><input key="dive.max_depth" type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                            <td><input key="dive.depth_interval" type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                            <td><input key="dive.hold_time" type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input key="dive.drift_time" type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -201,7 +201,7 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input key="drift.drift_time" type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -218,15 +218,15 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Heading</td>
-                            <td><input type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
+                            <td><input key="constant_heading.constant_heading" type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
                         </tr>
                         <tr>
                             <td>Time</td>
-                            <td><input type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
+                            <td><input key="constant_heading.time" type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
+                            <td><input key="constant_heading.speed" type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
                         </tr>
                     </tbody>
                 </table>
