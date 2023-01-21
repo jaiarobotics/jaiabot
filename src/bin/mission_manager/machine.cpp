@@ -337,16 +337,24 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    loop(EvLoop());
-    goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_start =
-        goby::time::SteadyClock::now();
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_init_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
 
+    // duration granularity is seconds
+    int powered_descent_timeout_seconds = cfg().powered_descent_timeout();
+
     goby::time::SteadyClock::duration detect_bottom_logic_init_duration =
         std::chrono::seconds(detect_bottom_logic_init_timeout_seconds);
-    detect_bottom_logic_init_timeout_ =
-        detect_bottom_logic_init_timeout_start + detect_bottom_logic_init_duration;
+
+    goby::time::SteadyClock::duration powered_descent_timeout_duration =
+        std::chrono::seconds(powered_descent_timeout_seconds);
+
+    detect_bottom_logic_init_timeout_ = start_timeout + detect_bottom_logic_init_duration;
+
+    powered_descent_timeout_ = start_timeout + powered_descent_timeout_duration;
+
+    loop(EvLoop());
 }
 
 jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDescent()
@@ -362,6 +370,19 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
     setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // make sure we have a safety timeout to transition into unpowered ascent
+    if (current_clock >= powered_descent_timeout_)
+    {
+        glog.is_debug2() && glog << "Safety Powered Descent Timeout!" << std::endl;
+        post_event(EvPowerDescentSafety());
+    }
+    else
+    {
+        glog.is_debug2() && glog << "Safety Powered Descent Timeout Not Reached!" << std::endl;
+    }
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(

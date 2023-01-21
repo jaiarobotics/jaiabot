@@ -25,6 +25,10 @@ message MissionManager
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 
+    // safety timeout on powered descent to then transition to unpowered descent
+    optional double powered_descent_timeout = 28
+        [default = 600, (dccl.field).units = { base_dimensions: "T" }];
+
     // detect bottom logic initial timeout in seconds. Used to determine 
     // when we should start determining we reached bottom in powered descent logic.
     // (this gives the vehicle time to begin diving)

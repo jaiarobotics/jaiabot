@@ -85,6 +85,7 @@ STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
+STATECHART_EVENT(EvPowerDescentSafety)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
@@ -335,15 +336,11 @@ struct MissionManagerStateMachine
 
         pa.set_pressure_adjusted(pressure_adjusted);
 
-        if (gps_tpv().IsInitialized() && gps_tpv().has_location() && gps_tpv().location().has_lat())
-        {
-            // Calculate Depth From Pressure Adjusted
-            auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(),
-                                                     gps_tpv().location().lat_with_units());
-            post_event(statechart::EvVehicleDepth(depth));
+        // Calculate Depth From Pressure Adjusted
+        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat());
+        post_event(statechart::EvVehicleDepth(depth));
 
-            pa.set_calculated_depth_with_units(depth);
-        }
+        pa.set_calculated_depth_with_units(depth);
 
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
@@ -393,6 +390,15 @@ struct MissionManagerStateMachine
     }
     const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
 
+    void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
+    {
+        latest_lat_ = latest_lat;
+    }
+    const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat()
+    {
+        return latest_lat_;
+    }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -410,6 +416,11 @@ struct MissionManagerStateMachine
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
     double start_of_dive_pressure_{0};
     double current_pressure_{0};
+    // if we don't get latitude information, we'll compute depth based on mid-latitude
+    // (45 degrees), which will introduce up to 0.27% error at 500 meters depth
+    // at the equator or the poles
+    boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
+        45 * boost::units::degree::degrees};
 };
 
 struct PreDeployment
@@ -1317,7 +1328,8 @@ struct PoweredDescent
         boost::statechart::transition<EvDepthTargetReached, Hold>,
         boost::statechart::in_state_reaction<EvLoop, PoweredDescent, &PoweredDescent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredDescent,
-                                             &PoweredDescent::depth>>;
+                                             &PoweredDescent::depth>,
+        boost::statechart::transition<EvPowerDescentSafety, UnpoweredAscent>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
@@ -1331,6 +1343,8 @@ struct PoweredDescent
     jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug_;
     // determines when to start using powered descent logic
     goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
+    // determines when to safely timout of powered descent and transition into unpowered ascent
+    goby::time::SteadyClock::time_point powered_descent_timeout_;
 };
 
 struct Hold

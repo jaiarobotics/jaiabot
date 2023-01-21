@@ -224,6 +224,7 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             latest_lat_ = node_status.global_fix().lat_with_units();
+            machine_->set_latest_lat(latest_lat_);
         });
 
     // subscribe for sensor measurements (including pressure -> depth)
