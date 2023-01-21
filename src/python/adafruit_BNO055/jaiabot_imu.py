@@ -6,6 +6,7 @@ import sys
 import argparse
 import socket
 import logging
+import time
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
@@ -57,6 +58,9 @@ class IMU:
             self.is_setup = False
             raise e
 
+    def reset(self):
+        self.sensor._reset
+
 
 class IMUSimulator:
     def __init__(self):
@@ -87,8 +91,18 @@ port = args.port
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', port))
 
+imu_timeout = 5
+previous_time = time.time()
+
 while True:
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+    current_time = time.time()
+
+    if (previous_time + imu_timeout) <= current_time:
+        previous_time = current_time
+        print("reset imu")
+        imu.reset()
 
     # Respond to anyone who sends us a packet
     try:
@@ -96,7 +110,7 @@ while True:
     except Exception as e:
         log.error(e)
         continue
-
+    
     now = datetime.utcnow()
     euler = data['euler']
     linear_acceleration = data['linear_acceleration']
