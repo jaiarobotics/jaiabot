@@ -25,7 +25,8 @@ dive_depth_eps: 0.1  #  (optional) (default=0.1)
 surfacing_timeout: 35  #  (optional) (default=30)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
-bottoming_timeout: 10 # (optional) (default=5)
+bottoming_timeout: 3 # (optional) (default=5)
+detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)

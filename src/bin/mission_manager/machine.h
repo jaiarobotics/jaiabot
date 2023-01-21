@@ -24,6 +24,7 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
+#include <goby/util/seawater.h>
 
 namespace jaiabot
 {
@@ -333,6 +334,16 @@ struct MissionManagerStateMachine
                        << ", Adjusted: " << pressure_adjusted << std::endl;
 
         pa.set_pressure_adjusted(pressure_adjusted);
+
+        if (gps_tpv().IsInitialized() && gps_tpv().has_location() && gps_tpv().location().has_lat())
+        {
+            // Calculate Depth From Pressure Adjusted
+            auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(),
+                                                     gps_tpv().location().lat_with_units());
+            post_event(statechart::EvVehicleDepth(depth));
+
+            pa.set_calculated_depth_with_units(depth);
+        }
 
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
@@ -1316,8 +1327,10 @@ struct PoweredDescent
     boost::units::quantity<boost::units::si::length> last_depth_;
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    //Keep track of dive information
+    // keep track of dive information
     jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug_;
+    // determines when to start using powered descent logic
+    goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
 };
 
 struct Hold

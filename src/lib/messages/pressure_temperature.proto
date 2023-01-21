@@ -29,4 +29,10 @@ message PressureAdjustedData
         [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
     optional double pressure_raw_before_dive = 3
         [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double calculated_depth = 11 [(dccl.field) = {
+        min: -1
+        max: 100
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
 }

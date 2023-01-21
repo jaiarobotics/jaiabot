@@ -260,18 +260,6 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
     task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
-
-    // Check to see if the current task is a dive.
-    // We want to set start of dive to true.
-    // This makes sure we capture the pressure before the dive begins.
-    if (current_task->type() == protobuf::MissionTask::DIVE)
-    {
-        this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
-        goby::glog.is_debug2() &&
-            goby::glog << "Task is a dive, set start pressure to adjust raw pressure: "
-                       << this->machine().start_of_dive_pressure() << std::endl;
-    }
 }
 
 jaiabot::statechart::inmission::underway::Task::~Task()
@@ -290,6 +278,10 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::my_context c)
     : StateBase(c)
 {
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
     // we currently start at the surface
     quantity<si::length> depth = 0 * si::meters + current_dive().depth_interval_with_units();
     quantity<si::length> max_depth = current_dive().max_depth_with_units();
@@ -346,6 +338,15 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     : StateBase(c)
 {
     loop(EvLoop());
+    goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_start =
+        goby::time::SteadyClock::now();
+    // duration granularity is seconds
+    int detect_bottom_logic_init_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
+
+    goby::time::SteadyClock::duration detect_bottom_logic_init_duration =
+        std::chrono::seconds(detect_bottom_logic_init_timeout_seconds);
+    detect_bottom_logic_init_timeout_ =
+        detect_bottom_logic_init_timeout_start + detect_bottom_logic_init_duration;
 }
 
 jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::~PoweredDescent()
@@ -407,6 +408,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     }
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
     dive_pdescent_debug_.set_current_time(now.value());
 
     glog.is_debug2() &&
@@ -416,49 +419,61 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
              << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps() << "\n"
              << std::endl;
 
-    // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
-    if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+    // make sure we have finished the initial startup
+    // time to begin detecting bottom
+    if (current_clock >= detect_bottom_logic_init_timeout_)
     {
+        glog.is_debug2() && glog << "Initial detect bottom timeout completed!" << std::endl;
+
+        // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
+        if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+        {
+            glog.is_debug2() &&
+                glog << "(ev.depth - last_depth_) > cfg().dive_depth_eps_with_units() == true"
+                     << "\n dive_pdescent_debug_.set_depth_changed(true);"
+                     << "\n"
+                     << std::endl;
+            last_depth_change_time_ = now;
+            last_depth_ = ev.depth;
+            dive_pdescent_debug_.set_depth_changed(true);
+        }
+
         glog.is_debug2() &&
-            glog << "(ev.depth - last_depth_) > cfg().dive_depth_eps_with_units() == true"
-                 << "\n dive_pdescent_debug_.set_depth_changed(true);"
-                 << "\n"
+            glog << "if ((now - last_depth_change_time_) > "
+                    "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())): "
+                 << ((now - last_depth_change_time_) >
+                     static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+                 << "\n now: " << now.value()
+                 << "\n last_depth_change_time_: " << last_depth_change_time_.value()
+                 << "\n static_cast<decltype(now)>(cfg().bottoming_timeout_with_units(): "
+                 << static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()).value() << "\n"
                  << std::endl;
-        last_depth_change_time_ = now;
-        last_depth_ = ev.depth;
-        dive_pdescent_debug_.set_depth_changed(true);
+
+        // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
+        if ((now - last_depth_change_time_) >
+            static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+        {
+            glog.is_debug2() &&
+                glog << "(now - last_depth_change_time_) > "
+                        "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()) == true"
+                     << "\n post_event(EvDepthTargetReached());"
+                     << "\n"
+                     << std::endl;
+            context<Dive>().set_seafloor_reached(ev.depth);
+
+            // Set depth achieved if we had a bottoming timeout
+            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
+            // used to correct dive rate calculation
+            duration_correction_ = (now - last_depth_change_time_);
+            post_event(EvDepthTargetReached());
+            dive_pdescent_debug_.set_depth_change_timeout(true);
+        }
     }
-
-    glog.is_debug2() &&
-        glog << "if ((now - last_depth_change_time_) > "
-                "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())): "
-             << ((now - last_depth_change_time_) >
-                 static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
-             << "\n now: " << now.value()
-             << "\n last_depth_change_time_: " << last_depth_change_time_.value()
-             << "\n static_cast<decltype(now)>(cfg().bottoming_timeout_with_units(): "
-             << static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()).value() << "\n"
-             << std::endl;
-
-    // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
-    if ((now - last_depth_change_time_) >
-        static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+    else
     {
-        glog.is_debug2() &&
-            glog << "(now - last_depth_change_time_) > "
-                    "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()) == true"
-                 << "\n post_event(EvDepthTargetReached());"
-                 << "\n"
-                 << std::endl;
-        context<Dive>().set_seafloor_reached(ev.depth);
-
-        // Set depth achieved if we had a bottoming timeout
-        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
-
-        // used to correct dive rate calculation
-        duration_correction_ = (now - last_depth_change_time_);
-        post_event(EvDepthTargetReached());
-        dive_pdescent_debug_.set_depth_change_timeout(true);
+        glog.is_debug2() && glog << "Waiting for initial detect bottom timeout to be completed!"
+                                 << std::endl;
     }
 
     interprocess().publish<jaiabot::groups::mission_dive>(dive_pdescent_debug_);
