@@ -31,7 +31,7 @@ imu_restart_timeout: 30 # default (30 seconds)
 
 # IMU Detection
 imu_detect_timeout: 1 # second
-total_imu_issue_checks: 5 # 5 * imu_detect_timeout = time to detect
+total_imu_issue_checks: 7 # default (5 checks) 5 * imu_detect_timeout = time to detect
 
 # Set the rate to send bot status in milliseconds
 bot_status_rate: 1000 # default (1000 milliseconds)
@@ -47,6 +47,6 @@ include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
 
 watch_battery_percentage: true # (default = true)
-battery_percentage_low_level: 30 # (default = 30)
+battery_percentage_low_level: 50 # (default = 50)
 battery_percentage_very_low_level: 20 # (default = 20)
 battery_percentage_critically_low_level: 10 # (default = 10)
