@@ -410,9 +410,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
             auto now = goby::time::SteadyClock::now();
 
-            auto depth = goby::util::seawater::depth(
-                pt.pressure_raw_with_units(), latest_node_status_.global_fix().lat_with_units());
-
             last_data_time_[DataType::PRESSURE] = now;
 
             if (pt.has_temperature())
@@ -425,14 +422,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
         [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            auto depth =
-                goby::util::seawater::depth(pa.pressure_adjusted_with_units(),
-                                            latest_node_status_.global_fix().lat_with_units());
-
-            latest_node_status_.mutable_global_fix()->set_depth_with_units(depth);
-            latest_node_status_.mutable_local_fix()->set_z_with_units(
-                -latest_node_status_.global_fix().depth_with_units());
-            latest_bot_status_.set_depth_with_units(depth);
+            if (pa.has_calculated_depth())
+            {
+                latest_node_status_.mutable_global_fix()->set_depth_with_units(
+                    pa.calculated_depth_with_units());
+                latest_node_status_.mutable_local_fix()->set_z_with_units(
+                    -latest_node_status_.global_fix().depth_with_units());
+                latest_bot_status_.set_depth_with_units(pa.calculated_depth_with_units());
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
