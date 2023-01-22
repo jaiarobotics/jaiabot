@@ -117,12 +117,37 @@ while True:
     gravity = data['gravity']
     calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
     try:
-        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d\n' % \
+        heading = euler[0]
+        print("=========================================")
+        print("")
+        formatted_heading_value_before = "Heading Before: {:.2f}".format(heading)
+        # Heading before
+        print(formatted_heading_value_before)
+        
+        # adjust heading because we rolled over
+        bot_rolled = 0
+
+        if abs(euler[2]) >= 135:
+           print("Roll exceeds 135")
+           bot_rolled = 1
+           heading = euler[0] + 180
+           if heading > 360:
+               heading = heading - 360
+
+        formatted_heading_value_after = "Heading After: {:.2f}".format(heading)
+        formatted_roll_value = "Roll: {:.2f}".format(euler[2])
+        print(formatted_heading_value_after)
+        print(formatted_roll_value)
+        print("")
+        print("=========================================")
+
+        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
             (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-            euler[0], euler[2], euler[1], 
+            heading, euler[2], euler[1], 
             linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
             gravity[0], gravity[2], gravity[1],
-            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3])
+            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],
+            bot_rolled)
         log.debug('Sent: ' + line)
 
         sock.sendto(line.encode('utf8'), addr)
