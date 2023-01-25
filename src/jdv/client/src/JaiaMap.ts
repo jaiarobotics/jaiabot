@@ -24,7 +24,7 @@ import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
-import { TaskPacket, Command } from './gui/ProtoBufMessages';
+import { TaskPacket, Command, Location } from './gui/ProtoBufMessages';
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
 
@@ -95,6 +95,79 @@ interface ActiveGoal {
     _utime_: number
     active_goal: number
 }
+
+
+function arrayFrom(location: Location) {
+    return [location.lon, location.lat]
+}
+
+
+function GetKMLFromFeatures(features: Feature[]) {
+    // Gets a KML string from a list of Features
+
+    var format = new KML({
+        extractStyles: false,
+        writeStyles: false,
+    });
+
+    return format.writeFeatures(features);
+}
+
+function TaskPacketToExportableFeatures(taskPacket: TaskPacket) {
+    var features: Feature[] = []
+
+    const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
+    const date = new Date(taskPacket._utime_ / 1e3)
+    const dateString = formatter.format(date)
+
+    const dive = taskPacket.dive
+    if (dive != null) {
+        const parameters = `Depth: ${dive.depth_achieved.toFixed(2)} m\nBottom Dive: ${dive.bottom_dive ? "Yes" : "No"}\nDuration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s\nUnpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s\nPowered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s`
+
+        features.push(new Feature({
+            description: dateString,
+            parameters: parameters,
+            name: 'Dive',
+            geometry: new Point(arrayFrom(dive.start_location))
+        }))
+    }
+
+    const drift = taskPacket.drift
+    if (drift != null) {
+        var parameters = `Duration: ${drift.drift_duration.toFixed(2)} s`
+
+        const estimated_drift = drift.estimated_drift
+        if (estimated_drift != null) {
+            parameters = parameters + `\nSpeed: ${estimated_drift.speed?.toFixed(2)} m/s\nHeading: ${estimated_drift.heading?.toFixed(2)} deg`
+        }
+
+        const geometry = new LineString([
+            arrayFrom(drift.start_location),
+            arrayFrom(drift.end_location)
+        ])
+
+        features.push(new Feature({
+            description: dateString,
+            parameters: parameters,
+            name: 'Drift',
+            geometry: geometry
+        }))
+
+    }
+
+    return features
+}
+
+
+function DownloadFile(name: string, data: BlobPart) {
+    let a = document.createElement("a");
+    if (typeof a.download !== "undefined") a.download = name;
+    a.href = URL.createObjectURL(new Blob([data], {
+        type: "application/octet-stream"
+    }));
+    a.dispatchEvent(new MouseEvent("click"));
+}
+
 
 
 export default class JaiaMap {
@@ -521,45 +594,10 @@ export default class JaiaMap {
             this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
         }
 
+
         exportKml() {
-            // Export visible features into a KML document, and initiate download
-            function GetKMLFromFeatures(features: Feature[]) {
-                var format = new KML({
-                    extractStyles: true,
-                });
-          
-                return format.writeFeatures(features);
-            }
-
-            function GetAllFeaturesFromMapOrLayer(mapOrLayer: Map | Layer | LayerGroup) {
-                if (mapOrLayer instanceof Map) {
-                    var features: Feature[] = []
-
-                    for (const layer of mapOrLayer.getAllLayers()) {
-                        features = features.concat(features, GetAllFeaturesFromMapOrLayer(layer))
-                    }
-
-                    return features
-                }
-
-                if (mapOrLayer instanceof VectorLayer) {
-                    const source: VectorSource = mapOrLayer.getSource()
-                    return source.getFeatures()
-                }
-
-            }
-
-            function DownloadFile(name: string, data: BlobPart) {
-                let a = document.createElement("a");
-                if (typeof a.download !== "undefined") a.download = name;
-                a.href = URL.createObjectURL(new Blob([data], {
-                    type: "application/octet-stream"
-                }));
-                a.dispatchEvent(new MouseEvent("click"));
-            }
-
-            let kmlString = GetKMLFromFeatures(GetAllFeaturesFromMapOrLayer(this.openlayersMap))
-
+            let features = this.task_packets.flatMap(TaskPacketToExportableFeatures)
+            let kmlString = GetKMLFromFeatures(features)
             DownloadFile('map.kml', kmlString)
         }
 

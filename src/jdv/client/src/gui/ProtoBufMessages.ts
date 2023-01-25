@@ -56,14 +56,21 @@ export function DiveTaskDescription(dive: DiveTask): string[] {
     return rows
 }
 
+export interface EstimatedDrift {
+    speed: number
+    heading: number
+}
+
 export interface DriftTask {
     start_location: Location
     end_location: Location
     drift_duration: number
+    estimated_drift: EstimatedDrift
 }
 
 export interface TaskPacket {
     _scheme_: number
+    _utime_: number
     drift?: DriftTask
     dive?: DiveTask
 }
