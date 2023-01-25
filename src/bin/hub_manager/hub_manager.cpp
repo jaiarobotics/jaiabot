@@ -130,7 +130,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
         }
 
         {
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
+                cfg().engineering_status_sub_cfg();
             goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
                 *subscriber_cfg.mutable_intervehicle();
             intervehicle_cfg.add_publisher_id(id);
@@ -380,13 +381,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
 
         for (auto frag : command_fragments)
-        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
+        {
+            glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl;
+        }
     }
 
     goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group) {
-            cmd.set_bot_id(group.numeric());
-        });
+        {}, [](Command& cmd, const goby::middleware::Group& group)
+        { cmd.set_bot_id(group.numeric()); });
 
     if (!command_fragments.empty())
     {

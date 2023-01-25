@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(10 * si::hertz)
 {
     auto app_config = cfg();
 
