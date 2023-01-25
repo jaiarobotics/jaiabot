@@ -26,7 +26,7 @@ cd ~/jaiabot
 
 * Test code using the simulator
 
-### Running Simulator locally
+### Running Simulator locally (Currently only support Ubuntu 20.04)
 
 * start ntp (or put it in the bashrc)
 ```
