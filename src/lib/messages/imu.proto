@@ -49,6 +49,8 @@ message IMUData
 
     optional CalibrationStatus calibration_status = 4;
 
+    optional bool bot_rolled_over = 5 [default = false];
+
 }
 
 message IMUIssue

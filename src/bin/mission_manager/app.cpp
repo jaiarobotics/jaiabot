@@ -225,6 +225,7 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             latest_lat_ = node_status.global_fix().lat_with_units();
+            machine_->set_latest_lat(latest_lat_);
         });
 
     // subscribe for sensor measurements (including pressure -> depth)
@@ -235,14 +236,6 @@ jaiabot::apps::MissionManager::MissionManager()
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
-        });
-
-    // subscribe for pressure adjusted measurements (pressure -> depth)
-    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            auto depth =
-                goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat_);
-            machine_->process_event(statechart::EvVehicleDepth(depth));
         });
 
     // subscribe for salinity data
