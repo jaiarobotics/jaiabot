@@ -25,8 +25,16 @@ message MissionManager
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 
+    // powered ascent motor on timeout
+    optional int32 powered_ascent_motor_on_timeout = 26
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
+
+    // powered ascent motor off timeout
+    optional int32 powered_ascent_motor_off_timeout = 27
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
     // safety timeout on powered descent to then transition to unpowered descent
-    optional double powered_descent_timeout = 28
+    optional int32 powered_descent_timeout = 28
         [default = 600, (dccl.field).units = { base_dimensions: "T" }];
 
     // detect bottom logic initial timeout in seconds. Used to determine 
