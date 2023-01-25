@@ -89,6 +89,7 @@ import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
 import { createBotFeature } from './gui/BotFeature'
+import { createHubFeature } from './gui/HubFeature'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -290,6 +291,7 @@ export default class CommandControl extends React.Component {
 			accelerationProfileIndex: 0,
 			commandDrawerOpen: false,
 			// Map layers
+			hubsLayerCollection: new OlCollection([], { unique: true }),
 			botsLayerCollection: new OlCollection([], { unique: true }),
 			chartLayerCollection: new OlCollection([], { unique: true }),
 			baseLayerCollection: new OlCollection([], { unique: true }),
@@ -464,8 +466,15 @@ export default class CommandControl extends React.Component {
 		});
 
 		const {
+			hubsLayerCollection,
 			botsLayerCollection,
 			selectedBotsFeatureCollection    } = this.state;
+
+		this.hubsLayerGroup = new OlLayerGroup({
+			// title: 'Bots',
+			// fold: 'open',
+			layers: hubsLayerCollection
+		});
 
 		this.botsLayerGroup = new OlLayerGroup({
 			// title: 'Bots',
@@ -1044,6 +1053,7 @@ export default class CommandControl extends React.Component {
 			this.activeMissionLayer,
 			this.missionPlanningLayer,
 			this.exclusionsLayer,
+			this.hubsLayerGroup,
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
@@ -1736,6 +1746,44 @@ export default class CommandControl extends React.Component {
 		clearTimeout(this.accelTimer);
 	}
 
+	getLiveLayerFromHubId(hub_id) {
+		const { hubsLayerCollection } = this.state;
+		// eslint-disable-next-line no-plusplus
+		for (let i = 0; i < hubsLayerCollection.getLength(); i++) {
+			const layer = hubsLayerCollection.item(i);
+			if (layer.hub_id === hub_id) {
+				return layer;
+			}
+		}
+
+		const hubFeature = new OlFeature({
+			name: hub_id,
+			geometry: new OlPoint([0, 0])
+		});
+
+		hubFeature.setId(hub_id);
+		hubFeature.setStyle(getBoatStyle(map));
+
+		const hubLayer = new OlVectorLayer({
+			name: hub_id,
+			title: hub_id,
+			source: new OlVectorSource({
+				wrapX: false,
+				features: new OlCollection([hubFeature], { unique: true })
+			})
+		});
+
+		hubLayer.setStyle(getBoatStyle(map));
+
+		hubLayer.hub_id = hub_id;
+
+		hubsLayerCollection.push(hubLayer);
+
+		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
+
+		return hubsLayerCollection.item(hubsLayerCollection.getLength() - 1);
+	}
+
 	getLiveLayerFromBotId(bot_id) {
 		const { botsLayerCollection } = this.state;
 		// eslint-disable-next-line no-plusplus
@@ -1866,7 +1914,7 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-	/*updateHubsLayer() {
+	updateHubsLayer() {
 		let hubs = this.podStatus.hubs;
 
 		for (let hubId in hubs) {
@@ -1877,8 +1925,41 @@ export default class CommandControl extends React.Component {
 			// Geometry
 			const hubLatitude = hub.location?.lat
 			const hubLongitude = hub.location?.lon
-		}
-	}*/
+
+			const hubLayer = this.getLiveLayerFromHubId(hub_id);
+
+			const hubFeature = createHubFeature({
+				map: map,
+				hubId: hubId,
+				lonLat: [hubLatitude, hubLongitude],
+				heading: 0,
+				courseOverGround: 0
+			})
+
+			hubFeature.setId(hub_id);
+
+			const coordinate = equirectangular_to_mercator([parseFloat(hubLongitude), parseFloat(hubLatitude)]);
+
+			hubFeature.setGeometry(new OlPoint(coordinate));
+			hubFeature.setProperties({
+				heading: 0,
+				speed: 0,
+				hubId: hubId,
+			});
+
+			const zoomExtentWidth = 0.001; // Degrees
+
+			hubFeature.set('selected', false);
+
+			hubLayer.getSource().clear();
+			hubLayer.getSource().addFeature(hubFeature);
+
+			hubLayer.setZIndex(100);
+			hubLayer.changed();
+		} // end foreach hub
+
+		//this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
+	}
 
 	updateActiveMissionLayer() {
 		const bots = this.podStatus.bots
@@ -2111,9 +2192,10 @@ export default class CommandControl extends React.Component {
 						this.setState({disconnectionMessage: null})
 					}
 
+					this.updateHubsLayer()
 					this.updateBotsLayer()
 					this.updateActiveMissionLayer()
-					//this.updateHubsLayer()
+
 					if (this.state.mode !== 'missionPlanning') {
 						this.updateMissionLayer()
 					}
@@ -2396,7 +2478,8 @@ export default class CommandControl extends React.Component {
 				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
 												this.api, 
 												closeDetails, 
-												this.state.detailsExpanded);
+												this.state.detailsExpanded,
+												this.takeControl.bind(this));
 				
 				break;
 			case 'bot':

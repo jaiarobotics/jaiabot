@@ -66,6 +66,32 @@ message Command
     optional MissionTask rc_task = 31;
 }
 
+message CommandForHub
+{
+    option (dccl.msg) = {
+        id: 90
+        max_bytes: 200
+        codec_version: 3
+        unit_system: "si"
+    };
+
+    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    required uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    enum CommandType
+    {
+        // debugging low level commands
+        RESTART_ALL_SERVICES = 40;
+        REBOOT_COMPUTER = 41;
+        SHUTDOWN_COMPUTER = 42;
+    }
+
+    required CommandType type = 10;
+}
+
 message BotStatus
 {
     /*

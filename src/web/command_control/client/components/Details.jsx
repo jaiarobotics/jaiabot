@@ -113,6 +113,27 @@ let commands = {
     }
 }
 
+let commandsForHub = {
+    shutdown: {
+        enumString: 'SHUTDOWN_COMPUTER',
+        description: 'Shutdown Hub',
+        statesNotAvailable: [
+        ]
+    },
+    restartServices: {
+        enumString: 'RESTART_ALL_SERVICES',
+        description: 'Restart Services',
+        statesNotAvailable: [
+        ]
+    },
+    reboot: {
+        enumString: 'REBOOT_COMPUTER',
+        description: 'Reboot Hub',
+        statesNotAvailable: [
+        ]
+    }
+}
+
 let takeControlFunction = null;
 
 function issueCommand(api, bot_id, command) {
@@ -126,6 +147,22 @@ function issueCommand(api, bot_id, command) {
 
         console.log(c)
         api.postCommand(c)
+    }
+}
+
+function issueCommandForHub(api, hub_id, command_for_hub) {
+    console.log("Hub Command");
+
+    if (!takeControlFunction()) return;
+
+    if (confirm("Are you sure you'd like to " + command_for_hub.description + " (" + command_for_hub.enumString + ")?")) {
+        let c = {
+            hub_id: hub_id,
+            type: command_for_hub.enumString
+        }
+
+        console.log(c)
+        api.postCommandForHub(c)
     }
 }
 
@@ -661,7 +698,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
     )
 }
 
-export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
+export function HubDetailsComponent(hub, api, closeWindow, isExpanded, takeControl) {
     if (hub == null) {
         return (<div></div>)
     }
@@ -677,6 +714,7 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
     }
 
     let mission_state = hub.mission_state;
+    takeControlFunction = takeControl;
 
     return (
         <div id='botDetailsBox'>
@@ -732,19 +770,16 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.shutdown) }}>
+                        <Button className={" button-jcc"} 
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
-                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.reboot, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.reboot) }}>
+                        <Button className={" button-jcc"} 
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
                         </Button>
-                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.restartServices) }}>
+                        <Button className={" button-jcc"}  
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
                     </AccordionDetails>

@@ -114,6 +114,51 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
+export function hubMarker(feature: Feature): Style[] {
+    const geometry = feature.getGeometry() as Point
+    const centerPosition = geometry.getCoordinates()
+
+    function angleToXY(angle: number): XYCoordinate {
+        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
+    }
+
+    const heading = feature.get('heading') * DEG
+    const headingDelta = angleToXY(heading)
+
+    const textOffsetRadius = 11
+
+    var color = defaultColor
+
+    if (feature.get('selected')) {
+        color = selectedColor
+    }
+
+    const text = "H" + String(feature.get('hubId'))
+
+    var style = [ 
+        // Hub body marker
+        new Style({
+            image: new Icon({
+                src: bot,
+                color: color,
+                anchor: [0.5, 0.5],
+                rotation: heading,
+                rotateWithView: true
+            }),
+            text: new Text({
+                text: text,
+                font: 'bold 11pt sans-serif',
+                fill: new Fill({
+                    color: 'black'
+                }),
+                offsetX: -textOffsetRadius * headingDelta.x,
+                offsetY: -textOffsetRadius * headingDelta.y
+            })
+        })
+    ]
+
+    return style
+}
 
 export function courseOverGroundArrow(feature: Feature): Style {
     const courseOverGround = feature.get('courseOverGround') * DEG
