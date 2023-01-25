@@ -4,10 +4,31 @@ import { createMarker } from './Marker'
 import { LineString } from 'ol/geom'
 import * as Styles from "./Styles"
 import {Map} from 'ol'
-import { DriftTask, Location, TaskPacket, DiveTaskDescription } from './ProtoBufMessages';
+import { DriftPacket, DivePacket, TaskPacket } from './JAIAProtobuf';
 
 
-function createDriftTaskFeature(map: Map, drift: DriftTask) {
+function DivePacketDescription(dive: DivePacket): string[] {
+    var rows: string[] = [
+        `Depth achieved: ${dive.depth_achieved.toFixed(2)} m`
+    ]
+
+    if (dive.duration_to_acquire_gps != null) {
+        rows.push(`Duration to acquire GPS: ${dive.duration_to_acquire_gps.toFixed(2)} s`)
+    }
+
+    if (dive.powered_rise_rate != null) {
+        rows.push(`Powered rise rate: ${dive.powered_rise_rate.toFixed(2)} m/s`)
+    }
+
+    if (dive.unpowered_rise_rate != null) {
+        rows.push(`Unpowered rise rate: ${dive.unpowered_rise_rate.toFixed(2)} m/s`)
+    }
+
+    return rows
+}
+    
+
+function createDriftPacketFeature(map: Map, drift: DriftPacket) {
     const projection = map.getView().getProjection()
     const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
     const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
@@ -35,19 +56,19 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
     const drift = taskPacket.drift
 
     if (drift != null && drift.drift_duration != 0) {
-        features.push(createDriftTaskFeature(map, drift))
+        features.push(createDriftPacketFeature(map, drift))
     }
 
     // Dive markers
     const dive = taskPacket.dive
 
     if (dive != null) {
-        const rows = DiveTaskDescription(dive).join('<br>') + '<br>'
+        const rows = DivePacketDescription(dive).join('<br>') + '<br>'
 
         const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${rows}`
 
         if (dive.depth_achieved != 0) {
-            features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.diveTask(dive), popupHTML: d_description}))
+            features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive), popupHTML: d_description}))
         }
     }
 

@@ -381,13 +381,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
 
         for (auto frag : command_fragments)
-        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
+        {
+            glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl;
+        }
     }
 
     goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group) {
-            cmd.set_bot_id(group.numeric());
-        });
+        {}, [](Command& cmd, const goby::middleware::Group& group)
+        { cmd.set_bot_id(group.numeric()); });
 
     if (!command_fragments.empty())
     {
