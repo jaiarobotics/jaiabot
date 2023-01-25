@@ -6,6 +6,7 @@ import { TileArcGISRest} from 'ol/source';
 import LayerGroup from 'ol/layer/Group';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import KML from 'ol/format/KML';
 import Polygon from 'ol/geom/Polygon';
 import { fromLonLat, Projection } from 'ol/proj';
 import Feature from 'ol/Feature';
@@ -518,6 +519,48 @@ export default class JaiaMap {
             this.depthContourVectorSource.clear()
 
             this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
+        }
+
+        exportKml() {
+            // Export visible features into a KML document, and initiate download
+            function GetKMLFromFeatures(features: Feature[]) {
+                var format = new KML({
+                    extractStyles: true,
+                });
+          
+                return format.writeFeatures(features);
+            }
+
+            function GetAllFeaturesFromMapOrLayer(mapOrLayer: Map | Layer | LayerGroup) {
+                if (mapOrLayer instanceof Map) {
+                    var features: Feature[] = []
+
+                    for (const layer of mapOrLayer.getAllLayers()) {
+                        features = features.concat(features, GetAllFeaturesFromMapOrLayer(layer))
+                    }
+
+                    return features
+                }
+
+                if (mapOrLayer instanceof VectorLayer) {
+                    const source: VectorSource = mapOrLayer.getSource()
+                    return source.getFeatures()
+                }
+
+            }
+
+            function DownloadFile(name: string, data: BlobPart) {
+                let a = document.createElement("a");
+                if (typeof a.download !== "undefined") a.download = name;
+                a.href = URL.createObjectURL(new Blob([data], {
+                    type: "application/octet-stream"
+                }));
+                a.dispatchEvent(new MouseEvent("click"));
+            }
+
+            let kmlString = GetKMLFromFeatures(GetAllFeaturesFromMapOrLayer(this.openlayersMap))
+
+            DownloadFile('map.kml', kmlString)
         }
 
     }
