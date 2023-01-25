@@ -264,7 +264,8 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
 {
     using jaiabot::protobuf::Command;
 
-    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager: " << command.ShortDebugString()
+    glog.is_debug2() && glog << group("main")
+                             << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
 
     goby::middleware::Publisher<Command> command_publisher(

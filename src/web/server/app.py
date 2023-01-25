@@ -23,7 +23,7 @@ logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 if args.hostname is None:
-    logging.warning('no ip specified, using localhost')
+    logging.warning('no ip specified, using localhost:40001')
     args.hostname = "localhost"
 
 jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
