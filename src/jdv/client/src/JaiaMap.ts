@@ -116,13 +116,17 @@ function GetKMLFromFeatures(features: Feature[]) {
 function TaskPacketToExportableFeatures(taskPacket: TaskPacket) {
     var features: Feature[] = []
 
+    if (taskPacket._scheme_ != 1) {
+        return []
+    }
+
     const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
     const date = new Date(taskPacket._utime_ / 1e3)
     const dateString = formatter.format(date)
 
     const dive = taskPacket.dive
     if (dive != null) {
-        const parameters = `Depth: ${dive.depth_achieved.toFixed(2)} m\nBottom Dive: ${dive.bottom_dive ? "Yes" : "No"}\nDuration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s\nUnpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s\nPowered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s`
+        var parameters = `Depth: ${dive.depth_achieved.toFixed(2)} m\nBottom Dive: ${dive.bottom_dive ? "Yes" : "No"}\nDuration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s\nUnpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s\nPowered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s`
 
         features.push(new Feature({
             description: dateString,
