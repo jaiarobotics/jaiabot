@@ -158,7 +158,8 @@ jaiabot::apps::MissionManager::MissionManager()
             cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
 
         intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& input_command) {
+            [this](const protobuf::Command& input_command)
+            {
                 if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
                 {
                     protobuf::Command out_command;
@@ -224,6 +225,7 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             latest_lat_ = node_status.global_fix().lat_with_units();
+            machine_->set_latest_lat(latest_lat_);
         });
 
     // subscribe for sensor measurements (including pressure -> depth)
@@ -234,14 +236,6 @@ jaiabot::apps::MissionManager::MissionManager()
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
-        });
-
-    // subscribe for pressure adjusted measurements (pressure -> depth)
-    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            auto depth =
-                goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat_);
-            machine_->process_event(statechart::EvVehicleDepth(depth));
         });
 
     // subscribe for salinity data
@@ -310,6 +304,12 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 case protobuf::IMUIssue::STOP_BOT:
                     machine_->process_event(statechart::EvStop());
+                    break;
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                default:
+                    //TODO Handle Default Case
                     break;
             }
         });

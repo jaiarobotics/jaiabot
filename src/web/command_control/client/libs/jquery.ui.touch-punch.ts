@@ -8,7 +8,7 @@
  *  jquery.ui.widget.js
  *  jquery.ui.mouse.js
  */
-export default function punchJQuery($) {
+export default function punchJQuery($: any) {
   // Detect touch support
   $.support.touch = 'ontouchend' in document;
 
@@ -26,14 +26,14 @@ export default function punchJQuery($) {
   const _mouseDestroy = mouseProto._mouseDestroy;
 
 
-  let touchHandled;
+  let touchHandled: any;
 
   /**
    * Simulate a mouse event based on a corresponding touch event
    * @param {Object} event A touch event
    * @param {String} simulatedType The corresponding mouse event
    */
-  function simulateMouseEvent(event, simulatedType) {
+  function simulateMouseEvent(event: any, simulatedType: any) {
     // Ignore multi-touch events
     if (event.originalEvent.touches.length > 1) {
       return;
@@ -73,7 +73,7 @@ export default function punchJQuery($) {
    * Handle the jQuery UI widget's touchstart events
    * @param {Object} event The widget element's touchstart event
    */
-  mouseProto._touchStart = function (event) {
+  mouseProto._touchStart = function (event: any) {
     const self = this;
 
     // Ignore the event if another widget is already being handled
@@ -101,7 +101,7 @@ export default function punchJQuery($) {
    * Handle the jQuery UI widget's touchmove events
    * @param {Object} event The document's touchmove event
    */
-  mouseProto._touchMove = function (event) {
+  mouseProto._touchMove = function (event: any) {
     // Ignore event if not handled
     if (!touchHandled) {
       return;
@@ -118,7 +118,7 @@ export default function punchJQuery($) {
    * Handle the jQuery UI widget's touchend events
    * @param {Object} event The document's touchend event
    */
-  mouseProto._touchEnd = function (event) {
+  mouseProto._touchEnd = function (event: any) {
     // Ignore event if not handled
     if (!touchHandled) {
       return;

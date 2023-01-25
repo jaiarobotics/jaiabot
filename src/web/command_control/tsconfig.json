@@ -11,8 +11,12 @@
     "rootDir": "../../",
     "jsx": "react",
     "target": "ES2015",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "lib": [
+      "ES2021",
+      "dom"
+    ]
   },
-  "include": ["."]
+  "include": ["."],
 }
 

@@ -10,43 +10,43 @@ toastr.options = {
   positionClass: 'toast-top-center',
   preventDuplicates: false,
   onclick: null,
-  showDuration: '300',
-  hideDuration: '1000',
-  timeOut: '5000',
-  extendedTimeOut: '1000',
+  showDuration: 300,
+  hideDuration: 1000,
+  timeOut: 5000,
+  extendedTimeOut: 1000,
   showEasing: 'swing',
   hideEasing: 'linear',
   showMethod: 'fadeIn',
   hideMethod: 'fadeOut'
 };
 
-const messageLog = [];
+const messageLog: string[] = [];
 
-const info = function info(message) {
+const info = function info(message: string) {
   console.log(`INFO ${message}`);
   messageLog.push(`INFO ${message}`);
   toastr.info(message);
 };
 
-const warning = function warning(message) {
+const warning = function warning(message: string) {
   console.warn(`WARNING ${message}`);
   messageLog.push(`WARNING ${message}`);
   toastr.warning(message);
 };
 
-const error = function error(message) {
+const error = function error(message: string) {
   console.error(`ERROR ${message}`);
   messageLog.push(`ERROR ${message}`);
   toastr.error(message);
 };
 
-const success = function success(message) {
+const success = function success(message: string) {
   console.log(`SUCCESS ${message}`);
   messageLog.push(`SUCCESS ${message}`);
   toastr.success(message);
 };
 
-const debug = function debug(message) {
+const debug = function debug(message: string) {
   console.log(`DEBUG ${message}`);
 };
 
