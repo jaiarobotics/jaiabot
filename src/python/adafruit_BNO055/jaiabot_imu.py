@@ -6,6 +6,7 @@ import sys
 import argparse
 import socket
 import logging
+import time
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
@@ -57,6 +58,9 @@ class IMU:
             self.is_setup = False
             raise e
 
+    def reset(self):
+        self.sensor._reset
+
 
 class IMUSimulator:
     def __init__(self):
@@ -87,8 +91,18 @@ port = args.port
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', port))
 
+imu_timeout = 5
+previous_time = time.time()
+
 while True:
     data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+    current_time = time.time()
+
+    if (previous_time + imu_timeout) <= current_time:
+        previous_time = current_time
+        print("reset imu")
+        imu.reset()
 
     # Respond to anyone who sends us a packet
     try:
@@ -96,19 +110,44 @@ while True:
     except Exception as e:
         log.error(e)
         continue
-
+    
     now = datetime.utcnow()
     euler = data['euler']
     linear_acceleration = data['linear_acceleration']
     gravity = data['gravity']
     calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
     try:
-        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d\n' % \
+        heading = euler[0]
+        print("=========================================")
+        print("")
+        formatted_heading_value_before = "Heading Before: {:.2f}".format(heading)
+        # Heading before
+        print(formatted_heading_value_before)
+        
+        # adjust heading because we rolled over
+        bot_rolled = 0
+
+        if abs(euler[2]) >= 135:
+           print("Roll exceeds 135")
+           bot_rolled = 1
+           heading = euler[0] + 180
+           if heading > 360:
+               heading = heading - 360
+
+        formatted_heading_value_after = "Heading After: {:.2f}".format(heading)
+        formatted_roll_value = "Roll: {:.2f}".format(euler[2])
+        print(formatted_heading_value_after)
+        print(formatted_roll_value)
+        print("")
+        print("=========================================")
+
+        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
             (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-            euler[0], euler[2], euler[1], 
+            heading, euler[2], euler[1], 
             linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
             gravity[0], gravity[2], gravity[1],
-            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3])
+            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],
+            bot_rolled)
         log.debug('Sent: ' + line)
 
         sock.sendto(line.encode('utf8'), addr)

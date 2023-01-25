@@ -22,15 +22,13 @@ command_sub_cfg {
 }
 
 dive_depth_eps: 0.1  #  (optional) (default=0.1)
-surfacing_timeout: 35  #  (optional) (default=600)
+surfacing_timeout: 35  #  (optional) (default=30)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
-bottoming_timeout: 10 # (optional) (default=5)
-
-# Constant Heading Task
-constant_heading_timeout: 30 # (optional) (default=0)
-constant_heading: 270 # (optional) (default=0)
-constant_heading_speed: 1 # (optional) (default=1)
+bottoming_timeout: 3 # (optional) (default=5)
+detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
+powered_descent_timeout: 60 # (default=600) 
+dive_surface_eps: 0.75 # (optional) (default=0.75)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
@@ -53,3 +51,21 @@ data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
 
 is_sim: $mission_manager_in_simulation
+
+# Goal Timeout Behavior
+goal_timeout_buffer_factor: 1.05 # (default = 1)
+goal_timeout_reacquire_gps_attempts: 2 # (default = 2)
+use_goal_timeout: true # (default = true)
+tpv_history_max: 15 # (default = 15)
+skip_goal_task: false # (default = false)
+include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
+include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS
+include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
+include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
+
+# Bottom depth safety behavior
+min_depth_safety: 1 # (default = 2)
+min_depth_safety_skip_drift: false # (default = false)
+
+# IMU Restart Timeout
+imu_restart_seconds: 10 # (default = 5)
