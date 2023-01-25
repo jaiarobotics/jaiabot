@@ -140,6 +140,8 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_calibration_status()->set_accel(std::stod(fields[index++]));
       output.mutable_calibration_status()->set_mag(std::stod(fields[index++]));
 
+      output.set_bot_rolled_over(std::stod(fields[index++]));
+
       glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
 
       interprocess().publish<groups::imu>(output);

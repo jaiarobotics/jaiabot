@@ -24,6 +24,16 @@ message MissionManager
     // timeout to allow all applications to report HEALTH__OK
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
+
+    // safety timeout on powered descent to then transition to unpowered descent
+    optional double powered_descent_timeout = 28
+        [default = 600, (dccl.field).units = { base_dimensions: "T" }];
+
+    // detect bottom logic initial timeout in seconds. Used to determine 
+    // when we should start determining we reached bottom in powered descent logic.
+    // (this gives the vehicle time to begin diving)
+    optional double detect_bottom_logic_init_timeout = 29
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
     
     // acceptable eps when dive depth is considered reached (in meters)
     optional double dive_depth_eps = 30
@@ -98,6 +108,8 @@ message MissionManager
     }
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
+
+    optional uint32 imu_restart_seconds = 51 [default = 5];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
