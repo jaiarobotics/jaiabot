@@ -31,6 +31,7 @@ declare -a ProcessArray=(
     uSimMarine
     pMarinePID
     app.py
+    gpsd
     )
 
 for process in ${ProcessArray[@]}; do
