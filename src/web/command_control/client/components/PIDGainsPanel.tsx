@@ -7,13 +7,35 @@ import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
+import { BotStatus, Engineering, BotStatusRate, PIDControl } from './gui/JAIAProtobuf';
+import {JaiaAPI} from '../../common/JaiaAPI'
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
 let pid_gains = ['Kp', 'Ki', 'Kd']
 
-export class PIDGainsPanel extends React.Component {
 
-    constructor(props) {
+interface APIBotStatus extends BotStatus {
+	engineering: Engineering
+}
+
+
+interface Props {
+    api: JaiaAPI
+	bots: {[key: number]: APIBotStatus}
+	control: () => boolean
+}
+
+interface State {
+	bots: {[key: number]: APIBotStatus}
+}
+
+
+export class PIDGainsPanel extends React.Component {
+    botId: number | null
+    props: Props
+    state: State
+
+    constructor(props: Props) {
         super(props)
 
         this.state = {
@@ -21,7 +43,7 @@ export class PIDGainsPanel extends React.Component {
         }
     }
 
-    static getDerivedStateFromProps(props) {
+    static getDerivedStateFromProps(props: Props) {
         return {
             bots: props.bots
         }
@@ -48,7 +70,7 @@ export class PIDGainsPanel extends React.Component {
 
         // If we haven't selected a bot yet, and there are bots available, then select the lowest indexed bot
         if (this.botId == null) {
-            this.botId = Object.keys(bots)[0]
+            this.botId = Number(Object.keys(bots)[0])
         }
 
         let self = this
@@ -80,7 +102,7 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
-        function pidGainsTable(engineering) {
+        function pidGainsTable(engineering: Engineering) {
             if (engineering) {
                 return <table>
                     <thead>
@@ -98,9 +120,10 @@ export class PIDGainsPanel extends React.Component {
                                         pid_gains.map(function(pid_gain) {
                                             let pid_type_gain = pid_type + "_" + pid_gain
                                             let botId_pid_type_gain = self.botId + "_" + pid_type_gain
-            
+                                            let pid_control = engineering.pid_control as any
+
                                             return (
-                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={engineering?.pid_control?.[pid_type]?.[pid_gain] ?? "-"} /></td>
+                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={pid_control?.[pid_type]?.[pid_gain] ?? "-"} /></td>
                                             )
                                         })
                                     }
@@ -116,7 +139,7 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
-        function botRequirementsTable(engineering) {
+        function botRequirementsTable(engineering: Engineering) {
             if (engineering) {
                 return  <table id="engineering_requirements_table">
                             <tbody>
@@ -315,8 +338,8 @@ export class PIDGainsPanel extends React.Component {
     
     }
 
-    didSelectBot(evt) {
-        this.botId = evt.target.value
+    didSelectBot(evt: Event) {
+        this.botId = (evt.target as any).value
         this.forceUpdate()
     }
 
@@ -360,18 +383,20 @@ export class PIDGainsPanel extends React.Component {
     submitGains() {
         if (!this.props.control()) return;
 
-        let botId = $("#pid_gains_bot_selector").val()
+        let botId = Number($("#pid_gains_bot_selector").val())
         info("Submit gains for botId: " + botId)
-        let engineering_command = {
-            botId: botId,
-            pid_control: {}
+
+        var pid_control: any = {}
+        for (let pid_type of pid_types) {
+            pid_control[pid_type] = {}
+            for (let pid_gain of pid_gains) {
+                pid_control[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
+            }
         }
 
-        for (let pid_type of pid_types) {
-            engineering_command.pid_control[pid_type] = {}
-            for (let pid_gain of pid_gains) {
-                engineering_command.pid_control[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
-            }
+        let engineering_command: Engineering = {
+            bot_id: botId,
+            pid_control: pid_control as PIDControl
         }
 
         debug(JSON.stringify(engineering_command))
@@ -383,27 +408,27 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = $("#pid_gains_bot_selector").val()
+        let botId = Number($("#pid_gains_bot_selector").val())
         info("Submit BotStatusRate for botId: " + botId)
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
         
         if($("#status_rate_input").val() != -1)
         {
-            bot_status_rate_change = $("#status_rate_input").val();
+            bot_status_rate_change = $("#status_rate_input").val() as BotStatusRate;
         }
 
-        let engineering_command = {
-            botId: botId,
+        let engineering_command: Engineering = {
+            bot_id: botId,
             bot_status_rate: bot_status_rate_change,
             gps_requirements: {
-                transit_hdop_req: $("#transit_hdop_req_input").val(),
-                transit_pdop_req: $("#transit_pdop_req_input").val(),
-                after_dive_hdop_req: $("#after_dive_hdop_req_input").val(),
-                after_dive_pdop_req: $("#after_dive_pdop_req_input").val(),
-                transit_gps_fix_checks: $("#transit_gps_checks_input").val(),
-                transit_gps_degraded_fix_checks: $("#transit_gps_degraded_checks_input").val(),
-                after_dive_gps_fix_checks: $("#after_dive_gps_checks_input").val(), 
+                transit_hdop_req: Number($("#transit_hdop_req_input").val()),
+                transit_pdop_req: Number($("#transit_pdop_req_input").val()),
+                after_dive_hdop_req: Number($("#after_dive_hdop_req_input").val()),
+                after_dive_pdop_req: Number($("#after_dive_pdop_req_input").val()),
+                transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
+                transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
+                after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
             }
         }
 
@@ -416,29 +441,29 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = $("#pid_gains_bot_selector").val()
+        let botId = Number($("#pid_gains_bot_selector").val())
         info("Submit BotStatusRate for All Bots: ")
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
         
         if($("#status_rate_input").val() != -1)
         {
-            bot_status_rate_change = $("#status_rate_input").val();
+            bot_status_rate_change = $("#status_rate_input").val() as BotStatusRate;
         }
 
         for(let bot in this.state.bots)
         {
-            let engineering_command = {
-                botId: bot,
+            let engineering_command: Engineering = {
+                bot_id: Number(bot),
                 bot_status_rate: bot_status_rate_change,
                 gps_requirements: {
-                    transit_hdop_req: $("#transit_hdop_req_input").val(),
-                    transit_pdop_req: $("#transit_pdop_req_input").val(),
-                    after_dive_hdop_req: $("#after_dive_hdop_req_input").val(),
-                    after_dive_pdop_req: $("#after_dive_pdop_req_input").val(),
-                    transit_gps_fix_checks: $("#transit_gps_checks_input").val(),
-                    transit_gps_degraded_fix_checks: $("#transit_gps_degraded_checks_input").val(),
-                    after_dive_gps_fix_checks: $("#after_dive_gps_checks_input").val(), 
+                    transit_hdop_req: Number($("#transit_hdop_req_input").val()),
+                    transit_pdop_req: Number($("#transit_pdop_req_input").val()),
+                    after_dive_hdop_req: Number($("#after_dive_hdop_req_input").val()),
+                    after_dive_pdop_req: Number($("#after_dive_pdop_req_input").val()),
+                    transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
+                    transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
+                    after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
                 }
             }
     
