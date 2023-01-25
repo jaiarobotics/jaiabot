@@ -5,7 +5,6 @@
 
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
-import SoundEffects from './SoundEffects'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -15,22 +14,33 @@ import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
-import rcMode from '../icons/controller.svg'
-import goToRallyGreen from '../icons/go-to-rally-point-green.png'
-import goToRallyRed from '../icons/go-to-rally-point-red.png'
+const rcMode = require('../icons/controller.svg') as string
+const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
+const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
 import Button from '@mui/material/Button';
-import { Settings } from './Settings'
-import { Missions } from './Missions'
-import { error, success, warning, info} from '../libs/notifications';
+import { Missions, PodMission } from './Missions';
+import { error, warning, info} from '../libs/notifications';
+import { GlobalSettings } from './Settings';
 
 // TurfJS
 import * as turf from '@turf/turf';
+import { JaiaAPI } from '../../common/JaiaAPI';
+import { Command, CommandType, BotStatus, HubStatus, MissionState } from './gui/JAIAProtobuf';
+import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
 
 let prec = 2
 
-let commands = {
+
+interface CommandInfo {
+    commandType: CommandType,
+    description: string,
+    statesAvailable?: RegExp[],
+    statesNotAvailable?: RegExp[],
+}
+
+let commands: {[key: string]: CommandInfo} = {
     active: {
-        enumString: 'ACTIVATE',
+        commandType: CommandType.ACTIVATE,
         description: 'Activate Bot',
         statesAvailable: [
             /^.+__IDLE$/,
@@ -38,21 +48,21 @@ let commands = {
         ]
     },
     nextTask: {
-        enumString: 'NEXT_TASK',
+        commandType: CommandType.NEXT_TASK,
         description: 'Next Task',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
     goHome: {
-        enumString: 'RETURN_TO_HOME',
+        commandType: CommandType.RETURN_TO_HOME,
         description: 'Return to Home',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
     stop: {
-        enumString: 'STOP',
+        commandType: CommandType.STOP,
         description: 'Stop',
         statesAvailable: [
             /^IN_MISSION__.+$/
@@ -62,7 +72,7 @@ let commands = {
         ]
     },
     play: {
-        enumString: 'START_MISSION',
+        commandType: CommandType.START_MISSION,
         description: 'Play mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
@@ -70,7 +80,7 @@ let commands = {
         ]
     },
     rcMode: {
-        enumString: 'RC_MISSION',
+        commandType: CommandType.REMOTE_CONTROL_TASK,
         description: 'RC mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
@@ -78,14 +88,14 @@ let commands = {
         ]
     },
     recover: {
-        enumString: 'RECOVERED',
+        commandType: CommandType.RECOVERED,
         description: 'Recover Bot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
         ]
     },
     shutdown: {
-        enumString: 'SHUTDOWN',
+        commandType: CommandType.SHUTDOWN,
         description: 'Shutdown Bot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
@@ -94,7 +104,7 @@ let commands = {
         ]
     },
     restartServices: {
-        enumString: 'RESTART_ALL_SERVICES',
+        commandType: CommandType.RESTART_ALL_SERVICES,
         description: 'Restart Services',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
@@ -103,7 +113,7 @@ let commands = {
         ]
     },
     reboot: {
-        enumString: 'REBOOT_COMPUTER',
+        commandType: CommandType.REBOOT_COMPUTER,
         description: 'Reboot Bot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
@@ -113,15 +123,27 @@ let commands = {
     }
 }
 
-let takeControlFunction = null;
 
-function issueCommand(api, bot_id, command) {
+export interface DetailsExpandedState {
+    quickLook: boolean
+    commands: boolean
+    health: boolean
+    gps: boolean
+    imu: boolean
+    sensor: boolean
+    power: boolean
+}
+
+
+var takeControlFunction: () => boolean
+
+function issueCommand(api: JaiaAPI, bot_id: number, command: CommandInfo) {
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command.description + " (" + command.enumString + ")?")) {
+    if (confirm("Are you sure you'd like to " + command.description + " (" + command.commandType + ")?")) {
         let c = {
             bot_id: bot_id,
-            type: command.enumString
+            type: command.commandType
         }
 
         console.log(c)
@@ -129,17 +151,13 @@ function issueCommand(api, bot_id, command) {
     }
 }
 
-function issueMissionCommand(api, bot_mission, bot_id) {
+function issueMissionCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
 
     if (!takeControlFunction()) return;
 
-    if (bot_mission != ""
-            && confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
+    if (confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
         // Set the speed values
-        let speeds = Settings.missionPlanSpeeds.get()
-        if (speeds != null && bot_mission.plan != null) {
-            bot_mission.plan.speeds = speeds
-        }
+        bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
 
         console.debug('Running Mission:')
         console.debug(bot_mission)
@@ -152,11 +170,11 @@ function issueMissionCommand(api, bot_mission, bot_id) {
     }   
 }
 
-function runRCMode(bot) {
+function runRCMode(bot: PortalBotStatus) {
     let bot_id = bot.bot_id;
     if (bot_id == null) {
         warning("No bots selected")
-        return ""
+        return null
     }
 
     var datum_location = bot?.location 
@@ -165,7 +183,7 @@ function runRCMode(bot) {
         const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
         if (!confirm(warning_string)) {
-            return ""
+            return null
         }
 
         datum_location = {lat: 0, lon: 0}
@@ -175,7 +193,7 @@ function runRCMode(bot) {
 }
 
 // Check if there is a mission to run
-function runMission(bot_id, missions) {
+function runMission(bot_id: number, missions: PodMission) {
     console.log(missions);
     if (missions[bot_id]) {
         info('Submitted mission for bot: ' + bot_id);
@@ -183,12 +201,12 @@ function runMission(bot_id, missions) {
     }
     else {
         error('No mission set for bot ' + bot_id);
-        return "";
+        return null;
     }
 }
 
 // Check mission state for disabling button
-function disableButton(command, mission_state)
+function disableButton(command: CommandInfo, mission_state: MissionState)
 {
     let disable = false;
     let statesAvailable = command.statesAvailable
@@ -225,7 +243,7 @@ function disableButton(command, mission_state)
 }
 
 // Get the table row for the health of the vehicle
-function healthRow(bot, allInfo) {
+function healthRow(bot: BotStatus, allInfo: boolean) {
     let healthClassName = {
         "HEALTH__OK": "healthOK",
         "HEALTH__DEGRADED": "healthDegraded",
@@ -271,7 +289,7 @@ function healthRow(bot, allInfo) {
 
 }
 
-function changeDefaultExpanded(isExpanded, accordian)
+function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyof DetailsExpandedState)
 {
     if(isExpanded[accordian])
     {
@@ -282,12 +300,12 @@ function changeDefaultExpanded(isExpanded, accordian)
     }
 }
 
-export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeControl, isExpanded) {
+export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, missions: PodMission, closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState) {
     if (bot == null) {
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6).toFixed(1)
+    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
 
     let statusAgeClassName = ''
     if (statusAge > 30) {
@@ -331,7 +349,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
     {
         let botloc = turf.point([bot.location.lon, bot.location.lat]); 
         let hubloc = turf.point([hub.location.lon, hub.location.lat]);
-        var options = {units: 'meters'};
+        var options = {units: 'meters' as turf.Units};
 
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1);
     }
@@ -364,7 +382,7 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
                             <tbody>
                                 <tr className={statusAgeClassName}>
                                     <td>Status Age</td>
-                                    <td>{statusAge} s</td>
+                                    <td>{statusAge.toFixed(0)} s</td>
                                 </tr>
                                 <tr>
                                     <td>Mission State</td>
@@ -661,12 +679,13 @@ export function BotDetailsComponent(bot, hub, api, missions, closeWindow, takeCo
     )
 }
 
-export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
+
+export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState) {
     if (hub == null) {
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6).toFixed(1)
+    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
 
     var statusAgeClassName = ''
     if (statusAge > 30) {
@@ -675,8 +694,6 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
     else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
-
-    let mission_state = hub.mission_state;
 
     return (
         <div id='botDetailsBox'>
@@ -701,7 +718,7 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
                     <AccordionDetails>
                         <table>
                             <tbody>
-                                {healthRow(hub)}
+                                {healthRow(hub, false)}
                                 <tr>
                                     <td>Latitude</td>
                                     <td>{formatLatitude(hub.location?.lat)}</td>
@@ -712,7 +729,7 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
                                 </tr>
                                 <tr className={statusAgeClassName}>
                                     <td>Status Age</td>
-                                    <td>{statusAge} s</td>
+                                    <td>{statusAge.toFixed(0)} s</td>
                                 </tr>
 
                             </tbody>
@@ -732,19 +749,16 @@ export function HubDetailsComponent(hub, api, closeWindow, isExpanded) {
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.shutdown) }}>
+                        <Button className="button-jcc" 
+                                onClick={() => { issueCommand(api, hub.hub_id, commands.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
-                        <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.reboot, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.reboot) }}>
+                        <Button className="button-jcc"
+                                onClick={() => { issueCommand(api, hub.hub_id, commands.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
                         </Button>
-                        <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
-                                disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
-                                onClick={() => { issueCommand(api, hub.hubId, commands.restartServices) }}>
+                        <Button className="button-jcc"
+                                onClick={() => { issueCommand(api, hub.hub_id, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
                     </AccordionDetails>

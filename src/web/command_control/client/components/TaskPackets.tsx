@@ -1,32 +1,26 @@
 import { jaiaAPI } from "../../common/JaiaAPI"
-import { Heatmap } from "ol/layer"
 import VectorSource from 'ol/source/Vector'
-import KML from 'ol/format/KML'
 import Collection from "ol/Collection"
 import Feature from "ol/Feature"
-import { Point } from "ol/geom"
-import { getTransform } from "ol/proj"
-import ImageLayer from 'ol/layer/Image';
-import Projection from 'ol/proj/Projection';
-import Static from 'ol/source/ImageStatic';
-import { mdiConsoleNetwork } from "@mdi/js"
+import { getTransform, Projection } from 'ol/proj';
 import {
-	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
+	Fill as OlFillStyle, Style as OlStyle
 } from 'ol/style';
 import OlFeature from 'ol/Feature';
 import OlIcon from 'ol/style/Icon';
 import OlPoint from 'ol/geom/Point';
-import diveLocationIcon from '../icons/task_packet/DiveLocation.png'
-import currentDirection from '../icons/task_packet/Arrow.png'
-import bottomDiveLocationIcon from '../icons/task_packet/X-white.png'
+const diveLocationIcon = require('../icons/task_packet/DiveLocation.png') as string
+const currentDirection = require('../icons/task_packet/Arrow.png') as string
+const bottomDiveLocationIcon = require('../icons/task_packet/X-white.png') as string
 import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
 import { Vector as VectorLayer } from "ol/layer"
-import {Circle as CircleStyle, Fill, Stroke, Style} from 'ol/style'
-import {asString} from 'ol/color'
 import {createTaskPacketFeatures} from './gui/TaskPacketFeatures'
 import { geoJSONToDepthContourFeatures } from "./gui/Contours"
+import { TaskPacket } from "./gui/JAIAProtobuf"
+import { Map } from "ol"
+import { Units } from "@turf/turf"
 
 const POLL_INTERVAL = 5000
 
@@ -37,150 +31,88 @@ const mercator_to_equirectangular = getTransform(mercator, equirectangular);
 
 export class TaskData {
 
-    constructor() {
-        this.pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
-        
-        this.collection = new Collection([])
+    map: Map
+    pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
+    collection: Collection<Feature> = new Collection([])
+    depthRange = [0, 1]
+    taskPackets: TaskPacket[] = []
 
-        this.depthRange = [0, 1]
+    // Layers
 
-        this.taskPackets = []
-
-        // Plot depth soundings using a heatmap
-        this.heatMapLayer = new Heatmap({
-            title: 'Depth',
-            source: new VectorSource({
-                features: this.collection
-            }),
-            gradient: ['#00f', '#0ff', '#0f0', '#ff0', '#f00', '#f00', '#f00', '#f00', '#f00'],
-            radius: 16,
-            blur: 32,
-            zIndex: 25,
-            weight: (feature) => {
-                const weight = (feature.get('depth') - this.depthRange[0]) / (this.depthRange[1])
-                return weight
-            },
-          })
-
-        // Plot depth soundings using a contour plot
-
-        this.contourLayer = new VectorLayer({
+    contourLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Depth Contours',
-            zIndex: 25,
-            opacity: 0.5,
-            source: null,
-          })
+        },
+        zIndex: 25,
+        opacity: 0.5,
+        source: null,
+      })
 
-        this.taskPacketDiveLayer = new VectorLayer({
+    taskPacketDiveLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Dive Icon',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-            visible: false
-          })
+        },
+        zIndex: 1001,
+        source: null,
+        visible: false
+    })
 
-        this.taskPacketDiveInfoLayer = new VectorLayer({
+    taskPacketDiveInfoLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Dive Info',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-            visible: false
-          })
+        },
+        zIndex: 1001,
+        source: null,
+        visible: false
+    })
 
-        this.taskPacketDiveBottomLayer = new VectorLayer({
+    taskPacketDiveBottomLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Dive Bottom Icon',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-          })
+        },
+        zIndex: 1001,
+        source: null,
+    })
 
-        this.taskPacketDiveBottomInfoLayer = new VectorLayer({
+    taskPacketDiveBottomInfoLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Dive Bottom Info',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-          })
+        },
+        zIndex: 1001,
+        source: null,
+    })
 
-
-        this.taskPacketDriftLayer = new VectorLayer({
+    taskPacketDriftLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Drift Icon',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-          })
+        },
+        zIndex: 1001,
+        source: null,
+    })
 
-          this.taskPacketDriftInfoLayer = new VectorLayer({
+    taskPacketDriftInfoLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
             title: 'Drift Info',
-            zIndex: 1001,
-            opacity: 1,
-            source: null,
-          })
+        },
+        zIndex: 1001,
+        opacity: 1,
+        source: null,
+    })
 
+    taskPacketSource: VectorSource = new VectorSource()
 
-          this.taskPacketSource = new VectorSource({
-            features: []
-          })
-
-          this.taskPacketInfoLayer = new VectorLayer({
+    taskPacketInfoLayer = new VectorLayer({
+        properties: {
             title: 'Task Packets',
-            zIndex: 1001,
-            opacity: 1,
-            source: this.taskPacketSource,
-          })
+        },
+        zIndex: 1001,
+        opacity: 1,
+        source: this.taskPacketSource,
+    })
 
+
+    constructor() {
     }
-
-    updateContourPlot() {
-        jaiaAPI.getContourMapBounds().then((bounds) => {
-            const imageExtent = [bounds.x0, bounds.y0, bounds.x1, bounds.y1]
-
-            const source = new Static({
-                attributions: 'JaiaBot',
-                url: '/jaia/contour-map',
-                projection: equirectangular,
-                imageExtent: imageExtent,
-              })
-
-            this.contourLayer.setSource(source)
-
-            console.log('loaded: ', source)
-        })
-    }
-
-    /*
-    Task Packet Example
-    0: 
-    bot_id: 0
-    dive: 
-        bottom_dive: false
-        reached_min_depth: false
-        depth_achieved: 1
-        dive_rate: 0.5
-        duration_to_acquire_gps: 0.3
-        measurement: Array(1)
-            0: 
-            {mean_depth: 1, mean_temperature: 15, mean_salinity: 20}
-            length: 1
-        start_location: 
-            lat: 41.487142
-            lon: -71.259441 
-        unpowered_rise_rate: 0.3
-        powered_rise_rate: 0.5
-    drift: 
-        drift_duration: 0
-        estimated_drift:
-            speed: 0
-            heading: 180
-        end_location: 
-            lat: 41.487135
-            lon: -71.259441
-        start_location: 
-            lat: 41.487136
-            lon: -71.259441
-        end_time: "1664484912000000"
-        start_time: "1664484905000000"
-        type: "DIVE"
-    */
 
     updateDiveLocations() {
         let taskDiveFeatures = []
@@ -256,7 +188,7 @@ export class TaskData {
                 let task_calcs = this.calculateDiveDrift(taskPacket);
                 let dive_lon = task_calcs.dive_location.lon;
                 let dive_lat = task_calcs.dive_location.lat;
-                let pt = equirectangular_to_mercator([dive_lon, dive_lat])
+                let pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
 
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
                 let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
@@ -271,7 +203,7 @@ export class TaskData {
                 taskDiveFeatures.push(diveFeature) 
                 taskDiveInfoFeatures.push(diveInfoFeature)
                 
-                if(divePacket.bottom_dive)
+                if (divePacket.bottom_dive)
                 {
                     taskDiveBottomFeatures.push(diveBottomFeature) 
                     taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
@@ -350,7 +282,7 @@ export class TaskData {
                         })
                     });
 
-                    let pt = equirectangular_to_mercator([driftPacket.end_location.lon, driftPacket.end_location.lat])
+                    let pt = equirectangular_to_mercator([driftPacket.end_location.lon, driftPacket.end_location.lat], undefined, undefined)
                     let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     driftFeature.setStyle(iconStyle)   
@@ -374,12 +306,12 @@ export class TaskData {
         this.taskPacketDriftInfoLayer.setSource(driftInfoVectorSource)
     }
 
-    calculateDiveDrift(taskPacket) {
+    calculateDiveDrift(taskPacket: TaskPacket) {
 
         let driftPacket;
         let divePacket;
         let task_calcs;
-        let options = {units: 'meters'};
+        let options = {units: 'meters' as Units };
 
         if(taskPacket.type == "DIVE")
         {
@@ -404,8 +336,8 @@ export class TaskData {
 
             if(taskPacket.type == "DIVE"
                 && taskPacket?.dive != null
-                && taskPacket?.dive_rate != null
-                && taskPacket?.dive_rate > 0)
+                && taskPacket?.dive.dive_rate != null
+                && taskPacket?.dive.dive_rate > 0)
             {
                 // Calculate the distance we traveled while acquiring gps
                 let distance_between_breach_point_and_acquire_gps 
@@ -480,7 +412,7 @@ export class TaskData {
     }
 
     _pollTaskPackets() {
-        jaiaAPI.getTaskPackets().then((taskPackets) => {
+        jaiaAPI.getTaskPackets().then((taskPackets: TaskPacket[]) => {
 
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets

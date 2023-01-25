@@ -158,7 +158,8 @@ jaiabot::apps::MissionManager::MissionManager()
             cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
 
         intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& input_command) {
+            [this](const protobuf::Command& input_command)
+            {
                 if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
                 {
                     protobuf::Command out_command;

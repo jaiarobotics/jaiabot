@@ -1250,7 +1250,7 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
 };
 
 struct ConstantHeading
-    : boost::statechart::state<ConstantHeading, Task>, 
+    : boost::statechart::state<ConstantHeading, Task>,
       Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
              protobuf::SETPOINT_IVP_HELM>
 {

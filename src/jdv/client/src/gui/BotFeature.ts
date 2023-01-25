@@ -8,6 +8,8 @@ interface Properties {
     map: Map,
     botId: number
     lonLat: number[]
+    heading: number
+    courseOverGround: number
 }
 
 

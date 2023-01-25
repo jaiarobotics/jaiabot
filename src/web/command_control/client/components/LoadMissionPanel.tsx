@@ -9,10 +9,24 @@ import React from 'react'
 import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderUpload } from '@mdi/js'
 import Button from '@mui/material/Button';
+import { MissionLibraryLocalStorage } from './MissionLibrary';
+import { PodMission } from './Missions';
+
+interface Props {
+    missionLibrary: MissionLibraryLocalStorage
+    selectedMission: (mission: PodMission) => void
+    onCancel: () => void
+}
+
+interface State {
+    selectedMissionName: string | null
+}
 
 export class LoadMissionPanel extends React.Component {
+    props: Props
+    state: State
 
-    constructor(props) {
+    constructor(props: Props) {
         super(props)
 
         this.state = {
@@ -61,7 +75,7 @@ export class LoadMissionPanel extends React.Component {
         </div>)
     }
 
-    didClick(name) {
+    didClick(name: string) {
         this.setState({selectedMissionName: name})
     }
 
@@ -98,7 +112,7 @@ export class LoadMissionPanel extends React.Component {
 
             // here we tell the reader what to do when it's done reading...
             reader.onload = readerEvent => {
-                var content = readerEvent.target.result // this is the content!
+                var content = readerEvent.target.result as string // this is the content!
 
                 // try to read the mission as JSON
                 try {

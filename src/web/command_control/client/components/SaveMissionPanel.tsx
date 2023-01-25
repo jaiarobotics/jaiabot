@@ -10,10 +10,28 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from '@mdi/js'
 import Button from '@mui/material/Button';
 import { downloadToFile } from './Utilities';
+import { MissionLibraryLocalStorage } from './MissionLibrary';
+import { PodMission } from './Missions';
+
+
+interface Props {
+    missionLibrary: MissionLibraryLocalStorage
+    missions: PodMission
+    onDone: () => void
+}
+
+
+interface State {
+    selectedMissionName: string | null
+}
+
 
 export class SaveMissionPanel extends React.Component {
 
-    constructor(props) {
+    props: Props
+    state: State
+
+    constructor(props: Props) {
         super(props)
 
         this.state = {
@@ -25,9 +43,9 @@ export class SaveMissionPanel extends React.Component {
         let self = this
 
         // Nem text input
-        this.nameInput = (<div>
+        const nameInput = (<div>
             <input type="text" className="textInput" autoFocus placeholder="Mission Name" defaultValue={this.state.selectedMissionName} onInput={(e) => {
-                this.state.selectedMissionName = e.target.value
+                this.state.selectedMissionName = (e.target as any).value
             }} onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     this.saveClicked()
@@ -66,7 +84,7 @@ export class SaveMissionPanel extends React.Component {
 
         return (<div className="LoadMissionPanel centered rounded shadowed">
             <div className="LoadMissionPanel title">Save Mission As</div>
-            {this.nameInput}
+            {nameInput}
             <div className="LoadMissionPanel missionList">
                 {missionNameRows}
             </div>
@@ -74,7 +92,7 @@ export class SaveMissionPanel extends React.Component {
         </div>)
     }
 
-    didClick(name) {
+    didClick(name: string) {
         this.setState({selectedMissionName: name})
     }
 

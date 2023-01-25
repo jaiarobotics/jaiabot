@@ -88,8 +88,7 @@ create_constant_heading_update(quantity<si::plane_angle> heading)
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate
-create_constant_speed_update(quantity<si::velocity> speed)
+jaiabot::protobuf::IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
@@ -775,7 +774,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
 // Movement::SurfTransit
 jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading(
     typename StateBase::my_context c)
-     : StateBase(c)
+    : StateBase(c)
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
@@ -794,7 +793,6 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
-
 
     goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
     int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
