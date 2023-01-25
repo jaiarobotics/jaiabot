@@ -8,9 +8,9 @@
 /* eslint-disable react/no-unused-state */
 /* eslint-disable react/no-multi-comp */
 
-import React from 'react'
-import { Settings } from './Settings'
-import { Missions } from './Missions'
+import React, { MouseEvent, ReactElement } from 'react'
+import { Load, Save, GlobalSettings } from './Settings'
+import { Missions, SELECTED_BOT_ID } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
@@ -34,12 +34,6 @@ import * as turf from '@turf/turf';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 */
-// IndexedDB
-import { openDB, deleteDB, wrap, unwrap } from 'idb';
-import { idb } from 'idb';
-
-import JSZip from 'jszip';
-
 // Openlayers
 import OlMap from 'ol/Map';
 import {
@@ -48,6 +42,8 @@ import {
 	Translate as TranslateInteraction,
 	Pointer as PointerInteraction,
 	defaults as defaultInteractions,
+	Interaction,
+	DragAndDrop,
 } from 'ol/interaction';
 import OlView from 'ol/View';
 import OlIcon from 'ol/style/Icon'
@@ -55,8 +51,6 @@ import OlText from 'ol/style/Text'
 import OlLayerGroup from 'ol/layer/Group';
 import OlSourceOsm from 'ol/source/OSM';
 import OlSourceXYZ from 'ol/source/XYZ';
-import OlTileWMS from 'ol/source/TileWMS';
-import { TileArcGISRest} from 'ol/source';
 import { doubleClick } from 'ol/events/condition';
 import OlGraticule from 'ol/layer/Graticule';
 import { Vector as OlVectorSource } from 'ol/source';
@@ -74,21 +68,20 @@ import OlScaleLine from 'ol/control/ScaleLine';
 import OlMousePosition from 'ol/control/MousePosition';
 import OlZoom from 'ol/control/Zoom';
 import OlRotate from 'ol/control/Rotate';
-import { createStringXY as OlCreateStringXY } from 'ol/coordinate';
+import { Coordinate, createStringXY as OlCreateStringXY } from 'ol/coordinate';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
-import { LineString as OlLineString } from 'ol/geom';
-import OlDrawInteraction from 'ol/interaction/Draw';
+import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
+import OlDrawInteraction, { DrawEvent } from 'ol/interaction/Draw';
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
-import { getTransform, toUserResolution } from 'ol/proj';
+import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
 import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
 import * as MissionFeatures from './gui/MissionFeatures'
-import { createBotFeature } from './gui/BotFeature'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -107,34 +100,25 @@ import 'jquery-ui/ui/effects/effect-blind';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-	faGripVertical,
-	faCrosshairs,
-	faChevronDown,
-	faChevronLeft,
-	faDharmachakra,
 	faMapMarkerAlt,
-	faMapPin,
 	faMapMarkedAlt,
 	faRuler,
 	faEdit,
 	faLayerGroup,
-	faWrench
+	faWrench,
+	IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 
 
-import jaiabot_icon from '../icons/jaiabot.png'
+const jaiabot_icon = require('../icons/jaiabot.png')
 
-// const element = <FontAwesomeIcon icon={faCoffee} />
+import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
+import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
 
-import {BotDetailsComponent, HubDetailsComponent} from './Details'
-import { JaiaAPI, jaiaAPI } from '../../common/JaiaAPI';
-
-import shapes from '../libs/shapes';
-import tooltips from '../libs/tooltips';
-import JsonAPI from '../../common/JsonAPI';
+import tooltips from '../libs/tooltips'
 
 // jQuery UI touch punch
-import punchJQuery from '../libs/jquery.ui.touch-punch';
+import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { error, success, warning, info} from '../libs/notifications';
 
@@ -144,21 +128,35 @@ import 'reset-css';
 import '../style/CommandControl.less';
 import { transform } from 'ol/proj';
 
-import rallyPointRedIcon from '../icons/rally-point-red.svg'
-import rallyPointGreenIcon from '../icons/rally-point-green.svg'
-import missionOrientationIcon from '../icons/compass.svg'
-import goToRallyGreen from '../icons/go-to-rally-point-green.png'
-import goToRallyRed from '../icons/go-to-rally-point-red.png'
-
-import taskNone from './gui/taskNone.svg'
-import taskDive from './gui/taskDive.svg'
-import taskDrift from './gui/taskDrift.svg'
-import taskStationKeep from './gui/taskStationKeep.svg'
+const rallyPointRedIcon = require('../icons/rally-point-red.svg')
+const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
+const missionOrientationIcon = require('../icons/compass.svg')
+const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
+const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
+import { persistVisibility } from './VisibleLayerPersistance'
 
+import { KMZ } from './KMZ'
+import { createChartLayerGroup, gebcoLayer } from './ChartLayers';
+import { createBaseLayerGroup } from './BaseLayers'
+
+import { BotListPanel } from './BotListPanel'
+import { PodMission } from './Missions';
+import { fromLonLat } from 'ol/proj.js';
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './gui/JAIAProtobuf'
+import { MapBrowserEvent, MapEvent } from 'ol'
+import { StyleFunction } from 'ol/style/Style'
+import BaseEvent from 'ol/events/Event'
+import { EventsKey } from 'ol/events'
+import { Feature as TFeature, Units } from '@turf/turf'
+import TileLayer from 'ol/layer/Tile'
+import { PodStatus } from './PortalStatus'
+import * as Styles from './gui/Styles'
+import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
+import { createBotFeature } from './gui/BotFeature'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -170,149 +168,174 @@ const COLOR_SELECTED = lessVars.selectedColor;
 punchJQuery($);
 // jqueryDrawer($);
 
-const { getBoatStyle } = shapes;
-
 // Sorry, map is a global because it really gets used from everywhere
-let map;
+let map: OlMap
 const mercator = 'EPSG:3857'
 const equirectangular = 'EPSG:4326'
-const equirectangular_to_mercator = getTransform(equirectangular, mercator);
-const mercator_to_equirectangular = getTransform(mercator, equirectangular);
+const equirectangular_to_mercator = (input: number[]) => getTransform(equirectangular, mercator)(input, undefined, undefined)
+const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, equirectangular)(input, undefined, undefined)
 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
-const sidebarMinWidth = 0;
-const sidebarMaxWidth = 1500;
 
 const POLLING_INTERVAL_MS = 300;
 
 const MAX_GOALS = 30;
 
 // Store Previous Mission History
-let previous_mission_history;
+let previous_mission_history: any;
 
 String.prototype.endsWith = function(suffix) {
 	return this.slice(this.length - suffix.length, this.length) == suffix
 }
 
-// export async function doDatabaseStuff() {
-// 	const dbPromise = await openDB('tile-store', 1, {
-// 		upgrade(db) {
-// 			db.createObjectStore('tiles');
-// 		},
-// 		blocked() {
-// 			// …
-// 		},
-// 		blocking() {
-// 			// …
-// 		},
-// 		terminated() {
-// 			// …
-// 		},
-// 	});
-// }
-
-export const idbStore = {
-	db1: openDB("db1", 1,  {
-		upgrade(db) {
-			db.createObjectStore('store1');
-		},
-	})
-}
-
-export async function addToStore1(key, value) {
-  return (await idbStore.db1).add("store1", value, key);
-}
-
-export async function getFromStore1(key) {
-  return (await idbStore.db1).get("store1", key);
-}
-
-function saveVisibleLayers() {
-	Settings.mapVisibleLayers.set(visibleLayers)
-}
-
-let visibleLayers = new Set()
-
-function loadVisibleLayers() {
-	visibleLayers = new Set(Settings.mapVisibleLayers.get() || ['OpenStreetMap', 'NOAA ENC Charts'])
-}
-
-function makeLayerSavable(layer) {
-	let title = layer.get("title")
-
-	// Set visible if it should be
-	let visible = visibleLayers.has(title)
-	layer.set("visible", visible)
-
-	// Catch change in visible state
-	layer.on("change:visible", () => {
-		if (layer.getVisible()) {
-			visibleLayers.add(title)
-		}
-		else {
-			visibleLayers.delete(title)
-		}
-		saveVisibleLayers()
-	})
-}
-
-loadVisibleLayers()
-
 // ===========================================================================================================================
 
 // ===========================================================================================================================
+
+var mapSettings = GlobalSettings.mapSettings
+
+interface Props {
+
+}
+
+enum Mode {
+	NONE = '',
+	MISSION_PLANNING = 'missionPlanning',
+	SET_HOME = 'setHome',
+	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
+	SET_RALLY_POINT_RED = "setRallyPointRed"
+}
+
+interface MissionParams {
+	mission_type: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
+	num_bots: number,
+	num_goals: number,
+	spacing: number,
+	orientation: number,
+	rally_spacing: number,
+	sp_area: number,
+	sp_perimeter: number,
+	sp_rally_start_dist: number,
+	sp_rally_finish_dist: number,
+	selected_bots: number[],
+	use_max_length: boolean
+}
+
+interface HubOrBot {
+	type: 'hub' | 'bot',
+	id: number
+}
+
+interface State {
+	engineeringPanelActive: boolean,
+	mode: Mode,
+	currentInteraction: Interaction | null,
+	selectedBotsFeatureCollection: OlCollection<OlFeature>,
+	lastBotCount: number,
+	botExtents: {[key: number]: number[]},
+	trackingTarget: number | string,
+	viewportPadding: number[],
+	measureFeature?: OlFeature,
+	measureActive: boolean,
+	homeLocation?: GeographicCoordinate,
+	rallyPointGreenLocation?: GeographicCoordinate,
+	rallyPointRedLocation?: GeographicCoordinate,
+	mapLayerActive: boolean,
+	missionParams: MissionParams,
+	missionPlans?: PodMission,
+	missionPlanningGrid?: any,
+	missionPlanningLines?: any,
+	missionPlanningFeature?: OlFeature<Geometry>,
+	missionBaseGoal: Goal,
+	missionBaseStyle?: any,
+	surveyPolygonFeature?: OlFeature<Geometry>,
+	surveyPolygonActive: boolean,
+	surveyPolygonGeoCoords?: Coordinate[],
+	surveyPolygonCoords?: LineString,
+	surveyPolygonChanged: boolean,
+	surveyExclusions?: number[][],
+	selectedFeatures?: OlCollection<OlFeature>,
+	detailsBoxItem?: HubOrBot,
+	detailsExpanded: DetailsExpandedState,
+	goalBeingEdited?: Goal,
+	loadMissionPanel?: ReactElement,
+	saveMissionPanel?: ReactElement,
+	disconnectionMessage?: string,
+}
 
 export default class CommandControl extends React.Component {
 
-	constructor(props) {
-		super(props);
+	props: Props
+	state: State
 
-		this.mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
+	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
+	api = jaiaAPI
+	podStatus: PodStatus = {
+		bots: {},
+		hubs: {},
+		controllingClientId: null
+	}
+	missions: PodMission = {}
+	undoMissionsStack: PodMission[] = []
+	flagNumber = 1
+	surveyExclusionsStyle?: StyleFunction = null
+	chartLayerGroup = createChartLayerGroup()
+	measureLayer: OlVectorLayer<OlVectorSource>
+	graticuleLayer: OlGraticule
 
-		this.api = jaiaAPI
+	botsLayerCollection: OlCollection<OlVectorLayer<OlVectorSource>> = new OlCollection([], { unique: true })
+	botsLayerGroup: OlLayerGroup = new OlLayerGroup({
+		layers: this.botsLayerCollection
+	})
 
-		this.podStatus = {}
+	dragAndDropInteraction = new DragAndDropInteraction({
+		formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
+	})
+	dragAndDropVectorLayer = new OlVectorLayer()
 
-		this.missions = {}
-		this.undoMissionsStack = []
+	coordinate_to_location_transform = equirectangular_to_mercator
 
-		this.flagNumber = 1
+	measureInteraction: OlDrawInteraction
+	surveyPolygonInteraction: OlDrawInteraction
+	surveyLinesInteraction: OlDrawInteraction
+	surveyExclusionsInteraction: OlDrawInteraction
+
+	missionLayer: OlVectorLayer<OlVectorSource>
+
+	activeMissionLayer: OlVectorLayer<OlVectorSource>
+	missionPlanningLayer: OlVectorLayer<OlVectorSource>
+	exclusionsLayer: OlVectorLayer<OlVectorSource>
+	missionLayerGroup: OlLayerGroup
+
+	measurementLayerGroup: OlLayerGroup
+	baseLayerGroup: OlLayerGroup
+
+	timerID: NodeJS.Timer
+
+	oldPodStatus?: PodStatus
+
+	constructor(props: Props) {
+		super(props)
 
 		this.state = {
-			error: {},
 			// User interaction modes
-			mode: '',
-			currentInteraction: null,
-			mapZoomLevel: 14,
-			controlSpeed: 0,
-			controlHeading: 0,
-			accelerationProfileIndex: 0,
-			commandDrawerOpen: false,
-			// Map layers
-			botsLayerCollection: new OlCollection([], { unique: true }),
-			chartLayerCollection: new OlCollection([], { unique: true }),
-			baseLayerCollection: new OlCollection([], { unique: true }),
-			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
-			liveCommand: {
-				type: '',
-				parameters: [],
-				formationParameters: [0, 0, 0, 10]
-			},
-			// incoming data
+			mode: Mode.NONE,
 			lastBotCount: 0,
+			currentInteraction: null,
+			// Map layers
+			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
+			// incoming data
 			botExtents: {},
-			trackingTarget: '',
+			trackingTarget: null,
 			viewportPadding: [
 				viewportDefaultPadding,
 				viewportDefaultPadding,
 				viewportDefaultPadding,
 				viewportDefaultPadding + sidebarInitialWidth
 			],
-			selectedMissionAction: -1,
 			measureFeature: null,
 			measureActive: false,
-			goalSettingsPanel: <GoalSettingsPanel />,
 			homeLocation: null,
 			rallyPointGreenLocation: null,
 			rallyPointRedLocation: null,
@@ -336,7 +359,6 @@ export default class CommandControl extends React.Component {
 			missionPlanningFeature: null,
 			missionBaseGoal: {},
 			missionBaseStyle: null,
-			missionSettingsPanel: <MissionSettingsPanel />,
 			surveyPolygonFeature: null,
 			surveyPolygonActive: false,
 			surveyPolygonGeoCoords: null,
@@ -344,7 +366,7 @@ export default class CommandControl extends React.Component {
 			surveyPolygonChanged: false,
 			surveyExclusions: null,
 			selectedFeatures: null,
-			noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null,
 			detailsExpanded: {
 				quickLook: true,
@@ -359,80 +381,10 @@ export default class CommandControl extends React.Component {
 			engineeringPanelActive: false
 		};
 
-		this.surveyExclusionsStyle = null;
-
-		this.missionPlanMarkers = new Map();
-		this.missionPlanMarkerExtents = new Map();
-
-		const { chartLayerCollection } = this.state;
-
-		this.chartLayerGroup = new OlLayerGroup({
-			title: 'Overlays',
-			layers: chartLayerCollection,
-			fold: 'open'
-		});
-
-		const { baseLayerCollection } = this.state;
-
-		// Configure the basemap layers
-		[
-			new OlTileLayer({
-				title: 'NOAA ENC Charts',
-				opacity: 0.7,
-				zIndex: 20,
-				source: this.state.noaaEncSource,
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'GEBCO Bathymetry',
-				zIndex: 10,
-				opacity: 0.7,
-				source: new OlTileWMS({
-					url: 'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?',
-					params: {'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo', 'VERSION':'1.3.0','FORMAT': 'image/png'},
-					serverType: 'mapserver',
-					projection: 'EPSG:4326'
-				}),
-				wrapX: false
-			})
-		].forEach((layer) => {
-			makeLayerSavable(layer);
-			chartLayerCollection.push(layer);
-		});
-
-		this.chartLayerGroup = new OlLayerGroup({
-			title: 'Charts and Imagery',
-			layers: chartLayerCollection,
-			fold: 'open'
-		});
-
-		// Configure the basemap layers
-		[
-			new OlTileLayer({
-				title: 'Google Satellite & Roads',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-				wrapX: false
-			}),
-			new OlTileLayer({
-				title: 'OpenStreetMap',
-				type: 'base',
-				zIndex: 1,
-				source: new OlSourceOsm(),
-				wrapX: false
-			})
-		].forEach((layer) => {
-			makeLayerSavable(layer);
-			baseLayerCollection.push(layer);
-		});
-
 		// Measure tool
 
-		let measureSource = new OlVectorSource();
-
 		this.measureLayer = new OlVectorLayer({
-			source: measureSource,
+			source: new OlVectorSource(),
 			style: new OlStyle({
 				fill: new OlFillStyle({
 					color: 'rgba(255, 255, 255, 0.2)'
@@ -463,71 +415,6 @@ export default class CommandControl extends React.Component {
 			wrapX: false,
 		});
 
-		const {
-			botsLayerCollection,
-			selectedBotsFeatureCollection    } = this.state;
-
-		this.botsLayerGroup = new OlLayerGroup({
-			// title: 'Bots',
-			// fold: 'open',
-			layers: botsLayerCollection
-		});
-
-		// Create functions to extract KML and icons from KMZ array buffer, which must be done synchronously.
-		const zip = new JSZip();
-
-		function getKMLData(buffer) {
-			let kmlData;
-			zip.load(buffer);
-			const kmlFile = zip.file(/\.kml$/i)[0];
-			if (kmlFile) {
-				kmlData = kmlFile.asText();
-			}
-			return kmlData;
-		}
-
-		function getKMLImage(href) {
-			const index = window.location.href.lastIndexOf('/');
-			if (index !== -1) {
-				const kmlFile = zip.file(href.slice(index + 1));
-				if (kmlFile) {
-					return URL.createObjectURL(new Blob([kmlFile.asArrayBuffer()]));
-				}
-			}
-			return href;
-		}
-
-		// Define a KMZ format class by subclassing ol/format/KML
-
-		class KMZ extends KML {
-			constructor(opt_options) {
-				const options = opt_options || {};
-				options.iconUrlFunction = getKMLImage;
-				super(options);
-			}
-
-			getType() {
-				return 'arraybuffer';
-			}
-
-			readFeature(source, options) {
-				const kmlData = getKMLData(source);
-				return super.readFeature(kmlData, options);
-			}
-
-			readFeatures(source, options) {
-				const kmlData = getKMLData(source);
-				return super.readFeatures(kmlData, options);
-			}
-		}
-
-		// Define DragAndDrop interaction
-		this.dragAndDropInteraction = new DragAndDropInteraction({
-			formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
-		});
-
-		this.dragAndDropVectorLayer = new OlVectorLayer();
-
 		map = new OlMap({
 			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
@@ -538,7 +425,6 @@ export default class CommandControl extends React.Component {
 				new OlMousePosition({
 					coordinateFormat: OlCreateStringXY(6),
 					projection: equirectangular,
-					undefinedHTML: '&nbsp;'
 				}),
 				new OlAttribution({
 					collapsible: false
@@ -551,18 +437,18 @@ export default class CommandControl extends React.Component {
 				maxZoom: 24
 			}),
 			maxTilesLoading: 64,
-			loadTilesWhileAnimating: true,
-			loadTilesWhileInteracting: true,
 			moveTolerance: 20
 		});
 
 		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
 		taskData.map = map
 
-		this.coordinate_to_location_transform = getTransform(map.getView().getProjection(), equirectangular)
+		this.coordinate_to_location_transform = (coordinate: number[]) => {
+			return getTransform(map.getView().getProjection(), equirectangular)(coordinate, undefined, undefined)
+		}
 
 		this.measureInteraction = new OlDrawInteraction({
-			source: measureSource,
+			source: new OlVectorSource(),
 			type: 'LineString',
 			style: new OlStyle({
 				fill: new OlFillStyle({
@@ -585,20 +471,19 @@ export default class CommandControl extends React.Component {
 			})
 		});
 
-		let listener;
+		let listener: EventsKey
+
 		this.measureInteraction.on(
 			'drawstart',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({ measureFeature: evt.feature });
-
 
 				listener = evt.feature.getGeometry().on('change', (evt2) => {
 					const geom = evt2.target;
 					// tooltipCoord = geom.getLastCoordinate();
 					$('#measureResult').text(CommandControl.formatLength(geom));
 				});
-			},
-			this
+			}
 		);
 
 		this.measureInteraction.on(
@@ -607,8 +492,7 @@ export default class CommandControl extends React.Component {
 				this.setState({ measureActive: false, measureFeature: null });
 				OlUnobserveByKey(listener);
 				this.changeInteraction();
-			},
-			this
+			}
 		);
 
 		let surveyPolygonSource = new OlVectorSource({ wrapX: false });
@@ -644,28 +528,29 @@ export default class CommandControl extends React.Component {
 			})
 		});
 
-		let surveyPolygonlistener;
+		let surveyPolygonlistener: EventsKey
+
 		this.surveyPolygonInteraction.on(
 			'drawstart',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({
 					surveyPolygonChanged: true,
-					mode: 'missionPlanning',
+					mode: Mode.MISSION_PLANNING,
 					missionPlanningFeature: null
 				});
 				this.updateMissionLayer();
 
-				surveyPolygonlistener = evt.feature.on('change', (evt2) => {
+				surveyPolygonlistener = evt.feature.on('change', (evt2: BaseEvent) => {
 					const geom1 = evt2.target;
 
 					const format = new GeoJSON();
-					const turfPolygon = format.writeFeatureObject(geom1);
+					const turfPolygon = format.writeFeatureObject(geom1) as any
 
 					if (turfPolygon.geometry.coordinates[0].length > 500) {
 
 						let cellSide = this.state.missionParams.spacing;
 
-						let options = {units: 'meters', mask: turf.toWgs84(turfPolygon)};
+						let options = {units: 'meters' as Units, mask: turf.toWgs84(turfPolygon)};
 
 						let turfPolygonBbox = turf.bbox(turf.toWgs84(turfPolygon));
 
@@ -686,14 +571,14 @@ export default class CommandControl extends React.Component {
 									featureProjection: 'EPSG:3857'
 								});
 
-								let optionsMissionLines = {units: 'meters'};
+								let optionsMissionLines = {units: 'meters' as Units};
 								let bot_dict_length = Object.keys(this.podStatus.bots).length
 								let bot_list = Array.from(Array(bot_dict_length).keys());
 								let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, this.state.missionParams.spacing * bot_dict_length, this.state.missionParams.orientation, optionsMissionLines);
 
 								let centerLine = turf.lineString([missionPlanningGridTurfCentroid.geometry.coordinates, missionRhumbDestPoint.geometry.coordinates]);
 
-								let lineSegments = [];
+								let lineSegments: any[] = [];
 								let firstDistance = 0;
 								let nextDistance = this.state.missionParams.spacing;
 								bot_list.forEach(bot => {
@@ -710,7 +595,7 @@ export default class CommandControl extends React.Component {
 
 
 
-								let offsetLines = [];
+								let offsetLines: any[] = [];
 
 
 								// let x = turf.getGeom(lineSegmentsMl);
@@ -740,12 +625,12 @@ export default class CommandControl extends React.Component {
 								// console.log(OlFeature);
 								// console.log(OlMultiLineString);
 								let a = turf.getGeom(missionPlanningLinesTurf)
-								let b = []
+								let b: any[] = []
 								a.coordinates.forEach(coord => {
-									b.push(format.readFeature(coord, {
+									b.push((format.readFeature(coord, {
 										dataProjection: 'EPSG:4326',
 										featureProjection: 'EPSG:3857'
-									}).getGeometry().getCoordinates());
+									}).getGeometry() as any).getCoordinates());
 								})
 								// console.log(b);
 								// const missionPlanningLinesOl = format.readFeatures(turf.getGeom(missionPlanningLinesTurf), {
@@ -754,12 +639,12 @@ export default class CommandControl extends React.Component {
 								// })
 
 								let c = turf.getGeom(missionPlanningLinesTurf)
-								let d = []
+								let d: any[] = []
 								c.coordinates.forEach(coord => {
-									d.push(format.readFeature(turf.explode(coord).features[0], {
+									d.push((format.readFeature(turf.explode(coord as any).features[0], {
 										dataProjection: 'EPSG:4326',
 										featureProjection: 'EPSG:3857'
-									}).getGeometry().getCoordinates())
+									}).getGeometry() as any).getCoordinates())
 								})
 
 								this.setState({
@@ -806,16 +691,15 @@ export default class CommandControl extends React.Component {
 
 				});
 				this.updateMissionLayer();
-			},
-			this
+			}
 		);
 
 		this.surveyPolygonInteraction.on(
 			'drawend',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({
 					surveyPolygonChanged: true,
-					mode: 'missionPlanning',
+					mode: Mode.MISSION_PLANNING,
 					missionPlanningFeature: evt.feature
 				});
 				this.updateMissionLayer();
@@ -839,7 +723,7 @@ export default class CommandControl extends React.Component {
 				// 	this.state.missionParams.sp_perimeter = spPerimeter;
 				// }
 
-				let geo_geom = evt.feature.getGeometry();
+				let geo_geom = (evt.feature as OlFeature<LineString>).getGeometry();
 				geo_geom.transform("EPSG:3857", "EPSG:4326")
 				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
 
@@ -867,8 +751,7 @@ export default class CommandControl extends React.Component {
 				// map.changed();
 				map.renderSync();
 				// map.updateSize();
-			},
-			this
+			}
 		);
 
 		// Callbacks
@@ -881,24 +764,27 @@ export default class CommandControl extends React.Component {
 		this.sendStop = this.sendStop.bind(this);
 
 		// center persistence
-		map.getView().setCenter(Settings.mapCenter.get() || equirectangular_to_mercator([-71.272237, 41.663559]))
+		map.getView().setCenter(mapSettings.center)
 
 		map.getView().on('change:center', function() {
-			Settings.mapCenter.set(map.getView().getCenter())
+			mapSettings.center = map.getView().getCenter()
+			Save(mapSettings)
 		})
 
 		// zoomLevel persistence
-		map.getView().setZoom(Settings.mapZoomLevel.get() || 2)
+		map.getView().setZoom(mapSettings.zoomLevel)
 
 		map.getView().on('change:resolution', function() {
-			Settings.mapZoomLevel.set(map.getView().getZoom())
+			mapSettings.zoomLevel = map.getView().getZoom()
+			Save(mapSettings)
 		})
 
 		// rotation persistence
-		map.getView().setRotation(Settings.mapRotation.get() || 0)
+		map.getView().setRotation(mapSettings.rotation)
 
 		map.getView().on('change:rotation', function() {
-			Settings.mapRotation.set(map.getView().getRotation())
+			mapSettings.rotation = map.getView().getRotation()
+			Save(mapSettings)
 		})
 
 	}
@@ -915,7 +801,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	genMission() {
-		this.generateMissions(this.state.surveyPolygonGeoCoords);
+		this.generateMissions();
 	}
 
 	changeMissionBotList() {
@@ -938,86 +824,53 @@ export default class CommandControl extends React.Component {
 		return this.state.missionParams
 	}
 
-	setMissionState(missionParams) {
+	setMissionState(missionParams: any) {
 		this.setState({
 			missionParams: missionParams
 		})
 	}
 
-	cacheTileLoad() {
-		this.state.noaaEncSource.setTileLoadFunction(function(tile, url) {
-			const image = tile.getImage();
-
-			getFromStore1(url).then(blob => {
-				if (!blob) {
-					// use online url
-					image.src = url;
-
-					// Let's add the tile to the cache since we missed it
-					fetch(url).then(response => {
-						if (response.ok) {
-							response.blob().then(blob => {
-								addToStore1(url, blob).then(p => {
-									// console.log('added urlkey1 to store');
-									// console.log(p);
-								}).catch(() => {
-									// console.log('urlkey1 already exists');
-								});
-							});
-						}
-					});
-					return;
-				}
-
-				const objUrl = URL.createObjectURL(blob);
-				image.onload = function() {
-					URL.revokeObjectURL(objUrl);
-				};
-				image.src = objUrl;
-			}).catch(() => {
-				image.src = url;
-
-				// Let's add the tile to the cache since we missed it
-				fetch(url).then(response => {
-					if (response.ok) {
-						response.blob().then(blob => {
-							addToStore1(url, blob).then(p => {
-								// console.log('added urlkey1 to store');
-								// console.log(p);
-							}).catch(() => {
-								// console.log('urlkey1 already exists');
-							});
-						});
-					}
-				});
-			});
-		})
-	}
-
-
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
 		this.activeMissionLayer = new OlVectorLayer({
-			title: 'Active Missions',
+			properties: {
+				title: 'Active Missions',
+			},
 			source: new OlVectorSource(),
 			zIndex: 999,
 			opacity: 0.5
 		})
 
 		this.missionPlanningLayer = new OlVectorLayer({
-			name: 'missionPlanningLayer',
-			title: 'Mission Planning'
+			properties: { 
+				name: 'missionPlanningLayer',
+				title: 'Mission Planning'
+			},
 		});
 		this.exclusionsLayer = new OlVectorLayer({
-			name: 'exclusionsLayer',
-			title: 'Mission Exclusion Areas'
+			properties: { 
+				name: 'exclusionsLayer',
+				title: 'Mission Exclusion Areas'
+			}
 		});
 
-		this.cacheTileLoad();
+		this.missionLayerGroup = new OlLayerGroup({
+			properties: {
+				title: 'Mission',
+				fold: 'close',
+			},
+			layers: [
+				this.activeMissionLayer,
+				this.missionPlanningLayer,
+				this.exclusionsLayer,
+			]
+		})
 
 		this.measurementLayerGroup = new OlLayerGroup({
-			title: 'Measurements',
-			fold: 'close',
+			properties: { 
+				title: 'Measurements',
+				fold: 'close',
+			},
 			layers: [
 				taskData.getContourLayer(),
 				taskData.getTaskPacketDiveLayer(),
@@ -1030,20 +883,16 @@ export default class CommandControl extends React.Component {
 			]
 		})
 
+		this.baseLayerGroup = createBaseLayerGroup()
+
 		let layers = [
-			new OlLayerGroup({
-				title: 'Map',
-				fold: 'open',
-				layers: this.state.baseLayerCollection
-			}),
+			this.baseLayerGroup,
 			this.chartLayerGroup,
 			this.measurementLayerGroup,
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
-			this.activeMissionLayer,
-			this.missionPlanningLayer,
-			this.exclusionsLayer,
+			this.missionLayerGroup,
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
@@ -1054,6 +903,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidMount() {
+
+		let test = "test"
 
 		//const backgroundColor = 0x000000;
 
@@ -1184,43 +1035,21 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		$('.panel > h2').disableSelection();
+		($('.panel > h2') as any).disableSelection();
 
-		map.getView().on('change:resolution', () => {
-			this.setState({
-				mapZoomLevel: map.getView().getZoom()
-			});
-		});
+		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
 
-		/*
-		This needs to be called whenever liveCommand is updated externally, but NOT in the render method
-		*/
-
-		const { controlSpeed } = this.state;
-		$('#speedSlider').slider({
-			max: 100,
-			min: 0,
-			orientation: 'horizontal',
-			value: controlSpeed,
-			slide(ui) {
-				us.sendThrottle(ui.value);
-			}
-		});
-
-		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
-
-		$('button').disableSelection();
+		($('button') as any).disableSelection();
 
 		tooltips();
 
-		$('#mapLayers').hide('blind', { direction: 'right' }, 0);
-
+		($('#mapLayers') as any).hide('blind', { direction: 'right' }, 0);
 
 		// Hotkeys
-		function KeyPress(e) {
-			let evtobj = window.event? event : e
+		function KeyPress(e: KeyboardEvent) {
+			let target = e.target as any
 
-			switch (e.target.tagName.toLowerCase()) {
+			switch (target.tagName.toLowerCase()) {
 				case "input":
 				case "textarea":
 				// ...and so on for other elements you want to exclude;
@@ -1246,19 +1075,17 @@ export default class CommandControl extends React.Component {
 						return
 					}
 
-					// Undo
-					if (evtobj.keyCode == 90 && evtobj.ctrlKey) {
-						this.restoreUndo()
-					}
-
-				  	break;
-			  }
+				// Undo
+				if (e.keyCode == 90 && e.ctrlKey) {
+					this.restoreUndo()
+				}
+			}
 		}
 
 		document.onkeydown = KeyPress.bind(this)
 
 		this.state.missionBaseGoal.task = {
-			type: "DIVE",
+			type: TaskType.DIVE,
 			dive: {
 				max_depth: 10,
 				depth_interval: 10,
@@ -1269,11 +1096,12 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		map.on('doubleclick', function (evt) {
+		map.on('dblclick', function (evt) {
 			document.getElementById('layerinfo').innerHTML = '';
 			const viewResolution = /** @type {number} */ (map.getView().getResolution());
-			let layer_array = us.state.baseLayerCollection.getArray();
-			let theSource = layer_array.find(x => x.values_.title==="GEBCO Bathymetry");
+
+			let theSource = gebcoLayer.getSource()
+
 			const url = theSource.getFeatureInfoUrl(
 				evt.coordinate,
 				viewResolution,
@@ -1294,9 +1122,9 @@ export default class CommandControl extends React.Component {
 		});
 
 		// Set addFeatures interaction
-		this.dragAndDropInteraction.on('addfeatures', function (event) {
+		this.dragAndDropInteraction.on('addfeatures', function (event: DragAndDropEvent) {
 			const vectorSource = new OlVectorSource({
-				features: event.features,
+				features: event.features as any,
 			});
 			map.addLayer(
 				new OlVectorLayer({
@@ -1309,7 +1137,7 @@ export default class CommandControl extends React.Component {
 
 		/* ////////////////////////////////////////////////////////////////////////// */
 
-		const round = (value, precision) => {
+		function round(value: any, precision: number): any {
 			if (typeof value === "number")
 				return Number(value.toFixed(precision));
 
@@ -1326,7 +1154,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Survey exclusion areas
-		const surveyExclusionsStyle = function(feature) {
+		const surveyExclusionsStyle = function(feature: OlFeature) {
 			let lineStyle = new OlStyle({
 				fill: new OlFillStyle({
 					color: 'rgb(196,10,10)'
@@ -1360,10 +1188,10 @@ export default class CommandControl extends React.Component {
 			style: surveyExclusionsStyle
 		})
 
-		let surveyExclusionslistener;
+		let surveyExclusionslistener: EventsKey
 		this.surveyExclusionsInteraction.on(
 			'drawstart',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({
 					surveyExclusions: null
 				})
@@ -1374,20 +1202,20 @@ export default class CommandControl extends React.Component {
 					this.updateMissionLayer();
 					// console.log('surveyExclusions changed...')
 				})
-			},
-			this
+			}
 		);
 
 		this.surveyExclusionsInteraction.on(
 			'drawend',
-			(evt) => {
+			(evt: DrawEvent) => {
 				// console.log('surveyExclusionsInteraction drawend');
 
 				let featuresExclusions = [];
+				let geometry = evt.feature.getGeometry() as MultiLineString
 
 				let surveyExclusionsFeature = new OlFeature(
 					{
-						geometry: new OlLineString(turf.coordAll(turf.polygon(evt.feature.getGeometry().getCoordinates()))),
+						geometry: new OlLineString(turf.coordAll(turf.polygon(geometry.getCoordinates()))),
 						name: "Exclusions"
 					}
 				)
@@ -1402,15 +1230,14 @@ export default class CommandControl extends React.Component {
 				this.exclusionsLayer.setZIndex(5000);
 
 				this.setState({
-					surveyExclusions: turf.coordAll(turf.polygon(evt.feature.getGeometry().getCoordinates()))
+					surveyExclusions: turf.coordAll(turf.polygon(geometry.getCoordinates()))
 				})
 				OlUnobserveByKey(surveyExclusionslistener);
-			},
-			this
+			}
 		);
 
 		// Survey planning using lines
-		let surveyLineStyle = function(feature) {
+		let surveyLineStyle = function(feature: OlFeature<LineString>) {
 
 			let rotationAngle = 0;
 			let rhumbDist = 0;
@@ -1483,10 +1310,10 @@ export default class CommandControl extends React.Component {
 				let previousIndex = stringCoords.length - 2;
 				let nextIndex = stringCoords.length - 1;
 				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
-				rhumbDist = Number(rhumbDist.toFixed(2)).toString();
+				let rhumbDistString = Number(rhumbDist.toFixed(2)).toString();
 				if (homeLocation !== null) {
 					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
-					rhumbHomeDist = Number(rhumbHomeDist.toFixed(2)).toString();
+					let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString();
 				}
 			}
 
@@ -1506,10 +1333,11 @@ export default class CommandControl extends React.Component {
 			style: surveyLineStyle
 		})
 
-		let surveyLineslistener;
+		let surveyLineslistener: EventsKey
+
 		this.surveyLinesInteraction.on(
 			'drawstart',
-			(evt) => {
+			(evt: DrawEvent) => {
 				this.setState({
 					missionPlanningFeature: null
 				})
@@ -1590,13 +1418,13 @@ export default class CommandControl extends React.Component {
 						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
 
 
-						let centerLine = turf.getGeom(centerLineFc).features[0];
+						let centerLine = turf.getGeom(centerLineFc as any).features[0];
 						let currentLineLength = turf.length(centerLine)
 
 
 
 						if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
-							let offsetLines = [];
+							let offsetLines: any[] = [];
 							let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((bot_list.length/2)*0.75))
 							let nextLineOffset = 0;
 							let currentLineOffset = 0;
@@ -1612,16 +1440,16 @@ export default class CommandControl extends React.Component {
 								nextLineOffset = nextLineOffset + Number(missionParams.spacing)
 							})
 
-							let alongLines = {};
-							let alongPoints = {};
+							let alongLines: any = {};
+							let alongPoints: {[key: string]: number[][]} = {};
 							offsetLines.forEach(offsetLine => {
 								turf.geomEach(offsetLine, function (currentGeometry, featureIndex, featureProperties, featureBBox, featureId) {
-									let botId = featureProperties.botId;
+									let botId = featureProperties.botId as number;
 									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
 								});
 								if (this.state.surveyExclusions) {
 									let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
-									let alongPointsAfterExclusion = []
+									let alongPointsAfterExclusion: number[][] = []
 									alongPointsBeforeExclusion.forEach(point => {
 										// console.log('this.state.surveyExclusions');
 										let se = turf.coordAll(turf.toWgs84(turf.multiPoint(this.state.surveyExclusions)));
@@ -1633,9 +1461,9 @@ export default class CommandControl extends React.Component {
 										}
 									})
 									// let alongPointsAfterExclusion = turf.pointsWithinPolygon(turf.mutliPoint(alongPointsBeforeExclusion), turf.polygon(this.state.surveyExclusions))
-									alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.multiPoint(alongPointsAfterExclusion)))
+									alongPoints[offsetLine.properties.botId] = turf.coordAll(turf.toMercator(turf.multiPoint(alongPointsAfterExclusion)))
 								} else {
-									alongPoints[Number(offsetLine.properties.botId)] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
+									alongPoints[offsetLine.properties.botId] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
 								}
 							})
 
@@ -1643,7 +1471,7 @@ export default class CommandControl extends React.Component {
 							// TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
 							// console.log('hubs');
 							// console.log(Object.values(this.podStatus?.hubs ?? {}));
-							let fcInput = []
+							let fcInput: turf.helpers.Feature<turf.helpers.Point>[] = []
 							Object.keys(alongPoints).forEach(key => {
 								let points = alongPoints[key]
 								points.forEach(point => {
@@ -1680,13 +1508,12 @@ export default class CommandControl extends React.Component {
 						// console.log('** END ********* ON CHANGE *************************')
 					}
 				})
-			},
-			this
+			}
 		);
 
 		this.surveyLinesInteraction.on(
 			'drawend',
-			(evt) => {
+			(evt: DrawEvent) => {
 				// console.log('surveyLinesInteraction drawend');
 				// this.surveyLinesInteraction.finishDrawing();
 				// this.updateMissionLayer();
@@ -1706,14 +1533,13 @@ export default class CommandControl extends React.Component {
 				// map.changed();
 				// map.renderSync();
 				// map.updateSize();
-			},
-			this
+			}
 		);
 
 		info('Welcome to JaiaBot Command & Control!');
 	}
 
-	componentDidUpdate(prevProps, prevState, snapshot) {
+	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
 		// TODO move map-based rendering here
 		// Here we can check the previous state against the current state and update the map
 		// layers to reflect changes that we can't handle in render() directly.
@@ -1732,50 +1558,41 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentWillUnmount() {
-		clearInterval(this.timerID);
-		clearTimeout(this.accelTimer);
+		clearInterval(this.timerID)
 	}
 
-	getLiveLayerFromBotId(bot_id) {
-		const { botsLayerCollection } = this.state;
+	getLiveLayerFromBotId(bot_id: number) {
+		const botsLayerCollection = this.botsLayerCollection
+
 		// eslint-disable-next-line no-plusplus
 		for (let i = 0; i < botsLayerCollection.getLength(); i++) {
 			const layer = botsLayerCollection.item(i);
-			if (layer.bot_id === bot_id) {
+			if (layer.get('bot_id') === bot_id) {
 				return layer;
 			}
 		}
 
-		const botFeature = new OlFeature({
-			name: bot_id,
-			geometry: new OlPoint([0, 0])
-		});
-
-		botFeature.setId(bot_id);
-		botFeature.setStyle(getBoatStyle(map));
-
 		const botLayer = new OlVectorLayer({
-			name: bot_id,
-			title: bot_id,
+			properties: {
+				name: bot_id,
+				title: bot_id,
+				bot_id: bot_id
+			},
 			source: new OlVectorSource({
 				wrapX: false,
-				features: new OlCollection([botFeature], { unique: true })
+				features: new OlCollection([], { unique: true })
 			})
 		});
 
-		botLayer.setStyle(getBoatStyle(map));
-
-		botLayer.bot_id = bot_id;
-
 		botsLayerCollection.push(botLayer);
 
-		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'));
+		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
 		// $('input').checkboxradio();
 
 		return botsLayerCollection.item(botsLayerCollection.getLength() - 1);
 	}
 
-	changeInteraction(newInteraction = null, cursor = '') {
+	changeInteraction(newInteraction: Interaction = null, cursor = '') {
 		const { currentInteraction } = this.state;
 		if (currentInteraction !== null) {
 			map.removeInteraction(currentInteraction);
@@ -1792,7 +1609,7 @@ export default class CommandControl extends React.Component {
 	}
 
 
-	setViewport(dims) {
+	setViewport(dims: number[]) {
 		const { viewportPadding } = this.state;
 		this.setState({
 			viewportPadding: [
@@ -1804,24 +1621,16 @@ export default class CommandControl extends React.Component {
 		});
 	}
 
-	setViewportEdge(edge, padding) {
-		const { viewportPadding } = this.state;
-		viewportPadding[edge] = viewportDefaultPadding + padding;
-		this.setState({
-			viewportPadding
-		});
-	}
-
-	centerOn(coords, stopTracking = false, firstMove = false) {
+	centerOn(coords: number[], stopTracking = false, firstMove = false) {
 		if (isNaN(coords[0]) || isNaN(coords[1])) {
 			return
 		}
 
 		if (stopTracking) {
-			this.trackBot('');
+			this.trackBot(null);
 		}
 
-		const floatCoords = [parseFloat(coords[0]), parseFloat(coords[1])];
+		const floatCoords = [coords[0], coords[1]];
 		const { viewportPadding } = this.state;
 		const size = map.getSize();
 		const viewportCenterX = (size[0] - viewportPadding[1] - viewportPadding[3]) / 2 + viewportPadding[3];
@@ -1836,22 +1645,22 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-	fit(geom, opts, stopTracking = false, firstMove = false) {
+	fit(geom: number[], opts: any, stopTracking = false, firstMove = false) {
 		if (isNaN(geom[0]) || isNaN(geom[1]) || isNaN(geom[2]) || isNaN(geom[3])) {
 			return
 		}
 
 		if (stopTracking) {
-			this.trackBot('');
+			this.trackBot(null);
 		}
 		const { viewportPadding } = this.state;
 		const size = map.getSize();
 		const origZoom = map.getView().getZoom();
 		const newRes = map.getView().getResolutionForExtent(geom, size);
-		const optsOverride = {};
-//     if (!firstMove) {
-		optsOverride.maxZoom = origZoom;
-//     }
+		const optsOverride = {
+			maxZoom: origZoom
+		};
+
 		map.getView().fit(
 			geom,
 			Object.assign(
@@ -1889,7 +1698,7 @@ export default class CommandControl extends React.Component {
 
 			const active_mission_plan = bot.active_mission_plan
 			if (active_mission_plan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(botId))
+				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
 				allFeatures.push(...features)
 			}
 		}
@@ -1903,13 +1712,9 @@ export default class CommandControl extends React.Component {
 		const { selectedBotsFeatureCollection } = this.state;
 		let bots = this.podStatus.bots
 
-		let faultLevel0Count = 0;
-		let faultLevel1Count = 0;
-		let faultLevel2Count = 0;
-
 		const { trackingTarget } = this.state;
 
-		const botExtents = {};
+		const botExtents: {[key: number]: number[]} = {};
 
 		// This needs to be synchronized somehow?
 		for (let botId in bots) {
@@ -1930,7 +1735,7 @@ export default class CommandControl extends React.Component {
 
 			const botFeature = createBotFeature({
 				map: map,
-				botId: botId,
+				botId: Number(botId),
 				lonLat: [botLongitude, botLatitude],
 				heading: botHeading,
 				courseOverGround: bot.attitude?.course_over_ground
@@ -1938,7 +1743,7 @@ export default class CommandControl extends React.Component {
 
 			botFeature.setId(bot_id);
 
-			const coordinate = equirectangular_to_mercator([parseFloat(botLongitude), parseFloat(botLatitude)]);
+			const coordinate = equirectangular_to_mercator([botLongitude, botLatitude]);
 
 			// Fault Levels
 
@@ -1947,15 +1752,12 @@ export default class CommandControl extends React.Component {
 			switch(bot.health_state) {
 				case "HEALTH__OK":
 					faultLevel = 0
-					faultLevel0Count ++
 					break;
 				case "HEALTH__DEGRADED":
 					faultLevel = 1
-					faultLevel1Count ++
 					break;
 				default:
 					faultLevel = 2
-					faultLevel2Count ++
 					break;
 			}
 
@@ -1987,7 +1789,7 @@ export default class CommandControl extends React.Component {
 			botFeature.setProperties({
 				heading: botHeading,
 				speed: botSpeed,
-				lastUpdated: parseFloat(bot.time),
+				lastUpdated: bot.time,
 				lastUpdatedString: botTimestamp.toISOString(),
 				missionState: bot.mission_state,
 				healthState: bot.health_state,
@@ -2050,7 +1852,8 @@ export default class CommandControl extends React.Component {
 			botLayer.changed();
 		} // end foreach bot
 		const { lastBotCount } = this.state;
-		const botCount = bots.length;
+		const botCount = Object.keys(bots).length
+
 		if (botCount > lastBotCount) {
 			this.zoomToAllBots(true);
 		} else if (trackingTarget === 'pod') {
@@ -2082,7 +1885,7 @@ export default class CommandControl extends React.Component {
 				}
 
 				if (!("bots" in result)) {
-					this.podStatus = {}
+					this.podStatus = null
 					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
@@ -2114,15 +1917,12 @@ export default class CommandControl extends React.Component {
 					this.updateBotsLayer()
 					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
-					if (this.state.mode !== 'missionPlanning') {
+					if (this.state.mode !== Mode.MISSION_PLANNING) {
 						this.updateMissionLayer()
 					}
 				}
 			},
 			(err) => {
-				this.setState({
-					error: err
-				});
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
 				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
 			}
@@ -2140,7 +1940,7 @@ export default class CommandControl extends React.Component {
 		}
 		const extent = OlCreateEmptyExtent();
 		let layerCount = 0;
-		this.botsLayerGroup.getLayers().forEach((layer) => {
+		this.botsLayerGroup.getLayers().forEach((layer: OlVectorLayer<OlVectorSource>) => {
 			if (layer.getSource().getFeatures().length <= 0) return;
 			OlExtendExtent(extent, layer.getSource().getExtent());
 			layerCount += 1;
@@ -2151,7 +1951,7 @@ export default class CommandControl extends React.Component {
 	zoomToAll(firstMove = false) {
 		const extent = OlCreateEmptyExtent();
 		let layerCount = 0;
-		const addExtent = (layer) => {
+		const addExtent = (layer: OlVectorLayer<OlVectorSource>) => {
 			if (layer.getSource().getFeatures().length <= 0) return;
 			OlExtendExtent(extent, layer.getSource().getExtent());
 			layerCount += 1;
@@ -2160,24 +1960,26 @@ export default class CommandControl extends React.Component {
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
-	selectBot(bot_id) {
+	selectBot(bot_id: number) {
 		this.selectBots([bot_id]);
 	}
 
-	toggleBot(bot_id) {
+	toggleBot(bot_id: number) {
 		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
 		this.selectBots(botsToSelect)
 	}
 
-	selectBots(bot_ids) {
+	selectBots(bot_ids: number[]) {
 		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
 
-		const { botsLayerCollection, selectedBotsFeatureCollection } = this.state;
+		const { selectedBotsFeatureCollection } = this.state;
+		const botsLayerCollection = this.botsLayerCollection
+
 		selectedBotsFeatureCollection.clear();
 		botsLayerCollection.getArray().forEach((layer) => {
-			const feature = layer.getSource().getFeatureById(layer.bot_id);
+			const feature = layer.getSource().getFeatureById(layer.get('bot_id'));
 			if (feature) {
-				if (bot_ids.includes(feature.getId())) {
+				if (bot_ids.includes(feature.getId() as number)) {
 					feature.set('selected', true);
 					selectedBotsFeatureCollection.push(feature);
 				} else {
@@ -2195,7 +1997,7 @@ export default class CommandControl extends React.Component {
 		map.render();
 	}
 
-	isBotSelected(bot_id) {
+	isBotSelected(bot_id: number) {
 		const { selectedBotsFeatureCollection } = this.state;
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
@@ -2205,12 +2007,12 @@ export default class CommandControl extends React.Component {
 		return false;
 	}
 
-	zoomToBot(id, firstMove = false) {
+	zoomToBot(id: number, firstMove = false) {
 		const { botExtents } = this.state;
 		this.fit(botExtents[id], { duration: 100 }, false, firstMove);
 	}
 
-	trackBot(id) {
+	trackBot(id: number | string) {
 		const { trackingTarget } = this.state;
 		if (id === trackingTarget) return;
 		this.setState({ trackingTarget: id });
@@ -2220,8 +2022,8 @@ export default class CommandControl extends React.Component {
 		} else if (id === 'pod') {
 			this.zoomToAllBots(true);
 			info('Following pod');
-		} else if (id !== '') {
-			this.zoomToBot(id, true);
+		} else if (id !== null) {
+			this.zoomToBot(id as number, true);
 			info(`Following bot ${id}`);
 		} else if (trackingTarget === 'all') {
 			info('Stopped following all');
@@ -2232,7 +2034,7 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	changeMissions(func, previousMissions) {
+	changeMissions(func: (mission: PodMission) => void, previousMissions: PodMission) {
 		// Save a backup of the current mission set
 		let oldMissions = deepcopy(this.missions)
 
@@ -2289,12 +2091,12 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.state.homeLocation))
+		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.homeLocation]))
 
 		this.runMissions(returnToHomeMissions)
 	}
 
-	static formatLength(line) {
+	static formatLength(line: Geometry) {
 		const length = OlGetLength(line, { projection: mercator });
 		if (length > 100) {
 			return `${Math.round((length / 1000) * 100) / 100} km`;
@@ -2316,8 +2118,6 @@ export default class CommandControl extends React.Component {
 
 	render() {
 		const {
-			selectedBotsFeatureCollection,
-			botsLayerCollection,
 			trackingTarget,
 			measureActive,
 			surveyPolygonActive,
@@ -2333,7 +2133,7 @@ export default class CommandControl extends React.Component {
 		let bots = this.podStatus?.bots
 		let hubs = this.podStatus?.hubs
 
-		let goalSettingsPanel = '';
+		let goalSettingsPanel: ReactElement = null
 		if (this.state.goalBeingEdited != null) {
 			goalSettingsPanel = 
 				<GoalSettingsPanel 
@@ -2349,8 +2149,8 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Add mission generation form to UI if the survey polygon has changed.
-		let missionSettingsPanel = '';
-		if (this.state.mode === 'missionPlanning') {
+		let missionSettingsPanel: ReactElement = null
+		if (this.state.mode === Mode.MISSION_PLANNING) {
 			missionSettingsPanel = <MissionSettingsPanel
 				mission_params={this.state.missionParams}
 				bot_list={this.podStatus?.bots}
@@ -2375,7 +2175,7 @@ export default class CommandControl extends React.Component {
 						this.loadMissions(this.state.missionPlans)
 					} else {
 						// Polygon
-						this.genMission(this.state.surveyPolygonGeoCoords)
+						this.genMission()
 					}
 				}}
 				onMissionChangeBotList={() => {
@@ -2434,22 +2234,22 @@ export default class CommandControl extends React.Component {
 						<Button className="button-jcc active"
 							onClick={() => {
 								this.setState({mapLayerActive: false}); 
-								$('#mapLayers').toggle('blind', { direction: 'right' });
+								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
 							}}
 						>
-							<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
 						</Button>
 
 					) : (
 						<Button className="button-jcc"
 							onClick={() => {
 								this.setState({mapLayerActive: true}); 
-								$('#mapLayers').toggle('blind', { direction: 'right' });
+								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
 							}}
 						>
-							<FontAwesomeIcon icon={faLayerGroup} title="Map Layers" />
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
 						</Button>
 					)}
 
@@ -2464,7 +2264,7 @@ export default class CommandControl extends React.Component {
 									this.setState({ measureActive: false });
 								}}
 							>
-								<FontAwesomeIcon icon={faRuler} title="Measurement Result" />
+								<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
 							</Button>
 						</div>
 					) : (
@@ -2476,12 +2276,12 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first measure point');
 							}}
 						>
-							<FontAwesomeIcon icon={faRuler} title="Measure Distance"/>
+							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkedAlt} title="Unfollow" />
+							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2491,12 +2291,12 @@ export default class CommandControl extends React.Component {
 								this.trackBot('all');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkedAlt} title="Follow All" />
+							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Follow All" />
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
 						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
-							<FontAwesomeIcon icon={faMapMarkerAlt} title="Unfollow" />
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow" />
 						</Button>
 					) : (
 						<Button
@@ -2506,7 +2306,7 @@ export default class CommandControl extends React.Component {
 								this.trackBot('pod');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt} title="Follow Team" />
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Pod" />
 						</Button>
 					)}
 
@@ -2525,13 +2325,13 @@ export default class CommandControl extends React.Component {
 									this.updateMissionLayer();
 								}}
 							>
-								<FontAwesomeIcon icon={faEdit} title="Stop Editing Optimized Mission Survey" />
+								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
 							</Button>
 					) : (
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								this.setState({ surveyPolygonActive: true, mode: 'missionPlanning' });
+								this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
 									this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
 								if (this.state.missionParams.mission_type === 'editing')
@@ -2544,7 +2344,7 @@ export default class CommandControl extends React.Component {
 								info('Touch map to set first polygon point');
 							}}
 						>
-							<FontAwesomeIcon icon={faEdit} title="Edit Optimized Mission Survey" />
+							<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
 						</Button>
 					)}
 					
@@ -2554,7 +2354,7 @@ export default class CommandControl extends React.Component {
 								this.toggleEngineeringPanel();
 							}} 
 						>
-							<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
 						</Button>
 
 					) : (
@@ -2563,7 +2363,7 @@ export default class CommandControl extends React.Component {
 							this.toggleEngineeringPanel();
 						}} 
 						>
-							<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
 						</Button>
 					)}
 
@@ -2576,7 +2376,11 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					{this.botsList()}
+					<BotListPanel podStatus={this.podStatus} 
+						selectedBotId={this.selectedBotId()} 
+						trackedBotId={this.state.trackingTarget}
+						didClickBot={this.didClickBot.bind(this)}
+						didClickHub={this.didClickHub.bind(this)} />
 					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
@@ -2600,12 +2404,32 @@ export default class CommandControl extends React.Component {
 		);
 	}
 
+	didClickBot(bot_id: number) {
+		if (this.isBotSelected(bot_id)) {
+			this.selectBots([])
+		}
+		else {
+			this.selectBot(bot_id)
+		}
+	}
+
+	didClickHub(hub_id: number) {
+		const item = {'type': 'hub', id: hub_id}
+
+		if (areEqual(this.state.detailsBoxItem, item)) {
+			this.setState({detailsBoxItem: null})
+		}
+		else {
+			this.setState({detailsBoxItem: item})
+		}
+	}
+
 	takeControlPanel() {
 		if (this.weAreInControl()) {
 			return null
 		}
 
-		const takeControl = (evt) => {
+		const takeControl = (evt: MouseEvent) => {
 			this.api.takeControl()
 		}
 
@@ -2616,16 +2440,16 @@ export default class CommandControl extends React.Component {
 		)
 	}
 
-	locationFromCoordinate(coordinate) {
+	locationFromCoordinate(coordinate: number[]) {
 		let latlon = this.coordinate_to_location_transform(coordinate)
 		return {lat: latlon[1], lon: latlon[0]}
 	}
 
-	addWaypointAtCoordinate(coordinate) {
+	addWaypointAtCoordinate(coordinate: number[]) {
 		this.addWaypointAt(this.locationFromCoordinate(coordinate))
 	}
 
-	addWaypointAt(location) {
+	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotIds().at(-1)
 		let millisecondsSinceEpoch = new Date().getTime();
 
@@ -2637,14 +2461,14 @@ export default class CommandControl extends React.Component {
 			
 			if (!(botId in missions)) {
 				missions[botId] = {
-					botId: botId,
-					time:  millisecondsSinceEpoch,
-					type: 'MISSION_PLAN',
+					bot_id: botId,
+					time: millisecondsSinceEpoch,
+					type: CommandType.MISSION_PLAN,
 					plan: {
-						start: 'START_IMMEDIATELY',
-						movement: 'TRANSIT',
+						start: MissionStart.START_IMMEDIATELY,
+						movement: MovementType.TRANSIT,
 						goal: [],
-						recovery: {recoverAtFinalGoal: true}
+						recovery: {recover_at_final_goal: true}
 					}
 				}
 			}
@@ -2656,71 +2480,20 @@ export default class CommandControl extends React.Component {
 			{
 				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
 			}
-		})
+		}, null)
 
 	}
 
-	setGrid2Style(self, feature, taskType) {
-		let gridStyle = new OlIcon({ src: taskNone })
-
-		switch(taskType) {
-			case 'DIVE':
-				gridStyle = new OlIcon({ src: taskDive })
-				break;
-			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: taskDrift })
-				break;
-			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: taskStationKeep })
-				break;
-			case 'CONSTANT_HEADING':
-				gridStyle = new OlIcon({ src: taskDrift })
-				break;
-			case 'NONE':
-				gridStyle = new OlIcon({ src: taskNone })
-				break;
-			default:
-				break;
-		}
-
-		let s = new OlStyle({
-			image: gridStyle
-		})
-
-		return [s]
+	setGrid2Style(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
+		return Styles.goalIcon(taskType, false, false)
 	}
 
-	setGridStyle(self, taskType) {
-
-		// console.log(taskType);
-
-		let gridStyle = new OlIcon({ src: taskNone })
-
-		switch(taskType) {
-			case 'DIVE':
-				gridStyle = new OlIcon({ src: taskDive })
-				break;
-			case 'SURFACE_DRIFT':
-				gridStyle = new OlIcon({ src: taskDrift })
-				break;
-			case 'STATION_KEEP':
-				gridStyle = new OlIcon({ src: taskStationKeep })
-				break;
-			case 'CONSTANT_HEADING':
-				gridStyle = new OlIcon({ src: taskDrift })
-				break;
-			case 'NONE':
-				gridStyle = new OlIcon({ src: taskNone })
-				break;
-			default:
-				break;
-		}
-
-		return gridStyle
+	setGridStyle(self: CommandControl, taskType: TaskType) {
+		return Styles.goalIcon(taskType, false, false)
 	}
 
-
-	surveyStyle(self, feature, taskType) {
+	surveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
+			// console.log('WHAT IS GOING ON!!!!');
 			// console.log(feature);
 			// console.log(self.state);
 			// console.log(self.homeLocation);
@@ -2763,7 +2536,7 @@ export default class CommandControl extends React.Component {
 			let rotationAngle = 0;
 			let rhumbDist = 0;
 			let rhumbHomeDist = 0;
-			let stringCoords = feature.getGeometry().getCoordinates();
+			let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
 			// console.log('stringCoords');
 			// console.log(stringCoords);
 			let coords = stringCoords.slice(0, 2);
@@ -2794,33 +2567,36 @@ export default class CommandControl extends React.Component {
 				// console.log(previousIndex);
 				// console.log(nextIndex);
 				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
-				rhumbDist = Number(rhumbDist.toFixed(2)).toString();
+				let rhumbDistString = Number(rhumbDist.toFixed(2)).toString();
 				if (homeLocation !== null) {
 					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
-					rhumbHomeDist = Number(rhumbHomeDist.toFixed(2)).toString();
+					let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString();
 				}
 			}
 
 			return [lineStyle, iconStyle];
 		};
 
-	setSurveyStyle(self, feature, taskType) {
+	setSurveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
 		let featureStyles = this.surveyStyle(self, feature, taskType);
 		feature.setStyle(featureStyles);
 		return feature
 	}
 
-	setGridFeatureStyle(self, feature, taskType) {
+	setGridFeatureStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
 		if (feature) {
-			let gridStyle = this.setGrid2Style(self, feature, taskType);
+			let gridStyle = new OlStyle({
+				image: this.setGrid2Style(self, feature, taskType)
+			})
+			
 			feature.setStyle(gridStyle);
 		}
 		return feature
 	}
 
-	findRallySeparation(bot_list, feature, rotationAngle, rallySpacing) {
+	findRallySeparation(bot_list: number[], feature: GeographicCoordinate, rotationAngle: number, rallySpacing: number) {
 		// Bot rally point separation scheme
-		let rallyPoints = {};
+		let rallyPoints: any = {};
 		let center = [feature.lon, feature.lat];
 		let radius = rallySpacing/1000;
 		if (bot_list.length >= 3) {
@@ -2833,7 +2609,7 @@ export default class CommandControl extends React.Component {
 			})
 		} else {
 			// Alternative to using a circle for bot separation
-			let rhumbDestinationPoints = [];
+			let rhumbDestinationPoints: number[][][] = [];
 			let nextRadius = 0;
 			bot_list.forEach(bot => {
 				rhumbDestinationPoints.push(turf.coordAll(turf.rhumbDestination(turf.point(center), nextRadius, rotationAngle-90)));
@@ -2907,7 +2683,7 @@ export default class CommandControl extends React.Component {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
 			let lineStyle
 
-			let selected = this.isBotSelected(botId)
+			let selected = this.isBotSelected(Number(botId))
 
 			let goals = missions[botId]?.plan?.goal || []
 
@@ -2937,7 +2713,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (this.state.surveyPolygonCoords) {
-			let pts = this.state.surveyPolygonCoords.getCoordinates()[0];
+			let pts = this.state.surveyPolygonCoords.getCoordinates()
 			let transformed_survey_pts = pts.map((pt) => {
 				return equirectangular_to_mercator([pt[0], pt[1]])
 			})
@@ -2970,7 +2746,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (this.state.missionPlanningGrid) {
-			let missionPlans = {};
+			let missionPlans: any = {};
 			let millisecondsSinceEpoch = new Date().getTime();
 			let bot_list = Object.keys(this.podStatus.bots);
 
@@ -3000,17 +2776,17 @@ export default class CommandControl extends React.Component {
 				let bot_goals = [];
 
 				// Rally Point Goals
-				let bot_goal = {
+				let bot_goal: Goal = {
 					"location": {
 						"lat": rallyStartPoints[key][1],
 						"lon": rallyStartPoints[key][0]
 					},
-					"task": {"type": "STATION_KEEP"}
+					"task": {"type": TaskType.STATION_KEEP}
 				}
 				bot_goals.push(bot_goal)
 
 				// Mission Goals
-				mpg[key].forEach(goal => {
+				mpg[key].forEach((goal: any) => {
 					let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
 					bot_goal = {
 						"location": {
@@ -3028,12 +2804,12 @@ export default class CommandControl extends React.Component {
 						"lat": rallyFinishPoints[key][1],
 						"lon": rallyFinishPoints[key][0]
 					},
-					"task": {"type": "STATION_KEEP"}
+					"task": {"type": TaskType.STATION_KEEP}
 				}
 				bot_goals.push(bot_goal)
 
 				let mission_dict = {
-					botId: Number(key),
+					bot_id: Number(key),
 					time: millisecondsSinceEpoch,
 					type: "MISSION_PLAN",
 					plan: {
@@ -3041,7 +2817,7 @@ export default class CommandControl extends React.Component {
 						movement: "TRANSIT",
 						goal: bot_goals,
 						recovery: {
-							recoverAtFinalGoal: true
+							recover_at_final_goal: true
 						}
 					}
 				}
@@ -3057,7 +2833,7 @@ export default class CommandControl extends React.Component {
 			// Place all the mission planning features in this for the missionLayer
 			let missionPlanningFeaturesList = [];
 
-			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === 'missionPlanning') {
+			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
 				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
@@ -3073,7 +2849,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		let vectorSource = new OlVectorSource({
-			features: features
+			features: features as any
 		})
 
 		this.missionLayer.setSource(vectorSource)
@@ -3081,12 +2857,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Runs a mission
-	_runMission(bot_mission) {
+	_runMission(bot_mission: Command) {
 		// Set the speed values
-		let speeds = Settings.missionPlanSpeeds.get()
-		if (speeds != null && bot_mission.plan != null) {
-			bot_mission.plan.speeds = speeds
-		}
+		bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
 
 		console.debug('Running Mission:')
 		console.debug(bot_mission)
@@ -3099,23 +2872,23 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Runs a set of missions, and updates the GUI
-	runMissions(missions) {
+	runMissions(missions: PodMission) {
 		if (!this.takeControl()) return
 
-		let botIds = [];
-		let botIdsInIdleState = [];
+		let botIds: number[] = [];
+		let botIdsInIdleState: number[] = [];
 		for(let mission in missions)
 		{
-			let botState = this.podStatus.bots[missions[mission].botId].mission_state;
+			let botState = this.podStatus.bots[missions[mission].bot_id].mission_state;
 
 			if(botState == "PRE_DEPLOYMENT__IDLE"
 				|| botState == "POST_DEPLOYMENT__IDLE")
 			{
-				botIdsInIdleState.push(missions[mission].botId);
+				botIdsInIdleState.push(missions[mission].bot_id);
 			}
 			else
 			{
-				botIds.push(missions[mission].botId);
+				botIds.push(missions[mission].bot_id);
 			}
 		}
 
@@ -3141,17 +2914,19 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Loads the set of missions, and updates the GUI
-	loadMissions(missions) {
+	loadMissions(missions: PodMission) {
 		this.missions = deepcopy(missions)
 
 		// selectedBotId is a placeholder for the currently selected botId
-		if ('selectedBotId' in this.missions) {
+		if (SELECTED_BOT_ID in this.missions) {
 			let selectedBotId = this.selectedBotId() ?? 0
 			
-			this.missions[selectedBotId] = this.missions['selectedBotId']
+			this.missions[selectedBotId] = this.missions[SELECTED_BOT_ID]
 			this.missions[selectedBotId].bot_id = selectedBotId
-			delete this.missions['selectedBotId']
+			delete this.missions[SELECTED_BOT_ID]
 		}
+
+		console.log(this.missions)
 
 		this.updateMissionLayer()
 	}
@@ -3161,27 +2936,12 @@ export default class CommandControl extends React.Component {
 		return this.selectedBotIds().at(-1)
 	}
 
-	// Loads a hardcoded mission
-	loadHardcodedMission(index) {
-		let botId = this.selectedBotId() || 0
-		let mission = Missions.hardcoded(botId, index)
-		this.missions[botId] = mission
-		this.updateMissionLayer()
-		info("Loaded mission")
-		console.debug(botId, mission)
-	}
-
 	// Runs the currently loaded mission
-	runLoadedMissions(botIds=[]) {
+	runLoadedMissions(botIds: number[] = []) {
 		if (!this.takeControl()) return
 
 		if (botIds.length == 0) {
-			botIds = Object.keys(this.missions)
-		}
-
-		const index = botIds.indexOf("undefined");
-		if (index > -1) { // only splice array when item is found
-			botIds.splice(index, 1); // 2nd parameter means remove one item only
+			botIds = Object.keys(this.missions) as any
 		}
 
 		let botIdsInIdleState = [];
@@ -3230,12 +2990,12 @@ export default class CommandControl extends React.Component {
 			if (selectedBotId != null) {
 				this.changeMissions(() => {
 					delete this.missions[selectedBotId]
-				})
+				}, undefined)
 			}
 			else {
 				this.changeMissions(() => {
 					this.missions = {}
-				})
+				}, undefined)
 			}
 
 			this.setState({
@@ -3252,12 +3012,15 @@ export default class CommandControl extends React.Component {
 
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
-		let botIds = []
+		let botIds: number[] = []
 
 		// Update feature in selected set
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 			const feature = selectedBotsFeatureCollection.item(i)
-			botIds.push(feature.getId())
+			const botId = feature.getId() as number
+			if (botId != null) {
+				botIds.push(botId)
+			}
 		}
 
 		return botIds
@@ -3286,10 +3049,10 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	handleEvent(evt) {
+	handleEvent(evt: any) {
 		switch(evt.type) {
 			case 'click':
-				return this.clickEvent(evt)
+				return this.clickEvent(evt as MapBrowserEvent<UIEvent>)
 				// break;
 			case 'dragging':
 				return
@@ -3297,30 +3060,29 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-	clickEvent(evt) {
+	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
 
-		if (this.state.mode == 'setHome') {
+		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
 
-		if (this.state.mode =='setRallyPointGreen') {
+		if (this.state.mode == Mode.SET_RALLY_POINT_GREEN) {
 			this.placeRallyPointGreenAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
 
-		if (this.state.mode =='setRallyPointRed') {
+		if (this.state.mode == Mode.SET_RALLY_POINT_RED) {
 			this.placeRallyPointRedAtCoordinate(evt.coordinate)
 			return false // Not a drag event
 		}
 
-		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature: OlFeature<Geometry>) {
 			return feature
 		});
 
 		if (feature) {
-
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 
@@ -3331,17 +3093,17 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on a bot
-			if (this.isBotSelected(feature.getId())) {
+			if (this.isBotSelected(Number(feature.getId()))) {
 				this.selectBots([])
 			}
 			else {
-				this.selectBots([feature.getId()])
+				this.selectBots([Number(feature.getId())])
 			}
 
 			// Clicked on mission planning point
-			if (goal === null) {
-				if (this.state.mode === 'missionPlanning') {
-					this.state.selectedFeatures = feature;
+			if (goal == null) {
+				if (this.state.mode == Mode.MISSION_PLANNING) {
+					this.state.selectedFeatures = new OlCollection([ feature ])
 				}
 			}
 		}
@@ -3352,7 +3114,7 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-	placeHomeAtCoordinate(coordinate) {
+	placeHomeAtCoordinate(coordinate: number[]) {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 
@@ -3361,11 +3123,11 @@ export default class CommandControl extends React.Component {
 			mode: ''
 		})
 
-		this.toggleMode('setHome')
+		this.toggleMode(Mode.SET_HOME)
 		this.updateMissionLayer()
 	}
 
-	placeRallyPointGreenAtCoordinate(coordinate) {
+	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
@@ -3373,11 +3135,11 @@ export default class CommandControl extends React.Component {
 			mode: ''
 		})
 
-		this.toggleMode('setRallyPointGreen')
+		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
 		this.updateMissionLayer()
 	}
 
-	placeRallyPointRedAtCoordinate(coordinate) {
+	placeRallyPointRedAtCoordinate(coordinate: number[]) {
 		let lonlat = mercator_to_equirectangular(coordinate)
 		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
@@ -3385,15 +3147,15 @@ export default class CommandControl extends React.Component {
 			mode: ''
 		})
 
-		this.toggleMode('setRallyPointRed')
+		this.toggleMode(Mode.SET_RALLY_POINT_RED)
 		this.updateMissionLayer()
 	}
 
-	stopDown(evt) {
+	stopDown(arg: boolean) {
 		return false
 	}
 
-	generateMissions(surveyPolygonGeoCoords) {
+	generateMissions() {
 		if (!this.takeControl()) return;
 
 		let bot_list = [];
@@ -3406,8 +3168,8 @@ export default class CommandControl extends React.Component {
 			"sample_spacing": this.state.missionParams.spacing,
 			"mission_type": this.state.missionBaseGoal.task,
 			"orientation": this.state.missionParams.orientation,
-			"home_lon": this.state.homeLocation['lon'],
-			"home_lat": this.state.homeLocation['lat'],
+			"home_lon": this.state.homeLocation?.['lon'],
+			"home_lat": this.state.homeLocation?.['lat'],
 			"survey_polygon": this.state.surveyPolygonGeoCoords,
 			//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
 		}).then(data => {
@@ -3493,63 +3255,63 @@ export default class CommandControl extends React.Component {
 		return (<Button className={"globalCommand" + " button-jcc"} onClick={this.restoreUndo.bind(this)}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
-	setHomeClicked(evt) {
-		this.toggleMode('setHome')
+	setHomeClicked(evt: UIEvent) {
+		this.toggleMode(Mode.SET_HOME)
 	}
 
-	setRallyPointRedClicked(evt) {
-		this.toggleMode('setRallyPointRed')
+	setRallyPointRedClicked(evt: Event) {
+		this.toggleMode(Mode.SET_RALLY_POINT_RED)
 	}
 
-	setRallyPointGreenClicked(evt) {
-		this.toggleMode('setRallyPointGreen')
+	setRallyPointGreenClicked(evt: Event) {
+		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
 	}
 
-	goHomeClicked(evt) {
+	goHomeClicked(evt: UIEvent) {
 		this.returnToHome()
 	}
 
-	goToRallyGreen(evt) {
+	goToRallyGreen(evt: UIEvent) {
 		if (!this.state.rallyPointGreenLocation) {
 			alert('No green rally point selected.  Click on the map to select a green rally location and try again.')
 			return
 		}
 
-		let goToRallyGreenMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.state.rallyPointGreenLocation))
+		let goToRallyGreenMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointGreenLocation]))
 		if (goToRallyGreenMission.length == 0)
 		{
 			for(let bot in this.podStatus.bots)
 			{
-				goToRallyGreenMission.push(Missions.missionWithWaypoints(bot, this.state.rallyPointGreenLocation))
+				goToRallyGreenMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation]))
 			}
 		}
 
 		this.runMissions(goToRallyGreenMission)
 	}
 
-	goToRallyRed(evt) {
+	goToRallyRed(evt: UIEvent) {
 		if (!this.state.rallyPointRedLocation) {
 			alert('No red rally point selected.  Click on the map to select a red rally location and try again.')
 			return
 		}
 
-		let goToRallyRedMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, this.state.rallyPointRedLocation))
+		let goToRallyRedMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointRedLocation]))
 		if (goToRallyRedMission.length == 0)
 		{
 			for(let bot in this.podStatus.bots)
 			{
-				goToRallyRedMission.push(Missions.missionWithWaypoints(bot, this.state.rallyPointRedLocation))
+				goToRallyRedMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointRedLocation]))
 			}
 		}
 
 		this.runMissions(goToRallyRedMission)
 	}
 
-	playClicked(evt) {
+	playClicked(evt: UIEvent) {
 		this.runLoadedMissions(this.selectedBotIds())
 	}
 	
-	activateAllClicked(evt) {
+	activateAllClicked(evt: UIEvent) {
 		if (!this.takeControl()) return;
 
 		this.api.allActivate().then(response => {
@@ -3562,7 +3324,7 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	nextTaskAllClicked(evt) {
+	nextTaskAllClicked(evt: UIEvent) {
 		if (!this.takeControl()) return;
 
 		this.api.nextTaskAll().then(response => {
@@ -3575,7 +3337,7 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
-	recoverAllClicked(evt) {
+	recoverAllClicked(evt: UIEvent) {
 		if (!this.takeControl()) return
 
 		this.api.allRecover().then(response => {
@@ -3619,13 +3381,13 @@ export default class CommandControl extends React.Component {
 		this.runMissions(Missions.RCDive(botId))
 	}
 
-	sendFlag(evt) {
+	sendFlag(evt: UIEvent) {
 		if (!this.takeControl()) return
 
 		// Send a user flag, to get recorded in the bot's logs
 		let botId = this.selectedBotIds().at(-1) || 0
 		let engineeringCommand = {
-			botId: botId,
+			bot_id: botId,
 			flag: this.flagNumber
 		}
 
@@ -3636,7 +3398,7 @@ export default class CommandControl extends React.Component {
 		this.flagNumber ++
 	}
 
-	toggleMode(modeName) {
+	toggleMode(modeName: Mode) {
 		if (this.state.mode == modeName) {
 			if (this.state.mode) {
 				let selectedButton = $('#' + this.state.mode)
@@ -3645,97 +3407,12 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
-			this.state.mode = ""
+			this.state.mode = Mode.NONE
 		}
 		else {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
-	}
-
-	botsList() {
-		let self = this
-
-		let bots = Object.values(this.podStatus?.bots ?? {})
-		let hubs = Object.values(this.podStatus?.hubs ?? {})
-		
-		function compare_by_hubId(hub1, hub2) {
-			return hub1.hub_id - hub2.hub_id
-		}
-
-		function compare_by_botId(bot1, bot2) {
-			return bot1.bot_id - bot2.bot_id
-		}
-
-		function bothub_to_div(bothub) {
-			let botId = bothub.bot_id
-			let hubId = bothub.hub_id
-			
-			if (botId != null) {
-				var key = 'bot-' + botId
-				var bothubClass = 'bot-item'
-
-				var onClickFunction = () => {
-					if (self.isBotSelected(botId)) {
-						self.selectBots([])
-					}
-					else {
-						self.selectBot(botId)
-					}
-				}
-			}
-			else {
-				var key = 'hub-' + hubId
-				var bothubClass = 'hub-item'
-
-				var onClickFunction = () => {
-					const item = {'type': 'hub', id: hubId}
-
-					if (areEqual(self.state.detailsBoxItem, item)) {
-						self.setState({detailsBoxItem: null})
-					}
-					else {
-						self.setState({detailsBoxItem: item})
-					}
-				}
-			}
-
-			let faultLevel = {
-				'HEALTH__OK': 0,
-				'HEALTH__DEGRADED': 1,
-				'HEALTH__FAILED': 2
-			}[bothub.health_state] ?? 0
-
-			let faultLevelClass = 'faultLevel' + faultLevel
-			let selected = self.isBotSelected(botId) ? 'selected' : ''
-			let tracked = botId === self.state.trackingTarget ? ' tracked' : ''
-
-			//For now we are naming HUB, HUB with no id
-			//In the future we will have to revisit this
-			return (
-				<div
-					key={key}
-					onClick={
-						onClickFunction
-					}
-					className={`${bothubClass} ${faultLevelClass} ${selected} ${tracked}`}
-				>
-					{botId ?? "HUB"} 
-				</div>
-			);
-		}
-
-
-		return (
-			<div id="botsList">
-				{
-					hubs.sort(compare_by_hubId).map(bothub_to_div)
-				}
-				{
-					bots.sort(compare_by_botId).map(bothub_to_div)
-				}
-			</div>
-		)
 	}
 
 	disconnectionPanel() {

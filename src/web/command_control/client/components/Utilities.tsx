@@ -1,6 +1,6 @@
 let abs = Math.abs
 
-export function formatLatitude(lat, prec=5) {
+export function formatLatitude(lat: number, prec=5) {
     if (lat == null) {
         return "?"
     } 
@@ -12,7 +12,7 @@ export function formatLatitude(lat, prec=5) {
     }
 }
 
-export function formatLongitude(lon, prec=5) {
+export function formatLongitude(lon: number, prec=5) {
     if (lon == null) {
         return "?"
     } 
@@ -24,18 +24,18 @@ export function formatLongitude(lon, prec=5) {
     }
 }
 
-export function formatAttitudeAngle(angle_deg, prec=2) {
+export function formatAttitudeAngle(angle_deg: number, prec=2) {
     if (angle_deg == null) {
         return "?"
     }
     return angle_deg.toFixed(prec) + '°'
 }
 
-export function deepcopy(aObject) {
+export function deepcopy(aObject: any) {
     // Prevent undefined objects
     // if (!aObject) return aObject;
   
-    let bObject = Array.isArray(aObject) ? [] : {};
+    let bObject: any = Array.isArray(aObject) ? [] : {};
   
     let value;
     for (const key in aObject) {
@@ -51,11 +51,11 @@ export function deepcopy(aObject) {
     return bObject;
 }
 
-export function areEqual(a, b) {
+export function areEqual(a: any, b: any) {
     return JSON.stringify(a) == JSON.stringify(b)
 }
 
-export function randomBase57(stringLength) {
+export function randomBase57(stringLength: number) {
     const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
 
     var s = ''
@@ -65,7 +65,7 @@ export function randomBase57(stringLength) {
     return s
 }
 
-export function downloadToFile(data, mimeType, fileName) {
+export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], {type: mimeType})
 
     var link = window.document.createElement('a')

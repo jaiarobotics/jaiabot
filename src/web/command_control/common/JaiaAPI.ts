@@ -2,10 +2,16 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
+import { Command, Engineering } from '../client/components/gui/JAIAProtobuf';
 import { randomBase57 } from '../client/components/Utilities';
 
 export class JaiaAPI {
-  constructor(clientId, url = 'http://192.168.42.1:5000', debug = false) {
+  clientId: string
+  url: string
+  debug: boolean
+  headers: {[key: string]: string}
+
+  constructor(clientId: string, url = 'http://192.168.42.1:5000', debug = true) {
     this.clientId = clientId
     console.debug(`JaiaAPI clientId = ${clientId}`)
     this.url = url;
@@ -17,7 +23,7 @@ export class JaiaAPI {
     }
   }
 
-  hit(method, endpoint, requestBody) {
+  hit(method: string, endpoint: string, requestBody?: any) {
     if (this.debug) {
       console.log(`Request endpoint: ${method} ${this.url}${endpoint}`);
       console.log(`Request body: ${JSON.stringify(requestBody)}`);
@@ -59,12 +65,12 @@ export class JaiaAPI {
         }, reason => reason);
   }
 
-  post(endpoint, body) {
+  post(endpoint: string, body?: any) {
     return this.hit('POST', endpoint, body);
   }
 
-  get(endpoint, body) {
-    return this.hit('GET', endpoint, body);
+  get(endpoint: string) {
+    return this.hit('GET', endpoint);
   }
 
   getStatus() { return this.get('jaia/status') }
@@ -81,19 +87,19 @@ export class JaiaAPI {
 
   allRecover() { return this.post('jaia/allRecover', null) }
 
-  postCommand(command) { return this.post('jaia/command', command) }
+  postCommand(command: Command) { return this.post('jaia/command', command) }
 
-  postEngineeringPanel(engineeringPanelCommand) {
+  postEngineeringPanel(engineeringPanelCommand: Engineering) {
       return this.post('jaia/ep-command', engineeringPanelCommand)
   }
 
   takeControl() { return this.post('jaia/takeControl', null) }
 
-  postEngineering(engineeringCommand) {
+  postEngineering(engineeringCommand: Engineering) {
     return this.post('jaia/pid-command', engineeringCommand)
   }
 
-  postMissionFilesCreate(descriptor) {
+  postMissionFilesCreate(descriptor: any) {
     return this.post('missionfiles/create', descriptor)
   }
 

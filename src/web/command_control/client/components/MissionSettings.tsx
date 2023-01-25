@@ -3,13 +3,46 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import React from 'react'
-import Settings from './Settings'
+import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
+import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './gui/JAIAProtobuf';
+
+
+interface Props {
+    goal: Goal
+    style: any
+    mission_params: any
+    bot_list?: {[key: string]: BotStatus}
+
+    onClose: () => void
+    onChange?: () => void
+    onMissionApply: () => void
+    onMissionChangeEditMode: () => void
+    onMissionChangeBotList: () => void
+    onTaskTypeChange: () => void
+}
+
+interface State {
+    goal: Goal
+    style: any
+    mission_params: any
+    bot_list?: {[key: string]: BotStatus}
+}
+
 
 export class MissionSettingsPanel extends React.Component {
 
-    constructor(props) {
+    props: Props
+    state: State
+
+    onClose: () => void
+    onChange?: () => void
+    onMissionApply: () => void
+    onMissionChangeEditMode: () => void
+    onMissionChangeBotList: () => void
+    onTaskTypeChange: () => void
+
+    constructor(props: Props) {
         super(props)
 
         this.state = {
@@ -32,7 +65,7 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
-        self = this
+        let self = this
 
         let taskOptionsPanel
         let taskType = this.state.goal.task?.type
@@ -110,7 +143,7 @@ export class MissionSettingsPanel extends React.Component {
                     </div>
                     <hr/>
                     Task
-                    <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value) } defaultValue={taskType ?? "NONE"}>
+                    <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
                         <option value="NONE">None</option>
                         <option value="DIVE">Dive</option>
                         <option value="SURFACE_DRIFT">Surface Drift</option>
@@ -158,18 +191,19 @@ export class MissionSettingsPanel extends React.Component {
         )
     }
 
-    changeMissionParameter(evt) {
+    changeMissionParameter(evt: Event) {
         let {mission_params} = this.state
 
-        const key = evt.target.name
-        const value = evt.target.value
+        const target = evt.target as any
+        const key = target.name
+        const value = target.value
 
         mission_params[key] = value
 
         this.setState({mission_params})
     }
 
-    changeTaskType(taskType) {
+    changeTaskType(taskType: TaskType) {
         let {goal} = this.state
         let {style} = this.state
 
@@ -269,11 +303,12 @@ export class MissionSettingsPanel extends React.Component {
         )
     }
 
-    changeDiveParameter(evt) {
+    changeDiveParameter(evt: Event) {
         let {goal} = this.state
 
-        const key = evt.target.name
-        const value = evt.target.value
+        const target = evt.target as any
+        const key = target.name as (keyof DiveParameters | keyof DriftParameters)
+        const value = target.value
 
         if(key != "drift_time")
         {
@@ -304,11 +339,12 @@ export class MissionSettingsPanel extends React.Component {
         )
     }
 
-    changeDriftParameter(evt) {
+    changeDriftParameter(evt: Event) {
         let {goal} = this.state
 
-        const key = evt.target.name
-        const value = evt.target.value
+        const target = evt.target as any
+        const key = target.name as keyof DriftParameters
+        const value = target.value
 
         goal.task.surface_drift[key] = value
 
@@ -324,8 +360,8 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionBotSelection() {
-        const selected = document.querySelectorAll('#mission-bot-selection option:checked');
-        const missionBots = Array.from(selected).map(el => el.value);
+        const selected = document.querySelectorAll('#mission-bot-selection option:checked')
+        const missionBots = Array.from(selected).map(el => (el as HTMLSelectElement).value);
         // let missionBots = document.getElementById('mission-bot-selection').val();
         // console.log(missionBots);
         let {mission_params} = this.state;
@@ -334,7 +370,7 @@ export class MissionSettingsPanel extends React.Component {
         this.onMissionChangeBotList?.()
     }
 
-    changeMissionEditMode(missionEditMode) {
+    changeMissionEditMode(missionEditMode: string) {
         // console.log(missionEditMode);
         let {mission_params} = this.state;
 
@@ -368,11 +404,6 @@ export class MissionSettingsPanel extends React.Component {
 
     applyMissionEditMode() {
         this.onMissionChangeEditMode?.()
-    }
-
-    applyClicked() {
-        let {goal} = this.state
-        this.onApply?.(goal)
     }
 
 }
