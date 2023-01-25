@@ -102,17 +102,11 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvBeginDataProcessing: Automatically triggered upon entry to Recovered.
 - EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
 - EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
-<<<<<<< task/document-customer-software-update-process
-- EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
-- EvGPSFix: GPS Fix received
-- EvGPSNoFix: GPS No Fix received
-=======
 - EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD.
 - EvGPSFix: Triggered whe the GPS Fix meets our requirements. 
 - EvGPSNoFix: Triggered whe the GPS Fix does not meet our requirements.
 - EvIMURestart: Triggered when we detect an IMU Issue.
 - EvIMURestartCompleted: Triggered when the IMU Restart is completed
->>>>>>> 1.y
 
 #### Internal events
 
@@ -121,11 +115,7 @@ These are not shown on the diagram but used for providing data to the state mach
 - EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
 - EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
 - EvMeasurement: Sensor data measurement. 
-<<<<<<< task/document-customer-software-update-process
-- EvVehicleGPS: Triggered when new GPS data is received.
-=======
 - EvVehicleGPS: Triggered when we receive GPS information, currently HDOP and PDOP information.
->>>>>>> 1.y
 
 #### Unimplemented Events
 
