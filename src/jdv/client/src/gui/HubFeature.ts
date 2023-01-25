@@ -5,8 +5,10 @@ import * as Styles from "./Styles"
 
 interface Properties {
     map: Map,
-    hubId: number
-    lonLat: number[]
+    hubId: number,
+    lonLat: number[],
+    heading: number,
+    courseOverGround: number
 }
 
 export function createHubFeature(properties: Properties) {
