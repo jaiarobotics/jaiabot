@@ -28,6 +28,7 @@ rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 bottoming_timeout: 3 # (optional) (default=5)
 detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
 powered_descent_timeout: 60 # (default=600) 
+dive_surface_eps: 0.75 # (optional) (default=0.75)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)

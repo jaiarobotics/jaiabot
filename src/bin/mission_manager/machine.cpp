@@ -723,6 +723,18 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
 }
 
 // Task::Dive::PoweredAscent
+jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAscent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    powered_ascent_motor_on_timeout_ = start_timeout + powered_ascent_motor_on_duration_;
+
+    powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
+}
+
+// Task::Dive::PoweredAscent
 jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAscent()
 {
     goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
@@ -735,7 +747,50 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAsc
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // ***************************************************
+    // this logic turns the motor off and on
+    // while in powered descent to help assist the vehicle
+    // to get out of muddy bottoms
+    // ***************************************************
+
+    // we have timedout on motor on
+    // and we are not currently in motor off,
+    // turn off motor
+    if (current_clock >= powered_ascent_motor_on_timeout_ && !in_motor_off_mode_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Turn off motor, we have timed out on motor on!"
+                                 << std::endl;
+        powered_ascent_motor_off_timeout_ = current_clock + powered_ascent_motor_off_duration_;
+        in_motor_off_mode_ = true;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    }
+    // we have not timedout on motor on
+    else if (current_clock < powered_ascent_motor_on_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Leave motor running, we have not timed out!"
+                                 << std::endl;
+        setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    }
+    // we have timedout on motor off,
+    // turn on motor
+    else if (current_clock >= powered_ascent_motor_off_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Turn on motor, we have timed out on motor off!"
+                                 << std::endl;
+        powered_ascent_motor_on_timeout_ = current_clock + powered_ascent_motor_on_duration_;
+        in_motor_off_mode_ = false;
+        setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    }
+    // we have not timedout on motor off
+    else if (current_clock < powered_ascent_motor_off_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Leave motor off, we have not timed out!"
+                                 << std::endl;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    }
+
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
