@@ -102,19 +102,8 @@ function arrayFrom(location: Location) {
 }
 
 
-function GetKMLFromFeatures(features: Feature[]) {
-    // Gets a KML string from a list of Features
-
-    var format = new KML({
-        extractStyles: false,
-        writeStyles: false,
-    });
-
-    return format.writeFeatures(features);
-}
-
-function TaskPacketToExportableFeatures(taskPacket: TaskPacket) {
-    var features: Feature[] = []
+function TaskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
+    var placemarks: string[] = []
 
     if (taskPacket._scheme_ != 1) {
         return []
@@ -126,40 +115,107 @@ function TaskPacketToExportableFeatures(taskPacket: TaskPacket) {
 
     const dive = taskPacket.dive
     if (dive != null) {
-        var parameters = `Depth: ${dive.depth_achieved.toFixed(2)} m\nBottom Dive: ${dive.bottom_dive ? "Yes" : "No"}\nDuration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s\nUnpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s\nPowered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s`
+        const depthString = `${dive.depth_achieved.toFixed(2)} m`
 
-        features.push(new Feature({
-            description: dateString,
-            parameters: parameters,
-            name: 'Dive',
-            geometry: new Point(arrayFrom(dive.start_location))
-        }))
+        placemarks.push(`
+            <Placemark>
+                <name>${depthString}</name>
+                <description>
+                    <h2>Dive</h2>
+                    Time: ${dateString}<br />
+                    Depth: ${depthString}<br />
+                    Bottom Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
+                    Duration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
+                    Unpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
+                    Powered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                </description>
+                <Point>
+                    <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
+                </Point>
+                <Style>
+                    <IconStyle id="mystyle">
+                    <Icon>
+                        <href>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAAAvCAYAAABzJ5OsAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAA75JREFUaIHN2U1LG0Ecx/HfpmpqFJXedkEP0RegFGo8tIfSx/dQ2h77EjyoB09BL4mQSIReeiik0YOlT0SFemrx4NUgKISKF0uttrGGbfn34E46HXd2Z3bXmAEvCfufz9fdLEsCIoLOH4D7AJYBXNU9VjLPADAP4Jn2sZobPQRwCoAAvAMQDwmPAXjuzPsD4OmF4B34L2cjChsgwClIgOpGDxg8Ho+TsOFb3QARPjAwQO3t7XzAk0jwAO4xeCKRoLW1NZqdnRUDPqh+BrhrnADQ0NAQnZyc0O7uLnV0dGgFaMPZcgl47xfgwPMinC3dgEDwIAF+8CABgeE6AW7wWq0mnakaIIOfqMDZmpmZkQaI8MHBQU84Wzs7O74BIvyuLtwnoBNAThfuEfDYFS/CV1dXlTfxCKgGhUsCfvMBkcE9AiiZTAaC+wUAwB0Gj8fjWpeKbE1PTzfgvb29tLW1FXrm9vY2tbW18QGPAOA128gwDMpkMqE3IjoL6Ovro42NjUjmnZ6eUjKZ5M/oCzgfqhX+NKfT6Ug23N/fj2ROvV6n4eFhHv4SwBV2zf8XEOUZCLtc4EUAbSTcbc4FZLPZVoO/YnByuc93AlhthQA/+Dm8E5C47AAVuCv+sgPq9TqNjIz4wqV4WcDc3Fyz4SUZ3BPPBaw1I6BarYqXiifcF9+sgEqlQqZpasGV8E5AF4AvbHh3dzft7e1FAj84OBDhewA6lVwKcAPAHBve1dVF6+vrkcDZmpqaEh/mlgC0h8KLcNM0aXNzM1J4mABluGVZdHx8fCFwtiYnJ8WARa8AL3i2mfAgAS0F1w1oObhOgBRumiYdHR1dCpytiYkJMaDEB/DwTCvB2ZIEnD3Pi/AoL5XDw8NI5sgCACDNXuzp6YkMXqlUyLIsKhQKkcwbHx8XAwoAcBtAjb1YLpdDb1StVsmyrMaz0MLCQuiZxWKRDMNg8G8ArrNr/iaAH1EE2LZNo6Oj//2XDMOgXC4XeGapVOK/9jgEcIOEu03oANu2KZVK8fCvYQNKpRL/w8N3BieX+3zgANu2aWxsjIe/AXANwEc+IJ/PK89cXFyUws/hnYBbfMDKykpQeJz+PU5rB/jBXfG6AS7wc79R6QaowKV4LuCnV4AKXAhY9wtwgY9KjbI3/AJ04F4B8/PzjZlLS0vKcF+8LCAI3C9AF66EdzZsfH8PgPr7+3n4MoAOlTncvB4An9iMWCzG38eV4Mp4t4CgcG5eLx+gC9fCuwQEhgsBn4PAtfFcQDEsXAgoA0jpHvsXJ3AlNW5w0N0AAAAASUVORK5CYII=</href>
+                        <scale>0.5</scale>
+                    </Icon>
+                    </IconStyle>
+                </Style>
+            </Placemark>
+        `)
     }
 
     const drift = taskPacket.drift
-    if (drift != null) {
-        var parameters = `Duration: ${drift.drift_duration.toFixed(2)} s`
+    if (drift != null && drift.drift_duration != 0) {
 
-        const estimated_drift = drift.estimated_drift
-        if (estimated_drift != null) {
-            parameters = parameters + `\nSpeed: ${estimated_drift.speed?.toFixed(2)} m/s\nHeading: ${estimated_drift.heading?.toFixed(2)} deg`
-        }
+        const DEG = Math.PI / 180.0
+        const speedString = `${drift.estimated_drift.speed?.toFixed(2)} m/s`
+        const heading = Math.atan2(drift.end_location.lon - drift.start_location.lon, drift.end_location.lat - drift.start_location.lat) / DEG - 90.0
 
-        const geometry = new LineString([
-            arrayFrom(drift.start_location),
-            arrayFrom(drift.end_location)
-        ])
+        const driftDescription = `
+            <h2>Drift</h2>
+            Start: ${dateString}<br />
+            Duration: ${drift.drift_duration} s<br />
+            Speed: ${speedString}<br />
+            Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
+        `
 
-        features.push(new Feature({
-            description: dateString,
-            parameters: parameters,
-            name: 'Drift',
-            geometry: geometry
-        }))
+        placemarks.push(`
+        <Placemark>
+            <name>Drift</name>
+            <description>
+                ${driftDescription}
+            </description>
+            <LineString>
+                <coordinates>${drift.start_location.lon},${drift.start_location.lat} ${drift.end_location.lon},${drift.end_location.lat}</coordinates>
+            </LineString>
+            <Style>
+                <LineStyle>
+                    <color>ff008cff</color>            <!-- kml:color -->
+                    <colorMode>normal</colorMode>      <!-- colorModeEnum: normal or random -->
+                    <width>2</width>                            <!-- float -->
+                    <gx:outerColor>000000ff</gx:outerColor>     <!-- kml:color -->
+                    <gx:labelVisibility>0</gx:labelVisibility>  <!-- boolean -->
+                </LineStyle>
+            </Style>
+        </Placemark>
 
+        <Placemark>
+            <name>${speedString}</name>
+            <description>
+                ${driftDescription}
+            </description>
+            <Point>
+                <coordinates>${drift.end_location.lon},${drift.end_location.lat}</coordinates>
+            </Point>
+            <Style id="driftArrowHead">
+                <IconStyle>
+                    <color>ff008cff</color>            <!-- kml:color -->
+                    <colorMode>normal</colorMode>      <!-- kml:colorModeEnum:normal or random -->
+                    <scale>0.5</scale>                   <!-- float -->
+                    <heading>${heading}</heading>               <!-- float -->
+                    <Icon>
+                        <href>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAlCAYAAAC6TzLyAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAXBJREFUWIXdl71KA0EUhb+Jstk+pAukWlKkkhDQPkXKbdKlsdHSwgfIU1ikjVYp8w6CGOyEwL6CP10aQY9NJoRRcM3u7KAHLstU38w9O/feAbgGTiRRddSAI+DWGDMzxjSpWI+ANvEMnAG1Kk7uwm3cA/0q0g5AHMdEUWSXfeDOGDM1xjS8pz1JEmVZpuFw6GbhFbgADrylPUkSWS0WC7XbbXcTD5R8K76FS9J6vdZkMlG9Xt/dwAcwA5pe4VY+rfgR7tOK3HAfVvwKblWWFXvBrYpaQafTedsXLhWzgm63qyJwq32sYDQaqdfrKU3TQnCr+XyuVquVq1dQCtFRXiu8wK1Wq5UGg4GbhW3b9gq3Go/H7gYEXP2/k+f2POjfHvSeB61wQWv7n+lqwfp5kEkmyAwXbHoNMrcHe7HEcawoinah78AUaJQN/QLPU4vLju0rdaMX4Bw4lrTEsw43XwE3wKWkJ9/QXfgSOK3ipK4+AV4msm2awI2rAAAAAElFTkSuQmCC</href>
+                    </Icon>
+                    <hotSpot x="0.0"  y="0.5"
+                        xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
+                </IconStyle>
+            </Style>
+        </Placemark>
+        `)
     }
 
-    return features
+    return placemarks
+}
+
+
+function KMLDocumentWithContents(contents: string[]) {
+    return `
+    <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
+        <Document>
+            ${contents.join()}
+        </Document>
+    </kml>
+    `
 }
 
 
@@ -600,8 +656,7 @@ export default class JaiaMap {
 
 
         exportKml() {
-            let features = this.task_packets.flatMap(TaskPacketToExportableFeatures)
-            let kmlString = GetKMLFromFeatures(features)
+            let kmlString = KMLDocumentWithContents(this.task_packets.flatMap(TaskPacketToKMLPlacemarks))
             DownloadFile('map.kml', kmlString)
         }
 
