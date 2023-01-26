@@ -123,6 +123,26 @@ let commands: {[key: string]: CommandInfo} = {
     }
 }
 
+let commandsForHub: {[key: string]: CommandInfo} = {
+    shutdown: {
+        commandType: CommandType.SHUTDOWN_COMPUTER,
+        description: 'Shutdown Hub',
+        statesNotAvailable: [
+        ]
+    },
+    restartServices: {
+        commandType: CommandType.RESTART_ALL_SERVICES,
+        description: 'Restart Services',
+        statesNotAvailable: [
+        ]
+    },
+    reboot: {
+        commandType: CommandType.REBOOT_COMPUTER,
+        description: 'Reboot Hub',
+        statesNotAvailable: [
+        ]
+    }
+}
 
 export interface DetailsExpandedState {
     quickLook: boolean
@@ -148,6 +168,22 @@ function issueCommand(api: JaiaAPI, bot_id: number, command: CommandInfo) {
 
         console.log(c)
         api.postCommand(c)
+    }
+}
+
+function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: CommandInfo) {
+    console.log("Hub Command");
+
+    if (!takeControlFunction()) return;
+
+    if (confirm("Are you sure you'd like to " + command_for_hub.description + " (" + command_for_hub.commandType + ")?")) {
+        let c = {
+            hub_id: hub_id,
+            type: command_for_hub.commandType
+        }
+
+        console.log(c)
+        api.postCommandForHub(c)
     }
 }
 
@@ -680,7 +716,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 }
 
 
-export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState) {
+export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState, takeControl: () => boolean) {
     if (hub == null) {
         return (<div></div>)
     }
@@ -694,6 +730,8 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
     else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
+
+    takeControlFunction = takeControl;
 
     return (
         <div id='botDetailsBox'>
@@ -749,16 +787,16 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
                         <Typography>Commands</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Button className="button-jcc" 
-                                onClick={() => { issueCommand(api, hub.hub_id, commands.shutdown) }}>
+                        <Button className={" button-jcc"} 
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
                             <Icon path={mdiPower} title="Shutdown"/>
                         </Button>
-                        <Button className="button-jcc"
-                                onClick={() => { issueCommand(api, hub.hub_id, commands.reboot) }}>
+                        <Button className={" button-jcc"} 
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
                             <Icon path={mdiRestartAlert} title="Reboot"/>
                         </Button>
-                        <Button className="button-jcc"
-                                onClick={() => { issueCommand(api, hub.hub_id, commands.restartServices) }}>
+                        <Button className={" button-jcc"}  
+                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
                     </AccordionDetails>

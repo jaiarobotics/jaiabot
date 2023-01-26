@@ -918,6 +918,12 @@ export interface Command {
     rc_task?: MissionTask
 }
 
+export interface CommandForHub {
+    hub_id?: number
+    time?: number
+    type?: CommandType
+}
+
 export interface Attitude {
     roll?: number
     pitch?: number

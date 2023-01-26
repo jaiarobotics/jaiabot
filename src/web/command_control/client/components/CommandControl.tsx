@@ -157,6 +157,7 @@ import { PodStatus } from './PortalStatus'
 import * as Styles from './gui/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './gui/BotFeature'
+import { createHubFeature } from './gui/HubFeature'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -287,6 +288,11 @@ export default class CommandControl extends React.Component {
 	botsLayerCollection: OlCollection<OlVectorLayer<OlVectorSource>> = new OlCollection([], { unique: true })
 	botsLayerGroup: OlLayerGroup = new OlLayerGroup({
 		layers: this.botsLayerCollection
+	})
+
+	hubsLayerCollection: OlCollection<OlVectorLayer<OlVectorSource>> = new OlCollection([], { unique: true })
+	hubsLayerGroup: OlLayerGroup = new OlLayerGroup({
+		layers: this.hubsLayerCollection
 	})
 
 	dragAndDropInteraction = new DragAndDropInteraction({
@@ -893,6 +899,7 @@ export default class CommandControl extends React.Component {
 			this.measureLayer,
 			this.missionLayer,
 			this.missionLayerGroup,
+			this.hubsLayerGroup,
 			this.botsLayerGroup,
 			this.dragAndDropVectorLayer,
 		]
@@ -1561,6 +1568,35 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.timerID)
 	}
 
+	getLiveLayerFromHubId(hub_id: number) {
+		const hubsLayerCollection = this.hubsLayerCollection
+		// eslint-disable-next-line no-plusplus
+		for (let i = 0; i < hubsLayerCollection.getLength(); i++) {
+			const layer = hubsLayerCollection.item(i);
+			if (layer.get('hub_id') === hub_id) {
+				return layer;
+			}
+		}
+
+		const hubLayer = new OlVectorLayer({
+			properties: {
+				name: hub_id,
+				title: hub_id,
+				hub_id: hub_id
+			},
+			source: new OlVectorSource({
+				wrapX: false,
+				features: new OlCollection([], { unique: true })
+			})
+		});
+
+		hubsLayerCollection.push(hubLayer);
+
+		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
+
+		return hubsLayerCollection.item(hubsLayerCollection.getLength() - 1);
+	}
+
 	getLiveLayerFromBotId(bot_id: number) {
 		const botsLayerCollection = this.botsLayerCollection
 
@@ -1675,7 +1711,7 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-	/*updateHubsLayer() {
+	updateHubsLayer() {
 		let hubs = this.podStatus.hubs;
 
 		for (let hubId in hubs) {
@@ -1686,8 +1722,43 @@ export default class CommandControl extends React.Component {
 			// Geometry
 			const hubLatitude = hub.location?.lat
 			const hubLongitude = hub.location?.lon
-		}
-	}*/
+			// Properties
+			const hubHeading = 0
+
+			const hubLayer = this.getLiveLayerFromHubId(hub_id);
+
+			const hubFeature = createHubFeature({
+				map: map,
+				hubId: Number(hubId),
+				lonLat: [hubLatitude, hubLongitude],
+				heading: Number(hubHeading),
+				courseOverGround: 0
+			})
+
+			hubFeature.setId(hub_id);
+
+			const coordinate = equirectangular_to_mercator([hubLongitude, hubLatitude]);
+
+			hubFeature.setGeometry(new OlPoint(coordinate));
+			hubFeature.setProperties({
+				heading: 0,
+				speed: 0,
+				hubId: hubId,
+			});
+
+			const zoomExtentWidth = 0.001; // Degrees
+
+			hubFeature.set('selected', false);
+
+			hubLayer.getSource().clear();
+			hubLayer.getSource().addFeature(hubFeature);
+
+			hubLayer.setZIndex(100);
+			hubLayer.changed();
+		} // end foreach hub
+
+		//this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
+	}
 
 	updateActiveMissionLayer() {
 		const bots = this.podStatus.bots
@@ -1914,6 +1985,7 @@ export default class CommandControl extends React.Component {
 						this.setState({disconnectionMessage: null})
 					}
 
+					this.updateHubsLayer()
 					this.updateBotsLayer()
 					this.updateActiveMissionLayer()
 					//this.updateHubsLayer()
@@ -2196,7 +2268,8 @@ export default class CommandControl extends React.Component {
 				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
 												this.api, 
 												closeDetails, 
-												this.state.detailsExpanded);
+												this.state.detailsExpanded,
+												this.takeControl.bind(this));
 				
 				break;
 			case 'bot':
