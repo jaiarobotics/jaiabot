@@ -117,6 +117,33 @@ jaiabot::apps::Health::Health()
             }
         });
 
+    // handle restart/reboot/shutdown commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const protobuf::CommandForHub& command_for_hub) {
+            switch (command_for_hub.type())
+            {
+                // most commands handled by jaiabot_hub_manager
+                default: break;
+
+                case protobuf::CommandForHub::REBOOT_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to reboot computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl reboot");
+                    break;
+                case protobuf::CommandForHub::RESTART_ALL_SERVICES:
+                    glog.is_verbose() && glog << "Commanded to restart jaiabot services. "
+                                              << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        restart_services();
+                    break;
+                case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl poweroff");
+                    break;
+            }
+        });
+
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()

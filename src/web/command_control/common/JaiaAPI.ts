@@ -2,7 +2,7 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-import { Command, Engineering } from '../client/components/gui/JAIAProtobuf';
+import { Command, Engineering, CommandForHub } from '../client/components/gui/JAIAProtobuf';
 import { randomBase57 } from '../client/components/Utilities';
 
 export class JaiaAPI {
@@ -88,6 +88,8 @@ export class JaiaAPI {
   allRecover() { return this.post('jaia/allRecover', null) }
 
   postCommand(command: Command) { return this.post('jaia/command', command) }
+
+  postCommandForHub(command: CommandForHub) { return this.post('jaia/commandForHub', command) }
 
   postEngineeringPanel(engineeringPanelCommand: Engineering) {
       return this.post('jaia/ep-command', engineeringPanelCommand)
