@@ -18,6 +18,11 @@ const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const satellite = require('./satellite.svg') as string
 
+// Export the PNG data for use in KMZ files
+export const arrowHeadPng = require('./arrowHead.png') as string
+export const bottomStrikePng = require('./bottomStrike.png') as string
+
+
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'

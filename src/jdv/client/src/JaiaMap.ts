@@ -27,6 +27,12 @@ import {bisect} from './bisect'
 import { TaskPacket, Command, Location } from './gui/ProtoBufMessages';
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
+import JSZip from 'jszip';
+
+
+console.log(Styles.arrowHeadPng)
+console.log(typeof Styles.arrowHeadPng)
+
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -135,7 +141,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
                 <Style>
                     <IconStyle id="mystyle">
                     <Icon>
-                        <href>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC8AAAAvCAYAAABzJ5OsAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAA75JREFUaIHN2U1LG0Ecx/HfpmpqFJXedkEP0RegFGo8tIfSx/dQ2h77EjyoB09BL4mQSIReeiik0YOlT0SFemrx4NUgKISKF0uttrGGbfn34E46HXd2Z3bXmAEvCfufz9fdLEsCIoLOH4D7AJYBXNU9VjLPADAP4Jn2sZobPQRwCoAAvAMQDwmPAXjuzPsD4OmF4B34L2cjChsgwClIgOpGDxg8Ho+TsOFb3QARPjAwQO3t7XzAk0jwAO4xeCKRoLW1NZqdnRUDPqh+BrhrnADQ0NAQnZyc0O7uLnV0dGgFaMPZcgl47xfgwPMinC3dgEDwIAF+8CABgeE6AW7wWq0mnakaIIOfqMDZmpmZkQaI8MHBQU84Wzs7O74BIvyuLtwnoBNAThfuEfDYFS/CV1dXlTfxCKgGhUsCfvMBkcE9AiiZTAaC+wUAwB0Gj8fjWpeKbE1PTzfgvb29tLW1FXrm9vY2tbW18QGPAOA128gwDMpkMqE3IjoL6Ovro42NjUjmnZ6eUjKZ5M/oCzgfqhX+NKfT6Ug23N/fj2ROvV6n4eFhHv4SwBV2zf8XEOUZCLtc4EUAbSTcbc4FZLPZVoO/YnByuc93AlhthQA/+Dm8E5C47AAVuCv+sgPq9TqNjIz4wqV4WcDc3Fyz4SUZ3BPPBaw1I6BarYqXiifcF9+sgEqlQqZpasGV8E5AF4AvbHh3dzft7e1FAj84OBDhewA6lVwKcAPAHBve1dVF6+vrkcDZmpqaEh/mlgC0h8KLcNM0aXNzM1J4mABluGVZdHx8fCFwtiYnJ8WARa8AL3i2mfAgAS0F1w1oObhOgBRumiYdHR1dCpytiYkJMaDEB/DwTCvB2ZIEnD3Pi/AoL5XDw8NI5sgCACDNXuzp6YkMXqlUyLIsKhQKkcwbHx8XAwoAcBtAjb1YLpdDb1StVsmyrMaz0MLCQuiZxWKRDMNg8G8ArrNr/iaAH1EE2LZNo6Oj//2XDMOgXC4XeGapVOK/9jgEcIOEu03oANu2KZVK8fCvYQNKpRL/w8N3BieX+3zgANu2aWxsjIe/AXANwEc+IJ/PK89cXFyUws/hnYBbfMDKykpQeJz+PU5rB/jBXfG6AS7wc79R6QaowKV4LuCnV4AKXAhY9wtwgY9KjbI3/AJ04F4B8/PzjZlLS0vKcF+8LCAI3C9AF66EdzZsfH8PgPr7+3n4MoAOlTncvB4An9iMWCzG38eV4Mp4t4CgcG5eLx+gC9fCuwQEhgsBn4PAtfFcQDEsXAgoA0jpHvsXJ3AlNW5w0N0AAAAASUVORK5CYII=</href>
+                        <href>files/diveIcon.png</href>
                         <scale>0.5</scale>
                     </Icon>
                     </IconStyle>
@@ -172,8 +178,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
                 <LineStyle>
                     <color>ff008cff</color>            <!-- kml:color -->
                     <colorMode>normal</colorMode>      <!-- colorModeEnum: normal or random -->
-                    <width>2</width>                            <!-- float -->
-                    <gx:outerColor>000000ff</gx:outerColor>     <!-- kml:color -->
+                    <width>4</width>                            <!-- float -->
                     <gx:labelVisibility>0</gx:labelVisibility>  <!-- boolean -->
                 </LineStyle>
             </Style>
@@ -191,12 +196,12 @@ function TaskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
                 <IconStyle>
                     <color>ff008cff</color>            <!-- kml:color -->
                     <colorMode>normal</colorMode>      <!-- kml:colorModeEnum:normal or random -->
-                    <scale>0.5</scale>                   <!-- float -->
+                    <scale>1.0</scale>                   <!-- float -->
                     <heading>${heading}</heading>               <!-- float -->
                     <Icon>
-                        <href>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAlCAYAAAC6TzLyAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAXBJREFUWIXdl71KA0EUhb+Jstk+pAukWlKkkhDQPkXKbdKlsdHSwgfIU1ikjVYp8w6CGOyEwL6CP10aQY9NJoRRcM3u7KAHLstU38w9O/feAbgGTiRRddSAI+DWGDMzxjSpWI+ANvEMnAG1Kk7uwm3cA/0q0g5AHMdEUWSXfeDOGDM1xjS8pz1JEmVZpuFw6GbhFbgADrylPUkSWS0WC7XbbXcTD5R8K76FS9J6vdZkMlG9Xt/dwAcwA5pe4VY+rfgR7tOK3HAfVvwKblWWFXvBrYpaQafTedsXLhWzgm63qyJwq32sYDQaqdfrKU3TQnCr+XyuVquVq1dQCtFRXiu8wK1Wq5UGg4GbhW3b9gq3Go/H7gYEXP2/k+f2POjfHvSeB61wQWv7n+lqwfp5kEkmyAwXbHoNMrcHe7HEcawoinah78AUaJQN/QLPU4vLju0rdaMX4Bw4lrTEsw43XwE3wKWkJ9/QXfgSOK3ipK4+AV4msm2awI2rAAAAAElFTkSuQmCC</href>
+                        <href>files/driftArrowHead.png</href>
                     </Icon>
-                    <hotSpot x="0.0"  y="0.5"
+                    <hotSpot x="0.5"  y="0.5"
                         xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
                 </IconStyle>
             </Style>
@@ -216,6 +221,23 @@ function KMLDocumentWithContents(contents: string[]) {
         </Document>
     </kml>
     `
+}
+
+
+async function KMZDocumentWithContents(contents: string[]) {
+    const kmlFileString = KMLDocumentWithContents(contents)
+
+    var zip = new JSZip()
+    zip.file("doc.kml", KMLDocumentWithContents(contents))
+    var img = zip.folder("files")
+
+    const diveIconBlob = await fetch(Styles.bottomStrikePng).then(r => r.blob())
+    img.file('diveIcon.png', diveIconBlob)
+
+    const driftArrowBlob = await fetch(Styles.arrowHeadPng).then(r => r.blob())
+    img.file('driftArrowHead.png', driftArrowBlob)
+
+    return await zip.generateAsync({type:"blob"}).then(content => content)
 }
 
 
@@ -656,8 +678,12 @@ export default class JaiaMap {
 
 
         exportKml() {
-            let kmlString = KMLDocumentWithContents(this.task_packets.flatMap(TaskPacketToKMLPlacemarks))
-            DownloadFile('map.kml', kmlString)
+            KMZDocumentWithContents(this.task_packets.flatMap(TaskPacketToKMLPlacemarks)).then((kml) => {
+                DownloadFile('map.kmz', kml)
+            })
+            .catch((reason) => {
+                alert(`Error: ${reason}`)
+            })
         }
 
     }
