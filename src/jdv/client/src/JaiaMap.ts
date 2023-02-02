@@ -24,7 +24,7 @@ import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
 import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
-import { TaskPacket, Command, Location } from './gui/ProtoBufMessages';
+import { TaskPacket, Command, GeographicCoordinate } from './gui/JAIAProtobuf';
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
 import JSZip from 'jszip';
@@ -32,6 +32,19 @@ import JSZip from 'jszip';
 
 console.log(Styles.arrowHeadPng)
 console.log(typeof Styles.arrowHeadPng)
+
+
+
+// Logs have an added _utime_ field on Commands
+interface LogCommand extends Command {
+    _utime_: number
+    _scheme_: number
+}
+
+interface LogTaskPacket extends TaskPacket {
+    _utime_: number
+    _scheme_: number
+}
 
 
 // Get date description from microsecond timestamp
@@ -103,12 +116,12 @@ interface ActiveGoal {
 }
 
 
-function arrayFrom(location: Location) {
+function arrayFrom(location: GeographicCoordinate) {
     return [location.lon, location.lat]
 }
 
 
-function TaskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
+function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     var placemarks: string[] = []
 
     if (taskPacket._scheme_ != 1) {
@@ -260,7 +273,7 @@ export default class JaiaMap {
     tMin?: number = null
     tMax?: number = null
     timestamp?: number = null
-    task_packets: TaskPacket[] = []
+    task_packets: LogTaskPacket[] = []
     openlayersMap: Map
     openlayersProjection: Projection
     botPathVectorSource = new VectorSource()
@@ -269,7 +282,7 @@ export default class JaiaMap {
     missionVectorSource = new VectorSource()
     taskPacketVectorSource = new VectorSource()
     depthContourVectorSource = new VectorSource()
-    command_dict: {[key: number]: Command[]}
+    command_dict: {[key: number]: LogCommand[]}
     depthContourFeatures: Feature[]
 
     constructor(openlayersMapDivId: string) {
@@ -529,11 +542,11 @@ export default class JaiaMap {
         }
 
         // Commands and markers for bot and goals
-        updateWithCommands(command_dict: {[key: number]: Command[]}) {
+        updateWithCommands(command_dict: {[key: number]: LogCommand[]}) {
             this.command_dict = command_dict
         }
 
-        updateWithTaskPackets(task_packets: TaskPacket[]) {
+        updateWithTaskPackets(task_packets: LogTaskPacket[]) {
             this.task_packets = task_packets
             this.updateTaskAnnotations()
         }

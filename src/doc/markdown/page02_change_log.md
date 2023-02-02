@@ -5,23 +5,20 @@ This following sections note the changes in each release version of jaiabot.
 ### 1.3.0
 
 * Multi Message 
-
   * Old max for goals 14, new max 39
 
 * Multiple JCC’s
-
-  * Open to confirm only one can be in control
-
-  * Confirm missions can be seen across JCC’s
+  * Only one can be in control
+  * Missions can be seen across JCC’s
 
 * GPS requirements
-
   * This is split between transit and after a dive
-  * Bot icon adds a satellite to indicate this state
+  * Bot icon adds a satellite to indicate ReacquireGPS state
 
 * Battery Percentage Warnings/Errors (30,20,10)
 
 * Radio configuration gets created in /etc/jaiabot
+  * It also gets recorded in meta data
 
 * Dive task parameter for max depth accepts precision 1 (ex. 4.5) 
 
@@ -34,12 +31,16 @@ This following sections note the changes in each release version of jaiabot.
   * JCC mission upload and download new buttons
     * There are new buttons once you click on the original save/upload buttons 
   * Hot Keys (Stop bot shift+bot#, bot details bot#)
+  * Shutdown button is active for pre/post deployment and when the bot is stopped
 
 * New plot tool capabilities
   * Delete button for graphs
   * Timeline
   * Table
   * CSV download
+
+* Surf Task backend is added
+  * Frontend to come!
 
 ### 1.2.0
 

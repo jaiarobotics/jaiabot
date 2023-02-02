@@ -89,7 +89,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
         case protobuf::IvPBehaviorUpdate::kConstantHeading:
         {
             glog.is_verbose() && glog << "kConstantHeading: " << update.ShortDebugString()
-                            << std::endl;
+                                      << std::endl;
             std::stringstream update_ss;
             if (update.constantheading().active())
             {
@@ -106,7 +106,7 @@ void jaiabot::moos::IvPHelmTranslation::publish_bhv_update(
         case protobuf::IvPBehaviorUpdate::kConstantSpeed:
         {
             glog.is_verbose() && glog << "kConstantSpeed: " << update.ShortDebugString()
-                << std::endl;
+                                      << std::endl;
             std::stringstream update_ss;
             if (update.constantspeed().active())
             {
