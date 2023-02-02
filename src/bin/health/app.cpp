@@ -148,9 +148,9 @@ jaiabot::apps::Health::Health()
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
         [this](const jaiabot::protobuf::Engineering& power_rf) {
-            if (power_rf.has_rf_disabled())
+            if (power_rf.has_rf_disable())
             {
-                if (power_rf.rf_disabled())
+                if (power_rf.rf_disable())
                 {
                     glog.is_verbose() &&
                         glog << "Commanded to disable your Wi-Fi and Bluetooth cards directly. "

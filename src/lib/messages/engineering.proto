@@ -124,7 +124,7 @@ message Engineering
 
     optional GPSRequirements gps_requirements = 15;
 
-    optional bool rf_disabled = 16 [default = false];
+    optional bool rf_disable = 16 [default = false];
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

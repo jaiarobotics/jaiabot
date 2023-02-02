@@ -620,7 +620,7 @@ void jaiabot::apps::Fusion::loop()
                 if (rf_disabled_)
                 {
                     rf_disabled_ = false;
-                    engineering_status.set_rf_disabled(rf_disabled_);
+                    engineering_status.set_rf_disable(rf_disabled_);
                     // Send message to enable RF on PI (Bluetooth and WIFI)
                     interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
                 }
@@ -632,7 +632,7 @@ void jaiabot::apps::Fusion::loop()
                 if (!rf_disabled_)
                 {
                     rf_disabled_ = true;
-                    engineering_status.set_rf_disabled(rf_disabled_);
+                    engineering_status.set_rf_disable(rf_disabled_);
                     // Send message to disable RF on PI (Bluetooth and WIFI)
                     interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
                 }
