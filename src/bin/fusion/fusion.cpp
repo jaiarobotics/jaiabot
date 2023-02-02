@@ -243,10 +243,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
-        if (euler_angles.has_alpha())
+        if (euler_angles.has_heading())
         {
             // IMU is offset by 270 degrees, so we need to rotate it
-            auto heading = euler_angles.alpha_with_units() + 270 * degrees;
+            auto heading = euler_angles.heading_with_units();
 
             // Apply magnetic declination
             auto magneticDeclination = wmm.magneticDeclination(
@@ -264,21 +264,18 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             last_data_time_[DataType::HEADING] = now;
         }
 
-        if (euler_angles.has_gamma())
+        if (euler_angles.has_pitch())
         {
-            // Flip sign when reading pitch values.
-            // This is based on how the imu is situated
-            // in the bot.
-            auto pitch = -euler_angles.gamma_with_units();
+            auto pitch = euler_angles.pitch_with_units();
             latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
             latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
             last_data_time_[DataType::PITCH] = now;
         }
 
-        if (euler_angles.has_beta())
+        if (euler_angles.has_roll())
         {
-            auto roll = euler_angles.beta_with_units();
+            auto roll = euler_angles.roll_with_units();
             latest_node_status_.mutable_pose()->set_roll_with_units(roll);
             latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
 
