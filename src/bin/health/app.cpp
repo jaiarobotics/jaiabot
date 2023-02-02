@@ -26,6 +26,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "system_thread.h"
 
@@ -141,6 +142,30 @@ jaiabot::apps::Health::Health()
                     if (!cfg().ignore_powerstate_changes())
                         system("systemctl poweroff");
                     break;
+            }
+        });
+
+    // handle restart/reboot/shutdown commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
+            if (power_rf.has_rf_disabled())
+            {
+                if (power_rf.rf_disabled())
+                {
+                    glog.is_verbose() &&
+                        glog << "Commanded to disable your Wi-Fi and Bluetooth cards directly. "
+                             << std::endl;
+                    system("rfkill block wifi");
+                    system("rfkill block bluetooth");
+                }
+                else
+                {
+                    glog.is_verbose() &&
+                        glog << "Commanded to enable your Wi-Fi and Bluetooth cards directly. "
+                             << std::endl;
+                    system("rfkill unblock wifi");
+                    system("rfkill unblock bluetooth");
+                }
             }
         });
 

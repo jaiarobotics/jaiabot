@@ -97,6 +97,7 @@ class Fusion : public ApplicationBase
 
     protobuf::BotStatusRate engineering_bot_status_rate_{
         protobuf::BotStatusRate::BotStatusRate_1_Hz};
+    bool rf_disabled_{false};
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
@@ -398,12 +399,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 auto time = goby::time::SystemClock::now<goby::time::MicroTime>();
                 latest_node_status_.set_time_with_units(time);
             }
-
-            if (latest_node_status_.IsInitialized())
-            {
-                interprocess().publish<goby::middleware::frontseat::groups::node_status>(
-                    latest_node_status_);
-            }
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
@@ -528,6 +523,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     case protobuf::BotStatusRate::BotStatusRate_60_SECONDS:
                         bot_status_rate_ = 60000;
                         break;
+                    case protobuf::BotStatusRate::BotStatusRate_NO_RF: bot_status_rate_ = -1; break;
                 }
                 engineering_bot_status_rate_ = command.bot_status_rate();
             }
@@ -605,17 +601,52 @@ void jaiabot::apps::Fusion::loop()
 
     if (latest_bot_status_.IsInitialized())
     {
-        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
-        {
-            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
-                                     << latest_bot_status_.ShortDebugString() << endl;
-            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
-            last_bot_status_report_time_ = now;
-        }
         jaiabot::protobuf::Engineering engineering_status;
         engineering_status.set_bot_id(latest_bot_status_.bot_id());
         engineering_status.set_bot_status_rate(engineering_bot_status_rate_);
+
+        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
+        {
+            // If bot_status_rate_ is -1 then do not send bot status
+            if (bot_status_rate_ != -1)
+            {
+                glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+                                         << latest_bot_status_.ShortDebugString() << endl;
+                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+                last_bot_status_report_time_ = now;
+
+                // If the rf is disabled and operator enables rf
+                // then send powerstate command to enable bluetooth and WIFI
+                if (rf_disabled_)
+                {
+                    rf_disabled_ = false;
+                    engineering_status.set_rf_disabled(rf_disabled_);
+                    // Send message to enable RF on PI (Bluetooth and WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
+                }
+            }
+            else
+            {
+                // If the rf is enabled and operator disables rf
+                // then send powerstate command to disable bluetooth and WIFI
+                if (!rf_disabled_)
+                {
+                    rf_disabled_ = true;
+                    engineering_status.set_rf_disabled(rf_disabled_);
+                    // Send message to disable RF on PI (Bluetooth and WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
+                }
+            }
+        }
+
         interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+    }
+
+    // When initialized, always send node_status for pid app and frontseat app
+    if (latest_node_status_.IsInitialized())
+    {
+        interprocess().publish<goby::middleware::frontseat::groups::node_status>(
+            latest_node_status_);
     }
 }
 

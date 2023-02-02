@@ -50,16 +50,7 @@ export class PIDGainsPanel extends React.Component {
     }
 
     render() {
-        let botStatusRate = [
-            'BotStatusRate_2_Hz',
-            'BotStatusRate_1_Hz',
-            'BotStatusRate_2_SECONDS',
-            'BotStatusRate_5_SECONDS',
-            'BotStatusRate_10_SECONDS',
-            'BotStatusRate_20_SECONDS',
-            'BotStatusRate_40_SECONDS',
-            'BotStatusRate_60_SECONDS',
-        ]
+        let botStatusRate = Object.keys(BotStatusRate);
 
         let bots = this.state.bots
 

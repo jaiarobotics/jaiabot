@@ -1032,6 +1032,7 @@ export enum BotStatusRate {
     BotStatusRate_20_SECONDS = "BotStatusRate_20_SECONDS",
     BotStatusRate_40_SECONDS = "BotStatusRate_40_SECONDS",
     BotStatusRate_60_SECONDS = "BotStatusRate_60_SECONDS",
+    BotStatusRate_NO_RF = "BotStatusRate_NO_RF",
 }
 
 export interface GPSRequirements {
