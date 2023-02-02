@@ -16,7 +16,8 @@ message ClientToPortalMessage
 
     optional Engineering engineering_command = 1;
     optional Command command = 2;
-    optional bool ping = 3;
+    optional CommandForHub command_for_hub = 3;
+    optional bool ping = 4;
 }
 
 message PortalToClientMessage

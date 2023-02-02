@@ -2,7 +2,7 @@ import Stroke from 'ol/style/Stroke';
 import { Fill, Icon, Style, Text} from 'ol/style';
 import { LineString, Point } from 'ol/geom';
 import {Feature} from 'ol'
-import {Goal, DiveTask} from './ProtoBufMessages'
+import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
@@ -119,6 +119,51 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
+export function hubMarker(feature: Feature): Style[] {
+    const geometry = feature.getGeometry() as Point
+    const centerPosition = geometry.getCoordinates()
+
+    function angleToXY(angle: number): XYCoordinate {
+        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
+    }
+
+    const heading = feature.get('heading') * DEG
+    const headingDelta = angleToXY(heading)
+
+    const textOffsetRadius = 11
+
+    var color = defaultColor
+
+    if (feature.get('selected')) {
+        color = selectedColor
+    }
+
+    const text = "H" + String(feature.get('hubId'))
+
+    var style = [ 
+        // Hub body marker
+        new Style({
+            image: new Icon({
+                src: bot,
+                color: color,
+                anchor: [0.5, 0.5],
+                rotation: heading,
+                rotateWithView: true
+            }),
+            text: new Text({
+                text: text,
+                font: 'bold 11pt sans-serif',
+                fill: new Fill({
+                    color: 'black'
+                }),
+                offsetX: -textOffsetRadius * headingDelta.x,
+                offsetY: -textOffsetRadius * headingDelta.y
+            })
+        })
+    ]
+
+    return style
+}
 
 export function courseOverGroundArrow(feature: Feature): Style {
     const courseOverGround = feature.get('courseOverGround') * DEG
@@ -152,7 +197,7 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 // Markers for the mission goals
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
@@ -161,13 +206,21 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
         'NONE': taskNone       
     }
 
-    const src = srcMap[goal.task?.type ?? 'NONE'] ?? taskNone
+    const src = srcMap[taskType ?? 'NONE'] ?? taskNone
+
+    return new Icon({
+        src: src,
+        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
+        anchor: [0.5, 1],
+    })
+}
+
+
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
+    let icon = goalIcon(goal.task?.type, isActive, isSelected)
+
     return new Style({
-        image: new Icon({
-            src: src,
-            color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
-            anchor: [0.5, 1],
-        }),
+        image: icon,
         text: new Text({
             text: String(goalIndex),
             font: '12pt sans-serif',
@@ -182,7 +235,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
 
 
 // Markers for dives
-export function diveTask(dive: DiveTask) {
+export function divePacket(dive: DivePacket) {
 
     // Depth text
     var text = dive.depth_achieved?.toFixed(1)
@@ -211,6 +264,18 @@ export function diveTask(dive: DiveTask) {
         })
     })
 }
+
+
+interface EstimatedDrift {
+    speed: number
+    heading: number
+}
+
+
+interface DriftTask {
+    estimated_drift: EstimatedDrift
+}
+
 
 
 interface EstimatedDrift {
