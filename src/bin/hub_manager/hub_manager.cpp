@@ -167,9 +167,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
-        [this](const protobuf::CommandForHub& input_command_for_hub) {
-            handle_command_for_hub(input_command_for_hub);
-        });
+        [this](const protobuf::CommandForHub& input_command_for_hub)
+        { handle_command_for_hub(input_command_for_hub); });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {

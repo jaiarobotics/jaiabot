@@ -214,7 +214,7 @@ li::marker {
 }
 
 #mapControls {
-    display: block;
+    display: flex;
     position: absolute;
     top: 0pt;
     left: 0pt;
@@ -319,7 +319,6 @@ td.dataKey {
 
 .mapButton {
     display: block;
-    position: absolute;
     padding: 10pt;
     border-width: 1pt;
     border-color: black;
@@ -336,7 +335,10 @@ td.dataKey {
     background-color: darkgray;
 }
 
-#clearMapButton {
+div#mapButtons {
+    display:block;
+
+    position: absolute;
     top: 0pt;
     right: 0pt;
 }
@@ -358,4 +360,14 @@ td.dataKey {
 
 .growable {
     flex-grow: 1;
+}
+
+div#layerSwitcher {
+    display:block;
+    position:absolute;
+    margin: 10pt;
+    padding: 10pt;
+
+    top: 50pt;
+    left: 0pt;
 }
