@@ -123,12 +123,20 @@ class LogApp extends React.Component {
                 <div style={{width:'100%', flexGrow:1}}>
                   <div className="openlayers-map" id="openlayers-map"></div>
                   <div id="mapControls">
-                    <div id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
-                    <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                    <div>
+                      <div id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
+                      <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+                    </div>
+
+                    <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                      <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>KML
+                    </button>
                     <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
                       <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
                     </button>
+
                   </div>
+
                 </div>
                 <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
                   this.map.updateToTimestamp(t)
@@ -450,6 +458,7 @@ class LogApp extends React.Component {
       let pathNames = this.state.plots.map((series) => series.path)
       PlotProfiles.save_profile(plotSetName, pathNames)
     }
+
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
