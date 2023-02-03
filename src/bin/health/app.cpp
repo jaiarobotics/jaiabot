@@ -146,26 +146,25 @@ jaiabot::apps::Health::Health()
             }
         });
 
-    // handle restart/reboot/shutdown commands since we run this app as root
+    // handle rf disable commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
         [this](const jaiabot::protobuf::Engineering& power_rf) {
-            if (power_rf.has_rf_disable())
+            if (power_rf.has_rf_disable_options())
             {
-                if (power_rf.rf_disable())
+                if (power_rf.rf_disable_options().has_rf_disable())
                 {
-                    glog.is_verbose() &&
-                        glog << "Commanded to disable your Wi-Fi and Bluetooth cards directly. "
-                             << std::endl;
-                    system("rfkill block wifi");
-                    system("rfkill block bluetooth");
-                }
-                else
-                {
-                    glog.is_verbose() &&
-                        glog << "Commanded to enable your Wi-Fi and Bluetooth cards directly. "
-                             << std::endl;
-                    system("rfkill unblock wifi");
-                    system("rfkill unblock bluetooth");
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        glog.is_verbose() && glog << "Commanded to disable your Wi-Fi. "
+                                                  << std::endl;
+                        system("rfkill block wifi");
+                    }
+                    else
+                    {
+                        glog.is_verbose() && glog << "Commanded to enable your Wi-Fi. "
+                                                  << std::endl;
+                        system("rfkill unblock wifi");
+                    }
                 }
             }
         });

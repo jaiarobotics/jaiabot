@@ -132,6 +132,21 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * s
                                 engineering_status.gps_requirements().after_dive_gps_fix_checks());
                     }
                 }
+                if (engineering_status.has_rf_disable_options())
+                {
+                    if (engineering_status.rf_disable_options().has_rf_disable())
+                    {
+                        latest_engineering.mutable_rf_disable_options()->set_rf_disable(
+                            engineering_status.rf_disable_options().rf_disable());
+                    }
+
+                    if (engineering_status.rf_disable_options().has_rf_disable_timeout_mins())
+                    {
+                        latest_engineering.mutable_rf_disable_options()
+                            ->set_rf_disable_timeout_mins(
+                                engineering_status.rf_disable_options().rf_disable_timeout_mins());
+                    }
+                }
             });
     }
 

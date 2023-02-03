@@ -7,7 +7,7 @@ import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl } from './gui/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './gui/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
@@ -141,6 +141,12 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
+                                    <td key="rf_disable_timeout_mins_label">Current RF Disable Timeout</td>
+                                    <td key="current_rf_disable_timeout_mins">
+                                        {engineering?.rf_disable_options?.rf_disable_timeout_mins  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td key="current_transit_hdop_req_label">Current Transit HDOP</td>
                                     <td key="current_transit_hdop_req">
                                         {engineering?.gps_requirements?.transit_hdop_req  ?? "-"}
@@ -200,6 +206,20 @@ export class PIDGainsPanel extends React.Component {
                                             }
 
                                         </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="rf_disable_timeout_mins_label">Update RF Disable Timeout</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="rf_disable_timeout_mins_input" 
+                                            name="rf_disable_timeout_mins_input" 
+                                            defaultValue={engineering?.rf_disable_options?.rf_disable_timeout_mins ?? "-"}
+                                            min="1"
+                                            max="255"
+                                            step="any"
+                                        />
                                     </td>
                                 </tr>
                                 <tr>
@@ -420,6 +440,9 @@ export class PIDGainsPanel extends React.Component {
                 transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
                 transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
                 after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
+            },
+            rf_disable_options: {
+                rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
             }
         }
 
@@ -455,6 +478,9 @@ export class PIDGainsPanel extends React.Component {
                     transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
                     transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
                     after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
+                },
+                rf_disable_options: {
+                    rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
                 }
             }
     

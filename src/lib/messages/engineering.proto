@@ -91,6 +91,12 @@ message GPSRequirements
     optional uint32 after_dive_gps_fix_checks = 7 [(dccl.field) = { min: 1 max: 30 }];
 }
 
+message RFDisableOptions
+{
+    optional bool rf_disable = 1 [default = false];
+    optional int32 rf_disable_timeout_mins = 2 [default = 10, (dccl.field) = { min: 1 max: 255 }];
+}
+
 message Engineering
 {
     /*
@@ -124,7 +130,7 @@ message Engineering
 
     optional GPSRequirements gps_requirements = 15;
 
-    optional bool rf_disable = 16 [default = false];
+    optional RFDisableOptions rf_disable_options = 16;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

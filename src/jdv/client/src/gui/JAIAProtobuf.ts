@@ -1045,6 +1045,11 @@ export interface GPSRequirements {
     after_dive_gps_fix_checks?: number
 }
 
+export interface RFDisableOptions {
+    rf_disable?: boolean
+    rf_disable_timeout_mins?: number
+}
+
 export interface Engineering {
     bot_id?: number
     time?: number
@@ -1053,6 +1058,7 @@ export interface Engineering {
     engineering_messages_enabled?: boolean
     bot_status_rate?: BotStatusRate
     gps_requirements?: GPSRequirements
+    rf_disable_options?: RFDisableOptions
     flag?: number
 }
 

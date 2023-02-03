@@ -79,6 +79,7 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
+    jaiabot::protobuf::Engineering latest_engineering_status;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
     std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
@@ -94,10 +95,8 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
     int bot_status_rate_{1000};
-
-    protobuf::BotStatusRate engineering_bot_status_rate_{
-        protobuf::BotStatusRate::BotStatusRate_1_Hz};
     bool rf_disabled_{false};
+    int rf_disabled_timeout_mins_{10};
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
@@ -525,8 +524,17 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_NO_RF: bot_status_rate_ = -1; break;
                 }
-                engineering_bot_status_rate_ = command.bot_status_rate();
+                latest_engineering_status.set_bot_status_rate(command.bot_status_rate());
             }
+            if (command.has_rf_disable_options())
+            {
+                if (command.rf_disable_options().has_rf_disable_timeout_mins())
+                {
+                    rf_disabled_timeout_mins_ =
+                        command.rf_disable_options().rf_disable_timeout_mins();
+                }
+            }
+
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
 
@@ -601,13 +609,13 @@ void jaiabot::apps::Fusion::loop()
 
     if (latest_bot_status_.IsInitialized())
     {
-        jaiabot::protobuf::Engineering engineering_status;
-        engineering_status.set_bot_id(latest_bot_status_.bot_id());
-        engineering_status.set_bot_status_rate(engineering_bot_status_rate_);
+        latest_engineering_status.set_bot_id(latest_bot_status_.bot_id());
+        latest_engineering_status.mutable_rf_disable_options()->set_rf_disable_timeout_mins(
+            rf_disabled_timeout_mins_);
 
         if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
         {
-            // If bot_status_rate_ is -1 then do not send bot status
+            // If bot_status_rate_ is not -1 then send bot status
             if (bot_status_rate_ != -1)
             {
                 glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
@@ -616,30 +624,44 @@ void jaiabot::apps::Fusion::loop()
                 last_bot_status_report_time_ = now;
 
                 // If the rf is disabled and operator enables rf
-                // then send powerstate command to enable bluetooth and WIFI
+                // then send powerstate command to enable WIFI
                 if (rf_disabled_)
                 {
                     rf_disabled_ = false;
-                    engineering_status.set_rf_disable(rf_disabled_);
-                    // Send message to enable RF on PI (Bluetooth and WIFI)
-                    interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
+                    latest_engineering_status.mutable_rf_disable_options()->set_rf_disable(
+                        rf_disabled_);
+                    // Send message to enable RF on PI (WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(
+                        latest_engineering_status);
                 }
             }
             else
             {
                 // If the rf is enabled and operator disables rf
-                // then send powerstate command to disable bluetooth and WIFI
+                // then send powerstate command to disable WIFI
                 if (!rf_disabled_)
                 {
                     rf_disabled_ = true;
-                    engineering_status.set_rf_disable(rf_disabled_);
-                    // Send message to disable RF on PI (Bluetooth and WIFI)
-                    interprocess().publish<jaiabot::groups::powerstate_command>(engineering_status);
+                    latest_engineering_status.mutable_rf_disable_options()->set_rf_disable(
+                        rf_disabled_);
+                    // Send message to disable RF on PI (WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(
+                        latest_engineering_status);
+                }
+
+                // If the rf_disable timeout has been reach then start sending bot status
+                if ((last_bot_status_report_time_ +
+                     std::chrono::minutes(rf_disabled_timeout_mins_)) <= now)
+                {
+                    // Set bot status rate to 1 Hz if the rf disable timeout is reached
+                    latest_engineering_status.set_bot_status_rate(
+                        protobuf::BotStatusRate::BotStatusRate_1_Hz);
+                    bot_status_rate_ = 1000;
                 }
             }
         }
 
-        interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+        interprocess().publish<jaiabot::groups::engineering_status>(latest_engineering_status);
     }
 
     // When initialized, always send node_status for pid app and frontseat app
