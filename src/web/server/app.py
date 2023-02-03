@@ -23,7 +23,7 @@ logging.getLogger().setLevel(logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 if args.hostname is None:
-    logging.warning('no ip specified, using localhost')
+    logging.warning('no ip specified, using localhost:40001')
     args.hostname = "localhost"
 
 jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
@@ -62,6 +62,11 @@ def getPackets():
 @app.route('/jaia/command', methods=['POST'])
 def postCommand():
     response = jaia_interface.post_command(request.json, clientId=request.headers['clientId'])
+    return JSONResponse(response)
+
+@app.route('/jaia/commandForHub', methods=['POST'])
+def postCommandForHub():
+    response = jaia_interface.post_command_for_hub(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
 @app.route('/jaia/takeControl', methods=['POST'])

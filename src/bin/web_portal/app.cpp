@@ -95,6 +95,7 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 
     void process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg);
     void handle_command(const jaiabot::protobuf::Command& command);
+    void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& command_for_hub);
 
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
 };
@@ -224,6 +225,11 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     {
         handle_command(msg.command());
     }
+
+    if (msg.has_command_for_hub())
+    {
+        handle_command_for_hub(msg.command_for_hub());
+    }
 }
 
 void jaiabot::apps::WebPortal::loop() {}
@@ -258,7 +264,8 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
 {
     using jaiabot::protobuf::Command;
 
-    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager: " << command.ShortDebugString()
+    glog.is_debug2() && glog << group("main")
+                             << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
 
     goby::middleware::Publisher<Command> command_publisher(
@@ -271,4 +278,13 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
     {
         active_mission_plans[command.bot_id()] = command.plan();
     }
+}
+
+void jaiabot::apps::WebPortal::handle_command_for_hub(
+    const jaiabot::protobuf::CommandForHub& command_for_hub)
+{
+    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager for hub: "
+                             << command_for_hub.ShortDebugString() << endl;
+
+    interprocess().publish<jaiabot::groups::hub_command_full>(command_for_hub);
 }
