@@ -1250,7 +1250,7 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
 };
 
 struct ConstantHeading
-    : boost::statechart::state<ConstantHeading, Task>, 
+    : boost::statechart::state<ConstantHeading, Task>,
       Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
              protobuf::SETPOINT_IVP_HELM>
 {
@@ -1411,7 +1411,7 @@ struct PoweredAscent
              protobuf::SETPOINT_POWERED_ASCENT>
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
-    PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
+    PoweredAscent(typename StateBase::my_context c);
     ~PoweredAscent();
 
     void loop(const EvLoop&);
@@ -1426,6 +1426,18 @@ struct PoweredAscent
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
     jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
+    // determines when to turn on motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_on_timeout_;
+    // determines when to turn off motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_off_timeout_;
+    // determines duration to have the motor on
+    goby::time::SteadyClock::duration powered_ascent_motor_on_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_on_timeout());
+    // determines duration to have the motor off
+    goby::time::SteadyClock::duration powered_ascent_motor_off_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
+    // determines wehn we are still in motor off mode
+    bool in_motor_off_mode_{false};
 };
 
 struct ReacquireGPS

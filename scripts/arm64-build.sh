@@ -16,6 +16,22 @@ if [ -z "${JAIA_BUILD_NPROC}" ]; then
     JAIA_BUILD_NPROC=`nproc`
 fi
 
+
+# install nvm if not installed
+if [ ! -d "${HOME}/.nvm" ]
+then
+        echo "nvm not installed! Installing...";
+  curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+  nvm install v18.12.1
+  nvm use v18.12.1
+  npm install i -g --no-audit webpack webpack-cli
+fi
+
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 
 (set -x; cmake ../.. -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_FLAGS="-target aarch64-linux-gnu" -DCMAKE_CXX_FLAGS="-target aarch64-linux-gnu")
