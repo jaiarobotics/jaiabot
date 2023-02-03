@@ -429,6 +429,7 @@ void jaiabot::apps::MissionManager::loop()
                 }
             }
         }
+        if (in_mission->making_forward_progress_to_goal()) {}
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);

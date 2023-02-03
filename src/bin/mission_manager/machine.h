@@ -678,15 +678,21 @@ struct InMission
             // Check the queue size to ensure it is less than max
             if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
             {
-                linear_regression_slope_ = linear_regression_slope(current_goal_dist_history_);
                 current_goal_dist_history_.pop();
+                current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
+                linear_regression_slope_ = linear_regression_slope(current_goal_dist_history_);
             }
-            current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
+            else
+            {
+                current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
+            }
         }
     }
     const bool making_forward_progress_to_goal() const
     {
-        if (linear_regression_slope_ < 0)
+        goby::glog.is_debug2() && goby::glog << "Slope: " << linear_regression_slope_ << std::endl;
+
+        if (linear_regression_slope_ + (0.0000001) < 0)
         {
             return true;
         }
@@ -810,13 +816,13 @@ struct InMission
     }
 
     /**
- * @brief Used to calculate slope from bots goal dist history.
- * If the vehicle is making progress towards goal than the slope should
- * be negative.
- *
- * @param goal_dist_history
- * @return double (slope)
- */
+     * @brief Used to calculate slope from bots goal dist history.
+     * If the vehicle is making progress towards goal than the slope should
+     * be negative.
+     *
+     * @param goal_dist_history
+     * @return double (slope)
+     */
     double linear_regression_slope(
         const std::queue<std::pair<goby::time::SteadyClock::time_point, double>>& goal_dist_history)
     {
@@ -824,21 +830,87 @@ struct InMission
         std::vector<double> x;
         std::vector<double> y;
 
+        copy_goal_dist_history = goal_dist_history;
+
+        goby::glog.is_debug2() &&
+            goby::glog << "goal_dist_history size: " << goal_dist_history.size() << std::endl;
+
         // Copy queue values into separate vectors
         while (!copy_goal_dist_history.empty())
         {
+            goby::glog.is_debug2() &&
+                goby::glog << "x value time: "
+                           << copy_goal_dist_history.front().first.time_since_epoch().count()
+                           << ", y value dist: " << copy_goal_dist_history.front().second
+                           << std::endl;
+
             x.push_back(copy_goal_dist_history.front().first.time_since_epoch().count());
             y.push_back(copy_goal_dist_history.front().second);
             copy_goal_dist_history.pop();
         }
 
-        const auto n = x.size();
-        const auto s_x = std::accumulate(x.begin(), x.end(), 0.0);
-        const auto s_y = std::accumulate(y.begin(), y.end(), 0.0);
-        const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
-        const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
-        const auto a = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
-        return a;
+        goby::glog.is_debug2() && goby::glog << "x size: " << x.size() << ", y size: " << y.size()
+                                             << std::endl;
+
+        // Make sure the two vectors are the same size
+        if (x.size() != y.size())
+            return 0;
+
+        // Store the coefficient/slope in
+        // the best fitting line
+        double coeff = 0;
+
+        // Contains sum of product of
+        // all (i-th x) and (i-th y)
+        double sum_xy = 0;
+
+        // Contains sum of all (i-th x)
+        double sum_x = 0;
+
+        // Contains sum of all (i-th y)
+        double sum_y = 0;
+
+        // Contains sum of square of
+        // all (i-th x)
+        double sum_x_square = 0;
+
+        // Contains sum of square of
+        // all (i-th y)
+        double sum_y_square = 0;
+
+        int N = x.size();
+
+        for (int i = 0; i < N; i++)
+        {
+            sum_xy += x[i] * y[i];
+            sum_x += x[i];
+            sum_y += y[i];
+            sum_x_square += x[i] * x[i];
+            sum_y_square += y[i] * y[i];
+        }
+
+        goby::glog.is_debug2() && goby::glog << "N: " << N << ", sum_xy: " << sum_xy
+                                             << ", sum_x: " << sum_x << ", sum_y:" << sum_y
+                                             << ", sum_x_square:" << sum_x_square
+                                             << ", sum_x_square:" << sum_x_square << std::endl;
+
+        double numerator = ((N * sum_xy) - (sum_x * sum_y));
+
+        goby::glog.is_debug2() && goby::glog << "N * sum_x_square: " << (N * sum_x_square)
+                                             << ", sum_x * sum_x: " << (sum_x * sum_x)
+                                             << ", (N * sum_x_square) - (sum_x * sum_x): "
+                                             << (N * sum_x_square) - (sum_x * sum_x) << std::endl;
+
+        double denominator = ((N * sum_x_square) - (sum_x * sum_x));
+
+        goby::glog.is_debug2() && goby::glog << "numerator: " << numerator
+                                             << ", denominator: " << denominator << std::endl;
+
+        coeff = numerator / denominator;
+
+        goby::glog.is_debug2() && goby::glog << "coeff: " << coeff << std::endl;
+
+        return coeff;
     }
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
@@ -899,7 +971,6 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
             // Add to current dist to goal in history queue.
             // This is used to determine if we are making
             // progress to next goal
-            //context<InMission>().add_to_goal_distance_history();
             this->template context<InMission>().add_to_goal_distance_history();
         }
         else
