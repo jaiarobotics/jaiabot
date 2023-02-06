@@ -77,6 +77,7 @@ class IMU:
             self.sensor.mode = adafruit_bno055.NDOF_MODE
             self.is_setup = True
 
+            # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
     def getData(self):
@@ -146,10 +147,11 @@ def do_port_loop():
 
         current_time = time.time()
 
-        if (previous_time + imu_timeout) <= current_time:
-            previous_time = current_time
-            print("reset imu")
-            imu.reset()
+        # Band aid to reset the IMU every so often due to heading lock errors
+        # if (previous_time + imu_timeout) <= current_time:
+        #     previous_time = current_time
+        #     print("reset imu")
+        #     imu.reset()
 
         # Respond to anyone who sends us a packet
         try:
