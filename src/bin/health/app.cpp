@@ -119,7 +119,8 @@ jaiabot::apps::Health::Health()
 
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::CommandForHub& command_for_hub) {
+        [this](const protobuf::CommandForHub& command_for_hub)
+        {
             switch (command_for_hub.type())
             {
                 // most commands handled by jaiabot_hub_manager

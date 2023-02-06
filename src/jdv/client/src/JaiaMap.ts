@@ -1,3 +1,4 @@
+import { TaskPacket, Command, Location, GeographicCoordinate, GobyFieldOptions } from './gui/JAIAProtobuf';
 import { Map, View} from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
@@ -25,6 +26,7 @@ import {geoJSONToDepthContourFeatures} from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
 import {bisect} from './bisect'
 import { TaskPacket, Command, GeographicCoordinate } from './gui/JAIAProtobuf';
+
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
 import JSZip from 'jszip';
@@ -45,6 +47,7 @@ interface LogTaskPacket extends TaskPacket {
     _utime_: number
     _scheme_: number
 }
+
 
 
 // Get date description from microsecond timestamp
