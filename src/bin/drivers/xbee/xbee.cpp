@@ -89,13 +89,6 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     // Set the configuration parameters, so we're on the same network as other XBee modems
     {
         stringstream cmd;
-        cmd << '\r' << 'b';
-        write(cmd.str());
-        assert_ok();
-    }
-
-    {
-        stringstream cmd;
         cmd << "ATRE" << '\r';
         write(cmd.str());
         assert_ok();
@@ -364,7 +357,7 @@ size_t XBeeDevice::bytes_available() {
 
 
 void XBeeDevice::enter_command_mode() {
-    write("+++");
+    write("\rb+++");
     sleep(1);
     // Read until we get the OK, in case some binary data comes through and interferes
     read_until("OK\r");
