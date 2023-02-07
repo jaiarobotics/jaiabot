@@ -1,7 +1,7 @@
-import { Map, View} from 'ol';
+import { Map, View } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import { TileArcGISRest} from 'ol/source';
+import { TileArcGISRest } from 'ol/source';
 import LayerGroup from 'ol/layer/Group';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -10,16 +10,16 @@ import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
-import { Circle as Style } from 'ol/style';
+import { Style } from 'ol/style';
 import * as Styles from './gui/Styles'
 import * as Popup from './gui/Popup'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-import {geoJSONToDepthContourFeatures} from './gui/Contours'
+import { geoJSONToDepthContourFeatures } from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
-import {bisect} from './bisect'
+import { bisect } from './bisect'
 import { TaskPacket, Command, GeographicCoordinate } from './gui/JAIAProtobuf';
 
 import Layer from 'ol/layer/Layer';
