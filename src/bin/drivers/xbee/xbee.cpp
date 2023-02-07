@@ -86,7 +86,14 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     // Setup the modem
     enter_command_mode();
 
-    // Set the three configuration parameters, so we're on the same network as other XBee modems
+    // Set the configuration parameters, so we're on the same network as other XBee modems
+    {
+        stringstream cmd;
+        cmd << '\r' << 'b';
+        write(cmd.str());
+        assert_ok();
+    }
+
     {
         stringstream cmd;
         cmd << "ATRE" << '\r';
