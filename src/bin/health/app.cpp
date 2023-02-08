@@ -157,13 +157,18 @@ jaiabot::apps::Health::Health()
                     {
                         glog.is_verbose() && glog << "Commanded to disable your Wi-Fi. "
                                                   << std::endl;
-                        system("rfkill block wifi");
+                        /*
+                        *  ifdown wlan0 prevents the OS from initiating any TX/RX operation on the interface. 
+                        *  The RPi shouldn't be transmitting anything at this point, and you won't be able to 
+                        *  scan for wireless networks until you bring the interface up again.
+                        */
+                        system("ifdown wlan0");
                     }
                     else
                     {
                         glog.is_verbose() && glog << "Commanded to enable your Wi-Fi. "
                                                   << std::endl;
-                        system("rfkill unblock wifi");
+                        system("ifup wlan0");
                     }
                 }
             }
