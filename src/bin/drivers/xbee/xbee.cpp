@@ -357,7 +357,20 @@ size_t XBeeDevice::bytes_available() {
 
 
 void XBeeDevice::enter_command_mode() {
-    write("\rb+++");
+    // We need to send bypass command if we are
+    // are using the new radio.
+    // (Need a delay of 3 seconds between the bypass commands)
+    // Old radio still functions the same.
+    write("\r");
+
+    sleep(3);
+
+    write("b");
+
+    sleep(3);
+
+    write("+++");
+
     sleep(1);
     // Read until we get the OK, in case some binary data comes through and interferes
     read_until("OK\r");
