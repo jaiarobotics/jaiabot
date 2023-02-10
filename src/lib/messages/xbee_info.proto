@@ -1,8 +1,0 @@
-syntax = "proto2";
-
-package jaiabot.protobuf;
-
-message XbeeInfo {
-    optional string node_id = 1 [default = "Not Available"];
-    optional string serial_number = 2 [default = "Not Available"];
-}

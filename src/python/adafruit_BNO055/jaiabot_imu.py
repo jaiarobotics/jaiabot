@@ -168,11 +168,12 @@ def do_port_loop():
         gravity = data['gravity']
         calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
         bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
+        corrected_heading = euler.heading + 90
 
         try:
             line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
                 (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-                euler.heading, euler.pitch, euler.roll,
+                corrected_heading, euler.pitch, euler.roll,
                 linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
                 gravity[0], gravity[2], gravity[1],
                 calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],

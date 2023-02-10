@@ -60,7 +60,7 @@ message Fusion
     optional int32 imu_restart_timeout = 36 [default = 30]; 
 
     // Rate in milliseconds
-    optional int32 bot_status_rate = 37 [default = 1000]; 
+    optional int32 bot_status_period_ms = 37 [default = 1000]; 
 
     repeated jaiabot.protobuf.MissionState include_course_error_detection_states = 38;
 
