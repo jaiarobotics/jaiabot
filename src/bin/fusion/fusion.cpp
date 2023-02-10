@@ -94,7 +94,7 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
-    int bot_status_rate_{1000};
+    int bot_status_period_ms_{1000};
     bool rf_disabled_{false};
     int rf_disabled_timeout_mins_{10};
 
@@ -190,7 +190,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     watch_battery_percentage_ = cfg().watch_battery_percentage();
 
-    bot_status_rate_ = cfg().bot_status_rate();
+    bot_status_period_ms_ = cfg().bot_status_period_ms();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -497,29 +497,33 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 switch (command.bot_status_rate())
                 {
-                    case protobuf::BotStatusRate::BotStatusRate_2_Hz: bot_status_rate_ = 500; break;
+                    case protobuf::BotStatusRate::BotStatusRate_2_Hz:
+                        bot_status_period_ms_ = 500;
+                        break;
                     case protobuf::BotStatusRate::BotStatusRate_1_Hz:
-                        bot_status_rate_ = 1000;
+                        bot_status_period_ms_ = 1000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_2_SECONDS:
-                        bot_status_rate_ = 2000;
+                        bot_status_period_ms_ = 2000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_5_SECONDS:
-                        bot_status_rate_ = 5000;
+                        bot_status_period_ms_ = 5000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_10_SECONDS:
-                        bot_status_rate_ = 10000;
+                        bot_status_period_ms_ = 10000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_20_SECONDS:
-                        bot_status_rate_ = 20000;
+                        bot_status_period_ms_ = 20000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_40_SECONDS:
-                        bot_status_rate_ = 40000;
+                        bot_status_period_ms_ = 40000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_60_SECONDS:
-                        bot_status_rate_ = 60000;
+                        bot_status_period_ms_ = 60000;
                         break;
-                    case protobuf::BotStatusRate::BotStatusRate_NO_RF: bot_status_rate_ = -1; break;
+                    case protobuf::BotStatusRate::BotStatusRate_NO_RF:
+                        bot_status_period_ms_ = -1;
+                        break;
                 }
                 latest_engineering_status.set_bot_status_rate(command.bot_status_rate());
             }
@@ -624,10 +628,11 @@ void jaiabot::apps::Fusion::loop()
             latest_engineering_status.set_query_bot_status(false);
         }
 
-        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
+        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_period_ms_)) <=
+            now)
         {
-            // If bot_status_rate_ is not -1 then send bot status
-            if (bot_status_rate_ != -1)
+            // If bot_status_period_ms_ is not -1 then send bot status
+            if (bot_status_period_ms_ != -1)
             {
                 glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
                                          << latest_bot_status_.ShortDebugString() << endl;
@@ -665,9 +670,10 @@ void jaiabot::apps::Fusion::loop()
                      std::chrono::minutes(rf_disabled_timeout_mins_)) <= now)
                 {
                     // Set bot status rate to 1 Hz if the rf disable timeout is reached
+                    // TODO use config file to reset these
                     latest_engineering_status.set_bot_status_rate(
                         protobuf::BotStatusRate::BotStatusRate_1_Hz);
-                    bot_status_rate_ = 1000;
+                    bot_status_period_ms_ = 1000;
                 }
             }
         }

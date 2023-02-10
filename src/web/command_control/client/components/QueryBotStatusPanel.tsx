@@ -41,7 +41,7 @@ export default class QueryBotStatusPanel extends React.Component {
                                     defaultValue="0"
                                     min="0"
                                     max="30"
-                                    step="any" 
+                                    step="1" 
                                 />
                             </td>
                         </tr>

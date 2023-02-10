@@ -437,7 +437,7 @@ textarea {
   }
 
   /******** CSS Tool Bars ********************/
-  
+
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
@@ -792,7 +792,7 @@ textarea {
 
       #engineering_requirements_table {
         td {
-          text-align: left;
+          text-align: right;
           font-size: 16px;
         }
       }
@@ -832,6 +832,7 @@ textarea {
           }
           > input {
             max-width: 8em;
+            text-align: right;
           }
           > * {
             margin-left: 2px;
@@ -957,7 +958,7 @@ textarea {
   color: @cc-text-color;
   position: absolute;
   right: @command-button-size + (2 * @command-button-padding);
-  top: 0pt;
+  top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
 }

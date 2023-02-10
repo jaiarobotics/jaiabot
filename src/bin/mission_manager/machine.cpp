@@ -273,6 +273,10 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     {
         intervehicle().publish<groups::task_packet>(task_packet_);
     }
+    else if (task_packet_.type() != protobuf::MissionTask::NONE)
+    {
+        interprocess().publish<groups::task_packet>(task_packet_);
+    }
 }
 
 // Task::Dive

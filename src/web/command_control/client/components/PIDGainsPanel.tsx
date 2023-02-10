@@ -218,7 +218,7 @@ export class PIDGainsPanel extends React.Component {
                                             defaultValue={engineering?.rf_disable_options?.rf_disable_timeout_mins ?? "-"}
                                             min="1"
                                             max="255"
-                                            step="any"
+                                            step="1"
                                         />
                                     </td>
                                 </tr>
@@ -288,7 +288,7 @@ export class PIDGainsPanel extends React.Component {
                                             defaultValue={engineering?.gps_requirements?.transit_gps_fix_checks ?? "-"} 
                                             min="1"
                                             max="30"
-                                            step="any"
+                                            step="1"
                                         />
                                     </td>
                                 </tr>
@@ -302,7 +302,7 @@ export class PIDGainsPanel extends React.Component {
                                             defaultValue={engineering?.gps_requirements?.transit_gps_degraded_fix_checks ?? "-"}
                                             min="1"
                                             max="30"
-                                            step="any" 
+                                            step="1" 
                                         />
                                     </td>
                                 </tr>
@@ -316,7 +316,7 @@ export class PIDGainsPanel extends React.Component {
                                             defaultValue={engineering?.gps_requirements?.after_dive_gps_fix_checks ?? "-"} 
                                             min="1"
                                             max="30"
-                                            step="any"
+                                            step="1"
                                         />
                                     </td>
                                 </tr>
