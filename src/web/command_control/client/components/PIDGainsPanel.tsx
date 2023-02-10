@@ -141,7 +141,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="rf_disable_timeout_mins_label">Current RF Disable Timeout</td>
+                                    <td key="rf_disable_timeout_mins_label">Current RF Disable Time Mins</td>
                                     <td key="current_rf_disable_timeout_mins">
                                         {engineering?.rf_disable_options?.rf_disable_timeout_mins  ?? "-"}
                                     </td>
@@ -209,7 +209,7 @@ export class PIDGainsPanel extends React.Component {
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td key="rf_disable_timeout_mins_label">Update RF Disable Timeout</td>
+                                    <td key="rf_disable_timeout_mins_label">Update RF Disable Time Mins</td>
                                     <td>
                                         <input style={{maxWidth: "80px"}} 
                                             type="number" 

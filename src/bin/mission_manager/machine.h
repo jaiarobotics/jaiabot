@@ -399,6 +399,9 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
+    const bool& rf_disable() { return rf_disable_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -421,6 +424,7 @@ struct MissionManagerStateMachine
     // at the equator or the poles
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
+    bool rf_disable_{false};
 };
 
 struct PreDeployment

@@ -147,6 +147,11 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * s
                                 engineering_status.rf_disable_options().rf_disable_timeout_mins());
                     }
                 }
+
+                if (engineering_status.has_query_bot_status())
+                {
+                    latest_engineering.set_query_bot_status(engineering_status.query_bot_status());
+                }
             });
     }
 

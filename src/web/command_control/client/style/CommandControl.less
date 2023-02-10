@@ -441,8 +441,8 @@ textarea {
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    bottom: 0;
-    left: 0;
+    right: 0;
+    top: 0;
     background: @overlay-background;
     border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
@@ -765,7 +765,7 @@ textarea {
   .column-right {
     position: absolute;
     height: auto;
-    top: 0;
+    top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     z-index: 10;
     background-color: @overlay-background;
@@ -992,7 +992,7 @@ textarea {
   color: @cc-text-color;
   position: absolute;
   right: @command-button-size + (2 * @command-button-padding);
-  top: 0pt;
+  top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
 }
@@ -1142,7 +1142,7 @@ div.hoverable:hover {
 .jaia-logo {
   width: 40pt;
   height: 40pt;
-  margin: 4pt 4pt 20pt 4pt;
+  margin: 60pt 4pt 20pt 4pt;
   border-radius: 4pt;
   border: 1pt solid gray;
 }

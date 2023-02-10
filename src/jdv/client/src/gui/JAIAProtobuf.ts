@@ -1055,6 +1055,7 @@ export interface Engineering {
     time?: number
     pid_control?: PIDControl
     query_engineering_status?: boolean
+    query_bot_status?: boolean
     engineering_messages_enabled?: boolean
     bot_status_rate?: BotStatusRate
     gps_requirements?: GPSRequirements

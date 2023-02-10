@@ -245,7 +245,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
         if (euler_angles.has_heading())
         {
-            // IMU is offset by 270 degrees, so we need to rotate it
+            // Creating temp heading variable
             auto heading = euler_angles.heading_with_units();
 
             // Apply magnetic declination
@@ -532,6 +532,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 }
             }
 
+            if (command.has_query_bot_status())
+            {
+                latest_engineering_status.set_query_bot_status(command.query_bot_status());
+            }
+
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
 
@@ -609,6 +614,15 @@ void jaiabot::apps::Fusion::loop()
         latest_engineering_status.set_bot_id(latest_bot_status_.bot_id());
         latest_engineering_status.mutable_rf_disable_options()->set_rf_disable_timeout_mins(
             rf_disabled_timeout_mins_);
+
+        // If we get an engineering query for bot status
+        if (latest_engineering_status.query_bot_status())
+        {
+            glog.is_debug1() && glog << "Publishing queried bot status over intervehicle(): "
+                                     << latest_bot_status_.ShortDebugString() << endl;
+            intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+            latest_engineering_status.set_query_bot_status(false);
+        }
 
         if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
         {

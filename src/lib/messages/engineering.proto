@@ -124,6 +124,8 @@ message Engineering
 
     optional bool query_engineering_status = 4 [default = false];
 
+    optional bool query_bot_status = 5 [default = false];
+
     optional bool engineering_messages_enabled = 13;
 
     optional BotStatusRate bot_status_rate = 14 [default = BotStatusRate_1_Hz];
