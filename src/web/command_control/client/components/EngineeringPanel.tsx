@@ -7,6 +7,7 @@ import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { PortalBotStatus } from './PortalStatus';
+import QueryBotStatusPanel from "./QueryBotStatusPanel"
 
 
 interface Props {
@@ -62,11 +63,11 @@ export default class EngineeringPanel extends React.Component {
 						</Button>
 					</div>
 
+					<MissionSpeedSettingsPanel />
+
 					<PIDGainsPanel bots={self.state.bots}  control={this.props.control} api={this.api} />
 
-					<RCDiveParametersPanel />
-
-                    <MissionSpeedSettingsPanel />
+					<QueryBotStatusPanel control={this.props.control} api={this.api} />
 
 				</div>
 			</div>
