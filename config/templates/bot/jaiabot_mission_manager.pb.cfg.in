@@ -53,7 +53,7 @@ data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
 is_sim: $mission_manager_in_simulation
 
 # Goal Timeout Behavior
-goal_timeout_buffer_factor: 1.05 # (default = 1)
+goal_timeout_buffer_factor: 2.00 # (default = 1)
 goal_timeout_reacquire_gps_attempts: 2 # (default = 2)
 use_goal_timeout: true # (default = true)
 tpv_history_max: 15 # (default = 15)
