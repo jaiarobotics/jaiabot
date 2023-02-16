@@ -14,7 +14,7 @@ GPIO.output(19, GPIO.LOW)
 GPIO.output(13, GPIO.LOW)
 
 try:
-    print("Shutting Down")
+    print("Starting up`")
 
     while True:
         GPIO.output(19, GPIO.HIGH)
