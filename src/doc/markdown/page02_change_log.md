@@ -2,6 +2,69 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.4.0
+
+* JCC
+  * TypeScript
+  * Hub icon
+  * Mission toolbar moved from lower left to upper right
+
+* Goal Timeout
+  * Default is off
+  * If goal timeout is reached bot executes task where it is
+  * Optional: skip task is goal timeout is reached
+
+* Bottom Depth Safety
+  * Default 1 meter
+
+* Engineering Panel
+  * Dynamic GPS Requirements
+    * Ability to Change GPS Requirements while operating
+  * Engineering Status message is available with a query for one
+  * Stealth Mode
+    * Change bot status to No_RF
+    * Task packets and bot status will no longer send
+    * Default timeout is 10 minutes
+    * Hub still has ability to command the bots
+  * Query Bot 
+    * Enter bot id and query for the bot status
+
+* Pressure is adjusted before every dive
+  * We utilize a pressure_adjusted variable to zero out pressure before a dive
+
+* New State
+  * IMU Restart State
+    * When there is a IMU issue detected the bot will enter this state
+    * The bot will stop driving for 10 seconds (configurable)
+      * The bot will continue on the mission after the 10 second timeout
+
+* App Speed Increases
+  * PID Control
+    * Loop speed increased from 2 Hz to 10 Hz
+  * Arduino App Driver
+    * Loop speed increased from 4 Hz to 10 Hz
+  * Improves manual control
+
+* Dive States Updates
+  * Power Descent
+    * Initial timer for power descent
+      * Used to prevent detecting bottom to soon 
+  * Powered Ascent
+    * Switch between motor on and motor off
+    * Default 5 seconds of motor on and 1 second motor off
+    * If the motor restarts it needs a zero command initially
+
+* IMU
+  * Now use quaternions
+  * We now detect bot roll 
+    * Allows us to keep driving upside down
+    * Weight of the bot will self correct while driving
+
+* New Task
+  * Constant Heading (Surf Task)
+    * Drive on a heading fro a certain amount of time
+    * In this mode we disregard gps requirements
+
 ### 1.3.0
 
 * Multi Message 
