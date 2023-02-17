@@ -62,7 +62,7 @@ This following sections note the changes in each release version of jaiabot.
 
 * New Task
   * Constant Heading (Surf Task)
-    * Drive on a heading fro a certain amount of time
+    * Drive on a heading for a certain amount of time
     * In this mode we disregard gps requirements
 
 ### 1.3.0
