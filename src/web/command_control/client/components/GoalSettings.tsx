@@ -7,32 +7,26 @@ import React, { FormEvent } from 'react'
 import Button from '@mui/material/Button';
 import { GlobalSettings, Save } from './Settings'
 import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters } from './gui/JAIAProtobuf';
+import { deepcopy } from './Utilities'
 
 
 interface Props {
+    botId: number
+    goalIndex: number
     goal: Goal
     onClose: () => void
     onChange: () => void
 }
 
 
-interface State {
-    goal: Goal
-}
-
-
 export class GoalSettingsPanel extends React.Component {
 
     props: Props
-    state: State
+    key: string
 
     constructor(props: Props) {
         super(props)
-
-        this.state = {
-            goal: props.goal
-        }
-
+        this.key = `goal-${props.botId}-${props.goalIndex}`
     }
 
     componentDidUpdate() {
@@ -43,7 +37,7 @@ export class GoalSettingsPanel extends React.Component {
         let self = this
 
         let taskOptionsPanel = <div></div>
-        let taskType = this.state.goal.task?.type
+        let taskType = this.props.goal.task?.type
 
         switch (taskType) {
             case 'DIVE':
@@ -84,7 +78,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     changeTaskType(taskType: TaskType) {
-        let {goal} = this.state
+        let {goal} = this.props
 
         if (taskType == goal.task?.type) {
             return
@@ -94,14 +88,14 @@ export class GoalSettingsPanel extends React.Component {
             case 'DIVE':
                 goal.task = {
                     type: taskType,
-                    dive: GlobalSettings.diveParameters,
-                    surface_drift: GlobalSettings.driftParameters
+                    dive: deepcopy(GlobalSettings.diveParameters),
+                    surface_drift: deepcopy(GlobalSettings.driftParameters)
                 }
                 break;
             case 'SURFACE_DRIFT':
                 goal.task = {
                     type: taskType,
-                    surface_drift: GlobalSettings.driftParameters
+                    surface_drift: deepcopy(GlobalSettings.driftParameters)
                 }
                 break;
             case 'STATION_KEEP':
@@ -112,7 +106,7 @@ export class GoalSettingsPanel extends React.Component {
             case 'CONSTANT_HEADING':
                 goal.task = {
                     type: taskType,
-                    constant_heading: GlobalSettings.constantHeadingParameters
+                    constant_heading: deepcopy(GlobalSettings.constantHeadingParameters)
                 }
                 break;
             default:
@@ -120,12 +114,14 @@ export class GoalSettingsPanel extends React.Component {
                 break;
         }
 
-        this.setState({goal})
+        // this.setState({goal})
     }
 
     diveOptionsPanel() {
-        let dive = this.state.goal.task.dive
-        let surface_drift = this.state.goal.task.surface_drift
+        let dive = this.props.goal.task.dive
+        let surface_drift = this.props.goal.task.surface_drift
+        // console.log(`key = ${this.key}.drift.drift_time`)
+        // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
             <div id="DiveDiv">
@@ -133,19 +129,19 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input key="dive.max_depth" type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
+                            <td><input key={`${this.key}.dive.max_depth`} type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input key="dive.depth_interval" type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                            <td><input key={`${this.key}.dive.depth_interval`} type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input key="dive.hold_time" type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                            <td><input key={`${this.key}.dive.hold_time`} type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input key="dive.drift_time" type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input key={`${this.key}.dive.drift_time`} type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -157,7 +153,7 @@ export class GoalSettingsPanel extends React.Component {
         const target = evt.target as any
         const key = target.name as (keyof DiveParameters)
         const value = Number(target.value)
-        var {goal} = this.state
+        var {goal} = this.props
 
         goal.task.dive[key] = value
 
@@ -169,7 +165,7 @@ export class GoalSettingsPanel extends React.Component {
         const target = evt.target as any
         const key = target.name as (keyof DriftParameters)
         const value = Number(target.value)
-        var {goal} = this.state
+        var {goal} = this.props
 
         goal.task.surface_drift[key] = value
 
@@ -184,7 +180,7 @@ export class GoalSettingsPanel extends React.Component {
         const target = evt.target as any
         const key = target.name as (keyof ConstantHeadingParameters)
         const value = Number(target.value)
-        var {goal} = this.state
+        var {goal} = this.props
 
         goal.task.constant_heading[key] = value
 
@@ -193,7 +189,9 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     driftOptionsPanel() {
-        let surface_drift = this.state.goal.task.surface_drift
+        let surface_drift = this.props.goal.task.surface_drift
+        // console.log(`key = ${this.key}.drift.drift_time`)
+        // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
             <div id="DriftDiv">
@@ -201,7 +199,7 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input key="drift.drift_time" type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input key={`${this.key}.drift.drift_time`} type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -210,7 +208,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     ConstantHeadingOptionsPanel() {
-        let constant_heading = this.state.goal.task.constant_heading
+        let constant_heading = this.props.goal.task.constant_heading
 
         return (
             <div id="ConstantHeadingDiv">
@@ -218,15 +216,15 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Heading</td>
-                            <td><input key="constant_heading.constant_heading" type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
+                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
                         </tr>
                         <tr>
                             <td>Time</td>
-                            <td><input key="constant_heading.time" type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
+                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input key="constant_heading.speed" type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
+                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
                         </tr>
                     </tbody>
                 </table>
