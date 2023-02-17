@@ -61,7 +61,6 @@ def held(btn):
             GPIO.output(5, GPIO.HIGH)
             GPIO.output(19, GPIO.HIGH)
             GPIO.output(13, GPIO.LOW)
-            btn.is_not_stopping_bots = True
 
         except KeyboardInterrupt:
             # now clean up the GPIO
@@ -74,6 +73,8 @@ def held(btn):
             print ("Timeout Error:",errt)
         except requests.exceptions.RequestException as err:
             print ("OOps: Something Else",err)
+        # Set back to true to allow another stop all
+        btn.is_not_stopping_bots = True
 
 
 btn = Button(4)
