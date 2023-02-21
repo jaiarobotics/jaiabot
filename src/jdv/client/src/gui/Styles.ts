@@ -14,7 +14,7 @@ const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
-const taskNone = require('./taskNone.svg') as string
+export const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const satellite = require('./satellite.svg') as string
 
@@ -197,7 +197,7 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 // Markers for the mission goals
-export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+export function goalSrc(taskType: TaskType | null) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
@@ -206,7 +206,11 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
         'NONE': taskNone       
     }
 
-    const src = srcMap[taskType ?? 'NONE'] ?? taskNone
+    return srcMap[taskType ?? 'NONE'] ?? taskNone
+}
+
+export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+    const src = goalSrc(taskType)
 
     return new Icon({
         src: src,
