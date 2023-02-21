@@ -11,14 +11,6 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "machine_common.h"
-#include <algorithm>
-#include <bits/stdc++.h>
-#include <cmath>
-#include <iostream>
-#include <math.h>
-#include <numeric>
-#include <queue>
-#include <vector>
 
 namespace jaiabot
 {
@@ -48,12 +40,6 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
                                  protobuf::Command& out_command);
 
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
-    double deg2rad(const double& deg);
-    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
-                          const double& lon2d);
-    double linear_regression_slope(
-        const std::queue<std::pair<goby::time::SteadyClock::time_point, double>>&
-            goal_dist_history);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
@@ -72,15 +58,9 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     goby::middleware::protobuf::gpsd::TimePositionVelocity current_tpv_;
 
-    // Goal Dist History
-    std::queue<std::pair<goby::time::SteadyClock::time_point, double>> current_goal_dist_history_;
-
-    // Current Goal
-    int current_goal_{-2};
-    bool updated_goal_{true};
-    int goal_timeout_{0};
+    // states to watch for no forward progress
     bool use_goal_timeout_{false};
-    goby::time::SteadyClock::time_point last_goal_timeout_time_{std::chrono::seconds(0)};
+    bool use_goal_linear_regress_slope_timeout_{false};
     std::set<jaiabot::protobuf::MissionState> include_goal_timeout_states_;
 };
 

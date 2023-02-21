@@ -56,7 +56,8 @@ is_sim: $mission_manager_in_simulation
 goal_timeout_buffer_factor: 1.00 # (default = 1)
 goal_timeout_reacquire_gps_attempts: 2 # (default = 2)
 use_goal_timeout: false # (default = false)
-tpv_history_max: 15 # (default = 15)
+use_goal_linear_regress_slope_timeout: false # (default = false)
+goal_dist_history_max: 15 # (default = 15)
 skip_goal_task: false # (default = false)
 include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_goal_timeout_states: IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS

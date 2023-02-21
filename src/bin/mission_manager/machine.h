@@ -29,7 +29,6 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-#include <queue>
 #include <vector>
 
 namespace jaiabot
@@ -675,28 +674,37 @@ struct InMission
 
     void add_to_goal_distance_history()
     {
-        auto current_time = goby::time::SteadyClock::now();
+        int dayInSeconds = 86400;
+
+        const auto p1 = std::chrono::system_clock::now();
+
+        // Get seconds for just the day
+        double current_time =
+            std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count() %
+            dayInSeconds;
 
         if (current_distance_to_goal().has_value())
         {
-            // Check the queue size to ensure it is less than max
-            if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
+            // Check the vector size to ensure it is less than max
+            if (goal_dist_history_.size() >= cfg().goal_dist_history_max())
             {
-                current_goal_dist_history_.pop();
-                current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
-                linear_regression_slope_ = linear_regression_slope(current_goal_dist_history_);
+                goal_dist_history_.erase(goal_dist_history_.begin());
+                goal_dist_history_.push_back({current_time, current_distance_to_goal().value()});
+                linear_regression_slope_ = linear_regression_slope(goal_dist_history_);
             }
             else
             {
-                current_goal_dist_history_.push({current_time, current_distance_to_goal().value()});
+                goal_dist_history_.push_back({current_time, current_distance_to_goal().value()});
             }
         }
     }
     const bool making_forward_progress_to_goal() const
     {
-        goby::glog.is_debug2() && goby::glog << "Slope: " << linear_regression_slope_ << std::endl;
+        goby::glog.is_debug2() &&
+            goby::glog << "linear_regression_slope: "
+                       << (linear_regression_slope_ + cfg().no_forward_progress_eps()) << std::endl;
 
-        if (linear_regression_slope_ + (0.0000001) < 0)
+        if ((linear_regression_slope_ + cfg().no_forward_progress_eps()) < 0)
         {
             return true;
         }
@@ -732,6 +740,8 @@ struct InMission
         }
     }
 
+    double current_goal_linear_regression_slope_timeout() const { return linear_regression_slope_; }
+
     bool skip_goal_task() const { return skip_goal_task_; }
 
     protobuf::MissionPlan::Goal final_goal() const
@@ -764,9 +774,10 @@ struct InMission
                                    cfg().goal_timeout_reacquire_gps_attempts());
         }
 
-        // Clear current_goal_dist_history_ to start new with update goal
-        std::queue<std::pair<goby::time::SteadyClock::time_point, double>> empty;
-        std::swap(current_goal_dist_history_, empty);
+        // Clear goal_dist_history_ to start new with updated goal
+        goal_dist_history_.clear();
+        // Reset to -1 until we have filled the history vector
+        linear_regression_slope_ = -1;
 
         last_goal_timeout_time_ = current_time;
     }
@@ -827,38 +838,10 @@ struct InMission
      * @param goal_dist_history
      * @return double (slope)
      */
-    double linear_regression_slope(
-        const std::queue<std::pair<goby::time::SteadyClock::time_point, double>>& goal_dist_history)
+    double linear_regression_slope(const std::vector<std::pair<double, double>>& goal_dist_history)
     {
-        std::queue<std::pair<goby::time::SteadyClock::time_point, double>> copy_goal_dist_history;
-        std::vector<double> x;
-        std::vector<double> y;
-
-        copy_goal_dist_history = goal_dist_history;
-
         goby::glog.is_debug2() &&
             goby::glog << "goal_dist_history size: " << goal_dist_history.size() << std::endl;
-
-        // Copy queue values into separate vectors
-        while (!copy_goal_dist_history.empty())
-        {
-            goby::glog.is_debug2() &&
-                goby::glog << "x value time: "
-                           << copy_goal_dist_history.front().first.time_since_epoch().count()
-                           << ", y value dist: " << copy_goal_dist_history.front().second
-                           << std::endl;
-
-            x.push_back(copy_goal_dist_history.front().first.time_since_epoch().count());
-            y.push_back(copy_goal_dist_history.front().second);
-            copy_goal_dist_history.pop();
-        }
-
-        goby::glog.is_debug2() && goby::glog << "x size: " << x.size() << ", y size: " << y.size()
-                                             << std::endl;
-
-        // Make sure the two vectors are the same size
-        if (x.size() != y.size())
-            return 0;
 
         // Store the coefficient/slope in
         // the best fitting line
@@ -882,15 +865,18 @@ struct InMission
         // all (i-th y)
         double sum_y_square = 0;
 
-        int N = x.size();
+        int N = goal_dist_history.size();
 
-        for (int i = 0; i < N; i++)
+        for (const auto hist : goal_dist_history)
         {
-            sum_xy += x[i] * y[i];
-            sum_x += x[i];
-            sum_y += y[i];
-            sum_x_square += x[i] * x[i];
-            sum_y_square += y[i] * y[i];
+            goby::glog.is_debug2() && goby::glog << "x value time: " << hist.first
+                                                 << ", y value dist: " << hist.second << std::endl;
+
+            sum_xy += hist.first * hist.second;
+            sum_x += hist.first;
+            sum_y += hist.second;
+            sum_x_square += hist.first * hist.first;
+            sum_y_square += hist.second * hist.second;
         }
 
         goby::glog.is_debug2() && goby::glog << "N: " << N << ", sum_xy: " << sum_xy
@@ -927,8 +913,8 @@ struct InMission
     int total_goal_timeout_{0};
     goby::time::SteadyClock::time_point last_goal_timeout_time_{std::chrono::seconds(0)};
     bool skip_goal_task_{cfg().skip_goal_task()};
-    std::queue<std::pair<goby::time::SteadyClock::time_point, double>> current_goal_dist_history_;
     double linear_regression_slope_{-1};
+    std::vector<std::pair<double, double>> goal_dist_history_;
 };
 
 namespace inmission
@@ -972,7 +958,7 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
             // Reset Counter For Degraded Checks
             gps_degraded_fix_check_incr_ = 0;
 
-            // Add to current dist to goal in history queue.
+            // Add to current dist to goal in history vector.
             // This is used to determine if we are making
             // progress to next goal
             this->template context<InMission>().add_to_goal_distance_history();

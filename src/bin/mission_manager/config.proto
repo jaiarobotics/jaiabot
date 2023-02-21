@@ -97,8 +97,8 @@ message MissionManager
     // The number of reacquire attempts used to calculate goal timeout
     optional uint32 goal_timeout_reacquire_gps_attempts = 45 [default = 2];
 
-    // Number of good gps locations to keep
-    optional uint32 tpv_history_max = 46 [default = 15];
+    // Number of dist to goal historys to keep before discarding oldest
+    optional uint32 goal_dist_history_max = 46 [default = 15];
 
     // Used to indicate to use goal timeout
     optional bool use_goal_timeout = 47 [default = false];
@@ -109,19 +109,26 @@ message MissionManager
     // States to detect goal timeout
     repeated jaiabot.protobuf.MissionState include_goal_timeout_states = 49;
 
+    optional uint32 imu_restart_seconds = 50 [default = 10];
+
+    // use eps to determine no forward progress to goal
+    optional double no_forward_progress_eps = 51
+        [default = 0.1, (dccl.field).units = { base_dimensions: "L" }]; 
+
+    // Used to indicate to use goal timeout
+    optional bool use_goal_linear_regress_slope_timeout = 52 [default = false];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;
         RC_SETPOINT_ENDS_IN_SURFACE_DRIFT = 2;
     }
-    optional RemoteControlSetpointEnd rc_setpoint_end = 50
+    optional RemoteControlSetpointEnd rc_setpoint_end = 60
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
-
-    optional uint32 imu_restart_seconds = 51 [default = 10];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
-    required string data_offload_command = 60;
+    required string data_offload_command = 70;
 
     enum EngineeringTestMode
     {

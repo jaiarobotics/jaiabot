@@ -101,6 +101,14 @@ message MissionReport
             units { base_dimensions: "T" }
         }
     ];
+    optional double active_goal_linear_regress_slope_timeout = 15 [
+        (dccl.field) = {
+            min: -100
+            max: 100
+            precision: 1
+            units { base_dimensions: "T" }
+        }
+    ];
 }
 
 message MissionTask

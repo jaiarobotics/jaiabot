@@ -95,16 +95,17 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 52 bytes / 416 bits
+    Actual maximum size of message: 53 bytes / 424 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................402
-            padding to full byte...................6
-    Allowed maximum size of message: 52 bytes / 416 bits
+            body.................................412
+            padding to full byte...................4
+    Allowed maximum size of message: 55 bytes / 440 bits
+
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 52
+        max_bytes: 53
         codec_version: 3
         unit_system: "si"
     };
@@ -193,6 +194,14 @@ message BotStatus
             min: 0
             max: 3600
             precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
+    optional double active_goal_linear_regress_slope_timeout = 44 [
+        (dccl.field) = {
+            min: -100
+            max: 100
+            precision: 1
             units { base_dimensions: "T" }
         }
     ];

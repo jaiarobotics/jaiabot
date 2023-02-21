@@ -385,6 +385,7 @@ export interface MissionReport {
     active_goal_location?: GeographicCoordinate
     distance_to_active_goal?: number
     active_goal_timeout?: number
+    active_goal_linear_regress_slope_timeout?: number
 }
 
 export enum TaskType {
@@ -951,6 +952,7 @@ export interface BotStatus {
     active_goal?: number
     distance_to_active_goal?: number
     active_goal_timeout?: number
+    active_goal_linear_regress_slope_timeout?: number
     salinity?: number
     temperature?: number
     thermocouple_temperature?: number

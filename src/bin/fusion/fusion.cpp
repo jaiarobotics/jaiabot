@@ -469,6 +469,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 {
                     latest_bot_status_.set_active_goal_timeout(report.active_goal_timeout());
                 }
+                if (report.has_active_goal_linear_regress_slope_timeout())
+                {
+                    latest_bot_status_.set_active_goal_linear_regress_slope_timeout(
+                        report.active_goal_linear_regress_slope_timeout());
+                }
             }
             else
             {

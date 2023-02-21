@@ -355,6 +355,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     let activeGoal = bot.active_goal ?? "N/A"
     let distToGoal = bot.distance_to_active_goal ?? "N/A"
     let goalTimeout = bot.active_goal_timeout ?? "N/A"
+    let goalLinearRegressSlopeTimeout = bot.active_goal_linear_regress_slope_timeout ?? "N/A"
 
     if(activeGoal != "N/A"
         && distToGoal == "N/A")
@@ -435,6 +436,10 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <tr>
                                     <td>Active Goal Timeout</td>
                                     <td style={{whiteSpace: "pre-line"}}>{goalTimeout}</td>
+                                </tr>
+                                <tr>
+                                    <td>Active Goal Linear Regress Slope Timeout (Positive)</td>
+                                    <td style={{whiteSpace: "pre-line"}}>{goalLinearRegressSlopeTimeout}</td>
                                 </tr>
                                 <tr>
                                     <td>Distance to Goal</td>
