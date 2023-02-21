@@ -357,6 +357,25 @@ jaiabot::apps::MissionManager::MissionManager()
                 }
             }
         });
+
+    // handle rf disable commands to make sure task packets are not sent
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        machine_->set_rf_disable(true);
+                    }
+                    else
+                    {
+                        machine_->set_rf_disable(false);
+                    }
+                }
+            }
+        });
 }
 
 jaiabot::apps::MissionManager::~MissionManager()

@@ -31,10 +31,10 @@ imu_restart_timeout: 30 # default (30 seconds)
 
 # IMU Detection
 imu_detect_timeout: 1 # second
-total_imu_issue_checks: 7 # default (5 checks) 5 * imu_detect_timeout = time to detect
+total_imu_issue_checks: 7 # default (7 checks) checks * imu_detect_timeout = time to detect
 
-# Set the rate to send bot status in milliseconds
-bot_status_rate: 1000 # default (1000 milliseconds)
+# Set the period to send bot status in milliseconds
+bot_status_period_ms: 1000 # default (1000 milliseconds)
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP

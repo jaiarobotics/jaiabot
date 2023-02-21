@@ -54,13 +54,13 @@ message Fusion
     optional bool is_sim = 34 [default = false];
 
     // These checks are in the loop
-    optional int32 total_imu_issue_checks = 35 [default = 5];
+    optional int32 total_imu_issue_checks = 35 [default = 7];
 
     // timeout in seconds
     optional int32 imu_restart_timeout = 36 [default = 30]; 
 
     // Rate in milliseconds
-    optional int32 bot_status_rate = 37 [default = 1000]; 
+    optional int32 bot_status_period_ms = 37 [default = 1000]; 
 
     repeated jaiabot.protobuf.MissionState include_course_error_detection_states = 38;
 

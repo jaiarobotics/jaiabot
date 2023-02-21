@@ -437,12 +437,12 @@ textarea {
   }
 
   /******** CSS Tool Bars ********************/
-  
+
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    bottom: 0;
-    left: 0;
+    right: 0;
+    top: 0;
     background: @overlay-background;
     border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
@@ -574,14 +574,13 @@ textarea {
       right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
-        padding: 5px 3px 3px 15px;
         .ol-compass {
           display: block;
           font-weight: normal;
-          width: @map-button-size - 8px;
-          height: @map-button-size - 8px;
-          font-size: @map-button-size - 8px;
-          line-height: @map-button-size - 8px;
+          width: @map-button-size;
+          height: @map-button-size;
+          font-size: @map-button-size;
+          line-height: @map-button-size;
           text-align: center;
           margin: 0px;
           will-change: transform;
@@ -593,9 +592,12 @@ textarea {
       // visibility: hidden;
       // transition: opacity 0.25s linear, visibility 0s linear 0.25s;
       button {
-        background: @inactive-color;
-        // Going for low contrast here
-        color: if(luminance(@inactive-color) < 45, black, white);
+        color: @overlay-background;
+        border-radius: @control-corner-radius;
+        height: @map-button-size;
+        width: @map-button-size;
+        min-width: @map-button-size;
+        min-height: @map-button-size;
       }
     }
 
@@ -765,7 +767,7 @@ textarea {
   .column-right {
     position: absolute;
     height: auto;
-    top: 0;
+    top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     z-index: 10;
     background-color: @overlay-background;
@@ -792,7 +794,7 @@ textarea {
 
       #engineering_requirements_table {
         td {
-          text-align: left;
+          text-align: right;
           font-size: 16px;
         }
       }
@@ -832,6 +834,7 @@ textarea {
           }
           > input {
             max-width: 8em;
+            text-align: right;
           }
           > * {
             margin-left: 2px;
@@ -957,7 +960,7 @@ textarea {
   color: @cc-text-color;
   position: absolute;
   right: @command-button-size + (2 * @command-button-padding);
-  top: 0pt;
+  top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
 }
@@ -992,7 +995,7 @@ textarea {
   color: @cc-text-color;
   position: absolute;
   right: @command-button-size + (2 * @command-button-padding);
-  top: 0pt;
+  top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
 }
@@ -1142,7 +1145,7 @@ div.hoverable:hover {
 .jaia-logo {
   width: 40pt;
   height: 40pt;
-  margin: 4pt 4pt 20pt 4pt;
+  margin: 60pt 4pt 20pt 4pt;
   border-radius: 4pt;
   border: 1pt solid gray;
 }

@@ -273,8 +273,14 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-    if (task_packet_.type() != protobuf::MissionTask::NONE)
+    if (task_packet_.type() != protobuf::MissionTask::NONE && !this->machine().rf_disable())
+    {
         intervehicle().publish<groups::task_packet>(task_packet_);
+    }
+    else if (task_packet_.type() != protobuf::MissionTask::NONE)
+    {
+        interprocess().publish<groups::task_packet>(task_packet_);
+    }
 }
 
 // Task::Dive

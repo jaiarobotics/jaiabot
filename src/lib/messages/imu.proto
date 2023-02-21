@@ -7,21 +7,21 @@ package jaiabot.protobuf;
 message IMUData
 {
     message EulerAngles {
-        optional double alpha = 1 
+        optional double heading = 1 
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
             
-        optional double beta = 2
+        optional double pitch = 2
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
 
-        optional double gamma = 3
+        optional double roll = 3
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"

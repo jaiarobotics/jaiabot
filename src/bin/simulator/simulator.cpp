@@ -357,9 +357,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     // publish IMUData
     {
         jaiabot::protobuf::IMUData imu_data;
-        imu_data.mutable_euler_angles()->set_gamma_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
+        imu_data.mutable_euler_angles()->set_pitch_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
                                                               si::radians);
-        imu_data.mutable_euler_angles()->set_beta_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
+        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
                                                              si::radians);
         imu_data.mutable_calibration_status()->set_sys(3);
         imu_data.mutable_calibration_status()->set_gyro(3);
