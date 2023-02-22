@@ -65,6 +65,10 @@ textarea {
   color: inherit;
 }
 
+div {
+  margin: auto;
+}
+
 #axui_container {
   display: block;
   position: absolute;
@@ -574,14 +578,13 @@ textarea {
       right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
-        padding: 5px 3px 3px 15px;
         .ol-compass {
           display: block;
           font-weight: normal;
-          width: @map-button-size - 8px;
-          height: @map-button-size - 8px;
-          font-size: @map-button-size - 8px;
-          line-height: @map-button-size - 8px;
+          width: @map-button-size;
+          height: @map-button-size;
+          font-size: @map-button-size;
+          line-height: @map-button-size;
           text-align: center;
           margin: 0px;
           will-change: transform;
@@ -593,9 +596,12 @@ textarea {
       // visibility: hidden;
       // transition: opacity 0.25s linear, visibility 0s linear 0.25s;
       button {
-        background: @inactive-color;
-        // Going for low contrast here
-        color: if(luminance(@inactive-color) < 45, black, white);
+        color: @overlay-background;
+        border-radius: @control-corner-radius;
+        height: @map-button-size;
+        width: @map-button-size;
+        min-width: @map-button-size;
+        min-height: @map-button-size;
       }
     }
 
