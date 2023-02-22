@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import { GlobalSettings, Save } from './Settings'
 import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters } from './gui/JAIAProtobuf';
 import { deepcopy } from './Utilities'
+import { taskNone } from './gui/Styles';
 
 
 interface Props {
@@ -34,6 +35,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     render() {
+        const { botId, goalIndex } = this.props
         let self = this
 
         let taskOptionsPanel = <div></div>
@@ -56,7 +58,11 @@ export class GoalSettingsPanel extends React.Component {
 
         return (
         <div className="GoalSettingsPanel">
-            Goal Settings
+            <div className='HorizontalFlexbox'>
+                <img src={taskNone} />
+                <div>Goal {goalIndex}</div>
+                <div>Bot {botId}</div>
+            </div>
             <div>
                 Task
                 <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
