@@ -16,6 +16,7 @@ const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
 export const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
+const taskConstantHeading = require('./taskConstantHeading.svg') as string
 const satellite = require('./satellite.svg') as string
 
 // Export the PNG data for use in KMZ files
@@ -202,7 +203,7 @@ export function goalSrc(taskType: TaskType | null) {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        'CONSTANT_HEADING': taskDrift,
+        'CONSTANT_HEADING': taskConstantHeading,
         'NONE': taskNone       
     }
 
