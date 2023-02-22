@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="21.000002pt"
+   height="36.218388pt"
+   viewBox="0 0 7.4083339 12.777042"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09, custom)"
+   sodipodi:docname="taskConstantHeading.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="9.1810446"
+     inkscape:cx="13.288248"
+     inkscape:cy="24.125795"
+     inkscape:window-width="1848"
+     inkscape:window-height="1009"
+     inkscape:window-x="72"
+     inkscape:window-y="34"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid405"
+       originx="-0.17638844"
+       originy="5.1152778"
+       snapvisiblegridlinesonly="true"
+       enabled="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0.17628707,5.4604559)">
+    <g
+       id="g20941">
+      <path
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.350999;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:8;stroke-dasharray:none;fill-opacity:1"
+         d="m 1.0226778e-4,-1.7562892 -3.09e-9,4.9388888 C 2.0778148,5.2449384 2.3519542,5.7696365 3.5278801,7.063155 4.703806,5.7696365 5.2556964,4.96464 7.0556577,3.1825996 l 10e-8,-4.9388888"
+         id="path20933"
+         sodipodi:nodetypes="ccccc" />
+      <path
+         style="fill:#ffffff;stroke:#000000;stroke-width:0.350999;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:8;stroke-dasharray:none;fill-opacity:1"
+         id="path20937"
+         sodipodi:type="arc"
+         sodipodi:cx="3.52788"
+         sodipodi:cy="-1.7562892"
+         sodipodi:rx="3.5277777"
+         sodipodi:ry="3.5277777"
+         sodipodi:start="3.1425277"
+         sodipodi:end="0.021327633"
+         sodipodi:open="true"
+         sodipodi:arc-type="arc"
+         d="M 1.0382376e-4,-1.7595879 A 3.5277777,3.5277777 0 0 1 1.7876678,-4.8249823 a 3.5277777,3.5277777 0 0 1 3.5483048,0.039499 3.5277777,3.5277777 0 0 1 1.7188827,3.1044274" />
+    </g>
+    <path
+       d="M 2.0528271,-0.28123603 3.9710566,-1.2271217 4.9169422,-3.1453514 2.9987126,-2.1994657 Z m 1.435365,-1.17078157 q -0.112448,0 -0.188516,-0.076068 -0.076068,-0.076068 -0.076068,-0.1885157 0,-0.1124479 0.076068,-0.1885156 0.076068,-0.076068 0.188516,-0.076068 0.1124475,0 0.1885155,0.076068 0.076068,0.076068 0.076068,0.1885156 0,0.112448 -0.076068,0.1885157 -0.076068,0.076068 -0.1885155,0.076068 z m 0,2.38125062 q -0.542396,0 -1.025261,-0.2083594 Q 1.9800666,0.51251417 1.6195716,0.15201927 1.2590766,-0.20847558 1.0507171,-0.69134028 0.8423581,-1.174205 0.8423581,-1.716601 q 0,-0.5490105 0.208359,-1.0318754 0.2083595,-0.4828645 0.5688545,-0.840052 0.360495,-0.3571875 0.8433595,-0.565547 0.482865,-0.2083595 1.025261,-0.2083595 0.5490105,0 1.031875,0.2083595 0.4828647,0.2083595 0.8400523,0.565547 0.3571876,0.3571875 0.565547,0.840052 0.2083595,0.4828649 0.2083595,1.0318754 0,0.542396 -0.2083595,1.02526072 -0.2083594,0.4828647 -0.565547,0.84335956 -0.3571876,0.36049489 -0.8400523,0.56885434 -0.4828645,0.2083594 -1.031875,0.2083594 z m 0,-0.3968751 q 0.9392708,0 1.5941148,-0.6581512 0.6548439,-0.6581512 0.6548439,-1.59080772 0,-0.9392709 -0.6548439,-1.5941149 -0.654844,-0.654844 -1.5941148,-0.654844 -0.9326565,0 -1.590808,0.654844 -0.658151,0.654844 -0.658151,1.5941149 0,0.93265652 0.658151,1.59080772 0.6581515,0.6581512 1.590808,0.6581512 z m 0,-2.24895892 z"
+       id="path324"
+       style="stroke-width:0.0066146" />
+  </g>
+</svg>
