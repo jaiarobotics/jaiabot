@@ -5,6 +5,11 @@ import os
 import requests
 import RPi.GPIO as GPIO
 import time
+import logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('hub-button-trigger')
+log.setLevel('DEBUG')
 
 # defining the api-endpoint 
 API_ENDPOINT = "http://localhost:40001/jaia/allStopSafety"
@@ -15,23 +20,23 @@ Button.is_not_stopping_bots = True
 
 def pressed(btn):
     if btn.pressed_time + timedelta(seconds=1) > datetime.now():
-        print("pressed twice")
+        log.debug("pressed twice")
         os.system("poweroff")
     else:
-        print("pressed once") # debug
+        log.debug("pressed once") # debug
         btn.pressed_time = datetime.now()
 
 def held(btn):
-    print("Held")
+    log.debug("Held")
 
     is_active = os.popen('systemctl is-active jaiabot_web_app_py').read().strip()
 
-    print(is_active)
+    log.debug(is_active)
 
     if is_active == "active" and btn.is_not_stopping_bots:
         btn.is_not_stopping_bots = False
         try:
-            print("Stopping Bots")
+            log.debug("Stopping Bots")
             # sending post request and saving response as response object
             r = requests.post(url = API_ENDPOINT)
 
@@ -66,15 +71,16 @@ def held(btn):
             # now clean up the GPIO
             GPIO.cleanup()
         except requests.exceptions.HTTPError as errh:
-            print ("Http Error:",errh)
+            log.error("Http Error:" + errh)
         except requests.exceptions.ConnectionError as errc:
-            print ("Error Connecting:",errc)
+            log.error("Error Connecting:" + errc)
         except requests.exceptions.Timeout as errt:
-            print ("Timeout Error:",errt)
+            log.error("Timeout Error:" + errt)
         except requests.exceptions.RequestException as err:
-            print ("OOps: Something Else",err)
+            log.error("OOps: Something Else" + err)
         # Set back to true to allow another stop all
         btn.is_not_stopping_bots = True
+        log.debug("Held Complete")
 
 
 btn = Button(4)
