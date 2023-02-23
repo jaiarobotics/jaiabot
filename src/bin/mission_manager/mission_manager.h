@@ -62,6 +62,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     bool use_goal_timeout_{false};
     bool use_goal_linear_regress_slope_timeout_{false};
     std::set<jaiabot::protobuf::MissionState> include_goal_timeout_states_;
+    goby::time::SteadyClock::time_point no_forward_progress_warning_last_time_{
+        std::chrono::seconds(0)};
 };
 
 } // namespace apps

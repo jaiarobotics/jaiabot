@@ -424,6 +424,7 @@ void jaiabot::apps::MissionManager::loop()
 
             // Report 0 if no goal timeout
             report.set_active_goal_timeout(0);
+            report.set_active_goal_linear_regress_slope_timeout(0);
 
             // Check to see if operator wants to use goal timeout
             // And Check to see if we are in correct state to detect goal timeout
@@ -443,7 +444,19 @@ void jaiabot::apps::MissionManager::loop()
                     if (in_mission->skip_goal_task())
                     {
                         machine_->process_event(statechart::EvTaskComplete());
+                        machine_->insert_warning(
+                            jaiabot::protobuf::
+                                WARNING__MISSION__NO_FORWARD_PROGESS__TRANSIT_TO_NEXT_GOAL);
                     }
+                    else
+                    {
+                        machine_->insert_warning(
+                            jaiabot::protobuf::
+                                WARNING__MISSION__NO_FORWARD_PROGESS__DO_TASK_THEN_TRANSIT_TO_NEXT_GOAL);
+                    }
+
+                    no_forward_progress_warning_last_time_ = current_time;
+                    report.set_active_goal_skipped(true);
                 }
             }
 
@@ -464,7 +477,43 @@ void jaiabot::apps::MissionManager::loop()
                     if (in_mission->skip_goal_task())
                     {
                         machine_->process_event(statechart::EvTaskComplete());
+                        machine_->insert_warning(
+                            jaiabot::protobuf::
+                                WARNING__MISSION__NO_FORWARD_PROGESS__TRANSIT_TO_NEXT_GOAL);
                     }
+                    else
+                    {
+                        machine_->insert_warning(
+                            jaiabot::protobuf::
+                                WARNING__MISSION__NO_FORWARD_PROGESS__DO_TASK_THEN_TRANSIT_TO_NEXT_GOAL);
+                    }
+
+                    no_forward_progress_warning_last_time_ = current_time;
+                    report.set_active_goal_skipped(true);
+                }
+            }
+
+            // Remove No forward progress warnings after a configurable time
+            if ((no_forward_progress_warning_last_time_ +
+                 std::chrono::seconds(cfg().no_forward_progress_health_warning_timeout())) <=
+                current_time)
+            {
+                if (machine_->is_a_current_warning(
+                        jaiabot::protobuf::
+                            WARNING__MISSION__NO_FORWARD_PROGESS__TRANSIT_TO_NEXT_GOAL))
+                {
+                    machine_->erase_warning(
+                        jaiabot::protobuf::
+                            WARNING__MISSION__NO_FORWARD_PROGESS__TRANSIT_TO_NEXT_GOAL);
+                }
+
+                if (machine_->is_a_current_warning(
+                        jaiabot::protobuf::
+                            WARNING__MISSION__NO_FORWARD_PROGESS__DO_TASK_THEN_TRANSIT_TO_NEXT_GOAL))
+                {
+                    machine_->erase_warning(
+                        jaiabot::protobuf::
+                            WARNING__MISSION__NO_FORWARD_PROGESS__DO_TASK_THEN_TRANSIT_TO_NEXT_GOAL);
                 }
             }
         }

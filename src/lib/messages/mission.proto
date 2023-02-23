@@ -109,6 +109,7 @@ message MissionReport
             units { base_dimensions: "T" }
         }
     ];
+    optional bool active_goal_skipped = 16 [default = false];
 }
 
 message MissionTask

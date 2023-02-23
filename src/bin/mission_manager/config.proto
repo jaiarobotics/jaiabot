@@ -118,6 +118,9 @@ message MissionManager
     // Used to indicate to use goal timeout
     optional bool use_goal_linear_regress_slope_timeout = 52 [default = false];
 
+    // Used to indicate to use health warning timeout for no forward progress
+    optional uint32 no_forward_progress_health_warning_timeout = 53 [default = 40];
+
     enum RemoteControlSetpointEnd
     {
         RC_SETPOINT_ENDS_IN_STATIONKEEP = 1;

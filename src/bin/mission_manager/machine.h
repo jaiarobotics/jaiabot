@@ -251,6 +251,10 @@ struct MissionManagerStateMachine
 
     void insert_warning(jaiabot::protobuf::Warning warning) { warnings_.insert(warning); }
     void erase_warning(jaiabot::protobuf::Warning warning) { warnings_.erase(warning); }
+    bool is_a_current_warning(jaiabot::protobuf::Warning warning)
+    {
+        return warnings_.count(warning);
+    }
     void erase_infeasible_mission_warnings()
     {
         for (auto it = warnings_.begin(); it != warnings_.end();)
