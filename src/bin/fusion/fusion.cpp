@@ -89,7 +89,6 @@ class Fusion : public ApplicationBase
     double previous_course_over_ground_{0};
     bool imu_issue_{false};
     int imu_issue_crs_hdg_incr_{0};
-    int imu_issue_hdg_incr_{0};
     goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
@@ -763,8 +762,22 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
 
     for (const auto& ep : missing_data_errors_)
     {
-        if (!last_data_time_.count(ep.first) ||
-            (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
+        // TODO: We should be able to easily configure different error timeouts
+        // Temp fix for now
+        if (ep.first == DataType::HEADING)
+        {
+            if (!last_data_time_.count(ep.first) ||
+                (last_data_time_[ep.first] + std::chrono::seconds(cfg().heading_timeout_seconds()) <
+                 now))
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+                health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+            }
+        }
+        else if (!last_data_time_.count(ep.first) ||
+                 (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+                  now))
         {
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
             health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
@@ -877,37 +890,18 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         }
     }
 
-    if (!last_data_time_.count(DataType::HEADING) ||
-        (last_data_time_[DataType::HEADING] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+    if ((last_data_time_[DataType::HEADING] +
+             std::chrono::seconds(cfg().heading_timeout_seconds()) <
          now))
     {
-        if (imu_issue_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
-        {
-            glog.is_debug1() && glog << "Have not reached threshold for total checks "
-                                     << imu_issue_hdg_incr_ << " < "
-                                     << (cfg().total_imu_issue_checks() - 1) << std::endl;
-            // Increment until we reach total_imu_issue_checks
-            imu_issue_hdg_incr_++;
-        }
-        else
-        {
-            interprocess().publish<jaiabot::groups::imu>(imu_issue);
-            imu_issue_ = true;
-            glog.is_debug1() && glog << "Post IMU Warning" << endl;
-        }
-        
-    }
-    else
-    {
-        // Reset increment
-        imu_issue_hdg_incr_ = 0;
+        interprocess().publish<jaiabot::groups::imu>(imu_issue);
+        imu_issue_ = true;
+        glog.is_debug1() && glog << "Post IMU Warning" << endl;
     }
 
     if(imu_issue_)
     {
         last_imu_issue_report_time_ = now;
-        // Reset hdg increment
-        imu_issue_hdg_incr_ = 0;
         // Reset crs hdg increment
         imu_issue_crs_hdg_incr_ = 0;
     }
