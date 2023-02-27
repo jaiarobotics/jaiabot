@@ -15,8 +15,13 @@ discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUI
 discard_location_states: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
 discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
+# IMU Detection
 imu_heading_course_max_diff: 45 # In Degrees
 course_over_ground_timeout: 3 # timeout in seconds
+total_imu_issue_checks: 7 # default (7 checks) checks * imu_detect_period (1 seconds) = time to detect
+
+# When to start detecting imu issues again after detecting one
+imu_detect_timeout: 30 # default (30 seconds)
 
 # STOP_BOT
 # USE_COG
@@ -25,13 +30,6 @@ course_over_ground_timeout: 3 # timeout in seconds
 # REBOOT_BOT
 # REPORT_IMU
 imu_issue_solution: RESTART_IMU_PY
-
-# Seconds
-imu_restart_timeout: 30 # default (30 seconds)
-
-# IMU Detection
-imu_detect_timeout: 1 # second
-total_imu_issue_checks: 7 # default (7 checks) checks * imu_detect_timeout = time to detect
 
 # Set the period to send bot status in milliseconds
 bot_status_period_ms: 1000 # default (1000 milliseconds)
