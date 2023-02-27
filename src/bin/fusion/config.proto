@@ -42,6 +42,8 @@ message Fusion
 
     optional int32 data_timeout_seconds = 20 [default = 20];
 
+    optional int32 heading_timeout_seconds = 21 [default = 3];
+
     repeated jaiabot.protobuf.MissionState discard_location_states = 30;
 
     optional double imu_heading_course_max_diff = 31 [default = 45];

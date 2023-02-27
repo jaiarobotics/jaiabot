@@ -1869,7 +1869,7 @@ export default class CommandControl extends React.Component {
 				faultLevel: faultLevel,
 				isDisconnected: bot.isDisconnected,
 				botId: botId,
-				isReacquiringGPS: bot.mission_state.endsWith('REACQUIRE_GPS')
+				isReacquiringGPS: bot.mission_state?.endsWith('REACQUIRE_GPS')
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
