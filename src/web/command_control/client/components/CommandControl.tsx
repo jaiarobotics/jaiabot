@@ -1795,9 +1795,19 @@ export default class CommandControl extends React.Component {
 
 			// ID
 			const bot_id = bot.bot_id
+
+			let hasLocation = bot.location ?? "N/A";
+			let botLat = 0;
+			let botLon = 0;
+
+			if(hasLocation != "N/A")
+			{
+				botLat = bot.location?.lat
+				botLon = bot.location?.lon
+			}
 			// Geometry
-			const botLatitude = bot.location?.lat
-			const botLongitude = bot.location?.lon
+			const botLatitude = botLat
+			const botLongitude = botLon
 			// Properties
 			const botHeading = bot.attitude?.heading
 			const botSpeed = bot.speed?.over_ground
@@ -2355,7 +2365,13 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
-						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+						<Button 
+							onClick={() => {
+								this.zoomToAll(false);
+								this.trackBot(null);
+							}}
+							className="button-jcc active"
+						>
 							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Unfollow" />
 						</Button>
 					) : (
@@ -2370,7 +2386,13 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
-						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+						<Button 							
+							onClick={() => {
+								this.zoomToAllBots(false);
+								this.trackBot(null);
+							}} 
+							className="button-jcc active"
+						>
 							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow" />
 						</Button>
 					) : (
