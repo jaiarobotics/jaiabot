@@ -51,7 +51,7 @@ To configure just a few bots, it may be easier to simply boot the image and conf
 
 #### Option 2 - text file first boot preseed
 
-When configuring many bots and/or when connecting a monitor would be difficult, the answers to the first boot configuration can be preset ("preseeded") in a text file: `/etc/jaiabot/init/first-boot.preseed`. An example of this text file is provided on the image as `/etc/jaiabot/init/first-boot.preseed.ex`. Simply copy this file to `/etc/jaiabot/init/first-boot.preseed` and edit the answers as desired.
+When configuring many bots and/or when connecting a monitor would be difficult, the answers to the first boot configuration can be preset ("preseeded") in a text file: `/boot/firmware/jaiabot/init/first-boot.preseed`. An example of this text file is provided on the image as `/etc/jaiabot/init/first-boot.preseed.ex`. Simply copy this file to `/boot/firmware/jaiabot/init/first-boot.preseed` and edit the answers as desired.
 
 If the preseed file exists, configuration will happen automatically without user intervention or the requirement for connecting a monitor or DHCP based SSH session.
 
@@ -66,7 +66,7 @@ If you want to re-run the first-boot configuration in the future (for example to
 ```
 ## overlayroot=device:dev=/dev/disk/by-label/overlay,timeout=60,recurse=0
 ```
-- Move first-boot.preseed.complete to first-boot.preseed in /etc/jaiabot/init and edit as required.
+- Move first-boot.preseed.complete to first-boot.preseed in /boot/firmware/jaiabot/init and edit as required.
 - reboot
 
 
