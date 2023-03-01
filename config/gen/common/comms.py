@@ -27,9 +27,11 @@ def xbee_modem_id(node_id):
 
 def runtime_wifi_ip_addr(node_id, fleet_index):
     if node_id == hub_node_id:
-        return '10.23.' + str(fleet_index) + '.' + str(node_id + 10)
+        hub_index = 0
+        return '10.23.' + str(fleet_index) + '.' + str(hub_index + 10)
     else:
-        return '10.23.' + str(fleet_index) + '.' + str(node_id + 100)
+        bot_index = node_id - 1
+        return '10.23.' + str(fleet_index) + '.' + str(bot_index + 100)
 
 def wifi_ip_addr(this_node_id, node_id, fleet_index):
     wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index)
