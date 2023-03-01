@@ -304,20 +304,20 @@ def get_map(log_names):
     # Open all our logs
     logs = [h5py.File(log_name) for log_name in log_names]
 
-    BotStatus_lat_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lat'
-    BotStatus_lon_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/location/lon'
-    BotStatus_heading_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/heading'
-    BotStatus_course_over_ground_path = 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/attitude/course_over_ground'
+    NodeStatus_lat_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lat'
+    NodeStatus_lon_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lon'
+    NodeStatus_heading_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/heading'
+    NodeStatus_course_over_ground_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/course_over_ground'
     DesiredSetpoints_heading_path = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/helm_course/heading'
 
     seriesList = []
     desired_heading_series = Series()
 
     for log in logs:
-        lat_series = Series(log=log, path=BotStatus_lat_path, invalid_values=[0])
-        lon_series = Series(log=log, path=BotStatus_lon_path, invalid_values=[0])
-        heading_series = Series(log=log, path=BotStatus_heading_path)
-        course_over_ground_series = Series(log=log, path=BotStatus_course_over_ground_path)
+        lat_series = Series(log=log, path=NodeStatus_lat_path, invalid_values=[0])
+        lon_series = Series(log=log, path=NodeStatus_lon_path, invalid_values=[0])
+        heading_series = Series(log=log, path=NodeStatus_heading_path)
+        course_over_ground_series = Series(log=log, path=NodeStatus_course_over_ground_path)
 
         thisSeries = []
 

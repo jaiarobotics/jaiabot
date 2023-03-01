@@ -259,6 +259,8 @@ interface State {
 	selectedFeatures?: OlCollection<OlFeature>,
 	detailsBoxItem?: HubOrBot,
 	detailsExpanded: DetailsExpandedState,
+	goalBeingEditedBotId?: number,
+	goalBeingEditedGoalIndex?: number,
 	goalBeingEdited?: Goal,
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
@@ -1769,7 +1771,7 @@ export default class CommandControl extends React.Component {
 
 			const active_mission_plan = bot.active_mission_plan
 			if (active_mission_plan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
+				let features = MissionFeatures.createMissionFeatures(map, Number(botId), active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
 				allFeatures.push(...features)
 			}
 		}
@@ -1867,7 +1869,7 @@ export default class CommandControl extends React.Component {
 				faultLevel: faultLevel,
 				isDisconnected: bot.isDisconnected,
 				botId: botId,
-				isReacquiringGPS: bot.mission_state.endsWith('REACQUIRE_GPS')
+				isReacquiringGPS: bot.mission_state?.endsWith('REACQUIRE_GPS')
 			});
 
 			const zoomExtentWidth = 0.001; // Degrees
@@ -2121,8 +2123,6 @@ export default class CommandControl extends React.Component {
 
 		// If something was changed
 		if (JSON.stringify(oldMissions) != JSON.stringify(this.missions) ) {
-			console.log("The old mission does not equal new mission");
-
 			// then place the old mission set into the undoMissions
 			this.undoMissionsStack.push(deepcopy(oldMissions))
 
@@ -2209,6 +2209,8 @@ export default class CommandControl extends React.Component {
 		if (this.state.goalBeingEdited != null) {
 			goalSettingsPanel = 
 				<GoalSettingsPanel 
+					botId={this.state.goalBeingEditedBotId}
+					goalIndex={this.state.goalBeingEditedGoalIndex}
 					goal={this.state.goalBeingEdited} 
 					onChange={() => { this.updateMissionLayer() }} 
 					onClose={() => 
@@ -2758,14 +2760,12 @@ export default class CommandControl extends React.Component {
 
 			let selected = this.isBotSelected(Number(botId))
 
-			let goals = missions[botId]?.plan?.goal || []
-
 			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
 
 			// Add our goals
 			const plan = missions[botId].plan
 			if (plan != null) {
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, plan, active_goal_index, selected)
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, Number(botId), plan, active_goal_index, selected)
 				features.push(...missionFeatures)
 			}
 		}
@@ -3158,10 +3158,16 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
+			let botId = feature.get('botId')
+			let goalIndex = feature.get('goalIndex')
 
 			if (goal != null) {
 				previous_mission_history = deepcopy(this.missions);
-				this.setState({goalBeingEdited: goal})
+				this.setState({
+					goalBeingEdited: goal, 
+					goalBeingEditedBotId: botId, 
+					goalBeingEditedGoalIndex: goalIndex
+				})
 				return false
 			}
 
