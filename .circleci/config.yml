@@ -184,14 +184,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "apt-mirror"
+        - "systemd-sim"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "apt-mirror"
+        - "systemd-sim"
 
         
 ## Begin actual config
