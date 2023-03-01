@@ -46,6 +46,7 @@ parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
+parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 args=parser.parse_args()
 
@@ -59,8 +60,10 @@ class Mode(Enum):
     
 if args.simulation:
     jaia_mode=Mode.SIMULATION
+    warp=args.warp
 else:
     jaia_mode=Mode.RUNTIME
+    warp=1
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -69,7 +72,7 @@ subprocess.run('bash -ic "' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
-               'export jaia_warp=1; ' +
+               'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
