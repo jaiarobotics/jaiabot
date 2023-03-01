@@ -45,15 +45,26 @@ parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
 parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the fleet')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
+parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 args=parser.parse_args()
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
+class Mode(Enum):
+    SIMULATION = 'simulation'
+    RUNTIME = 'runtime'
+    BOTH = 'both'
+    
+if args.simulation:
+    jaia_mode=Mode.SIMULATION
+else:
+    jaia_mode=Mode.RUNTIME
+    
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
 subprocess.run('bash -ic "' +
-               'export jaia_mode=runtime; ' +
+               'export jaia_mode=' + jaia_mode.value + '; ' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
@@ -73,6 +84,9 @@ common_macros['extra_unit']=''
 common_macros['extra_flags']=''
 common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
 common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
+common_macros['moos_sim_file']='/tmp/jaiabot_sim_${jaia_bot_index}.moos'
+# unless otherwise specified, apps are run both at runtime and simulation
+common_macros['runs_when']=Mode.BOTH
 
 try:
     common_macros['user']=os.getlogin()
@@ -159,6 +173,12 @@ jaiabot_apps=[
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
      'runs_on': Type.BOT},
+    {'exe': 'jaiabot_simulator',
+     'description': 'JaiaBot Simulator',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION},       
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
@@ -195,7 +215,8 @@ jaiabot_apps=[
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
@@ -207,21 +228,24 @@ jaiabot_apps=[
      'subdir': 'adafruit_BNO055',
      'args': '20000',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'pressure_sensor',
      'args': '',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
     {'exe': 'jaiabot_as-ezo-ec.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
      'args': '20002',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -242,6 +266,20 @@ jaiabot_apps=[
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
      'runs_on': Type.BOT},
+    {'exe': 'MOOSDB',
+     'description': 'MOOSDB Simulation Broker',
+     'template': 'moosdb-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION,
+     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
+    },
+    {'exe': 'uSimMarine',
+     'description': 'uSimMarine marine vehicle simulator',
+     'template': 'moos-app-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_USIMMARINE',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION},
     {'exe': 'jaiabot_log_converter',
      'description': 'jaiabot_log_converter converts goby files to h5',
      'template': 'jaiabot_log_converter.service.in',
@@ -255,21 +293,29 @@ jaiabot_apps=[
 ]
 
 
+# check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
+def is_app_run(app):
+    macros={**common_macros, **app}
+    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode)
+
 for app in jaiabot_apps:
-    if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
+    if is_app_run(app):
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
 
         
 for app in jaiabot_apps:
-    if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
+    if is_app_run(app):
         macros={**common_macros, **app}
 
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
-        service = app['exe'].replace('.', '_').lower()
-        if macros['exe'][0:7] != 'jaiabot':
-            service = 'jaiabot_' + service
+        if 'service' in macros:
+            service = macros['service']
+        else:
+            service = app['exe'].replace('.', '_').lower()
+            if macros['exe'][0:7] != 'jaiabot':
+                service = 'jaiabot_' + service
 
         # special case for goby_coroner - need a list of everything we're running
         if app['exe'] == 'goby_coroner':
@@ -280,7 +326,7 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['goby_bin_dir']
             else:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
-                
+
         macros['service'] = service
                 
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
