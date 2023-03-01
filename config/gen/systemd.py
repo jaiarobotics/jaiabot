@@ -291,7 +291,12 @@ jaiabot_apps=[
      'description': 'jaiabot_data_vision visualize log data',
      'template': 'jaiabot_data_vision.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
-     'runs_on': Type.HUB}
+     'runs_on': Type.HUB},
+    {'exe': 'gpsd',
+     'description': 'GPSD for simulator only',
+     'template': 'gpsd-sim.service.in',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION}
 ]
 
 
