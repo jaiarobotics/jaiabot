@@ -1,16 +1,10 @@
 [Unit]
 Description=$description
 
-BindsTo=jaiabot_health.service
-After=jaiabot_health.service
-$extra_unit
-
 [Service]
-User=$user
-Group=$group
-
 EnvironmentFile=$env_file
-ExecStart=/usr/sbin/gpsd $$($gen gpsd)
+ExecStartPre=/bin/systemctl stop gpsd.socket
+ExecStart=/bin/bash -c "exec /usr/sbin/gpsd $$($gen gpsd)"
 
 [Install]
-WantedBy=jaiabot_health.service
+WantedBy=multi-user.target
