@@ -4,7 +4,6 @@ from datetime import datetime
 import argparse
 import socket
 import logging
-import time
 from math import *
 from dataclasses import dataclass
 from quaternion import Quaternion
@@ -34,6 +33,17 @@ args = parser.parse_args()
 
 log.setLevel(args.logging_level)
 
+
+@dataclass
+class IMUData:
+    orientation: Orientation
+    linear_acceleration: Vector3
+    linear_acceleration_world: Vector3
+    gravity: Vector3
+    calibration_status: tuple
+    quaternion: Quaternion
+
+
 class IMU:
 
     def __init__(self):
@@ -53,24 +63,23 @@ class IMU:
             # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
-    def getData(self):
+    def getData(self) -> IMUData:
         if not self.is_setup:
             self.setup()
 
         try:
             quaternion = Quaternion(self.sensor.quaternion)
+            orientation = quaternion.to_euler_angles()
+            orientation.heading += 90 # Even after consulting the docs, we're still off by 90 degrees!
             linear_acceleration_world = quaternion.apply(Vector3(*self.sensor.linear_acceleration))
 
-            return {
-                "euler": self.sensor.euler,
-                "linear_acceleration": self.sensor.linear_acceleration,
-                "linear_acceleration_world": linear_acceleration_world,
-                "gravity": self.sensor.gravity,
-                "calibration_status": self.sensor.calibration_status,
-                "quaternion": quaternion,
-                "calculated_euler": quaternion.to_euler_angles(),
-                "axis_remap": self.sensor.axis_remap
-            }
+            return IMUData(orientation=orientation, 
+                           linear_acceleration=self.sensor.linear_acceleration, 
+                           linear_acceleration_world=linear_acceleration_world,
+                           gravity=Vector3(self.sensor.gravity),
+                           calibration_status=self.sensor.calibration_status,
+                           quaternion=quaternion)
+
         except OSError as e:
             self.is_setup = False
             raise e
@@ -86,19 +95,16 @@ class IMUSimulator:
     def setup(self):
         pass
 
-    def getData(self):
+    def getData(self) -> IMUData:
         quaternion = Quaternion(1, 0, 0, 0)
         linear_acceleration_world = quaternion.apply(Vector3(0, 0, 0))
 
-        return {
-            "euler": (0.0, 0.0, 0.0),
-            "linear_acceleration": (0.0, 0.0, 0.0),
-            "linear_acceleration_world": linear_acceleration_world,
-            "gravity": (0.0, 0.0, 9.8),
-            "calibration_status": (3, 3, 3, 3),
-            "quaternion": quaternion,
-            "calculated_euler": quaternion.to_euler_angles()
-        }
+        return IMUData(orientation=quaternion.to_euler_angles(), 
+                        linear_acceleration=Vector3(0, 0, 0), 
+                        linear_acceleration_world=linear_acceleration_world,
+                        gravity=Vector3(0, 0, 9.8),
+                        calibration_status=(3, 3, 3, 3),
+                        quaternion=quaternion)
 
 
 # Setup the sensor
@@ -115,20 +121,9 @@ def do_port_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
 
-    imu_timeout = 5
-    previous_time = time.time()
-
     while True:
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
-        current_time = time.time()
-
-        # Band aid to reset the IMU every so often due to heading lock errors
-        # if (previous_time + imu_timeout) <= current_time:
-        #     previous_time = current_time
-        #     print("reset imu")
-        #     imu.reset()
 
         # Respond to anyone who sends us a packet
         try:
@@ -140,21 +135,13 @@ def do_port_loop():
         now = datetime.utcnow()
         
         # Use caluclated Euler angles from the quaternion
-        euler: Orientation = data['calculated_euler']
-        linear_acceleration = data['linear_acceleration']
-        gravity = data['gravity']
-        calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
+        euler: Orientation = data.orientation
+        calibration_status = data.calibration_status
         bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
-        corrected_heading = euler.heading + 90
 
         try:
-            line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
-                (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-                corrected_heading, euler.pitch, euler.roll,
-                linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
-                gravity[0], gravity[2], gravity[1],
-                calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],
-                bot_rolled)
+            line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
+                   f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled}'
             log.debug('Sent: ' + line)
 
             sock.sendto(line.encode('utf8'), addr)

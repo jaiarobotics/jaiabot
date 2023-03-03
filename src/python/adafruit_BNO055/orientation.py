@@ -8,3 +8,6 @@ class Orientation:
     pitch: float
     roll: float
 
+
+    def to_string(self):
+        return f'{self.heading},{self.pitch},{self.roll}'

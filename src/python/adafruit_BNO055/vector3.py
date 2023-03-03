@@ -30,3 +30,5 @@ class Vector3:
         return Vector3(self.x + other.x, self.y + other.y, self.z + other.z)
 
 
+    def to_string(self):
+        return f'{self.x},{self.y},{self.z}'
