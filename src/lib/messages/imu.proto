@@ -4,6 +4,23 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message Wave {
+    optional double frequency = 1
+        [(dccl.field) = {units {
+            derived_dimensions: "frequency"
+            system: "si"
+            }}
+        ];
+
+    optional double amplitude = 2
+        [(dccl.field) = {units {
+            derived_dimensions: "length"
+            system: "si"
+            }}
+        ];
+}
+
+
 message IMUData
 {
     message EulerAngles {
@@ -50,6 +67,8 @@ message IMUData
     optional CalibrationStatus calibration_status = 4;
 
     optional bool bot_rolled_over = 5 [default = false];
+
+    optional Wave wave = 6;
 
 }
 
