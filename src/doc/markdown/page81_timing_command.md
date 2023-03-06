@@ -17,27 +17,27 @@
            subscribes to: mission_ivp_behavior_update
            publishes to: JAIABOT_TRANSIT_UPDATES (Publishes to MOOSDB)
         -> jaiabot_fusion
-           subscribes to: gpsd::tpv (1hz)
-           publishes to: node_status (10hz)
+           subscribes to: gpsd::tpv (5hz)
+           publishes to: node_status (5hz)
            publishes to: bot_status (intervehicle 1hz (Configurable))
             -> jaiabot_frontseat
-               subscribes to: node_status (10hz)
+               subscribes to: node_status (5hz)
                publishes to: NAV_X, NAV_Y, NAV_LAT, NAV_LONG, NAV_DEPTH, NAV_HEADING,
-                             NAV_SPEED, NAV_PITCH, NAV_ROLL, NAV_ALTITUDE (Publishes to MOOSDB 1hz)
-                -> jaiabot_moosdb (Receives NAV* at 10hz)
-                   subscribes to: NAV_* (10hz)
+                             NAV_SPEED, NAV_PITCH, NAV_ROLL, NAV_ALTITUDE (Publishes to MOOSDB 5hz)
+                -> jaiabot_moosdb (Receives NAV* at 5hz)
+                   subscribes to: NAV_* (5hz)
                     -> jaiabot_phelmivp
-                       subscribes to: NAV_* (10hz)
-                       publishes to: DESIRED_* (10hz)
+                       subscribes to: NAV_* (5hz)
+                       publishes to: DESIRED_* (5hz)
                 <- jaiabot_moosdb
-                   subscribes to: DESIRED_* (10hz)
+                   subscribes to: DESIRED_* (5hz)
             -- jaiabot_frontseat
-               subscribes to: DESIRED_* (10hz)
-               publishes to: desired_course (10hz)
+               subscribes to: DESIRED_* (5hz)
+               publishes to: desired_course (5hz)
                 -> jaiabot_pid_control
-                   subscribes to: node_status (10hz) 
+                   subscribes to: node_status (5hz) 
                         - sets: actual_heading, actual_roll, actual_pitch, actual_speed, actual_depth
-                   subscribes to: desired_course (10hz) 
+                   subscribes to: desired_course (5hz) 
                         - sets: target_heading, target_roll, target_pitch, target_speed
                    publishes to: low_control (10hz)
                     -> jaiabot_arduino_driver
@@ -62,5 +62,5 @@
     <-- jaiabot_web_portal (Receives bot status triggered by hub_manager publish)
         subscribes to: bot_status (intervehicle 1hz (Configurable))
         publishes to: web_portal_udp_out (intervehicle 1hz (Configurable))
--- JAIABOT Command and Control (Gets bot status updates 2hz)
+-- JAIABOT Command and Control (Polls bot status at 2hz)
 ```
