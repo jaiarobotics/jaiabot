@@ -15,6 +15,8 @@ class Quaternion:
 
     @staticmethod
     def from_tuple(t: tuple):
+        if None in t:
+            return Quaternion(1, 0, 0, 0)
         return Quaternion(*t)
 
 

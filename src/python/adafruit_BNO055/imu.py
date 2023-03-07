@@ -71,15 +71,15 @@ class Adafruit:
             self.setup()
 
         try:
-            quaternion = Quaternion(self.sensor.quaternion)
+            quaternion = Quaternion.from_tuple(self.sensor.quaternion)
             orientation = quaternion.to_euler_angles()
-            orientation.heading += 90 # Even after consulting the docs, we're still off by 90 degrees!
+            orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
             linear_acceleration_world = quaternion.apply(Vector3(*self.sensor.linear_acceleration))
 
             return IMUData(orientation=orientation, 
                            linear_acceleration=self.sensor.linear_acceleration, 
                            linear_acceleration_world=linear_acceleration_world,
-                           gravity=Vector3(self.sensor.gravity),
+                           gravity=Vector3(*self.sensor.gravity),
                            calibration_status=self.sensor.calibration_status,
                            quaternion=quaternion)
 
