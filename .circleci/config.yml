@@ -134,7 +134,11 @@ job-template-deb-amd64: &job-template-deb-amd64
           export NEWVERSION="$(echo ../*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
           quilt new 01-patch-version
           quilt add CMakeLists.txt
+          export NEWVERSION_MAJOR=$(echo $NEWVERSION | cut -d . -f 1)
+          export NEWVERSION_MINOR=$(echo $NEWVERSION | cut -d . -f 2)
           export NEWVERSION_PATCH=$(echo $NEWVERSION | cut -d . -f 3)
+          sed -i "s/^set(PROJECT_VERSION_MAJOR *\".*\"/set(PROJECT_VERSION_MAJOR \"${NEWVERSION_MAJOR}\"/" CMakeLists.txt
+          sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" CMakeLists.txt
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" CMakeLists.txt
           quilt refresh                  
     - run: &run-build-pkg
