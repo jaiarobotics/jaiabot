@@ -30,3 +30,9 @@ add_custom_target(server_messages
   )
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+option(install_jcc_apache "Install JCC Apache site" ON)
+if(install_jcc_apache)
+  install(FILES jcc.conf DESTINATION /etc/apache2/sites-available)
+endif()
+

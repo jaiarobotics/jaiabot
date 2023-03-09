@@ -66,9 +66,9 @@ job-template-amd64: &job-template-amd64
           # elif [[ "$CIRCLE_BRANCH" == "2.y" ]]; then
           #  version="2.y";
           else
-            # default to 1.y on non-standard branches - this should probably be
-            # updated to the latest (e.g. to 2.y when 2.y exists)
-            version="1.y";
+            # default to test/X.y repo on non-standard branches
+            repo="test";
+            version="X.y";
           fi
 
           # export these for later use
@@ -184,14 +184,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "apt-mirror"
+        - "jcc-as-apache"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "apt-mirror"
+        - "jcc-as-apache"
 
         
 ## Begin actual config
