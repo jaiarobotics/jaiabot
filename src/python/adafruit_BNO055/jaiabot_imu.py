@@ -85,14 +85,14 @@ if __name__ == '__main__':
 
     if args.simulator:
         log.info('Device: Simulator')
-        imu = Simulator(wave_frequency=2, wave_height=1)
+        imu = Simulator(wave_frequency=1.0, wave_height=1)
     else:
         log.info('Device: Adafruit')
         imu = Adafruit()
 
 
     # Setup the wave analysis thread
-    SAMPLE_TIME = 10 # seconds
+    SAMPLE_TIME = 30 # seconds
     dt = 1 / args.frequency
     N = int(SAMPLE_TIME / dt)
     log.info(f'Wave height sampling rate: {args.frequency} Hz')
