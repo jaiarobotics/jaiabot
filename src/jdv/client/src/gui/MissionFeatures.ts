@@ -6,7 +6,7 @@ import * as Styles from "./Styles"
 import { createMarker } from './Marker'
 import { MissionPlan } from './JAIAProtobuf';
 
-export function createMissionFeatures(map: Map, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -25,7 +25,7 @@ export function createMissionFeatures(map: Map, plan: MissionPlan, activeGoalInd
         {
             // OpenLayers
             const markerFeature = createMarker(map, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == activeGoalIndex, isSelected)})
-            markerFeature.setProperties({goal: goal})
+            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index})
             features.push(markerFeature)
         }
 

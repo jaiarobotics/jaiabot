@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
                                                                                           argv));
 }
 
-jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * si::hertz)
+jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si::hertz)
 {
     // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
     groups::engineering_command_this_bot.reset(
@@ -131,6 +131,26 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * s
                             ->set_after_dive_gps_fix_checks(
                                 engineering_status.gps_requirements().after_dive_gps_fix_checks());
                     }
+                }
+                if (engineering_status.has_rf_disable_options())
+                {
+                    if (engineering_status.rf_disable_options().has_rf_disable())
+                    {
+                        latest_engineering.mutable_rf_disable_options()->set_rf_disable(
+                            engineering_status.rf_disable_options().rf_disable());
+                    }
+
+                    if (engineering_status.rf_disable_options().has_rf_disable_timeout_mins())
+                    {
+                        latest_engineering.mutable_rf_disable_options()
+                            ->set_rf_disable_timeout_mins(
+                                engineering_status.rf_disable_options().rf_disable_timeout_mins());
+                    }
+                }
+
+                if (engineering_status.has_query_bot_status())
+                {
+                    latest_engineering.set_query_bot_status(engineering_status.query_bot_status());
                 }
             });
     }
