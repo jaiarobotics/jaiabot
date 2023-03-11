@@ -71,17 +71,26 @@ class Adafruit:
             self.setup()
 
         try:
-            quaternion = Quaternion.from_tuple(self.sensor.quaternion)
-            orientation = quaternion.to_euler_angles()
-            orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
-            linear_acceleration_world = quaternion.apply(Vector3(*self.sensor.linear_acceleration))
+            quaternion = self.sensor.quaternion
+            euler = self.sensor.euler
+            linear_acceleration = self.sensor.linear_acceleration
+            gravity = self.sensor.gravity
+            calibration_status = self.sensor.calibration_status
+            
+            if None in quaternion or None in euler or None in linear_acceleration or None in gravity or None in calibration_status:
+                return None
+            else:
+                quaternion = Quaternion.from_tuple(quaternion)
+                orientation = quaternion.to_euler_angles()
+                orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
+                linear_acceleration_world = quaternion.apply(Vector3(*linear_acceleration))
 
-            return IMUData(orientation=orientation, 
-                           linear_acceleration=self.sensor.linear_acceleration, 
-                           linear_acceleration_world=linear_acceleration_world,
-                           gravity=Vector3(*self.sensor.gravity),
-                           calibration_status=self.sensor.calibration_status,
-                           quaternion=quaternion)
+                return IMUData(orientation=orientation, 
+                            linear_acceleration=linear_acceleration, 
+                            linear_acceleration_world=linear_acceleration_world,
+                            gravity=Vector3(*gravity),
+                            calibration_status=calibration_status,
+                            quaternion=quaternion)
 
         except OSError as e:
             self.is_setup = False
