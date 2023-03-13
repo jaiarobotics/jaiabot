@@ -1684,7 +1684,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	fit(geom: number[], opts: any, stopTracking = false, firstMove = false) {
-		if (isNaN(geom[0]) || isNaN(geom[1]) || isNaN(geom[2]) || isNaN(geom[3])) {
+		if (!isFinite(geom[0]) || !isFinite(geom[1]) || !isFinite(geom[2]) || !isFinite(geom[3])) {
 			return
 		}
 
@@ -1795,6 +1795,7 @@ export default class CommandControl extends React.Component {
 
 			// ID
 			const bot_id = bot.bot_id
+
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
@@ -2355,7 +2356,13 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'all' ? (
-						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+						<Button 
+							onClick={() => {
+								this.zoomToAll(false);
+								this.trackBot(null);
+							}}
+							className="button-jcc active"
+						>
 							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Unfollow" />
 						</Button>
 					) : (
@@ -2370,7 +2377,13 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 					{trackingTarget === 'pod' ? (
-						<Button onClick={this.trackBot.bind(this, '')} className="button-jcc active">
+						<Button 							
+							onClick={() => {
+								this.zoomToAllBots(false);
+								this.trackBot(null);
+							}} 
+							className="button-jcc active"
+						>
 							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow" />
 						</Button>
 					) : (
