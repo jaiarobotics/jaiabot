@@ -1684,7 +1684,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	fit(geom: number[], opts: any, stopTracking = false, firstMove = false) {
-		if (isNaN(geom[0]) || isNaN(geom[1]) || isNaN(geom[2]) || isNaN(geom[3])) {
+		if (!isFinite(geom[0]) || !isFinite(geom[1]) || !isFinite(geom[2]) || !isFinite(geom[3])) {
 			return
 		}
 
@@ -1796,18 +1796,9 @@ export default class CommandControl extends React.Component {
 			// ID
 			const bot_id = bot.bot_id
 
-			let hasLocation = bot.location ?? "N/A";
-			let botLat = 0;
-			let botLon = 0;
-
-			if(hasLocation != "N/A")
-			{
-				botLat = bot.location?.lat
-				botLon = bot.location?.lon
-			}
 			// Geometry
-			const botLatitude = botLat
-			const botLongitude = botLon
+			const botLatitude = bot.location?.lat
+			const botLongitude = bot.location?.lon
 			// Properties
 			const botHeading = bot.attitude?.heading
 			const botSpeed = bot.speed?.over_ground
