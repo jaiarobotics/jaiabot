@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
                                                                                           argv));
 }
 
-jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(.2 * si::hertz)
+jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si::hertz)
 {
     // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
     groups::engineering_command_this_bot.reset(
