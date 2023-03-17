@@ -133,6 +133,17 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const dive = taskPacket.dive
     if (dive != null) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`
+        let depthMeasurementString = ``; 
+
+        for (var measurement of dive.measurement)
+        {
+            depthMeasurementString = 
+                `
+                    Mean Depth: ${measurement?.mean_depth?.toFixed(2)} m <br />
+                    Mean Temperature: ${measurement?.mean_temperature?.toFixed(2)} Celcius <br />
+                    Mean Salinity: ${measurement?.mean_salinity?.toFixed(2)} PSS <br />
+                `
+        }
 
         placemarks.push(`
             <Placemark>
@@ -145,6 +156,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                     Duration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
                     Unpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
                     Powered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                    ${depthMeasurementString}
                 </description>
                 <Point>
                     <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
