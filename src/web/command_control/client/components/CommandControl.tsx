@@ -15,6 +15,7 @@ import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
+import MissionControllerPanel from './mission/MissionControllerPanel'
 import { taskData } from './TaskPackets'
 
 // Material Design Icons
@@ -22,7 +23,7 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, 
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
 	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
-    mdiStop, mdiPause} from '@mdi/js'
+    mdiStop, mdiPause, mdiViewList} from '@mdi/js'
 
 import Button from '@mui/material/Button';
 
@@ -228,8 +229,28 @@ interface HubOrBot {
 	id: number
 }
 
+export interface RunInterface {
+	id: string,
+	name: string,
+	assigned: Number
+}
+
+export interface MissionInterface {
+	id: string,
+	name: string,
+	runs: {[key: string]: RunInterface}
+	editing: boolean
+	runIdIncrement: Number
+}
+
+export interface MissionListInterface {
+	missions: {[key: string]: MissionInterface},
+	missionIdIncrement: Number
+}
+
 interface State {
 	engineeringPanelActive: boolean,
+	missionPanelActive: boolean,
 	mode: Mode,
 	currentInteraction: Interaction | null,
 	selectedBotsFeatureCollection: OlCollection<OlFeature>,
@@ -265,6 +286,7 @@ interface State {
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
+	missionList: MissionListInterface,
 }
 
 export default class CommandControl extends React.Component {
@@ -386,8 +408,29 @@ export default class CommandControl extends React.Component {
 				power: false,
 			},
 			mapLayerActive: false, 
-			engineeringPanelActive: false
+			engineeringPanelActive: false,
+			missionPanelActive: false,
+			missionList: null
 		};
+
+		this.state.missionList = {
+			missions: {
+				'mission-1': {
+					id: 'mission-1',
+					name: 'Mission 1',
+					runs: {  
+						'run-1': {
+							id: 'run-1',
+							name: 'Run 1',
+							assigned: -1
+						}
+					},
+					editing: false,
+					runIdIncrement: 1,
+				}
+			},
+			missionIdIncrement: 1,
+		}
 
 		// Measure tool
 
@@ -2195,7 +2238,9 @@ export default class CommandControl extends React.Component {
 			measureActive,
 			surveyPolygonActive,
 			mapLayerActive,
-			engineeringPanelActive
+			engineeringPanelActive,
+			missionPanelActive,
+			teamMissionList
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2297,6 +2342,8 @@ export default class CommandControl extends React.Component {
 			<div id="axui_container" className={containerClasses}>
 
 				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+
+				<MissionControllerPanel api={this.api} bots={bots} teamMissionList={teamMissionList} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -2455,6 +2502,25 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 
+					{missionPanelActive ? (
+						<Button className="button-jcc active" onClick={() => {
+								this.setState({missionPanelActive: false}); 
+								this.toggleMissionPanel();
+							}} 
+						>
+							<Icon path={mdiViewList} title="Mission Panel"/>
+						</Button>
+
+					) : (
+						<Button className="button-jcc" onClick={() => {
+							this.setState({missionPanelActive: true}); 
+							this.toggleMissionPanel();
+						}} 
+						>
+							<Icon path={mdiViewList} title="Mission Panel"/>
+						</Button>
+					)}
+
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
 							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
@@ -2480,7 +2546,7 @@ export default class CommandControl extends React.Component {
 
 				{this.takeControlPanel()}
 
-				{this.commandDrawer()}
+				{/*this.commandDrawer()*/}
 
 				{this.state.loadMissionPanel}
 
@@ -2542,7 +2608,7 @@ export default class CommandControl extends React.Component {
 		let millisecondsSinceEpoch = new Date().getTime();
 
 		if (botId == null) {
-			return
+			//return
 		}
 
 		this.changeMissions((missions) => {
@@ -3096,6 +3162,17 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/*editingObjectiveId(objective: ObjectiveInterface) {
+		this.state.objective.isInEditMode = !this.state.objective.isInEditMode;
+		
+		return this.state.objective;
+	}
+
+	isAObjectiveInEditMode() {
+		this.state.isObjectiveInEditMode = !this.state.isObjectiveInEditMode;
+		return this.state.isObjectiveInEditMode;
+	}*/
+
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
 		let botIds: number[] = []
@@ -3148,7 +3225,7 @@ export default class CommandControl extends React.Component {
 
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
-
+		console.log("Clicked on map");
 		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
 			return false // Not a drag event
@@ -3168,7 +3245,11 @@ export default class CommandControl extends React.Component {
 			return feature
 		});
 
+		console.log(feature);
+
 		if (feature) {
+
+			console.log("Feature == true");
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 			let botId = feature.get('botId')
@@ -3200,6 +3281,7 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		else {
+			console.log("Feature == false");
 			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
@@ -3526,6 +3608,16 @@ export default class CommandControl extends React.Component {
 		}
 		else {
 			engineeringPanel.style.width = "400px"
+		}
+	}
+
+	toggleMissionPanel() {
+		let missionPanel = document.getElementById('missionPanel')
+		if (missionPanel.style.width == "400px") {
+			missionPanel.style.width = "0px"
+		}
+		else {
+			missionPanel.style.width = "400px"
 		}
 	}
 

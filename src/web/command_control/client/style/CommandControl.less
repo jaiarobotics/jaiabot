@@ -226,6 +226,29 @@ div {
 
   }
 
+  #missionToolbars {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    background-color: @cc-background-color;
+    top: 0pt;
+    right: 50pt;
+    z-index: 10;
+    text-align: center
+  }
+
+  #add-mission {
+    display: flex;
+  }
+
+  #jcc-overview {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    height: 90vh;
+    width: 0vh;
+  }
+
   #botDetailsBox {
 
     position: absolute;
@@ -444,9 +467,9 @@ div {
 
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
-    position: absolute;
-    right: 0;
-    top: 0;
+    //position: absolute;
+    //right: 0;
+    //top: 0;
     background: @overlay-background;
     border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
