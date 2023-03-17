@@ -135,13 +135,14 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`
         let depthMeasurementString = ``; 
 
-        for (var measurement of dive.measurement)
+        for (let i = 0; i < dive.measurement?.length; i++)
         {
-            depthMeasurementString = 
+            depthMeasurementString += 
                 `
-                    Mean Depth: ${measurement?.mean_depth?.toFixed(2)} m <br />
-                    Mean Temperature: ${measurement?.mean_temperature?.toFixed(2)} Celcius <br />
-                    Mean Salinity: ${measurement?.mean_salinity?.toFixed(2)} PSS <br />
+                    Index: ${i+1} <br />
+                    Mean Depth: ${dive.measurement?.at(i)?.mean_depth?.toFixed(2)} m <br />
+                    Mean Temperature: ${dive.measurement?.at(i)?.mean_temperature?.toFixed(2)} Celcius <br />
+                    Mean Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
                 `
         }
 
