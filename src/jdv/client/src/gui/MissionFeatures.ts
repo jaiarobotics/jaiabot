@@ -4,7 +4,8 @@ import { LineString, Geometry } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 import { createMarker } from './Marker'
-import { MissionPlan } from './JAIAProtobuf';
+import { MissionPlan, TaskType } from './JAIAProtobuf';
+import { transformTranslate, point } from "@turf/turf"
 
 export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
     var features = []
@@ -30,6 +31,18 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         }
 
         missionLineStringCoordinates.push(fromLonLat([location.lon, location.lat], projection))
+
+        {
+            // For Constant Heading tasks, we add another point to the line string at the termination point
+            let task = goal.task
+            if (task?.type == TaskType.CONSTANT_HEADING) {
+                let locationPoint = point([location.lon, location.lat])
+                let distance = task.constant_heading.constant_heading_speed * task.constant_heading.constant_heading_time
+                let heading = task.constant_heading.constant_heading
+                let pt = transformTranslate(locationPoint, distance, heading, {units: 'meters'})
+                missionLineStringCoordinates.push(fromLonLat(pt.geometry.coordinates, projection))
+            }
+        }
     }
 
     // Add a linestring for the mission path
