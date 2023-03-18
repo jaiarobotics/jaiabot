@@ -216,21 +216,34 @@ export class GoalSettingsPanel extends React.Component {
     ConstantHeadingOptionsPanel() {
         let constant_heading = this.props.goal.task.constant_heading
 
+        function calculateDistance(speed: number, time: number) {
+            if (speed == null || time == null) return null;
+            else return speed * time;
+        }
+
         return (
             <div id="ConstantHeadingDiv">
                 <table className="ConstantHeadingParametersTable">
                     <tbody>
                         <tr>
                             <td>Heading</td>
-                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /> deg</td>
+                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td>deg</td>
                         </tr>
                         <tr>
                             <td>Time</td>
-                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /> s</td>
+                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td>s</td>
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /> m/s</td>
+                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td>m/s</td>
+                        </tr>
+                        <tr>
+                            <td>Distance</td>
+                            <td style={{textAlign: 'right'}}>{calculateDistance(constant_heading.constant_heading_speed, constant_heading.constant_heading_time)?.toFixed(1) ?? "?"}</td>
+                            <td>m</td>
                         </tr>
                     </tbody>
                 </table>
