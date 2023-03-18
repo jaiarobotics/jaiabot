@@ -223,6 +223,7 @@ export class GoalSettingsPanel extends React.Component {
 
         return (
             <div id="ConstantHeadingDiv">
+                <Button className="button-jcc select-on-map" onClick={this.closeClicked.bind(this)}>Select on Map</Button>
                 <table className="ConstantHeadingParametersTable">
                     <tbody>
                         <tr>
