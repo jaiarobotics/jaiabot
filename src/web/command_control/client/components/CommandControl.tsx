@@ -20,7 +20,7 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, 
+import { mdiPlay, mdiFolderOpen, mdiContentSave, 
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
 	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
     mdiStop, mdiPause, mdiViewList} from '@mdi/js'
@@ -159,6 +159,7 @@ import * as Styles from './gui/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './gui/BotFeature'
 import { createHubFeature } from './gui/HubFeature'
+import { run } from 'node:test'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -232,20 +233,17 @@ interface HubOrBot {
 export interface RunInterface {
 	id: string,
 	name: string,
-	assigned: Number
+	assigned: number,
+	editing: boolean,
+	command: Command
 }
 
 export interface MissionInterface {
 	id: string,
 	name: string,
-	runs: {[key: string]: RunInterface}
-	editing: boolean
-	runIdIncrement: Number
-}
-
-export interface MissionListInterface {
-	missions: {[key: string]: MissionInterface},
-	missionIdIncrement: Number
+	runs: {[key: string]: RunInterface},
+	runIdIncrement: number,
+	botsAssignedToRuns: {[key: number]: string}
 }
 
 interface State {
@@ -286,7 +284,8 @@ interface State {
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
-	missionList: MissionListInterface,
+	runList: MissionInterface,
+	undoRunListStack: MissionInterface[]
 }
 
 export default class CommandControl extends React.Component {
@@ -301,7 +300,7 @@ export default class CommandControl extends React.Component {
 		hubs: {},
 		controllingClientId: null
 	}
-	missions: PodMission = {}
+	runs: PodMission = {}
 	undoMissionsStack: PodMission[] = []
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
@@ -410,26 +409,24 @@ export default class CommandControl extends React.Component {
 			mapLayerActive: false, 
 			engineeringPanelActive: false,
 			missionPanelActive: false,
-			missionList: null
+			runList: null,
+			undoRunListStack: []
 		};
 
-		this.state.missionList = {
-			missions: {
-				'mission-1': {
-					id: 'mission-1',
-					name: 'Mission 1',
-					runs: {  
-						'run-1': {
-							id: 'run-1',
-							name: 'Run 1',
-							assigned: -1
-						}
-					},
+		this.state.runList = {
+			id: 'mission-1',
+			name: 'Mission 1',
+			runs: {
+				'run-1': {
+					id: 'run-1',
+					name: 'Run 1',
+					assigned: -1,
 					editing: false,
-					runIdIncrement: 1,
+					command: Missions.missionWithWaypoints(-1, [])
 				}
 			},
-			missionIdIncrement: 1,
+			runIdIncrement: 1,
+			botsAssignedToRuns: {}
 		}
 
 		// Measure tool
@@ -2152,23 +2149,24 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	changeMissions(func: (mission: PodMission) => void, previousMissions: PodMission) {
+	changeMissions(func: (runList: MissionInterface) => void, previousRunList: MissionInterface) {
 		// Save a backup of the current mission set
-		let oldMissions = deepcopy(this.missions)
+		let oldMissions = deepcopy(this.state.runList)
+		//console.log(this.state.runList);
 
-		if(previousMissions != null
-			|| previousMissions != undefined)
+		if(previousRunList != null
+			|| previousRunList != undefined)
 		{
-			oldMissions = deepcopy(previousMissions);
+			oldMissions = deepcopy(previousRunList);
 		}
 
 		// Do any alterations to the mission set
-		func(this.missions)
+		func(this.state.runList)
 
 		// If something was changed
-		if (JSON.stringify(oldMissions) != JSON.stringify(this.missions) ) {
+		if (JSON.stringify(oldMissions) != JSON.stringify(this.state.runList) ) {
 			// then place the old mission set into the undoMissions
-			this.undoMissionsStack.push(deepcopy(oldMissions))
+			this.state.undoRunListStack.push(deepcopy(oldMissions))
 
 			// Update the mission layer to reflect changes that were made
 			this.updateMissionLayer()
@@ -2176,9 +2174,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	restoreUndo() {
-		if (this.undoMissionsStack.length >= 1) {
-			
-			this.missions = this.undoMissionsStack.pop()
+		if (this.state.undoRunListStack.length >= 1) {
+			this.state.runList = this.state.undoRunListStack.pop()
 			this.setState({goalBeingEdited: null})
 			this.updateMissionLayer()
 		} 
@@ -2209,7 +2206,7 @@ export default class CommandControl extends React.Component {
 
 		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.homeLocation]))
 
-		this.runMissions(returnToHomeMissions)
+		//this.runMissions(returnToHomeMissions)
 	}
 
 	static formatLength(line: Geometry) {
@@ -2240,7 +2237,6 @@ export default class CommandControl extends React.Component {
 			mapLayerActive,
 			engineeringPanelActive,
 			missionPanelActive,
-			teamMissionList
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2286,7 +2282,7 @@ export default class CommandControl extends React.Component {
 					this.setState({
 						missionPlans: null
 					})
-					this.missions = {};
+					this.state.runList = null;
 					this.updateMissionLayer()
 				}}
 				onMissionApply={() => {
@@ -2328,7 +2324,7 @@ export default class CommandControl extends React.Component {
 				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
 												hubs?.[0], 
 												this.api, 
-												this.missions, 
+												this.state.runList, 
 												closeDetails,
 												this.takeControl.bind(this),
 												this.state.detailsExpanded);
@@ -2343,7 +2339,7 @@ export default class CommandControl extends React.Component {
 
 				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
-				<MissionControllerPanel api={this.api} bots={bots} teamMissionList={teamMissionList} />
+				<MissionControllerPanel api={this.api} bots={bots} mission={this.state.runList} />
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -2546,7 +2542,7 @@ export default class CommandControl extends React.Component {
 
 				{this.takeControlPanel()}
 
-				{/*this.commandDrawer()*/}
+				{this.commandDrawer()}
 
 				{this.state.loadMissionPanel}
 
@@ -2608,27 +2604,31 @@ export default class CommandControl extends React.Component {
 		let millisecondsSinceEpoch = new Date().getTime();
 
 		if (botId == null) {
-			//return
+			return
 		}
 
 		this.changeMissions((missions) => {
-			
-			if (!(botId in missions)) {
-				missions[botId] = {
-					bot_id: botId,
-					time: millisecondsSinceEpoch,
-					type: CommandType.MISSION_PLAN,
-					plan: {
-						start: MissionStart.START_IMMEDIATELY,
-						movement: MovementType.TRANSIT,
-						goal: [],
-						recovery: {recover_at_final_goal: true}
-					}
-				}
-			}
-			if(missions[botId].plan.goal.length < MAX_GOALS)
+			let runs = missions?.runs;
+			let botsAssignedToRuns = missions?.botsAssignedToRuns;
+
+			console.log(missions);
+
+			if(!(botId in botsAssignedToRuns))
 			{
-				missions[botId].plan.goal.push({location: location})	
+				missions = Missions.addRunWithWaypoints(botId, [], this.state.runList);
+				console.log(missions);
+			}
+
+			if(runs[botsAssignedToRuns[botId]].command == null)
+			{
+				runs[botsAssignedToRuns[botId]].command = Missions.missionWithWaypoints(botId, []);
+			}
+
+			let runCommand = runs[botsAssignedToRuns[botId]].command;
+
+			if(runCommand.plan.goal.length < MAX_GOALS)
+			{
+				runCommand.plan.goal.push({location: location})	
 			}
 			else
 			{
@@ -2780,7 +2780,7 @@ export default class CommandControl extends React.Component {
 		// Update the mission layer
 		let features = []
 
-		let missions = this.missions || {}
+		let missions = this.state.runList
 
 		let selectedColor = '#34d2eb'
 		let unselectedColor = 'white'
@@ -2833,18 +2833,19 @@ export default class CommandControl extends React.Component {
 			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 1.0}),
 		})
 
-		for (let botId in missions) {
+		for (let key in missions?.runs) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
 			let lineStyle
+			let run = missions?.runs[key];
+			let assignedBot = run.assigned
+			let selected = this.isBotSelected(assignedBot)
 
-			let selected = this.isBotSelected(Number(botId))
-
-			let active_goal_index = this.podStatus?.bots?.[botId]?.active_goal
+			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal
 
 			// Add our goals
-			const plan = missions[botId].plan
+			const plan = run.command?.plan
 			if (plan != null) {
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, Number(botId), plan, active_goal_index, selected)
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
 				features.push(...missionFeatures)
 			}
 		}
@@ -3024,25 +3025,30 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Runs a set of missions, and updates the GUI
-	runMissions(missions: PodMission) {
+	runMissions(missions: MissionInterface) {
 		if (!this.takeControl()) return
 
 		let botIds: number[] = [];
 		let botIdsInIdleState: number[] = [];
-		for(let mission in missions)
-		{
-			let botState = this.podStatus.bots[missions[mission].bot_id].mission_state;
 
-			if(botState == "PRE_DEPLOYMENT__IDLE"
-				|| botState == "POST_DEPLOYMENT__IDLE")
+		let runs = missions.runs;
+
+		Object.keys(runs).map(key => {
+			let botIndex = runs[key].assigned;
+			if(botIndex != -1)
 			{
-				botIdsInIdleState.push(missions[mission].bot_id);
+				let botState = this.podStatus.bots[botIndex]?.mission_state;
+				if(botState == "PRE_DEPLOYMENT__IDLE"
+					|| botState == "POST_DEPLOYMENT__IDLE")
+				{
+					botIdsInIdleState.push(botIndex);
+				}
+				else
+				{
+					botIds.push(botIndex);
+				}
 			}
-			else
-			{
-				botIds.push(missions[mission].bot_id);
-			}
-		}
+		})
 
 		botIds.sort()
 		botIdsInIdleState.sort();
@@ -3054,11 +3060,18 @@ export default class CommandControl extends React.Component {
 		else
 		{
 			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-				for (let bot_id in missions) {
-					let mission = missions[bot_id]
-					this.missions[mission.bot_id] = deepcopy(mission)
-					this._runMission(mission)
-				}
+				console.log(runs);
+				Object.keys(runs).map(key => {
+					let botIndex = runs[key].assigned;
+					if(botIndex != -1)
+					{
+						let runCommand = runs[key].command;
+
+						console.log(runCommand);
+						//this.state.runList[key] = deepcopy(run)
+						this._runMission(runCommand)
+					}
+				})
 				success("Submitted missions")
 				this.updateMissionLayer()
 			}
@@ -3067,18 +3080,19 @@ export default class CommandControl extends React.Component {
 
 	// Loads the set of missions, and updates the GUI
 	loadMissions(missions: PodMission) {
-		this.missions = deepcopy(missions)
+		this.runs = deepcopy(missions)
 
 		// selectedBotId is a placeholder for the currently selected botId
-		if (SELECTED_BOT_ID in this.missions) {
+		if (SELECTED_BOT_ID in this.runs) {
+			console.log(SELECTED_BOT_ID);
 			let selectedBotId = this.selectedBotId() ?? 0
 			
-			this.missions[selectedBotId] = this.missions[SELECTED_BOT_ID]
-			this.missions[selectedBotId].bot_id = selectedBotId
-			delete this.missions[SELECTED_BOT_ID]
+			this.runs[selectedBotId] = this.runs[SELECTED_BOT_ID]
+			this.runs[selectedBotId].bot_id = selectedBotId
+			delete this.runs[SELECTED_BOT_ID]
 		}
 
-		console.log(this.missions)
+		console.log(this.runs)
 
 		this.updateMissionLayer()
 	}
@@ -3093,7 +3107,7 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		if (botIds.length == 0) {
-			botIds = Object.keys(this.missions) as any
+			botIds = Object.keys(this.runs) as any
 		}
 
 		let botIdsInIdleState = [];
@@ -3119,7 +3133,7 @@ export default class CommandControl extends React.Component {
 		{
 			if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
 				for (let bot_id of botIds) {
-					let mission = this.missions[bot_id]
+					let mission = this.runs[bot_id]
 					if (mission) {
 						this._runMission(mission)
 					}
@@ -3131,47 +3145,6 @@ export default class CommandControl extends React.Component {
 			}	
 		}
 	}
-
-	// Clears the currently active mission
-	// trash button, delete button, clear button
-	deleteClicked() {
-		let selectedBotId = this.selectedBotId()
-		let botString = (selectedBotId == null) ? "ALL Bots" : "Bot " + selectedBotId
-
-		if (confirm('Delete mission for ' + botString + '?')) {
-			if (selectedBotId != null) {
-				this.changeMissions(() => {
-					delete this.missions[selectedBotId]
-				}, undefined)
-			}
-			else {
-				this.changeMissions(() => {
-					this.missions = {}
-				}, undefined)
-			}
-
-			this.setState({
-				surveyPolygonFeature: null,
-				surveyPolygonGeoCoords: null,
-				surveyPolygonCoords: null,
-				surveyPolygonChanged: false,
-				goalBeingEdited: null 			// Because goals may have been deleted, we should set the goalBeingEdited to null
-			})
-
-			this.updateMissionLayer()
-		}
-	}
-
-	/*editingObjectiveId(objective: ObjectiveInterface) {
-		this.state.objective.isInEditMode = !this.state.objective.isInEditMode;
-		
-		return this.state.objective;
-	}
-
-	isAObjectiveInEditMode() {
-		this.state.isObjectiveInEditMode = !this.state.isObjectiveInEditMode;
-		return this.state.isObjectiveInEditMode;
-	}*/
 
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
@@ -3256,7 +3229,7 @@ export default class CommandControl extends React.Component {
 			let goalIndex = feature.get('goalIndex')
 
 			if (goal != null) {
-				previous_mission_history = deepcopy(this.missions);
+				previous_mission_history = deepcopy(this.state.runList);
 				this.setState({
 					goalBeingEdited: goal, 
 					goalBeingEditedBotId: botId, 
@@ -3386,15 +3359,6 @@ export default class CommandControl extends React.Component {
 				<Button id= "missionRecover" className="button-jcc" onClick={this.recoverAllClicked.bind(this)}>
 					<Icon path={mdiDownload} title="Recover All"/>
 				</Button>
-				<Button className="button-jcc" onClick={this.loadMissionButtonClicked.bind(this)}>
-					<Icon path={mdiFolderOpen} title="Load Mission"/>
-				</Button>
-				<Button className="button-jcc" onClick={this.saveMissionButtonClicked.bind(this)}>
-					<Icon path={mdiContentSave} title="Save Mission"/>
-				</Button>
-				<Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
-					<Icon path={mdiDelete} title="Clear Mission"/>
-				</Button>
 				{ this.undoButton() }					
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
@@ -3418,7 +3382,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	saveMissionButtonClicked() {
-		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} missions={this.missions} onDone={() => {
+		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} missions={this.runs} onDone={() => {
 			this.setState({saveMissionPanel: null})
 		}}></SaveMissionPanel>
 
@@ -3451,16 +3415,12 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		let goToRallyGreenMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointGreenLocation]))
-		if (goToRallyGreenMission.length == 0)
+		for(let bot in this.podStatus.bots)
 		{
-			for(let bot in this.podStatus.bots)
-			{
-				goToRallyGreenMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation]))
-			}
+			Missions.addRunWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation], this.state.runList);
 		}
 
-		this.runMissions(goToRallyGreenMission)
+		this.runMissions(this.state.runList)
 	}
 
 	goToRallyRed(evt: UIEvent) {
@@ -3469,20 +3429,16 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		let goToRallyRedMission = this.selectedBotIds().map(selectedBotId => Missions.missionWithWaypoints(selectedBotId, [this.state.rallyPointRedLocation]))
-		if (goToRallyRedMission.length == 0)
+		for(let bot in this.podStatus.bots)
 		{
-			for(let bot in this.podStatus.bots)
-			{
-				goToRallyRedMission.push(Missions.missionWithWaypoints(Number(bot), [this.state.rallyPointRedLocation]))
-			}
+			Missions.addRunWithWaypoints(Number(bot), [this.state.rallyPointRedLocation], this.state.runList);
 		}
 
-		this.runMissions(goToRallyRedMission)
+		this.runMissions(this.state.runList)
 	}
 
 	playClicked(evt: UIEvent) {
-		this.runLoadedMissions(this.selectedBotIds())
+		this.runMissions(this.state.runList);
 	}
 	
 	activateAllClicked(evt: UIEvent) {
@@ -3543,16 +3499,7 @@ export default class CommandControl extends React.Component {
 			datum_location = {lat: 0, lon: 0}
 		}
 
-		this.runMissions(Missions.RCMode(botId, datum_location))
-	}
-
-	runRCDive() {
-		let botId = this.selectedBotId()
-		if (botId == null) {
-			warning("No bots selected")
-			return
-		}
-		this.runMissions(Missions.RCDive(botId))
+		//this.runMissions(Missions.RCMode(botId, datum_location))
 	}
 
 	sendFlag(evt: UIEvent) {

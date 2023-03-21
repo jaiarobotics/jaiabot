@@ -65,10 +65,6 @@ textarea {
   color: inherit;
 }
 
-div {
-  margin: auto;
-}
-
 #axui_container {
   display: block;
   position: absolute;
@@ -226,7 +222,7 @@ div {
 
   }
 
-  #missionToolbars {
+  /*#missionToolbars {
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -247,7 +243,7 @@ div {
     flex-direction: column;
     height: 90vh;
     width: 0vh;
-  }
+  }*/
 
   #botDetailsBox {
 
@@ -467,9 +463,9 @@ div {
 
   #commandsDrawer {
     height: ((@command-button-size + (@command-button-margin * 2)) * 1);
-    //position: absolute;
-    //right: 0;
-    //top: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
     background: @overlay-background;
     border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
@@ -1027,6 +1023,10 @@ div {
   border-radius: 8pt;
 }
 
+.goalSettingsHeader {
+  margin: auto;
+}
+
 #GoalType {
   color: @cc-text-color;
   margin: 8pt;
@@ -1230,3 +1230,9 @@ div.closeButton {
   }
 }
 
+/******** CSS Mission Planning *****************/
+
+.runItemInfo {
+  position: relative;
+  display: inline-flex;
+}

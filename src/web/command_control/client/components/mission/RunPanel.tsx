@@ -2,26 +2,20 @@ import React from 'react';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
 import { PortalBotStatus } from '../PortalStatus';
-import ObjectiveList from './ObjectiveList';
-import { MissionInterface, MissionListInterface } from '../CommandControl';
+import RunList from './RunList';
+import { MissionInterface } from '../CommandControl';
 import { mdiArrowLeft } from '@mdi/js';
 
 interface Props {
-	bots: {[key: number]: PortalBotStatus}
-	missionteamMissionteamMission: MissionInterface
-    missionList: MissionListInterface
-    missionDetailsClicked: any
+	bots: {[key: number]: PortalBotStatus},
+	mission: MissionInterface,
 }
 
 
 interface State {
-    bots: {[key: number]: PortalBotStatus},
-    mission: MissionInterface,
-    missionList: MissionListInterface,
-    missionDetailsClicked: any
 }
 
-export default class ObjectivePanel extends React.Component {
+export default class RunPanel extends React.Component {
 
   props: Props
 	state: State
@@ -29,10 +23,6 @@ export default class ObjectivePanel extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-            bots: props.bots,
-            mission: props.mission,
-            missionList: props.missionList,
-            missionDetailsClicked: props.missionDetailsClicked
         }
     }
 
@@ -42,12 +32,10 @@ export default class ObjectivePanel extends React.Component {
     
         return (
             <React.Fragment>
-                <ObjectiveList
-                    bots={self.state.bots} 
-                    mission={self.state.mission}
-                    missionList={self.state.missionList}
-                    missionDetailsClicked={self.state.missionDetailsClicked}
-                />
+                {<RunList
+                    bots={self.props.bots} 
+                    mission={self.props.mission}
+                />}
             </React.Fragment>
         );
     }

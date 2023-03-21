@@ -6,7 +6,7 @@
 import * as DiveParameters from './RCDiveParametersPanel'
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType, TaskType} from './gui/JAIAProtobuf'
 import { GlobalSettings } from './Settings'
-
+import { MissionInterface } from './CommandControl';
 
 
 const hardcoded_goals: Goal[][] = [
@@ -31,9 +31,11 @@ const hardcoded_goals: Goal[][] = [
 ]
 
 function commandWithGoals(botId: number | undefined, goals: Goal[]) {
+    let millisecondsSinceEpoch = new Date().getTime();
+
     const mission: Command = {
         bot_id: botId,
-        time: 1642891753471247,
+        time: millisecondsSinceEpoch,
         type: CommandType.MISSION_PLAN,
         plan: {
             start: MissionStart.START_IMMEDIATELY,
@@ -108,27 +110,37 @@ export class Missions {
         return podMission
     }
 
-    static RCDive(botId: number) {
-        var podMission: PodMission = {}
-        podMission[botId] = {
-            bot_id: botId,
-            type: CommandType.REMOTE_CONTROL_TASK,
-            rc_task: {
-                type: TaskType.DIVE,
-                dive: GlobalSettings.diveParameters,
-                surface_drift: GlobalSettings.driftParameters
-            }
-        }
-
-        return podMission
-    }
-
     static missionWithWaypoints(botId: number, locations: GeographicCoordinate[]) {
         if (!Array.isArray(locations)) {
             locations = [locations]
         }
         let goals = locations.map((location): Goal => ({location: location}))
         return commandWithGoals(botId, goals)
+    }
+
+    static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface) {
+        let incr = mission.runIdIncrement + 1;
+        let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        
+        if(botsAssignedToRuns[botId] != null)
+        {
+            mission.runs[botsAssignedToRuns[botId]].assigned = -1;
+            mission.runs[botsAssignedToRuns[botId]].command.bot_id = -1;
+            delete botsAssignedToRuns[botId];
+        }
+
+        mission.runs['run-' + String(incr)] = {
+            id: 'run-' + String(incr),
+            name: 'Run ' + String(incr),
+            assigned: botId,
+            editing: false,
+            command: Missions.missionWithWaypoints(botId, locations)
+        }
+        mission.runIdIncrement = incr;
+        botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        return mission;
     }
 
     static demo_mission() {
