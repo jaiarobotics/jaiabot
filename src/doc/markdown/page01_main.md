@@ -12,6 +12,7 @@
 - [Communications](page50_communications.md)
     - [VPN](page55_vpn.md)
 - [Mission Management](page60_mission_management.md)
+- [Environment Setup](environment_setup.md)
 
 ## Documentation Information
 
