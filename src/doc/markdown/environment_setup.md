@@ -1,10 +1,10 @@
 # Environment Setup
 
-Note: The Jaiabot environment works __exclusively with Ubuntu 20.04__ 
+Note: The JaiaBot environment works __exclusively with Ubuntu 20.04__ 
 
 ## Clone JaiaBot Repo On Local Machine
 
-This needs to be done in __your home directory__. For example if your user name is janesmith, the jaiabot repo should be cloned in your home folder located at "/home/janesmith".
+This needs to be done in __your home directory__. For example if your user name is janesmith, the JaiaBot repo should be cloned in your home folder located at "/home/janesmith".
 
 ```
 # cd /home/janesmith
@@ -93,7 +93,7 @@ sudo apt install jaiabot-interfaces
 
 ## Build
 
-From the root of the jaiabot repository, run the build script:
+From the root of the JaiaBot repo, run the build script:
 
 ```
 ./build.sh
@@ -123,7 +123,7 @@ In the jaiabot/src/web directory run:
 pip install -r requirements.txt
 ```
 
-In addition to the `flask` module, you need to have the python `dccl` module installed. Clone this repository outside of your local copy of the jaiabot repo.
+In addition to the `flask` module, you need to have the python `dccl` module installed. Clone this repository outside of your local copy of the JaiaBot repo.
 
 ```
 sudo apt install python3 python3-dev python3-pip python3-protobuf
