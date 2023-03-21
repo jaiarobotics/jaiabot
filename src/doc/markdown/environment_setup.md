@@ -1,8 +1,10 @@
 # Environment Setup
 
+Note: The Jaiabot environment works __exclusively with Ubuntu 20.04__ 
+
 ## Clone JaiaBot Repo On Local Machine
 
-This needs to be done in your home directory. For example if your user name is janesmith, the jaiabot repo should be cloned in your home folder located at "/home/janesmith".
+This needs to be done in __your home directory__. For example if your user name is janesmith, the jaiabot repo should be cloned in your home folder located at "/home/janesmith".
 
 ```
 # cd /home/janesmith
@@ -166,4 +168,6 @@ cd ~/jaiabot/src/web
 ./run.sh
 ```
 
-Go to http://localhost:40001/ to view the simulator.
+Go to http://localhost:40001/ to view the simulator
+
+Estimated environment setup time: 30 - 60 minutes
