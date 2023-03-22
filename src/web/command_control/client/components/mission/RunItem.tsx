@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
-import { mdiDelete } from '@mdi/js'
+import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import { PortalBotStatus } from '../PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
 import Switch from '@mui/material/Switch';
@@ -15,10 +15,11 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import { Missions } from '../Missions'
 
 interface Props {
-	bots: {[key: number]: PortalBotStatus}
-	run: RunInterface
+    bots: {[key: number]: PortalBotStatus}
+    run: RunInterface
     mission: MissionInterface,
 }
 
@@ -47,6 +48,7 @@ export default class RunItem extends React.Component {
         let self = this;
         let runDeleteButton = null;
         let runAssignSelect = null;
+        let duplicateRunButton = null;
         let title = this.props.run.name;
         let podStatusBotIds = Object.keys(self.props.bots);
         let botsAssignedToRunsIds = Object.keys(self.props.mission.botsAssignedToRuns);
@@ -144,6 +146,18 @@ export default class RunItem extends React.Component {
                 <Icon path={mdiDelete} title="Delete Run"/>
             </Button>
 
+        // Create Copy of Run Button
+        duplicateRunButton =
+            <Button 
+                className={'button-jcc missionAccordian'}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
+                }}
+            >
+                <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
+            </Button>    
+
         // Create Edit Toggle
         let edit =
             <Switch
@@ -166,6 +180,7 @@ export default class RunItem extends React.Component {
                 <AccordionDetails>
                     <span className="runItemInfo">
                         {runAssignSelect}
+                        {duplicateRunButton}
                         {edit}
                         {runDeleteButton}
                     </span>

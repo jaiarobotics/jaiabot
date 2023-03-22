@@ -8,10 +8,11 @@ import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave } from '@mdi/js';
 import { Missions } from '../Missions'
 
 interface Props {
-	bots: {[key: number]: PortalBotStatus}
-	mission: MissionInterface
+    bots: {[key: number]: PortalBotStatus}
+    mission: MissionInterface
+    loadMissionClick: any,
+    saveMissionClick: any
 }
-
 
 interface State {
 }
@@ -50,10 +51,7 @@ export default class RunList extends React.Component {
                     className="button-jcc" 
                     id="add-run" 
                     onClick={() => {
-                        //Deep copy
-                        let mission = this.props.mission;
-
-                        mission = Missions.addRunWithWaypoints(-1, [], mission);
+                        Missions.addRunWithWaypoints(-1, [], this.props.mission);
                     }}
                 >
                     <Icon path={mdiPlus} title="Add Run"/>
@@ -79,11 +77,13 @@ export default class RunList extends React.Component {
 				</Button>
                 <Button 
                     className="button-jcc" 
+                    onClick={() => { this.props.loadMissionClick() }}
                 >
 					<Icon path={mdiFolderOpen} title="Load Mission"/>
 				</Button>
 				<Button 
                     className="button-jcc" 
+                    onClick={() => { this.props.saveMissionClick() }}
                 >
 					<Icon path={mdiContentSave} title="Save Mission"/>
 				</Button>

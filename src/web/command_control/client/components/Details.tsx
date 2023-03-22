@@ -18,7 +18,6 @@ const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
 import Button from '@mui/material/Button';
-import { Missions, PodMission } from './Missions';
 import { error, warning, info} from '../libs/notifications';
 import { GlobalSettings } from './Settings';
 

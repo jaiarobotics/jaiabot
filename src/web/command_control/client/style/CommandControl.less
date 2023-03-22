@@ -30,6 +30,12 @@
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
+// Z-Index
+@map: 0;
+@column-right: 10;
+@goal-settings: 11;
+@mission-settings: 11;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -221,29 +227,6 @@ textarea {
     }
 
   }
-
-  /*#missionToolbars {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    background-color: @cc-background-color;
-    top: 0pt;
-    right: 50pt;
-    z-index: 10;
-    text-align: center
-  }
-
-  #add-mission {
-    display: flex;
-  }
-
-  #jcc-overview {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    height: 90vh;
-    width: 0vh;
-  }*/
 
   #botDetailsBox {
 
@@ -504,7 +487,7 @@ textarea {
     right: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     left: 0px;
-    z-index: 0;
+    z-index: @map;
 
     .ol-control {
       position: absolute;
@@ -792,7 +775,7 @@ textarea {
     height: auto;
     top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
-    z-index: 10;
+    z-index: @column-right;
     background-color: @overlay-background;
     width: 0;
     right: @command-button-size + (2 * @command-button-padding);
@@ -986,6 +969,7 @@ textarea {
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @mission-settings;
 }
 
 #mission-type {
@@ -1021,6 +1005,7 @@ textarea {
   top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @goal-settings;
 }
 
 .goalSettingsHeader {

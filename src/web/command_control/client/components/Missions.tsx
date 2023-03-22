@@ -2,11 +2,8 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
-
-import * as DiveParameters from './RCDiveParametersPanel'
-import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType, TaskType} from './gui/JAIAProtobuf'
-import { GlobalSettings } from './Settings'
-import { MissionInterface } from './CommandControl';
+import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './gui/JAIAProtobuf'
+import { MissionInterface, RunInterface } from './CommandControl';
 
 
 const hardcoded_goals: Goal[][] = [
@@ -49,50 +46,34 @@ function commandWithGoals(botId: number | undefined, goals: Goal[]) {
     return mission
 }
 
-function demoGoals(botId: number) {
-        const home: Goal = {location: {lat: 41.66260,  lon: -71.27310 }}
-        const origin: GeographicCoordinate = { lon: -71.27382208146715, lat: 41.66 }
-        const waypoint_delta: GeographicCoordinate = { lon: -0.0015, lat: -0.000225 }
-        const bot_delta: GeographicCoordinate = { lon: 0.000225, lat: -0.0015 }
-
-        var goals = [home]
-        for (let waypoint_index = 0; waypoint_index < 5; waypoint_index ++) {
-                goals.push({location: {
-                        lon: origin.lon + botId * bot_delta.lon + waypoint_index * waypoint_delta.lon,
-                        lat: origin.lat + botId * bot_delta.lat + waypoint_index * waypoint_delta.lat
-                }})
-        }
-
-        goals.push(home)
-
-        return goals
-}
-
-
-export const SELECTED_BOT_ID = -1
-export type PodMission = {[key: number]: Command}
-export type PodMissionLibrary = {[key: string]: PodMission}
-
+export type Run = {[key: string]: RunInterface}
+export type RunLibrary = {[key: string]: MissionInterface}
+export type CommandList = {[key: number]: Command}
 
 export class Missions {
 
     static defaultMissions() {
-        let missions: PodMissionLibrary = {}
+        let mission: RunLibrary = {
+            'Mission-1': {
+                id: 'mission-1',
+                name: 'Mission 1',
+                runs: {},
+                runIdIncrement: 1,
+                botsAssignedToRuns: {}
+            }
+		}
 
         for (let [index, goals] of hardcoded_goals.entries()) {
-            var podMission: PodMission = {}
-            podMission[SELECTED_BOT_ID] = commandWithGoals(undefined, goals)
-            missions['Mission ' + index] = podMission
+            this.addRunWithGoals(-1, goals, mission['Mission-1']);
         }
 
-        missions['Demo'] = Missions.demo_mission()
-
-        console.log('defaultMissions = ', missions)
-        return missions
+        console.log('defaultMissions = ', mission)
+        return mission
     }
 
     static RCMode(botId: number, datum_location: GeographicCoordinate) {
-        var podMission: PodMission = {}
+        var podMission: number = 0;
+        /*var podMission: PodMission = {}
         podMission[botId] = {
             bot_id: botId,
             time: 1642891753471247,
@@ -105,7 +86,7 @@ export class Missions {
                     location: datum_location
                 }
             }
-        }
+        }*/
 
         return podMission
     }
@@ -121,7 +102,6 @@ export class Missions {
     static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
-
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -143,13 +123,53 @@ export class Missions {
         return mission;
     }
 
-    static demo_mission() {
-        return {
-            0: commandWithGoals(0, demoGoals(0)),
-            1: commandWithGoals(1, demoGoals(1)),
-            2: commandWithGoals(2, demoGoals(2)),
-            3: commandWithGoals(3, demoGoals(3)),
-            4: commandWithGoals(4, demoGoals(4))
+    static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
+        let incr = mission.runIdIncrement + 1;
+        let botsAssignedToRuns = mission?.botsAssignedToRuns;
+        
+        if(botsAssignedToRuns[botId] != null)
+        {
+            mission.runs[botsAssignedToRuns[botId]].assigned = -1;
+            mission.runs[botsAssignedToRuns[botId]].command.bot_id = -1;
+            delete botsAssignedToRuns[botId];
         }
+
+        mission.runs['run-' + String(incr)] = {
+            id: 'run-' + String(incr),
+            name: 'Run ' + String(incr),
+            assigned: botId,
+            editing: false,
+            command: commandWithGoals(botId, goals)
+        }
+        mission.runIdIncrement = incr;
+        botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        return mission;
+    }
+
+    static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
+        let incr = mission.runIdIncrement + 1;
+        let botsAssignedToRuns = mission?.botsAssignedToRuns;
+        
+        if(botsAssignedToRuns[botId] != null)
+        {
+            mission.runs[botsAssignedToRuns[botId]].assigned = -1;
+            mission.runs[botsAssignedToRuns[botId]].command.bot_id = -1;
+            delete botsAssignedToRuns[botId];
+        }
+
+        command.bot_id = botId;
+
+        mission.runs['run-' + String(incr)] = {
+            id: 'run-' + String(incr),
+            name: 'Run ' + String(incr),
+            assigned: botId,
+            editing: false,
+            command: command
+        }
+        mission.runIdIncrement = incr;
+        botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        return mission;
     }
 }

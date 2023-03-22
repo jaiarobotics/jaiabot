@@ -10,7 +10,7 @@
 
 import React, { MouseEvent, ReactElement } from 'react'
 import { Load, Save, GlobalSettings } from './Settings'
-import { Missions, SELECTED_BOT_ID } from './Missions'
+import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
@@ -145,7 +145,7 @@ import { createChartLayerGroup, gebcoLayer } from './ChartLayers';
 import { createBaseLayerGroup } from './BaseLayers'
 
 import { BotListPanel } from './BotListPanel'
-import { PodMission } from './Missions';
+import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './gui/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
@@ -263,7 +263,7 @@ interface State {
 	rallyPointRedLocation?: GeographicCoordinate,
 	mapLayerActive: boolean,
 	missionParams: MissionParams,
-	missionPlans?: PodMission,
+	missionPlans?: CommandList,
 	missionPlanningGrid?: any,
 	missionPlanningLines?: any,
 	missionPlanningFeature?: OlFeature<Geometry>,
@@ -300,8 +300,6 @@ export default class CommandControl extends React.Component {
 		hubs: {},
 		controllingClientId: null
 	}
-	runs: PodMission = {}
-	undoMissionsStack: PodMission[] = []
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
 	chartLayerGroup = createChartLayerGroup()
@@ -331,7 +329,7 @@ export default class CommandControl extends React.Component {
 	surveyExclusionsInteraction: OlDrawInteraction
 
 	missionLayer: OlVectorLayer<OlVectorSource>
-
+	selectedMissionLayer: OlVectorLayer<OlVectorSource>
 	activeMissionLayer: OlVectorLayer<OlVectorSource>
 	missionPlanningLayer: OlVectorLayer<OlVectorSource>
 	exclusionsLayer: OlVectorLayer<OlVectorSource>
@@ -880,13 +878,20 @@ export default class CommandControl extends React.Component {
 
 	createLayers() {
 		this.missionLayer = new OlVectorLayer();
+		this.selectedMissionLayer = new OlVectorLayer({
+			properties: {
+				title: 'Active Missions',
+			},
+			source: new OlVectorSource(),
+			zIndex: 1001
+		})
 		this.activeMissionLayer = new OlVectorLayer({
 			properties: {
 				title: 'Active Missions',
 			},
 			source: new OlVectorSource(),
 			zIndex: 999,
-			opacity: 0.5
+			opacity: 0.3
 		})
 
 		this.missionPlanningLayer = new OlVectorLayer({
@@ -940,6 +945,7 @@ export default class CommandControl extends React.Component {
 			this.graticuleLayer,
 			this.measureLayer,
 			this.missionLayer,
+			this.selectedMissionLayer,
 			this.missionLayerGroup,
 			this.hubsLayerGroup,
 			this.botsLayerGroup,
@@ -2287,8 +2293,13 @@ export default class CommandControl extends React.Component {
 				}}
 				onMissionApply={() => {
 					if (this.state.missionParams.mission_type === 'lines') {
+
+						for(let id in this.state.missionPlans)
+						{
+							Missions.addRunWithGoals(-1, this.state.missionPlans[id].plan.goal, this.state.runList);
+						}
+
 						this.updateMissionLayer();
-						this.loadMissions(this.state.missionPlans)
 					} else {
 						// Polygon
 						this.genMission()
@@ -2339,7 +2350,13 @@ export default class CommandControl extends React.Component {
 
 				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
-				<MissionControllerPanel api={this.api} bots={bots} mission={this.state.runList} />
+				<MissionControllerPanel 
+					api={this.api} 
+					bots={bots} 
+					mission={this.state.runList} 
+					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
+					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
+				/>
 
 				<div id={this.mapDivId} className="map-control" />
 
@@ -2601,7 +2618,6 @@ export default class CommandControl extends React.Component {
 
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotIds().at(-1)
-		let millisecondsSinceEpoch = new Date().getTime();
 
 		if (botId == null) {
 			return
@@ -2611,12 +2627,10 @@ export default class CommandControl extends React.Component {
 			let runs = missions?.runs;
 			let botsAssignedToRuns = missions?.botsAssignedToRuns;
 
-			console.log(missions);
 
 			if(!(botId in botsAssignedToRuns))
 			{
 				missions = Missions.addRunWithWaypoints(botId, [], this.state.runList);
-				console.log(missions);
 			}
 
 			if(runs[botsAssignedToRuns[botId]].command == null)
@@ -2780,6 +2794,8 @@ export default class CommandControl extends React.Component {
 		// Update the mission layer
 		let features = []
 
+		let selectedFeatures = [];
+
 		let missions = this.state.runList
 
 		let selectedColor = '#34d2eb'
@@ -2847,6 +2863,10 @@ export default class CommandControl extends React.Component {
 			if (plan != null) {
 				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
 				features.push(...missionFeatures)
+				if(selected)
+				{
+					selectedFeatures.push(...missionFeatures);
+				}
 			}
 		}
 
@@ -3005,6 +3025,11 @@ export default class CommandControl extends React.Component {
 			features: features as any
 		})
 
+		let vectorSelectedSource = new OlVectorSource({
+			features: selectedFeatures as any
+		})
+
+		this.selectedMissionLayer.setSource(vectorSelectedSource)
 		this.missionLayer.setSource(vectorSource)
 		this.missionLayer.setZIndex(1000)
 	}
@@ -3060,15 +3085,11 @@ export default class CommandControl extends React.Component {
 		else
 		{
 			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-				console.log(runs);
 				Object.keys(runs).map(key => {
 					let botIndex = runs[key].assigned;
 					if(botIndex != -1)
 					{
 						let runCommand = runs[key].command;
-
-						console.log(runCommand);
-						//this.state.runList[key] = deepcopy(run)
 						this._runMission(runCommand)
 					}
 				})
@@ -3078,21 +3099,12 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	// Loads the set of missions, and updates the GUI
-	loadMissions(missions: PodMission) {
-		this.runs = deepcopy(missions)
-
-		// selectedBotId is a placeholder for the currently selected botId
-		if (SELECTED_BOT_ID in this.runs) {
-			console.log(SELECTED_BOT_ID);
-			let selectedBotId = this.selectedBotId() ?? 0
-			
-			this.runs[selectedBotId] = this.runs[SELECTED_BOT_ID]
-			this.runs[selectedBotId].bot_id = selectedBotId
-			delete this.runs[SELECTED_BOT_ID]
+	// Loads the set of runs, and updates the GUI
+	loadMissions(mission: MissionInterface) {
+		for(let run in mission.runs)
+		{
+			Missions.addRunWithCommand(-1, mission.runs[run].command, this.state.runList);
 		}
-
-		console.log(this.runs)
 
 		this.updateMissionLayer()
 	}
@@ -3100,50 +3112,6 @@ export default class CommandControl extends React.Component {
 	// Currently selected botId
 	selectedBotId() {
 		return this.selectedBotIds().at(-1)
-	}
-
-	// Runs the currently loaded mission
-	runLoadedMissions(botIds: number[] = []) {
-		if (!this.takeControl()) return
-
-		if (botIds.length == 0) {
-			botIds = Object.keys(this.runs) as any
-		}
-
-		let botIdsInIdleState = [];
-		for(let botId in botIds)
-		{
-			let botState = this.podStatus.bots[botIds[botId]].mission_state;
-
-			if(botState == "PRE_DEPLOYMENT__IDLE"
-				|| botState == "POST_DEPLOYMENT__IDLE")
-			{
-				botIdsInIdleState.push(botIds[botId]);
-			}
-		}
-
-		botIds.sort()
-		botIdsInIdleState.sort();
-
-		if(botIdsInIdleState.length != 0)
-		{
-			warning("Please activate bots: " + botIdsInIdleState);
-		} 
-		else
-		{
-			if (confirm("Click the OK button to run the mission for bots: " + botIds.join(', '))) {
-				for (let bot_id of botIds) {
-					let mission = this.runs[bot_id]
-					if (mission) {
-						this._runMission(mission)
-					}
-					else {
-						error('No mission set for bot ' + bot_id)
-					}
-				}
-				info('Submitted missions for ' + botIds.length + ' bots')
-			}	
-		}
 	}
 
 	selectedBotIds() {
@@ -3382,7 +3350,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	saveMissionButtonClicked() {
-		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} missions={this.runs} onDone={() => {
+		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} mission={this.state.runList} onDone={() => {
 			this.setState({saveMissionPanel: null})
 		}}></SaveMissionPanel>
 

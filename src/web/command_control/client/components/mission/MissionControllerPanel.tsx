@@ -9,6 +9,8 @@ interface Props {
 	api: JaiaAPI,
 	bots: {[key: number]: PortalBotStatus},
 	mission: MissionInterface,
+	loadMissionClick: any,
+	saveMissionClick: any
 }
 
 interface State {
@@ -41,6 +43,8 @@ export default class MissionControllerPanel extends React.Component {
 			<RunPanel
 				bots={self.props.bots} 
 				mission={self.props.mission}
+				loadMissionClick={self.props.loadMissionClick}
+				saveMissionClick={self.props.saveMissionClick}
 			/>
 
 		return (
