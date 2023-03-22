@@ -6,9 +6,10 @@
 import React, { FormEvent } from 'react'
 import Button from '@mui/material/Button';
 import { GlobalSettings, Save } from './Settings'
-import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters } from './gui/JAIAProtobuf';
+import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './gui/JAIAProtobuf';
 import { deepcopy } from './Utilities'
 import { taskNone } from './gui/Styles';
+import { rhumbDistance, rhumbBearing } from '@turf/turf';
 
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
     goal: Goal
     onClose: () => void
     onChange: () => void
+    getCoordinate: () => Promise<GeographicCoordinate>
 }
 
 
@@ -223,22 +225,22 @@ export class GoalSettingsPanel extends React.Component {
 
         return (
             <div id="ConstantHeadingDiv">
-                <Button className="button-jcc select-on-map" onClick={this.closeClicked.bind(this)}>Select on Map</Button>
+                <Button className="button-jcc select-on-map" onClick={this.selectOnMapClicked.bind(this)}>Select on Map</Button>
                 <table className="ConstantHeadingParametersTable">
                     <tbody>
                         <tr>
                             <td>Heading</td>
-                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" defaultValue={constant_heading.constant_heading} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>deg</td>
                         </tr>
                         <tr>
                             <td>Time</td>
-                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" defaultValue={constant_heading.constant_heading_time} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>s</td>
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" defaultValue={constant_heading.constant_heading_speed} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>m/s</td>
                         </tr>
                         <tr>
@@ -254,6 +256,35 @@ export class GoalSettingsPanel extends React.Component {
 
     closeClicked() {
         this.props.onClose?.()
+    }
+
+    // For selecting target for constant heading task type    
+    selectOnMapClicked() {
+        this.props.getCoordinate().then(
+            (end: GeographicCoordinate) => {
+                let start = this.props.goal.location
+                let constant_heading = this.props.goal.task?.constant_heading
+                let speed = constant_heading?.constant_heading_speed
+
+                // Guard
+                if (start == null || constant_heading == null) {
+                    return
+                }
+
+                if (speed == null) {
+                    console.error(`Constant heading task has speed == ${speed}`)
+                    return
+                }
+
+                // Calculate heading and time from location and speed
+                let rhumb_bearing = rhumbBearing([start.lon, start.lat], [end.lon, end.lat])
+                constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
+
+                let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
+                let t = rhumb_distance / speed
+                constant_heading.constant_heading_time = Number(t.toFixed(0))
+            }
+        )
     }
 
 }

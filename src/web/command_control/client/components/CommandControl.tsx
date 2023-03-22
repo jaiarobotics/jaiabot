@@ -323,6 +323,8 @@ export default class CommandControl extends React.Component {
 
 	oldPodStatus?: PodStatus
 
+	getCoordinateCallback?: (coordinate: GeographicCoordinate) => void
+
 	constructor(props: Props) {
 		super(props)
 
@@ -2220,6 +2222,15 @@ export default class CommandControl extends React.Component {
 							this.changeMissions(() => {}, previous_mission_history);
 						}
 					} 
+					getCoordinate={
+						() => {
+							return new Promise((resolve) => {
+								this.getCoordinateCallback = (coordinate: GeographicCoordinate) => {
+									resolve(coordinate)
+								}
+							})
+						}
+					}
 				/>
 		}
 
@@ -3148,6 +3159,16 @@ export default class CommandControl extends React.Component {
 
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
+
+		// If we've set a callback, then call it
+		if (this.getCoordinateCallback != null) {
+			// Pass the click coordinates back to the callback
+			this.getCoordinateCallback(this.locationFromCoordinate(evt.coordinate))
+			// Set to null to get only one click
+			this.getCoordinateCallback = null
+			// Done
+			return
+		}
 
 		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
