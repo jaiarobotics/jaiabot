@@ -11,7 +11,8 @@ interface Props {
     bots: {[key: number]: PortalBotStatus}
     mission: MissionInterface
     loadMissionClick: any,
-    saveMissionClick: any
+    saveMissionClick: any,
+    deleteAllRunsInMission: any
 }
 
 interface State {
@@ -58,20 +59,7 @@ export default class RunList extends React.Component {
                 </Button>
                 <Button 
                     className="button-jcc" 
-                    onClick={() => {
-                        //Deep copy
-                        let mission = this.props.mission;
-
-                        for(let run in mission.runs)
-                        {
-                            delete mission.runs[run];
-                        }
-
-                        for(let botId in mission.botsAssignedToRuns)
-                        {
-                            delete mission.botsAssignedToRuns[botId]
-                        }
-                    }}
+                    onClick={() => { this.props.deleteAllRunsInMission(this.props.mission) }}
                 >
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</Button>

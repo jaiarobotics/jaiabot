@@ -2293,10 +2293,10 @@ export default class CommandControl extends React.Component {
 				}}
 				onMissionApply={() => {
 					if (this.state.missionParams.mission_type === 'lines') {
-
+						this.deleteAllRunsInMission(this.state.runList);
 						for(let id in this.state.missionPlans)
 						{
-							Missions.addRunWithGoals(-1, this.state.missionPlans[id].plan.goal, this.state.runList);
+							Missions.addRunWithGoals(this.state.missionPlans[id].bot_id, this.state.missionPlans[id].plan.goal, this.state.runList);
 						}
 
 						this.updateMissionLayer();
@@ -2356,6 +2356,7 @@ export default class CommandControl extends React.Component {
 					mission={this.state.runList} 
 					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
+					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 				/>
 
 				<div id={this.mapDivId} className="map-control" />
@@ -3101,12 +3102,25 @@ export default class CommandControl extends React.Component {
 
 	// Loads the set of runs, and updates the GUI
 	loadMissions(mission: MissionInterface) {
+		this.deleteAllRunsInMission(this.state.runList);
 		for(let run in mission.runs)
 		{
 			Missions.addRunWithCommand(-1, mission.runs[run].command, this.state.runList);
 		}
 
 		this.updateMissionLayer()
+	}
+
+	deleteAllRunsInMission(mission: MissionInterface) {
+		for(let run in mission.runs)
+		{
+			delete mission.runs[run];
+		}
+
+		for(let botId in mission.botsAssignedToRuns)
+		{
+			delete mission.botsAssignedToRuns[botId]
+		}
 	}
 
 	// Currently selected botId

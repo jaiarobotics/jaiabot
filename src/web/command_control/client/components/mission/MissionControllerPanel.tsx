@@ -10,7 +10,8 @@ interface Props {
 	bots: {[key: number]: PortalBotStatus},
 	mission: MissionInterface,
 	loadMissionClick: any,
-	saveMissionClick: any
+	saveMissionClick: any,
+	deleteAllRunsInMission: any
 }
 
 interface State {
@@ -45,6 +46,7 @@ export default class MissionControllerPanel extends React.Component {
 				mission={self.props.mission}
 				loadMissionClick={self.props.loadMissionClick}
 				saveMissionClick={self.props.saveMissionClick}
+				deleteAllRunsInMission={self.props.deleteAllRunsInMission}
 			/>
 
 		return (
@@ -52,7 +54,7 @@ export default class MissionControllerPanel extends React.Component {
 				<div id="missionPanel" className="column-right">
 					<div className="panelsContainerVertical">
 						<div className="panel" >
-							<b>Run Panels (Beta)</b><br />						
+							<b>Mission Panel</b><br />						
 						</div>
 						{runPanelComponent}
 					</div>

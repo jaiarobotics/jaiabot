@@ -7,7 +7,8 @@ interface Props {
     bots: {[key: number]: PortalBotStatus},
     mission: MissionInterface,
     loadMissionClick: any,
-    saveMissionClick: any
+    saveMissionClick: any,
+    deleteAllRunsInMission: any
 }
 
 
@@ -36,6 +37,7 @@ export default class RunPanel extends React.Component {
                     mission={self.props.mission}
                     loadMissionClick={self.props.loadMissionClick}
 				    saveMissionClick={self.props.saveMissionClick}
+                    deleteAllRunsInMission={self.props.deleteAllRunsInMission}
                 />}
             </React.Fragment>
         );
