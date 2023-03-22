@@ -1,4 +1,4 @@
-# Environment Setup
+# Customer Getting Started With Simulator
 
 Note: The JaiaBot environment works __exclusively with Ubuntu 20.04__ 
 
