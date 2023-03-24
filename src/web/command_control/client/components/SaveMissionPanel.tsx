@@ -123,6 +123,7 @@ export class SaveMissionPanel extends React.Component {
         
         if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
             this.props.missionLibrary.deleteMission(name)
+            this.state.selectedMissionName = null;
             this.forceUpdate()
         }
     }
