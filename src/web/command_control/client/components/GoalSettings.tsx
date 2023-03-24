@@ -26,10 +26,18 @@ export class GoalSettingsPanel extends React.Component {
 
     props: Props
     key: string
+    oldGoal: Goal
 
     constructor(props: Props) {
         super(props)
+        
+        // This key is for React components
         this.key = `goal-${props.botId}-${props.goalIndex}`
+
+        // Copy the original goal, for if user hits "cancel"
+        this.oldGoal = deepcopy(props.goal)
+
+        console.log("constructor called")
     }
 
     componentDidUpdate() {
@@ -37,11 +45,11 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     render() {
-        const { botId, goalIndex } = this.props
+        const { botId, goalIndex, goal } = this.props
         let self = this
 
         let taskOptionsPanel = <div></div>
-        let taskType = this.props.goal.task?.type
+        let taskType = goal.task?.type
 
         switch (taskType) {
             case 'DIVE':
@@ -77,7 +85,8 @@ export class GoalSettingsPanel extends React.Component {
                 { taskOptionsPanel }
 
                 <div className='HorizontalFlexbox'>
-                    <Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>
+                    <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
+                    <Button className="button-jcc" onClick={this.doneClicked.bind(this)}>Done</Button>
                 </div>
 
             </div>
@@ -121,13 +130,12 @@ export class GoalSettingsPanel extends React.Component {
                 goal.task = null
                 break;
         }
-
-        // this.setState({goal})
     }
 
     diveOptionsPanel() {
-        let dive = this.props.goal.task.dive
-        let surface_drift = this.props.goal.task.surface_drift
+        const { goal } = this.props
+        let dive = goal.task.dive
+        let surface_drift = goal.task.surface_drift
         // console.log(`key = ${this.key}.drift.drift_time`)
         // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
@@ -254,7 +262,23 @@ export class GoalSettingsPanel extends React.Component {
         )
     }
 
-    closeClicked() {
+    doneClicked() {
+        this.props.onClose?.()
+    }
+
+    cancelClicked() {
+        var { goal } = this.props
+
+        // Clear this goal
+        Object.keys(goal).forEach((key: keyof Goal) => {
+            delete goal[key]
+        })
+
+        // Copy items from our backup copy of the goal
+        Object.assign(goal, this.oldGoal)
+
+        this.props.onChange?.()
+
         this.props.onClose?.()
     }
 
@@ -262,8 +286,10 @@ export class GoalSettingsPanel extends React.Component {
     selectOnMapClicked() {
         this.props.getCoordinate().then(
             (end: GeographicCoordinate) => {
-                let start = this.props.goal.location
-                let constant_heading = this.props.goal.task?.constant_heading
+                var { goal } = this.props
+
+                let start = goal.location
+                let constant_heading = goal.task?.constant_heading
                 let speed = constant_heading?.constant_heading_speed
 
                 // Guard
