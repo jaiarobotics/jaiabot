@@ -33,8 +33,10 @@
 // Z-Index
 @map: 0;
 @column-right: 10;
-@goal-settings: 11;
+@engineering-panel: 11;
 @mission-settings: 11;
+@goal-settings: 11;
+@map-layers: 11;
 
 /******** CSS JaiaBot Command & Control ********************/
 
@@ -296,6 +298,7 @@ textarea {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
+    z-index: @map-layers;
 
     button {
       min-width: 10px;
@@ -769,6 +772,10 @@ textarea {
   }
 
   /******** CSS Engineering Panels ********************/
+
+  #engineeringPanel {
+    z-index: @engineering-panel;
+  }
 
   .column-right {
     position: absolute;

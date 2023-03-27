@@ -91,7 +91,7 @@ export class Missions {
         return podMission
     }
 
-    static missionWithWaypoints(botId: number, locations: GeographicCoordinate[]) {
+    static commandWithWaypoints(botId: number, locations: GeographicCoordinate[]) {
         if (!Array.isArray(locations)) {
             locations = [locations]
         }
@@ -115,7 +115,7 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             editing: false,
-            command: Missions.missionWithWaypoints(botId, locations)
+            command: Missions.commandWithWaypoints(botId, locations)
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
