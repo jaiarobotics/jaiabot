@@ -258,6 +258,7 @@ interface State {
 	surveyExclusions?: number[][],
 	selectedFeatures?: OlCollection<OlFeature>,
 	detailsBoxItem?: HubOrBot,
+	selectedHub?: HubOrBot,
 	detailsExpanded: DetailsExpandedState,
 	goalBeingEditedBotId?: number,
 	goalBeingEditedGoalIndex?: number,
@@ -376,6 +377,7 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null,
+			selectedHub: null,
 			detailsExpanded: {
 				quickLook: true,
 				commands: false,
@@ -2465,7 +2467,8 @@ export default class CommandControl extends React.Component {
 
 				<div id="botsDrawer">
 					<BotListPanel podStatus={this.podStatus} 
-						selectedBotId={this.selectedBotId()} 
+						selectedBotId={this.selectedBotId()}
+						selectedHubId={this.selectedHubId()}
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
 						didClickHub={this.didClickHub.bind(this)} />
@@ -2505,11 +2508,22 @@ export default class CommandControl extends React.Component {
 		const item = {'type': 'hub', id: hub_id}
 
 		if (areEqual(this.state.detailsBoxItem, item)) {
-			this.setState({detailsBoxItem: null})
+			// Hub clicked off
+			this.setState({detailsBoxItem: null, selectedHub: null})
+		} else if (this.state.selectedHub !== null && areEqual(item, this.state.selectedHub)) {
+			// Hub clicked off
+			// This condition happens when the user clicks (in the BotListPanel) the hub first, then a bot, and then clicks the hub again to deselect it
+			this.setState({selectedHub: null})
+		} else {
+			// Hub clicked on
+			this.setState({detailsBoxItem: item, selectedHub: item})
 		}
-		else {
-			this.setState({detailsBoxItem: item})
-		}
+	}
+
+	selectedHubId() {
+		if (this.state.selectedHub !== null) {
+			return this.state.selectedHub.id
+		} return null
 	}
 
 	takeControlPanel() {
