@@ -12,7 +12,7 @@
 - [Communications](page50_communications.md)
     - [VPN](page55_vpn.md)
 - [Mission Management](page60_mission_management.md)
-- [Environment Setup](environment_setup.md)
+- [Simulator Setup](page92_customer_getting_started_with_simulator.md)
 
 ## Documentation Information
 
