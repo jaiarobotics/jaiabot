@@ -10,11 +10,12 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderUpload } from '@mdi/js'
 import Button from '@mui/material/Button';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
-import { PodMission } from './Missions';
+import { CommandList } from './Missions';
+import { MissionInterface } from './CommandControl';
 
 interface Props {
     missionLibrary: MissionLibraryLocalStorage
-    selectedMission: (mission: PodMission) => void
+    selectedMission: (mission: MissionInterface) => void
     onCancel: () => void
 }
 
@@ -46,7 +47,7 @@ export class LoadMissionPanel extends React.Component {
                 rowClasses += ' selected'
             }
 
-            let row = (<div className={rowClasses} onClick={self.didClick.bind(self, name)}>
+            let row = (<div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
                 {name}
             </div>)
 
@@ -92,6 +93,7 @@ export class LoadMissionPanel extends React.Component {
         
         if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
             this.props.missionLibrary.deleteMission(name)
+            this.state.selectedMissionName = null;
             this.forceUpdate()
         }
     }
