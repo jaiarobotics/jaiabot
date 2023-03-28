@@ -130,7 +130,7 @@ export class GoalSettingsPanel extends React.Component {
         // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
-            <div id="DiveDiv">
+            <div id="DiveDiv" className='task-options'>
                 <table className="DiveParametersTable">
                     <tbody>
                         <tr>
@@ -200,7 +200,7 @@ export class GoalSettingsPanel extends React.Component {
         // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
-            <div id="DriftDiv">
+            <div id="DriftDiv" className='task-options'>
                 <table className="DriftParametersTable">
                     <tbody>
                         <tr>
@@ -217,7 +217,7 @@ export class GoalSettingsPanel extends React.Component {
         let constant_heading = this.props.goal.task.constant_heading
 
         return (
-            <div id="ConstantHeadingDiv">
+            <div id="ConstantHeadingDiv" className='task-options'>
                 <table className="ConstantHeadingParametersTable">
                     <tbody>
                         <tr>
