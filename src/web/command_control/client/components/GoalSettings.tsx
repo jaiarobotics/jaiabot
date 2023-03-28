@@ -70,8 +70,8 @@ export class GoalSettingsPanel extends React.Component {
         <div className="GoalSettingsPanel">
             <div className='HorizontalFlexbox'>
                 <img src={taskNone} />
-                <div>Goal {goalIndex}</div>
-                <div>Bot {botId}</div>
+                <div className="goalSettingsHeader">Goal {goalIndex}</div>
+                <div className="goalSettingsHeader">Bot {botId}</div>
             </div>
             <div>
                 Task
@@ -140,7 +140,7 @@ export class GoalSettingsPanel extends React.Component {
         // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
-            <div id="DiveDiv">
+            <div id="DiveDiv" className='task-options'>
                 <table className="DiveParametersTable">
                     <tbody>
                         <tr>
@@ -210,7 +210,7 @@ export class GoalSettingsPanel extends React.Component {
         // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
-            <div id="DriftDiv">
+            <div id="DriftDiv" className='task-options'>
                 <table className="DriftParametersTable">
                     <tbody>
                         <tr>
@@ -232,7 +232,7 @@ export class GoalSettingsPanel extends React.Component {
         }
 
         return (
-            <div id="ConstantHeadingDiv">
+            <div id="ConstantHeadingDiv" className='task-options'>
                 <Button className="button-jcc select-on-map" onClick={this.selectOnMapClicked.bind(this)}>Select on Map</Button>
                 <table className="ConstantHeadingParametersTable">
                     <tbody>

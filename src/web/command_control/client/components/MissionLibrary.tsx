@@ -1,7 +1,8 @@
 import { Load, Save } from './Settings'
-import { PodMissionLibrary, PodMission, Missions } from './Missions'
+import { Missions, RunLibrary } from './Missions'
+import { MissionInterface } from './CommandControl';
 
-const savedMissions = Load<PodMissionLibrary>('savedMissions', Missions.defaultMissions())
+const savedMissions = Load<RunLibrary>('savedMissions', Missions.defaultMissions())
 
 export class MissionLibraryLocalStorage {
     static missionLibraryLocalStorage: MissionLibraryLocalStorage
@@ -28,11 +29,10 @@ export class MissionLibraryLocalStorage {
     }
 
     loadMission(key: string) {
-        console.log('loadMission: ', savedMissions[key])
         return savedMissions[key]
     }
 
-    saveMission(key: string, mission: PodMission) {
+    saveMission(key: string, mission: MissionInterface) {
         if (key == null) {
             return
         }
