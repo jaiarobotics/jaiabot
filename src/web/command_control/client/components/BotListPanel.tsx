@@ -2,16 +2,19 @@ import { HubStatus, BotStatus, HealthState } from "./gui/JAIAProtobuf"
 import React = require("react")
 import { PodStatus } from "./PortalStatus"
 
+interface HubOrBot {
+	type: 'hub' | 'bot',
+	id: number
+}
 
 interface Props {
     podStatus: PodStatus | null
     selectedBotId: number | null
-    selectedHubId: number | null
     trackedBotId: string | number | null
+    detailsBoxItem: HubOrBot | null
     didClickBot: (bot_id: number) => void
     didClickHub: (hub_id: number) => void
 }
-
 
 function faultLevel(health_state: HealthState) {
     return {
@@ -32,6 +35,16 @@ export function BotListPanel(props: Props) {
         return bot1.bot_id - bot2.bot_id
     }
 
+    function get_selected_panel_item_id(panelItemType: String) {
+        if (props.detailsBoxItem == null) {
+            return null
+        } else if (props.detailsBoxItem.type == 'bot' && panelItemType == 'bot') {
+            return props.detailsBoxItem.id
+        } else if (props.detailsBoxItem.type == 'hub' && panelItemType == 'hub') {
+            return props.detailsBoxItem.id
+        } return null
+    }
+
     let bots = Object.values(props.podStatus?.bots ?? {}).sort(compare_by_botId)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compare_by_hubId)
     
@@ -40,7 +53,7 @@ export function BotListPanel(props: Props) {
         var botClass = 'bot-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
-        let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
+        let selected = bot.bot_id == get_selected_panel_item_id('bot') ? 'selected' : ''
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
 
         return (
@@ -64,7 +77,7 @@ export function BotListPanel(props: Props) {
         var bothubClass = 'hub-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
-        let selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
+        let selected = hub.hub_id == get_selected_panel_item_id('hub') ? 'selected' : ''
 
         //For now we are naming HUB, HUB with no id
         //In the future we will have to revisit this

@@ -258,7 +258,6 @@ interface State {
 	surveyExclusions?: number[][],
 	selectedFeatures?: OlCollection<OlFeature>,
 	detailsBoxItem?: HubOrBot,
-	selectedHub?: HubOrBot,
 	detailsExpanded: DetailsExpandedState,
 	goalBeingEditedBotId?: number,
 	goalBeingEditedGoalIndex?: number,
@@ -377,7 +376,6 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null,
-			selectedHub: null,
 			detailsExpanded: {
 				quickLook: true,
 				commands: false,
@@ -2468,7 +2466,7 @@ export default class CommandControl extends React.Component {
 				<div id="botsDrawer">
 					<BotListPanel podStatus={this.podStatus} 
 						selectedBotId={this.selectedBotId()}
-						selectedHubId={this.selectedHubId()}
+						detailsBoxItem={this.state.detailsBoxItem}
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
 						didClickHub={this.didClickHub.bind(this)} />
@@ -2496,11 +2494,22 @@ export default class CommandControl extends React.Component {
 	}
 
 	didClickBot(bot_id: number) {
-		if (this.isBotSelected(bot_id)) {
+		const item = {'type': 'bot', id: bot_id}
+
+		// Example situation: user selects Bot1, then Hub, then Bot1 again
+		// This conditional is needed becasue (as of right now) when the user selects a bot then the hub, the bot is not deselected on the hub selection click
+		if (this.isBotSelected(bot_id) && this.state.detailsBoxItem != null && this.state.detailsBoxItem.type == 'hub') {
+			this.setState({detailsBoxItem: item})
+		} 
+		// This conditional applies when a user double clicks a bot selection
+		else if (this.isBotSelected(bot_id)) {
 			this.selectBots([])
+			this.setState({detailsBoxItem: null})
 		}
+		// This conditional applies when the user clicks on a bot that is not currently selected
 		else {
 			this.selectBot(bot_id)
+			this.setState({detailsBoxItem: item})
 		}
 	}
 
@@ -2508,22 +2517,10 @@ export default class CommandControl extends React.Component {
 		const item = {'type': 'hub', id: hub_id}
 
 		if (areEqual(this.state.detailsBoxItem, item)) {
-			// Hub clicked off
-			this.setState({detailsBoxItem: null, selectedHub: null})
-		} else if (this.state.selectedHub !== null && areEqual(item, this.state.selectedHub)) {
-			// Hub clicked off
-			// This condition happens when the user clicks (in the BotListPanel) the hub first, then a bot, and then clicks the hub again to deselect it
-			this.setState({selectedHub: null})
+			this.setState({detailsBoxItem: null})
 		} else {
-			// Hub clicked on
-			this.setState({detailsBoxItem: item, selectedHub: item})
+			this.setState({detailsBoxItem: item})
 		}
-	}
-
-	selectedHubId() {
-		if (this.state.selectedHub !== null) {
-			return this.state.selectedHub.id
-		} return null
 	}
 
 	takeControlPanel() {
