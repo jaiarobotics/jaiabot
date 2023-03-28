@@ -30,6 +30,14 @@
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
+// Z-Index
+@map: 0;
+@column-right: 10;
+@engineering-panel: 11;
+@mission-settings: 11;
+@goal-settings: 11;
+@map-layers: 11;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -63,10 +71,6 @@ textarea {
   font-size: inherit;
   line-height: inherit;
   color: inherit;
-}
-
-div {
-  margin: auto;
 }
 
 #axui_container {
@@ -298,6 +302,7 @@ div {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
+    z-index: @map-layers;
 
     button {
       min-width: 10px;
@@ -489,7 +494,7 @@ div {
     right: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     left: 0px;
-    z-index: 0;
+    z-index: @map;
 
     .ol-control {
       position: absolute;
@@ -772,12 +777,16 @@ div {
 
   /******** CSS Engineering Panels ********************/
 
+  #engineeringPanel {
+    z-index: @engineering-panel;
+  }
+
   .column-right {
     position: absolute;
     height: auto;
     top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
-    z-index: 10;
+    z-index: @column-right;
     background-color: @overlay-background;
     width: 0;
     right: @command-button-size + (2 * @command-button-padding);
@@ -971,6 +980,7 @@ div {
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @mission-settings;
 }
 
 #mission-type {
@@ -1006,6 +1016,11 @@ div {
   top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @goal-settings;
+}
+
+.goalSettingsHeader {
+  margin: auto;
 }
 
 #GoalType {
@@ -1212,3 +1227,13 @@ div.closeButton {
   }
 }
 
+/******** CSS Mission Planning *****************/
+
+.runItemInfo {
+  position: relative;
+  display: inline-flex;
+}
+
+#runList {
+  margin: 10px;
+}
