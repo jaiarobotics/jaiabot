@@ -188,6 +188,7 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
+        - "systemd-sim"
         - "jcc-as-apache"
 
 filter-template-non-master: &filter-template-non-master
@@ -195,6 +196,7 @@ filter-template-non-master: &filter-template-non-master
     branches:
       ignore:
         - "1.y"
+        - "systemd-sim"
         - "jcc-as-apache"
 
         
