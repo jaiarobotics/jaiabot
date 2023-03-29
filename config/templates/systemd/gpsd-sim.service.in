@@ -1,0 +1,12 @@
+[Unit]
+Description=$description
+
+BindsTo=jaiabot.service
+After=jaiabot.service
+
+[Service]
+EnvironmentFile=$env_file
+ExecStart=/bin/bash -c "exec /usr/sbin/gpsd $$($gen gpsd)"
+
+[Install]
+WantedBy=multi-user.target
