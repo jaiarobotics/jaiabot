@@ -13,8 +13,6 @@ set(PROJECT_VERSION_MAJOR "X")
 set(PROJECT_VERSION_MINOR "Y")
 set(PROJECT_VERSION_PATCH "Z")
 
-message(${PROJECT_VERSION_MAJOR})
-
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
   execute_process(COMMAND git rev-parse --short HEAD
