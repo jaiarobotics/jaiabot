@@ -2558,6 +2558,7 @@ export default class CommandControl extends React.Component {
 		}
 		else {
 			this.selectBot(bot_id)
+			this.selectHubs([])
 		}
 	}
 
@@ -2566,6 +2567,7 @@ export default class CommandControl extends React.Component {
 			this.selectHubs([])
 		} else {
 			this.selectHub(hub_id)
+			this.selectBots([])
 		}
 	}
 
@@ -3268,6 +3270,7 @@ export default class CommandControl extends React.Component {
 					this.selectBots([])
 				} else {
 					this.selectBots([Number(feature.getId())])
+					this.selectHubs([])
 				}
 
 			} 
@@ -3277,6 +3280,7 @@ export default class CommandControl extends React.Component {
 					this.selectHubs([])
 				} else {
 					this.selectHubs([Number(feature.getId())])
+					this.selectBots([])
 				}
 			}
 
