@@ -75,6 +75,7 @@ We use CircleCI to do two main types of builds:
 
 - "basic" code build and run unit tests
 - Debian package build to produce .deb packages that can be installed by `apt`. These are categorized to allow for a stratification of stability versus the latest features:
+    - "test" builds that run when necessary to test build packages for branches before merging into `1.y`
     - "continuous" builds that are run with each commit to the `1.y` branch (usually the result of a pull request merge). This is the newest code.
     - "beta" builds that a run with each release ending in an `_` (e.g., `1.0.0_beta1`) which is changed to `~` (e.g. 1.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
     - "release" builds that are run with any other release release (`git tag`), e.g., `1.0.0`.

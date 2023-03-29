@@ -8,9 +8,10 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
-set(PROJECT_VERSION_MAJOR "0")
-set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "1~beta2")
+# automatically patched in CircleCI build to correct version
+set(PROJECT_VERSION_MAJOR "X")
+set(PROJECT_VERSION_MINOR "Y")
+set(PROJECT_VERSION_PATCH "Z")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
