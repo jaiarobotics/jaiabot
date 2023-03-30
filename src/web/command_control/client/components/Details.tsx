@@ -13,7 +13,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
-         mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
+         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
@@ -336,7 +336,7 @@ function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyo
     }
 }
 
-export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, missions: PodMission, closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState) {
+export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, missions: PodMission, closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState, deleteClicked: () => void ) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -532,6 +532,9 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
                         </Button>
+                        <Button className="button-jcc" onClick={() => deleteClicked()}>
+					        <Icon path={mdiDelete} title="Clear Mission"/>
+				        </Button>
                     </AccordionDetails>
                 </Accordion>
                 <Accordion 

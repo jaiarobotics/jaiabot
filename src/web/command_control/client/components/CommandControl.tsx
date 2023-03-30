@@ -2286,7 +2286,8 @@ export default class CommandControl extends React.Component {
 												this.missions, 
 												closeDetails,
 												this.takeControl.bind(this),
-												this.state.detailsExpanded);
+												this.state.detailsExpanded,
+												this.deleteClicked.bind(this));
 				break;
 			default:
 				detailsBox = null;
