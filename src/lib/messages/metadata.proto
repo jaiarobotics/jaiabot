@@ -22,8 +22,8 @@ message DeviceMetadata
 
     message Version
     {
-        required uint32 major = 1;
-        required uint32 minor = 2;
+        required string major = 1;
+        required string minor = 2;
         required string patch = 3;
         optional string git_hash = 4;
         optional string git_branch = 5;
