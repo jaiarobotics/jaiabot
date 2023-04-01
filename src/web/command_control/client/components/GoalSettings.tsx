@@ -309,7 +309,7 @@ export class GoalSettingsPanel extends React.Component {
                 }
 
                 // Calculate heading and time from location and speed
-                let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360.0)
+                let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
                 constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
 
                 let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})

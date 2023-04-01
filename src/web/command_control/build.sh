@@ -8,11 +8,6 @@ pushd "$DIR"
 output_path='dist/client'
 [[ ! -z "$1" ]] && output_path="$1"
 
-which npm
-npm --version
-which webpack
-webpack --version
-
 if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
 then
 	echo "Installing dependencies"
