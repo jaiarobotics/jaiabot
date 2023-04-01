@@ -2256,7 +2256,8 @@ export default class CommandControl extends React.Component {
 					goal={this.state.goalBeingEdited} 
 					onChange={() => { this.updateMissionLayer() }} 
 					onClose={() => 
-						{ 
+						{
+							this.getCoordinateCallback = null
 							this.setState({goalBeingEdited: null})
 							this.changeMissions(() => {}, previous_mission_history);
 						}
