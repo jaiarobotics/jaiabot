@@ -28,9 +28,15 @@ interface Props {
 }
 
 
+interface State {
+    clickingMap: boolean // Is user clicking on the map?  (for constant heading task)
+}
+
+
 export class GoalSettingsPanel extends React.Component {
 
     props: Props
+    state: State
     key: string
     oldGoal: Goal
 
@@ -42,6 +48,10 @@ export class GoalSettingsPanel extends React.Component {
 
         // Copy the original goal, for if user hits "cancel"
         this.oldGoal = deepcopy(props.goal)
+
+        this.state = {
+            clickingMap: false
+        }
 
         console.log("constructor called")
     }
@@ -237,9 +247,11 @@ export class GoalSettingsPanel extends React.Component {
             else return speed * time;
         }
 
+        const clickingMapClass = this.state.clickingMap ? " clicking-map" : ""
+
         return (
             <div id="ConstantHeadingDiv" className='task-options'>
-                <Button className="button-jcc select-on-map" onClick={this.selectOnMapClicked.bind(this)}>Select on Map</Button>
+                <Button className={"button-jcc select-on-map" + clickingMapClass} onClick={this.selectOnMapClicked.bind(this)}>Select on Map</Button>
                 <table className="ConstantHeadingParametersTable">
                     <tbody>
                         <tr>
@@ -290,6 +302,8 @@ export class GoalSettingsPanel extends React.Component {
 
     // For selecting target for constant heading task type    
     selectOnMapClicked() {
+        this.setState({clickingMap: true})
+
         this.props.getCoordinate().then(
             (end: GeographicCoordinate) => {
                 var { goal } = this.props
@@ -315,6 +329,8 @@ export class GoalSettingsPanel extends React.Component {
                 let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
                 let t = rhumb_distance / speed
                 constant_heading.constant_heading_time = Number(t.toFixed(0))
+
+                this.setState({clickingMap: false})
             }
         )
     }
