@@ -6,7 +6,7 @@ import logging
 from math import *
 from orientation import Orientation
 from imu import *
-from waves import WaveAnalyzer
+from waves import Analyzer
 from threading import Thread
 
 
@@ -25,7 +25,7 @@ args = parser.parse_args()
 log.setLevel(args.logging_level)
 
 
-def do_port_loop(imu: IMU, wave_analyzer: WaveAnalyzer):
+def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
     # Create socket
     port = args.port
     if port is None:
@@ -57,11 +57,12 @@ def do_port_loop(imu: IMU, wave_analyzer: WaveAnalyzer):
 
         # Wave analysis
         wave = wave_analyzer.wave()
+        maxAcceleration = wave_analyzer.maxAcceleration()
 
         try:
             line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
                    f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
-                   f'{wave.frequency:0.2f},{wave.amplitude:0.2f}'
+                   f'{wave.frequency:0.2f},{wave.amplitude:0.2f},{maxAcceleration:0.2f}'
             log.debug('Sent: ' + line)
 
             sock.sendto(line.encode('utf8'), addr)
@@ -69,13 +70,14 @@ def do_port_loop(imu: IMU, wave_analyzer: WaveAnalyzer):
             log.error(e)
 
 
-def do_interactive_loop(imu: IMU, wave_analyzer: WaveAnalyzer):
+def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):
     log.info('Interactive mode.  Press ENTER to probe the IMU and WaveAnalyzer.')
 
     while True:
         input()
         log.info(f'IMU data = {imu.getData()}')
-        log.info(f'Primary wave = {wave_analyzer.wave()}')
+        log.info(f'  wave = {wave_analyzer.wave()}')
+        log.info(f'  maxAcceleration = {wave_analyzer.maxAcceleration()}')
 
 
 if __name__ == '__main__':
@@ -98,17 +100,17 @@ if __name__ == '__main__':
     log.info(f'Wave height sampling rate: {args.frequency} Hz')
     log.info(f'Wave height sample time: {SAMPLE_TIME} sec')
 
-    wave_analyzer = WaveAnalyzer(N, dt)
+    analyzer = Analyzer(N, dt)
         
     def do_wave_analysis():
         while True:
             sleep(dt)
             reading = imu.getData()
-            wave_analyzer.addAcceleration(reading.linear_acceleration_world.z)
+            analyzer.addAcceleration(reading.linear_acceleration_world)
 
-    wave_analysis_thread = Thread(target=do_wave_analysis)
-    wave_analysis_thread.daemon = True
-    wave_analysis_thread.start()
+    analysis_thread = Thread(target=do_wave_analysis)
+    analysis_thread.daemon = True
+    analysis_thread.start()
 
     # Main loop
     if args.interactive:
@@ -116,4 +118,4 @@ if __name__ == '__main__':
     else:
         loop = do_port_loop
 
-    loop(imu, wave_analyzer)
+    loop(imu, analyzer)

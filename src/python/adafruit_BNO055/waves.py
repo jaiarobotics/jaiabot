@@ -3,6 +3,7 @@ from math import *
 from typing import *
 from scipy.fft import dct, fft
 import numpy
+from vector3 import Vector3
 
 
 @dataclass
@@ -68,10 +69,15 @@ def print_spectrum(spectrum: List[Component]):
         print(f'{component.frequency:5.2f}  {abs(component.amplitude):5.2f}')
 
 
-class WaveAnalyzer:
-    '''This class ingests a series of accelerations, and returns the primary wave height amplitude and frequency'''
+class Analyzer:
+    '''
+        This class ingests a series of accelerations, and returns:
+        a) the primary wave height amplitude and frequency
+        b) the maximum acceleration (for bottom type characterization)
+    '''
 
-    accelerations: List[float] = []
+    acceleration_z: List[float] = []
+    acceleration_mag: List[float] = []
     max_points = 100
     dt: float
 
@@ -81,16 +87,19 @@ class WaveAnalyzer:
         self.dt = dt
 
 
-    def addAcceleration(self, acceleration: float):
-        self.accelerations.append(acceleration)
-        if len(self.accelerations) > self.max_points:
-            self.accelerations.pop(0)
+    def addAcceleration(self, acceleration: Vector3):
+        self.acceleration_z.append(acceleration.z)
+        self.acceleration_mag.append(acceleration.magnitude())
+
+        if len(self.acceleration_z) > self.max_points:
+            self.acceleration_z.pop(0)
+            self.acceleration_mag.pop(0)
 
 
     def wave(self) -> Component:
-        window_timespan = self.dt * len(self.accelerations)
+        window_timespan = self.dt * len(self.acceleration_z)
 
-        discrete_cosine_transform = dct(self.accelerations, norm='forward')
+        discrete_cosine_transform = dct(self.acceleration_z, norm='forward')
         acceleration_spectrum = get_components(discrete_cosine_transform, window_timespan)
         max_component = get_max_component(acceleration_spectrum)
 
@@ -101,11 +110,23 @@ class WaveAnalyzer:
         return primary_component
 
 
+    def maxAcceleration(self) -> float:
+        '''Return the maximum acceleration amplitude acheived in the sample window'''
+        try:
+            return max(self.acceleration_mag)
+        except ValueError:
+            # Empty sequence?
+            return 0
+
+
 if __name__ == '__main__':
 
-    x = numpy.array([3 * cos(2 * pi * i / 10) ** 1.5 for i in range(0, 50)])
+    x = numpy.array([3 * cos(2 * pi * i / 10) for i in range(0, 50)])
+    print(x)
+    wave_analyzer = Analyzer(max_points=100, dt=0.1)
 
-    wave_analyzer = WaveAnalyzer(100, 0.1)
+    wave_analyzer.acceleration_z = list(x)
+    wave_analyzer.acceleration_mag = [abs(z) for z in x]
+    print(f'Wave Component: {wave_analyzer.wave()}')
+    print(f'maxAcceleration: {wave_analyzer.maxAcceleration()}')
 
-    wave_analyzer.accelerations = list(x)
-    print(wave_analyzer.wave())
