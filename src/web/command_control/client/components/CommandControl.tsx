@@ -2295,13 +2295,40 @@ export default class CommandControl extends React.Component {
 
 		function closeEngineeringPanel() {
 			let engineeringPanel = document.getElementById('engineeringPanel')
-			engineeringPanel.style.width = "0px"
+			engineeringPanel.style.width = '0px'
+			self.setState({engineeringPanelActive: false})
+		}
+
+		function closeMissionSettingsPanel() {
+			self.changeInteraction();
+			self.setState({
+				surveyPolygonActive: false,
+				mode: '',
+				surveyPolygonChanged: false,
+				missionPlanningGrid: null,
+				missionPlanningLines: null
+			});
+			self.updateMissionLayer();
+		}
+
+		function closeMapLayers() {
+			let mapLayersPanel = document.getElementById('mapLayers')
+			mapLayersPanel.style.display = 'none'
+			self.setState({mapLayerActive: false});
 		}
 		
-		function closeOtherViewControlWindows() {
-			// Engineering 
-			closeEngineeringPanel()
-			console.log('closed')
+		function closeOtherViewControlWindows(openPanel: string) {
+			const panels = [
+				{ name: 'engineering', closeFunction: closeEngineeringPanel },
+				{ name: 'missionSettings', closeFunction: closeMissionSettingsPanel },
+				{ name: 'mapLayers', closeFunction: closeMapLayers }
+			]
+
+			panels.forEach(panel => {
+				if (openPanel !== panel.name) {
+					panel.closeFunction()
+				}
+			})
 		}
 
 		return (
@@ -2320,7 +2347,7 @@ export default class CommandControl extends React.Component {
 					{mapLayerActive ? (
 						<Button className="button-jcc active"
 							onClick={() => {
-								this.setState({mapLayerActive: false}); 
+								this.setState({mapLayerActive: false});
 								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
 							}}
@@ -2331,7 +2358,7 @@ export default class CommandControl extends React.Component {
 					) : (
 						<Button className="button-jcc"
 							onClick={() => {
-								closeOtherViewControlWindows();
+								closeOtherViewControlWindows('mapLayers');
 								this.setState({mapLayerActive: true}); 
 								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
@@ -2431,7 +2458,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								closeOtherViewControlWindows();
+								closeOtherViewControlWindows('missionSettings');
 								this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
 									this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
@@ -2460,6 +2487,7 @@ export default class CommandControl extends React.Component {
 
 					) : (
 						<Button className="button-jcc" onClick={() => {
+							closeOtherViewControlWindows('engineering');
 							this.setState({engineeringPanelActive: true}); 
 							this.toggleEngineeringPanel();
 						}} 
