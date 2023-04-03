@@ -2293,6 +2293,17 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
+		function closeEngineeringPanel() {
+			let engineeringPanel = document.getElementById('engineeringPanel')
+			engineeringPanel.style.width = "0px"
+		}
+		
+		function closeOtherViewControlWindows() {
+			// Engineering 
+			closeEngineeringPanel()
+			console.log('closed')
+		}
+
 		return (
 			<div id="axui_container" className={containerClasses}>
 
@@ -2320,6 +2331,7 @@ export default class CommandControl extends React.Component {
 					) : (
 						<Button className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows();
 								this.setState({mapLayerActive: true}); 
 								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
@@ -2419,6 +2431,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows();
 								this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 								if (this.state.missionParams.mission_type === 'polygon-grid')
 									this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
