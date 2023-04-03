@@ -145,6 +145,8 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
       output.mutable_wave()->set_frequency(std::stod(fields[index++]));
       output.mutable_wave()->set_amplitude(std::stod(fields[index++]));
 
+      output.set_max_acceleration(std::stod(fields[index++]));
+
       glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
 
       interprocess().publish<groups::imu>(output);
