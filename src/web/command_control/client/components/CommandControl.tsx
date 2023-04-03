@@ -2354,7 +2354,8 @@ export default class CommandControl extends React.Component {
 												this.state.detailsExpanded,
 												this.createRemoteControlInterval.bind(this),
 												this.clearRemoteControlInterval.bind(this),
-												this.state.remoteControlValues);
+												this.state.remoteControlValues,
+												this.weAreInControl.bind(this));
 				break;
 			default:
 				detailsBox = null;

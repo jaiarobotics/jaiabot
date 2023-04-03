@@ -14,7 +14,8 @@ interface Props {
 	bot: PortalBotStatus,
 	createInterval: () => void,
 	clearInterval: () => void,
-	remoteControlValues: Engineering
+	remoteControlValues: Engineering,
+	weAreInControl: () => boolean
 }
 
 interface State {
@@ -55,7 +56,8 @@ export default class RCControllerPanel extends React.Component {
 		// Set bot id
 		self.props.remoteControlValues.bot_id = self.props.bot.bot_id;
 
-		if (self.state.botStateShow.test(self.props.bot.mission_state)) {
+		if (self.state.botStateShow.test(self.props.bot.mission_state)
+			&& this.props.weAreInControl()) {
 			self.state.panelHeight = "20vh"
 			this.state.rcMode = true;
 		} else {
@@ -109,12 +111,12 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							move={(e) => { 
-								// Take 60 % of the event distance provides 
-								// This means our max forward throttle would be 60 or 3 m/s.
-								let limitForwardThrottle = 0.6; 
-								// Take 20 % of the event distance provides 
-								// This means our max backward throttle would be 20 or 1 m/s.
-								let limitBackwardThrottle = 0.2;
+								// Take 40 % of the event distance provides 
+								// This means our max forward throttle would be 40 or 2 m/s.
+								let limitForwardThrottle = 0.4; 
+								// Take 10 % of the event distance provides 
+								// This means our max backward throttle would be 10 or 0.5 m/s.
+								let limitBackwardThrottle = 0.1;
 
 								console.log(e.y);
 
@@ -175,12 +177,12 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							move={(e) => { 
-								// Take 60 % of the event distance provides 
-								// This means our max forward throttle would be 60 or 3 m/s.
-								let limitForwardThrottle = 0.6; 
-								// Take 20 % of the event distance provides 
-								// This means our max backward throttle would be 20 or 1 m/s.
-								let limitBackwardThrottle = 0.2;
+								// Take 40 % of the event distance provides 
+								// This means our max forward throttle would be 40 or 2 m/s.
+								let limitForwardThrottle = 0.4; 
+								// Take 10 % of the event distance provides 
+								// This means our max backward throttle would be 10 or 0.5 m/s.
+								let limitBackwardThrottle = 0.1;
 
 								if(e.y >= 0) {
 									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
