@@ -18,7 +18,6 @@ const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
 import Button from '@mui/material/Button';
-import { Missions, PodMission } from './Missions';
 import { error, warning, info} from '../libs/notifications';
 import { GlobalSettings } from './Settings';
 
@@ -27,6 +26,7 @@ import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
 import { Command, CommandType, BotStatus, HubStatus, MissionState } from './gui/JAIAProtobuf';
 import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
+import { MissionInterface } from './CommandControl';
 
 let prec = 2
 
@@ -206,7 +206,7 @@ function issueMissionCommand(api: JaiaAPI, bot_mission: Command, bot_id: number)
     }   
 }
 
-function runRCMode(bot: PortalBotStatus) {
+/*function runRCMode(bot: PortalBotStatus) {
     let bot_id = bot.bot_id;
     if (bot_id == null) {
         warning("No bots selected")
@@ -225,15 +225,19 @@ function runRCMode(bot: PortalBotStatus) {
         datum_location = {lat: 0, lon: 0}
     }
 
-    return Missions.RCMode(bot_id, datum_location)[bot_id];
-}
+    return null //Missions.RCMode(bot_id, datum_location)[bot_id];
+}*/
 
 // Check if there is a mission to run
-function runMission(bot_id: number, missions: PodMission) {
-    console.log(missions);
-    if (missions[bot_id]) {
+function runMission(bot_id: number, mission: MissionInterface) {
+    console.log(mission);
+    let runs = mission.runs;
+    let runId = mission.botsAssignedToRuns[bot_id];
+    let run = runs[runId];
+
+    if (run) {
         info('Submitted mission for bot: ' + bot_id);
-        return missions[bot_id];
+        return run.command;
     }
     else {
         error('No mission set for bot ' + bot_id);
@@ -469,7 +473,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                         <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.play, mission_state).isDisabled} 
-                                onClick={() => { issueMissionCommand(api, runMission(bot.bot_id, missions), bot.bot_id) }}>
+                                onClick={() => { issueMissionCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                             <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
 
@@ -489,11 +493,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
                         </Button>
 
-                        <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                        {/*<Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
                                 onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id) }}>
                             <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
-                        </Button>
+                        </Button>*/}
 
                         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
                                 disabled={disableButton(commands.recover, mission_state).isDisabled} 

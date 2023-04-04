@@ -20,7 +20,7 @@ add_custom_target(command_control
 set(server_outdir ${project_SHARE_DIR}/jaiabot/web/server)
 add_custom_command(OUTPUT ${server_outdir}/dccl/option_extensions_pb2.py
   COMMAND ./build_messages.sh
-  ARGS ${server_outdir} ${CMAKE_CURRENT_BINARY_DIR}/proto_include
+  ARGS ${server_outdir} ${CMAKE_CURRENT_BINARY_DIR}/proto_include ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/server
   COMMENT "Running server build_messages.sh"
   )
@@ -30,3 +30,9 @@ add_custom_target(server_messages
   )
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+option(install_jcc_apache "Install JCC Apache site" ON)
+if(install_jcc_apache)
+  install(FILES jcc.conf DESTINATION /etc/apache2/sites-available)
+endif()
+

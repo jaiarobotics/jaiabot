@@ -60,8 +60,8 @@ export class GoalSettingsPanel extends React.Component {
         <div className="GoalSettingsPanel">
             <div className='HorizontalFlexbox'>
                 <img src={taskNone} />
-                <div>Goal {goalIndex}</div>
-                <div>Bot {botId}</div>
+                <div className="goalSettingsHeader">Goal {goalIndex}</div>
+                <div className="goalSettingsHeader">Bot {botId}</div>
             </div>
             <div>
                 Task
