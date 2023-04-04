@@ -46,7 +46,7 @@ message BotPidControl
 
     // The threshold heading_error below which the PID algorithm will target full desired speed
     optional double full_speed_window = 33
-        [default = 30, (dccl.field).units = {
+        [default = 1, (dccl.field).units = {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }];
