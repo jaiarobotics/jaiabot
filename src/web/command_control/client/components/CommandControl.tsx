@@ -2546,7 +2546,7 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								if (this.state.rallyPointRedLocation
 										&& this.state.rallyPointGreenLocation) {
-                  closeOtherViewControlWindows('missionSettings');
+                                                                        closeOtherViewControlWindows('missionSettings');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
 										this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
