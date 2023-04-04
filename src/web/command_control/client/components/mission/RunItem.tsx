@@ -88,7 +88,7 @@ export default class RunItem extends React.Component {
         runAssignSelect =
             <Box sx={{ minWidth: 120 }}>
                 <FormControl fullWidth>
-                <InputLabel id="demo-simple-select-label">Id</InputLabel>
+                <InputLabel id="bot-assigned-select-label">Id</InputLabel>
                     <Select
                         labelId="bot-assigned-select-label"
                         id="bot-assigned-select"
