@@ -147,7 +147,7 @@ import { createBaseLayerGroup } from './BaseLayers'
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './gui/JAIAProtobuf'
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './gui/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
@@ -285,7 +285,9 @@ interface State {
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
 	runList: MissionInterface,
-	undoRunListStack: MissionInterface[]
+	undoRunListStack: MissionInterface[],
+	remoteControlInterval?: ReturnType<typeof setInterval>,
+	remoteControlValues: Engineering
 }
 
 export default class CommandControl extends React.Component {
@@ -408,7 +410,16 @@ export default class CommandControl extends React.Component {
 			engineeringPanelActive: false,
 			missionPanelActive: false,
 			runList: null,
-			undoRunListStack: []
+			undoRunListStack: [],
+			remoteControlInterval: null,
+			remoteControlValues: {
+				bot_id: -1,
+				pid_control: {
+					throttle: 0,
+					rudder: 0,
+					timeout: 2
+				}
+			}
 		};
 
 		this.state.runList = {
@@ -2083,6 +2094,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	selectBots(bot_ids: number[]) {
+		// Clear remote control interval if there is one
+		this.clearRemoteControlInterval();
 		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
 
 		const { selectedBotsFeatureCollection } = this.state;
@@ -2220,6 +2233,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	takeControl() {
+		// Clear interval for remote control if there is one
+		this.clearRemoteControlInterval();
+
 		if (this.weAreInControl()) return true;
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
@@ -2280,7 +2296,6 @@ export default class CommandControl extends React.Component {
 					this.setState({
 						missionPlans: null
 					})
-					this.state.runList = null;
 					this.updateMissionLayer()
 				}}
 				onMissionApply={() => {
@@ -2340,10 +2355,18 @@ export default class CommandControl extends React.Component {
 												this.state.runList, 
 												closeDetails,
 												this.takeControl.bind(this),
-												this.state.detailsExpanded);
+												this.state.detailsExpanded,
+												this.createRemoteControlInterval.bind(this),
+												this.clearRemoteControlInterval.bind(this),
+												this.state.remoteControlValues,
+												this.weAreInControl.bind(this),
+												this.weHaveRemoteControlInterval.bind(this));
 				break;
 			default:
 				detailsBox = null;
+				
+				// Clear remote control interval if there is one
+				this.clearRemoteControlInterval();
 				break;
 		}
 
@@ -2360,7 +2383,7 @@ export default class CommandControl extends React.Component {
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 				/>
-
+				
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
@@ -2579,6 +2602,36 @@ export default class CommandControl extends React.Component {
 				
 			</div>
 		);
+	}
+
+	createRemoteControlInterval() {
+		// Before creating a new interval, clear the current one
+		this.clearRemoteControlInterval();
+
+		this.state.remoteControlInterval = 
+			setInterval(() => {
+				console.log(this.state.remoteControlValues.pid_control);
+				this.api.postEngineeringPanel(this.state.remoteControlValues);
+			}, 100)
+	}
+
+	clearRemoteControlInterval() {
+		if(this.state.remoteControlInterval)
+		{
+			clearInterval(this.state.remoteControlInterval);
+			this.state.remoteControlInterval = null;
+		}
+	}
+
+	weHaveRemoteControlInterval() {
+		if(this.state.remoteControlInterval)
+		{
+			return true;
+		} else
+		{
+			return false;
+		}
+
 	}
 
 	didClickBot(bot_id: number) {
