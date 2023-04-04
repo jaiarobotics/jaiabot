@@ -70,7 +70,8 @@ message IMUData
 
     optional Wave wave = 6;
 
-    optional double max_acceleration = 7        
+    // For bottom characterization
+    optional double max_acceleration = 7
         [(dccl.field) = {units {
             derived_dimensions: "acceleration"
             system: "si"

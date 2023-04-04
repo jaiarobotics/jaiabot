@@ -490,6 +490,10 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
             // Set depth achieved if we had a bottoming timeout
             context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
 
+            // Set the max_acceration
+            context<Dive>().dive_packet().set_max_acceleration_with_units(
+                this->machine().latest_max_acceleration());
+
             // used to correct dive rate calculation
             duration_correction_ = (now - last_depth_change_time_);
             post_event(EvDepthTargetReached());

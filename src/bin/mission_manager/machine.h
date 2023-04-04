@@ -399,6 +399,16 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_latest_max_acceleration(
+        const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration)
+    {
+        latest_max_acceleration_ = latest_max_acceleration;
+    }
+    const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration()
+    {
+        return latest_max_acceleration_;
+    }
+
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
@@ -425,6 +435,10 @@ struct MissionManagerStateMachine
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
     bool rf_disable_{false};
+
+    // IMUData.max_acceleration, to characterize the bottom type
+    boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{
+        0 * boost::units::si::meter_per_second_squared};
 };
 
 struct PreDeployment

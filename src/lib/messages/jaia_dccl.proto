@@ -361,6 +361,15 @@ message DivePacket
 
     // Did we reach min depth?
     optional bool reached_min_depth = 18 [default = false];
+
+        // For bottom characterization
+    optional double max_acceleration = 19
+        [(dccl.field) = {units {
+            derived_dimensions: "acceleration"
+            system: "si"
+            }}
+        ];
+
 }
 
 message TaskPacket
