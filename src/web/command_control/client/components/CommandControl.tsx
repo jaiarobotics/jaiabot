@@ -2094,6 +2094,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	selectBots(bot_ids: number[]) {
+		// Clear remote control interval if there is one
 		this.clearRemoteControlInterval();
 		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
 
@@ -2232,6 +2233,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	takeControl() {
+		// Clear interval for remote control if there is one
+		this.clearRemoteControlInterval();
+
 		if (this.weAreInControl()) return true;
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
@@ -2355,10 +2359,13 @@ export default class CommandControl extends React.Component {
 												this.createRemoteControlInterval.bind(this),
 												this.clearRemoteControlInterval.bind(this),
 												this.state.remoteControlValues,
-												this.weAreInControl.bind(this));
+												this.weAreInControl.bind(this),
+												this.weHaveRemoteControlInterval.bind(this));
 				break;
 			default:
 				detailsBox = null;
+				
+				// Clear remote control interval if there is one
 				this.clearRemoteControlInterval();
 				break;
 		}
@@ -2598,7 +2605,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	createRemoteControlInterval() {
+		// Before creating a new interval, clear the current one
 		this.clearRemoteControlInterval();
+
 		this.state.remoteControlInterval = 
 			setInterval(() => {
 				console.log(this.state.remoteControlValues.pid_control);
@@ -2609,8 +2618,20 @@ export default class CommandControl extends React.Component {
 	clearRemoteControlInterval() {
 		if(this.state.remoteControlInterval)
 		{
-			clearInterval(this.state.remoteControlInterval)
+			clearInterval(this.state.remoteControlInterval);
+			this.state.remoteControlInterval = null;
 		}
+	}
+
+	weHaveRemoteControlInterval() {
+		if(this.state.remoteControlInterval)
+		{
+			return true;
+		} else
+		{
+			return false;
+		}
+
 	}
 
 	didClickBot(bot_id: number) {

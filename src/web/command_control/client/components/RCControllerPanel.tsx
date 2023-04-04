@@ -15,12 +15,12 @@ interface Props {
 	createInterval: () => void,
 	clearInterval: () => void,
 	remoteControlValues: Engineering,
-	weAreInControl: () => boolean
+	weAreInControl: () => boolean,
+	weHaveInterval: () => boolean
 }
 
 interface State {
-	isJoyStickSpeedStart: boolean,
-	isJoyStickRudderStart: boolean,
+	isJoyStickStart: boolean,
 	throttleDirection: string,
 	rudderDirection: string,
 	controlType: string,
@@ -39,8 +39,7 @@ export default class RCControllerPanel extends React.Component {
         this.api = props.api
 
         this.state = {
-			isJoyStickSpeedStart: false,
-			isJoyStickRudderStart: false,
+			isJoyStickStart: false,
 			throttleDirection: '',
 			rudderDirection: '',
 			controlType: "Manual Single",
@@ -57,21 +56,16 @@ export default class RCControllerPanel extends React.Component {
 		self.props.remoteControlValues.bot_id = self.props.bot.bot_id;
 
 		if (self.state.botStateShow.test(self.props.bot.mission_state)
-			&& this.props.weAreInControl()) {
+			&& self.props.weAreInControl()) {
 			self.state.panelHeight = "20vh"
-			this.state.rcMode = true;
+			self.state.rcMode = true;
 		} else {
 			self.state.panelHeight = "0px"
-			this.state.rcMode = false;
+			self.state.rcMode = false;
 		}
 
-		if(!self.state.rcMode
-			&& (self.state.isJoyStickRudderStart 
-				|| self.state.isJoyStickSpeedStart)) {
-			console.log("Clear Interval");
-			this.props.clearInterval();
-			self.state.isJoyStickSpeedStart = false;
-			self.state.isJoyStickRudderStart = false;
+		if(!self.state.rcMode) {
+			self.props.clearInterval();
 		}
 
 		// Create the Select Object
@@ -88,7 +82,7 @@ export default class RCControllerPanel extends React.Component {
                     >
 						<MenuItem key={1} value={"Manual Single"}>Manual Single</MenuItem>
 						<MenuItem key={2} value={"Manual Dual"}>Manual Dual</MenuItem>
-						<MenuItem key={3} value={"Heading Dual"}>Heading Dual</MenuItem>
+						{/*<MenuItem key={3} value={"Heading Dual"}>Heading Dual</MenuItem>*/}
                     </Select>
                 </FormControl>
             </Box>
@@ -100,14 +94,14 @@ export default class RCControllerPanel extends React.Component {
 				<React.Fragment>
 					<div style={{ zIndex: 100, position: 'absolute', top: '30%', left: '25%' }}>
 						<Joystick
+							baseColor="white" 
+							stickColor="black"
 							controlPlaneShape={JoystickShape.AxisY}
 							size={100}
 							throttle={100}
 							start={(e) => {
-								if(!self.state.isJoyStickSpeedStart
-									&& !self.state.isJoyStickRudderStart) {
-									self.state.isJoyStickSpeedStart = true;
-									this.props.createInterval();
+								if(!self.props.weHaveInterval()) {
+									self.props.createInterval();
 								}
 							}}
 							move={(e) => { 
@@ -117,8 +111,6 @@ export default class RCControllerPanel extends React.Component {
 								// Take 10 % of the event distance provides 
 								// This means our max backward throttle would be 10 or 0.5 m/s.
 								let limitBackwardThrottle = 0.1;
-
-								console.log(e.y);
 
 								self.state.throttleDirection = e.direction.toString();
 
@@ -131,21 +123,21 @@ export default class RCControllerPanel extends React.Component {
 							}}
 							stop={(e) => { 
 								self.props.remoteControlValues.pid_control.throttle = 0;
-								this.state.throttleDirection = "";
+								self.state.throttleDirection = "";
 							}}
 						/>
 					</div>
 				
 					<div style={{ zIndex: 100, position: 'absolute', top: '30%', right: '10%' }}>
 						<Joystick
+							baseColor="white" 
+							stickColor="black"
 							controlPlaneShape={JoystickShape.AxisX}
 							size={100}
 							throttle={100}
 							start={(e) => {
-								if(!self.state.isJoyStickRudderStart
-									&& !self.state.isJoyStickSpeedStart) {
-									self.state.isJoyStickRudderStart = true;
-									this.props.createInterval();
+								if(!self.props.weHaveInterval()) {
+									self.props.createInterval();
 								}
 							}}
 							move={(e) => { 
@@ -158,7 +150,7 @@ export default class RCControllerPanel extends React.Component {
 							}}
 							stop={(e) => {
 								self.props.remoteControlValues.pid_control.rudder = 0; 
-								this.state.rudderDirection = "";
+								self.state.rudderDirection = "";
 							}}
 						/>
 					</div>
@@ -167,13 +159,13 @@ export default class RCControllerPanel extends React.Component {
 			controller = 
 					<div style={{ zIndex: 100, position: 'absolute', top: '30%', left: '25%' }}>
 						<Joystick
+							baseColor="white" 
+							stickColor="black"
 							size={100}
 							throttle={100}
 							start={(e) => {
-								if(!self.state.isJoyStickSpeedStart
-									&& !self.state.isJoyStickRudderStart) {
-									self.state.isJoyStickSpeedStart = true;
-									this.props.createInterval();
+								if(!self.props.weHaveInterval()) {
+									self.props.createInterval();
 								}
 							}}
 							move={(e) => { 
@@ -201,7 +193,7 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							stop={(e) => { 
-								this.clearRemoteControlValues();
+								self.clearRemoteControlValues();
 							}}
 						/>
 					</div>

@@ -348,7 +348,7 @@ function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyo
 export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
         createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
-        weAreInControl: () => boolean) {
+        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -414,6 +414,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                 clearInterval={clearRemoteControlInterval} 
                 remoteControlValues={remoteControlValues}
                 weAreInControl={weAreInControl}
+                weHaveInterval={weHaveRemoteControlInterval}
             />
             <div id='botDetailsBox'>
                 <div id="botDetailsComponent">
