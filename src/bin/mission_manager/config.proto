@@ -98,7 +98,7 @@ message MissionManager
     optional uint32 goal_timeout_reacquire_gps_attempts = 45 [default = 2];
 
     // Number of dist to goal historys to keep before discarding oldest
-    optional uint32 goal_dist_history_max = 46 [default = 15];
+    optional uint32 goal_dist_history_max = 46 [default = 150];
 
     // Used to indicate to use goal timeout
     optional bool use_goal_timeout = 47 [default = false];
