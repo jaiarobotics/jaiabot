@@ -3,7 +3,7 @@ import threading
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
-from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
+from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus, CommandForHub
 from jaiabot.messages.hub_pb2 import HubStatus
 
 import google.protobuf.json_format
@@ -177,6 +177,19 @@ class Interface:
         else:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
 
+    def post_command_for_hub(self, command_for_hub_dict, clientId):
+        command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
+        logging.debug(f'Sending command for hub: {command_for_hub}')
+        command_for_hub.time = now()
+        msg = ClientToPortalMessage()
+        msg.command_for_hub.CopyFrom(command_for_hub)
+        
+        if self.send_message_to_portal(msg):
+            self.setControllingClientId(clientId)
+            return {'status': 'ok'}
+        else:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+
     def post_all_stop(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
@@ -293,10 +306,13 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
+
         self.controllingClientId = clientId
         self.send_message_to_portal(msg)
-
-        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
@@ -325,5 +341,5 @@ class Interface:
     def setControllingClientId(self, clientId):
         if clientId != self.controllingClientId:
             logging.warning(f'Client {clientId} has taken control')
-        self.controllingClientId = clientId
+            self.controllingClientId = clientId
 

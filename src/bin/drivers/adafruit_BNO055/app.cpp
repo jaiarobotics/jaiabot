@@ -79,8 +79,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1;
-
+double loop_freq = 10;
 
 // for string delimiter
 std::vector<std::string> split (std::string s, std::string delimiter) {
@@ -123,9 +122,9 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
 
       jaiabot::protobuf::IMUData output;
 
-      output.mutable_euler_angles()->set_alpha(std::stod(fields[index++]));
-      output.mutable_euler_angles()->set_beta(std::stod(fields[index++]));
-      output.mutable_euler_angles()->set_gamma(std::stod(fields[index++]));
+      output.mutable_euler_angles()->set_heading(std::stod(fields[index++]));
+      output.mutable_euler_angles()->set_pitch(std::stod(fields[index++]));
+      output.mutable_euler_angles()->set_roll(std::stod(fields[index++]));
 
       output.mutable_linear_acceleration()->set_x(std::stod(fields[index++]));
       output.mutable_linear_acceleration()->set_y(std::stod(fields[index++]));

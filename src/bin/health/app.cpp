@@ -26,6 +26,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "system_thread.h"
 
@@ -114,6 +115,62 @@ jaiabot::apps::Health::Health()
                     if (!cfg().ignore_powerstate_changes())
                         system("systemctl poweroff");
                     break;
+            }
+        });
+
+    // handle restart/reboot/shutdown commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const protobuf::CommandForHub& command_for_hub)
+        {
+            switch (command_for_hub.type())
+            {
+                // most commands handled by jaiabot_hub_manager
+                default: break;
+
+                case protobuf::CommandForHub::REBOOT_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to reboot computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl reboot");
+                    break;
+                case protobuf::CommandForHub::RESTART_ALL_SERVICES:
+                    glog.is_verbose() && glog << "Commanded to restart jaiabot services. "
+                                              << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        restart_services();
+                    break;
+                case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl poweroff");
+                    break;
+            }
+        });
+
+    // handle rf disable commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        glog.is_verbose() && glog << "Commanded to disable your Wi-Fi. "
+                                                  << std::endl;
+                        /*
+                        *  ifdown wlan0 prevents the OS from initiating any TX/RX operation on the interface. 
+                        *  The RPi shouldn't be transmitting anything at this point, and you won't be able to 
+                        *  scan for wireless networks until you bring the interface up again.
+                        */
+                        system("ifdown wlan0");
+                    }
+                    else
+                    {
+                        glog.is_verbose() && glog << "Commanded to enable your Wi-Fi. "
+                                                  << std::endl;
+                        system("ifup wlan0");
+                    }
+                }
             }
         });
 

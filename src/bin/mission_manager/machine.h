@@ -399,6 +399,9 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
+    const bool& rf_disable() { return rf_disable_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -421,6 +424,7 @@ struct MissionManagerStateMachine
     // at the equator or the poles
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
+    bool rf_disable_{false};
 };
 
 struct PreDeployment
@@ -987,7 +991,12 @@ struct SurfaceDrift
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
-    SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
+    SurfaceDrift(typename StateBase::my_context c) : StateBase(c)
+    {
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+    }
     ~SurfaceDrift() {}
 
     void loop(const EvLoop&);
@@ -1411,7 +1420,7 @@ struct PoweredAscent
              protobuf::SETPOINT_POWERED_ASCENT>
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
-    PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
+    PoweredAscent(typename StateBase::my_context c);
     ~PoweredAscent();
 
     void loop(const EvLoop&);
@@ -1426,6 +1435,18 @@ struct PoweredAscent
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
     jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
+    // determines when to turn on motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_on_timeout_;
+    // determines when to turn off motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_off_timeout_;
+    // determines duration to have the motor on
+    goby::time::SteadyClock::duration powered_ascent_motor_on_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_on_timeout());
+    // determines duration to have the motor off
+    goby::time::SteadyClock::duration powered_ascent_motor_off_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
+    // determines wehn we are still in motor off mode
+    bool in_motor_off_mode_{false};
 };
 
 struct ReacquireGPS

@@ -77,6 +77,7 @@ class HubManager : public ApplicationBase
     void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
+    void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -164,6 +165,10 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
     }
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
+
+    interprocess().subscribe<jaiabot::groups::hub_command_full>(
+        [this](const protobuf::CommandForHub& input_command_for_hub)
+        { handle_command_for_hub(input_command_for_hub); });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
@@ -277,6 +282,26 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     interprocess().publish<jaiabot::groups::task_packet>(task_packet);
 }
 
+void jaiabot::apps::HubManager::handle_command_for_hub(
+    const jaiabot::protobuf::CommandForHub& input_command_for_hub)
+{
+    // publish computer shutdown command to jaiabot_health which is run as root so it
+    // can actually carry out the shutdown
+    switch (input_command_for_hub.type())
+    {
+        case protobuf::Command::SHUTDOWN_COMPUTER:
+            interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
+            break;
+        case protobuf::Command::REBOOT_COMPUTER:
+            interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
+            break;
+        case protobuf::Command::RESTART_ALL_SERVICES:
+            interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
+            break;
+        default: break;
+    }
+}
+
 void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command)
 {
     using protobuf::Command;
@@ -381,14 +406,13 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
 
         for (auto frag : command_fragments)
-        {
-            glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl;
-        }
+        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
     }
 
     goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group)
-        { cmd.set_bot_id(group.numeric()); });
+        {}, [](Command& cmd, const goby::middleware::Group& group) {
+            cmd.set_bot_id(group.numeric());
+        });
 
     if (!command_fragments.empty())
     {

@@ -1,41 +1,48 @@
-import { Map, View} from 'ol';
+import { Map, View } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import TileWMS from 'ol/source/TileWMS';
-import { TileArcGISRest} from 'ol/source';
+import { TileArcGISRest } from 'ol/source';
 import LayerGroup from 'ol/layer/Group';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import Polygon from 'ol/geom/Polygon';
 import { fromLonLat, Projection } from 'ol/proj';
 import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
-import { Circle as CircleStyle, Fill, Style } from 'ol/style';
+import { Style } from 'ol/style';
 import * as Styles from './gui/Styles'
 import * as Popup from './gui/Popup'
-import * as Template from './gui/Template'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createMissionFeatures } from './gui/MissionFeatures'
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
 import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-import {geoJSONToDepthContourFeatures} from './gui/Contours'
+import { geoJSONToDepthContourFeatures } from './gui/Contours'
 import SourceXYZ from 'ol/source/XYZ'
-import {bisect} from './bisect'
-import { TaskPacket, Command } from './gui/JAIAProtobuf';
+import { bisect } from './bisect'
+import { TaskPacket, Command, GeographicCoordinate } from './gui/JAIAProtobuf';
+
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
+import JSZip from 'jszip';
+
+
+console.log(Styles.arrowHeadPng)
+console.log(typeof Styles.arrowHeadPng)
+
 
 
 // Logs have an added _utime_ field on Commands
 interface LogCommand extends Command {
     _utime_: number
+    _scheme_: number
 }
 
 interface LogTaskPacket extends TaskPacket {
+    _utime_: number
     _scheme_: number
 }
+
 
 
 // Get date description from microsecond timestamp
@@ -105,6 +112,168 @@ interface ActiveGoal {
     _utime_: number
     active_goal: number
 }
+
+
+function arrayFrom(location: GeographicCoordinate) {
+    return [location.lon, location.lat]
+}
+
+
+function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
+    var placemarks: string[] = []
+
+    if (taskPacket._scheme_ != 1) {
+        return []
+    }
+
+    const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
+    const date = new Date(taskPacket._utime_ / 1e3)
+    const dateString = formatter.format(date)
+
+    const dive = taskPacket.dive
+    if (dive != null) {
+        const depthString = `${dive.depth_achieved.toFixed(2)} m`
+        let depthMeasurementString = ``; 
+
+        for (let i = 0; i < dive.measurement?.length; i++)
+        {
+            depthMeasurementString += 
+                `
+                    Index: ${i+1} <br />
+                    Mean Depth: ${dive.measurement?.at(i)?.mean_depth?.toFixed(2)} m <br />
+                    Mean Temperature: ${dive.measurement?.at(i)?.mean_temperature?.toFixed(2)} Celcius <br />
+                    Mean Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
+                `
+        }
+
+        placemarks.push(`
+            <Placemark>
+                <name>${depthString}</name>
+                <description>
+                    <h2>Dive</h2>
+                    Time: ${dateString}<br />
+                    Depth: ${depthString}<br />
+                    Bottom Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
+                    Duration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
+                    Unpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
+                    Powered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                    ${depthMeasurementString}
+                </description>
+                <Point>
+                    <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
+                </Point>
+                <Style>
+                    <IconStyle id="mystyle">
+                    <Icon>
+                        <href>files/diveIcon.png</href>
+                        <scale>0.5</scale>
+                    </Icon>
+                    </IconStyle>
+                </Style>
+            </Placemark>
+        `)
+    }
+
+    const drift = taskPacket.drift
+    if (drift != null && drift.drift_duration != 0) {
+
+        const DEG = Math.PI / 180.0
+        const speedString = `${drift.estimated_drift.speed?.toFixed(2)} m/s`
+        const heading = Math.atan2(drift.end_location.lon - drift.start_location.lon, drift.end_location.lat - drift.start_location.lat) / DEG - 90.0
+
+        const driftDescription = `
+            <h2>Drift</h2>
+            Start: ${dateString}<br />
+            Duration: ${drift.drift_duration} s<br />
+            Speed: ${speedString}<br />
+            Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
+        `
+
+        placemarks.push(`
+        <Placemark>
+            <name>Drift</name>
+            <description>
+                ${driftDescription}
+            </description>
+            <LineString>
+                <coordinates>${drift.start_location.lon},${drift.start_location.lat} ${drift.end_location.lon},${drift.end_location.lat}</coordinates>
+            </LineString>
+            <Style>
+                <LineStyle>
+                    <color>ff008cff</color>            <!-- kml:color -->
+                    <colorMode>normal</colorMode>      <!-- colorModeEnum: normal or random -->
+                    <width>4</width>                            <!-- float -->
+                    <gx:labelVisibility>0</gx:labelVisibility>  <!-- boolean -->
+                </LineStyle>
+            </Style>
+        </Placemark>
+
+        <Placemark>
+            <name>${speedString}</name>
+            <description>
+                ${driftDescription}
+            </description>
+            <Point>
+                <coordinates>${drift.end_location.lon},${drift.end_location.lat}</coordinates>
+            </Point>
+            <Style id="driftArrowHead">
+                <IconStyle>
+                    <color>ff008cff</color>            <!-- kml:color -->
+                    <colorMode>normal</colorMode>      <!-- kml:colorModeEnum:normal or random -->
+                    <scale>1.0</scale>                   <!-- float -->
+                    <heading>${heading}</heading>               <!-- float -->
+                    <Icon>
+                        <href>files/driftArrowHead.png</href>
+                    </Icon>
+                    <hotSpot x="0.5"  y="0.5"
+                        xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
+                </IconStyle>
+            </Style>
+        </Placemark>
+        `)
+    }
+
+    return placemarks
+}
+
+
+function KMLDocumentWithContents(contents: string[]) {
+    return `
+    <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
+        <Document>
+            ${contents.join()}
+        </Document>
+    </kml>
+    `
+}
+
+
+async function KMZDocumentWithContents(contents: string[]) {
+    const kmlFileString = KMLDocumentWithContents(contents)
+
+    var zip = new JSZip()
+    zip.file("doc.kml", KMLDocumentWithContents(contents))
+    var img = zip.folder("files")
+
+    const diveIconBlob = await fetch(Styles.bottomStrikePng).then(r => r.blob())
+    img.file('diveIcon.png', diveIconBlob)
+
+    const driftArrowBlob = await fetch(Styles.arrowHeadPng).then(r => r.blob())
+    img.file('driftArrowHead.png', driftArrowBlob)
+
+    return await zip.generateAsync({type:"blob"}).then(content => content)
+}
+
+
+function DownloadFile(name: string, data: BlobPart) {
+    let a = document.createElement("a");
+    if (typeof a.download !== "undefined") a.download = name;
+    a.href = URL.createObjectURL(new Blob([data], {
+        type: "application/octet-stream"
+    }));
+    a.dispatchEvent(new MouseEvent("click"));
+}
+
 
 
 export default class JaiaMap {
@@ -508,7 +677,7 @@ export default class JaiaMap {
 
             const active_goal_index = active_goal?.active_goal
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, command.plan, active_goal_index, false)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, active_goal_index, false)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     
@@ -529,6 +698,16 @@ export default class JaiaMap {
             this.depthContourVectorSource.clear()
 
             this.depthContourVectorSource.addFeatures(this.depthContourFeatures)
+        }
+
+
+        exportKml() {
+            KMZDocumentWithContents(this.task_packets.flatMap(TaskPacketToKMLPlacemarks)).then((kml) => {
+                DownloadFile('map.kmz', kml)
+            })
+            .catch((reason) => {
+                alert(`Error: ${reason}`)
+            })
         }
 
     }

@@ -25,9 +25,17 @@ message MissionManager
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 
+    // powered ascent motor on timeout
+    optional int32 powered_ascent_motor_on_timeout = 26
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
+
+    // powered ascent motor off timeout
+    optional int32 powered_ascent_motor_off_timeout = 27
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
     // safety timeout on powered descent to then transition to unpowered descent
-    optional double powered_descent_timeout = 28
-        [default = 600, (dccl.field).units = { base_dimensions: "T" }];
+    optional int32 powered_descent_timeout = 28
+        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
 
     // detect bottom logic initial timeout in seconds. Used to determine 
     // when we should start determining we reached bottom in powered descent logic.
@@ -42,12 +50,12 @@ message MissionManager
     // bottoming timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bottom has been hit
     optional double bottoming_timeout = 31
-        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 3, (dccl.field).units = { base_dimensions: "T" }];
 
     // surfacing timeout in seconds for unpowered ascent mode
     // if timeout is reached then we switch to powered ascent
     optional double surfacing_timeout = 32
-        [default = 30, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 35, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)
     optional double dive_surface_eps = 33
@@ -78,7 +86,7 @@ message MissionManager
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
     // Min depth safety behavior
-    optional uint32 min_depth_safety = 41 [default = 2];
+    optional uint32 min_depth_safety = 41 [default = 1];
 
     // Min depth skip drift task after reacquiring gps
     optional bool min_depth_safety_skip_drift = 42 [default = false];
@@ -93,7 +101,7 @@ message MissionManager
     optional uint32 tpv_history_max = 46 [default = 15];
 
     // Used to indicate to use goal timeout
-    optional bool use_goal_timeout = 47 [default = true];
+    optional bool use_goal_timeout = 47 [default = false];
 
     // Skip goal task if the bot timeouts trying to get to the goal
     optional bool skip_goal_task = 48 [default = false];
@@ -109,7 +117,7 @@ message MissionManager
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    optional uint32 imu_restart_seconds = 51 [default = 5];
+    optional uint32 imu_restart_seconds = 51 [default = 10];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload

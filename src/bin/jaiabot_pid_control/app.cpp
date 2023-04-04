@@ -168,23 +168,21 @@ jaiabot::apps::BotPidControl::BotPidControl()
         });
 
     // subscribe for commands from mission manager
-    {
-        interprocess()
-            .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
-                [this](const jaiabot::protobuf::DesiredSetpoints& command)
-                { handle_command(command); });
-    }
+    interprocess()
+        .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
+            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
+                handle_command(command);
+            });
 
     // Subscribe to get vehicle movement and orientation, for PID targeting
-    interprocess().subscribe<jaiabot::groups::bot_status>(
-        [this](const jaiabot::protobuf::BotStatus& bot_status)
-        {
-            glog.is_debug2() && glog << "Received bot status: " << bot_status.ShortDebugString()
+    interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+            glog.is_debug2() && glog << "Received node status: " << node_status.ShortDebugString()
                                      << std::endl;
 
-            if (bot_status.has_attitude())
+            if (node_status.has_pose())
             {
-                auto attitude = bot_status.attitude();
+                auto attitude = node_status.pose();
 
                 if (attitude.has_heading())
                 {
@@ -202,9 +200,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
                 }
             }
 
-            if (bot_status.has_speed())
+            if (node_status.has_speed())
             {
-                auto speed = bot_status.speed();
+                auto speed = node_status.speed();
 
                 if (speed.has_over_ground())
                 {
@@ -212,9 +210,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
                 }
             }
 
-            if (bot_status.has_depth())
+            if (node_status.has_global_fix() && node_status.global_fix().has_depth())
             {
-                actual_depth = bot_status.depth();
+                actual_depth = node_status.global_fix().depth();
             }
 
             glog.is_debug2() && glog << "Actual speed: " << actual_speed

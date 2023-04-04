@@ -4,6 +4,11 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message XbeeInfo {
+    optional string node_id = 1 [default = "Not Available"];
+    optional string serial_number = 2 [default = "Not Available"];
+}
+
 message DeviceMetadata
 {
     option (dccl.msg) = {
@@ -17,8 +22,8 @@ message DeviceMetadata
 
     message Version
     {
-        required uint32 major = 1;
-        required uint32 minor = 2;
+        required string major = 1;
+        required string minor = 2;
         required string patch = 3;
         optional string git_hash = 4;
         optional string git_branch = 5;

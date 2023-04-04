@@ -10,13 +10,19 @@ const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const end = require('./end.svg') as string
 const start = require('./start.svg')
 const bot = require('./bot.svg') as string
+const hub = require('./hub.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
-const taskNone = require('./taskNone.svg') as string
+export const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
+const taskConstantHeading = require('./taskConstantHeading.svg') as string
 const satellite = require('./satellite.svg') as string
+
+// Export the PNG data for use in KMZ files
+export const arrowHeadPng = require('./arrowHead.png') as string
+export const bottomStrikePng = require('./bottomStrike.png') as string
 
 
 // Colors
@@ -115,6 +121,42 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
+export function hubMarker(feature: Feature): Style[] {
+    const geometry = feature.getGeometry() as Point
+
+    const textOffsetRadius = 11
+
+    var color = defaultColor
+
+    if (feature.get('selected')) {
+        color = selectedColor
+    }
+
+    const text = "H" + String(feature.get('hubId'))
+
+    var style = [ 
+        // Hub body marker
+        new Style({
+            image: new Icon({
+                src: hub,
+                color: color,
+                anchor: [0.5, 0.5],
+                rotateWithView: true
+            }),
+            text: new Text({
+                text: text,
+                font: 'bold 11pt sans-serif',
+                fill: new Fill({
+                    color: 'black'
+                }),
+                offsetX: 0,
+                offsetY: textOffsetRadius
+            })
+        })
+    ]
+
+    return style
+}
 
 export function courseOverGroundArrow(feature: Feature): Style {
     const courseOverGround = feature.get('courseOverGround') * DEG
@@ -148,16 +190,20 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 // Markers for the mission goals
-export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+export function goalSrc(taskType: TaskType | null) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
-        'CONSTANT_HEADING': taskDrift,
+        'CONSTANT_HEADING': taskConstantHeading,
         'NONE': taskNone       
     }
 
-    const src = srcMap[taskType ?? 'NONE'] ?? taskNone
+    return srcMap[taskType ?? 'NONE'] ?? taskNone
+}
+
+export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+    const src = goalSrc(taskType)
 
     return new Icon({
         src: src,

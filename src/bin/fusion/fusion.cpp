@@ -79,6 +79,7 @@ class Fusion : public ApplicationBase
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
     jaiabot::protobuf::BotStatus latest_bot_status_;
+    jaiabot::protobuf::Engineering latest_engineering_status;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
     std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
@@ -88,15 +89,13 @@ class Fusion : public ApplicationBase
     double previous_course_over_ground_{0};
     bool imu_issue_{false};
     int imu_issue_crs_hdg_incr_{0};
-    int imu_issue_hdg_incr_{0};
     goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
     // Milliseconds
-    int bot_status_rate_{1000};
-
-    protobuf::BotStatusRate engineering_bot_status_rate_{
-        protobuf::BotStatusRate::BotStatusRate_1_Hz};
+    int bot_status_period_ms_{1000};
+    bool rf_disabled_{false};
+    int rf_disabled_timeout_mins_{10};
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
@@ -190,7 +189,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     watch_battery_percentage_ = cfg().watch_battery_percentage();
 
-    bot_status_rate_ = cfg().bot_status_rate();
+    bot_status_period_ms_ = cfg().bot_status_period_ms();
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -243,10 +242,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         auto calibration_status = imu_data.calibration_status();
         auto now = goby::time::SteadyClock::now();
 
-        if (euler_angles.has_alpha())
+        if (euler_angles.has_heading())
         {
-            // IMU is offset by 270 degrees, so we need to rotate it
-            auto heading = euler_angles.alpha_with_units() + 270 * degrees;
+            // Creating temp heading variable
+            auto heading = euler_angles.heading_with_units();
 
             // Apply magnetic declination
             auto magneticDeclination = wmm.magneticDeclination(
@@ -264,21 +263,18 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             last_data_time_[DataType::HEADING] = now;
         }
 
-        if (euler_angles.has_gamma())
+        if (euler_angles.has_pitch())
         {
-            // Flip sign when reading pitch values.
-            // This is based on how the imu is situated
-            // in the bot.
-            auto pitch = -euler_angles.gamma_with_units();
+            auto pitch = euler_angles.pitch_with_units();
             latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
             latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
             last_data_time_[DataType::PITCH] = now;
         }
 
-        if (euler_angles.has_beta())
+        if (euler_angles.has_roll())
         {
-            auto roll = euler_angles.beta_with_units();
+            auto roll = euler_angles.roll_with_units();
             latest_node_status_.mutable_pose()->set_roll_with_units(roll);
             latest_bot_status_.mutable_attitude()->set_roll_with_units(roll);
 
@@ -398,12 +394,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 auto time = goby::time::SystemClock::now<goby::time::MicroTime>();
                 latest_node_status_.set_time_with_units(time);
             }
-
-            if (latest_node_status_.IsInitialized())
-            {
-                interprocess().publish<goby::middleware::frontseat::groups::node_status>(
-                    latest_node_status_);
-            }
         });
 
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
@@ -506,31 +496,50 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 switch (command.bot_status_rate())
                 {
-                    case protobuf::BotStatusRate::BotStatusRate_2_Hz: bot_status_rate_ = 500; break;
+                    case protobuf::BotStatusRate::BotStatusRate_2_Hz:
+                        bot_status_period_ms_ = 500;
+                        break;
                     case protobuf::BotStatusRate::BotStatusRate_1_Hz:
-                        bot_status_rate_ = 1000;
+                        bot_status_period_ms_ = 1000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_2_SECONDS:
-                        bot_status_rate_ = 2000;
+                        bot_status_period_ms_ = 2000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_5_SECONDS:
-                        bot_status_rate_ = 5000;
+                        bot_status_period_ms_ = 5000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_10_SECONDS:
-                        bot_status_rate_ = 10000;
+                        bot_status_period_ms_ = 10000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_20_SECONDS:
-                        bot_status_rate_ = 20000;
+                        bot_status_period_ms_ = 20000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_40_SECONDS:
-                        bot_status_rate_ = 40000;
+                        bot_status_period_ms_ = 40000;
                         break;
                     case protobuf::BotStatusRate::BotStatusRate_60_SECONDS:
-                        bot_status_rate_ = 60000;
+                        bot_status_period_ms_ = 60000;
+                        break;
+                    case protobuf::BotStatusRate::BotStatusRate_NO_RF:
+                        bot_status_period_ms_ = -1;
                         break;
                 }
-                engineering_bot_status_rate_ = command.bot_status_rate();
+                latest_engineering_status.set_bot_status_rate(command.bot_status_rate());
             }
+            if (command.has_rf_disable_options())
+            {
+                if (command.rf_disable_options().has_rf_disable_timeout_mins())
+                {
+                    rf_disabled_timeout_mins_ =
+                        command.rf_disable_options().rf_disable_timeout_mins();
+                }
+            }
+
+            if (command.has_query_bot_status())
+            {
+                latest_engineering_status.set_query_bot_status(command.query_bot_status());
+            }
+
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
         });
 
@@ -605,17 +614,77 @@ void jaiabot::apps::Fusion::loop()
 
     if (latest_bot_status_.IsInitialized())
     {
-        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_rate_)) <= now)
+        latest_engineering_status.set_bot_id(latest_bot_status_.bot_id());
+        latest_engineering_status.mutable_rf_disable_options()->set_rf_disable_timeout_mins(
+            rf_disabled_timeout_mins_);
+
+        // If we get an engineering query for bot status
+        if (latest_engineering_status.query_bot_status())
         {
-            glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+            glog.is_debug1() && glog << "Publishing queried bot status over intervehicle(): "
                                      << latest_bot_status_.ShortDebugString() << endl;
             intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
-            last_bot_status_report_time_ = now;
+            latest_engineering_status.set_query_bot_status(false);
         }
-        jaiabot::protobuf::Engineering engineering_status;
-        engineering_status.set_bot_id(latest_bot_status_.bot_id());
-        engineering_status.set_bot_status_rate(engineering_bot_status_rate_);
-        interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+
+        if ((last_bot_status_report_time_ + std::chrono::milliseconds(bot_status_period_ms_)) <=
+            now)
+        {
+            // If bot_status_period_ms_ is not -1 then send bot status
+            if (bot_status_period_ms_ != -1)
+            {
+                glog.is_debug1() && glog << "Publishing bot status over intervehicle(): "
+                                         << latest_bot_status_.ShortDebugString() << endl;
+                intervehicle().publish<jaiabot::groups::bot_status>(latest_bot_status_);
+                last_bot_status_report_time_ = now;
+
+                // If the rf is disabled and operator enables rf
+                // then send powerstate command to enable WIFI
+                if (rf_disabled_)
+                {
+                    rf_disabled_ = false;
+                    latest_engineering_status.mutable_rf_disable_options()->set_rf_disable(
+                        rf_disabled_);
+                    // Send message to enable RF on PI (WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(
+                        latest_engineering_status);
+                }
+            }
+            else
+            {
+                // If the rf is enabled and operator disables rf
+                // then send powerstate command to disable WIFI
+                if (!rf_disabled_)
+                {
+                    rf_disabled_ = true;
+                    latest_engineering_status.mutable_rf_disable_options()->set_rf_disable(
+                        rf_disabled_);
+                    // Send message to disable RF on PI (WIFI)
+                    interprocess().publish<jaiabot::groups::powerstate_command>(
+                        latest_engineering_status);
+                }
+
+                // If the rf_disable timeout has been reach then start sending bot status
+                if ((last_bot_status_report_time_ +
+                     std::chrono::minutes(rf_disabled_timeout_mins_)) <= now)
+                {
+                    // Set bot status rate to 1 Hz if the rf disable timeout is reached
+                    // TODO use config file to reset these
+                    latest_engineering_status.set_bot_status_rate(
+                        protobuf::BotStatusRate::BotStatusRate_1_Hz);
+                    bot_status_period_ms_ = 1000;
+                }
+            }
+        }
+
+        interprocess().publish<jaiabot::groups::engineering_status>(latest_engineering_status);
+    }
+
+    // When initialized, always send node_status for pid app and frontseat app
+    if (latest_node_status_.IsInitialized())
+    {
+        interprocess().publish<goby::middleware::frontseat::groups::node_status>(
+            latest_node_status_);
     }
 }
 
@@ -688,8 +757,22 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
 
     for (const auto& ep : missing_data_errors_)
     {
-        if (!last_data_time_.count(ep.first) ||
-            (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) < now))
+        // TODO: We should be able to easily configure different error timeouts
+        // Temp fix for now
+        if (ep.first == DataType::HEADING)
+        {
+            if (!last_data_time_.count(ep.first) ||
+                (last_data_time_[ep.first] + std::chrono::seconds(cfg().heading_timeout_seconds()) <
+                 now))
+            {
+                health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
+                health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
+                glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
+            }
+        }
+        else if (!last_data_time_.count(ep.first) ||
+                 (last_data_time_[ep.first] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+                  now))
         {
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
             health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
@@ -802,37 +885,18 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         }
     }
 
-    if (!last_data_time_.count(DataType::HEADING) ||
-        (last_data_time_[DataType::HEADING] + std::chrono::seconds(cfg().data_timeout_seconds()) <
+    if ((last_data_time_[DataType::HEADING] +
+             std::chrono::seconds(cfg().heading_timeout_seconds()) <
          now))
     {
-        if (imu_issue_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
-        {
-            glog.is_debug1() && glog << "Have not reached threshold for total checks "
-                                     << imu_issue_hdg_incr_ << " < "
-                                     << (cfg().total_imu_issue_checks() - 1) << std::endl;
-            // Increment until we reach total_imu_issue_checks
-            imu_issue_hdg_incr_++;
-        }
-        else
-        {
-            interprocess().publish<jaiabot::groups::imu>(imu_issue);
-            imu_issue_ = true;
-            glog.is_debug1() && glog << "Post IMU Warning" << endl;
-        }
-        
-    }
-    else
-    {
-        // Reset increment
-        imu_issue_hdg_incr_ = 0;
+        interprocess().publish<jaiabot::groups::imu>(imu_issue);
+        imu_issue_ = true;
+        glog.is_debug1() && glog << "Post IMU Warning" << endl;
     }
 
     if(imu_issue_)
     {
         last_imu_issue_report_time_ = now;
-        // Reset hdg increment
-        imu_issue_hdg_incr_ = 0;
         // Reset crs hdg increment
         imu_issue_crs_hdg_incr_ = 0;
     }
