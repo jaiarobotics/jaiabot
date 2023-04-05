@@ -30,6 +30,14 @@
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
+// Z-Index
+@map: 0;
+@column-right: 10;
+@engineering-panel: 11;
+@mission-settings: 11;
+@goal-settings: 11;
+@map-layers: 11;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -63,10 +71,6 @@ textarea {
   font-size: inherit;
   line-height: inherit;
   color: inherit;
-}
-
-div {
-  margin: auto;
 }
 
 #axui_container {
@@ -297,6 +301,7 @@ div {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
+    z-index: @map-layers;
 
     button {
       min-width: 10px;
@@ -488,7 +493,7 @@ div {
     right: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     left: 0px;
-    z-index: 0;
+    z-index: @map;
 
     .ol-control {
       position: absolute;
@@ -771,12 +776,16 @@ div {
 
   /******** CSS Engineering Panels ********************/
 
+  #engineeringPanel {
+    z-index: @engineering-panel;
+  }
+
   .column-right {
     position: absolute;
     height: auto;
     top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
-    z-index: 10;
+    z-index: @column-right;
     background-color: @overlay-background;
     width: 0;
     right: @command-button-size + (2 * @command-button-padding);
@@ -866,6 +875,38 @@ div {
       margin: 0;
     }
 
+  }
+
+  /******** Remote Control Panel *****************************/
+
+  #remoteControlPanel {
+    position: absolute;
+    height: 0;
+    bottom: 0;
+    z-index: @column-right;
+    background-color: @overlay-background;
+    width: 100%;
+    right: @command-button-size + (2 * @command-button-padding);
+
+    div.panel {
+      margin: @layout-margin / 2 2px;
+      padding: @layout-margin / 2 2px;
+      background-color: @cc-background-color;
+      color: @cc-text-color;
+      border-radius: @panel-corner-radius;
+      overflow: visible;
+      position: relative;
+      text-align: center;
+      font-weight: bold;
+
+      > h2,
+      > a > h2 {
+        margin: 0;
+        padding: 3px 5px;
+        color: @cc-text-color;
+      }
+
+    }
   }
 
   /******** CSS System Health Information ********************/
@@ -970,6 +1011,7 @@ div {
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @mission-settings;
 }
 
 #mission-type {
@@ -1005,6 +1047,11 @@ div {
   top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @goal-settings;
+}
+
+.goalSettingsHeader {
+  margin: auto;
 }
 
 #GoalType {
@@ -1211,3 +1258,13 @@ div.closeButton {
   }
 }
 
+/******** CSS Mission Planning *****************/
+
+.runItemInfo {
+  position: relative;
+  display: inline-flex;
+}
+
+#runList {
+  margin: 10px;
+}
