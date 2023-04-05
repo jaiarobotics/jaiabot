@@ -287,6 +287,17 @@ function disableButton(command: CommandInfo, mission_state: MissionState)
     return disableButton;
 }
 
+// Check that bot has a mission for disabling button
+function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
+    const hasAMission = mission.botsAssignedToRuns[bot_id] ? true : false
+    let disableButton = {class: '', isDisabled: false};
+    if (!hasAMission) {
+        disableButton.class = "inactive";
+        disableButton.isDisabled = true      
+    }
+    return disableButton
+}
+
 // Get the table row for the health of the vehicle
 function healthRow(bot: BotStatus, allInfo: boolean) {
     let healthClassName = {
@@ -554,7 +565,9 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
                                 <Icon path={mdiRestart} title="Restart Services"/>
                             </Button>
-                            <Button className="button-jcc" onClick={() => { deleteSingleMission() }}>
+                            <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
+                                    disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
+                                    onClick={() => { deleteSingleMission() }}>
                                 <Icon path={mdiDelete} title="Clear Mission"/>
                             </Button>
                         </AccordionDetails>
