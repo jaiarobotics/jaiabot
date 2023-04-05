@@ -6,6 +6,7 @@ import { PodStatus } from "./PortalStatus"
 interface Props {
     podStatus: PodStatus | null
     selectedBotId: number | null
+    selectedHubId: number | null
     trackedBotId: string | number | null
     didClickBot: (bot_id: number) => void
     didClickHub: (hub_id: number) => void
@@ -57,12 +58,11 @@ export function BotListPanel(props: Props) {
     }
 
     function HubDiv(hub: HubStatus) {
-        let hubId = hub.hub_id
-        
-        var key = 'hub-' + hubId
+        var key = 'hub-' + hub.hub_id
         var bothubClass = 'hub-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
+        let selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
 
         //For now we are naming HUB, HUB with no id
         //In the future we will have to revisit this
@@ -72,7 +72,7 @@ export function BotListPanel(props: Props) {
                 onClick={
                     () => props.didClickHub(hub.hub_id)
                 }
-                className={`${bothubClass} ${faultLevelClass}`}
+                className={`${bothubClass} ${faultLevelClass} ${selected}`}
             >
                 {"HUB"} 
             </div>
