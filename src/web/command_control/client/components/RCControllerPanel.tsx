@@ -92,7 +92,7 @@ export default class RCControllerPanel extends React.Component {
 		if(self.state.controlType == "Manual Dual") {
 			controller = 
 				<React.Fragment>
-					<div style={{ zIndex: 100, position: 'absolute', top: '30%', left: '25%' }}>
+					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', left: '14vw' }}>
 						<Joystick
 							baseColor="white" 
 							stickColor="black"
@@ -128,7 +128,7 @@ export default class RCControllerPanel extends React.Component {
 						/>
 					</div>
 				
-					<div style={{ zIndex: 100, position: 'absolute', top: '30%', right: '10%' }}>
+					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', right: '10vw' }}>
 						<Joystick
 							baseColor="white" 
 							stickColor="black"
@@ -157,7 +157,7 @@ export default class RCControllerPanel extends React.Component {
 				</React.Fragment>
 		} else if(self.state.controlType == "Manual Single") {
 			controller = 
-					<div style={{ zIndex: 100, position: 'absolute', top: '30%', left: '25%' }}>
+					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', left: '14vw' }}>
 						<Joystick
 							baseColor="white" 
 							stickColor="black"
@@ -207,20 +207,20 @@ export default class RCControllerPanel extends React.Component {
 					<div className="panel" >
 						<b>Remote Control Panel: Bot {self.props.bot.bot_id}</b><br />						
 					</div>
-					<div style={{ zIndex: 100, position: 'absolute', top: '15%', left: '5%' }}>
+					<div style={{ zIndex: 100, position: 'absolute', top: '3vh', left: '42vw' }}>
 						<div className="panel" >
 							{selectControlType}
 						</div>
 					</div>
 					<div id="sticks">
-						<div style={{ zIndex: 100, position: 'absolute', top: '15%', left: '50%', width: '350px' }}>
+						<div style={{ zIndex: 100, position: 'absolute', top: '9vh', left: '42vw', width: '350px' }}>
 							<div className="panel" >
 								<b>Throttle Direction: {self.state.throttleDirection}</b>
 								<br />
 								<b>Throttle: {self.props.remoteControlValues.pid_control.throttle.toFixed(0)}</b>						
 							</div>
 						</div>
-						<div style={{ zIndex: 100, position: 'absolute', top: '45%', left: '50%', width: '350px' }}>
+						<div style={{ zIndex: 100, position: 'absolute', top: '14vh', left: '42vw', width: '350px' }}>
 							<div className="panel" >
 								<b>Rudder Direction: {self.state.rudderDirection}</b>
 								<br />
