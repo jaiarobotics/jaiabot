@@ -8,6 +8,7 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Gamepad from 'react-gamepad';
 
 interface Props {
 	api: JaiaAPI,
@@ -228,6 +229,59 @@ export default class RCControllerPanel extends React.Component {
 							</div>
 						</div>
 						{controller}
+						<Gamepad
+							deadZone={0.2}
+							onAxisChange={(axisName: string, value: number, previousValue: number) => {
+								if(!self.props.weHaveInterval()) {
+									self.props.createInterval();
+								}
+
+								// Take 40 % of the event distance provides 
+								// This means our max forward throttle would be 40 or 2 m/s.
+								let limitForwardThrottle = 0.4; 
+								// Take 10 % of the event distance provides 
+								// This means our max backward throttle would be 10 or 0.5 m/s.
+								let limitBackwardThrottle = 0.1;
+
+								// Raise the absolute value of the input value to the fourth power
+								// For the rudder response then applying the sign back
+								const input = Math.abs(value);
+								const output = input ** 4;
+								const sign = Math.sign(value);
+								const rudder_adjust_value = sign * output * 100;
+
+								if(self.state.controlType == "Manual Single") {
+									
+									if(axisName == "LeftStickX") {
+										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									} 
+									
+									if(axisName == "LeftStickY") {	
+										if(value >= 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										} else if(value < 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										}
+									}
+								} else if(self.state.controlType == "Manual Dual") {
+									if(axisName == "LeftStickY") {
+										if(value >= 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										} else if(value < 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										}
+									}
+
+									if(axisName == "RightStickX") {
+										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									}
+								}
+								// Handle joystick movements
+								console.log(axisName, value);
+							}}
+						>
+							<React.Fragment />
+						</Gamepad>
 					</div>
 				</div>
 			</React.Fragment>
