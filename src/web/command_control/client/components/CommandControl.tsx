@@ -252,6 +252,7 @@ interface State {
 	mode: Mode,
 	currentInteraction: Interaction | null,
 	selectedBotsFeatureCollection: OlCollection<OlFeature>,
+	selectedHubsFeatureCollection: OlCollection<OlFeature>,
 	lastBotCount: number,
 	botExtents: {[key: number]: number[]},
 	trackingTarget: number | string,
@@ -354,6 +355,7 @@ export default class CommandControl extends React.Component {
 			currentInteraction: null,
 			// Map layers
 			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
+			selectedHubsFeatureCollection: new OlCollection([], { unique: true }),
 			// incoming data
 			botExtents: {},
 			trackingTarget: null,
@@ -1764,6 +1766,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	updateHubsLayer() {
+		const { selectedHubsFeatureCollection } = this.state
 		let hubs = this.podStatus.hubs;
 
 		for (let hubId in hubs) {
@@ -1802,12 +1805,26 @@ export default class CommandControl extends React.Component {
 
 			hubFeature.set('selected', false);
 
+			// Update feature in selected set
+			if (selectedHubsFeatureCollection.getLength() !== 0) {
+				for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+					const feature = selectedHubsFeatureCollection.item(i);
+					if (feature.getId() === hub_id) {
+						hubFeature.set('selected', true);
+						selectedHubsFeatureCollection.setAt(i, hubFeature);
+						break;
+					}
+				}
+			}
+
 			hubLayer.getSource().clear();
 			hubLayer.getSource().addFeature(hubFeature);
 
 			hubLayer.setZIndex(100);
 			hubLayer.changed();
 		} // end foreach hub
+
+		this.setState({ selectedHubsFeatureCollection });
 
 		//this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 	}
@@ -2089,6 +2106,10 @@ export default class CommandControl extends React.Component {
 		this.selectBots([bot_id]);
 	}
 
+	selectHub(hub_id: number) {
+		this.selectHubs([hub_id]);
+	}
+
 	toggleBot(bot_id: number) {
 		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
 		this.selectBots(botsToSelect)
@@ -2124,10 +2145,48 @@ export default class CommandControl extends React.Component {
 		map.render();
 	}
 
+	selectHubs(hub_ids: number[]) {
+		hub_ids = hub_ids.map(hub_id => { return Number(hub_id) })
+
+		const { selectedHubsFeatureCollection } = this.state;
+		const hubsLayerCollection = this.hubsLayerCollection
+
+		selectedHubsFeatureCollection.clear();
+		hubsLayerCollection.getArray().forEach((layer) => {
+			const feature = layer.getSource().getFeatureById(layer.get('hub_id'));
+			if (feature) {
+				if (hub_ids.includes(feature.getId() as number)) {
+					feature.set('selected', true);
+					selectedHubsFeatureCollection.push(feature);
+				} else {
+					feature.set('selected', false);
+				}
+			}
+		});
+		this.setState({ selectedHubsFeatureCollection });
+
+		if (hub_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'hub', id: hub_ids[0]}})
+		}
+
+		this.updateMissionLayer()
+		map.render();
+	}
+
 	isBotSelected(bot_id: number) {
 		const { selectedBotsFeatureCollection } = this.state;
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	isHubSelected(hub_id: number) {
+		const { selectedHubsFeatureCollection } = this.state;
+		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+			if (selectedHubsFeatureCollection.item(i).getId() == hub_id) {
 				return true;
 			}
 		}
@@ -2338,7 +2397,7 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
+				detailsBox = HubDetailsComponent(hubs?.[this.selectedHubId()], 
 												this.api, 
 												closeDetails, 
 												this.state.detailsExpanded,
@@ -2578,7 +2637,8 @@ export default class CommandControl extends React.Component {
 
 				<div id="botsDrawer">
 					<BotListPanel podStatus={this.podStatus} 
-						selectedBotId={this.selectedBotId()} 
+						selectedBotId={this.selectedBotId()}
+						selectedHubId={this.selectedHubId()}
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
 						didClickHub={this.didClickHub.bind(this)} />
@@ -2641,17 +2701,16 @@ export default class CommandControl extends React.Component {
 		}
 		else {
 			this.selectBot(bot_id)
+			this.selectHubs([])
 		}
 	}
 
 	didClickHub(hub_id: number) {
-		const item = {'type': 'hub', id: hub_id}
-
-		if (areEqual(this.state.detailsBoxItem, item)) {
-			this.setState({detailsBoxItem: null})
-		}
-		else {
-			this.setState({detailsBoxItem: item})
+		if (this.isHubSelected(hub_id)) {
+			this.selectHubs([])
+		} else {
+			this.selectHub(hub_id)
+			this.selectBots([])
 		}
 	}
 
@@ -3202,6 +3261,10 @@ export default class CommandControl extends React.Component {
 		return this.selectedBotIds().at(-1)
 	}
 
+	selectedHubId() {
+		return this.selectedHubIds().at(-1)
+	}
+
 	selectedBotIds() {
 		const { selectedBotsFeatureCollection } = this.state
 		let botIds: number[] = []
@@ -3216,6 +3279,23 @@ export default class CommandControl extends React.Component {
 		}
 
 		return botIds
+	}
+
+	selectedHubIds() {
+		const { selectedHubsFeatureCollection } = this.state
+		// console.log('selectedHubsFeatureCollection', selectedHubsFeatureCollection)
+		let hubIds: number[] = []
+
+		// Update feature in selected set
+		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+			const feature = selectedHubsFeatureCollection.item(i)
+			const hubId = feature.getId() as number
+			if (hubId != null) {
+				hubIds.push(hubId)
+			}
+		}
+
+		return hubIds
 	}
 
 	// SelectInteraction
@@ -3295,11 +3375,22 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on a bot
-			if (this.isBotSelected(Number(feature.getId()))) {
-				this.selectBots([])
-			}
-			else {
-				this.selectBots([Number(feature.getId())])
+			if (feature.get('botId') !== undefined) {
+				if (this.isBotSelected(Number(feature.getId()))) {
+					this.selectBots([])
+				} else {
+					this.selectBots([Number(feature.getId())])
+					this.selectHubs([])
+				}
+			} 
+			// Clicked on the hub
+			else if (feature.get('hubId') !== undefined) {
+				if (this.isHubSelected(Number(feature.getId()))) {
+					this.selectHubs([])
+				} else {
+					this.selectHubs([Number(feature.getId())])
+					this.selectBots([])
+				}
 			}
 
 			// Clicked on mission planning point
