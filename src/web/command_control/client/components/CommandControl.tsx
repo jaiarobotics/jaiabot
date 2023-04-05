@@ -371,7 +371,8 @@ export default class CommandControl extends React.Component {
 			missionParams: {
 				'mission_type': 'lines',
 				'num_bots': 4,
-				'num_goals': 12,
+				// Account for start rally and end rally
+				'num_goals': (MAX_GOALS - 2),
 				'spacing': 30,
 				'orientation': 0,
 				'rally_spacing': 20,
@@ -2918,8 +2919,7 @@ export default class CommandControl extends React.Component {
 			let run = missions?.runs[key];
 			let assignedBot = run.assigned
 			let selected = this.isBotSelected(assignedBot)
-
-			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal
+			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal;
 
 			// Add our goals
 			const plan = run.command?.plan
