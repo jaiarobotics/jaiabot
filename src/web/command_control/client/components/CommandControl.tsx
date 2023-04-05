@@ -2371,6 +2371,52 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
+		function closeMissionPanel() {
+			let missionPanel = document.getElementById('missionPanel')
+			missionPanel.style.width = "0px"
+			self.setState({missionPanelActive: false})
+		}
+
+		function closeEngineeringPanel() {
+			let engineeringPanel = document.getElementById('engineeringPanel')
+			engineeringPanel.style.width = "0px"
+			self.setState({engineeringPanelActive: false})
+		}
+
+		function closeMissionSettingsPanel() {
+			self.changeInteraction();
+			self.setState({
+				surveyPolygonActive: false,
+				mode: '',
+				surveyPolygonChanged: false,
+				missionPlanningGrid: null,
+				missionPlanningLines: null
+			});
+			self.updateMissionLayer();
+		}
+
+		function closeMapLayers() {
+			let mapLayersPanel = document.getElementById('mapLayers')
+			mapLayersPanel.style.display = 'none'
+			self.setState({mapLayerActive: false});
+		}
+
+		function closeOtherViewControlWindows(openPanel: string) {
+			const panels = [
+				{ name: 'missionPanel', closeFunction: closeMissionPanel },
+				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
+				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
+				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
+				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
+			]
+
+			panels.forEach(panel => {
+				if (openPanel !== panel.name) {
+					panel.closeFunction()
+				}
+			})
+		}
+
 		return (
 			<div id="axui_container" className={containerClasses}>
 
@@ -2407,6 +2453,7 @@ export default class CommandControl extends React.Component {
 					) : (
 						<Button className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows('mapLayersPanel');
 								this.setState({mapLayerActive: true}); 
 								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
@@ -2434,6 +2481,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows('measureTool')
 								this.setState({ measureActive: true });
 								this.changeInteraction(this.measureInteraction, 'crosshair');
 								info('Touch map to set first measure point');
@@ -2508,6 +2556,7 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								if (this.state.rallyPointRedLocation
 										&& this.state.rallyPointGreenLocation) {
+									closeOtherViewControlWindows('missionSettingsPanel');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
 										this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
@@ -2541,7 +2590,8 @@ export default class CommandControl extends React.Component {
 
 					) : (
 						<Button className="button-jcc" onClick={() => {
-							this.setState({engineeringPanelActive: true}); 
+							closeOtherViewControlWindows('engineeringPanel');
+							this.setState({engineeringPanelActive: true});
 							this.toggleEngineeringPanel();
 						}} 
 						>
@@ -2560,6 +2610,7 @@ export default class CommandControl extends React.Component {
 
 					) : (
 						<Button className="button-jcc" onClick={() => {
+							closeOtherViewControlWindows('missionPanel');
 							this.setState({missionPanelActive: true}); 
 							this.toggleMissionPanel();
 						}} 
