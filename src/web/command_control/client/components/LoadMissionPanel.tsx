@@ -81,7 +81,9 @@ export class LoadMissionPanel extends React.Component {
     }
 
     loadClicked() {
-        this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
+        if (confirm('Loading a new mission will delete the current mission. If the current mission is saved, select OK')) {
+            this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
+        }
     }
 
     deleteClicked() {
