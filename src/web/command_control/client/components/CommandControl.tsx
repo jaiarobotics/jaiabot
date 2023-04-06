@@ -3605,7 +3605,8 @@ export default class CommandControl extends React.Component {
 			this.setState({loadMissionPanel: null})
 		}} onCancel={() => {
 			this.setState({loadMissionPanel: null})
-		}}></LoadMissionPanel>
+		}} areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+		></LoadMissionPanel>
 
 		this.setState({loadMissionPanel: panel})
 	}
