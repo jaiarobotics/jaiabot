@@ -147,7 +147,7 @@ import { createBaseLayerGroup } from './BaseLayers'
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './gui/JAIAProtobuf'
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './gui/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
@@ -252,6 +252,7 @@ interface State {
 	mode: Mode,
 	currentInteraction: Interaction | null,
 	selectedBotsFeatureCollection: OlCollection<OlFeature>,
+	selectedHubsFeatureCollection: OlCollection<OlFeature>,
 	lastBotCount: number,
 	botExtents: {[key: number]: number[]},
 	trackingTarget: number | string,
@@ -285,7 +286,9 @@ interface State {
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
 	runList: MissionInterface,
-	undoRunListStack: MissionInterface[]
+	undoRunListStack: MissionInterface[],
+	remoteControlInterval?: ReturnType<typeof setInterval>,
+	remoteControlValues: Engineering
 }
 
 export default class CommandControl extends React.Component {
@@ -352,6 +355,7 @@ export default class CommandControl extends React.Component {
 			currentInteraction: null,
 			// Map layers
 			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
+			selectedHubsFeatureCollection: new OlCollection([], { unique: true }),
 			// incoming data
 			botExtents: {},
 			trackingTarget: null,
@@ -369,7 +373,8 @@ export default class CommandControl extends React.Component {
 			missionParams: {
 				'mission_type': 'lines',
 				'num_bots': 4,
-				'num_goals': 12,
+				// Account for start rally and end rally
+				'num_goals': (MAX_GOALS - 2),
 				'spacing': 30,
 				'orientation': 0,
 				'rally_spacing': 20,
@@ -408,7 +413,16 @@ export default class CommandControl extends React.Component {
 			engineeringPanelActive: false,
 			missionPanelActive: false,
 			runList: null,
-			undoRunListStack: []
+			undoRunListStack: [],
+			remoteControlInterval: null,
+			remoteControlValues: {
+				bot_id: -1,
+				pid_control: {
+					throttle: 0,
+					rudder: 0,
+					timeout: 2
+				}
+			}
 		};
 
 		this.state.runList = {
@@ -1752,6 +1766,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	updateHubsLayer() {
+		const { selectedHubsFeatureCollection } = this.state
 		let hubs = this.podStatus.hubs;
 
 		for (let hubId in hubs) {
@@ -1790,12 +1805,26 @@ export default class CommandControl extends React.Component {
 
 			hubFeature.set('selected', false);
 
+			// Update feature in selected set
+			if (selectedHubsFeatureCollection.getLength() !== 0) {
+				for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+					const feature = selectedHubsFeatureCollection.item(i);
+					if (feature.getId() === hub_id) {
+						hubFeature.set('selected', true);
+						selectedHubsFeatureCollection.setAt(i, hubFeature);
+						break;
+					}
+				}
+			}
+
 			hubLayer.getSource().clear();
 			hubLayer.getSource().addFeature(hubFeature);
 
 			hubLayer.setZIndex(100);
 			hubLayer.changed();
 		} // end foreach hub
+
+		this.setState({ selectedHubsFeatureCollection });
 
 		//this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 	}
@@ -2077,12 +2106,18 @@ export default class CommandControl extends React.Component {
 		this.selectBots([bot_id]);
 	}
 
+	selectHub(hub_id: number) {
+		this.selectHubs([hub_id]);
+	}
+
 	toggleBot(bot_id: number) {
 		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
 		this.selectBots(botsToSelect)
 	}
 
 	selectBots(bot_ids: number[]) {
+		// Clear remote control interval if there is one
+		this.clearRemoteControlInterval();
 		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
 
 		const { selectedBotsFeatureCollection } = this.state;
@@ -2110,10 +2145,48 @@ export default class CommandControl extends React.Component {
 		map.render();
 	}
 
+	selectHubs(hub_ids: number[]) {
+		hub_ids = hub_ids.map(hub_id => { return Number(hub_id) })
+
+		const { selectedHubsFeatureCollection } = this.state;
+		const hubsLayerCollection = this.hubsLayerCollection
+
+		selectedHubsFeatureCollection.clear();
+		hubsLayerCollection.getArray().forEach((layer) => {
+			const feature = layer.getSource().getFeatureById(layer.get('hub_id'));
+			if (feature) {
+				if (hub_ids.includes(feature.getId() as number)) {
+					feature.set('selected', true);
+					selectedHubsFeatureCollection.push(feature);
+				} else {
+					feature.set('selected', false);
+				}
+			}
+		});
+		this.setState({ selectedHubsFeatureCollection });
+
+		if (hub_ids.length > 0) {
+			this.setState({detailsBoxItem: {type: 'hub', id: hub_ids[0]}})
+		}
+
+		this.updateMissionLayer()
+		map.render();
+	}
+
 	isBotSelected(bot_id: number) {
 		const { selectedBotsFeatureCollection } = this.state;
 		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	isHubSelected(hub_id: number) {
+		const { selectedHubsFeatureCollection } = this.state;
+		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+			if (selectedHubsFeatureCollection.item(i).getId() == hub_id) {
 				return true;
 			}
 		}
@@ -2220,6 +2293,9 @@ export default class CommandControl extends React.Component {
 	}
 
 	takeControl() {
+		// Clear interval for remote control if there is one
+		this.clearRemoteControlInterval();
+
 		if (this.weAreInControl()) return true;
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
@@ -2280,7 +2356,6 @@ export default class CommandControl extends React.Component {
 					this.setState({
 						missionPlans: null
 					})
-					this.state.runList = null;
 					this.updateMissionLayer()
 				}}
 				onMissionApply={() => {
@@ -2322,7 +2397,7 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[detailsBoxItem.id], 
+				detailsBox = HubDetailsComponent(hubs?.[this.selectedHubId()], 
 												this.api, 
 												closeDetails, 
 												this.state.detailsExpanded,
@@ -2340,11 +2415,66 @@ export default class CommandControl extends React.Component {
 												this.state.runList, 
 												closeDetails,
 												this.takeControl.bind(this),
-												this.state.detailsExpanded);
+												this.state.detailsExpanded,
+												this.createRemoteControlInterval.bind(this),
+												this.clearRemoteControlInterval.bind(this),
+												this.state.remoteControlValues,
+												this.weAreInControl.bind(this),
+												this.weHaveRemoteControlInterval.bind(this),
+												this.deleteSingleRun.bind(this));
 				break;
 			default:
 				detailsBox = null;
+				
+				// Clear remote control interval if there is one
+				this.clearRemoteControlInterval();
 				break;
+		}
+
+		function closeMissionPanel() {
+			let missionPanel = document.getElementById('missionPanel')
+			missionPanel.style.width = "0px"
+			self.setState({missionPanelActive: false})
+		}
+
+		function closeEngineeringPanel() {
+			let engineeringPanel = document.getElementById('engineeringPanel')
+			engineeringPanel.style.width = "0px"
+			self.setState({engineeringPanelActive: false})
+		}
+
+		function closeMissionSettingsPanel() {
+			self.changeInteraction();
+			self.setState({
+				surveyPolygonActive: false,
+				mode: '',
+				surveyPolygonChanged: false,
+				missionPlanningGrid: null,
+				missionPlanningLines: null
+			});
+			self.updateMissionLayer();
+		}
+
+		function closeMapLayers() {
+			let mapLayersPanel = document.getElementById('mapLayers')
+			mapLayersPanel.style.display = 'none'
+			self.setState({mapLayerActive: false});
+		}
+
+		function closeOtherViewControlWindows(openPanel: string) {
+			const panels = [
+				{ name: 'missionPanel', closeFunction: closeMissionPanel },
+				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
+				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
+				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
+				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
+			]
+
+			panels.forEach(panel => {
+				if (openPanel !== panel.name) {
+					panel.closeFunction()
+				}
+			})
 		}
 
 		return (
@@ -2360,7 +2490,7 @@ export default class CommandControl extends React.Component {
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 				/>
-
+				
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="mapLayers" />
@@ -2383,6 +2513,7 @@ export default class CommandControl extends React.Component {
 					) : (
 						<Button className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows('mapLayersPanel');
 								this.setState({mapLayerActive: true}); 
 								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
 								$('#mapLayersButton').toggleClass('active');
@@ -2410,6 +2541,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
+								closeOtherViewControlWindows('measureTool')
 								this.setState({ measureActive: true });
 								this.changeInteraction(this.measureInteraction, 'crosshair');
 								info('Touch map to set first measure point');
@@ -2484,6 +2616,7 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								if (this.state.rallyPointRedLocation
 										&& this.state.rallyPointGreenLocation) {
+									closeOtherViewControlWindows('missionSettingsPanel');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
 										this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
@@ -2517,7 +2650,8 @@ export default class CommandControl extends React.Component {
 
 					) : (
 						<Button className="button-jcc" onClick={() => {
-							this.setState({engineeringPanelActive: true}); 
+							closeOtherViewControlWindows('engineeringPanel');
+							this.setState({engineeringPanelActive: true});
 							this.toggleEngineeringPanel();
 						}} 
 						>
@@ -2536,6 +2670,7 @@ export default class CommandControl extends React.Component {
 
 					) : (
 						<Button className="button-jcc" onClick={() => {
+							closeOtherViewControlWindows('missionPanel');
 							this.setState({missionPanelActive: true}); 
 							this.toggleMissionPanel();
 						}} 
@@ -2554,7 +2689,8 @@ export default class CommandControl extends React.Component {
 
 				<div id="botsDrawer">
 					<BotListPanel podStatus={this.podStatus} 
-						selectedBotId={this.selectedBotId()} 
+						selectedBotId={this.selectedBotId()}
+						selectedHubId={this.selectedHubId()}
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
 						didClickHub={this.didClickHub.bind(this)} />
@@ -2581,23 +2717,52 @@ export default class CommandControl extends React.Component {
 		);
 	}
 
+	createRemoteControlInterval() {
+		// Before creating a new interval, clear the current one
+		this.clearRemoteControlInterval();
+
+		this.state.remoteControlInterval = 
+			setInterval(() => {
+				console.log(this.state.remoteControlValues.pid_control);
+				this.api.postEngineeringPanel(this.state.remoteControlValues);
+			}, 100)
+	}
+
+	clearRemoteControlInterval() {
+		if(this.state.remoteControlInterval)
+		{
+			clearInterval(this.state.remoteControlInterval);
+			this.state.remoteControlInterval = null;
+		}
+	}
+
+	weHaveRemoteControlInterval() {
+		if(this.state.remoteControlInterval)
+		{
+			return true;
+		} else
+		{
+			return false;
+		}
+
+	}
+
 	didClickBot(bot_id: number) {
 		if (this.isBotSelected(bot_id)) {
 			this.selectBots([])
 		}
 		else {
 			this.selectBot(bot_id)
+			this.selectHubs([])
 		}
 	}
 
 	didClickHub(hub_id: number) {
-		const item = {'type': 'hub', id: hub_id}
-
-		if (areEqual(this.state.detailsBoxItem, item)) {
-			this.setState({detailsBoxItem: null})
-		}
-		else {
-			this.setState({detailsBoxItem: item})
+		if (this.isHubSelected(hub_id)) {
+			this.selectHubs([])
+		} else {
+			this.selectHub(hub_id)
+			this.selectBots([])
 		}
 	}
 
@@ -2865,8 +3030,7 @@ export default class CommandControl extends React.Component {
 			let run = missions?.runs[key];
 			let assignedBot = run.assigned
 			let selected = this.isBotSelected(assignedBot)
-
-			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal
+			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal;
 
 			// Add our goals
 			const plan = run.command?.plan
@@ -3144,9 +3308,32 @@ export default class CommandControl extends React.Component {
 		mission.runIdIncrement = 0;
 	}
 
+	deleteSingleRun() {
+		const runList = this.state.runList
+		const selectedBotId = this.selectedBotId()
+		const runId = runList.botsAssignedToRuns[selectedBotId] ? runList.botsAssignedToRuns[selectedBotId] : -1
+		const warning_string = "Are you sure you want to delete run for bot: " + selectedBotId;
+
+		if (confirm(warning_string)) {
+			// No missions assigned to selected bot, exit function to prevent runtime error
+			if (runId === -1) {
+				return 
+			}
+
+			const run = runList.runs[runId]
+
+			delete runList?.runs[runId]
+			delete runList?.botsAssignedToRuns[run.assigned]
+		}
+	}
+
 	// Currently selected botId
 	selectedBotId() {
 		return this.selectedBotIds().at(-1)
+	}
+
+	selectedHubId() {
+		return this.selectedHubIds().at(-1)
 	}
 
 	selectedBotIds() {
@@ -3163,6 +3350,23 @@ export default class CommandControl extends React.Component {
 		}
 
 		return botIds
+	}
+
+	selectedHubIds() {
+		const { selectedHubsFeatureCollection } = this.state
+		// console.log('selectedHubsFeatureCollection', selectedHubsFeatureCollection)
+		let hubIds: number[] = []
+
+		// Update feature in selected set
+		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
+			const feature = selectedHubsFeatureCollection.item(i)
+			const hubId = feature.getId() as number
+			if (hubId != null) {
+				hubIds.push(hubId)
+			}
+		}
+
+		return hubIds
 	}
 
 	// SelectInteraction
@@ -3242,11 +3446,22 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on a bot
-			if (this.isBotSelected(Number(feature.getId()))) {
-				this.selectBots([])
-			}
-			else {
-				this.selectBots([Number(feature.getId())])
+			if (feature.get('botId') !== undefined) {
+				if (this.isBotSelected(Number(feature.getId()))) {
+					this.selectBots([])
+				} else {
+					this.selectBots([Number(feature.getId())])
+					this.selectHubs([])
+				}
+			} 
+			// Clicked on the hub
+			else if (feature.get('hubId') !== undefined) {
+				if (this.isHubSelected(Number(feature.getId()))) {
+					this.selectHubs([])
+				} else {
+					this.selectHubs([Number(feature.getId())])
+					this.selectBots([])
+				}
 			}
 
 			// Clicked on mission planning point
