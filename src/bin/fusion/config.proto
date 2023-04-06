@@ -55,11 +55,11 @@ message Fusion
 
     optional bool is_sim = 34 [default = false];
 
-    // These checks are in the loop
+    // How many times to verify data is indicating imu issue before declaring one
     optional int32 total_imu_issue_checks = 35 [default = 7];
 
-    // timeout in seconds
-    optional int32 imu_restart_timeout = 36 [default = 30]; 
+    // When to start detecting imu issues again after detecting one
+    optional int32 imu_detect_timeout = 36 [default = 30]; 
 
     // Rate in milliseconds
     optional int32 bot_status_period_ms = 37 [default = 1000]; 
@@ -74,6 +74,7 @@ message Fusion
     optional float battery_percentage_very_low_level = 42 [default = 20];
     optional float battery_percentage_critically_low_level = 43 [default = 10];
 
-    // timeout in seconds
-    optional int32 imu_detect_timeout = 44 [default = 1];  
+    // The period to check for a imu issue in seconds
+    optional int32 imu_detect_period = 44 [default = 1]; 
+
 }
