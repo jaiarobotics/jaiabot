@@ -2420,7 +2420,8 @@ export default class CommandControl extends React.Component {
 												this.clearRemoteControlInterval.bind(this),
 												this.state.remoteControlValues,
 												this.weAreInControl.bind(this),
-												this.weHaveRemoteControlInterval.bind(this));
+												this.weHaveRemoteControlInterval.bind(this),
+												this.deleteSingleRun.bind(this));
 				break;
 			default:
 				detailsBox = null;
@@ -3254,6 +3255,25 @@ export default class CommandControl extends React.Component {
 		}
 
 		mission.runIdIncrement = 0;
+	}
+
+	deleteSingleRun() {
+		const runList = this.state.runList
+		const selectedBotId = this.selectedBotId()
+		const runId = runList.botsAssignedToRuns[selectedBotId] ? runList.botsAssignedToRuns[selectedBotId] : -1
+		const warning_string = "Are you sure you want to delete run for bot: " + selectedBotId;
+
+		if (confirm(warning_string)) {
+			// No missions assigned to selected bot, exit function to prevent runtime error
+			if (runId === -1) {
+				return 
+			}
+
+			const run = runList.runs[runId]
+
+			delete runList?.runs[runId]
+			delete runList?.botsAssignedToRuns[run.assigned]
+		}
 	}
 
 	// Currently selected botId

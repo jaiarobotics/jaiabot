@@ -13,7 +13,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
-         mdiPower, mdiRestart, mdiRestartAlert } from '@mdi/js'
+         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
@@ -287,6 +287,17 @@ function disableButton(command: CommandInfo, mission_state: MissionState)
     return disableButton;
 }
 
+// Check that bot has a mission for disabling button
+function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
+    const hasAMission = mission.botsAssignedToRuns[bot_id] ? true : false
+    let disableButton = {class: '', isDisabled: false};
+    if (!hasAMission) {
+        disableButton.class = "inactive";
+        disableButton.isDisabled = true      
+    }
+    return disableButton
+}
+
 // Get the table row for the health of the vehicle
 function healthRow(bot: BotStatus, allInfo: boolean) {
     let healthClassName = {
@@ -348,7 +359,7 @@ function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyo
 export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
         createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
-        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean) {
+        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -553,6 +564,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
                                 <Icon path={mdiRestart} title="Restart Services"/>
+                            </Button>
+                            <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
+                                    disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
+                                    onClick={() => { deleteSingleMission() }}>
+                                <Icon path={mdiDelete} title="Clear Mission"/>
                             </Button>
                         </AccordionDetails>
                     </Accordion>
