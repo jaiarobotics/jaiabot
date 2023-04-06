@@ -596,7 +596,7 @@ void jaiabot::apps::Fusion::loop()
         if (!imu_issue_ && !cfg().is_sim())
         {
             // only detect imu issue if the current mode is included in include_imu_detection_modes_
-            if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_timeout()) < now &&
+            if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now &&
                 include_imu_detection_states_.count(latest_bot_status_.mission_state()))
             {
                 //Let's detect imu issue
@@ -604,7 +604,7 @@ void jaiabot::apps::Fusion::loop()
                 last_imu_detect_time_ = now;
             }
         }
-        else if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_restart_timeout())) <
+        else if ((last_imu_issue_report_time_ + std::chrono::seconds(cfg().imu_detect_timeout())) <
                  now)
         {
             // Reset imu issue vars
