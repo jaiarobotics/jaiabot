@@ -58,6 +58,7 @@ RUN curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | ba
 
 # NVM Install
 RUN source $NVM_DIR/nvm.sh \
+    && npm install -g npm@9.6.4 \
     && nvm install $NODE_VERSION \
     && nvm use --delete-prefix $NODE_VERSION \
     && npm i -g webpack webpack-cli

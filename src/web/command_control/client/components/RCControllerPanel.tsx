@@ -8,6 +8,7 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Gamepad from 'react-gamepad';
 
 interface Props {
 	api: JaiaAPI,
@@ -54,6 +55,13 @@ export default class RCControllerPanel extends React.Component {
 
 		// Set bot id
 		self.props.remoteControlValues.bot_id = self.props.bot.bot_id;
+
+		// Take 40 % of the event distance provides 
+		// This means our max forward throttle would be 40 or 2 m/s.
+		let limitForwardThrottle = 0.4; 
+		// Take 10 % of the event distance provides 
+		// This means our max backward throttle would be 10 or 0.5 m/s.
+		let limitBackwardThrottle = 0.1;
 
 		if (self.state.botStateShow.test(self.props.bot.mission_state)
 			&& self.props.weAreInControl()) {
@@ -105,20 +113,13 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							move={(e) => { 
-								// Take 40 % of the event distance provides 
-								// This means our max forward throttle would be 40 or 2 m/s.
-								let limitForwardThrottle = 0.4; 
-								// Take 10 % of the event distance provides 
-								// This means our max backward throttle would be 10 or 0.5 m/s.
-								let limitBackwardThrottle = 0.1;
-
 								self.state.throttleDirection = e.direction.toString();
 
 								if(e.direction.toString() == "FORWARD") {
-									self.props.remoteControlValues.pid_control.throttle = e.distance * limitForwardThrottle;
+									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
 								} else if(e.direction.toString() == "BACKWARD")
 								{
-									self.props.remoteControlValues.pid_control.throttle = e.distance * limitBackwardThrottle * -1;
+									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitBackwardThrottle;
 								}
 							}}
 							stop={(e) => { 
@@ -141,12 +142,10 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							move={(e) => { 
-								self.state.rudderDirection = e.direction.toString();
+								let rudder_adjust_value = this.adjustThrottleResponse(e.x);
 
-								self.props.remoteControlValues.pid_control.rudder = e.distance;
-								if(e.direction.toString() == "LEFT") {
-									self.props.remoteControlValues.pid_control.rudder *= -1;
-								}
+								self.state.rudderDirection = e.direction.toString();
+								self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
 							}}
 							stop={(e) => {
 								self.props.remoteControlValues.pid_control.rudder = 0; 
@@ -169,12 +168,7 @@ export default class RCControllerPanel extends React.Component {
 								}
 							}}
 							move={(e) => { 
-								// Take 40 % of the event distance provides 
-								// This means our max forward throttle would be 40 or 2 m/s.
-								let limitForwardThrottle = 0.4; 
-								// Take 10 % of the event distance provides 
-								// This means our max backward throttle would be 10 or 0.5 m/s.
-								let limitBackwardThrottle = 0.1;
+								let rudder_adjust_value = this.adjustThrottleResponse(e.x);
 
 								if(e.y >= 0) {
 									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
@@ -184,7 +178,7 @@ export default class RCControllerPanel extends React.Component {
 									self.state.throttleDirection = "BACKWARD";
 								}
 
-								self.props.remoteControlValues.pid_control.rudder = (e.x * 100);
+								self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
 
 								if(e.x >= 0) {
 									self.state.rudderDirection = "RIGHT";
@@ -228,6 +222,51 @@ export default class RCControllerPanel extends React.Component {
 							</div>
 						</div>
 						{controller}
+						<Gamepad
+							deadZone={0.2}
+							onConnect={() => {
+								console.log("connected");
+								this.state.controlType = "Manual Dual";
+							}}
+							onAxisChange={(axisName: string, value: number, previousValue: number) => {
+								if(!self.props.weHaveInterval()) {
+									self.props.createInterval();
+								}
+
+								let rudder_adjust_value = this.adjustThrottleResponse(value);
+
+								if(self.state.controlType == "Manual Single") {
+									
+									if(axisName == "LeftStickX") {
+										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									} 
+									
+									if(axisName == "LeftStickY") {	
+										if(value >= 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										} else if(value < 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										}
+									}
+								} else if(self.state.controlType == "Manual Dual") {
+									if(axisName == "LeftStickY") {
+										if(value >= 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										} else if(value < 0) {
+											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										}
+									}
+
+									if(axisName == "RightStickX") {
+										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									}
+								}
+								// Handle joystick movements
+								console.log(axisName, value);
+							}}
+						>
+							<React.Fragment />
+						</Gamepad>
 					</div>
 				</div>
 			</React.Fragment>
@@ -242,6 +281,17 @@ export default class RCControllerPanel extends React.Component {
 		this.props.remoteControlValues.pid_control.rudder = 0;
 		this.state.throttleDirection = "";
 		this.state.rudderDirection = "";
+	}
+
+	adjustThrottleResponse(value: number) {
+		// Raise the absolute value of the input value to the third power
+		// For the rudder response then applying the sign back
+		const input = Math.abs(value);
+		const output = input ** 3;
+		const sign = Math.sign(value);
+		const rudder_adjust_value = sign * output * 100;
+
+		return rudder_adjust_value;
 	}
 
 }
