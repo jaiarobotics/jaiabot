@@ -156,6 +156,7 @@ let commandsForHub: {[key: string]: CommandInfo} = {
 export interface DetailsExpandedState {
     quickLook: boolean
     commands: boolean
+    advancedCommands: boolean
     health: boolean
     gps: boolean
     imu: boolean
@@ -547,44 +548,62 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <Icon path={mdiDownloadMultiple} title="Retry Data Offload"/>
                             </Button>
                             
-                            <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                    onClick={() => 
-                                        { 
-                                            if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
-                                            {
-                                                if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
-                                                {
-                                                    issueCommand(api, bot.bot_id, commands.shutdown);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                issueCommand(api, bot.bot_id, commands.shutdown);
-                                            }
-                                        }
-                                    }
-                            >
-                                <Icon path={mdiPower} title="Shutdown"/>
-                            </Button>
-                            
-                            <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.reboot, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
-                                <Icon path={mdiRestartAlert} title="Reboot"/>
-                            </Button>
-                            <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
-                                <Icon path={mdiRestart} title="Restart Services"/>
-                            </Button>
                             <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
                                     disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
                                     onClick={() => { deleteSingleMission() }}>
                                 <Icon path={mdiDelete} title="Clear Mission"/>
                             </Button>
+
+                            <Accordion 
+                            expanded={isExpanded.advancedCommands} 
+                            onChange={() => {changeDefaultExpanded(isExpanded, "advancedCommands")}}
+                            className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                aria-controls="panel1a-content"
+                                id="panel1a-header"
+                                >
+                                    <Typography>Advanced Commands</Typography>
+                                </AccordionSummary>
+
+                                <AccordionDetails>
+                                    <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
+                                            onClick={() => 
+                                                { 
+                                                    if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
+                                                    {
+                                                        if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
+                                                        {
+                                                            issueCommand(api, bot.bot_id, commands.shutdown);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        issueCommand(api, bot.bot_id, commands.shutdown);
+                                                    }
+                                                }
+                                            }
+                                    >
+                                        <Icon path={mdiPower} title="Shutdown"/>
+                                    </Button>
+                                    <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.reboot, mission_state).isDisabled} 
+                                            onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
+                                        <Icon path={mdiRestartAlert} title="Reboot"/>
+                                    </Button>
+                                    <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
+                                            onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
+                                        <Icon path={mdiRestart} title="Restart Services"/>
+                                    </Button>
+                                </AccordionDetails>
+                            </Accordion>
+
                         </AccordionDetails>
                     </Accordion>
+
                     <Accordion 
                         expanded={isExpanded.health} 
                         onChange={() => {changeDefaultExpanded(isExpanded, "health")}}
