@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
-	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
+	     mdiSkipNext, mdiDownload, mdiDownloadMultiple, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
@@ -94,6 +94,13 @@ let commands: {[key: string]: CommandInfo} = {
         description: 'Recover Bot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
+        ]
+    },
+    retryDataOffload: {
+        commandType: CommandType.RETRY_DATA_OFFLOAD,
+        description: 'Retry Data Offload',
+        statesAvailable: [
+            /^POST_DEPLOYMENT.+$/
         ]
     },
     shutdown: {
@@ -532,6 +539,12 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     disabled={disableButton(commands.recover, mission_state).isDisabled} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
                                 <Icon path={mdiDownload} title="Data Offload"/>
+                            </Button>
+
+                            <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
+                                    onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
+                                <Icon path={mdiDownloadMultiple} title="Retry Data Offload"/>
                             </Button>
                             
                             <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
