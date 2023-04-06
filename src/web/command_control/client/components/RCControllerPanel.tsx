@@ -224,6 +224,10 @@ export default class RCControllerPanel extends React.Component {
 						{controller}
 						<Gamepad
 							deadZone={0.2}
+							onConnect={() => {
+								console.log("connected");
+								this.state.controlType = "Manual Dual";
+							}}
 							onAxisChange={(axisName: string, value: number, previousValue: number) => {
 								if(!self.props.weHaveInterval()) {
 									self.props.createInterval();

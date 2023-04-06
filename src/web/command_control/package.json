@@ -29,7 +29,7 @@
     "ol": "7.2.2",
     "ol-layerswitcher": "^3.8.3",
     "package.json": "^2.0.1",
-    "react-gamepad": "SBRK/react-gamepad",
+    "react-gamepad": "file:client/libs/react-gamepad",
     "react-joystick-component": "^6.1.0",
     "reset-css": "^5.0.1",
     "toastr": "^2.1.4",
