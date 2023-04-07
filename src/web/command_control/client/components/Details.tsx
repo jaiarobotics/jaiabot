@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
-	     mdiSkipNext, mdiDownload, mdiDownloadMultiple, mdiStop, mdiPause,
+	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
          mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
@@ -93,14 +93,15 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover Bot',
         statesAvailable: [
-            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
+            /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
     retryDataOffload: {
         commandType: CommandType.RETRY_DATA_OFFLOAD,
         description: 'Retry Data Offload',
         statesAvailable: [
-            /^POST_DEPLOYMENT.+$/
+            /^POST_DEPLOYMENT__IDLE$/,
+            /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
         ]
     },
     shutdown: {
@@ -156,7 +157,9 @@ let commandsForHub: {[key: string]: CommandInfo} = {
 export interface DetailsExpandedState {
     quickLook: boolean
     commands: boolean
+    advancedCommands: boolean
     health: boolean
+    data: boolean
     gps: boolean
     imu: boolean
     sensor: boolean
@@ -423,6 +426,25 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     let mission_state = bot.mission_state;
     takeControlFunction = takeControl;
 
+    // Reuse data offload button icon for recover and retry data offload
+    let dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/;
+
+    let dataOffloadButton = 
+        <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
+            disabled={disableButton(commands.recover, mission_state).isDisabled} 
+            onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
+            <Icon path={mdiDownload} title="Data Offload"/>
+        </Button>
+
+    if(!dataOffloadStatesAvailable.test(mission_state)) {
+        dataOffloadButton = 
+            <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
+                disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
+                onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
+                <Icon path={mdiDownload} title="Retry Data Offload"/>
+            </Button>
+    }
+
     return (
         <React.Fragment>
             <RCControllerPanel 
@@ -535,56 +557,64 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
-                            <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.recover, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
-                                <Icon path={mdiDownload} title="Data Offload"/>
-                            </Button>
-
-                            <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
-                                <Icon path={mdiDownloadMultiple} title="Retry Data Offload"/>
-                            </Button>
+                            {dataOffloadButton}
                             
-                            <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                    onClick={() => 
-                                        { 
-                                            if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
-                                            {
-                                                if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
-                                                {
-                                                    issueCommand(api, bot.bot_id, commands.shutdown);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                issueCommand(api, bot.bot_id, commands.shutdown);
-                                            }
-                                        }
-                                    }
-                            >
-                                <Icon path={mdiPower} title="Shutdown"/>
-                            </Button>
-                            
-                            <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.reboot, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
-                                <Icon path={mdiRestartAlert} title="Reboot"/>
-                            </Button>
-                            <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
-                                <Icon path={mdiRestart} title="Restart Services"/>
-                            </Button>
                             <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
                                     disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
                                     onClick={() => { deleteSingleMission() }}>
                                 <Icon path={mdiDelete} title="Clear Mission"/>
                             </Button>
+
+                            <Accordion 
+                                expanded={isExpanded.advancedCommands} 
+                                onChange={() => {changeDefaultExpanded(isExpanded, "advancedCommands")}}
+                                className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panel1a-content"
+                                    id="panel1a-header"
+                                >
+                                    <Typography>Advanced Commands</Typography>
+                                </AccordionSummary>
+
+                                <AccordionDetails>
+                                    <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
+                                            onClick={() => 
+                                                { 
+                                                    if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
+                                                    {
+                                                        if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
+                                                        {
+                                                            issueCommand(api, bot.bot_id, commands.shutdown);
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        issueCommand(api, bot.bot_id, commands.shutdown);
+                                                    }
+                                                }
+                                            }
+                                    >
+                                        <Icon path={mdiPower} title="Shutdown"/>
+                                    </Button>
+                                    <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.reboot, mission_state).isDisabled} 
+                                            onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
+                                        <Icon path={mdiRestartAlert} title="Reboot"/>
+                                    </Button>
+                                    <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
+                                            disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
+                                            onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
+                                        <Icon path={mdiRestart} title="Restart Services"/>
+                                    </Button>
+                                </AccordionDetails>
+                            </Accordion>
+
                         </AccordionDetails>
                     </Accordion>
+
                     <Accordion 
                         expanded={isExpanded.health} 
                         onChange={() => {changeDefaultExpanded(isExpanded, "health")}}
@@ -605,9 +635,10 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             </table>
                         </AccordionDetails>
                     </Accordion>
+
                     <Accordion 
-                        expanded={isExpanded.gps} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "gps")}}
+                        expanded={isExpanded.data} 
+                        onChange={() => {changeDefaultExpanded(isExpanded, "data")}}
                         className="accordion"
                     >
                         <AccordionSummary
@@ -615,152 +646,169 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             aria-controls="panel1a-content"
                             id="panel1a-header"
                         >
-                            <Typography>GPS</Typography>
+                            <Typography>Data</Typography>
                         </AccordionSummary>
+
                         <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td>Latitude</td>
-                                        <td>{formatLatitude(bot.location?.lat)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Longitude</td>
-                                        <td>{formatLongitude(bot.location?.lon)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>HDOP</td>
-                                        <td>{bot.hdop?.toFixed(prec)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>PDOP</td>
-                                        <td>{bot.pdop?.toFixed(prec)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Ground Speed</td>
-                                        <td>{bot.speed?.over_ground?.toFixed(prec)} m/s</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Course Over Ground</td>
-                                        <td>{bot.attitude?.course_over_ground?.toFixed(prec)}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <Accordion 
+                                expanded={isExpanded.gps} 
+                                onChange={() => {changeDefaultExpanded(isExpanded, "gps")}}
+                                className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panel1a-content"
+                                    id="panel1a-header"
+                                >
+                                    <Typography>GPS</Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td>Latitude</td>
+                                                <td>{formatLatitude(bot.location?.lat)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Longitude</td>
+                                                <td>{formatLongitude(bot.location?.lon)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>HDOP</td>
+                                                <td>{bot.hdop?.toFixed(prec)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PDOP</td>
+                                                <td>{bot.pdop?.toFixed(prec)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Ground Speed</td>
+                                                <td>{bot.speed?.over_ground?.toFixed(prec)} m/s</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Course Over Ground</td>
+                                                <td>{bot.attitude?.course_over_ground?.toFixed(prec)}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion 
+                                expanded={isExpanded.imu} 
+                                onChange={() => {changeDefaultExpanded(isExpanded, "imu")}}
+                                className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panel1a-content"
+                                    id="panel1a-header"
+                                >
+                                    <Typography>IMU</Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td>Heading</td>
+                                                <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Pitch</td>
+                                                <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
+                                            </tr>
+                                            {/* <tr>
+                                                <td>Roll</td>
+                                                <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
+                                            </tr> */}
+                                            <tr>
+                                                <td>Sys_Cal</td>
+                                                <td>{bot.calibration_status?.sys.toFixed(0)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Gyro_Cal</td>
+                                                <td>{bot.calibration_status?.gyro.toFixed(0)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Accel_Cal</td>
+                                                <td>{bot.calibration_status?.accel.toFixed(0)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Mag_Cal</td>
+                                                <td>{bot.calibration_status?.mag.toFixed(0)}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>              
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion 
+                                expanded={isExpanded.sensor} 
+                                onChange={() => {changeDefaultExpanded(isExpanded, "sensor")}}
+                                className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panel1a-content"
+                                    id="panel1a-header"
+                                >
+                                    <Typography>Sensors</Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td>Temperature</td>
+                                                <td>{bot.temperature?.toFixed(prec)} °C</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Depth</td>
+                                                <td>{bot.depth?.toFixed(prec)} m</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Salinity</td>
+                                                <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>   
+                                </AccordionDetails>
+                            </Accordion>
+                            <Accordion 
+                                expanded={isExpanded.power} 
+                                onChange={() => {changeDefaultExpanded(isExpanded, "power")}}
+                                className="accordion nestedAccordion"
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panel1a-content"
+                                    id="panel1a-header"
+                                >
+                                    <Typography>Power</Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td>Battery Percentage</td>
+                                                <td>{bot.battery_percent?.toFixed(prec)} %</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Vcc Voltage</td>
+                                                <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Vcc Current</td>
+                                                <td>{bot.vcc_current?.toFixed(prec)} A</td>
+                                            </tr>
+                                            <tr>
+                                                <td>5v Current</td>
+                                                <td>{bot.vv_current?.toFixed(prec)} A</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>   
+                                </AccordionDetails>
+                            </Accordion>  
                         </AccordionDetails>
+
                     </Accordion>
-                    <Accordion 
-                        expanded={isExpanded.imu} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "imu")}}
-                        className="accordion"
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
-                        >
-                            <Typography>IMU</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td>Heading</td>
-                                        <td>{formatAttitudeAngle(bot.attitude?.heading)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Pitch</td>
-                                        <td>{formatAttitudeAngle(bot.attitude?.pitch)}</td>
-                                    </tr>
-                                    {/* <tr>
-                                        <td>Roll</td>
-                                        <td>{formatAttitudeAngle(bot.attitude?.roll)}</td>
-                                    </tr> */}
-                                    <tr>
-                                        <td>Sys_Cal</td>
-                                        <td>{bot.calibration_status?.sys.toFixed(0)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Gyro_Cal</td>
-                                        <td>{bot.calibration_status?.gyro.toFixed(0)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Accel_Cal</td>
-                                        <td>{bot.calibration_status?.accel.toFixed(0)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Mag_Cal</td>
-                                        <td>{bot.calibration_status?.mag.toFixed(0)}</td>
-                                    </tr>
-                                </tbody>
-                            </table>              
-                        </AccordionDetails>
-                    </Accordion>
-                    <Accordion 
-                        expanded={isExpanded.sensor} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "sensor")}}
-                        className="accordion"
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
-                        >
-                            <Typography>Sensors</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td>Temperature</td>
-                                        <td>{bot.temperature?.toFixed(prec)} °C</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Depth</td>
-                                        <td>{bot.depth?.toFixed(prec)} m</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Salinity</td>
-                                        <td>{bot.salinity?.toFixed(prec)} PSU(ppt)</td>
-                                    </tr>
-                                </tbody>
-                            </table>   
-                        </AccordionDetails>
-                    </Accordion>
-                    <Accordion 
-                        expanded={isExpanded.power} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "power")}}
-                        className="accordion"
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            aria-controls="panel1a-content"
-                            id="panel1a-header"
-                        >
-                            <Typography>Power</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td>Battery Percentage</td>
-                                        <td>{bot.battery_percent?.toFixed(prec)} %</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Vcc Voltage</td>
-                                        <td>{bot.vcc_voltage?.toFixed(prec)} V</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Vcc Current</td>
-                                        <td>{bot.vcc_current?.toFixed(prec)} A</td>
-                                    </tr>
-                                    <tr>
-                                        <td>5v Current</td>
-                                        <td>{bot.vv_current?.toFixed(prec)} A</td>
-                                    </tr>
-                                </tbody>
-                            </table>   
-                        </AccordionDetails>
-                    </Accordion>  
                 </div>
             </div>
         </React.Fragment>
