@@ -7,7 +7,7 @@ import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './gui/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']

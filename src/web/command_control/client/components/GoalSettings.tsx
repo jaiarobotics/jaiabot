@@ -6,9 +6,9 @@
 import React, { FormEvent } from 'react'
 import Button from '@mui/material/Button';
 import { GlobalSettings, Save } from './Settings'
-import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './gui/JAIAProtobuf';
+import { Goal, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
 import { deepcopy } from './Utilities'
-import { taskNone } from './gui/Styles';
+import { taskNone } from './shared/Styles';
 import { rhumbDistance, rhumbBearing } from '@turf/turf';
 
 

@@ -5,7 +5,7 @@
 
 import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
-import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './gui/JAIAProtobuf';
+import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './shared/JAIAProtobuf';
 
 
 interface Props {

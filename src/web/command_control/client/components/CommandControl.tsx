@@ -82,7 +82,7 @@ import OlAttribution from 'ol/control/Attribution';
 import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
 import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
-import * as MissionFeatures from './gui/MissionFeatures'
+import * as MissionFeatures from './shared/MissionFeatures'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -147,7 +147,7 @@ import { createBaseLayerGroup } from './BaseLayers'
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './gui/JAIAProtobuf'
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command } from './shared/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
@@ -155,10 +155,10 @@ import { EventsKey } from 'ol/events'
 import { Feature as TFeature, Units } from '@turf/turf'
 import TileLayer from 'ol/layer/Tile'
 import { PodStatus } from './PortalStatus'
-import * as Styles from './gui/Styles'
+import * as Styles from './shared/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
-import { createBotFeature } from './gui/BotFeature'
-import { createHubFeature } from './gui/HubFeature'
+import { createBotFeature } from './shared/BotFeature'
+import { createHubFeature } from './shared/HubFeature'
 import { run } from 'node:test'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader

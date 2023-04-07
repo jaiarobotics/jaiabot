@@ -30,3 +30,7 @@ add_custom_target(server_messages
   )
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+if(build_jdv)
+  add_subdirectory(jdv)
+endif()
