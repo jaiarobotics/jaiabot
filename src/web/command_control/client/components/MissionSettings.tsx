@@ -20,6 +20,7 @@ interface Props {
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
+    areBotsAssignedToRuns: () => boolean
 }
 
 interface State {
@@ -356,6 +357,10 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     applyMissionClicked() {
+        if (this.props.areBotsAssignedToRuns() && !confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+            return
+        }
+
         this.onMissionApply?.()
     }
 
