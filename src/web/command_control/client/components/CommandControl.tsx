@@ -2386,7 +2386,9 @@ export default class CommandControl extends React.Component {
 				}}
 				onMissionChangeBotList={() => {
 					this.changeMissionBotList()
-				}} />
+				}}
+				areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+				/>
 		}
 
 		// Details box
@@ -3296,7 +3298,17 @@ export default class CommandControl extends React.Component {
 		this.updateMissionLayer()
 	}
 
+	// Check if a run is assigned to any bot
+	areBotsAssignedToRuns() {
+		const botsAssignedToRuns = this.state.runList.botsAssignedToRuns
+		if (Object.keys(botsAssignedToRuns).length === 0) {
+			return false
+		}
+		return true
+	}
+
 	deleteAllRunsInMission(mission: MissionInterface) {
+		
 		for(let run in mission.runs)
 		{
 			delete mission.runs[run];
@@ -3596,7 +3608,8 @@ export default class CommandControl extends React.Component {
 			this.setState({loadMissionPanel: null})
 		}} onCancel={() => {
 			this.setState({loadMissionPanel: null})
-		}}></LoadMissionPanel>
+		}} areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+		></LoadMissionPanel>
 
 		this.setState({loadMissionPanel: panel})
 	}
@@ -3637,6 +3650,10 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
+		if (this.areBotsAssignedToRuns() && !confirm('Going to the green rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
+			return
+		}
+
 		for(let bot in this.podStatus.bots)
 		{
 			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation]);
@@ -3650,6 +3667,10 @@ export default class CommandControl extends React.Component {
 
 		if (!this.state.rallyPointRedLocation) {
 			alert('No red rally point selected.  Click on the map to select a red rally location and try again.')
+			return
+		}
+
+		if (this.areBotsAssignedToRuns() && !confirm('Going to the red rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
 			return
 		}
 

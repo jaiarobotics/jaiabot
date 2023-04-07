@@ -59,7 +59,13 @@ export default class RunList extends React.Component {
                 </Button>
                 <Button 
                     className="button-jcc" 
-                    onClick={() => { this.props.deleteAllRunsInMission(this.props.mission) }}
+                    onClick={() => { 
+                        const warning_string = "Are you sure you want to delete all of the runs?";
+
+                        if (confirm(warning_string)) {
+                            this.props.deleteAllRunsInMission(this.props.mission) 
+                        }
+                    }}
                 >
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</Button>
