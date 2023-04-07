@@ -266,7 +266,7 @@ export class GoalSettingsPanel extends React.Component {
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input key={`${this.key}.constant_heading.speed`} type="number" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input key={`${this.key}.constant_heading.speed`} type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>m/s</td>
                         </tr>
                         <tr>
