@@ -405,6 +405,7 @@ export default class CommandControl extends React.Component {
 				commands: false,
 				advancedCommands: false,
 				health: false,
+				data: false,
 				gps: false,
 				imu: false,
 				sensor: false,
