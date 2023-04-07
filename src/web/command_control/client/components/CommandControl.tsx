@@ -3306,6 +3306,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	deleteAllRunsInMission(mission: MissionInterface) {
+		
 		for(let run in mission.runs)
 		{
 			delete mission.runs[run];
@@ -3647,7 +3648,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (this.areBotsAssignedToRuns() && !confirm('Going to the green rally point will delete the current mission. If the current mission is saved, select OK')) {
+		if (this.areBotsAssignedToRuns() && !confirm('Going to the green rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
 			return
 		}
 
@@ -3667,7 +3668,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (this.areBotsAssignedToRuns() && !confirm('Going to the red rally point will delete the current mission. If the current mission is saved, select OK')) {
+		if (this.areBotsAssignedToRuns() && !confirm('Going to the red rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
 			return
 		}
 
