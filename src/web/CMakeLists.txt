@@ -54,3 +54,9 @@ install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE
 if(build_jdv)
   add_subdirectory(jdv)
 endif()
+
+option(install_jcc_apache "Install JCC Apache site" ON)
+if(install_jcc_apache)
+  install(FILES jcc.conf DESTINATION /etc/apache2/sites-available)
+endif()
+

@@ -10,6 +10,7 @@ const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const end = require('./end.svg') as string
 const start = require('./start.svg')
 const bot = require('./bot.svg') as string
+const hub = require('./hub.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
@@ -122,14 +123,6 @@ export function botMarker(feature: Feature): Style[] {
 
 export function hubMarker(feature: Feature): Style[] {
     const geometry = feature.getGeometry() as Point
-    const centerPosition = geometry.getCoordinates()
-
-    function angleToXY(angle: number): XYCoordinate {
-        return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
-    }
-
-    const heading = feature.get('heading') * DEG
-    const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
 
@@ -145,10 +138,9 @@ export function hubMarker(feature: Feature): Style[] {
         // Hub body marker
         new Style({
             image: new Icon({
-                src: bot,
+                src: hub,
                 color: color,
                 anchor: [0.5, 0.5],
-                rotation: heading,
                 rotateWithView: true
             }),
             text: new Text({
@@ -157,8 +149,8 @@ export function hubMarker(feature: Feature): Style[] {
                 fill: new Fill({
                     color: 'black'
                 }),
-                offsetX: -textOffsetRadius * headingDelta.x,
-                offsetY: -textOffsetRadius * headingDelta.y
+                offsetX: 0,
+                offsetY: textOffsetRadius
             })
         })
     ]
