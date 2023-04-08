@@ -16,6 +16,6 @@
     "react-joystick-component": "^6.1.0"
   },
   "devDependencies": {
-    "@types/react-gamepad": "^1.0.3",
+    "@types/react-gamepad": "^1.0.3"
   }
 }
