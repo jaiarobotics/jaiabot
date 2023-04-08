@@ -3,12 +3,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 set -e
 
-echo "Install dependencies"
-pushd ../../
-  npm install --no-audit
-popd
-
-
 pushd "$DIR"
 
 output_path='dist'
