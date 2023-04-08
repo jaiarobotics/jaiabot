@@ -11,7 +11,7 @@ npm install --no-audit
 # Build messages and start server
 pushd server
     ./build_messages.sh
-    ./app.py $1 > server.log 2>&1 &
+    ./app.py $1 &
 popd
 
 # Build Command Control
