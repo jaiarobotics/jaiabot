@@ -19,7 +19,7 @@ add_custom_command(OUTPUT ${project_SHARE_DIR}/package-lock.json ${project_SHARE
   )
 add_custom_target(npm_depdendencies
   ALL
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json
   )
 
 ###############################################################################
