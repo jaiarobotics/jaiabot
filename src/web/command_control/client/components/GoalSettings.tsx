@@ -19,41 +19,27 @@ function fmod(a: number, b: number) {
 
 
 interface Props {
+    key: string // When this changes, React will create a new component
     botId: number
     goalIndex: number
     goal: Goal
+    clickingMap: boolean
     onClose: () => void
     onChange: () => void
     getCoordinate: () => Promise<GeographicCoordinate>
 }
 
 
-interface State {
-    clickingMap: boolean // Is user clicking on the map?  (for constant heading task)
-}
-
-
 export class GoalSettingsPanel extends React.Component {
 
     props: Props
-    state: State
-    key: string
     oldGoal: Goal
 
+    // Constructor will be called whenever props.key changes, i.e. whenever goal being edited changes
     constructor(props: Props) {
         super(props)
-        
-        // This key is for React components
-        this.key = `goal-${props.botId}-${props.goalIndex}`
 
-        // Copy the original goal, for if user hits "cancel"
         this.oldGoal = deepcopy(props.goal)
-
-        this.state = {
-            clickingMap: false
-        }
-
-        console.log("constructor called")
     }
 
     componentDidUpdate() {
@@ -91,7 +77,7 @@ export class GoalSettingsPanel extends React.Component {
             </div>
             <div>
                 Task
-                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
+                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } value={taskType ?? "NONE"}>
                     <option value="NONE">None</option>
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
@@ -149,11 +135,9 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     diveOptionsPanel() {
-        const { goal } = this.props
+        const { goal, key } = this.props
         let dive = goal.task.dive
         let surface_drift = goal.task.surface_drift
-        // console.log(`key = ${this.key}.drift.drift_time`)
-        // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
             <div id="DiveDiv" className='task-options'>
@@ -161,19 +145,19 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Max Depth</td>
-                            <td><input key={`${this.key}.dive.max_depth`} type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={(this.changeDiveParameter.bind(this))} /> m</td>
                         </tr>
                         <tr>
                             <td>Depth Interval</td>
-                            <td><input key={`${this.key}.dive.depth_interval`} type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
+                            <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
                         </tr>
                         <tr>
                             <td>Hold Time</td>
-                            <td><input key={`${this.key}.dive.hold_time`} type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
                         </tr>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input key={`${this.key}.dive.drift_time`} type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -222,8 +206,6 @@ export class GoalSettingsPanel extends React.Component {
 
     driftOptionsPanel() {
         let surface_drift = this.props.goal.task.surface_drift
-        // console.log(`key = ${this.key}.drift.drift_time`)
-        // console.log(`  defaultValue = ${surface_drift.drift_time}`)
 
         return (
             <div id="DriftDiv" className='task-options'>
@@ -231,7 +213,7 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Drift Time</td>
-                            <td><input key={`${this.key}.drift.drift_time`} type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
+                            <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
                         </tr>
                     </tbody>
                 </table>
@@ -247,7 +229,7 @@ export class GoalSettingsPanel extends React.Component {
             else return speed * time;
         }
 
-        const clickingMapClass = this.state.clickingMap ? " clicking-map" : ""
+        const clickingMapClass = this.props.clickingMap ? " clicking-map" : ""
 
         return (
             <div id="ConstantHeadingDiv" className='task-options'>
@@ -256,17 +238,17 @@ export class GoalSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>Heading</td>
-                            <td><input key={`${this.key}.constant_heading.constant_heading`} type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>deg</td>
                         </tr>
                         <tr>
                             <td>Time</td>
-                            <td><input key={`${this.key}.constant_heading.time`} type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>s</td>
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td><input key={`${this.key}.constant_heading.speed`} type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
+                            <td><input type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={this.changeConstantHeadingParameter.bind(this)} /></td>
                             <td>m/s</td>
                         </tr>
                         <tr>
@@ -302,8 +284,6 @@ export class GoalSettingsPanel extends React.Component {
 
     // For selecting target for constant heading task type    
     selectOnMapClicked() {
-        this.setState({clickingMap: true})
-
         this.props.getCoordinate().then(
             (end: GeographicCoordinate) => {
                 var { goal } = this.props
@@ -329,8 +309,6 @@ export class GoalSettingsPanel extends React.Component {
                 let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
                 let t = rhumb_distance / speed
                 constant_heading.constant_heading_time = Number(t.toFixed(0))
-
-                this.setState({clickingMap: false})
             }
         )
     }

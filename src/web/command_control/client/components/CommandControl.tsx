@@ -2237,6 +2237,9 @@ export default class CommandControl extends React.Component {
 			mapLayerActive,
 			engineeringPanelActive,
 			missionPanelActive,
+			goalBeingEdited,
+			goalBeingEditedBotId,
+			goalBeingEditedGoalIndex
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2248,12 +2251,16 @@ export default class CommandControl extends React.Component {
 		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel: ReactElement = null
-		if (this.state.goalBeingEdited != null) {
+		const clickingMap = (this.getCoordinateCallback != null) // Are we currently clicking the map for constant heading goal?
+
+		if (goalBeingEdited != null) {
 			goalSettingsPanel = 
 				<GoalSettingsPanel 
-					botId={this.state.goalBeingEditedBotId}
-					goalIndex={this.state.goalBeingEditedGoalIndex}
-					goal={this.state.goalBeingEdited} 
+					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
+					botId={goalBeingEditedBotId}
+					goalIndex={goalBeingEditedGoalIndex}
+					goal={goalBeingEdited} 
+					clickingMap={clickingMap}
 					onChange={() => { this.updateMissionLayer() }} 
 					onClose={() => 
 						{
@@ -3243,11 +3250,8 @@ export default class CommandControl extends React.Component {
 			return feature
 		});
 
-		console.log(feature);
-
 		if (feature) {
 
-			console.log("Feature == true");
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 			let botId = feature.get('botId')
