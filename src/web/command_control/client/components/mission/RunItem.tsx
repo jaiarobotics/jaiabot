@@ -88,7 +88,7 @@ export default class RunItem extends React.Component {
         runAssignSelect =
             <Box sx={{ minWidth: 120 }}>
                 <FormControl fullWidth>
-                <InputLabel id="demo-simple-select-label">Id</InputLabel>
+                <InputLabel id="bot-assigned-select-label">Id</InputLabel>
                     <Select
                         labelId="bot-assigned-select-label"
                         id="bot-assigned-select"
@@ -133,14 +133,17 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
 
-                    //Deep copy
-                    let mission = this.props.mission;
+                    const warning_string = "Are you sure you want to delete " + this.props.run.name + "?";
 
-                    console.log(mission);
+		            if (confirm(warning_string)) {
 
-                    delete mission?.runs[this.props.run.id];
+                        //Deep copy
+                        let mission = this.props.mission;
 
-                    delete mission?.botsAssignedToRuns[this.props.run.assigned]
+                        delete mission?.runs[this.props.run.id];
+
+                        delete mission?.botsAssignedToRuns[this.props.run.assigned]
+                    }
                 }}
             >
                 <Icon path={mdiDelete} title="Delete Run"/>

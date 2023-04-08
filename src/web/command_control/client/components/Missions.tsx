@@ -30,7 +30,7 @@ const hardcoded_goals: Goal[][] = [
 function commandWithGoals(botId: number | undefined, goals: Goal[]) {
     let millisecondsSinceEpoch = new Date().getTime();
 
-    const mission: Command = {
+    const command: Command = {
         bot_id: botId,
         time: millisecondsSinceEpoch,
         type: CommandType.MISSION_PLAN,
@@ -43,7 +43,7 @@ function commandWithGoals(botId: number | undefined, goals: Goal[]) {
             }
         }
     }
-    return mission
+    return command
 }
 
 export type Run = {[key: string]: RunInterface}
@@ -72,11 +72,11 @@ export class Missions {
     }
 
     static RCMode(botId: number, datum_location: GeographicCoordinate) {
-        var podMission: number = 0;
-        /*var podMission: PodMission = {}
-        podMission[botId] = {
+        let millisecondsSinceEpoch = new Date().getTime();
+        var command: Command = {}
+        command = {
             bot_id: botId,
-            time: 1642891753471247,
+            time: millisecondsSinceEpoch,
             type: CommandType.MISSION_PLAN,
             plan: {
                 start: MissionStart.START_IMMEDIATELY,
@@ -86,9 +86,9 @@ export class Missions {
                     location: datum_location
                 }
             }
-        }*/
-
-        return podMission
+        }
+        
+        return command
     }
 
     static commandWithWaypoints(botId: number, locations: GeographicCoordinate[]) {

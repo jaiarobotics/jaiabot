@@ -16,5 +16,6 @@ popd
 
 # Build Command Control
 pushd command_control
+    npm install --no-audit
     npm run test
 popd

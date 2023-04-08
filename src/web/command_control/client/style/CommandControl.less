@@ -225,9 +225,12 @@ textarea {
       }
       > div.bot-item.controlled {
         .bgcolor(@controlled-color);
-      }  
-    }
+      }
 
+      > div.hub-item.selected {
+        outline: 5px solid @selected-color;
+      }
+    }
   }
 
   #botDetailsBox {
@@ -874,6 +877,38 @@ textarea {
 
   }
 
+  /******** Remote Control Panel *****************************/
+
+  #remoteControlPanel {
+    position: absolute;
+    height: 0;
+    bottom: 0;
+    z-index: @column-right;
+    background-color: @overlay-background;
+    width: 100%;
+    right: @command-button-size + (2 * @command-button-padding);
+
+    div.panel {
+      margin: @layout-margin / 2 2px;
+      padding: @layout-margin / 2 2px;
+      background-color: @cc-background-color;
+      color: @cc-text-color;
+      border-radius: @panel-corner-radius;
+      overflow: visible;
+      position: relative;
+      text-align: center;
+      font-weight: bold;
+
+      > h2,
+      > a > h2 {
+        margin: 0;
+        padding: 3px 5px;
+        color: @cc-text-color;
+      }
+
+    }
+  }
+
   /******** CSS System Health Information ********************/
 
   .healthOK {
@@ -1207,8 +1242,13 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-.accordion {
+.accordion,
+.nestedAccordion {
   overflow: auto;
+}
+
+.nestedAccordion {
+  margin-top: 8px !important;
 }
 
 #panel1a-header {
