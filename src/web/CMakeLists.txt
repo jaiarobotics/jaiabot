@@ -12,14 +12,14 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHA
 #   npm will look here for the required packages for both jdv and command_control
 #   This will ensure that both apps have the same library versions, as well as the "shared" library
 
-add_custom_command(OUTPUT ${project_SHARE_DIR}/package-lock.json ${project_SHARE_DIR}/node_modules
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Installing npm depdendencies for web apps"
   )
 add_custom_target(npm_depdendencies
   ALL
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${CMAKE_CURRENT_SOURCE_DIR}/node_modules
   )
 
 ###############################################################################
