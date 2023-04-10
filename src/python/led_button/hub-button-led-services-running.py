@@ -1,20 +1,36 @@
 import RPi.GPIO as GPIO
 import time
+import os
+import logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('hub-button-trigger')
+log.setLevel('DEBUG')
 
 GPIO.setmode(GPIO.BCM)
 
-GPIO.setup(6, GPIO.OUT)  # RED HIGH
-GPIO.setup(5, GPIO.OUT)  # RED LOW
-GPIO.setup(19, GPIO.OUT) # GREEN HIGH
-GPIO.setup(13, GPIO.OUT) # GREEN LOW
+GPIO.setup(5, GPIO.OUT)  # RED
+GPIO.setup(13, GPIO.OUT) # GREEN
 
-GPIO.output(6, GPIO.HIGH)
-GPIO.output(5, GPIO.HIGH)
-GPIO.output(19, GPIO.LOW)
-GPIO.output(13, GPIO.LOW)
+GPIO.output(5, GPIO.HIGH) # Turns off
+GPIO.output(13, GPIO.HIGH) # Turns off
 
-time.sleep(0.5)
+try:
+    print("Starting up`")
 
-GPIO.output(19, GPIO.HIGH)
-GPIO.output(13, GPIO.LOW)
+    while True:
+        health_is_active = os.popen('systemctl is-active jaiabot_health').read().strip()
 
+        log.debug(health_is_active)
+
+        if health_is_active != "active":
+            GPIO.output(13, GPIO.HIGH)
+            time.sleep(1)
+            GPIO.output(13, GPIO.LOW)
+            time.sleep(1)
+        else: 
+            GPIO.output(13, GPIO.LOW)
+
+except KeyboardInterrupt:
+    # now clean up the GPIO
+    GPIO.cleanup()

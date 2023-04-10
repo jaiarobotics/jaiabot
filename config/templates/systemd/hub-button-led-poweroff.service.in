@@ -5,6 +5,7 @@ Before=final.target
 
 [Service]
 Type=oneshot
+ExecStartPre=/usr/bin/systemctl stop hub-button-led-poweron.service
 # Run python code within a pre-installed venv
 ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/python/$subdir/$exe
 

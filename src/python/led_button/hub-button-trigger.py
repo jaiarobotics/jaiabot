@@ -12,7 +12,7 @@ log = logging.getLogger('hub-button-trigger')
 log.setLevel('DEBUG')
 
 # defining the api-endpoint 
-API_ENDPOINT = "http://localhost:40001/jaia/allStop"
+API_ENDPOINT = "http://localhost/jaia/allStop"
 # define the headers for the request
 headers = {'clientid': 'hub-button-all-stop'}
 
@@ -44,30 +44,24 @@ def held(btn):
 
             GPIO.setmode(GPIO.BCM)
 
-            GPIO.setup(6, GPIO.OUT)  # RED HIGH
-            GPIO.setup(5, GPIO.OUT)  # RED LOW
-            GPIO.setup(19, GPIO.OUT) # GREEN HIGH
-            GPIO.setup(13, GPIO.OUT) # GREEN LOW
+            GPIO.setup(5, GPIO.OUT)  # RED
+            GPIO.setup(13, GPIO.OUT) # GREEN
 
-            GPIO.output(6, GPIO.HIGH)
-            GPIO.output(5, GPIO.HIGH)
-            GPIO.output(19, GPIO.LOW)
-            GPIO.output(13, GPIO.LOW)
+            GPIO.output(5, GPIO.HIGH) # Turns off
+            GPIO.output(13, GPIO.HIGH) # Turns off
 
             t_end = time.time() + 10
             while time.time() < t_end:
-                GPIO.output(19, GPIO.LOW)
+                GPIO.output(13, GPIO.HIGH)
                 GPIO.output(5, GPIO.LOW)
                 time.sleep(0.2)
-                GPIO.output(5, GPIO.HIGH)
-                GPIO.output(19, GPIO.HIGH)
+                GPIO.output(13, GPIO.LOW)
+                GPIO.output(5, GPIO.HIGH)                
                 time.sleep(0.2)
 
 
-            GPIO.output(6, GPIO.HIGH)
-            GPIO.output(5, GPIO.HIGH)
-            GPIO.output(19, GPIO.HIGH)
-            GPIO.output(13, GPIO.LOW)
+            GPIO.output(5, GPIO.HIGH) # Turns off
+            GPIO.output(13, GPIO.LOW) # Turns on
 
         except KeyboardInterrupt:
             # now clean up the GPIO

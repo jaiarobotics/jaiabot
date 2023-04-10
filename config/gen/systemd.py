@@ -246,34 +246,6 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME},
-    {'exe': 'hub-button-led-poweroff.py',
-     'description': 'Hub Button LED Poweroff Mode',
-     'template': 'hub-button-led-poweroff.service.in',
-     'subdir': 'led_button',
-     'args': '',
-     'runs_on': Type.HUB,
-     'runs_when': Mode.RUNTIME},
-    {'exe': 'hub-button-led-poweron.py',
-     'description': 'Hub Button LED Poweron Mode',
-     'template': 'hub-button-led-poweron.service.in',
-     'subdir': 'led_button',
-     'args': '',
-     'runs_on': Type.HUB,
-     'runs_when': Mode.RUNTIME},
-    {'exe': 'hub-button-trigger.py',
-     'description': 'Hub Button LED Triggers',
-     'template': 'hub-button-trigger.service.in',
-     'subdir': 'led_button',
-     'args': '',
-     'runs_on': Type.HUB,
-     'runs_when': Mode.RUNTIME},
-    {'exe': 'hub-button-led-services-running.py',
-     'description': 'Hub Button LED Services Running Mode',
-     'template': 'hub-button-led-services-running.service.in',
-     'subdir': 'led_button',
-     'args': '',
-     'runs_on': Type.HUB,
-     'runs_when': Mode.RUNTIME},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -323,6 +295,30 @@ jaiabot_apps=[
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
      'runs_when': Mode.SIMULATION}
+]
+
+jaia_firmware = [
+    {'exe': 'hub-button-led-poweroff.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'hub-button-led-poweroff.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME},
+    {'exe': 'hub-button-led-services-running.py',
+     'description': 'Hub Button LED Services Running Mode',
+     'template': 'hub-button-led-services-running.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME},
+    {'exe': 'hub-button-trigger.py',
+     'description': 'Hub Button LED Triggers',
+     'template': 'hub-button-trigger.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME},
 ]
 
 
@@ -375,6 +371,42 @@ for app in jaiabot_apps:
         if args.disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
+for firmware in jaia_firmware:
+    if is_app_run(firmware):
+        macros={**common_macros, **firmware}
+
+        # generate service name from lowercase exe name, substituting . for _, and
+        # adding jaiabot to the front if it doesn't already start with that
+        if 'service' in macros:
+            service = macros['service']
+        else:
+            service = firmware['exe'].replace('.', '_').lower()
+            if macros['exe'][0:9] != 'jaia_firm':
+                service = 'jaia_firm_' + service
+            
+        if not 'bin_dir' in macros:
+            if macros['exe'][0:4] == 'goby':
+                macros['bin_dir'] = macros['goby_bin_dir']
+            else:
+                macros['bin_dir'] = macros['jaiabot_bin_dir']
+
+        macros['service'] = service
+                
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
+            out=Template(file.read()).substitute(macros)    
+        outfilename = args.systemd_dir + '/' + service + '.service'
+        print('Writing ' + outfilename)
+        outfile = open(outfilename, 'w')
+        outfile.write(out)
+        outfile.close()
+        if args.enable:
+            print('Enabling ' + service)
+            subprocess.run('systemctl enable ' + service, check=True, shell=True)
+        if args.disable:
+            print('Disabling ' + service)
+            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        
         
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)

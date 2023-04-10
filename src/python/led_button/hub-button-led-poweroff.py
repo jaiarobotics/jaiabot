@@ -3,24 +3,20 @@ import time
 
 GPIO.setmode(GPIO.BCM)
 
-GPIO.setup(6, GPIO.OUT)  # RED HIGH
-GPIO.setup(5, GPIO.OUT)  # RED LOW
-GPIO.setup(19, GPIO.OUT) # GREEN HIGH
-GPIO.setup(13, GPIO.OUT) # GREEN LOW
+GPIO.setup(5, GPIO.OUT)  # RED
+GPIO.setup(13, GPIO.OUT) # GREEN
 
-GPIO.output(6, GPIO.HIGH)
-GPIO.output(5, GPIO.HIGH)
-GPIO.output(19, GPIO.LOW)
-GPIO.output(13, GPIO.LOW)
+GPIO.output(5, GPIO.HIGH) # Turns off
+GPIO.output(13, GPIO.HIGH) # Turns off
 
 try:
     print("Shutting Down")
 
     t_end = time.time() + 45
     while time.time() < t_end:
-        GPIO.output(5, GPIO.LOW)
+        GPIO.output(13, GPIO.LOW)
         time.sleep(1)
-        GPIO.output(5, GPIO.HIGH)
+        GPIO.output(13, GPIO.HIGH)
         time.sleep(1)
 
     GPIO.output(5, GPIO.LOW)

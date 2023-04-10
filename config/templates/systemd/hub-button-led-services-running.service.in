@@ -10,4 +10,3 @@ ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/
 
 [Install]
 WantedBy=multi-user.target
-
