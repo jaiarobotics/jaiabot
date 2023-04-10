@@ -20,6 +20,7 @@ interface Props {
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
+    areBotsAssignedToRuns: () => boolean
 }
 
 interface State {
@@ -107,10 +108,10 @@ export class MissionSettingsPanel extends React.Component {
                                 <td>Mission Edit Mode:</td>
                                 <td>
                                     <select name="mission_type" id="mission-type" defaultValue={missionType ?? "editing"} onChange={evt => self.changeMissionEditMode(evt.target.value) }>
-                                        <option value="editing">Editing</option>
-                                        <option value="polygon-grid">Polygon</option>
+                                        {/*<option value="editing">Editing</option>*/}
+                                        {/*<option value="polygon-grid">Polygon</option>*/}
                                         <option value="lines">Lines</option>
-                                        <option value="exclusions">Exclusions</option>
+                                        {/*<option value="exclusions">Exclusions</option>*/}
                                     </select>
                                 </td>
                             </tr>
@@ -154,7 +155,7 @@ export class MissionSettingsPanel extends React.Component {
 
                     <hr/>
                     <div className='HorizontalFlexbox'>
-                        <Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>
+                        {/*<Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>*/}
                         <Button className="button-jcc" onClick={this.applyMissionClicked.bind(this)}>Apply</Button>
                     </div>
 
@@ -356,6 +357,10 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     applyMissionClicked() {
+        if (this.props.areBotsAssignedToRuns() && !confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+            return
+        }
+
         this.onMissionApply?.()
     }
 

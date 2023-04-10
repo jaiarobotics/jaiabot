@@ -133,6 +133,18 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const dive = taskPacket.dive
     if (dive != null) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`
+        let depthMeasurementString = ``; 
+
+        for (let i = 0; i < dive.measurement?.length; i++)
+        {
+            depthMeasurementString += 
+                `
+                    Index: ${i+1} <br />
+                    Mean-Depth: ${dive.measurement?.at(i)?.mean_depth?.toFixed(2)} m <br />
+                    Mean-Temperature: ${dive.measurement?.at(i)?.mean_temperature?.toFixed(2)} Celcius <br />
+                    Mean-Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
+                `
+        }
 
         placemarks.push(`
             <Placemark>
@@ -141,10 +153,12 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                     <h2>Dive</h2>
                     Time: ${dateString}<br />
                     Depth: ${depthString}<br />
-                    Bottom Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
-                    Duration to GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
-                    Unpowered rise rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
-                    Powered rise rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                    Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
+                    Duration-to-GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
+                    Unpowered-Rise-Rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
+                    Powered-Rise-Rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
+                    Bottom-Type: ${dive.bottom_type} <br />
+                    ${depthMeasurementString}
                 </description>
                 <Point>
                     <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
@@ -174,6 +188,9 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
             Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
+            Significant-Wave-Height ${drift.significant_wave_height?.toFixed(2)} m<br />
+            Wave-Height ${drift.wave_height?.toFixed(2)} m<br />
+            Wave-Period ${drift.wave_period?.toFixed(2)} s<br />
         `
 
         placemarks.push(`

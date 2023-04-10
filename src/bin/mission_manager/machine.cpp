@@ -968,9 +968,6 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
 void jaiabot::statechart::inmission::underway::movement::remotecontrol::SurfaceDrift::loop(
     const EvLoop&)
 {
-    protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
-    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 // Movement::RemoteControl::Setpoint

@@ -288,6 +288,32 @@ message DriftPacket
     optional GeographicCoordinate start_location = 11;
     // location D
     optional GeographicCoordinate end_location = 12;
+
+    // Significant wave height is defined as the average wave height, 
+    // from trough to crest, of the highest one-third of the waves
+    optional double significant_wave_height = 13 [(dccl.field) = {
+        min: 0
+        max: 50
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+
+    optional double wave_height = 14 [(dccl.field) = {
+        min: 0
+        max: 50
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+
+    optional int32 wave_period = 15 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: -1
+            units { base_dimensions: "T" }
+        }
+    ];
 }
 
 message DivePacket
@@ -344,7 +370,7 @@ message DivePacket
             [(dccl.field) = { min: 0 max: 45 precision: 1 }];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 45 }];
+    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 44 }];
 
     // location A
     optional GeographicCoordinate start_location = 15;
@@ -362,14 +388,22 @@ message DivePacket
     // Did we reach min depth?
     optional bool reached_min_depth = 18 [default = false];
 
-        // For bottom characterization
-    optional double max_acceleration = 19
+    // If we reached bottom, what was the bottom type
+    enum BottomType
+    {
+        HARD = 1;
+        SOFT = 2;
+    }
+
+    optional BottomType bottom_type = 19;
+    
+    // For bottom characterization
+    optional double max_acceleration = 20
         [(dccl.field) = {units {
             derived_dimensions: "acceleration"
             system: "si"
             }}
         ];
-
 }
 
 message TaskPacket
@@ -378,8 +412,8 @@ message TaskPacket
     Actual maximum size of message: 197 bytes / 1576 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1559
-        padding to full byte...................1
+        body................................1560
+        padding to full byte...................0
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {

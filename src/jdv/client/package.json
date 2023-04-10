@@ -38,7 +38,7 @@
     "@mdi/js": "^7.0.96",
     "@mdi/react": "^1.6.1",
     "mdi": "^2.2.43",
-    "ol": "^7.1.0",
+    "ol": "7.2.2",
     "ol-layerswitcher": "^4.1.0",
     "plotly.js-dist": "^2.16.4",
     "resolve-cwd": "^3.0.0"

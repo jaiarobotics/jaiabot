@@ -33,6 +33,7 @@ then
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+  npm install -g npm@9.6.4
   nvm install v18.12.1
   nvm use v18.12.1
   npm install i -g --no-audit webpack webpack-cli

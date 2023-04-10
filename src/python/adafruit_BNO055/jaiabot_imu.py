@@ -9,10 +9,8 @@ from imu import *
 from waves import Analyzer
 from threading import Thread
 
-
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('jaiabot_imu')
-
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', nargs='?', type=int, help='port to publish orientation data')
@@ -44,6 +42,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
         # Respond to anyone who sends us a packet
         try:
             data = imu.getData()
+            log.debug(data)
         except Exception as e:
             log.error(e)
             continue
@@ -64,6 +63,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
                     f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
                     f'{wave.frequency:0.2f},{wave.amplitude:0.2f},{maxAcceleration:0.2f}'
+
                 log.debug('Sent: ' + line)
 
                 sock.sendto(line.encode('utf8'), addr)
