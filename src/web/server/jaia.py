@@ -206,21 +206,6 @@ class Interface:
 
         return {'status': 'ok'}
 
-    def post_all_stop_safety(self):
-        clientId = 1
-
-        for bot in self.bots.values():
-            cmd = {
-                'bot_id': bot['bot_id'],
-                'time': str(now()),
-                'type': 'STOP', 
-            }
-            self.post_command(cmd, clientId)
-
-        self.setControllingClientId(clientId)
-
-        return {'status': 'ok'}
-
     def post_all_activate(self, clientId):
         if self.read_only:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}

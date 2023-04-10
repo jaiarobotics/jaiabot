@@ -79,11 +79,6 @@ def postAllStop():
     response = jaia_interface.post_all_stop(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/allStopSafety', methods=['POST'])
-def postAllStopSafety():
-    response = jaia_interface.post_all_stop_safety()
-    return JSONResponse(response)
-
 @app.route('/jaia/allActivate', methods=['POST'])
 def postAllActivate():
     response = jaia_interface.post_all_activate(clientId=request.headers['clientId'])
