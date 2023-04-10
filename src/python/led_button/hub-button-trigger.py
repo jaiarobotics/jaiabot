@@ -12,7 +12,9 @@ log = logging.getLogger('hub-button-trigger')
 log.setLevel('DEBUG')
 
 # defining the api-endpoint 
-API_ENDPOINT = "http://localhost:40001/jaia/allStopSafety"
+API_ENDPOINT = "http://localhost:40001/jaia/allStop"
+# define the headers for the request
+headers = {'clientid': 'hub-button-all-stop'}
 
 Button.pressed_time = datetime.now()
 requests.adapters.DEFAULT_RETRIES = 5 # increase retries number
@@ -29,7 +31,7 @@ def pressed(btn):
 def held(btn):
     log.debug("Held")
 
-    is_active = os.popen('systemctl is-active jaiabot_web_app_py').read().strip()
+    is_active = os.popen('systemctl is-active jaiabot_web_portal').read().strip()
 
     log.debug(is_active)
 
@@ -38,7 +40,7 @@ def held(btn):
         try:
             log.debug("Stopping Bots")
             # sending post request and saving response as response object
-            r = requests.post(url = API_ENDPOINT)
+            r = requests.post(url = API_ENDPOINT, headers=headers)
 
             GPIO.setmode(GPIO.BCM)
 
