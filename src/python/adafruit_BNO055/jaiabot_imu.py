@@ -48,26 +48,27 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             log.error(e)
             continue
         
-        now = datetime.datetime.utcnow()
-        
-        # Use caluclated Euler angles from the quaternion
-        euler: Orientation = data.orientation
-        calibration_status = data.calibration_status
-        bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
+        if data is not None:
+            now = datetime.datetime.utcnow()
+            
+            # Use caluclated Euler angles from the quaternion
+            euler: Orientation = data.orientation
+            calibration_status = data.calibration_status
+            bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
 
-        # Wave analysis
-        wave = wave_analyzer.wave()
-        maxAcceleration = wave_analyzer.maxAcceleration()
+            # Wave analysis
+            wave = wave_analyzer.wave()
+            maxAcceleration = wave_analyzer.maxAcceleration()
 
-        try:
-            line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
-                   f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
-                   f'{wave.frequency:0.2f},{wave.amplitude:0.2f},{maxAcceleration:0.2f}'
-            log.debug('Sent: ' + line)
+            try:
+                line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
+                    f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
+                    f'{wave.frequency:0.2f},{wave.amplitude:0.2f},{maxAcceleration:0.2f}'
+                log.debug('Sent: ' + line)
 
-            sock.sendto(line.encode('utf8'), addr)
-        except TypeError as e:
-            log.error(e)
+                sock.sendto(line.encode('utf8'), addr)
+            except TypeError as e:
+                log.error(e)
 
 
 def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):
@@ -106,7 +107,8 @@ if __name__ == '__main__':
         while True:
             sleep(dt)
             reading = imu.getData()
-            analyzer.addAcceleration(reading.linear_acceleration_world)
+            if reading is not None:
+                analyzer.addAcceleration(reading.linear_acceleration_world)
 
     analysis_thread = Thread(target=do_wave_analysis)
     analysis_thread.daemon = True

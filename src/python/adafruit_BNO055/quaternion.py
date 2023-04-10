@@ -43,8 +43,8 @@ class Quaternion:
         roll = atan2(sinr_cosp, cosr_cosp)
 
         # pitch (y-axis rotation)
-        sinp = sqrt(1 + 2 * (self.w * self.y - self.x * self.z))
-        cosp = sqrt(1 - 2 * (self.w * self.y - self.x * self.z))
+        sinp = sqrt(max(0, (1 + 2 * (self.w * self.y - self.x * self.z))))
+        cosp = sqrt(max(0, (1 - 2 * (self.w * self.y - self.x * self.z))))
         pitch = -2 * atan2(sinp, cosp) + pi / 2
 
         # yaw (z-axis rotation)
