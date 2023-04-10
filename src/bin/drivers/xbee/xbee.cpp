@@ -86,7 +86,7 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     // Setup the modem
     enter_command_mode();
 
-    // Set the three configuration parameters, so we're on the same network as other XBee modems
+    // Set the configuration parameters, so we're on the same network as other XBee modems
     {
         stringstream cmd;
         cmd << "ATRE" << '\r';
@@ -357,7 +357,20 @@ size_t XBeeDevice::bytes_available() {
 
 
 void XBeeDevice::enter_command_mode() {
+    // We need to send bypass command if we are
+    // are using the new radio.
+    // (Need a delay of 3 seconds between the bypass commands)
+    // Old radio still functions the same.
+    write("\r");
+
+    sleep(3);
+
+    write("b");
+
+    sleep(3);
+
     write("+++");
+
     sleep(1);
     // Read until we get the OK, in case some binary data comes through and interferes
     read_until("OK\r");
