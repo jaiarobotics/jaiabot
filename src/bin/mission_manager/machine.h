@@ -991,7 +991,12 @@ struct SurfaceDrift
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
-    SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
+    SurfaceDrift(typename StateBase::my_context c) : StateBase(c)
+    {
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+    }
     ~SurfaceDrift() {}
 
     void loop(const EvLoop&);

@@ -70,7 +70,7 @@ if is_simulation():
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots),
+                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')

@@ -30,6 +30,14 @@
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
+// Z-Index
+@map: 0;
+@column-right: 10;
+@engineering-panel: 11;
+@mission-settings: 11;
+@goal-settings: 11;
+@map-layers: 11;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -217,9 +225,12 @@ textarea {
       }
       > div.bot-item.controlled {
         .bgcolor(@controlled-color);
-      }  
-    }
+      }
 
+      > div.hub-item.selected {
+        outline: 5px solid @selected-color;
+      }
+    }
   }
 
   #botDetailsBox {
@@ -290,6 +301,7 @@ textarea {
 
     border-radius: @panel-corner-radius;
     overflow-y: auto;
+    z-index: @map-layers;
 
     button {
       min-width: 10px;
@@ -481,7 +493,7 @@ textarea {
     right: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
     left: 0px;
-    z-index: 0;
+    z-index: @map;
 
     .ol-control {
       position: absolute;
@@ -574,14 +586,13 @@ textarea {
       right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
-        padding: 5px 3px 3px 15px;
         .ol-compass {
           display: block;
           font-weight: normal;
-          width: @map-button-size - 8px;
-          height: @map-button-size - 8px;
-          font-size: @map-button-size - 8px;
-          line-height: @map-button-size - 8px;
+          width: @map-button-size;
+          height: @map-button-size;
+          font-size: @map-button-size;
+          line-height: @map-button-size;
           text-align: center;
           margin: 0px;
           will-change: transform;
@@ -593,9 +604,12 @@ textarea {
       // visibility: hidden;
       // transition: opacity 0.25s linear, visibility 0s linear 0.25s;
       button {
-        background: @inactive-color;
-        // Going for low contrast here
-        color: if(luminance(@inactive-color) < 45, black, white);
+        color: @overlay-background;
+        border-radius: @control-corner-radius;
+        height: @map-button-size;
+        width: @map-button-size;
+        min-width: @map-button-size;
+        min-height: @map-button-size;
       }
     }
 
@@ -762,12 +776,16 @@ textarea {
 
   /******** CSS Engineering Panels ********************/
 
+  #engineeringPanel {
+    z-index: @engineering-panel;
+  }
+
   .column-right {
     position: absolute;
     height: auto;
     top: @command-button-size + (2 * @command-button-padding);
     bottom: @status-bar-height;
-    z-index: 10;
+    z-index: @column-right;
     background-color: @overlay-background;
     width: 0;
     right: @command-button-size + (2 * @command-button-padding);
@@ -857,6 +875,38 @@ textarea {
       margin: 0;
     }
 
+  }
+
+  /******** Remote Control Panel *****************************/
+
+  #remoteControlPanel {
+    position: absolute;
+    height: 0;
+    bottom: 0;
+    z-index: @column-right;
+    background-color: @overlay-background;
+    width: 100%;
+    right: @command-button-size + (2 * @command-button-padding);
+
+    div.panel {
+      margin: @layout-margin / 2 2px;
+      padding: @layout-margin / 2 2px;
+      background-color: @cc-background-color;
+      color: @cc-text-color;
+      border-radius: @panel-corner-radius;
+      overflow: visible;
+      position: relative;
+      text-align: center;
+      font-weight: bold;
+
+      > h2,
+      > a > h2 {
+        margin: 0;
+        padding: 3px 5px;
+        color: @cc-text-color;
+      }
+
+    }
   }
 
   /******** CSS System Health Information ********************/
@@ -961,6 +1011,7 @@ textarea {
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @mission-settings;
 }
 
 #mission-type {
@@ -996,6 +1047,11 @@ textarea {
   top: @command-button-size + (2 * @command-button-padding);;
   padding: 8pt;
   border-radius: 8pt;
+  z-index: @goal-settings;
+}
+
+.goalSettingsHeader {
+  margin: auto;
 }
 
 #GoalType {
@@ -1149,6 +1205,7 @@ div.hoverable:hover {
 }
 
 div.closeButton {
+  margin: 0;
   .unselectable;
   font-size: larger;
   cursor: pointer;
@@ -1156,8 +1213,13 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-.accordion {
+.accordion,
+.nestedAccordion {
   overflow: auto;
+}
+
+.nestedAccordion {
+  margin-top: 8px !important;
 }
 
 #panel1a-header {
@@ -1201,3 +1263,13 @@ div.closeButton {
   }
 }
 
+/******** CSS Mission Planning *****************/
+
+.runItemInfo {
+  position: relative;
+  display: inline-flex;
+}
+
+#runList {
+  margin: 10px;
+}

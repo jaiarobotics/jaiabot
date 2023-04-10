@@ -18,19 +18,26 @@ fi
 
 
 # install nvm if not installed
-if [ ! -d "${HOME}/.nvm" ]
+if [ ! -d "/usr/local/nvm" ]
 then
-        echo "nvm not installed! Installing...";
+  echo "nvm not installed! Installing...";
   curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
+  
+  npm install -g npm@9.6.4
   nvm install v18.12.1
   nvm use v18.12.1
   npm install i -g --no-audit webpack webpack-cli
 fi
+
+# Print Node and Npm version
+echo "Node Version:"
+node -v
+echo "NPM Version:"
+npm -v
 
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 

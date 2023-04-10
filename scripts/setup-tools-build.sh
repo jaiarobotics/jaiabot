@@ -12,6 +12,8 @@ sudo apt-get install libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnan
 sudo apt-get install cmake g++ npm clang-format clang graphviz
 # Install packages to allow apt to use a repository over HTTPS:
 sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+# Install this version of npm
+npm install -g npm@9.6.4
 # Install Arduino command line interface for local compilation of ino files into hex
 echo asjshdfkjhdkf
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \

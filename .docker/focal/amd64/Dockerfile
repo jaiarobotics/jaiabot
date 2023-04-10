@@ -48,3 +48,21 @@ RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/inst
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
 
+# NVM Pre Install Setup
+RUN mkdir -p /usr/local/nvm
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION v18.12.1
+
+# NVM Download
+RUN curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+
+# NVM Install
+RUN source $NVM_DIR/nvm.sh \
+    && npm install -g npm@9.6.4 \
+    && nvm install $NODE_VERSION \
+    && nvm use --delete-prefix $NODE_VERSION \
+    && npm i -g webpack webpack-cli
+
+# NVM Post Install Setup
+ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
+ENV PATH $NODE_PATH:$PATH
