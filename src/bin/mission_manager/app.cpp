@@ -405,11 +405,19 @@ void jaiabot::apps::MissionManager::loop()
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
+    const auto* data_offload =
+        machine_->state_cast<const statechart::postdeployment::DataOffload*>();
+
+    if (data_offload)
+    {
+        report.set_data_offload_percentage(data_offload->data_offload_percentage());
+    }
 
     if (in_mission)
     {
         // Set Active Goal Index + 1 for User Interface And Log Review.
         report.set_active_goal(in_mission->goal_index() + 1);
+        //report.set_data_offload_percentage(in_mission->);
     }
 
     // only report the goal index when not in recovery

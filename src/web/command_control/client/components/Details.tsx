@@ -484,7 +484,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     </tr>
                                     <tr>
                                         <td>Mission State</td>
-                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n')}</td>
+                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + " " + bot.data_offload_percentage + "%"}</td>
                                     </tr>
                                     <tr>
                                         <td>Battery Percentage</td>

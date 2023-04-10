@@ -11,7 +11,7 @@ fi
 set -u
 
 
-rsync -aP --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
+rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0f0:/var/log/jaiabot/test
 
 echo "Removing old log files..."
 # compress debug logs, omitting goby_intervehicle_subscriptions_bot.pb.txt

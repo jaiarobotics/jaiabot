@@ -1037,6 +1037,22 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                 glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
                                          << std::flush;
                 stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+
+                // Check if the line contains progress information
+                std::string percent_complete_str = "";
+                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
+                size_t pos = percent_complete_str.find("%");
+                if (pos != std::string::npos)
+                {
+                    if (pos >= 3)
+                    {
+                        glog.is_warn() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
+                                               << std::endl;
+
+                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
+                        this->set_data_offload_percentage(percent);
+                    }
+                }
             }
 
             if (!feof(pipe))

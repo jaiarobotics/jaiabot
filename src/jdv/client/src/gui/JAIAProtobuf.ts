@@ -961,6 +961,7 @@ export interface BotStatus {
     hdop?: number
     pdop?: number
     battery_percent?: number
+    data_offload_percentage?: number
 }
 
 export interface EstimatedDrift {
