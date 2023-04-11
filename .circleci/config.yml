@@ -52,25 +52,8 @@ job-template-amd64: &job-template-amd64
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
-          if [[ "$CIRCLE_TAG" == *"_"* ]]; then
-            repo="beta";
-          elif [ ! -z "$CIRCLE_TAG" ]; then
-            repo="release";
-          else
-            repo="continuous";
-          fi
-
-          # placeholder for future version branches
-          if [[ "$CIRCLE_BRANCH" == "1.y" ]]; then
-            version="1.y";
-          # elif [[ "$CIRCLE_BRANCH" == "2.y" ]]; then
-          #  version="2.y";
-          else
-            # default to test/X.y repo on non-standard branches
-            repo="test";
-            version="X.y";
-          fi
-
+          repo=$(/root/jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+          version=$(/root/jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
           # export these for later use
           echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
           echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
@@ -188,16 +171,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "systemd-sim"
-        - "jcc-as-apache"
+        - "fix-deb-versioning-circleci"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "systemd-sim"
-        - "jcc-as-apache"
+        - "fix-deb-versioning-circleci"
 
         
 ## Begin actual config
@@ -234,6 +215,11 @@ workflows:
 
       # bundle after each package upload
       - bundle:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
           requires:
             - upload          
 
