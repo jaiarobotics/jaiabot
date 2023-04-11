@@ -48,7 +48,8 @@ parser.add_argument('--disable', action='store_true', help='If set, run systemct
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
-parser.add_argument('--led_type', action='store_true', help='If set, configure services for led type mode - NOT for real operations')
+parser.add_argument('--led_type', action='store_true', help='If set, configure services for led type')
+parser.add_argument('--gps_type', action='store_true', help='If set, configure services for gps type')
 args=parser.parse_args()
 
 # make the output directories, if they don't exist
@@ -117,12 +118,23 @@ class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
     NONE = 'none'
 
-if args.type == 'hub_led':
+if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
-elif args.type == 'none':
+elif args.led_type == 'none':
     jaia_led_type=LED_TYPE.NONE    
 else:
-    jaia_led_type=LED_TYPE.NONE   
+    jaia_led_type=LED_TYPE.NONE
+
+class GPS_TYPE(Enum):
+    SPI = "spi"
+    I2C = 'i2c'
+
+if args.gps_type == 'spi':
+    jaia_gps_type=LED_TYPE.SPI
+elif args.gps_type == 'i2c':
+    jaia_gps_type=LED_TYPE.I2C    
+else:
+    jaia_gps_type=LED_TYPE.I2C
 
 all_goby_apps=[]
     
@@ -334,8 +346,23 @@ jaia_firmware = [
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
+     {'exe': 'gps-spi-pty.py',
+     'description': 'Create a pty, and send all the spi gps data to it',
+     'template': 'gps-spi-pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.SPI},
+     {'exe': 'gps-i2c-pty.py',
+     'description': 'Create a pty, and send all the i2c gps data to it',
+     'template': 'gps-i2c-pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.I2C},
 ]
-
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
@@ -390,7 +417,7 @@ for app in jaiabot_apps:
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(app):
     macros={**common_macros, **app}
-    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (macros['led_type'] == jaia_led_type)
+    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (macros['led_type'] == jaia_led_type or macros['gps_type'] == jaia_gps_type)
 
 for firmware in jaia_firmware:
     if is_firm_run(firmware):
