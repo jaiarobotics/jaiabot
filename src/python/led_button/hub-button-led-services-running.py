@@ -1,26 +1,48 @@
 import RPi.GPIO as GPIO
 import time
 import os
-import logging
+from enum import Enum
+import argparse
 
-logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('hub-button-trigger')
-log.setLevel('DEBUG')
+parser = argparse.ArgumentParser(description='Turn on/off red light on hub led button', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--electronics_stack', choices=['1', '2'], help='If set, configure services for electronics stack')
+args=parser.parse_args()
+
+class ELECTRONICS_STACK(Enum):
+    STACK_1 = '1'
+    STACK_2 = '2'
+
+if args.electronics_stack == '1':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+elif args.electronics_stack == '2':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
 
 def led_red():
-    GPIO.output(5, GPIO.LOW)
-    GPIO.output(13, GPIO.HIGH)
-    GPIO.output(11, GPIO.LOW)
+    if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
+        GPIO.output(5, GPIO.HIGH)
+    elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
+        GPIO.output(5, GPIO.LOW)
+        GPIO.output(13, GPIO.HIGH)
+        GPIO.output(11, GPIO.LOW)
 
 def led_green():
-    GPIO.output(5, GPIO.HIGH)
-    GPIO.output(13, GPIO.LOW)
-    GPIO.output(11, GPIO.HIGH)
+    if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
+        GPIO.output(19, GPIO.HIGH)
+    elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
+        GPIO.output(5, GPIO.HIGH)
+        GPIO.output(13, GPIO.LOW)
+        GPIO.output(11, GPIO.HIGH)
 
 def led_off():
-    GPIO.output(5, GPIO.HIGH) # Turns off
-    GPIO.output(13, GPIO.HIGH) # Turns off
-    GPIO.output(11, GPIO.LOW) # Turns off
+    if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
+        GPIO.output(6, GPIO.HIGH)
+        GPIO.output(5, GPIO.HIGH)
+        GPIO.output(19, GPIO.LOW)
+        GPIO.output(13, GPIO.LOW)
+    elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
+        GPIO.output(5, GPIO.HIGH) # Turns off
+        GPIO.output(13, GPIO.HIGH) # Turns off
+        GPIO.output(11, GPIO.LOW) # Turns off
 
 def led_init():
     GPIO.setmode(GPIO.BCM)
@@ -28,6 +50,9 @@ def led_init():
     GPIO.setup(5, GPIO.OUT)  # RED
     GPIO.setup(11, GPIO.OUT) # GREEN HIGH
     GPIO.setup(13, GPIO.OUT) # GREEN LOW
+
+    if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
+        GPIO.setup(6, GPIO.OUT)  # RED HIGH
 
     led_off()
 
