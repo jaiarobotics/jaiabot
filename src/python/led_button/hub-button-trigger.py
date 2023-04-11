@@ -42,26 +42,16 @@ def held(btn):
             # sending post request and saving response as response object
             r = requests.post(url = API_ENDPOINT, headers=headers)
 
-            GPIO.setmode(GPIO.BCM)
-
-            GPIO.setup(5, GPIO.OUT)  # RED
-            GPIO.setup(13, GPIO.OUT) # GREEN
-
-            GPIO.output(5, GPIO.HIGH) # Turns off
-            GPIO.output(13, GPIO.HIGH) # Turns off
-
+            led_init()
+            
             t_end = time.time() + 10
             while time.time() < t_end:
-                GPIO.output(13, GPIO.HIGH)
-                GPIO.output(5, GPIO.LOW)
+                led_red()
                 time.sleep(0.2)
-                GPIO.output(13, GPIO.LOW)
-                GPIO.output(5, GPIO.HIGH)                
+                led_green()            
                 time.sleep(0.2)
 
-
-            GPIO.output(5, GPIO.HIGH) # Turns off
-            GPIO.output(13, GPIO.LOW) # Turns on
+            led_green()
 
         except KeyboardInterrupt:
             # now clean up the GPIO
@@ -78,6 +68,29 @@ def held(btn):
         btn.is_not_stopping_bots = True
         log.debug("Held Complete")
 
+def led_red():
+    GPIO.output(5, GPIO.LOW)
+    GPIO.output(13, GPIO.HIGH)
+    GPIO.output(11, GPIO.LOW)
+
+def led_green():
+    GPIO.output(5, GPIO.HIGH)
+    GPIO.output(13, GPIO.LOW)
+    GPIO.output(11, GPIO.HIGH)
+
+def led_off():
+    GPIO.output(5, GPIO.HIGH) # Turns off
+    GPIO.output(13, GPIO.HIGH) # Turns off
+    GPIO.output(11, GPIO.LOW) # Turns off
+
+def led_init():
+    GPIO.setmode(GPIO.BCM)
+
+    GPIO.setup(5, GPIO.OUT)  # RED
+    GPIO.setup(11, GPIO.OUT) # GREEN HIGH
+    GPIO.setup(13, GPIO.OUT) # GREEN LOW
+
+    led_off()
 
 btn = Button(4)
 btn.hold_time = 0.5

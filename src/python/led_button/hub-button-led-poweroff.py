@@ -1,25 +1,43 @@
 import RPi.GPIO as GPIO
 import time
 
-GPIO.setmode(GPIO.BCM)
+def led_red():
+    GPIO.output(5, GPIO.LOW)
+    GPIO.output(13, GPIO.HIGH)
+    GPIO.output(11, GPIO.LOW)
 
-GPIO.setup(5, GPIO.OUT)  # RED
-GPIO.setup(13, GPIO.OUT) # GREEN
+def led_green():
+    GPIO.output(5, GPIO.HIGH)
+    GPIO.output(13, GPIO.LOW)
+    GPIO.output(11, GPIO.HIGH)
 
-GPIO.output(5, GPIO.HIGH) # Turns off
-GPIO.output(13, GPIO.HIGH) # Turns off
+def led_off():
+    GPIO.output(5, GPIO.HIGH) # Turns off
+    GPIO.output(13, GPIO.HIGH) # Turns off
+    GPIO.output(11, GPIO.LOW) # Turns off
+
+def led_init():
+    GPIO.setmode(GPIO.BCM)
+
+    GPIO.setup(5, GPIO.OUT)  # RED
+    GPIO.setup(11, GPIO.OUT) # GREEN HIGH
+    GPIO.setup(13, GPIO.OUT) # GREEN LOW
+
+    led_off()
+
+led_init()
 
 try:
     print("Shutting Down")
 
     t_end = time.time() + 45
     while time.time() < t_end:
-        GPIO.output(13, GPIO.LOW)
+        led_off()
         time.sleep(1)
-        GPIO.output(13, GPIO.HIGH)
+        led_red()
         time.sleep(1)
 
-    GPIO.output(5, GPIO.LOW)
+    led_red()
 
 except KeyboardInterrupt:
     # now clean up the GPIO

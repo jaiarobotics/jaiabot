@@ -7,13 +7,32 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('hub-button-trigger')
 log.setLevel('DEBUG')
 
-GPIO.setmode(GPIO.BCM)
+def led_red():
+    GPIO.output(5, GPIO.LOW)
+    GPIO.output(13, GPIO.HIGH)
+    GPIO.output(11, GPIO.LOW)
 
-GPIO.setup(5, GPIO.OUT)  # RED
-GPIO.setup(13, GPIO.OUT) # GREEN
+def led_green():
+    GPIO.output(5, GPIO.HIGH)
+    GPIO.output(13, GPIO.LOW)
+    GPIO.output(11, GPIO.HIGH)
 
-GPIO.output(5, GPIO.HIGH) # Turns off
-GPIO.output(13, GPIO.HIGH) # Turns off
+def led_off():
+    GPIO.output(5, GPIO.HIGH) # Turns off
+    GPIO.output(13, GPIO.HIGH) # Turns off
+    GPIO.output(11, GPIO.LOW) # Turns off
+
+def led_init():
+    GPIO.setmode(GPIO.BCM)
+
+    GPIO.setup(5, GPIO.OUT)  # RED
+    GPIO.setup(11, GPIO.OUT) # GREEN HIGH
+    GPIO.setup(13, GPIO.OUT) # GREEN LOW
+
+    led_off()
+
+led_init()
+set_green_once = False
 
 try:
     print("Starting up`")
@@ -24,12 +43,15 @@ try:
         log.debug(health_is_active)
 
         if health_is_active != "active":
-            GPIO.output(13, GPIO.HIGH)
+            if set_green_once != True:
+                set_green_once = True
+            led_off()
             time.sleep(1)
-            GPIO.output(13, GPIO.LOW)
+            led_green()
             time.sleep(1)
-        else: 
-            GPIO.output(13, GPIO.LOW)
+        elif set_green_once: 
+            set_green_once = False
+            led_green()
 
 except KeyboardInterrupt:
     # now clean up the GPIO
