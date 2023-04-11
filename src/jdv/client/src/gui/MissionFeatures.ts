@@ -27,8 +27,9 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
 
         {
             // OpenLayers
+            const activeRun = plan.hasOwnProperty('speeds') ? true : false
             const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
-                style: Styles.goal(goal_index_start_at_one, goal, goal_index_start_at_one == activeGoalIndex, isSelected)})
+                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
             markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
             features.push(markerFeature)
         }
