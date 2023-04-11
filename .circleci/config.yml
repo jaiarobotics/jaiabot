@@ -52,8 +52,8 @@ job-template-amd64: &job-template-amd64
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
-          repo=$(/root/jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
-          version=$(/root/jaiabot/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+          repo=$(${CIRCLE_WORKING_DIRECTORY}/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+          version=$(${CIRCLE_WORKING_DIRECTORY}/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
           # export these for later use
           echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
           echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
