@@ -117,9 +117,9 @@ class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
     NONE = 'none'
 
-if args.type == 'hub_led':
+if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
-elif args.type == 'none':
+elif args.led_type == 'none':
     jaia_led_type=LED_TYPE.NONE    
 else:
     jaia_led_type=LED_TYPE.NONE   
