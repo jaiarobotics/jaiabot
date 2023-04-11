@@ -79,6 +79,9 @@ if args.electronics_stack == '1':
 elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
     jaia_gps_type=GPS_TYPE.SPI
+else:
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+    jaia_gps_type=GPS_TYPE.I2C
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
