@@ -120,7 +120,9 @@ class LED_TYPE(Enum):
 if args.type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
 elif args.type == 'none':
-    jaia_led_type=LED_TYPE.NONE     
+    jaia_led_type=LED_TYPE.NONE    
+else:
+    jaia_led_type=LED_TYPE.NONE   
 
 all_goby_apps=[]
     
