@@ -48,6 +48,7 @@ parser.add_argument('--disable', action='store_true', help='If set, run systemct
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
+parser.add_argument('--led_type', action='store_true', help='If set, configure services for led type mode - NOT for real operations')
 args=parser.parse_args()
 
 # make the output directories, if they don't exist
@@ -111,6 +112,17 @@ if args.type == 'bot':
 elif args.type == 'hub':
     jaia_type=Type.HUB
     common_macros['gen']=args.gen_dir + '/hub.py'
+
+class LED_TYPE(Enum):
+    HUB_LED = 'hub_led'
+    NONE = 'none'
+
+if args.type == 'hub_led':
+    jaia_led_type=LED_TYPE.HUB_LED
+elif args.type == 'none':
+    jaia_led_type=LED_TYPE.NONE    
+else:
+    jaia_led_type=LED_TYPE.NONE   
 
 all_goby_apps=[]
     
@@ -297,6 +309,33 @@ jaiabot_apps=[
      'runs_when': Mode.SIMULATION}
 ]
 
+jaia_firmware = [
+    {'exe': 'hub-button-led-poweroff.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'hub-button-led-poweroff.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'hub-button-led-services-running.py',
+     'description': 'Hub Button LED Services Running Mode',
+     'template': 'hub-button-led-services-running.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'hub-button-trigger.py',
+     'description': 'Hub Button LED Triggers',
+     'template': 'hub-button-trigger.service.in',
+     'subdir': 'led_button',
+     'args': '',
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+]
+
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
@@ -347,6 +386,47 @@ for app in jaiabot_apps:
         if args.disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
+# check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
+def is_firm_run(app):
+    macros={**common_macros, **app}
+    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (macros['led_type'] == jaia_led_type)
+
+for firmware in jaia_firmware:
+    if is_firm_run(firmware):
+        macros={**common_macros, **firmware}
+
+        # generate service name from lowercase exe name, substituting . for _, and
+        # adding jaiabot to the front if it doesn't already start with that
+        if 'service' in macros:
+            service = macros['service']
+        else:
+            service = firmware['exe'].replace('.', '_').lower()
+            if macros['exe'][0:9] != 'jaia_firm':
+                service = 'jaia_firm_' + service
+            
+        if not 'bin_dir' in macros:
+            if macros['exe'][0:4] == 'goby':
+                macros['bin_dir'] = macros['goby_bin_dir']
+            else:
+                macros['bin_dir'] = macros['jaiabot_bin_dir']
+
+        macros['service'] = service
+                
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
+            out=Template(file.read()).substitute(macros)    
+        outfilename = args.systemd_dir + '/' + service + '.service'
+        print('Writing ' + outfilename)
+        outfile = open(outfilename, 'w')
+        outfile.write(out)
+        outfile.close()
+        if args.enable:
+            print('Enabling ' + service)
+            subprocess.run('systemctl enable ' + service, check=True, shell=True)
+        if args.disable:
+            print('Disabling ' + service)
+            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        
         
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)
