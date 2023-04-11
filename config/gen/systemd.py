@@ -126,15 +126,16 @@ else:
     jaia_led_type=LED_TYPE.NONE
 
 class GPS_TYPE(Enum):
-    SPI = "spi"
+    SPI = 'spi'
     I2C = 'i2c'
+    NONE = 'none'
 
 if args.gps_type == 'spi':
-    jaia_gps_type=LED_TYPE.SPI
+    jaia_gps_type=GPS_TYPE.SPI
 elif args.gps_type == 'i2c':
-    jaia_gps_type=LED_TYPE.I2C    
+    jaia_gps_type=GPS_TYPE.I2C    
 else:
-    jaia_gps_type=LED_TYPE.I2C
+    jaia_gps_type=GPS_TYPE.NONE
 
 all_goby_apps=[]
     
