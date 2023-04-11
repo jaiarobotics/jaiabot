@@ -48,8 +48,9 @@ parser.add_argument('--disable', action='store_true', help='If set, run systemct
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
-parser.add_argument('--led_type', action='store_true', help='If set, configure services for led type')
+parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--gps_type', action='store_true', help='If set, configure services for gps type')
+
 args=parser.parse_args()
 
 # make the output directories, if they don't exist
