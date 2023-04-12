@@ -10,6 +10,8 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
+
 #include "machine_common.h"
 #include <bits/stdc++.h>
 #include <cmath>
@@ -48,6 +50,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
                           const double& lon2d);
 
+    void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
+
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
   private:
@@ -56,7 +60,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     std::set<jaiabot::config::MissionManager::EngineeringTestMode> test_modes_;
     std::set<jaiabot::protobuf::Error> ignore_errors_;
-    
+
     // if we don't get latitude information, we'll compute depth based on mid-latitude
     // (45 degrees), which will introduce up to 0.27% error at 500 meters depth
     // at the equator or the poles
@@ -75,6 +79,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     bool use_goal_timeout_{false};
     goby::time::SteadyClock::time_point last_goal_timeout_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> include_goal_timeout_states_;
+
+    goby::middleware::protobuf::TransporterConfig latest_command_sub_cfg_;
 };
 
 } // namespace apps

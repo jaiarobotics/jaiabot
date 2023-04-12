@@ -40,6 +40,7 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "jaiabot/messages/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -312,7 +313,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             //last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
             //last_data_time_[DataType::CALIBRATION_MAG] = now;
         }
-        
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
@@ -335,10 +335,10 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 // only set location if the current mode is not included in discard_status_modes_
                 if (!discard_location_states_.count(latest_bot_status_.mission_state()))
                 {
+                    glog.is_debug1() &&
+                        glog << "Updating Lat Long because bot is in the correct state:  "
+                             << latest_bot_status_.mission_state() << std::endl;
 
-                    glog.is_debug1() && glog << "Updating Lat Long because bot is in the correct state:  "
-                                             << latest_bot_status_.mission_state() << std::endl;
-                                             
                     auto lat = tpv.location().lat_with_units(),
                          lon = tpv.location().lon_with_units();
                     latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
@@ -442,7 +442,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
                 float battery_percentage = goby::util::linear_interpolate(
                     arduino_response.vccvoltage(), voltage_to_battery_percent_);
-    
+
                 latest_bot_status_.set_battery_percent(battery_percentage);
             }
 
@@ -560,6 +560,23 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             if (tpv_meets_gps_req.has_tpv())
             {
                 tpv_meets_gps_req_ = tpv_meets_gps_req.tpv();
+            }
+        });
+
+    // check for hub ID change and publish request for all intervehicle subscribers to (re)subscribe
+    // as the new hub may not have our subscriptions
+    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
+        [this](
+            const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg) {
+            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission))
+            {
+                const auto& hub_info =
+                    rx_msg.data().GetExtension(jaiabot::protobuf::transmission).hub();
+                if (hub_info.changed())
+                {
+                    interprocess().publish<jaiabot::groups::intervehicle_subscribe_request>(
+                        hub_info);
+                }
             }
         });
 }
@@ -894,7 +911,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         glog.is_debug1() && glog << "Post IMU Warning" << endl;
     }
 
-    if(imu_issue_)
+    if (imu_issue_)
     {
         last_imu_issue_report_time_ = now;
         // Reset crs hdg increment

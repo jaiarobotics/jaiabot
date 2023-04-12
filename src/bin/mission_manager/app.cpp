@@ -58,11 +58,6 @@ class MissionManagerConfigurator
     {
         auto& cfg = mutable_cfg();
 
-        // set command publisher to the hub
-        cfg.mutable_command_sub_cfg()->mutable_intervehicle()->clear_publisher_id();
-        cfg.mutable_command_sub_cfg()->mutable_intervehicle()->add_publisher_id(
-            jaiabot::comms::hub_modem_id);
-
         // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
         groups::hub_command_this_bot.reset(
             new goby::middleware::DynamicGroup(jaiabot::groups::hub_command, cfg.bot_id()));
@@ -145,46 +140,9 @@ jaiabot::apps::MissionManager::MissionManager()
                                           << std::endl;
         });
 
-    // subscribe for commands
-    {
-        auto on_command_subscribed =
-            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
-
-        // use vehicle ID as group for command
-        auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
-            return goby::middleware::Group(command.bot_id());
-        };
-
-        goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-            cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
-
-        intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& input_command) {
-                if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
-                {
-                    protobuf::Command out_command;
-                    bool command_valid = handle_command_fragment(input_command, out_command);
-                    if (command_valid)
-                    {
-                        handle_command(out_command);
-                        // republish for logging purposes
-                        interprocess().publish<jaiabot::groups::hub_command>(out_command);
-                    }
-                }
-                else
-                {
-                    handle_command(input_command);
-                    // republish for logging purposes
-                    interprocess().publish<jaiabot::groups::hub_command>(input_command);
-                }
-            },
-            *groups::hub_command_this_bot, command_subscriber);
-    }
+    // subscribe for commands when we get a request to subscribe (hub info changed)
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
@@ -393,12 +351,63 @@ jaiabot::apps::MissionManager::~MissionManager()
                                          << "\nfor subscription:\n\t" << sub.ShortDebugString()
                                          << std::endl;
             };
-        goby::middleware::Subscriber<protobuf::Command> command_subscriber{cfg().command_sub_cfg(),
+        goby::middleware::Subscriber<protobuf::Command> command_subscriber{latest_command_sub_cfg_,
                                                                            on_command_unsubscribed};
 
         intervehicle().unsubscribe_dynamic<protobuf::Command>(*groups::hub_command_this_bot,
                                                               command_subscriber);
     }
+}
+
+void jaiabot::apps::MissionManager::intervehicle_subscribe(
+    const jaiabot::protobuf::HubInfo& hub_info)
+{
+    glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
+                              << " (modem id " << hub_info.modem_id() << ")" << std::endl;
+
+    auto on_command_subscribed =
+        [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+               const goby::middleware::intervehicle::protobuf::AckData& ack) {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
+
+    // use vehicle ID as group for command
+    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
+        return goby::middleware::Group(command.bot_id());
+    };
+
+    latest_command_sub_cfg_ = cfg().command_sub_cfg();
+
+    // set command publisher to the hub that triggered this subscribe
+    latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
+    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
+
+    goby::middleware::Subscriber<protobuf::Command> command_subscriber{
+        latest_command_sub_cfg_, do_set_group, on_command_subscribed};
+
+    intervehicle().subscribe_dynamic<protobuf::Command>(
+        [this](const protobuf::Command& input_command) {
+            if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+            {
+                protobuf::Command out_command;
+                bool command_valid = handle_command_fragment(input_command, out_command);
+                if (command_valid)
+                {
+                    handle_command(out_command);
+                    // republish for logging purposes
+                    interprocess().publish<jaiabot::groups::hub_command>(out_command);
+                }
+            }
+            else
+            {
+                handle_command(input_command);
+                // republish for logging purposes
+                interprocess().publish<jaiabot::groups::hub_command>(input_command);
+            }
+        },
+        *groups::hub_command_this_bot, command_subscriber);
 }
 
 void jaiabot::apps::MissionManager::loop()

@@ -25,7 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
-import "jaiabot/messages/xbee_config.proto";
+import "jaiabot/messages/xbee_extensions.proto";
 
 
 package jaiabot.config;

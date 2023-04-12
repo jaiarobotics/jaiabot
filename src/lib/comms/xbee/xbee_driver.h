@@ -38,7 +38,7 @@
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
 #include "goby/time/steady_clock.h"              // for SteadyClock
 
-#include "jaiabot/messages/xbee_config.pb.h" // For our custom config
+#include "jaiabot/messages/xbee_extensions.pb.h" // For our custom config
 
 extern "C"
 {
@@ -93,7 +93,7 @@ class XBeeDriver : public ModemDriverBase
     // return true if we need to do a hub broadcast
     bool check_and_set_hub_info(goby::acomms::protobuf::ModemTransmission* msg);
 
-    void update_active_hub(int hub_id);
+    void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
 
   private:
     protobuf::DriverConfig driver_cfg_;

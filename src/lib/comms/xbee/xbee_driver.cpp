@@ -57,6 +57,7 @@
 #include "goby/util/protobuf/io.h" // for operator<<
 
 #include "jaiabot/comms/comms.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -366,7 +367,7 @@ bool goby::acomms::XBeeDriver::parse_modem_message(std::string in,
             out->add_frame(packet->data());
 
         if (packet->has_hub_id())
-            update_active_hub(packet->hub_id());
+            update_active_hub(packet->hub_id(), out);
 
         return true;
     }
@@ -398,14 +399,20 @@ bool goby::acomms::XBeeDriver::check_and_set_hub_info(
     return true;
 }
 
-void goby::acomms::XBeeDriver::update_active_hub(int hub_id)
+void goby::acomms::XBeeDriver::update_active_hub(int hub_id,
+                                                 goby::acomms::protobuf::ModemTransmission* out)
 {
+    auto& hub_info = *out->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
+    hub_info.set_hub_id(hub_id);
+    hub_info.set_modem_id(jaiabot::comms::hub_modem_id);
+
     if (!have_active_hub_ || active_hub_id_ != hub_id)
     {
         glog.is_verbose() && glog << group(glog_in_group())
                                   << "Updating active hub to hub_id: " << hub_id << std::endl;
         active_hub_id_ = hub_id;
         have_active_hub_ = true;
+        hub_info.set_changed(true);
 
         bool is_bot = !config_extension().has_hub_id();
         if (is_bot) // for bots, swap the serial number corresponding to the new active hub

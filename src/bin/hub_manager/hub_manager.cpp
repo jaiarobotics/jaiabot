@@ -182,6 +182,10 @@ void jaiabot::apps::HubManager::handle_subscription_report(
 
 void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
 {
+    glog.is_verbose() && glog << "Performing intervehicle subscribe actions for bot "
+                              << jaiabot::comms::bot_id_from_modem_id(id) << " (modem id " << id
+                              << ")" << std::endl;
+
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
         goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
@@ -247,6 +251,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
 
 void jaiabot::apps::HubManager::intervehicle_unsubscribe(int id)
 {
+    glog.is_verbose() && glog << "Performing intervehicle unsubscribe actions for bot "
+                              << jaiabot::comms::bot_id_from_modem_id(id) << " (modem id " << id
+                              << ")" << std::endl;
+
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
         goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
