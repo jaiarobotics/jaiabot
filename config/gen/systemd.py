@@ -71,6 +71,7 @@ print('Writing ' + args.env_file + ' from preseed.goby')
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
+               'export jaia_hub_index=' + str(args.hub_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
                'export jaia_warp=' + str(warp) + '; ' +

@@ -159,8 +159,9 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
                                            .GetExtension(dccl::field)
                                            .max_length();
 
+    static const int max_num_frames = 1;
     msg.set_max_frame_bytes(max_frame_bytes);
-    msg.set_max_num_frames(1);
+    msg.set_max_num_frames(max_num_frames);
 
     signal_data_request(&msg);
 
@@ -170,8 +171,11 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
                              << "After modification, initiating transmission with " << msg
                              << std::endl;
 
-    next_frame_ += msg.frame_size();
-
+    static const int max_frame_counter = xbee::protobuf::XBeePacket::descriptor()
+                                             ->FindFieldByName("frame_start")
+                                             ->options()
+                                             .GetExtension(dccl::field)
+                                             .max();
     if (msg.dest() == jaiabot::comms::hub_modem_id && !have_active_hub_)
     {
         glog.is_warn() && glog << group(glog_out_group())
@@ -181,6 +185,10 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     }
     else if (!(msg.frame_size() == 0 || msg.frame(0).empty()) || do_hub_broadcast)
     {
+        next_frame_ += msg.frame_size();
+        if (next_frame_ > max_frame_counter)
+            next_frame_ = 0;
+
         send_time_[msg.dest()] = goby::time::SteadyClock::now();
         number_of_bytes_to_send_ = msg.frame(0).size();
         glog.is_debug1() && glog << group(glog_out_group()) << "Start Send At: "

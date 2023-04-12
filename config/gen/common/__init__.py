@@ -38,11 +38,23 @@ try:
 except:    
     config.fail('Must set jaia_mode environmental variable to "runtime" or "simulation".')
 
-
 def is_simulation():
     return jaia_mode == Mode.SIMULATION
 def is_runtime():
     return jaia_mode == Mode.RUNTIME
+
+
+class CommsMode(Enum):
+     WIFI = "wifi"
+     XBEE = "xbee"     
+
+try:
+    jaia_comms_mode=CommsMode(os.environ['jaia_comms_mode'])
+except:    
+    if is_simulation():
+        jaia_comms_mode = CommsMode.WIFI
+    if is_runtime():
+        jaia_comms_mode = CommsMode.XBEE
 
 
 def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):

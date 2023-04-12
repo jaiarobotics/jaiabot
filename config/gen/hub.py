@@ -20,6 +20,11 @@ try:
 except:
     config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
 
+try:
+    hub_index=int(os.environ['jaia_hub_index'])
+except:
+    hub_index=0
+
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
@@ -33,7 +38,7 @@ templates_dir=common.jaia_templates_dir
 liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_load.pb.cfg.in')
 
 verbosities = \
-{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_logger':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -51,21 +56,29 @@ verbosities = \
 app_common = common.app_block(verbosities, debug_log_file_dir)
 
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
-                                                 platform='hub'+'_fleet' + str(fleet_index))
+                                                 platform='hub'+ str(hub_index) +'_fleet' + str(fleet_index))
 
 try:
     xbee_info = 'xbee { \n' + open('/etc/jaiabot/xbee_info.pb.cfg').read() + '\n}\n'
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-if is_runtime():
+if common.jaia_comms_mode == common.CommsMode.XBEE:
+    if is_simulation():
+        xbee_serial_port='/tmp/xbeehub' + str(hub_index)
+    else:
+        xbee_serial_port='/dev/xbee'
+    
+    
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id),
-                                             xbee_config=common.comms.xbee_config())
+                                            subnet_mask=common.comms.subnet_mask,                                            
+                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            mac_slots=common.comms.xbee_mac_slots(node_id),
+                                            serial_port=xbee_serial_port,
+                                            xbee_config=common.comms.xbee_config(),
+                                            xbee_hub_id='hub_id: ' + str(hub_index))
 
-if is_simulation():
+elif common.jaia_comms_mode == common.CommsMode.WIFI:
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
