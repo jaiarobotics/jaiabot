@@ -66,24 +66,29 @@ goby::acomms::XBeeDriver::~XBeeDriver() = default;
 const char* goby_driver_name() { return "xbee_driver"; }
 goby::acomms::ModemDriverBase* goby_make_driver() { return new XBeeDriver(); }
 
-string encode_modem_id(const int32_t modem_id) {
-    if (modem_id == BROADCAST_ID) {
+std::string encode_modem_id(const int32_t modem_id)
+{
+    if (modem_id == BROADCAST_ID)
+    {
         return XBeeDevice::broadcast;
     }
-    else {
-        return goby::util::as<string>(modem_id);
+    else
+    {
+        return goby::util::as<std::string>(modem_id);
     }
 }
 
-int32_t decode_modem_id(const string& modem_id) {
-    if (modem_id == XBeeDevice::broadcast) {
+int32_t decode_modem_id(const std::string& modem_id)
+{
+    if (modem_id == XBeeDevice::broadcast)
+    {
         return BROADCAST_ID;
     }
-    else {
+    else
+    {
         return goby::util::as<int32_t>(modem_id);
     }
 }
-
 
 void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 {
@@ -107,7 +112,7 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 
 void goby::acomms::XBeeDriver::shutdown()
 {
-    glog.is_warn() && glog << "Shutting down modem" << endl;
+    glog.is_warn() && glog << group(glog_out_group()) << "Shutting down modem" << std::endl;
     device_.shutdown();
 }
 
@@ -127,8 +132,8 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     signal_data_request(&msg);
 
     glog.is_debug1() && glog << group(glog_out_group())
-                            << "After modification, initiating transmission with " << msg
-                            << std::endl;
+                             << "After modification, initiating transmission with " << msg
+                             << std::endl;
 
     next_frame_ += msg.frame_size();
 
@@ -143,7 +148,8 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     }
 }
 
-void goby::acomms::XBeeDriver::do_work() {
+void goby::acomms::XBeeDriver::do_work()
+{
     device_.do_work();
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
@@ -152,7 +158,8 @@ void goby::acomms::XBeeDriver::do_work() {
     auto test_comms = config_extension.test_comms();
 
     // // Deal with incoming packets
-    for (auto packet: device_.get_packets()) {
+    for (auto packet : device_.get_packets())
+    {
         protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
@@ -221,7 +228,7 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
     msg.SerializeToString(&bytes);
 
     glog.is_debug1() && glog << group(glog_out_group())
-                            << "Sending hex: " << goby::util::hex_encode(bytes) << std::endl;
+                             << "Sending hex: " << goby::util::hex_encode(bytes) << std::endl;
 
     protobuf::ModemRaw raw_msg;
     raw_msg.set_raw(bytes);

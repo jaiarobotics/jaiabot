@@ -64,12 +64,25 @@ int main(int argc, char* argv[])
     goby::acomms::protobuf::DriverConfig cfg1, cfg2;
 
     cfg1.set_modem_id(1);
-    cfg1.set_serial_port("/dev/ttyUSB0");
+    cfg1.set_serial_port("/tmp/xbeehub0");
     cfg1.set_serial_baud(9600);
+    auto& xbee1 = *cfg1.MutableExtension(xbee::protobuf::config);
+    {
+        auto& peer1 = *xbee1.add_peers();
+        peer1.set_node_id("1");
+        peer1.set_serial_number(0x13A200421F31C3);
+    }
+    {
+        auto& peer2 = *xbee1.add_peers();
+        peer2.set_node_id("2");
+        peer2.set_serial_number(0x13A200421F6BC2);
+    }
 
     cfg2.set_modem_id(2);
-    cfg2.set_serial_port("/dev/ttyUSB1");
+    cfg2.set_serial_port("/tmp/xbeebot0");
     cfg2.set_serial_baud(9600);
+    auto& xbee2 = *cfg2.MutableExtension(xbee::protobuf::config);
+    xbee2 = xbee1;
 
     std::vector<int> tests_to_run;
     tests_to_run.push_back(4);
