@@ -11,6 +11,9 @@ num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 # first id is hub id
 hub_node_id=0
 
+# same as jaiabot/src/lib/comms/comms.h
+number_of_bots_max=151
+
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
 
@@ -23,7 +26,6 @@ def wifi_modem_id(node_id):
 
 def xbee_modem_id(node_id):
     return base_modem_id(node_id) + subnet_index['xbee']*num_modems_in_subnet
-
 
 def runtime_wifi_ip_addr(node_id, fleet_index):
     if node_id == hub_node_id:

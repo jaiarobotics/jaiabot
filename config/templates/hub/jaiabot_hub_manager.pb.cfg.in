@@ -1,8 +1,6 @@
 $app_block
 $interprocess_block
 
-$managed_bot_ids
-
 status_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
@@ -46,4 +44,8 @@ task_packet_sub_cfg {
             value_base: 5
         }
     }
+}
+
+xbee {
+    $xbee_config
 }

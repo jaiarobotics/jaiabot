@@ -38,7 +38,7 @@
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
 #include "goby/time/steady_clock.h"              // for SteadyClock
 
-#include "xbee_config.pb.h" // For our custom config
+#include "jaiabot/messages/xbee_config.pb.h" // For our custom config
 
 extern "C"
 {

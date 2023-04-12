@@ -11,14 +11,9 @@ import common, common.hub, common.comms, common.sim, common.bot, common.udp
 from pathlib import Path
 
 try:
-    number_of_bots=int(os.environ['jaia_n_bots'])
-except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
-
-try:
     fleet_index=int(os.environ['jaia_fleet_index'])
 except:
-    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_fleet_index=0 ./hub.launch"')
 
 try:
     hub_index=int(os.environ['jaia_hub_index'])
@@ -83,7 +78,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots, fleet_index),
+                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
@@ -135,12 +130,10 @@ elif common.app == 'goby_logger':
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir))
 elif common.app == 'jaiabot_hub_manager':
-    start_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(0))
-    end_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(number_of_bots))
-    all_bot_ids='managed_bot_modem_id: ' + str(list(range(start_modem_id, end_modem_id)))
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common, managed_bot_ids=all_bot_ids))
+                                     interprocess_block = interprocess_common,
+                                     xbee_config=common.comms.xbee_config()))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

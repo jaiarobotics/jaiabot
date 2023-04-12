@@ -13,11 +13,6 @@ check_args()
 app=sys.argv[1]
 
 try:
-    jaia_n_bots=int(os.environ['jaia_n_bots'])
-except:    
-    config.fail('Must set jaia_n_bots environmental variable.')
-
-try:
     jaia_log_dir=os.environ['jaia_log_dir']
     os.makedirs(jaia_log_dir, exist_ok=True)
 except:    

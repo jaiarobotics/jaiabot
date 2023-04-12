@@ -1,6 +1,7 @@
 set(APP xbee_driver_tester)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} xbee.proto xbee_config.proto)
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
+  jaiabot/comms/xbee/xbee.proto)
 
 add_executable(${APP}
   main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp
@@ -15,10 +16,12 @@ project_install_lib(jaiabot_xbee)
   
 target_link_libraries(${APP}
   goby
-  goby_zeromq)
+  goby_zeromq
+  jaiabot_messages)
 
 target_link_libraries(jaiabot_xbee
   goby
+  jaiabot_messages
 )
 
 if(export_goby_interfaces)

@@ -11,19 +11,14 @@ import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
 try:
-    number_of_bots=int(os.environ['jaia_n_bots'])
-except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
-
-try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
-    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
+    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
 try:
     fleet_index=int(os.environ['jaia_fleet_index'])
 except:
-    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
@@ -88,7 +83,7 @@ elif common.jaia_comms_mode == common.CommsMode.WIFI:
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots, fleet_index),
+                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')

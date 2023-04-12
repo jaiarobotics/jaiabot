@@ -42,7 +42,6 @@ parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Direct
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
 parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
-parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the fleet')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
@@ -73,7 +72,6 @@ subprocess.run('bash -ic "' +
                'export jaia_bot_index=' + str(args.bot_index) + '; ' +
                'export jaia_hub_index=' + str(args.hub_index) + '; ' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
-               'export jaia_n_bots=' + str(args.n_bots) + '; ' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
