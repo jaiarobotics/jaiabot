@@ -10,16 +10,13 @@ from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 import argparse
-from enum import Enum
 
 parser = argparse.ArgumentParser(description='Generate binary configurations for JaiaBot', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--electronics_stack', choices=['1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 args=parser.parse_args()
 
-class ELECTRONICS_STACK(Enum):
-    STACK_1 = '1'
-    STACK_2 = '2'
-
+if args.electronics_stack == '0':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
 if args.electronics_stack == '1':
     jaia_arduino_dev_location="/dev/ttyUSB0"
 elif args.electronics_stack == '2':

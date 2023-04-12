@@ -49,7 +49,7 @@ parser.add_argument('--simulation', action='store_true', help='If set, configure
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
-parser.add_argument('--electronics_stack', choices=['1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 
 args=parser.parse_args()
 
@@ -63,6 +63,7 @@ class GPS_TYPE(Enum):
     NONE = 'none'
 
 class ELECTRONICS_STACK(Enum):
+    STACK_0 = '0'
     STACK_1 = '1'
     STACK_2 = '2'
 
@@ -73,14 +74,17 @@ elif args.led_type == 'none':
 else:
     jaia_led_type=LED_TYPE.NONE
 
-if args.electronics_stack == '1':
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+if args.electronics_stack == '0':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
     jaia_gps_type=GPS_TYPE.I2C
+elif args.electronics_stack == '1':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+    jaia_gps_type=GPS_TYPE.SPI
 elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
     jaia_gps_type=GPS_TYPE.SPI
 else:
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
     jaia_gps_type=GPS_TYPE.I2C
 
 # make the output directories, if they don't exist

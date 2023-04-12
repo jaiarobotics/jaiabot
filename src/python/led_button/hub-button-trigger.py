@@ -13,15 +13,18 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('hub-button-trigger')
 log.setLevel('DEBUG')
 
-parser = argparse.ArgumentParser(description='Turn on/off red light on hub led button', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--electronics_stack', choices=['1', '2'], help='If set, configure services for electronics stack')
+parser = argparse.ArgumentParser(description='Turn on/off red/green light on hub led button', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--electronics_stack', choices=['0 ''1', '2'], help='If set, configure services for electronics stack')
 args=parser.parse_args()
 
 class ELECTRONICS_STACK(Enum):
+    STACK_0 = '0'
     STACK_1 = '1'
     STACK_2 = '2'
 
-if args.electronics_stack == '1':
+if args.electronics_stack == '0':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
+elif args.electronics_stack == '1':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
 elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
