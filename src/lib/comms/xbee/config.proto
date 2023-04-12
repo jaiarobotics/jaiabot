@@ -6,7 +6,13 @@ package xbee.protobuf;
 
 message Peer
 {
-    required string node_id = 1;
+    oneof id
+    {
+        string node_id = 1;  // for backwards compatibility
+        int32 hub_id = 3;
+        int32 bot_id = 4;
+    }
+
     required uint64 serial_number = 2;
 }
 

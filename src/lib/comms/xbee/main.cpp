@@ -25,10 +25,11 @@
 // tests functionality of the UDPDriver
 
 #include "driver_tester.h"
+#include "jaiabot/comms/comms.h"
 #include "xbee_driver.h"
 #include <cstdlib>
 
-std::shared_ptr<goby::acomms::ModemDriverBase> driver1, driver2;
+std::shared_ptr<goby::acomms::ModemDriverBase> driver_hub, driver_bot;
 
 void handle_raw_incoming(int driver, const goby::acomms::protobuf::ModemRaw& raw)
 {
@@ -53,40 +54,47 @@ int main(int argc, char* argv[])
 
     goby::glog.set_name(argv[0]);
 
-    driver1.reset(new goby::acomms::XBeeDriver);
-    driver2.reset(new goby::acomms::XBeeDriver);
+    driver_hub.reset(new goby::acomms::XBeeDriver);
+    driver_bot.reset(new goby::acomms::XBeeDriver);
 
-    goby::acomms::connect(&driver1->signal_raw_incoming, boost::bind(&handle_raw_incoming, 1, _1));
-    goby::acomms::connect(&driver2->signal_raw_incoming, boost::bind(&handle_raw_incoming, 2, _1));
-    goby::acomms::connect(&driver1->signal_raw_outgoing, boost::bind(&handle_raw_outgoing, 1, _1));
-    goby::acomms::connect(&driver2->signal_raw_outgoing, boost::bind(&handle_raw_outgoing, 2, _1));
+    goby::acomms::connect(&driver_hub->signal_raw_incoming,
+                          boost::bind(&handle_raw_incoming, 1, _1));
+    goby::acomms::connect(&driver_bot->signal_raw_incoming,
+                          boost::bind(&handle_raw_incoming, 2, _1));
+    goby::acomms::connect(&driver_hub->signal_raw_outgoing,
+                          boost::bind(&handle_raw_outgoing, 1, _1));
+    goby::acomms::connect(&driver_bot->signal_raw_outgoing,
+                          boost::bind(&handle_raw_outgoing, 2, _1));
 
-    goby::acomms::protobuf::DriverConfig cfg1, cfg2;
+    goby::acomms::protobuf::DriverConfig cfg_hub, cfg_bot;
 
-    cfg1.set_modem_id(1);
-    cfg1.set_serial_port("/tmp/xbeehub0");
-    cfg1.set_serial_baud(9600);
-    auto& xbee1 = *cfg1.MutableExtension(xbee::protobuf::config);
+    cfg_hub.set_modem_id(1);
+    cfg_hub.set_serial_port("/tmp/xbeehub0"); // MUST update for actual hardware
+    cfg_hub.set_serial_baud(9600);
+    auto& xbee_hub = *cfg_hub.MutableExtension(xbee::protobuf::config);
+    xbee_hub.set_hub_id(4); // some arbitrary hub id
+
     {
-        auto& peer1 = *xbee1.add_peers();
-        peer1.set_node_id("1");
-        peer1.set_serial_number(0x13A200421F31C3);
+        auto& peer_hub = *xbee_hub.add_peers();
+        peer_hub.set_hub_id(xbee_hub.hub_id());
+        peer_hub.set_serial_number(0x13A200421F31C3); // MUST update for actual hardware
     }
     {
-        auto& peer2 = *xbee1.add_peers();
-        peer2.set_node_id("2");
-        peer2.set_serial_number(0x13A200421F6BC2);
+        auto& peer_bot = *xbee_hub.add_peers();
+        peer_bot.set_bot_id(0);
+        peer_bot.set_serial_number(0x13A200421F6BC2); // MUST update for actual hardware
     }
 
-    cfg2.set_modem_id(2);
-    cfg2.set_serial_port("/tmp/xbeebot0");
-    cfg2.set_serial_baud(9600);
-    auto& xbee2 = *cfg2.MutableExtension(xbee::protobuf::config);
-    xbee2 = xbee1;
+    cfg_bot.set_modem_id(2);
+    cfg_bot.set_serial_port("/tmp/xbeebot0"); // MUST update for actual hardware
+    cfg_bot.set_serial_baud(9600);
+    auto& xbee_bot = *cfg_bot.MutableExtension(xbee::protobuf::config);
+    xbee_bot = xbee_hub;
+    xbee_bot.clear_hub_id();
 
     std::vector<int> tests_to_run({4, 7});
 
-    goby::test::acomms::DriverTester tester(driver1, driver2, cfg1, cfg2, tests_to_run,
+    goby::test::acomms::DriverTester tester(driver_hub, driver_bot, cfg_hub, cfg_bot, tests_to_run,
                                             goby::acomms::protobuf::DRIVER_NONE);
     return tester.run();
 }

@@ -39,9 +39,9 @@ constexpr int bot_id_min{0};
 constexpr int bot_id_max{150};
 
 constexpr int hub_id_min{0};
-constexpr int hub_id_max{150};
+constexpr int hub_id_max{30};
 
-void _check_bounds(int bot_id)
+inline void check_bot_id_bounds(int bot_id)
 {
     if (bot_id < bot_id_min)
         throw(jaiabot::Exception("Bot ID " + std::to_string(bot_id) +
@@ -52,20 +52,31 @@ void _check_bounds(int bot_id)
                                  " is greater than Bot ID maximum"));
 }
 
-int modem_id_from_bot_id(int bot_id)
+inline void check_hub_id_bounds(int hub_id)
 {
-    _check_bounds(bot_id);
+    if (hub_id < hub_id_min)
+        throw(jaiabot::Exception("Hub ID " + std::to_string(hub_id) +
+                                 " is less than Hub ID minimum"));
+
+    if (hub_id > hub_id_max)
+        throw(jaiabot::Exception("Hub ID " + std::to_string(hub_id) +
+                                 " is greater than Hub ID maximum"));
+}
+
+inline int modem_id_from_bot_id(int bot_id)
+{
+    check_bot_id_bounds(bot_id);
     return bot_id + bot0_modem_id;
 }
 
-int bot_id_from_modem_id(int modem_id)
+inline int bot_id_from_modem_id(int modem_id)
 {
     int bot_id = modem_id - bot0_modem_id;
 
     if (bot_id > bot_id_max)
         throw(jaiabot::Exception("Modem ID " + std::to_string(modem_id) +
                                  " must be greater than bot0_modem_id"));
-    _check_bounds(bot_id);
+    check_bot_id_bounds(bot_id);
     return bot_id;
 }
 

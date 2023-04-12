@@ -34,6 +34,14 @@ BOOST_AUTO_TEST_CASE(test_bot_id_and_modem_id_conversion_consistency)
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_bot_id_bounds)
+{
+    BOOST_CHECK_NO_THROW(check_bot_id_bounds(bot_id_min));
+    BOOST_CHECK_NO_THROW(check_bot_id_bounds(bot_id_max));
+    BOOST_CHECK_THROW(check_bot_id_bounds(bot_id_min - 1), jaiabot::Exception);
+    BOOST_CHECK_THROW(check_bot_id_bounds(bot_id_max + 1), jaiabot::Exception);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace comms

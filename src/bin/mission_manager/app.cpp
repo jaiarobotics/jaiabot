@@ -27,6 +27,7 @@
 #include "machine.h"
 #include "mission_manager.h"
 
+#include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
@@ -55,7 +56,12 @@ class MissionManagerConfigurator
     MissionManagerConfigurator(int argc, char* argv[])
         : goby::middleware::ProtobufConfigurator<config::MissionManager>(argc, argv)
     {
-        const auto& cfg = mutable_cfg();
+        auto& cfg = mutable_cfg();
+
+        // set command publisher to the hub
+        cfg.mutable_command_sub_cfg()->mutable_intervehicle()->clear_publisher_id();
+        cfg.mutable_command_sub_cfg()->mutable_intervehicle()->add_publisher_id(
+            jaiabot::comms::hub_modem_id);
 
         // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
         groups::hub_command_this_bot.reset(
