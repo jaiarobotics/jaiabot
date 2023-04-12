@@ -9,17 +9,17 @@ from common import config
 from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
-import argparse
 
-parser = argparse.ArgumentParser(description='Generate binary configurations for JaiaBot', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
-args=parser.parse_args()
+jaia_electronics_stack='0'
 
-if args.electronics_stack == '0':
+if "jaia_electronics_stack" in os.environ:
+    jaia_electronics_stack=os.environ['jaia_electronics_stack']
+
+if jaia_electronics_stack == '0':
     jaia_arduino_dev_location="/dev/ttyUSB0"
-if args.electronics_stack == '1':
+if jaia_electronics_stack == '1':
     jaia_arduino_dev_location="/dev/ttyUSB0"
-elif args.electronics_stack == '2':
+elif jaia_electronics_stack == '2':
     jaia_arduino_dev_location="/dev/ttyAMA1"
 else:
     jaia_arduino_dev_location="/dev/ttyUSB0"

@@ -111,6 +111,7 @@ subprocess.run('bash -ic "' +
                'export jaia_n_bots=' + str(args.n_bots) + '; ' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
+               'export jaia_electronics_stack=' + str(args.electronics_stack) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 

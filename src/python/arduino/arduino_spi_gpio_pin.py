@@ -4,7 +4,7 @@ from enum import Enum
 import argparse
 
 parser = argparse.ArgumentParser(description='Arduino script to turn on gpio pin', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--electronics_stack', choices=['0 ''1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 args=parser.parse_args()
 
 class ELECTRONICS_STACK(Enum):
