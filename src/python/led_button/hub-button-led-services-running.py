@@ -1,8 +1,13 @@
 import RPi.GPIO as GPIO
 import time
 import os
+import logging
 from enum import Enum
 import argparse
+
+logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+log = logging.getLogger('hub-button-trigger')
+log.setLevel('DEBUG')
 
 parser = argparse.ArgumentParser(description='Turn on/off red light on hub led button', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--electronics_stack', choices=['1', '2'], help='If set, configure services for electronics stack')
@@ -19,7 +24,8 @@ elif args.electronics_stack == '2':
 
 def led_red():
     if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
-        GPIO.output(5, GPIO.HIGH)
+        GPIO.output(19, GPIO.LOW)
+        GPIO.output(5, GPIO.LOW)
     elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
         GPIO.output(5, GPIO.LOW)
         GPIO.output(13, GPIO.HIGH)
@@ -27,6 +33,7 @@ def led_red():
 
 def led_green():
     if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
+        GPIO.output(5, GPIO.HIGH)
         GPIO.output(19, GPIO.HIGH)
     elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
         GPIO.output(5, GPIO.HIGH)
@@ -47,12 +54,15 @@ def led_off():
 def led_init():
     GPIO.setmode(GPIO.BCM)
 
-    GPIO.setup(5, GPIO.OUT)  # RED
-    GPIO.setup(11, GPIO.OUT) # GREEN HIGH
-    GPIO.setup(13, GPIO.OUT) # GREEN LOW
-
     if jaia_electronics_stack == ELECTRONICS_STACK.STACK_1:
         GPIO.setup(6, GPIO.OUT)  # RED HIGH
+        GPIO.setup(5, GPIO.OUT)  # RED LOW
+        GPIO.setup(19, GPIO.LOW) # GREEN HIGH
+        GPIO.setup(13, GPIO.LOW) # GREEN LOW
+    elif jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
+        GPIO.setup(5, GPIO.OUT)  # RED
+        GPIO.setup(11, GPIO.OUT) # GREEN HIGH
+        GPIO.setup(13, GPIO.OUT) # GREEN LOW
 
     led_off()
 
@@ -60,12 +70,8 @@ led_init()
 set_green_once = False
 
 try:
-    print("Starting up`")
-
     while True:
         health_is_active = os.popen('systemctl is-active jaiabot_health').read().strip()
-
-        log.debug(health_is_active)
 
         if health_is_active != "active":
             if set_green_once != True:
@@ -77,6 +83,8 @@ try:
         elif set_green_once: 
             set_green_once = False
             led_green()
+        else:
+            time.sleep(1)
 
 except KeyboardInterrupt:
     # now clean up the GPIO

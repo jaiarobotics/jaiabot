@@ -335,7 +335,7 @@ jaia_firmware = [
      'description': 'Hub Button LED Poweroff Mode',
      'template': 'hub-button-led-poweroff.service.in',
      'subdir': 'led_button',
-     'args': '--electronics_stack=' + jaia_electronics_stack,
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
@@ -343,7 +343,7 @@ jaia_firmware = [
      'description': 'Hub Button LED Services Running Mode',
      'template': 'hub-button-led-services-running.service.in',
      'subdir': 'led_button',
-     'args': '--electronics_stack=' + jaia_electronics_stack,
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
@@ -351,13 +351,13 @@ jaia_firmware = [
      'description': 'Hub Button LED Triggers',
      'template': 'hub-button-trigger.service.in',
      'subdir': 'led_button',
-     'args': '--electronics_stack=' + jaia_electronics_stack,
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
     {'exe': 'gps-spi-pty.py',
      'description': 'Create a pty, and send all the spi gps data to it',
-     'template': 'gps-spi-pty.service.in',
+     'template': 'gps_spi_pty.service.in',
      'subdir': 'gps',
      'args': '',
      'runs_on': Type.BOTH,
@@ -365,12 +365,19 @@ jaia_firmware = [
      'gps_type': GPS_TYPE.SPI},
     {'exe': 'gps-i2c-pty.py',
      'description': 'Create a pty, and send all the i2c gps data to it',
-     'template': 'gps-i2c-pty.service.in',
+     'template': 'gps_i2c_pty.service.in',
      'subdir': 'gps',
      'args': '',
      'runs_on': Type.BOTH,
      'runs_when': Mode.RUNTIME,
      'gps_type': GPS_TYPE.I2C},
+     {'exe': 'arduino_spi_gpio_pin.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'arduino-spi-gpio-pin.service.in',
+     'subdir': 'arduino',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
@@ -387,7 +394,7 @@ for app in jaiabot_apps:
 for app in jaiabot_apps:
     if is_app_run(app):
         macros={**common_macros, **app}
-
+        
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
         if 'service' in macros:
@@ -424,9 +431,24 @@ for app in jaiabot_apps:
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
 
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
-def is_firm_run(app):
-    macros={**common_macros, **app}
-    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (macros['led_type'] == jaia_led_type or macros['gps_type'] == jaia_gps_type)
+def is_firm_run(firm):
+    macros={**common_macros, **firm}
+
+    if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
+        return False
+    
+    if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):
+        return False
+    
+    if ('led_type' in macros):
+        if (macros['led_type'] != jaia_led_type):
+            return False
+        
+    if ('gps_type' in macros):
+        if (macros['gps_type'] != jaia_gps_type):
+            return False    
+
+    return True
 
 for firmware in jaia_firmware:
     if is_firm_run(firmware):

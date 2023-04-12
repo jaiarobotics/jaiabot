@@ -53,8 +53,12 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
     set(baudrate_flag "-b${baudrate}")
     set(serial_port_flag "-P${ARDUINO_SERIAL_PORT}")
     set(hex ${hex_name})
+    set(programmer ${avrdude_programmer})
+    set(auto_erase_flag "-D")
   else()
     set(hex ${hex_name_with_bootloader})
+    set(programmer ${avrdude_programmer})
+    set(auto_erase_flag "")
   endif()
 
   
