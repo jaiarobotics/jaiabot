@@ -56,6 +56,8 @@
 #include "goby/util/debug_logger.h"
 #include "goby/util/protobuf/io.h" // for operator<<
 
+#include "jaiabot/comms/comms.h"
+
 using goby::glog;
 using goby::util::hex_encode;
 using namespace goby::util::logger;
@@ -143,7 +145,7 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
 
     next_frame_ += msg.frame_size();
 
-    if (msg.dest() == config_extension().hub_modem_id() && !have_active_hub_)
+    if (msg.dest() == jaiabot::comms::hub_modem_id && !have_active_hub_)
     {
         glog.is_warn() && glog << group(glog_out_group())
                                << "Cannot send message to hub since we do not yet know which hub "

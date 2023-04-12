@@ -22,9 +22,8 @@ message Config
     optional string xbee_info_location = 5
         [default = "/etc/jaiabot/xbee_info.pb.cfg"];
 
-    optional int32 hub_modem_id = 6 [default = 1];
-    optional int32 hub_id = 7;  // if set, this is a hub with this id
-    optional int32 hub_broadcast_interval = 8
+    optional int32 hub_id = 6;  // if set, this is a hub with this id
+    optional int32 hub_broadcast_interval = 7
         [default = 60, (dccl.field).units.base_dimensions = "T"];
 }
 

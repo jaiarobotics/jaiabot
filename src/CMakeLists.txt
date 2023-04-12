@@ -38,3 +38,6 @@ if(build_jdv)
   add_subdirectory(jdv)
 endif()
 
+if(enable_testing)
+  add_subdirectory(test)
+endif()
