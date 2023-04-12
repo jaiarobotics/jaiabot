@@ -20,7 +20,7 @@ elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(11, GPIO.OUT)  # RED HIGH
+GPIO.setup(11, GPIO.OUT)  # Arduino enable pin
 
 try:
     if jaia_electronics_stack == ELECTRONICS_STACK.STACK_2:
