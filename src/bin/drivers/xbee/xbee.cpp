@@ -74,10 +74,9 @@ XBeeDevice::XBeeDevice()
 
 void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
                          const std::string& _my_node_id, const uint16_t network_id,
-                         const bool p_should_discover_peers, const std::string& xbee_info_location)
+                         const std::string& xbee_info_location)
 {
     my_node_id = _my_node_id;
-    should_discover_peers = p_should_discover_peers;
     my_xbee_info_location_ = xbee_info_location;
     glog_group = "xbee id" + my_node_id;
     glog.add_group(glog_group, goby::util::Colors::yellow);
@@ -489,14 +488,14 @@ void XBeeDevice::do_work()
 
     if (received_rssi_ && received_er_ && received_gd_ && received_bc_ && received_tr_)
     {
-        glog.is_verbose() &&
-            glog << group(glog_group) << "Current RSSI: " << current_rssi_
-                 << ", Average RSSI: " << average_rssi_ << ", Min RSSI: " << min_rssi_
-                 << ", Max RSSI: " << max_rssi_ << ", bytes_transmitted: " << bytes_transmitted_
-                 << " bytes"
-                 << ", received_error_count: " << received_error_count_
-                 << ", received_good_count: " << received_good_count_
-                 << ", transimission_failure_count: " << transimission_failure_count_ << endl;
+        glog.is_verbose() && glog << group(glog_group) << "Current RSSI: " << current_rssi_
+                                  << ", Average RSSI: " << average_rssi_
+                                  << ", Min RSSI: " << min_rssi_ << ", Max RSSI: " << max_rssi_
+                                  << ", bytes_transmitted: " << bytes_transmitted_ << " bytes"
+                                  << ", received_error_count: " << received_error_count_
+                                  << ", received_good_count: " << received_good_count_
+                                  << ", transmission_failure_count: " << transmission_failure_count_
+                                  << endl;
         received_rssi_ = false;
         received_er_ = false;
         received_gd_ = false;
@@ -576,9 +575,6 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
         xbeeFile << "  serial_number: "
                  << "'0x00" << std::hex << my_serial_number << "'";
         xbeeFile.close();
-
-        // Broadcast our node_id, and request everyone else's node_id
-        send_node_id(broadcast_serial_number, true);
     }
 
     if (at_command == "CB")
@@ -652,9 +648,9 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     if (at_command == "TR")
     {
         assert(response->command_status == 0);
-        transimission_failure_count_ = *((uint16_t*)&response->command_data_start);
+        transmission_failure_count_ = *((uint16_t*)&response->command_data_start);
         glog.is_debug3() && glog << group(glog_group)
-                                 << "transimission_failure_count: " << transimission_failure_count_
+                                 << "transmission_failure_count: " << transmission_failure_count_
                                  << endl;
         received_tr_ = true;
     }
@@ -740,27 +736,6 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string)
     {
         glog.is_debug1() && glog << group(glog_group) << "Parsed packet of length "
                                  << serialized_packet.length() << endl;
-
-        if (packet.has_xbee_address_entry() && should_discover_peers)
-        {
-            auto xbee_address_entry = packet.xbee_address_entry();
-            auto node_id = xbee_address_entry.node_id();
-            auto serial_number = xbee_address_entry.serial_number();
-
-            add_peer(node_id, serial_number);
-
-            // Remote is requesting our xbee_address_entry
-            if (packet.has_xbee_address_entry_request() && packet.xbee_address_entry_request())
-            {
-                auto src = *((SerialNumber*)response->src);
-                glog.is_verbose() &&
-                    glog << group(glog_group)
-                         << "Responding to xbee_address_entry_request for serial_number= "
-                         << std::hex << src << std::dec << std::endl;
-                send_node_id(src, false);
-            }
-        }
-
         if (packet.has_data())
         {
             received_packets.push_back(packet.data());
@@ -929,21 +904,6 @@ void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
         get_serial_number(dest), get_serial_number(com_dest), frame_id));
     write(packet);
     frame_id++;
-}
-
-void XBeeDevice::send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request)
-{
-    if (!should_discover_peers)
-    {
-        return;
-    }
-
-    auto packet = XBeePacket();
-    auto xbee_address_entry = packet.mutable_xbee_address_entry();
-    xbee_address_entry->set_node_id(my_node_id);
-    xbee_address_entry->set_serial_number(my_serial_number);
-    packet.set_xbee_address_entry_request(xbee_address_entry_request);
-    _send_packet(dest, packet);
 }
 
 void XBeeDevice::send_packet(const SerialNumber& dest, const string& data)

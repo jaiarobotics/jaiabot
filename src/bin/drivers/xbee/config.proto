@@ -13,7 +13,6 @@ message Peer {
 message Config
 {
     optional uint64 network_id = 1 [default = 7];
-    optional bool discover_peers = 3 [default = false];
     repeated Peer peers = 2;
     optional bool test_comms = 4 [default = false];
     optional string xbee_info_location = 5 [default = "/etc/jaiabot/xbee_info.pb.cfg"];

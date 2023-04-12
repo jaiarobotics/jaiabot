@@ -61,8 +61,7 @@ class XBeeDevice
   public:
     XBeeDevice();
     void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
-                 const uint16_t network_id, const bool should_discover_peers,
-                 const std::string& xbee_info_location);
+                 const uint16_t network_id, const std::string& xbee_info_location);
     void shutdown();
 
     std::vector<NodeId> get_peers();
@@ -109,12 +108,10 @@ class XBeeDevice
     void get_my_serial_number();
     void get_maximum_payload_size();
     void broadcast_node_id();
-    void network_discover();
 
     // Packet sending
     void _send_packet(const SerialNumber& dest, const xbee::protobuf::XBeePacket& packet);
     void send_packet(const SerialNumber& dest, const std::string& data);
-    void send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request);
 
     // Low level reads and writes
     void write(const std::string& raw);
@@ -185,7 +182,7 @@ class XBeeDevice
     uint16_t received_good_count_{0};
 
     // Transmission Failure Count
-    uint16_t transimission_failure_count_{0};
+    uint16_t transmission_failure_count_{0};
 
     std::string my_xbee_info_location_{""};
 };
