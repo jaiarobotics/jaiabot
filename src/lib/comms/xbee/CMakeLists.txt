@@ -1,7 +1,7 @@
 set(APP xbee_driver_tester)
 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
-  jaiabot/comms/xbee/xbee.proto)
+  xbee.proto)
 
 add_executable(${APP}
   main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp
