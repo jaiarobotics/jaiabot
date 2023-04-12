@@ -10,6 +10,20 @@ from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
+jaia_electronics_stack='0'
+
+if "jaia_electronics_stack" in os.environ:
+    jaia_electronics_stack=os.environ['jaia_electronics_stack']
+
+if jaia_electronics_stack == '0':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+if jaia_electronics_stack == '1':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+elif jaia_electronics_stack == '2':
+    jaia_arduino_dev_location="/dev/ttyAMA1"
+else:
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
 except:
@@ -216,4 +230,5 @@ else:
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds))
+                                     jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
+                                     jaia_arduino_dev_location=jaia_arduino_dev_location))
