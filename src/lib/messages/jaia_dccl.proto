@@ -369,7 +369,7 @@ message DivePacket
             [(dccl.field) = { min: 0 max: 45 precision: 1 }];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 65 }];
+    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 50 }];
 
     // location A
     optional GeographicCoordinate start_location = 15;
@@ -400,12 +400,12 @@ message DivePacket
 message TaskPacket
 {
     /*
-      Actual maximum size of message: 250 bytes / 2000 bits
+     Actual maximum size of message: 218 bytes / 1744 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1980
-        padding to full byte...................4
-      Allowed maximum size of message: 250 bytes / 2000 bits
+        body................................1728
+        padding to full byte...................0
+     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 0x5001
@@ -425,9 +425,6 @@ message TaskPacket
     }];
     required MissionTask.TaskType type = 4;
 
-    oneof task
-    {
-        DivePacket dive = 10;
-        DriftPacket drift = 11;
-    }
+    optional DivePacket dive = 10;
+    optional DriftPacket drift = 11;
 }
