@@ -358,7 +358,8 @@ void XBeeDevice::write(const string& raw)
 string XBeeDevice::read_until(const string& delimiter)
 {
     string data;
-    glog.is_debug2() && glog << group(glog_group) << "read_until: " << delimiter << endl;
+    glog.is_debug2() && glog << group(glog_group) << "read_until: " << delimiter
+                             << " (hex: " << hexadecimal(delimiter) << ")" << endl;
     boost::asio::read_until(*port, dynamic_buffer(data), delimiter);
     glog.is_debug2() && glog << group(glog_group) << "read_until completed with: " << delimiter
                              << endl;
@@ -656,35 +657,6 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     }
 }
 
-void XBeeDevice::flush_packets_for_node(const NodeId& node_id)
-{
-    for (auto it = outbound_packet_queue.begin(); it != outbound_packet_queue.end();)
-    {
-        auto& packet = *it;
-
-        if (packet.dest == node_id)
-        {
-            try
-            {
-                auto serial_number = node_id_to_serial_number_map.at(packet.dest);
-                send_packet(serial_number, packet.data);
-            }
-            catch (exception& error)
-            {
-                glog.is_warn() && glog << group(glog_group)
-                                       << "WARNING: No cached serial_number for node_id " << node_id
-                                       << " still." << endl;
-                return;
-            }
-            it = outbound_packet_queue.erase(it);
-        }
-        else
-        {
-            it++;
-        }
-    }
-}
-
 void XBeeDevice::process_frame_extended_transmit_status(const string& response_string)
 {
     struct TransmitStatus
@@ -728,26 +700,9 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string)
 
     auto serialized_packet = string((char*)&response->received_data_start, data_size);
     glog.is_debug1() && glog << group(glog_group)
-                             << "Received XBeePacket raw data length=" << serialized_packet.length()
-                             << endl;
-
-    XBeePacket packet;
-    if (packet.ParseFromString(serialized_packet))
-    {
-        glog.is_debug1() && glog << group(glog_group) << "Parsed packet of length "
-                                 << serialized_packet.length() << endl;
-        if (packet.has_data())
-        {
-            received_packets.push_back(packet.data());
-            glog.is_debug1() && glog << group(glog_group)
-                                     << "Received datagram data=" << hexadecimal(packet.data())
-                                     << endl;
-        }
-    }
-    else
-    {
-        glog.is_warn() && glog << group(glog_group) << "Could not deserialize packet" << endl;
-    }
+                             << "Received datagram length=" << serialized_packet.length()
+                             << ", data=" << hexadecimal(serialized_packet) << endl;
+    received_packets.push_back(serialized_packet);
 }
 
 void XBeeDevice::process_frame_explicit_rx_indicator(const string& response_string)
@@ -876,22 +831,11 @@ SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id)
     }
 }
 
-void XBeeDevice::_send_packet(const SerialNumber& dest, const XBeePacket& packet)
+void XBeeDevice::send_packet(const SerialNumber& dest, const std::string& data)
 {
-    string serialized_packet;
-
-    if (packet.SerializeToString(&serialized_packet))
-    {
-        write(frame_data(api_transmit_request(
-            dest, frame_id, (const byte*)serialized_packet.c_str(), serialized_packet.length())));
-        frame_id++;
-    }
-    else
-    {
-        glog.is_warn() && glog << group(glog_group)
-                               << "Could not serialize packet for transmission:  "
-                               << packet.ShortDebugString() << endl;
-    }
+    write(
+        frame_data(api_transmit_request(dest, frame_id, (const byte*)data.c_str(), data.length())));
+    frame_id++;
 }
 
 // Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
@@ -904,13 +848,6 @@ void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
         get_serial_number(dest), get_serial_number(com_dest), frame_id));
     write(packet);
     frame_id++;
-}
-
-void XBeeDevice::send_packet(const SerialNumber& dest, const string& data)
-{
-    auto packet = XBeePacket();
-    packet.set_data(data);
-    _send_packet(dest, packet);
 }
 
 // Public interface
@@ -932,12 +869,9 @@ void XBeeDevice::send_packet(const NodeId& dest, const string& data)
 
         if (dest_ser == 0)
         {
-            // We don't have the destination serial number yet, so queue this data for later
-            glog.is_debug2() && glog << group(glog_group)
-                                     << "No serial number yet for NodeId: " << dest << ", queuing"
-                                     << endl;
-
-            outbound_packet_queue.push_back(packet);
+            glog.is_warn() && glog << group(glog_group)
+                                   << "No serial number yet for NodeId: " << dest
+                                   << ", cannot send message" << endl;
             return;
         }
     }
@@ -952,6 +886,4 @@ void XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number
 
     node_id_to_serial_number_map[node_id] = serial_number;
     serial_number_to_node_id_map[serial_number] = node_id;
-
-    flush_packets_for_node(node_id);
 }

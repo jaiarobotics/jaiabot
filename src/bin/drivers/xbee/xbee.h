@@ -93,16 +93,11 @@ class XBeeDevice
     byte frame_id;
     std::string glog_group;
 
-    bool should_discover_peers = false;
-
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
     std::map<SerialNumber, NodeId> serial_number_to_node_id_map;
 
     std::vector<std::string> received_packets;
-
-    // Packet queue (for packets waiting for a serial number)
-    std::deque<Packet> outbound_packet_queue;
 
     // Called during startup
     void get_my_serial_number();
@@ -110,7 +105,6 @@ class XBeeDevice
     void broadcast_node_id();
 
     // Packet sending
-    void _send_packet(const SerialNumber& dest, const xbee::protobuf::XBeePacket& packet);
     void send_packet(const SerialNumber& dest, const std::string& data);
 
     // Low level reads and writes
@@ -142,9 +136,6 @@ class XBeeDevice
     void process_frame_receive_packet(const std::string& response_string);
     void process_frame_node_identification_indicator(const std::string& response_string);
     void process_frame_explicit_rx_indicator(const std::string& response_string);
-
-    // Processing queued packets
-    void flush_packets_for_node(const NodeId& node_id);
 
     // Query RSSI from Radio
     void query_rssi();

@@ -84,8 +84,7 @@ int main(int argc, char* argv[])
     auto& xbee2 = *cfg2.MutableExtension(xbee::protobuf::config);
     xbee2 = xbee1;
 
-    std::vector<int> tests_to_run;
-    tests_to_run.push_back(4);
+    std::vector<int> tests_to_run({4, 7});
 
     goby::test::acomms::DriverTester tester(driver1, driver2, cfg1, cfg2, tests_to_run,
                                             goby::acomms::protobuf::DRIVER_NONE);

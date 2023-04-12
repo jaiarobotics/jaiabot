@@ -46,12 +46,13 @@
 #include "goby/acomms/acomms_constants.h"          // for BROADCAST_ID
 #include "goby/acomms/protobuf/modem_message.pb.h" // for ModemTransmi...
 #include "goby/acomms/protobuf/udp_driver.pb.h"    // for Config, Conf...
-#include "goby/time/convert.h"                     // for SystemClock:...
-#include "goby/time/system_clock.h"                // for SystemClock
-#include "goby/time/types.h"                       // for MicroTime
-#include "goby/util/as.h"                          // for as
-#include "goby/util/asio_compat.h"                 // for io_context
-#include "goby/util/binary.h"                      // for hex_encode
+#include "goby/middleware/marshalling/dccl.h"
+#include "goby/time/convert.h"      // for SystemClock:...
+#include "goby/time/system_clock.h" // for SystemClock
+#include "goby/time/types.h"        // for MicroTime
+#include "goby/util/as.h"           // for as
+#include "goby/util/asio_compat.h"  // for io_context
+#include "goby/util/binary.h"       // for hex_encode
 #include "goby/util/debug_logger.h"
 #include "goby/util/protobuf/io.h" // for operator<<
 
@@ -96,15 +97,14 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
 
     application_ack_ids_.clear();
     application_ack_ids_.insert(driver_cfg_.modem_id());
-    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
-    auto network_id = config_extension.network_id();
-    test_comms_ = config_extension.test_comms();
-    auto xbee_info_location = config_extension.xbee_info_location();
+    auto network_id = config_extension().network_id();
+    test_comms_ = config_extension().test_comms();
+    auto xbee_info_location = config_extension().xbee_info_location();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location);
 
-    for (auto peer : config_extension.peers())
+    for (auto peer : config_extension().peers())
     { device_.add_peer(peer.node_id(), peer.serial_number()); }
 }
 
@@ -124,10 +124,18 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     if (!msg.has_frame_start())
         msg.set_frame_start(next_frame_);
 
-    msg.set_max_frame_bytes(device_.max_payload_size - 40);
+    static const int max_frame_bytes = xbee::protobuf::XBeePacket::descriptor()
+                                           ->FindFieldByName("data")
+                                           ->options()
+                                           .GetExtension(dccl::field)
+                                           .max_length();
+
+    msg.set_max_frame_bytes(max_frame_bytes);
     msg.set_max_num_frames(1);
 
     signal_data_request(&msg);
+
+    bool do_hub_broadcast = check_and_set_hub_info(&msg);
 
     glog.is_debug1() && glog << group(glog_out_group())
                              << "After modification, initiating transmission with " << msg
@@ -135,7 +143,14 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
 
     next_frame_ += msg.frame_size();
 
-    if (!(msg.frame_size() == 0 || msg.frame(0).empty()))
+    if (msg.dest() == config_extension().hub_modem_id() && !have_active_hub_)
+    {
+        glog.is_warn() && glog << group(glog_out_group())
+                               << "Cannot send message to hub since we do not yet know which hub "
+                                  "is active (waiting on hub broadcast)"
+                               << std::endl;
+    }
+    else if (!(msg.frame_size() == 0 || msg.frame(0).empty()) || do_hub_broadcast)
     {
         send_time_[msg.dest()] = goby::time::SteadyClock::now();
         number_of_bytes_to_send_ = msg.frame(0).size();
@@ -152,8 +167,7 @@ void goby::acomms::XBeeDriver::do_work()
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
-    auto config_extension = driver_cfg_.GetExtension(xbee::protobuf::config);
-    auto test_comms = config_extension.test_comms();
+    auto test_comms = config_extension().test_comms();
 
     // // Deal with incoming packets
     for (auto packet : device_.get_packets())
@@ -163,12 +177,17 @@ void goby::acomms::XBeeDriver::do_work()
         signal_raw_incoming(raw_msg);
 
         protobuf::ModemTransmission msg;
-        msg.ParseFromArray(&packet[0], packet.size());
-
-        glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
-                                 << " bytes from " << msg.src() << std::endl;
-
-        receive_message(msg);
+        if (parse_modem_message(packet, &msg))
+        {
+            glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
+                                     << " bytes from " << msg.src() << std::endl;
+            receive_message(msg);
+        }
+        else
+        {
+            glog.is_warn() && glog << group(glog_in_group()) << "Failed to parse incoming message"
+                                   << std::endl;
+        }
 
         if (test_comms_)
         {
@@ -223,10 +242,10 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
 {
     // send the message
     std::string bytes;
-    msg.SerializeToString(&bytes);
+    serialize_modem_message(&bytes, msg);
 
-    glog.is_debug1() && glog << group(glog_out_group())
-                             << "Sending hex: " << goby::util::hex_encode(bytes) << std::endl;
+    glog.is_debug1() && glog << group(glog_out_group()) << "Sending hex (" << bytes.size()
+                             << "B): " << goby::util::hex_encode(bytes) << std::endl;
 
     protobuf::ModemRaw raw_msg;
     raw_msg.set_raw(bytes);
@@ -238,4 +257,117 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
     }
 
     signal_transmit_result(msg);
+}
+
+void goby::acomms::XBeeDriver::serialize_modem_message(
+    std::string* out, const goby::acomms::protobuf::ModemTransmission& in)
+{
+    xbee::protobuf::XBeePacket packet;
+    packet.set_src(in.src());
+    packet.set_dest(in.dest());
+    packet.set_type(in.type());
+    if (in.has_ack_requested())
+        packet.set_ack_requested(in.ack_requested());
+    if (in.has_frame_start())
+        packet.set_frame_start(in.frame_start());
+    if (in.acked_frame_size())
+        packet.set_acked_frame(in.acked_frame(0));
+    if (config_extension().has_hub_id())
+        packet.set_hub_id(config_extension().hub_id());
+
+    if (in.frame_size())
+        packet.set_data(in.frame(0));
+
+    std::vector<char> packet_bytes = goby::middleware::SerializerParserHelper<
+        xbee::protobuf::XBeePacket, goby::middleware::MarshallingScheme::DCCL>::serialize(packet);
+
+    const int ID_SIZE = 2;
+    *out = std::string(packet_bytes.begin() + ID_SIZE, packet_bytes.end());
+}
+
+std::string _create_header_bytes()
+{
+    // cache the DCCL ID bytes for use on receive
+    xbee::protobuf::XBeePacket packet;
+    packet.set_src(0);
+    packet.set_dest(0);
+    packet.set_type(goby::acomms::protobuf::ModemTransmission::DATA);
+    const int ID_SIZE = 2;
+    std::vector<char> bytes = goby::middleware::SerializerParserHelper<
+        xbee::protobuf::XBeePacket,
+        goby::middleware::MarshallingScheme::MarshallingScheme::DCCL>::serialize(packet);
+    return std::string(bytes.begin(), bytes.begin() + ID_SIZE);
+}
+
+bool goby::acomms::XBeeDriver::parse_modem_message(std::string in,
+                                                   goby::acomms::protobuf::ModemTransmission* out)
+{
+    static const std::string header_id_bytes = _create_header_bytes();
+    std::string bytes = header_id_bytes + in;
+    std::string::iterator actual_end;
+
+    try
+    {
+        std::shared_ptr<xbee::protobuf::XBeePacket> packet =
+            goby::middleware::SerializerParserHelper<
+                xbee::protobuf::XBeePacket,
+                goby::middleware::MarshallingScheme::DCCL>::parse(bytes.begin(), bytes.end(),
+                                                                  actual_end);
+        out->set_src(packet->src());
+        out->set_dest(packet->dest());
+        out->set_type(packet->type());
+        if (packet->has_ack_requested())
+            out->set_ack_requested(packet->ack_requested());
+
+        if (packet->has_frame_start())
+            out->set_frame_start(packet->frame_start());
+
+        if (packet->has_acked_frame())
+            out->add_acked_frame(packet->acked_frame());
+
+        if (packet->has_data())
+            out->add_frame(packet->data());
+
+        if (packet->has_hub_id())
+            update_active_hub(packet->hub_id());
+
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        return false;
+    }
+}
+
+bool goby::acomms::XBeeDriver::check_and_set_hub_info(
+    goby::acomms::protobuf::ModemTransmission* msg)
+{
+    if (!config_extension().has_hub_id())
+        return false; // bots don't send this broadcast
+
+    auto now = goby::time::SteadyClock::now();
+    if (now < next_hub_broadcast_)
+        return false; // not time yet
+
+    if (msg->frame_size() != 0)
+        return false; // don't overwrite actual data transmission, wait until empty slot
+
+    // just send an empty message to all nodes, the XBeePacket will contain the correct hub id
+    msg->set_dest(BROADCAST_ID);
+
+    next_hub_broadcast_ = now + goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                                    config_extension().hub_broadcast_interval_with_units());
+
+    return true;
+}
+
+void goby::acomms::XBeeDriver::update_active_hub(int hub_id)
+{
+    if (!have_active_hub_ || active_hub_id_ != hub_id)
+    {
+        glog.is_verbose() && glog << group(glog_in_group())
+                                  << "Updating active hub to hub_id: " << hub_id << std::endl;
+        active_hub_id_ = hub_id;
+        have_active_hub_ = true;
+    }
 }

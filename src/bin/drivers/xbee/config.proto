@@ -1,23 +1,32 @@
 syntax = "proto2";
 import "goby/acomms/protobuf/driver_base.proto"; // load up message DriverBaseConfig
-  
+import "dccl/option_extensions.proto";
+
 package xbee.protobuf;
 
-
-message Peer {
+message Peer
+{
     required string node_id = 1;
     required uint64 serial_number = 2;
 }
 
-
 message Config
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     optional uint64 network_id = 1 [default = 7];
     repeated Peer peers = 2;
     optional bool test_comms = 4 [default = false];
-    optional string xbee_info_location = 5 [default = "/etc/jaiabot/xbee_info.pb.cfg"];
-}
+    optional string xbee_info_location = 5
+        [default = "/etc/jaiabot/xbee_info.pb.cfg"];
 
+    optional int32 hub_modem_id = 6 [default = 1];
+    optional int32 hub_id = 7;  // if set, this is a hub with this id
+    optional int32 hub_broadcast_interval = 8
+        [default = 60, (dccl.field).units.base_dimensions = "T"];
+}
 
 extend goby.acomms.protobuf.DriverConfig
 {

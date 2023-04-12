@@ -27,12 +27,12 @@
 
 #include "xbee.h"
 
-#include <array>    // for array
-#include <cstddef>  // for size_t
-#include <cstdint>  // for uint32_t
-#include <map>      // for multimap
-#include <memory>   // for unique_ptr
-#include <set>      // for set
+#include <array>   // for array
+#include <cstddef> // for size_t
+#include <cstdint> // for uint32_t
+#include <map>     // for multimap
+#include <memory>  // for unique_ptr
+#include <set>     // for set
 
 #include "goby/acomms/modemdriver/driver_base.h" // for ModemDriverBase
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
@@ -81,6 +81,20 @@ class XBeeDriver : public ModemDriverBase
     void receive_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void receive_message(const protobuf::ModemTransmission& m);
 
+    bool parse_modem_message(std::string in, goby::acomms::protobuf::ModemTransmission* out);
+    void serialize_modem_message(std::string* out,
+                                 const goby::acomms::protobuf::ModemTransmission& in);
+
+    const xbee::protobuf::Config& config_extension()
+    {
+        return driver_cfg_.GetExtension(xbee::protobuf::config);
+    }
+
+    // return true if we need to do a hub broadcast
+    bool check_and_set_hub_info(goby::acomms::protobuf::ModemTransmission* msg);
+
+    void update_active_hub(int hub_id);
+
   private:
     protobuf::DriverConfig driver_cfg_;
 
@@ -93,6 +107,11 @@ class XBeeDriver : public ModemDriverBase
     bool test_comms_{false};
     std::map<int32_t, goby::time::SteadyClock::time_point> send_time_{};
     std::size_t number_of_bytes_to_send_{0};
+
+    goby::time::SteadyClock::time_point next_hub_broadcast_;
+
+    bool have_active_hub_{false};
+    int active_hub_id_{-1};
 };
 } // namespace acomms
 } // namespace goby
