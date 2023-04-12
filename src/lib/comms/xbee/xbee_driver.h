@@ -62,24 +62,30 @@ namespace protobuf
 {
 class ModemTransmission;
 } // namespace protobuf
+} // namespace acomms
+} // namespace goby
 
-class XBeeDriver : public ModemDriverBase
+namespace jaiabot
+{
+namespace comms
+{
+class XBeeDriver : public goby::acomms::ModemDriverBase
 {
   public:
     XBeeDriver();
     ~XBeeDriver() override;
 
-    void startup(const protobuf::DriverConfig& cfg) override;
+    void startup(const goby::acomms::protobuf::DriverConfig& cfg) override;
     void shutdown() override;
     void do_work() override;
-    void handle_initiate_transmission(const protobuf::ModemTransmission& m) override;
+    void handle_initiate_transmission(const goby::acomms::protobuf::ModemTransmission& m) override;
 
   private:
-    void start_send(const protobuf::ModemTransmission& msg);
+    void start_send(const goby::acomms::protobuf::ModemTransmission& msg);
     void send_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void start_receive();
     void receive_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
-    void receive_message(const protobuf::ModemTransmission& m);
+    void receive_message(const goby::acomms::protobuf::ModemTransmission& m);
 
     bool parse_modem_message(std::string in, goby::acomms::protobuf::ModemTransmission* out);
     void serialize_modem_message(std::string* out,
@@ -96,7 +102,7 @@ class XBeeDriver : public ModemDriverBase
     void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
 
   private:
-    protobuf::DriverConfig driver_cfg_;
+    goby::acomms::protobuf::DriverConfig driver_cfg_;
 
     XBeeDevice device_;
 
@@ -116,6 +122,6 @@ class XBeeDriver : public ModemDriverBase
     // maps hub_id to Peer struct
     std::map<int, xbee::protobuf::Peer> hub_peers_;
 };
-} // namespace acomms
-} // namespace goby
+} // namespace comms
+} // namespace jaiabot
 #endif

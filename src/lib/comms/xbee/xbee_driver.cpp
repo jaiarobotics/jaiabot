@@ -64,11 +64,11 @@ using goby::util::hex_encode;
 using namespace goby::util::logger;
 using namespace goby::acomms;
 
-goby::acomms::XBeeDriver::XBeeDriver() = default;
-goby::acomms::XBeeDriver::~XBeeDriver() = default;
+jaiabot::comms::XBeeDriver::XBeeDriver() = default;
+jaiabot::comms::XBeeDriver::~XBeeDriver() = default;
 
 const char* goby_driver_name() { return "xbee_driver"; }
-goby::acomms::ModemDriverBase* goby_make_driver() { return new XBeeDriver(); }
+goby::acomms::ModemDriverBase* goby_make_driver() { return new jaiabot::comms::XBeeDriver(); }
 
 std::string encode_modem_id(const int32_t modem_id)
 {
@@ -94,7 +94,7 @@ int32_t decode_modem_id(const std::string& modem_id)
     }
 }
 
-void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
+void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverConfig& cfg)
 {
     driver_cfg_ = cfg;
 
@@ -138,17 +138,17 @@ void goby::acomms::XBeeDriver::startup(const protobuf::DriverConfig& cfg)
     }
 }
 
-void goby::acomms::XBeeDriver::shutdown()
+void jaiabot::comms::XBeeDriver::shutdown()
 {
     glog.is_warn() && glog << group(glog_out_group()) << "Shutting down modem" << std::endl;
     device_.shutdown();
 }
 
-void goby::acomms::XBeeDriver::handle_initiate_transmission(
-    const protobuf::ModemTransmission& orig_msg)
+void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
+    const goby::acomms::protobuf::ModemTransmission& orig_msg)
 {
     // buffer the message
-    protobuf::ModemTransmission msg = orig_msg;
+    goby::acomms::protobuf::ModemTransmission msg = orig_msg;
     signal_modify_transmission(&msg);
 
     if (!msg.has_frame_start())
@@ -199,7 +199,7 @@ void goby::acomms::XBeeDriver::handle_initiate_transmission(
     }
 }
 
-void goby::acomms::XBeeDriver::do_work()
+void jaiabot::comms::XBeeDriver::do_work()
 {
     device_.do_work();
 
@@ -210,11 +210,11 @@ void goby::acomms::XBeeDriver::do_work()
     // // Deal with incoming packets
     for (auto packet : device_.get_packets())
     {
-        protobuf::ModemRaw raw_msg;
+        goby::acomms::protobuf::ModemRaw raw_msg;
         raw_msg.set_raw(packet);
         signal_raw_incoming(raw_msg);
 
-        protobuf::ModemTransmission msg;
+        goby::acomms::protobuf::ModemTransmission msg;
         if (parse_modem_message(packet, &msg))
         {
             glog.is_debug2() && glog << group(glog_in_group()) << "Received " << packet.size()
@@ -234,13 +234,14 @@ void goby::acomms::XBeeDriver::do_work()
     }
 }
 
-void goby::acomms::XBeeDriver::receive_message(const protobuf::ModemTransmission& msg)
+void jaiabot::comms::XBeeDriver::receive_message(
+    const goby::acomms::protobuf::ModemTransmission& msg)
 {
-    if (msg.type() != protobuf::ModemTransmission::ACK && msg.ack_requested() &&
+    if (msg.type() != goby::acomms::protobuf::ModemTransmission::ACK && msg.ack_requested() &&
         application_ack_ids_.count(msg.dest()))
     {
         // make any acks
-        protobuf::ModemTransmission ack;
+        goby::acomms::protobuf::ModemTransmission ack;
         ack.set_type(goby::acomms::protobuf::ModemTransmission::ACK);
         ack.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         ack.set_src(msg.dest());
@@ -249,7 +250,7 @@ void goby::acomms::XBeeDriver::receive_message(const protobuf::ModemTransmission
             ack.add_acked_frame(i);
         start_send(ack);
     }
-    else if (msg.type() == protobuf::ModemTransmission::ACK)
+    else if (msg.type() == goby::acomms::protobuf::ModemTransmission::ACK)
     {
         auto now = goby::time::SteadyClock::now();
         glog.is_debug1() && glog << group(glog_out_group())
@@ -276,7 +277,7 @@ void goby::acomms::XBeeDriver::receive_message(const protobuf::ModemTransmission
     signal_receive(msg);
 }
 
-void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg)
+void jaiabot::comms::XBeeDriver::start_send(const goby::acomms::protobuf::ModemTransmission& msg)
 {
     // send the message
     std::string bytes;
@@ -285,7 +286,7 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
     glog.is_debug1() && glog << group(glog_out_group()) << "Sending hex (" << bytes.size()
                              << "B): " << goby::util::hex_encode(bytes) << std::endl;
 
-    protobuf::ModemRaw raw_msg;
+    goby::acomms::protobuf::ModemRaw raw_msg;
     raw_msg.set_raw(bytes);
     signal_raw_outgoing(raw_msg);
 
@@ -297,7 +298,7 @@ void goby::acomms::XBeeDriver::start_send(const protobuf::ModemTransmission& msg
     signal_transmit_result(msg);
 }
 
-void goby::acomms::XBeeDriver::serialize_modem_message(
+void jaiabot::comms::XBeeDriver::serialize_modem_message(
     std::string* out, const goby::acomms::protobuf::ModemTransmission& in)
 {
     xbee::protobuf::XBeePacket packet;
@@ -337,8 +338,8 @@ std::string _create_header_bytes()
     return std::string(bytes.begin(), bytes.begin() + ID_SIZE);
 }
 
-bool goby::acomms::XBeeDriver::parse_modem_message(std::string in,
-                                                   goby::acomms::protobuf::ModemTransmission* out)
+bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
+                                                     goby::acomms::protobuf::ModemTransmission* out)
 {
     static const std::string header_id_bytes = _create_header_bytes();
     std::string bytes = header_id_bytes + in;
@@ -377,7 +378,7 @@ bool goby::acomms::XBeeDriver::parse_modem_message(std::string in,
     }
 }
 
-bool goby::acomms::XBeeDriver::check_and_set_hub_info(
+bool jaiabot::comms::XBeeDriver::check_and_set_hub_info(
     goby::acomms::protobuf::ModemTransmission* msg)
 {
     if (!config_extension().has_hub_id())
@@ -399,8 +400,8 @@ bool goby::acomms::XBeeDriver::check_and_set_hub_info(
     return true;
 }
 
-void goby::acomms::XBeeDriver::update_active_hub(int hub_id,
-                                                 goby::acomms::protobuf::ModemTransmission* out)
+void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
+                                                   goby::acomms::protobuf::ModemTransmission* out)
 {
     auto& hub_info = *out->MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
     hub_info.set_hub_id(hub_id);
