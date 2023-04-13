@@ -101,6 +101,11 @@ else:
     jaia_mode=Mode.RUNTIME
     warp=1
 
+class Type(Enum):
+    BOT = 'bot'
+    HUB = 'hub'
+    BOTH = 'both'
+
 if args.type == 'bot':
     jaia_type=Type.BOT
     bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
@@ -142,12 +147,7 @@ try:
     common_macros['group']=os.getlogin()
 except:
     common_macros['user']=os.environ['USER']
-    common_macros['group']=os.environ['USER']    
-    
-class Type(Enum):
-     BOT = 'bot'
-     HUB = 'hub'
-     BOTH = 'both'
+    common_macros['group']=os.environ['USER']
 
 if jaia_type == Type.BOT:
     common_macros['gen']=args.gen_dir + '/bot.py'
