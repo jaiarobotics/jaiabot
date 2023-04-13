@@ -166,8 +166,6 @@ void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
 
     signal_data_request(&msg);
 
-    bool do_hub_broadcast = check_and_set_hub_info(&msg);
-
     glog.is_debug1() && glog << group(glog_out_group())
                              << "After modification, initiating transmission with " << msg
                              << std::endl;
@@ -184,7 +182,7 @@ void jaiabot::comms::XBeeDriver::handle_initiate_transmission(
                                   "is active (waiting on hub broadcast)"
                                << std::endl;
     }
-    else if (!(msg.frame_size() == 0 || msg.frame(0).empty()) || do_hub_broadcast)
+    else if (!(msg.frame_size() == 0 || msg.frame(0).empty()))
     {
         next_frame_ += msg.frame_size();
         if (next_frame_ > max_frame_counter)
@@ -376,28 +374,6 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
     {
         return false;
     }
-}
-
-bool jaiabot::comms::XBeeDriver::check_and_set_hub_info(
-    goby::acomms::protobuf::ModemTransmission* msg)
-{
-    if (!config_extension().has_hub_id())
-        return false; // bots don't send this broadcast
-
-    auto now = goby::time::SteadyClock::now();
-    if (now < next_hub_broadcast_)
-        return false; // not time yet
-
-    if (msg->frame_size() != 0)
-        return false; // don't overwrite actual data transmission, wait until empty slot
-
-    // just send an empty message to all nodes, the XBeePacket will contain the correct hub id
-    msg->set_dest(BROADCAST_ID);
-
-    next_hub_broadcast_ = now + goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                                    config_extension().hub_broadcast_interval_with_units());
-
-    return true;
 }
 
 void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,

@@ -96,9 +96,6 @@ class XBeeDriver : public goby::acomms::ModemDriverBase
         return driver_cfg_.GetExtension(xbee::protobuf::config);
     }
 
-    // return true if we need to do a hub broadcast
-    bool check_and_set_hub_info(goby::acomms::protobuf::ModemTransmission* msg);
-
     void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
 
   private:
@@ -113,8 +110,6 @@ class XBeeDriver : public goby::acomms::ModemDriverBase
     bool test_comms_{false};
     std::map<int32_t, goby::time::SteadyClock::time_point> send_time_{};
     std::size_t number_of_bytes_to_send_{0};
-
-    goby::time::SteadyClock::time_point next_hub_broadcast_;
 
     bool have_active_hub_{false};
     int active_hub_id_{-1};
