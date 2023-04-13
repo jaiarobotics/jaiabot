@@ -348,13 +348,13 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
     // can actually carry out the shutdown
     switch (input_command_for_hub.type())
     {
-        case protobuf::Command::SHUTDOWN_COMPUTER:
+        case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
-        case protobuf::Command::REBOOT_COMPUTER:
+        case protobuf::CommandForHub::REBOOT_COMPUTER:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
-        case protobuf::Command::RESTART_ALL_SERVICES:
+        case protobuf::CommandForHub::RESTART_ALL_SERVICES:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
         default: break;
