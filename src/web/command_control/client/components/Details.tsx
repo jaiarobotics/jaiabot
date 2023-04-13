@@ -43,7 +43,7 @@ interface CommandInfo {
 let commands: {[key: string]: CommandInfo} = {
     active: {
         commandType: CommandType.ACTIVATE,
-        description: 'Activate Bot',
+        description: 'system check',
         statesAvailable: [
             /^.+__IDLE$/,
             /^PRE_DEPLOYMENT__FAILED$/
@@ -51,14 +51,14 @@ let commands: {[key: string]: CommandInfo} = {
     },
     nextTask: {
         commandType: CommandType.NEXT_TASK,
-        description: 'Next Task',
+        description: 'go to the Next Task for',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
     },
     goHome: {
         commandType: CommandType.RETURN_TO_HOME,
-        description: 'Return to Home',
+        description: 'Return Home',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ]
@@ -91,14 +91,14 @@ let commands: {[key: string]: CommandInfo} = {
     },
     recover: {
         commandType: CommandType.RECOVERED,
-        description: 'Recover Bot',
+        description: 'Recover',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
     retryDataOffload: {
         commandType: CommandType.RETRY_DATA_OFFLOAD,
-        description: 'Retry Data Offload',
+        description: 'Retry Data Offload for',
         statesAvailable: [
             /^POST_DEPLOYMENT__IDLE$/,
             /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
@@ -106,7 +106,7 @@ let commands: {[key: string]: CommandInfo} = {
     },
     shutdown: {
         commandType: CommandType.SHUTDOWN,
-        description: 'Shutdown Bot',
+        description: 'Shutdown',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -115,7 +115,7 @@ let commands: {[key: string]: CommandInfo} = {
     },
     restartServices: {
         commandType: CommandType.RESTART_ALL_SERVICES,
-        description: 'Restart Services',
+        description: 'Restart Services for',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -124,7 +124,7 @@ let commands: {[key: string]: CommandInfo} = {
     },
     reboot: {
         commandType: CommandType.REBOOT_COMPUTER,
-        description: 'Reboot Bot',
+        description: 'Reboot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -172,7 +172,7 @@ var takeControlFunction: () => boolean
 function issueCommand(api: JaiaAPI, bot_id: number, command: CommandInfo) {
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command.description + " (" + command.commandType + ")?")) {
+    if (confirm(`Are you sure you'd like to ${command.description} bot: ${bot_id}?`)) {
         let c = {
             bot_id: bot_id,
             type: command.commandType
@@ -199,26 +199,51 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
     }
 }
 
-function issueMissionCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+function issueRunCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to run mission for bot: " + bot_id + "?")) {
-
-        if(!bot_mission.rc) {
+    if (bot_mission) {
+        if (confirm("Are you sure you'd like to play this run for bot: " + bot_id + "?")) {
             // Set the speed values
             bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
-        }
+           
+            console.debug('playing run:')
+            console.debug(bot_mission)
 
-        console.debug('Running Mission:')
-        console.debug(bot_mission)
+            info('Submitted for bot: ' + bot_id);
 
-        api.postCommand(bot_mission).then(response => {
-            if (response.message) {
-                error(response.message)
-            }
-        })
-    }   
+            api.postCommand(bot_mission).then(response => {
+                if (response.message) {
+                    error(response.message)
+                }
+            })
+        }   
+    } else
+    {
+        warning('No run is available for bot: ' + bot_id);
+    }
+}
+
+function issueRCCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+
+    if (!takeControlFunction()) return;
+
+    if (bot_mission) {
+        if (confirm("Are you sure you'd like to use remote control mode for: " + bot_id + "?")) {
+
+            console.debug('Running Remote Control:')
+            console.debug(bot_mission)
+
+            info('Submitted request for RC Mode for: ' + bot_id);
+
+            api.postCommand(bot_mission).then(response => {
+                if (response.message) {
+                    error(response.message)
+                }
+            })
+        }   
+    }
 }
 
 function runRCMode(bot: PortalBotStatus) {
@@ -245,17 +270,14 @@ function runRCMode(bot: PortalBotStatus) {
 
 // Check if there is a mission to run
 function runMission(bot_id: number, mission: MissionInterface) {
-    console.log(mission);
     let runs = mission.runs;
     let runId = mission.botsAssignedToRuns[bot_id];
     let run = runs[runId];
 
     if (run) {
-        info('Submitted mission for bot: ' + bot_id);
         return run.command;
     }
     else {
-        error('No mission set for bot ' + bot_id);
         return null;
     }
 }
@@ -531,7 +553,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                             <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.play, mission_state).isDisabled} 
-                                    onClick={() => { issueMissionCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
+                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                             </Button>
 
@@ -553,7 +575,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                             {<Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
-                                    onClick={() => { issueMissionCommand(api, runRCMode(bot), bot.bot_id); }}>
+                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
@@ -581,32 +603,39 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <AccordionDetails>
                                     <Button className={disableButton(commands.shutdown, mission_state).class + " button-jcc"} 
                                             disabled={disableButton(commands.shutdown, mission_state).isDisabled} 
-                                            onClick={() => 
-                                                { 
-                                                    if(bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED")
-                                                    {
-                                                        if (confirm("Are you sure you'd like to shutdown without doing a data offload"))
-                                                        {
-                                                            issueCommand(api, bot.bot_id, commands.shutdown);
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        issueCommand(api, bot.bot_id, commands.shutdown);
-                                                    }
-                                                }
+                                            onClick={() => {
+                                                if (bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
+                                                    confirm(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.shutdown) : false;
+                                                } else {
+                                                    issueCommand(api, bot.bot_id, commands.shutdown);
+                                                }}
                                             }
                                     >
                                         <Icon path={mdiPower} title="Shutdown"/>
                                     </Button>
                                     <Button className={disableButton(commands.reboot, mission_state).class + " button-jcc"} 
                                             disabled={disableButton(commands.reboot, mission_state).isDisabled} 
-                                            onClick={() => { issueCommand(api, bot.bot_id, commands.reboot) }}>
+                                            onClick={() => {
+                                                if (bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
+                                                    confirm(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.reboot) : false;
+                                                } else {
+                                                    issueCommand(api, bot.bot_id, commands.reboot);
+                                                }}
+                                            }
+                                    >
                                         <Icon path={mdiRestartAlert} title="Reboot"/>
                                     </Button>
                                     <Button className={disableButton(commands.restartServices, mission_state).class + " button-jcc"} 
                                             disabled={disableButton(commands.restartServices, mission_state).isDisabled} 
-                                            onClick={() => { issueCommand(api, bot.bot_id, commands.restartServices) }}>
+                                            onClick={() => {
+                                                if (bot.mission_state == "IN_MISSION__UNDERWAY__RECOVERY__STOPPED") {
+                                                    confirm(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.restartServices) : false;
+                                                } else {
+                                                    issueCommand(api, bot.bot_id, commands.restartServices);
+                                                }}
+                                            }
+                                            
+                                    >
                                         <Icon path={mdiRestart} title="Restart Services"/>
                                     </Button>
                                 </AccordionDetails>
