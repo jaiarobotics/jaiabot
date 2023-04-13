@@ -479,12 +479,31 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                 weHaveInterval={weHaveRemoteControlInterval}
             />
             <div id='botDetailsBox'>
-                <div id="botDetailsComponent">
+                <div className="botDetailsHeading">
                     <div className='HorizontalFlexbox'>
                         <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
                         <div onClick={closeWindow} className="closeButton">⨯</div>
                     </div>
                     <h3 className="name">Click on the map to create goals</h3>
+                    <div className="botDetailsToolbar">
+                        <Button className={disableButton(commands.stop, mission_state).class + " button-jcc stopMission"} 
+                                disabled={disableButton(commands.stop, mission_state).isDisabled} 
+                                onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
+                            <Icon path={mdiStop} title="Stop Mission"/>
+                        </Button>
+                        <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.play, mission_state).isDisabled} 
+                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
+                                <Icon path={mdiPlay} title="Run Mission"/>
+                        </Button>
+                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
+                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
+                                <Icon path={mdiSkipNext} title="Next Task"/>
+                        </Button>
+                    </div>
+                </div>
+                <div className="accordionContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
                         onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
@@ -545,24 +564,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <Button className={disableButton(commands.stop, mission_state).class + " button-jcc stopMission"} 
-                                    disabled={disableButton(commands.stop, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
-                                <Icon path={mdiStop} title="Stop Mission"/>
-                            </Button>
-
-                            <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.play, mission_state).isDisabled} 
-                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
-                                <Icon path={mdiPlay} title="Run Mission"/>
-                            </Button>
-
-                            <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
-                                <Icon path={mdiSkipNext} title="Next Task"/>
-                            </Button>
-
                             {/*<Button className="button-jcc inactive" disabled>
                                 <Icon path={mdiPause} title="Pause Mission"/>
                             </Button>*/}
@@ -836,7 +837,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 </AccordionDetails>
                             </Accordion>  
                         </AccordionDetails>
-
                     </Accordion>
                 </div>
             </div>
