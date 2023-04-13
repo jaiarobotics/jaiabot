@@ -10,6 +10,28 @@ from common import is_simulation, is_runtime
 import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
+jaia_electronics_stack='0'
+
+if "jaia_electronics_stack" in os.environ:
+    jaia_electronics_stack=os.environ['jaia_electronics_stack']
+
+if jaia_electronics_stack == '0':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=1
+    helmCommsTick=4
+if jaia_electronics_stack == '1':
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=5
+    helmCommsTick=5
+elif jaia_electronics_stack == '2':
+    jaia_arduino_dev_location="/dev/ttyAMA1"
+    helmAppTick=5
+    helmCommsTick=5
+else:
+    jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=1
+    helmCommsTick=4
+
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
 except:
@@ -43,7 +65,7 @@ verbosities = \
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
-  'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
+  'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -81,7 +103,7 @@ if is_simulation():
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots),
+                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
@@ -189,7 +211,9 @@ elif common.app == 'moos':
                                      moos_port=common.bot.moos_port(node_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
-                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv'))
+                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv',
+                                     helmAppTick=helmAppTick,
+                                     helmCommsTick=helmCommsTick))
 elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':
@@ -216,4 +240,5 @@ else:
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds))
+                                     jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
+                                     jaia_arduino_dev_location=jaia_arduino_dev_location))

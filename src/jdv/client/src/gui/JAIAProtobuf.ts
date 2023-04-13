@@ -975,12 +975,20 @@ export interface DriftPacket {
     estimated_drift?: EstimatedDrift
     start_location?: GeographicCoordinate
     end_location?: GeographicCoordinate
+    significant_wave_height?: number
+    wave_height?: number
+    wave_period?: number
 }
 
 export interface Measurements {
     mean_depth?: number
     mean_temperature?: number
     mean_salinity?: number
+}
+
+export enum BottomType {
+    HARD = "HARD",
+    SOFT = "SOFT"
 }
 
 export interface DivePacket {
@@ -993,6 +1001,7 @@ export interface DivePacket {
     duration_to_acquire_gps?: number
     bottom_dive?: boolean
     reached_min_depth?: boolean
+    bottom_type?: BottomType
 }
 
 export interface TaskPacket {

@@ -69,5 +69,5 @@ include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 min_depth_safety: 1 # (default = 1)
 min_depth_safety_skip_drift: false # (default = false)
 
-# IMU Restart Timeout
+# IMU Restart State Timeout
 imu_restart_seconds: 10 # (default = 10)

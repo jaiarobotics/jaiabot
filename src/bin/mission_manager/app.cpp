@@ -410,7 +410,7 @@ void jaiabot::apps::MissionManager::loop()
     // only report the goal index when in mission
     if (in_mission)
     {
-        report.set_active_goal(in_mission->goal_index());
+        report.set_active_goal(in_mission->goal_index() + 1);
         if (in_mission->current_goal_location().has_value())
             *report.mutable_active_goal_location() = in_mission->current_goal_location().value();
 

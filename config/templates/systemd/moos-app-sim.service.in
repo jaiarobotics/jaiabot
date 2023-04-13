@@ -1,8 +1,9 @@
 [Unit]
 Description=$description
 
-BindsTo=jaiabot_health.service
-After=jaiabot_health.service
+BindsTo=jaiabot_moosdb_sim.service
+After=jaiabot_moosdb_sim.service
+$extra_unit
 
 [Service]
 User=$user
@@ -10,8 +11,9 @@ Group=$group
 
 EnvironmentFile=$env_file
 ExecStartPre=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state START --error_code $error_on_fail --service_name $service
-ExecStart=$jaiabot_share_dir/jaiabot/web/venv/bin/python3 $jaiabot_share_dir/jaiabot/web/server/app.py
+ExecStart=$moos_bin_dir/$exe $moos_sim_file $exe
 ExecStopPost=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_reporter' --state STOP --error_code $error_on_fail --service_name $service --service_result $$SERVICE_RESULT
+$extra_service
 
 [Install]
-WantedBy=jaiabot_health.service
+WantedBy=jaiabot_moosdb_sim.service

@@ -306,10 +306,13 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
+
         self.controllingClientId = clientId
         self.send_message_to_portal(msg)
-
-        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
@@ -338,5 +341,5 @@ class Interface:
     def setControllingClientId(self, clientId):
         if clientId != self.controllingClientId:
             logging.warning(f'Client {clientId} has taken control')
-        self.controllingClientId = clientId
+            self.controllingClientId = clientId
 

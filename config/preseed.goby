@@ -11,9 +11,9 @@ fi
 [ -z "${jaia_mode}" ] && export jaia_mode=runtime
 
 if [[ "${jaia_mode}" == "simulation" ]]; then
-    export jaia_log_dir=$HOME/jaia-logs
+    [ -z "${jaia_log_dir}" ] && export jaia_log_dir=$HOME/jaia-logs
 elif [[ "${jaia_mode}" == "runtime" ]]; then
-    export jaia_log_dir=/var/log/jaiabot
+    [ -z "${jaia_log_dir}" ] && export jaia_log_dir=/var/log/jaiabot
 else
     echo "Invalid jaia_mode: ${jaia_mode}, must be runtime or simulation"
     return 1

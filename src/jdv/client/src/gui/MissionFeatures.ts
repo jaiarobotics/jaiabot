@@ -18,14 +18,19 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
     for (const [goal_index, goal] of goals.entries()) {
         const location = goal.location
 
+        // Increment by one to account for 0 index
+        const goal_index_start_at_one = goal_index + 1;
+
         if (location == null) {
             continue
         }
 
         {
             // OpenLayers
-            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index, lon: location.lon, lat: location.lat, style: Styles.goal(goal_index, goal, goal_index == activeGoalIndex, isSelected)})
-            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index})
+            const activeRun = plan.hasOwnProperty('speeds') ? true : false
+            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
+                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
+            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
             features.push(markerFeature)
         }
 

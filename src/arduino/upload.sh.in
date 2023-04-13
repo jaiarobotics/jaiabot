@@ -6,5 +6,7 @@ hex=@hex@
 nickname=@nickname@
 baud_flag=@baudrate_flag@
 port_flag=@serial_port_flag@
+programmer=@programmer@
+auto_erase_flag=@auto_erase_flag@
 
-avrdude -patmega328p -C+${sharedir}/avrdude.conf -carduino -Uflash:w:${sharedir}/${sketch}/${nickname}/${hex}:i ${baud_flag} ${port_flag} -v -D -V || echo "UPLOAD FAILED!"
+avrdude -patmega328p -C+${sharedir}/avrdude.conf -c${programmer} -Uflash:w:${sharedir}/${sketch}/${nickname}/${hex}:i ${baud_flag} ${port_flag} -v ${auto_erase_flag} -V || echo "UPLOAD FAILED!"
