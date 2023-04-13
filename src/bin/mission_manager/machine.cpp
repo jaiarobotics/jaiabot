@@ -1046,8 +1046,8 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                 {
                     if (pos >= 3)
                     {
-                        glog.is_warn() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
-                                               << std::endl;
+                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
+                                                 << std::endl;
 
                         uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
                         this->set_data_offload_percentage(percent);

@@ -417,7 +417,6 @@ void jaiabot::apps::MissionManager::loop()
     {
         // Set Active Goal Index + 1 for User Interface And Log Review.
         report.set_active_goal(in_mission->goal_index() + 1);
-        //report.set_data_offload_percentage(in_mission->);
     }
 
     // only report the goal index when not in recovery
