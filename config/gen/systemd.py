@@ -48,7 +48,43 @@ parser.add_argument('--simulation', action='store_true', help='If set, configure
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
+
 args=parser.parse_args()
+
+class LED_TYPE(Enum):
+    HUB_LED = 'hub_led'
+    NONE = 'none'
+
+class GPS_TYPE(Enum):
+    SPI = 'spi'
+    I2C = 'i2c'
+    NONE = 'none'
+
+class ELECTRONICS_STACK(Enum):
+    STACK_0 = '0'
+    STACK_1 = '1'
+    STACK_2 = '2'
+
+if args.led_type == 'hub_led':
+    jaia_led_type=LED_TYPE.HUB_LED
+elif args.led_type == 'none':
+    jaia_led_type=LED_TYPE.NONE    
+else:
+    jaia_led_type=LED_TYPE.NONE
+
+if args.electronics_stack == '0':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
+    jaia_gps_type=GPS_TYPE.I2C
+elif args.electronics_stack == '1':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+    jaia_gps_type=GPS_TYPE.SPI
+elif args.electronics_stack == '2':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
+    jaia_gps_type=GPS_TYPE.SPI
+else:
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
+    jaia_gps_type=GPS_TYPE.I2C
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
@@ -74,6 +110,7 @@ subprocess.run('bash -ic "' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
+               'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -111,17 +148,6 @@ if args.type == 'bot':
 elif args.type == 'hub':
     jaia_type=Type.HUB
     common_macros['gen']=args.gen_dir + '/hub.py'
-
-class LED_TYPE(Enum):
-    HUB_LED = 'hub_led'
-    NONE = 'none'
-
-if args.led_type == 'hub_led':
-    jaia_led_type=LED_TYPE.HUB_LED
-elif args.led_type == 'none':
-    jaia_led_type=LED_TYPE.NONE    
-else:
-    jaia_led_type=LED_TYPE.NONE   
 
 all_goby_apps=[]
     
@@ -313,7 +339,7 @@ jaia_firmware = [
      'description': 'Hub Button LED Poweroff Mode',
      'template': 'hub-button-led-poweroff.service.in',
      'subdir': 'led_button',
-     'args': '',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
@@ -321,7 +347,7 @@ jaia_firmware = [
      'description': 'Hub Button LED Services Running Mode',
      'template': 'hub-button-led-services-running.service.in',
      'subdir': 'led_button',
-     'args': '',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
@@ -329,12 +355,34 @@ jaia_firmware = [
      'description': 'Hub Button LED Triggers',
      'template': 'hub-button-trigger.service.in',
      'subdir': 'led_button',
-     'args': '',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.HUB,
      'runs_when': Mode.RUNTIME,
      'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'gps-spi-pty.py',
+     'description': 'Create a pty, and send all the spi gps data to it',
+     'template': 'gps_spi_pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.SPI},
+    {'exe': 'gps-i2c-pty.py',
+     'description': 'Create a pty, and send all the i2c gps data to it',
+     'template': 'gps_i2c_pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.I2C},
+     {'exe': 'arduino_spi_gpio_pin.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'arduino-spi-gpio-pin.service.in',
+     'subdir': 'arduino',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
 ]
-
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
@@ -350,7 +398,7 @@ for app in jaiabot_apps:
 for app in jaiabot_apps:
     if is_app_run(app):
         macros={**common_macros, **app}
-
+        
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
         if 'service' in macros:
@@ -387,9 +435,24 @@ for app in jaiabot_apps:
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
 
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
-def is_firm_run(app):
-    macros={**common_macros, **app}
-    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (macros['led_type'] == jaia_led_type)
+def is_firm_run(firm):
+    macros={**common_macros, **firm}
+
+    if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
+        return False
+    
+    if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):
+        return False
+    
+    if ('led_type' in macros):
+        if (macros['led_type'] != jaia_led_type):
+            return False
+        
+    if ('gps_type' in macros):
+        if (macros['gps_type'] != jaia_gps_type):
+            return False    
+
+    return True
 
 for firmware in jaia_firmware:
     if is_firm_run(firmware):
