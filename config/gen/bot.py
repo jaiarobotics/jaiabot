@@ -17,12 +17,20 @@ if "jaia_electronics_stack" in os.environ:
 
 if jaia_electronics_stack == '0':
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=1
+    helmCommsTick=4
 if jaia_electronics_stack == '1':
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=5
+    helmCommsTick=5
 elif jaia_electronics_stack == '2':
     jaia_arduino_dev_location="/dev/ttyAMA1"
+    helmAppTick=5
+    helmCommsTick=5
 else:
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helmAppTick=1
+    helmCommsTick=4
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -203,7 +211,9 @@ elif common.app == 'moos':
                                      moos_port=common.bot.moos_port(node_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
-                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv'))
+                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv',
+                                     helmAppTick=helmAppTick,
+                                     helmCommsTick=helmCommsTick))
 elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':

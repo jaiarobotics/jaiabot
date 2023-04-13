@@ -21,8 +21,8 @@ ProcessConfig = uProcessWatch
 
 ProcessConfig = pHelmIvP
 {
-  AppTick    = 5
-  CommsTick  = 5
+  AppTick    = $helmAppTick
+  CommsTick  = $helmCommsTick
 
   bhv_dir_not_found_ok = true
 
