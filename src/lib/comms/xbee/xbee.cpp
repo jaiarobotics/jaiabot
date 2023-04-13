@@ -12,14 +12,17 @@ using namespace boost::algorithm;
 using namespace std;
 using namespace boost::asio;
 using namespace boost::endian;
+using jaiabot::comms::byte;
+using jaiabot::comms::NodeId;
+using jaiabot::comms::SerialNumber;
 using xbee::protobuf::XBeePacket;
 
 // Frame types
 
-const byte frame_type_at_command_response = 0x88;
-const byte frame_type_extended_transmit_status = 0x8b;
-const byte frame_type_receive_packet = 0x90;
-const byte frame_type_explicit_rx_indicator = 0x91;
+constexpr byte frame_type_at_command_response = 0x88;
+constexpr byte frame_type_extended_transmit_status = 0x8b;
+constexpr byte frame_type_receive_packet = 0x90;
+constexpr byte frame_type_explicit_rx_indicator = 0x91;
 
 // Utilities
 
@@ -62,19 +65,19 @@ string frame_data(const string& packet_data)
 
 // The XBee's broadcast address is described here:
 //   https://www.digi.com/resources/documentation/Digidocs/90002173/#tasks/t_transmit_broadcast.htm?TocPath=Networking%2520methods%257C_____4
-const NodeId XBeeDevice::broadcast = "BROADCAST";
-const SerialNumber XBeeDevice::broadcast_serial_number =
+const NodeId jaiabot::comms::XBeeDevice::broadcast = "BROADCAST";
+const SerialNumber jaiabot::comms::XBeeDevice::broadcast_serial_number =
     native_to_big((SerialNumber)0x000000000000FFFF);
 
-XBeeDevice::XBeeDevice()
+jaiabot::comms::XBeeDevice::XBeeDevice()
 {
     io = new io_service();
     port = new serial_port(*io);
 }
 
-void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
-                         const std::string& _my_node_id, const uint16_t network_id,
-                         const std::string& xbee_info_location)
+void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int baud_rate,
+                                         const std::string& _my_node_id, const uint16_t network_id,
+                                         const std::string& xbee_info_location)
 {
     my_node_id = _my_node_id;
     my_xbee_info_location_ = xbee_info_location;
@@ -166,7 +169,7 @@ void XBeeDevice::startup(const std::string& port_name, const int baud_rate,
     return;
 } // startup
 
-void XBeeDevice::shutdown()
+void jaiabot::comms::XBeeDevice::shutdown()
 {
     // Setup the modem
     glog.is_verbose() && glog << group(glog_group)
@@ -209,7 +212,7 @@ void XBeeDevice::shutdown()
     port->close();
 }
 
-void XBeeDevice::get_maximum_payload_size()
+void jaiabot::comms::XBeeDevice::get_maximum_payload_size()
 {
     // Send ND command
     string cmd = string("\x08") + *((char*)&frame_id) + string("NP");
@@ -234,7 +237,7 @@ Parameter range
 Default
 0
 */
-void XBeeDevice::query_rssi()
+void jaiabot::comms::XBeeDevice::query_rssi()
 {
     // Send DB command
     string cmd = string("\x08") + *((char*)&frame_id) + string("DB");
@@ -256,7 +259,7 @@ The ER parameter is not reset by pin, serial port or cyclic sleep modes.
 Default
 N/A
 */
-void XBeeDevice::query_er()
+void jaiabot::comms::XBeeDevice::query_er()
 {
     // Send DB command
     string cmd = string("\x08") + *((char*)&frame_id) + string("ER");
@@ -278,7 +281,7 @@ Parameter range
 Default
 N/A
 */
-void XBeeDevice::query_gd()
+void jaiabot::comms::XBeeDevice::query_gd()
 {
     // Send DB command
     string cmd = string("\x08") + *((char*)&frame_id) + string("GD");
@@ -301,7 +304,7 @@ Parameter range
 Default
 N/A (0 after reset)
 */
-void XBeeDevice::query_bc()
+void jaiabot::comms::XBeeDevice::query_bc()
 {
     // Send DB command
     string cmd = string("\x08") + *((char*)&frame_id) + string("BC");
@@ -319,7 +322,7 @@ Parameter range
 Default
 N/A
 */
-void XBeeDevice::query_tr()
+void jaiabot::comms::XBeeDevice::query_tr()
 {
     // Send DB command
     string cmd = string("\x08") + *((char*)&frame_id) + string("TR");
@@ -327,7 +330,7 @@ void XBeeDevice::query_tr()
     frame_id++;
 }
 
-void XBeeDevice::send_diagnostic_commands()
+void jaiabot::comms::XBeeDevice::send_diagnostic_commands()
 {
     query_rssi();
     query_er();
@@ -336,7 +339,7 @@ void XBeeDevice::send_diagnostic_commands()
     query_tr();
 }
 
-void XBeeDevice::get_my_serial_number()
+void jaiabot::comms::XBeeDevice::get_my_serial_number()
 {
     string cmd = string("\x08") + *((char*)&frame_id) + string("SH");
     write(frame_data(cmd));
@@ -347,7 +350,7 @@ void XBeeDevice::get_my_serial_number()
     frame_id++;
 }
 
-void XBeeDevice::write(const string& raw)
+void jaiabot::comms::XBeeDevice::write(const string& raw)
 {
     // Write data
     port->write_some(buffer(raw.c_str(), raw.size()));
@@ -355,7 +358,7 @@ void XBeeDevice::write(const string& raw)
     glog.is_debug2() && glog << group(glog_group) << "  hex: " << hexadecimal(raw) << endl;
 }
 
-string XBeeDevice::read_until(const string& delimiter)
+string jaiabot::comms::XBeeDevice::read_until(const string& delimiter)
 {
     string data;
     glog.is_debug2() && glog << group(glog_group) << "read_until: " << delimiter
@@ -366,12 +369,12 @@ string XBeeDevice::read_until(const string& delimiter)
     return data;
 }
 
-void XBeeDevice::read(void* ptr, const size_t n_bytes)
+void jaiabot::comms::XBeeDevice::read(void* ptr, const size_t n_bytes)
 {
     boost::asio::read(*port, buffer(ptr, n_bytes));
 }
 
-size_t XBeeDevice::bytes_available()
+size_t jaiabot::comms::XBeeDevice::bytes_available()
 {
     int n_bytes_available;
     if (-1 == ::ioctl(port->lowest_layer().native_handle(), FIONREAD, &n_bytes_available))
@@ -384,7 +387,7 @@ size_t XBeeDevice::bytes_available()
     return size_t(n_bytes_available);
 }
 
-void XBeeDevice::enter_command_mode()
+void jaiabot::comms::XBeeDevice::enter_command_mode()
 {
     // We need to send bypass command if we are
     // are using the new radio.
@@ -405,7 +408,7 @@ void XBeeDevice::enter_command_mode()
     read_until("OK\r");
 }
 
-void XBeeDevice::assert_ok()
+void jaiabot::comms::XBeeDevice::assert_ok()
 {
     string input_line = read_until("\r");
     trim(input_line);
@@ -417,7 +420,7 @@ void XBeeDevice::assert_ok()
     assert(input_line == "OK");
 }
 
-void XBeeDevice::exit_command_mode()
+void jaiabot::comms::XBeeDevice::exit_command_mode()
 {
     write("ATCN\r");
     sleep(1);
@@ -425,7 +428,7 @@ void XBeeDevice::exit_command_mode()
     read_until("OK\r");
 }
 
-vector<NodeId> XBeeDevice::get_peers()
+vector<NodeId> jaiabot::comms::XBeeDevice::get_peers()
 {
     vector<NodeId> peers;
 
@@ -434,7 +437,7 @@ vector<NodeId> XBeeDevice::get_peers()
     return peers;
 }
 
-string XBeeDevice::read_frame()
+string jaiabot::comms::XBeeDevice::read_frame()
 {
     byte start_delimiter;
     read(&start_delimiter, 1);
@@ -483,7 +486,7 @@ string XBeeDevice::read_frame()
     return response_string;
 }
 
-void XBeeDevice::do_work()
+void jaiabot::comms::XBeeDevice::do_work()
 {
     process_frame_if_available();
 
@@ -505,12 +508,12 @@ void XBeeDevice::do_work()
     }
 }
 
-void XBeeDevice::process_frame_if_available()
+void jaiabot::comms::XBeeDevice::process_frame_if_available()
 {
     while (bytes_available() > 0) { process_frame(); }
 }
 
-void XBeeDevice::process_frame()
+void jaiabot::comms::XBeeDevice::process_frame()
 {
     auto response_string = read_frame();
     // Invalid frame data
@@ -535,7 +538,7 @@ void XBeeDevice::process_frame()
     }
 }
 
-void XBeeDevice::process_frame_at_command_response(const string& response_string)
+void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string& response_string)
 {
     struct Response
     {
@@ -657,7 +660,8 @@ void XBeeDevice::process_frame_at_command_response(const string& response_string
     }
 }
 
-void XBeeDevice::process_frame_extended_transmit_status(const string& response_string)
+void jaiabot::comms::XBeeDevice::process_frame_extended_transmit_status(
+    const string& response_string)
 {
     struct TransmitStatus
     {
@@ -681,7 +685,7 @@ void XBeeDevice::process_frame_extended_transmit_status(const string& response_s
                              << ", discovery_status = " << (int)response->discovery_status << endl;
 }
 
-void XBeeDevice::process_frame_receive_packet(const string& response_string)
+void jaiabot::comms::XBeeDevice::process_frame_receive_packet(const string& response_string)
 {
     struct ReceivePacket
     {
@@ -705,7 +709,7 @@ void XBeeDevice::process_frame_receive_packet(const string& response_string)
     received_packets.push_back(serialized_packet);
 }
 
-void XBeeDevice::process_frame_explicit_rx_indicator(const string& response_string)
+void jaiabot::comms::XBeeDevice::process_frame_explicit_rx_indicator(const string& response_string)
 {
     glog.is_debug1() && glog << group(glog_group) << "Packet frame explicit_rx_indicator" << endl;
     struct Rx_Indicator
@@ -754,15 +758,16 @@ void XBeeDevice::process_frame_explicit_rx_indicator(const string& response_stri
              << endl;
 }
 
-vector<string> XBeeDevice::get_packets()
+vector<string> jaiabot::comms::XBeeDevice::get_packets()
 {
     auto packets = received_packets;
     received_packets.clear();
     return packets;
 }
 
-string XBeeDevice::api_transmit_request(const SerialNumber& dest, const byte frame_id,
-                                        const byte* ptr, const size_t length)
+string jaiabot::comms::XBeeDevice::api_transmit_request(const SerialNumber& dest,
+                                                        const byte frame_id, const byte* ptr,
+                                                        const size_t length)
 {
     auto data_string = string((const char*)ptr, length);
     auto dest_big_endian = native_to_big(dest);
@@ -779,8 +784,9 @@ string XBeeDevice::api_transmit_request(const SerialNumber& dest, const byte fra
 // This function is used to send a test between two links
 // This currently does not work as intended
 // Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
-string XBeeDevice::api_explicit_transmit_request(const SerialNumber& dest,
-                                                 const SerialNumber& com_dest, const byte frame_id)
+string jaiabot::comms::XBeeDevice::api_explicit_transmit_request(const SerialNumber& dest,
+                                                                 const SerialNumber& com_dest,
+                                                                 const byte frame_id)
 {
     auto dest_big_endian = native_to_big(dest);
     auto dest_string = string((const char*)&dest_big_endian, sizeof(dest_big_endian));
@@ -817,7 +823,7 @@ string XBeeDevice::api_explicit_transmit_request(const SerialNumber& dest,
     return explicit_trans_frame;
 }
 
-SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id)
+SerialNumber jaiabot::comms::XBeeDevice::get_serial_number(const NodeId& node_id)
 {
     try
     {
@@ -831,7 +837,7 @@ SerialNumber XBeeDevice::get_serial_number(const NodeId& node_id)
     }
 }
 
-void XBeeDevice::send_packet(const SerialNumber& dest, const std::string& data)
+void jaiabot::comms::XBeeDevice::send_packet(const SerialNumber& dest, const std::string& data)
 {
     write(
         frame_data(api_transmit_request(dest, frame_id, (const byte*)data.c_str(), data.length())));
@@ -839,7 +845,7 @@ void XBeeDevice::send_packet(const SerialNumber& dest, const std::string& data)
 }
 
 // Test comms (https://www.digi.com/resources/documentation/digidocs/pdfs/90001477.pdf page 181)
-void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
+void jaiabot::comms::XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
 {
     glog.is_debug2() && glog << group(glog_group)
                              << "send_test_links: dest: " << get_serial_number(dest)
@@ -851,7 +857,7 @@ void XBeeDevice::send_test_links(const NodeId& dest, const NodeId& com_dest)
 }
 
 // Public interface
-void XBeeDevice::send_packet(const NodeId& dest, const string& data)
+void jaiabot::comms::XBeeDevice::send_packet(const NodeId& dest, const string& data)
 {
     glog.is_debug2() && glog << group(glog_group) << "send_packet to NodeId: " << dest << endl;
 
@@ -879,7 +885,7 @@ void XBeeDevice::send_packet(const NodeId& dest, const string& data)
     send_packet(dest_ser, data);
 }
 
-void XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number)
+void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, const SerialNumber serial_number)
 {
     glog.is_verbose() && glog << group(glog_group) << "serial_number= " << std::hex << serial_number
                               << std::dec << " node_id= " << node_id << endl;

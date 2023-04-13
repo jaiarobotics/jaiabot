@@ -74,7 +74,7 @@ std::string encode_modem_id(const int32_t modem_id)
 {
     if (modem_id == BROADCAST_ID)
     {
-        return XBeeDevice::broadcast;
+        return jaiabot::comms::XBeeDevice::broadcast;
     }
     else
     {
@@ -84,7 +84,7 @@ std::string encode_modem_id(const int32_t modem_id)
 
 int32_t decode_modem_id(const std::string& modem_id)
 {
-    if (modem_id == XBeeDevice::broadcast)
+    if (modem_id == jaiabot::comms::XBeeDevice::broadcast)
     {
         return BROADCAST_ID;
     }

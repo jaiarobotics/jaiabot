@@ -37,6 +37,10 @@
 
 #include "xbee.pb.h"
 
+namespace jaiabot
+{
+namespace comms
+{
 typedef unsigned char byte;
 
 // SerialNumber is an immutable value that uniquely identifies an XBee modem
@@ -177,4 +181,7 @@ class XBeeDevice
 
     std::string my_xbee_info_location_{""};
 };
+} // namespace comms
+} // namespace jaiabot
+
 #endif
