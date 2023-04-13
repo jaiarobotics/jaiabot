@@ -398,22 +398,22 @@ message DivePacket
     optional BottomType bottom_type = 19;
     
     // For bottom characterization
-    optional double max_acceleration = 20
-        [(dccl.field) = {units {
-            derived_dimensions: "acceleration"
-            system: "si"
-            }}
-        ];
+    optional double max_acceleration = 20 [(dccl.field) = {
+        min: 0
+        max: 100
+        precision: 1
+        units { derived_dimensions: "acceleration" }
+    }];
 }
 
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 197 bytes / 1576 bits
+    Actual maximum size of message: 199 bytes / 1592 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1560
-        padding to full byte...................0
+        body................................1570
+        padding to full byte...................6
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {
