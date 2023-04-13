@@ -2247,6 +2247,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	restoreUndo() {
+		if (!confirm('Click the OK button to undo the previous run edit that was made:')) return
+
 		if (this.state.undoRunListStack.length >= 1) {
 			this.state.runList = this.state.undoRunListStack.pop()
 			this.setState({goalBeingEdited: null})
@@ -2259,7 +2261,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendStop() {
-		if (!this.takeControl()) return
+		if (!this.takeControl() || !confirm('Click the OK button to stop all missions:')) return
 
 		this.api.allStop().then(response => {
 			if (response.message) {
@@ -3687,7 +3689,7 @@ export default class CommandControl extends React.Component {
 	}
 	
 	activateAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run a system check for all active bots:')) return;
 
 		this.api.allActivate().then(response => {
 			if (response.message) {
@@ -3700,7 +3702,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	nextTaskAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all mission-active bots:')) return;
 
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
