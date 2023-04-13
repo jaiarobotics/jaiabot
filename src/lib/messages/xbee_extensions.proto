@@ -1,5 +1,6 @@
 syntax = "proto2";
 import "goby/acomms/protobuf/driver_base.proto"; // load up message DriverBaseConfig
+import "goby/protobuf/option_extensions.proto";
 import "dccl/option_extensions.proto";
 
 package xbee.protobuf;
@@ -8,12 +9,18 @@ message Peer
 {
     oneof id
     {
-        string node_id = 1;  // for backwards compatibility
-        int32 hub_id = 3;
-        int32 bot_id = 4;
+        string node_id = 1 [
+            (goby.field).description =
+                "DEPRECATED (use hub_id or bot_id): set peer modem id as string"
+        ];
+        int32 hub_id = 3 [(goby.field).description =
+                              "Hub ID number for this peer (if peer is hub)"];
+        int32 bot_id = 4 [(goby.field).description =
+                              "Bot ID number for this peer (if peer is bot)"];
     }
 
-    required uint64 serial_number = 2;
+    required uint64 serial_number = 2 [(goby.field).description =
+                              "XBee serial number for this peer (determined by querying ATSH and ATSL)"];
 }
 
 message Config
@@ -22,15 +29,29 @@ message Config
         unit_system: "si"
     };
 
-    optional uint64 network_id = 1 [default = 7];
-    repeated Peer peers = 2;
-    optional bool test_comms = 4 [default = false];
-    optional string xbee_info_location = 5
-        [default = "/etc/jaiabot/xbee_info.pb.cfg"];
+    optional uint64 network_id = 1 [
+        default = 7,
+        (goby.field).description =
+            "Network ID for this fleet (must match other peers in fleet): sets Xbee ATID=network_id"
+    ];
+    repeated Peer peers = 2 [
+        (goby.field).description =
+            "Mapping of Xbee serial_number to hub/bot id for all peers in the fleet"
+    ];
+    optional bool test_comms = 4 [
+        default = false,
+        (goby.field).description =
+            "If true, enables testing functionality and diagnostics"
+    ];
+    optional string xbee_info_location = 5 [
+        default = "/etc/jaiabot/xbee_info.pb.cfg",
+        (goby.field).description =
+            "Location to write a file with serial number and node id to be used by jaiabot_metadata"
+    ];
 
-    optional int32 hub_id = 6;  // if set, this is a hub with this id
-    optional int32 hub_broadcast_interval = 7
-        [default = 60, (dccl.field).units.base_dimensions = "T"];
+    optional int32 hub_id = 6
+        [(goby.field).description =
+             "If this node is a hub, set its hub_id here."];
 }
 
 extend goby.acomms.protobuf.DriverConfig
