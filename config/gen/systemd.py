@@ -100,13 +100,20 @@ if args.simulation:
 else:
     jaia_mode=Mode.RUNTIME
     warp=1
-    
+
+if args.type == 'bot':
+    jaia_type=Type.BOT
+    bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
+elif args.type == 'hub':
+    jaia_type=Type.HUB
+    bot_or_hub_index_str='export jaia_hub_index=' + str(args.hub_index) + '; '
+
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
+
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
-               'export jaia_bot_index=' + str(args.bot_index) + '; ' +
-               'export jaia_hub_index=' + str(args.hub_index) + '; ' +
+               bot_or_hub_index_str + 
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
@@ -142,13 +149,12 @@ class Type(Enum):
      HUB = 'hub'
      BOTH = 'both'
 
-if args.type == 'bot':
-    jaia_type=Type.BOT
+if jaia_type == Type.BOT:
     common_macros['gen']=args.gen_dir + '/bot.py'
-elif args.type == 'hub':
-    jaia_type=Type.HUB
+elif jaia_type == Type.HUB:
     common_macros['gen']=args.gen_dir + '/hub.py'
-
+    
+    
 all_goby_apps=[]
     
 jaiabot_apps=[
