@@ -55,7 +55,7 @@ else
         
         if [ ! -z "$jaiabot_arduino_type" ]; then
             echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
-            ssh ${botuser}@"$var" "/home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
+            ssh ${botuser}@"$var" "sudo /home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
         fi
 
         echo "When you're ready, ssh ${botuser}@${var} and run 'sudo systemctl start jaiabot'"
