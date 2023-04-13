@@ -172,15 +172,14 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "fix-deb-versioning-circleci"
+        - "JAIAB-309/xbee-radio-driver-updates-for-multihub"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "fix-deb-versioning-circleci"
-
+        - "JAIAB-309/xbee-radio-driver-updates-for-multihub"
         
 ## Begin actual config
 version: 2
