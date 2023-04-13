@@ -1,0 +1,13 @@
+[Unit]
+Description=Script to read GPS data from I2C to a pty
+Before=ntp.service
+Before=gpsd.service
+After=network.target
+
+[Service]
+Type=notify
+User=root
+ExecStart=$jaiabot_share_dir/jaiabot/python/$subdir/$exe /dev/gps0
+
+[Install]
+RequiredBy=gpsd.service
