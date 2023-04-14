@@ -17,20 +17,24 @@ if "jaia_electronics_stack" in os.environ:
 
 if jaia_electronics_stack == '0':
     jaia_arduino_dev_location="/dev/ttyUSB0"
-    helmAppTick=1
-    helmCommsTick=4
+    helm_app_tick=1
+    helm_comms_tick=4
+    total_after_dive_gps_fix_checks=15
 if jaia_electronics_stack == '1':
     jaia_arduino_dev_location="/dev/ttyUSB0"
-    helmAppTick=5
-    helmCommsTick=5
+    helm_app_tick=5
+    helm_comms_tick=5
+    total_after_dive_gps_fix_checks=75
 elif jaia_electronics_stack == '2':
     jaia_arduino_dev_location="/dev/ttyAMA1"
-    helmAppTick=5
-    helmCommsTick=5
+    helm_app_tick=5
+    helm_comms_tick=5
+    total_after_dive_gps_fix_checks=75
 else:
     jaia_arduino_dev_location="/dev/ttyUSB0"
-    helmAppTick=1
-    helmCommsTick=4
+    helm_app_tick=1
+    helm_comms_tick=4
+    total_after_dive_gps_fix_checks=15
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -188,7 +192,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      log_dir=log_file_dir,
-                                     mission_manager_in_simulation=is_simulation()))
+                                     mission_manager_in_simulation=is_simulation(),
+                                     total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
@@ -212,8 +217,8 @@ elif common.app == 'moos':
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
                                      bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv',
-                                     helmAppTick=helmAppTick,
-                                     helmCommsTick=helmCommsTick))
+                                     helm_app_tick=helm_app_tick,
+                                     helm_comms_tick=helm_comms_tick))
 elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':
