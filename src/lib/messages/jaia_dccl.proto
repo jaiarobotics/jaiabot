@@ -98,8 +98,8 @@ message BotStatus
     Actual maximum size of message: 52 bytes / 416 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................402
-            padding to full byte...................6
+            body.................................408
+            padding to full byte...................0
     Allowed maximum size of message: 52 bytes / 416 bits
     */
     option (dccl.msg) = {
@@ -235,17 +235,25 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
+    optional double battery_percent = 57 [(dccl.field) = { 
+        min: 0 
+        max: 100 
+        precision: 0
+    }];
+
     optional IMUData.CalibrationStatus calibration_status = 58;
     
     optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
     optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
-    optional double battery_percent = 57 [(dccl.field) = { 
-        min: 0 
-        max: 100 
-        precision: 0
-    }];
+    optional int32 data_offload_percentage = 61 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
 }
 
 message DriftPacket

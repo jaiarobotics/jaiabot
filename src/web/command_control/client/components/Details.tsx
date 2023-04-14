@@ -467,6 +467,12 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
             </Button>
     }
 
+    let bot_offload_percentage = "";
+
+    if(bot.data_offload_percentage != undefined) {
+        bot_offload_percentage = " " + bot.data_offload_percentage + "%";
+    }
+
     return (
         <React.Fragment>
             <RCControllerPanel 
@@ -525,7 +531,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     </tr>
                                     <tr>
                                         <td>Mission State</td>
-                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n')}</td>
+                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + bot_offload_percentage}</td>
                                     </tr>
                                     <tr>
                                         <td>Battery Percentage</td>
