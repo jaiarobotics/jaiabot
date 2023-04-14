@@ -473,6 +473,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_active_goal();
             }
+            if (report.has_data_offload_percentage())
+            {
+                latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
+            }
+            else
+            {
+                latest_bot_status_.clear_data_offload_percentage();
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
