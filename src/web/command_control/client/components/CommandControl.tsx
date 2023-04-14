@@ -1557,8 +1557,7 @@ export default class CommandControl extends React.Component {
 								missionPlanningLines: alongLines,
 								missionPlanningGrid: alongPoints,
 								missionParams: missionParams
-							})
-							this.updateMissionLayer();
+							}, () => this.updateMissionLayer())
 						}
 
 						// Metadata/Stats
@@ -2750,7 +2749,6 @@ export default class CommandControl extends React.Component {
 		{
 			return false;
 		}
-
 	}
 
 	didClickBot(bot_id: number) {
