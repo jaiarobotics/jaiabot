@@ -287,7 +287,7 @@ export class PIDGainsPanel extends React.Component {
                                             name="transit_gps_checks_input" 
                                             defaultValue={engineering?.gps_requirements?.transit_gps_fix_checks ?? "-"} 
                                             min="1"
-                                            max="30"
+                                            max="100"
                                             step="1"
                                         />
                                     </td>
@@ -301,7 +301,7 @@ export class PIDGainsPanel extends React.Component {
                                             name="transit_gps_degraded_checks_input" 
                                             defaultValue={engineering?.gps_requirements?.transit_gps_degraded_fix_checks ?? "-"}
                                             min="1"
-                                            max="30"
+                                            max="100"
                                             step="1" 
                                         />
                                     </td>
@@ -315,7 +315,7 @@ export class PIDGainsPanel extends React.Component {
                                             name="after_dive_gps_checks_input" 
                                             defaultValue={engineering?.gps_requirements?.after_dive_gps_fix_checks ?? "-"} 
                                             min="1"
-                                            max="30"
+                                            max="100"
                                             step="1"
                                         />
                                     </td>
