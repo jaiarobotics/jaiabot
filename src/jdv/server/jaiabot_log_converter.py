@@ -73,6 +73,7 @@ while True:
         kmz_filename = file_body + '.kmz'
 
         if not file_is_newer(kmz_filename, goby_mtime):
+            logging.info(f'Generating {kmz_filename}')
             jaialogs.generate_kmz(h5_filename, kmz_filename)
 
 

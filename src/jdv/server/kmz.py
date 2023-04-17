@@ -2,11 +2,20 @@ from jaia_messages import *
 from pprint import pprint
 import math
 import zipfile
-from typing import Iterable
+from typing import Iterable, List
 
 
 def task_packet_to_kml_placemarks(task_packet: TaskPacket):
     '''Converts a task packet to an array of kmz placemarks in string form'''
+
+    def entry(name: str, value: float, units: str):
+        '''Returns a line of data, only if value is non-None, with units'''
+
+        if value is None:
+            return ''
+        else:
+            return f'{name}: {value:.2f} {units}<br />'
+
 
     placemarks: list[str] = []
 
@@ -23,9 +32,9 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
             for i, measurement in enumerate(dive.measurement):
                 depth_measurement_string += f'''
                     Index: {i+1} <br />
-                    Mean-Depth: {measurement.mean_depth:.2f} m <br />
-                    Mean-Temperature: {measurement.mean_temperature:.2f} Celcius <br />
-                    Mean-Salinity: {measurement.mean_salinity:.2f} PSS <br />
+                    {entry("Mean-Depth", measurement.mean_depth, "m")}
+                    {entry("Mean-Tempuratute", measurement.mean_temperature, "°C")}
+                    {entry("Mean-Salinity", measurement.mean_salinity, "PSS")}
                 '''
 
         duration_to_acquire_gps_string = f'Duration-to-GPS: {dive.duration_to_acquire_gps:.2f} s<br />' if dive.duration_to_acquire_gps else ''
@@ -135,7 +144,8 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
 def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
     '''Returns a kml string for the provided list of task packets'''
 
-    placemarks: list[str] = []
+    placemarks: List[str] = []
+    task_packets = list(task_packets)
     for task_packet in task_packets:
         placemarks += task_packet_to_kml_placemarks(task_packet)
 
@@ -157,14 +167,26 @@ def create_kmz(task_packets: Iterable[TaskPacket], output_kmz_path: str):
         kml_file_string = kml_from_task_packets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)
 
-        output_kmz_file.mkdir('files')
         output_kmz_file.write('kmz_files/bottomStrike.png', 'files/bottomStrike.png')
         output_kmz_file.write('kmz_files/arrowHead.png', 'files/arrowHead.png')
 
 
 if __name__ == '__main__':
 
-    test_json = [{'_datenum_': 738987.7720019894, '_scheme_': 2, '_utime_': 1681237900971882, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661816, 'lon': -71.274158}, 'estimated_drift': {'heading': 242.0, 'speed': 0.2}, 'start_location': {'lat': 41.661829, 'lon': -71.274126}}, 'end_time': 1681237901000000, 'start_time': 1681237880000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7720019902, '_scheme_': 1, '_utime_': 1681237900971948, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661815833, 'lon': -71.274158167}, 'estimated_drift': {'heading': 242.45280311758262, 'speed': 0.1524581284292486}, 'start_location': {'lat': 41.661829167, 'lon': -71.274126167}}, 'end_time': 1681237900944338, 'start_time': 1681237880346657, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7765156763, '_scheme_': 2, '_utime_': 1681238290954430, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661819, 'lon': -71.27421}, 'estimated_drift': {'heading': 260.0, 'speed': 0.4}, 'start_location': {'lat': 41.661831, 'lon': -71.274126}}, 'end_time': 1681238291000000, 'start_time': 1681238270000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7765156766, '_scheme_': 1, '_utime_': 1681238290954458, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.6618185, 'lon': -71.274210333}, 'estimated_drift': {'heading': 260.0633319265689, 'speed': 0.3590504622377217}, 'start_location': {'lat': 41.661831333, 'lon': -71.274125833}}, 'end_time': 1681238290943480, 'start_time': 1681238270249216, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7771290708, '_scheme_': 2, '_utime_': 1681238343951713, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661939, 'lon': -71.273221}, 'estimated_drift': {'heading': 59.0, 'speed': 0.3}, 'start_location': {'lat': 41.661907, 'lon': -71.273288}}, 'end_time': 1681238344000000, 'start_time': 1681238323000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7771290711, '_scheme_': 1, '_utime_': 1681238343951737, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.6619385, 'lon': -71.2732215}, 'estimated_drift': {'heading': 59.09518384510244, 'speed': 0.328064083306214}, 'start_location': {'lat': 41.661906833, 'lon': -71.273288}}, 'end_time': 1681238343943575, 'start_time': 1681238323446598, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7777193702, '_scheme_': 2, '_utime_': 1681238394953581, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.662236, 'lon': -71.274063}, 'estimated_drift': {'heading': 282.0, 'speed': 0.5}, 'start_location': {'lat': 41.66222, 'lon': -71.273948}}, 'end_time': 1681238395000000, 'start_time': 1681238374000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7777193706, '_scheme_': 1, '_utime_': 1681238394953615, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.662236, 'lon': -71.274063}, 'estimated_drift': {'heading': 282.38991735521716, 'speed': 0.48556507853828235}, 'start_location': {'lat': 41.6622195, 'lon': -71.2739485}}, 'end_time': 1681238394946450, 'start_time': 1681238373961845, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7785990068, '_scheme_': 2, '_utime_': 1681238470954187, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661597, 'lon': -71.273607}, 'estimated_drift': {'heading': 85.0, 'speed': 0.9}, 'start_location': {'lat': 41.661579, 'lon': -71.273819}}, 'end_time': 1681238471000000, 'start_time': 1681238450000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.778599007, '_scheme_': 1, '_utime_': 1681238470954207, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661596667, 'lon': -71.2736075}, 'estimated_drift': {'heading': 84.97743570260002, 'speed': 0.8865691826587077}, 'start_location': {'lat': 41.6615785, 'lon': -71.273819}}, 'end_time': 1681238470943383, 'start_time': 1681238450055899, 'type': 'SURFACE_DRIFT'}]
+    test_json = [
+        {
+            '_datenum_': 738987.7720019894, 
+            '_scheme_': 2, 
+            '_utime_': 1681237900971882, 
+            'bot_id': 3, 
+            'dive': {
+                'depth_achieved': 0.0, 
+                'dive_rate': 0.0, 
+                'measurement': [
+                    {'mean_depth': 2.0}
+                ], 
+                'start_location': {
+                    'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661816, 'lon': -71.274158}, 'estimated_drift': {'heading': 242.0, 'speed': 0.2}, 'start_location': {'lat': 41.661829, 'lon': -71.274126}}, 'end_time': 1681237901000000, 'start_time': 1681237880000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7720019902, '_scheme_': 1, '_utime_': 1681237900971948, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661815833, 'lon': -71.274158167}, 'estimated_drift': {'heading': 242.45280311758262, 'speed': 0.1524581284292486}, 'start_location': {'lat': 41.661829167, 'lon': -71.274126167}}, 'end_time': 1681237900944338, 'start_time': 1681237880346657, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7765156763, '_scheme_': 2, '_utime_': 1681238290954430, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661819, 'lon': -71.27421}, 'estimated_drift': {'heading': 260.0, 'speed': 0.4}, 'start_location': {'lat': 41.661831, 'lon': -71.274126}}, 'end_time': 1681238291000000, 'start_time': 1681238270000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7765156766, '_scheme_': 1, '_utime_': 1681238290954458, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.6618185, 'lon': -71.274210333}, 'estimated_drift': {'heading': 260.0633319265689, 'speed': 0.3590504622377217}, 'start_location': {'lat': 41.661831333, 'lon': -71.274125833}}, 'end_time': 1681238290943480, 'start_time': 1681238270249216, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7771290708, '_scheme_': 2, '_utime_': 1681238343951713, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661939, 'lon': -71.273221}, 'estimated_drift': {'heading': 59.0, 'speed': 0.3}, 'start_location': {'lat': 41.661907, 'lon': -71.273288}}, 'end_time': 1681238344000000, 'start_time': 1681238323000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7771290711, '_scheme_': 1, '_utime_': 1681238343951737, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.6619385, 'lon': -71.2732215}, 'estimated_drift': {'heading': 59.09518384510244, 'speed': 0.328064083306214}, 'start_location': {'lat': 41.661906833, 'lon': -71.273288}}, 'end_time': 1681238343943575, 'start_time': 1681238323446598, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7777193702, '_scheme_': 2, '_utime_': 1681238394953581, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.662236, 'lon': -71.274063}, 'estimated_drift': {'heading': 282.0, 'speed': 0.5}, 'start_location': {'lat': 41.66222, 'lon': -71.273948}}, 'end_time': 1681238395000000, 'start_time': 1681238374000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7777193706, '_scheme_': 1, '_utime_': 1681238394953615, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.662236, 'lon': -71.274063}, 'estimated_drift': {'heading': 282.38991735521716, 'speed': 0.48556507853828235}, 'start_location': {'lat': 41.6622195, 'lon': -71.2739485}}, 'end_time': 1681238394946450, 'start_time': 1681238373961845, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.7785990068, '_scheme_': 2, '_utime_': 1681238470954187, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661597, 'lon': -71.273607}, 'estimated_drift': {'heading': 85.0, 'speed': 0.9}, 'start_location': {'lat': 41.661579, 'lon': -71.273819}}, 'end_time': 1681238471000000, 'start_time': 1681238450000000, 'type': 'SURFACE_DRIFT'}, {'_datenum_': 738987.778599007, '_scheme_': 1, '_utime_': 1681238470954207, 'bot_id': 3, 'dive': {'depth_achieved': 0.0, 'dive_rate': 0.0, 'measurement': [], 'start_location': {'lat': 0.0, 'lon': 0.0}}, 'drift': {'drift_duration': 20, 'end_location': {'lat': 41.661596667, 'lon': -71.2736075}, 'estimated_drift': {'heading': 84.97743570260002, 'speed': 0.8865691826587077}, 'start_location': {'lat': 41.6615785, 'lon': -71.273819}}, 'end_time': 1681238470943383, 'start_time': 1681238450055899, 'type': 'SURFACE_DRIFT'}]
 
     task_packets = map(TaskPacket.from_dict, test_json)
 

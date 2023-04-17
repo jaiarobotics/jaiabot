@@ -7,9 +7,9 @@ import datetime
 @dataclass_json
 @dataclass
 class Measurement:
-    mean_depth: float
-    mean_temperature: float
-    mean_salinity: float
+    mean_depth: Optional[float] = None
+    mean_temperature: Optional[float] = None
+    mean_salinity:Optional[float] = None
 
 
 @dataclass_json

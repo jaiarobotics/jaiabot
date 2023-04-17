@@ -443,7 +443,7 @@ def get_task_packets_json(log_filenames):
 
 
 def get_task_packets(log_filenames) -> Iterable[TaskPacket]:
-    return map(TaskPacket.from_dict, get_task_packets_json(log_filenames))
+    return [TaskPacket.from_dict(task_packet_json) for task_packet_json in get_task_packets_json(log_filenames)]
 
 
 def generate_kmz(h5_filename: str, kmz_filename: str):
