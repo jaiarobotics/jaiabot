@@ -1,8 +1,5 @@
 import numpy
-import pprint
 import cmath
-import logging
-import struct
 
 def get_leaf(dataset, indices):
     '''Gets the leaf data as a python object, from a dataset, indexing into it using the indices list'''

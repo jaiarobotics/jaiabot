@@ -8,6 +8,7 @@ import os
 from posixpath import islink
 import time
 import glob
+import jaialogs
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest="path", type=str, default="/var/log/jaiabot/bot_offload", help="Path to monitor for new goby files to convert")
@@ -22,6 +23,16 @@ logging.basicConfig(level=logLevel)
 # Monitor for changes
 path = os.path.expanduser(args.path)
 logging.info(f'Monitoring path: {path}')
+
+
+def file_is_newer(filename: str, mtime: float):
+    try:
+        file_mtime = os.path.getmtime(filename)
+    except:
+        return False
+
+    return file_mtime > mtime
+
 
 while True:
     # Get all goby files
@@ -45,14 +56,9 @@ while True:
 
         h5_filename = file_body + '.h5'
 
-        try:
-            h5_mtime = os.path.getmtime(h5_filename)
-        except FileNotFoundError:
-            h5_mtime = 0
-
-        if goby_mtime > h5_mtime:
+        if not file_is_newer(h5_filename, goby_mtime):
             try:
-                # Convert
+                # Generate h5 file
                 cmd = f'goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5'
                 logging.info(cmd)
                 os.system(cmd)
@@ -63,5 +69,11 @@ while True:
             except FileNotFoundError:
                 logging.warning(f'File not found: {goby_filename}')
                 continue
+
+        kmz_filename = file_body + '.kmz'
+
+        if not file_is_newer(kmz_filename, goby_mtime):
+            jaialogs.generate_kmz(h5_filename, kmz_filename)
+
 
     time.sleep(5)
