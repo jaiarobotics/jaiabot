@@ -10,12 +10,5 @@
   },
   "keywords": [],
   "author": "Jaia Robotics",
-  "license": "",
-  "dependencies": {
-    "react-gamepad": "file:client/libs/react-gamepad",
-    "react-joystick-component": "^6.1.0"
-  },
-  "devDependencies": {
-    "@types/react-gamepad": "^1.0.3"
-  }
+  "license": ""
 }
