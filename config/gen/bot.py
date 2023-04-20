@@ -79,6 +79,7 @@ except FileNotFoundError:
     xbee_info = 'xbee {}'
 
 if common.jaia_comms_mode == common.CommsMode.XBEE:
+    subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
     else:
@@ -93,6 +94,7 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             xbee_hub_id='')
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
@@ -182,7 +184,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      log_dir=log_file_dir,
-                                     mission_manager_in_simulation=is_simulation()))
+                                     mission_manager_in_simulation=is_simulation(),
+                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

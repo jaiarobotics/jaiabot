@@ -140,6 +140,11 @@ jaiabot::apps::MissionManager::MissionManager()
                                           << std::endl;
         });
 
+    if (cfg().has_subscribe_to_hub_on_start())
+    {
+        intervehicle_subscribe(cfg().subscribe_to_hub_on_start());
+    }
+
     // subscribe for commands when we get a request to subscribe (hub info changed)
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
         [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
@@ -362,6 +367,9 @@ jaiabot::apps::MissionManager::~MissionManager()
 void jaiabot::apps::MissionManager::intervehicle_subscribe(
     const jaiabot::protobuf::HubInfo& hub_info)
 {
+    // set environmental variable for dataoffload
+    setenv("jaia_dataoffload_hub_id", std::to_string(hub_info.hub_id()).c_str(), 1 /*overwrite*/);
+
     glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
                               << " (modem id " << hub_info.modem_id() << ")" << std::endl;
 

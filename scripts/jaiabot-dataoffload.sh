@@ -8,10 +8,11 @@ if [[ -z "${log_dir}" || ! -e "${log_dir}" ]]; then
     exit 1;
 fi
 
+hub_id=${jaia_dataoffload_hub_id:-0}
+
 set -u
 
-
-rsync -aP --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
+rsync -aP --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub${hub_id}:/var/log/jaiabot/bot_offload
 
 echo "Removing old log files..."
 # compress debug logs, omitting goby_intervehicle_subscriptions_bot.pb.txt

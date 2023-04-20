@@ -7,6 +7,7 @@ import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/modem_message_extensions.proto";
 
 package jaiabot.config;
 
@@ -121,6 +122,7 @@ message MissionManager
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
+    // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
     required string data_offload_command = 60;
 
     enum EngineeringTestMode
@@ -136,4 +138,6 @@ message MissionManager
     repeated jaiabot.protobuf.Error ignore_error = 81;
 
     optional bool is_sim = 82 [default = false];
+
+    optional jaiabot.protobuf.HubInfo subscribe_to_hub_on_start = 83;
 }
