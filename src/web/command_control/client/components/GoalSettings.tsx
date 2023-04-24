@@ -65,7 +65,7 @@ export class GoalSettingsPanel extends React.Component {
             </div>
             <div>
                 Task
-                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
+                <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } value={taskType ?? "NONE"}>
                     <option value="NONE">None</option>
                     <option value="DIVE">Dive</option>
                     <option value="SURFACE_DRIFT">Surface Drift</option>
