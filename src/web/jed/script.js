@@ -185,7 +185,7 @@ class Slider {
     this.fineStepSize = fineStepSize || this.stepSize / 2
     this.decrementKeys = decrementKeys
     this.incrementKeys = incrementKeys
-    console.log(name + "SliderContainer");
+
     let parentElement = el(name + "SliderContainer")
 
     if (orientation == vertical) {
@@ -593,7 +593,8 @@ function handleKey(key) {
       //stbdElevatorSlider.value = stbdCenter
       break;
     case 'KeyI':
-      /*witch (elevatorsTabbedSections.activeIndex) {
+
+      /*switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
           portElevatorSlider.value += delta
