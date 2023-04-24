@@ -3700,7 +3700,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	nextTaskAllClicked(evt: UIEvent) {
-		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all mission-active bots:')) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all active bots:')) return;
 
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
@@ -3713,7 +3713,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	recoverAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return
+		if (!this.takeControl() || !confirm('Click the OK button to recover all active bots:')) return
 
 		this.api.allRecover().then(response => {
 				if (response.message) {
