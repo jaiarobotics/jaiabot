@@ -23,7 +23,7 @@ import Icon from '@mdi/react'
 import { mdiPlay, mdiFolderOpen, mdiContentSave, 
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
 	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
-    mdiStop, mdiPause, mdiViewList} from '@mdi/js'
+    mdiStop, mdiPause, mdiViewList, mdiCloseCircleOutline } from '@mdi/js'
 
 import Button from '@mui/material/Button';
 
@@ -148,7 +148,7 @@ import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './gui/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
+import { MapBrowserEvent, MapEvent, Overlay } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
 import { EventsKey } from 'ol/events'
@@ -246,6 +246,12 @@ export interface MissionInterface {
 	botsAssignedToRuns: {[key: number]: string}
 }
 
+interface MissionPopup {
+	overlay: Overlay | null,
+	botId: number | null,
+	runName: string
+}
+
 interface State {
 	engineeringPanelActive: boolean,
 	missionPanelActive: boolean,
@@ -288,7 +294,8 @@ interface State {
 	runList: MissionInterface,
 	undoRunListStack: MissionInterface[],
 	remoteControlInterval?: ReturnType<typeof setInterval>,
-	remoteControlValues: Engineering
+	remoteControlValues: Engineering,
+	missionPopup: MissionPopup,
 }
 
 export default class CommandControl extends React.Component {
@@ -424,6 +431,11 @@ export default class CommandControl extends React.Component {
 					rudder: 0,
 					timeout: 2
 				}
+			},
+			missionPopup: {
+				overlay: null,
+				botId: null,
+				runName: ''
 			}
 		};
 
@@ -1598,6 +1610,18 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
+		const container = document.getElementById('popup')
+		const content = document.getElementById('popup-container')
+		const closer = document.getElementById('popup-closer')
+		const overlay = new Overlay({
+			element: container
+		})
+		map.addOverlay(overlay)
+
+		const missionPopup = this.state.missionPopup
+		missionPopup.overlay = overlay
+		this.setState({missionPopup: missionPopup})
+
 		info('Welcome to JaiaBot Command & Control!');
 	}
 
@@ -2303,6 +2327,12 @@ export default class CommandControl extends React.Component {
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
+	closePopup() {
+		const missionPopup = this.state.missionPopup
+		missionPopup.overlay.setPosition(undefined)
+		this.setState({missionPopup: missionPopup})
+	}
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -2484,6 +2514,13 @@ export default class CommandControl extends React.Component {
 
 		return (
 			<div id="axui_container" className={containerClasses}>
+				
+				<div id="popup" className={`ol-popup ol-popup-${this.isBotSelected(this.state.missionPopup.botId) ? 'selected': ''}`} onClick={this.closePopup.bind(this)}>
+					<div id="popup-content" className="ol-popup-content">{this.state.missionPopup.runName}</div>
+            		<div id="popup-closer" className="ol-popup-closer">
+						<Icon path={mdiCloseCircleOutline} className="ol-popup-closer-icon"/>
+					</div>
+        		</div>
 
 				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
@@ -3446,8 +3483,30 @@ export default class CommandControl extends React.Component {
 			console.log("Feature == true");
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
-			let botId = feature.get('botId')
+ 			let botId = feature.get('botId')
 			let goalIndex = feature.get('goalIndex')
+
+			// Clicked on a goal / waypoint => show run name via popup
+			feature.get('name').substring(0, 4) === 'Goal'
+			if (feature.get('name').substring(0, 4) === 'Goal') {
+				const coordinate = evt.coordinate
+				const missionPopup = this.state.missionPopup
+				missionPopup.overlay.setPosition(coordinate)
+				const botId = feature.get('botId')
+				const runs = this.state.runList.runs
+				let runName = ''
+				for (let runsKey of Object.keys(runs)) {
+					const run = runs[runsKey]
+					if (run.assigned === botId) {
+						runName = run.name
+						missionPopup.botId = botId
+						missionPopup.runName = runName
+						this.setState({missionPopup: missionPopup})
+						break
+					}
+				}
+				this.setState({ missionPopup: missionPopup })
+			}
 
 			if (goal != null) {
 				previous_mission_history = deepcopy(this.state.runList);
