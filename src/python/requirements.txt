@@ -1,8 +1,8 @@
-Adafruit-Blinka==7.3.0
+Adafruit-Blinka==8.18.1
 adafruit-circuitpython-busdevice==5.1.8
 adafruit-circuitpython-register==1.9.8
 adafruit-circuitpython-typing==1.6.0
-Adafruit-PlatformDetect==3.22.1
+Adafruit-PlatformDetect==3.45.1
 Adafruit-PureIO==1.1.9
 pyftdi==0.54.0
 pyserial==3.5
