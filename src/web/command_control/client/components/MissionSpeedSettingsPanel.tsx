@@ -48,7 +48,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                     <tbody>
                         <tr>
                             <td>
-                                <Typography>
+                                <Typography className="mission-speeds-label">
                                     Transit
                                 </Typography>        
                             </td>
@@ -98,7 +98,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                         </tr>
                         <tr>
                             <td>
-                                <Typography>
+                                <Typography className="mission-speeds-label">
                                     Station Keep
                                 </Typography>
                             </td>
