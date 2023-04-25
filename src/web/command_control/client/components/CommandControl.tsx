@@ -2406,7 +2406,8 @@ export default class CommandControl extends React.Component {
 												this.api, 
 												closeDetails, 
 												this.state.detailsExpanded,
-												this.takeControl.bind(this));
+												this.takeControl.bind(this),
+												this.detailsDefaultExpanded.bind(this));
 				
 				break;
 			case 'bot':
@@ -2426,7 +2427,8 @@ export default class CommandControl extends React.Component {
 												this.state.remoteControlValues,
 												this.weAreInControl.bind(this),
 												this.weHaveRemoteControlInterval.bind(this),
-												this.deleteSingleRun.bind(this));
+												this.deleteSingleRun.bind(this),
+												this.detailsDefaultExpanded.bind(this));
 				break;
 			default:
 				detailsBox = null;
@@ -2720,6 +2722,23 @@ export default class CommandControl extends React.Component {
 				
 			</div>
 		);
+	}
+
+ 	detailsDefaultExpanded(accordian: keyof DetailsExpandedState)
+	{
+		let detailsExpanded = this.state.detailsExpanded;
+
+		const newDetailsExpanded = this.state.detailsExpanded;
+		
+		if(detailsExpanded[accordian])
+		{
+			newDetailsExpanded[accordian] = false;
+		} else
+		{
+			newDetailsExpanded[accordian] = true;
+		}
+
+		this.setState({ detailsExpanded:newDetailsExpanded });
 	}
 
 	createRemoteControlInterval() {
