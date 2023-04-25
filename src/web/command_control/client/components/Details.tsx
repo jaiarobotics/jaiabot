@@ -377,21 +377,11 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-function changeDefaultExpanded(isExpanded: DetailsExpandedState, accordian: keyof DetailsExpandedState)
-{
-    if(isExpanded[accordian])
-    {
-        isExpanded[accordian] = false;
-    } else
-    {
-        isExpanded[accordian] = true;
-    }
-}
-
 export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
         createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
-        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void) {
+        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void,
+        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -512,7 +502,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                 <div className="accordionContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
+                        onChange={() => {detailsDefaultExpanded("quickLook")}}
                         className="accordion"
                     >
                         <AccordionSummary
@@ -559,7 +549,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.commands} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "commands")}}
+                        onChange={() => {detailsDefaultExpanded("commands")}}
                         className="accordion"
                     >
                         <AccordionSummary
@@ -596,7 +586,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
-                                onChange={() => {changeDefaultExpanded(isExpanded, "advancedCommands")}}
+                                onChange={() => {detailsDefaultExpanded("advancedCommands")}}
                                 className="accordion nestedAccordion"
                             >
                                 <AccordionSummary
@@ -653,7 +643,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                     <Accordion 
                         expanded={isExpanded.health} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "health")}}
+                        onChange={() => {detailsDefaultExpanded("health")}}
                         className="accordion"
                     >
                         <AccordionSummary
@@ -674,7 +664,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
                     <Accordion 
                         expanded={isExpanded.data} 
-                        onChange={() => {changeDefaultExpanded(isExpanded, "data")}}
+                        onChange={() => {detailsDefaultExpanded("data")}}
                         className="accordion"
                     >
                         <AccordionSummary
@@ -688,7 +678,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         <AccordionDetails>
                             <Accordion 
                                 expanded={isExpanded.gps} 
-                                onChange={() => {changeDefaultExpanded(isExpanded, "gps")}}
+                                onChange={() => {detailsDefaultExpanded("gps")}}
                                 className="accordion nestedAccordion"
                             >
                                 <AccordionSummary
@@ -731,7 +721,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.imu} 
-                                onChange={() => {changeDefaultExpanded(isExpanded, "imu")}}
+                                onChange={() => {detailsDefaultExpanded("imu")}}
                                 className="accordion nestedAccordion"
                             >
                                 <AccordionSummary
@@ -778,7 +768,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.sensor} 
-                                onChange={() => {changeDefaultExpanded(isExpanded, "sensor")}}
+                                onChange={() => {detailsDefaultExpanded("sensor")}}
                                 className="accordion nestedAccordion"
                             >
                                 <AccordionSummary
@@ -809,7 +799,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.power} 
-                                onChange={() => {changeDefaultExpanded(isExpanded, "power")}}
+                                onChange={() => {detailsDefaultExpanded("power")}}
                                 className="accordion nestedAccordion"
                             >
                                 <AccordionSummary
@@ -851,7 +841,9 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 }
 
 
-export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState, takeControl: () => boolean) {
+export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, 
+    closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState, takeControl: () => boolean,
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
     if (hub == null) {
         return (<div></div>)
     }
@@ -878,7 +870,7 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
 
                 <Accordion 
                     expanded={isExpanded.quickLook} 
-                    onChange={() => {changeDefaultExpanded(isExpanded, "quickLook")}}
+                    onChange={() => {detailsDefaultExpanded("quickLook")}}
                     className="accordion"
                 >
                     <AccordionSummary
@@ -911,7 +903,7 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, closeWin
                 </Accordion>
                 <Accordion 
                     expanded={isExpanded.commands} 
-                    onChange={() => {changeDefaultExpanded(isExpanded, "commands")}}
+                    onChange={() => {detailsDefaultExpanded("commands")}}
                     className="accordion"
                 >
                     <AccordionSummary
