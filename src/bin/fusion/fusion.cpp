@@ -631,7 +631,7 @@ void jaiabot::apps::Fusion::loop()
         // If the imu issue is currently not detected and we are not running a sim
         if (!imu_issue_ && !cfg().is_sim())
         {
-            // Detect and imu issue on a certain period interval,
+            // Detect an imu issue on a certain period interval,
             // the current bot mission state is included in include_imu_detection_modes_,
             // and the commanded speed of the bot does not equal zero
             if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now &&
