@@ -380,15 +380,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 last_data_time_[DataType::COURSE] = now;
             }
 
-            // If the bot state is not in the right state to have a course
+            // If the current bot mission state is not included in include_course_error_detection_states_
             // or the commanded speed is equal to 0
             // then ignore course over ground missing warnings
             if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()) ||
                 bot_commanded_speed == 0)
             {
                 // Update course timestamp
-                // We want to ignore errors until we are
-                // in the right state
                 last_data_time_[DataType::COURSE] = now;
             }
 
