@@ -181,7 +181,7 @@ const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
-const POLLING_INTERVAL_MS = 300;
+const POLLING_INTERVAL_MS = 500;
 
 const MAX_GOALS = 30;
 
