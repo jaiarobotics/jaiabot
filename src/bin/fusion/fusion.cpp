@@ -586,7 +586,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             [this](const jaiabot::protobuf::DesiredSetpoints& command) {
                 switch (command.type())
                 {
-                    case jaiabot::protobuf::SETPOINT_STOP: break;
+                    case jaiabot::protobuf::SETPOINT_STOP: bot_commanded_speed = 0; break;
                     case jaiabot::protobuf::SETPOINT_IVP_HELM:
                         if (command.helm_course().has_speed())
                         {
