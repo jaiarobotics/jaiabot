@@ -134,6 +134,8 @@ const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
 const missionOrientationIcon = require('../icons/compass.svg')
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
 const goToRallyRed = require('../icons/go-to-rally-point-red.png')
+const olFlagIcon = require('../icons/ol-flag.svg')
+const olFlagIconSelected = require('../icons/ol-flag-selected.svg')
 
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
@@ -295,7 +297,7 @@ interface State {
 	undoRunListStack: MissionInterface[],
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 	remoteControlValues: Engineering,
-	missionPopup: MissionPopup,
+	missionPopup: MissionPopup
 }
 
 export default class CommandControl extends React.Component {
@@ -1610,16 +1612,16 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
-		const container = document.getElementById('popup')
-		const content = document.getElementById('popup-container')
-		const closer = document.getElementById('popup-closer')
-		const overlay = new Overlay({
-			element: container
+		// Run Popup
+		const popup = document.getElementById('popup')
+		const popupOverlay = new Overlay({
+			element: popup
 		})
-		map.addOverlay(overlay)
+		map.addOverlay(popupOverlay)
 
+		// Setting initial state
 		const missionPopup = this.state.missionPopup
-		missionPopup.overlay = overlay
+		missionPopup.overlay = popupOverlay
 		this.setState({missionPopup: missionPopup})
 
 		info('Welcome to JaiaBot Command & Control!');
@@ -2829,10 +2831,10 @@ export default class CommandControl extends React.Component {
 	}
 
 	addWaypointAtCoordinate(coordinate: number[]) {
-		this.addWaypointAt(this.locationFromCoordinate(coordinate))
+		this.addWaypointAt(coordinate, this.locationFromCoordinate(coordinate))
 	}
 
-	addWaypointAt(location: GeographicCoordinate) {
+	addWaypointAt(coordinate: number[], location: GeographicCoordinate) {
 		let botId = this.selectedBotIds().at(-1)
 
 		if (botId == null) {
@@ -2865,6 +2867,40 @@ export default class CommandControl extends React.Component {
 				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
 			}
 		}, null)
+
+		// Add flag to run above first waypoint
+		const runs = this.state.runList.runs
+		for (let runKey of Object.keys(runs)) {
+			const run = runs[runKey]
+			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
+			const runName = run.name
+			const assignedBot = run.assigned
+			const isBotSelected = this.isBotSelected(assignedBot)
+			if (run.command.plan.goal.length === 1 && isBotSelected) {
+				const flagOuterContainer = document.createElement('div')
+				const flagInnerContainer = document.createElement('div')
+				const flagText = document.createElement('div')
+				const flagIcon = document.createElement('img')
+				flagOuterContainer.classList.add('ol-flag-outer-container')
+				flagInnerContainer.classList.add('ol-flag-inner-container')
+				flagText.classList.add('ol-flag-text')
+				flagIcon.classList.add('ol-flag-icon')
+				flagText.textContent = runName
+				flagIcon.id = `run-flag-${runNumber}`
+				flagIcon.src = olFlagIconSelected
+				flagInnerContainer.appendChild(flagText)
+				flagInnerContainer.appendChild(flagIcon)
+				flagOuterContainer.appendChild(flagInnerContainer)
+
+				const flagOverlay = new Overlay({
+					element: flagOuterContainer
+				})
+				flagOverlay.setPosition(coordinate)
+
+				// Add feature to overlay
+				map.addOverlay(flagOverlay)
+			}
+		}
 
 	}
 
@@ -3082,6 +3118,16 @@ export default class CommandControl extends React.Component {
 				{
 					selectedFeatures.push(...missionFeatures);
 				}
+			}
+
+			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
+			const flagId = `run-flag-${runNumber}`
+			const runFlag = document.getElementById(flagId) as HTMLImageElement
+			if (!selected && runFlag) {
+				runFlag.src = olFlagIcon
+			}
+			if (selected && runFlag) {
+				runFlag.src = olFlagIconSelected
 			}
 		}
 
@@ -3348,6 +3394,11 @@ export default class CommandControl extends React.Component {
 		
 		for(let run in mission.runs)
 		{
+			const runNumber = run.length === 5 ? run.slice(-1) : run.slice(-2)
+			const flagId = `run-flag-${runNumber}`
+			const runFlag = document.getElementById(flagId) as HTMLImageElement
+			runFlag ? runFlag.parentElement.remove() : null
+			
 			delete mission.runs[run];
 		}
 
@@ -3372,6 +3423,10 @@ export default class CommandControl extends React.Component {
 			}
 
 			const run = runList.runs[runId]
+			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
+			const flagId = `run-flag-${runNumber}`
+			const runFlag = document.getElementById(flagId) as HTMLImageElement
+			runFlag ? runFlag.parentElement.remove() : null
 
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
