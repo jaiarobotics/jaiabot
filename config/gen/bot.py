@@ -56,6 +56,8 @@ Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
 
+bot_status_period=(bot_index * 10) + 1000
+
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
@@ -185,7 +187,8 @@ elif common.app == 'jaiabot_fusion':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     fusion_in_simulation=is_simulation()))
+                                     fusion_in_simulation=is_simulation(),
+                                     bot_status_period=bot_status_period))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
