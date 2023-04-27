@@ -61,8 +61,8 @@ message Speeds
     optional double transit = 1 [
         default = 2,
         (dccl.field) = {
-            min: 0.1,
-            max: 6.0,
+            min: 0.0,
+            max: 3.0,
             precision: 1,
             units { base_dimensions: "LT^-1" }
         }
@@ -71,7 +71,7 @@ message Speeds
         default = 0.5,
         (dccl.field) = {
             min: 0.1,
-            max: 6.0,
+            max: 3.0,
             precision: 1,
             units { base_dimensions: "LT^-1" }
         }
@@ -99,6 +99,13 @@ message MissionReport
             max: 3600
             precision: 0
             units { base_dimensions: "T" }
+        }
+    ];
+    optional int32 data_offload_percentage = 15 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
         }
     ];
 }

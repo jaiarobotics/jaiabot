@@ -17,12 +17,24 @@ if "jaia_electronics_stack" in os.environ:
 
 if jaia_electronics_stack == '0':
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helm_app_tick=1
+    helm_comms_tick=4
+    total_after_dive_gps_fix_checks=15
 if jaia_electronics_stack == '1':
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helm_app_tick=5
+    helm_comms_tick=5
+    total_after_dive_gps_fix_checks=75
 elif jaia_electronics_stack == '2':
     jaia_arduino_dev_location="/dev/ttyAMA1"
+    helm_app_tick=5
+    helm_comms_tick=5
+    total_after_dive_gps_fix_checks=75
 else:
     jaia_arduino_dev_location="/dev/ttyUSB0"
+    helm_app_tick=1
+    helm_comms_tick=4
+    total_after_dive_gps_fix_checks=15
 
 try:
     number_of_bots=int(os.environ['jaia_n_bots'])
@@ -43,6 +55,8 @@ log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
+
+bot_status_period=(bot_index * 10) + 1000
 
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
@@ -173,14 +187,16 @@ elif common.app == 'jaiabot_fusion':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     fusion_in_simulation=is_simulation()))
+                                     fusion_in_simulation=is_simulation(),
+                                     bot_status_period=bot_status_period))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
                                      log_dir=log_file_dir,
-                                     mission_manager_in_simulation=is_simulation()))
+                                     mission_manager_in_simulation=is_simulation(),
+                                     total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,
@@ -203,7 +219,9 @@ elif common.app == 'moos':
                                      moos_port=common.bot.moos_port(node_id),
                                      moos_community='BOT' + str(bot_index),
                                      warp=common.sim.warp,                                
-                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv'))
+                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv',
+                                     helm_app_tick=helm_app_tick,
+                                     helm_comms_tick=helm_comms_tick))
 elif common.app == 'bhv':
     print(config.template_substitute(templates_dir+'/bot/bot.bhv.in'))    
 elif common.app == 'moos_sim':

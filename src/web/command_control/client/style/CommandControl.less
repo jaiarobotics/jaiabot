@@ -242,10 +242,12 @@ textarea {
     color: @cc-details-text-color;
     padding: 8pt;
     border-radius: 8pt;
-    overflow-y: auto;
     max-height: 80vh;
     max-width: 25vw;
 
+    display: flex;
+    flex-direction: column;
+    
     h2.name {
       color: @cc-details-text-color;
       margin: 0;
@@ -253,7 +255,7 @@ textarea {
 
     h3.name {
       color: @cc-details-text-color;
-      padding-bottom: 10px;
+      margin-bottom: 16px;
     }
 
     table {
@@ -269,6 +271,21 @@ textarea {
     select {
       color: black;
     }
+
+    .botDetailsToolbar {
+      width: 100%;
+      height: auto;
+
+      display: flex;
+      margin-bottom: 16px;
+      padding: 2px 8px;
+      background-color: @cc-accordian-color;
+    }
+
+    .button-jcc {
+      margin: 8px 16px 8px 0;
+    }
+
   }
 
   #botDetailsBox:empty {
@@ -1090,7 +1107,7 @@ table.MissionParametersTable > tbody > tr > td {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding-bottom: 10px;
+  padding-bottom: 16px;
 }
 
 .centered {
@@ -1212,6 +1229,10 @@ div.closeButton {
 }
 
 /******** CSS Accordion ********************/
+
+.accordionContainer {
+  overflow-y: auto;
+}
 
 .accordion,
 .nestedAccordion {
