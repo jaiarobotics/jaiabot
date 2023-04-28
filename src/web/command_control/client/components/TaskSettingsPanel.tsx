@@ -88,47 +88,54 @@ function TaskOptionsPanel(props: Props) {
         }
 
         const selectOnMapInteraction = new PointerInteraction({
-            handleDownEvent: (evt) => {
-                // TODO:  Show message that user should click a point to select the heading (maybe via toast)
-                return true // Listen for the up event
-            },
-            handleUpEvent: (evt) => {
-                // We're done getting these coordinates
-                map.removeInteraction(selectOnMapInteraction)
-                setClickingMap(false)
+            handleEvent: (evt) => {
 
-                let start = props.location ?? {lat: 0, lon: 0}
-                const end = getGeographicCoordinate(evt.coordinate, map)
-                let constant_heading = task.constant_heading
-                let speed = constant_heading?.constant_heading_speed
+                switch(evt.type) {
+                    case 'click':
+                        // We're done getting these coordinates
+                        map.removeInteraction(selectOnMapInteraction)
+                        setClickingMap(false)
 
-                // Guard
-                if (start == null || constant_heading == null) {
-                    return false
+                        let start = props.location ?? {lat: 0, lon: 0}
+                        const end = getGeographicCoordinate(evt.coordinate, map)
+                        let constant_heading = task.constant_heading
+                        let speed = constant_heading?.constant_heading_speed
+
+                        // Guard
+                        if (start == null || constant_heading == null) {
+                            return false
+                        }
+
+                        if (speed == null) {
+                            console.error(`Constant heading task has speed == ${speed}`)
+                            return false
+                        }
+
+                        if (props.location == null) {
+                            console.error('No location given to TaskSettingsPanel')
+                            return false
+                        }
+
+                        // Calculate heading and time from location and speed
+                        let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
+                        constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
+
+                        let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
+                        let t = rhumb_distance / speed
+                        constant_heading.constant_heading_time = Number(t.toFixed(0))
+
+                        return false // Do not propagate this click
+                        break;
+
+                    case 'pointerdown':
+                    case 'mousedown':
+                        return false // Do not propagate this click
+                        break;
+                    
+                    default:
+                        return true // Propagate everything else
+                        break;
                 }
-
-                if (speed == null) {
-                    console.error(`Constant heading task has speed == ${speed}`)
-                    return false
-                }
-
-                if (props.location == null) {
-                    console.error('No location given to TaskSettingsPanel')
-                    return false
-                }
-
-                // Calculate heading and time from location and speed
-                let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
-                constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
-
-                let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
-                let t = rhumb_distance / speed
-                constant_heading.constant_heading_time = Number(t.toFixed(0))
-
-                console.log(start)
-                console.log(end)
-
-                return false // Done this interaction
             }
         })
 
