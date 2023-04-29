@@ -928,6 +928,9 @@ export default class CommandControl extends React.Component {
 			]
 		})
 
+		const taskPacketInfoLayer = taskData.taskPacketInfoLayer
+		taskPacketInfoLayer.set('visible', false)
+		
 		this.measurementLayerGroup = new OlLayerGroup({
 			properties: { 
 				title: 'Measurements',
@@ -941,7 +944,7 @@ export default class CommandControl extends React.Component {
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
 				taskData.getTaskPacketDiveBottomInfoLayer(),
-				taskData.taskPacketInfoLayer
+				taskPacketInfoLayer
 			]
 		})
 
