@@ -137,6 +137,12 @@ export default class RunItem extends React.Component {
 
 		            if (confirm(warning_string)) {
 
+                        const run = this.props.run
+                        const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
+                        const flagId = `run-flag-${runNumber}`
+                        const runFlag = document.getElementById(flagId) as HTMLImageElement
+                        runFlag ? runFlag.parentElement.remove() : null
+
                         //Deep copy
                         let mission = this.props.mission;
 
@@ -155,7 +161,7 @@ export default class RunItem extends React.Component {
                 className={'button-jcc missionAccordian'}
                 onClick={(event) => {
                     event.stopPropagation();
-                    Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
+                    Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission, this.props.run);
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>

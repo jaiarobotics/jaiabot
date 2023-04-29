@@ -123,7 +123,7 @@ export class Missions {
         return mission;
     }
 
-    static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
+    static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface, duplicateRun?: RunInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
         
@@ -139,7 +139,8 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             editing: false,
-            command: commandWithGoals(botId, goals)
+            command: commandWithGoals(botId, goals),
+            duplicate: duplicateRun ? {duplicateOf: duplicateRun.id, addedFlag: false} : {duplicateOf: '', addedFlag: false}
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);

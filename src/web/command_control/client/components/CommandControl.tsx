@@ -161,7 +161,6 @@ import * as Styles from './gui/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './gui/BotFeature'
 import { createHubFeature } from './gui/HubFeature'
-import { run } from 'node:test'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -237,7 +236,11 @@ export interface RunInterface {
 	name: string,
 	assigned: number,
 	editing: boolean,
-	command: Command
+	command: Command,
+	duplicate?: {
+		duplicateOf: string,
+		addedFlag: boolean
+	}
 }
 
 export interface MissionInterface {
@@ -298,6 +301,7 @@ interface State {
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 	remoteControlValues: Engineering,
 	missionPopup: MissionPopup
+	runFlagZIndex: number
 }
 
 export default class CommandControl extends React.Component {
@@ -438,7 +442,8 @@ export default class CommandControl extends React.Component {
 				overlay: null,
 				botId: null,
 				runName: ''
-			}
+			},
+			runFlagZIndex: 0
 		};
 
 		this.state.runList = {
@@ -2860,7 +2865,8 @@ export default class CommandControl extends React.Component {
 
 			if(runCommand.plan.goal.length < MAX_GOALS)
 			{
-				runCommand.plan.goal.push({location: location})	
+				location.rawCoordinate = coordinate
+				runCommand.plan.goal.push({location: location})
 			}
 			else
 			{
@@ -2872,36 +2878,51 @@ export default class CommandControl extends React.Component {
 		const runs = this.state.runList.runs
 		for (let runKey of Object.keys(runs)) {
 			const run = runs[runKey]
-			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
-			const runName = run.name
 			const assignedBot = run.assigned
 			const isBotSelected = this.isBotSelected(assignedBot)
 			if (run.command.plan.goal.length === 1 && isBotSelected) {
-				const flagOuterContainer = document.createElement('div')
-				const flagInnerContainer = document.createElement('div')
-				const flagText = document.createElement('div')
-				const flagIcon = document.createElement('img')
-				flagOuterContainer.classList.add('ol-flag-outer-container')
-				flagInnerContainer.classList.add('ol-flag-inner-container')
-				flagText.classList.add('ol-flag-text')
-				flagIcon.classList.add('ol-flag-icon')
-				flagText.textContent = runName
-				flagIcon.id = `run-flag-${runNumber}`
-				flagIcon.src = olFlagIconSelected
-				flagInnerContainer.appendChild(flagText)
-				flagInnerContainer.appendChild(flagIcon)
-				flagOuterContainer.appendChild(flagInnerContainer)
-
-				const flagOverlay = new Overlay({
-					element: flagOuterContainer
-				})
-				flagOverlay.setPosition(coordinate)
-
-				// Add feature to overlay
-				map.addOverlay(flagOverlay)
+				this.addRunFlag(coordinate, run, false)
 			}
 		}
 
+	}
+
+	addRunFlag(coordinate: number[], run: RunInterface, duplicate: boolean) {
+			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
+			const runName = `R${runNumber}`
+			const assignedBot = run.assigned
+			const flagOuterContainer = document.createElement('div')
+			const flagInnerContainer = document.createElement('div')
+			const flagText = document.createElement('div')
+			const flagIcon = document.createElement('img')
+			// flagOuterContainer.addEventListener('click', this.handleRunFlagClick.bind(this))
+			flagOuterContainer.setAttribute('data-assigned-bot', String(assignedBot))
+			flagOuterContainer.setAttribute('data-lon', String(coordinate[0]))
+			flagOuterContainer.setAttribute('data-lat', String(coordinate[1]))
+			flagOuterContainer.classList.add('ol-flag-outer-container')
+			flagInnerContainer.classList.add('ol-flag-inner-container')
+			flagText.classList.add('ol-flag-text')
+			flagIcon.classList.add('ol-flag-icon')
+			flagText.textContent = runName
+			flagIcon.id = `run-flag-${runNumber}`
+			flagIcon.src = olFlagIconSelected
+			flagInnerContainer.appendChild(flagText)
+			flagInnerContainer.appendChild(flagIcon)
+			flagOuterContainer.appendChild(flagInnerContainer)
+
+			const flagOverlay = new Overlay({
+				element: flagOuterContainer
+			})
+			flagOverlay.setPosition(coordinate)
+
+			if (duplicate) {
+				const runFlagZIndex = this.state.runFlagZIndex + 1
+				flagOuterContainer.parentElement.style.zIndex = String(runFlagZIndex)
+				this.setState({ runFlagZIndex: runFlagZIndex })
+			}
+
+			// Add feature to overlay
+			map.addOverlay(flagOverlay)
 	}
 
 	setGrid2Style(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
@@ -3128,6 +3149,18 @@ export default class CommandControl extends React.Component {
 			}
 			if (selected && runFlag) {
 				runFlag.src = olFlagIconSelected
+				const runFlagZIndex = this.state.runFlagZIndex + 1
+				// Need to set z-index out Open Layers Overlay element
+				runFlag.parentElement.parentElement.parentElement.style.zIndex = String(runFlagZIndex)
+				this.setState({runFlagZIndex: runFlagZIndex})
+			}
+
+			// Identify when a duplicate mission is created
+			if (run.duplicate && !run.duplicate.addedFlag && selected) {
+				// Create a new flag
+				const location = run.command.plan.goal[0].location.rawCoordinate
+				this.addRunFlag(location, run, true)
+				missions.runs[`run-${runNumber}`].duplicate.addedFlag = true
 			}
 		}
 
@@ -3373,11 +3406,16 @@ export default class CommandControl extends React.Component {
 	// Loads the set of runs, and updates the GUI
 	loadMissions(mission: MissionInterface) {
 		this.deleteAllRunsInMission(this.state.runList);
-		for(let run in mission.runs)
+		for(let runName in mission.runs)
 		{
-			Missions.addRunWithCommand(-1, mission.runs[run].command, this.state.runList);
+			Missions.addRunWithCommand(-1, mission.runs[runName].command, this.state.runList);
+			// Add flag to run above first waypoint
+			const runs = this.state.runList.runs
+			const run = runs[runName]
+			const assignedBot = run.assigned
+			const coordinate = run.command.plan.goal[0].location.rawCoordinate
+			this.addRunFlag(coordinate, run, false)
 		}
-
 		this.updateMissionLayer()
 	}
 
@@ -3540,29 +3578,6 @@ export default class CommandControl extends React.Component {
 			let goal = feature.get('goal')
  			let botId = feature.get('botId')
 			let goalIndex = feature.get('goalIndex')
-
-			// Clicked on a goal / waypoint => show run name via popup
-			feature.get('name').substring(0, 4) === 'Goal'
-			if (feature.get('name').substring(0, 4) === 'Goal') {
-				const coordinate = evt.coordinate
-				const missionPopup = this.state.missionPopup
-				missionPopup.overlay.setPosition(coordinate)
-				const botId = feature.get('botId')
-				const runs = this.state.runList.runs
-				let runName = ''
-				for (let runsKey of Object.keys(runs)) {
-					const run = runs[runsKey]
-					if (run.assigned === botId) {
-						runName = run.name
-						missionPopup.botId = botId
-						missionPopup.runName = runName
-						this.setState({missionPopup: missionPopup})
-						break
-					}
-				}
-				this.setState({ missionPopup: missionPopup })
-			}
-
 			if (goal != null) {
 				previous_mission_history = deepcopy(this.state.runList);
 				this.setState({
@@ -3605,6 +3620,41 @@ export default class CommandControl extends React.Component {
 		}
 
 		return true
+	}
+
+	handleRunFlagClick(evt: any) {
+		let clickedElement = evt.target as HTMLElement
+		let isOuterLayer = false
+		const targetClassName = 'ol-flag-outer-container'
+		
+		while (!isOuterLayer) {
+			clickedElement.classList.forEach(className => {
+				if (className !== targetClassName) {
+					clickedElement = clickedElement.parentElement
+				} else {
+					isOuterLayer = true
+				}
+			})
+		}
+		const botId = Number(clickedElement.getAttribute('data-assigned-bot'))
+		const lon = Number(clickedElement.getAttribute('data-lon'))
+		const lat = Number(clickedElement.getAttribute('data-lat'))
+		const coordinate = [lon, lat]
+		const missionPopup = this.state.missionPopup
+		missionPopup.overlay.setPosition(coordinate)
+		const runs = this.state.runList.runs
+		let runName = ''
+		for (let runsKey of Object.keys(runs)) {
+			const run = runs[runsKey]
+			if (run.assigned === botId) {
+				runName = run.name
+				missionPopup.botId = botId
+				missionPopup.runName = runName
+				this.setState({missionPopup: missionPopup})
+				break
+			}
+		}
+		this.setState({ missionPopup: missionPopup })
 	}
 
 	placeHomeAtCoordinate(coordinate: number[]) {
