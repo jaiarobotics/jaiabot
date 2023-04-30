@@ -3438,7 +3438,6 @@ export default class CommandControl extends React.Component {
 
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
-		console.log("Clicked on map");
 		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
 			return false // Not a drag event
@@ -3458,11 +3457,8 @@ export default class CommandControl extends React.Component {
 			return feature
 		});
 
-		console.log(feature);
-
 		if (feature) {
 
-			console.log("Feature == true");
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 			let botId = feature.get('botId')
@@ -3505,7 +3501,6 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		else {
-			console.log("Feature == false");
 			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
