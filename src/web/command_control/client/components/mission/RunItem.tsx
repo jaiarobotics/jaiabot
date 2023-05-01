@@ -176,6 +176,7 @@ export default class RunItem extends React.Component {
             <div>
                 Repeats: {repeats}
                 <Slider
+                    id="runRepeats"
                     aria-label="Repeats"
                     value={repeats}
                     valueLabelDisplay="auto"
