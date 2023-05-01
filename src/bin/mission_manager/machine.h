@@ -1685,6 +1685,12 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
 
     void loop(const EvLoop&);
 
+    void set_data_offload_percentage(const uint32_t& data_offload_percentage)
+    {
+        data_offload_percentage_ = data_offload_percentage;
+    }
+    uint32_t data_offload_percentage() const { return data_offload_percentage_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvDataOffloadComplete, Idle>,
         boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
@@ -1695,6 +1701,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
     const std::string offload_command_;
+    uint32_t data_offload_percentage_{0};
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,

@@ -84,11 +84,11 @@ message GPSRequirements
 
     optional double after_dive_pdop_req = 4 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
 
-    optional uint32 transit_gps_fix_checks = 5 [(dccl.field) = { min: 1 max: 30 }];
+    optional uint32 transit_gps_fix_checks = 5 [(dccl.field) = { min: 1 max: 100 }];
 
-    optional uint32 transit_gps_degraded_fix_checks = 6 [(dccl.field) = { min: 1 max: 30 }];
+    optional uint32 transit_gps_degraded_fix_checks = 6 [(dccl.field) = { min: 1 max: 100 }];
 
-    optional uint32 after_dive_gps_fix_checks = 7 [(dccl.field) = { min: 1 max: 30 }];
+    optional uint32 after_dive_gps_fix_checks = 7 [(dccl.field) = { min: 1 max: 100 }];
 }
 
 message RFDisableOptions
@@ -100,11 +100,11 @@ message RFDisableOptions
 message Engineering
 {
     /*
-    Actual maximum size of message: 92 bytes / 736 bits
+    Actual maximum size of message: 94 bytes / 752 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................723
-        padding to full byte...................5
+        body.................................742
+        padding to full byte...................2
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {

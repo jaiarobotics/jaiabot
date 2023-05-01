@@ -83,19 +83,24 @@ class Fusion : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
     std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
-    std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
+
     // timeout in seconds
     int course_over_ground_timeout_{0};
     double previous_course_over_ground_{0};
+
+    // IMU Detection vars
     bool imu_issue_{false};
     int imu_issue_crs_hdg_incr_{0};
+    double bot_commanded_speed{0};
     goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
+    std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
+
     // Milliseconds
     int bot_status_period_ms_{1000};
     bool rf_disabled_{false};
     int rf_disabled_timeout_mins_{10};
+    goby::time::SteadyClock::time_point last_bot_status_report_time_{std::chrono::seconds(0)};
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
@@ -375,11 +380,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 last_data_time_[DataType::COURSE] = now;
             }
 
-            if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()))
+            // If the current bot mission state is not included in include_course_error_detection_states_
+            // or the commanded speed is equal to 0
+            // then ignore course over ground missing warnings
+            if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()) ||
+                bot_commanded_speed == 0)
             {
                 // Update course timestamp
-                // We want to ignore errors until we are
-                // in the right state
                 last_data_time_[DataType::COURSE] = now;
             }
 
@@ -473,6 +480,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_active_goal();
             }
+            if (report.has_data_offload_percentage())
+            {
+                latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
+            }
+            else
+            {
+                latest_bot_status_.clear_data_offload_percentage();
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(
@@ -562,6 +577,25 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 tpv_meets_gps_req_ = tpv_meets_gps_req.tpv();
             }
         });
+
+    // subscribe for commands from mission manager
+    interprocess()
+        .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
+            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
+                switch (command.type())
+                {
+                    case jaiabot::protobuf::SETPOINT_STOP: bot_commanded_speed = 0; break;
+                    case jaiabot::protobuf::SETPOINT_IVP_HELM:
+                        if (command.helm_course().has_speed())
+                        {
+                            bot_commanded_speed = command.helm_course().speed();
+                        }
+                        break;
+                    case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL: break;
+                    case jaiabot::protobuf::SETPOINT_DIVE: break;
+                    case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: break;
+                }
+            });
 }
 
 void jaiabot::apps::Fusion::init_node_status()
@@ -595,9 +629,12 @@ void jaiabot::apps::Fusion::loop()
         // If the imu issue is currently not detected and we are not running a sim
         if (!imu_issue_ && !cfg().is_sim())
         {
-            // only detect imu issue if the current mode is included in include_imu_detection_modes_
+            // Detect an imu issue on a certain period interval,
+            // the current bot mission state is included in include_imu_detection_modes_,
+            // and the commanded speed of the bot does not equal zero
             if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now &&
-                include_imu_detection_states_.count(latest_bot_status_.mission_state()))
+                include_imu_detection_states_.count(latest_bot_status_.mission_state()) &&
+                bot_commanded_speed != 0)
             {
                 //Let's detect imu issue
                 detect_imu_issue();

@@ -2,7 +2,7 @@ $app_block
 $interprocess_block
 
 serial_arduino {
-    port: "/dev/arduino"
+    port: "$jaia_arduino_dev_location"
     baud: 115200
 }
 
