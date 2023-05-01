@@ -59,7 +59,7 @@ while True:
         if not file_is_newer(h5_filename, goby_mtime):
             try:
                 # Generate h5 file
-                cmd = f'goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5'
+                cmd = f'nice -n 10 goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5'
                 logging.info(cmd)
                 os.system(cmd)
 
@@ -77,4 +77,4 @@ while True:
             jaialogs.generate_kmz(h5_filename, kmz_filename)
 
 
-    time.sleep(5)
+    time.sleep(30)
