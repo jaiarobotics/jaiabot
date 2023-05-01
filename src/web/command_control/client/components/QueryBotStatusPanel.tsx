@@ -47,7 +47,7 @@ export default class QueryBotStatusPanel extends React.Component {
                         </tr>
                     </tbody>
                 </table>
-                <Button className="button-jcc" type="button" id="submit_query_bot_status" onClick={this.submitQueryBotStatus.bind(this)}>Query Bot Status</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="submit_query_bot_status" onClick={this.submitQueryBotStatus.bind(this)}>Query Bot Status</Button>
             </div>
         )
 
