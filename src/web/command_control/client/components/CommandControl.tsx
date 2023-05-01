@@ -3229,14 +3229,21 @@ export default class CommandControl extends React.Component {
 			bot_goals.push(bot_goal)
 
 			// Mission Goals
-			mpg[key].forEach((goal: any) => {
+			const bot_mission_goal_positions: turf.helpers.Position[] = mpg[key]
+
+			bot_mission_goal_positions.forEach((goal: turf.helpers.Position, index: number) => {
 				let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
+
+				// For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
+				const is_last_goal = index == bot_mission_goal_positions.length - 1
+				const task = is_last_goal ? this.missionEndTask : this.state.missionBaseGoal.task
+
 				bot_goal = {
 					"location": {
 						"lat": goalWgs84[1],
 						"lon": goalWgs84[0]
 					},
-					"task": this.state.missionBaseGoal.task
+					"task": task
 				}
 				bot_goals.push(bot_goal);
 			})
@@ -3247,7 +3254,9 @@ export default class CommandControl extends React.Component {
 					"lat": rallyFinishPoints[key][1],
 					"lon": rallyFinishPoints[key][0]
 				},
-				"task": this.missionEndTask
+				"task": {
+					type: TaskType.STATION_KEEP
+				}
 			}
 			bot_goals.push(bot_goal)
 
