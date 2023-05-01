@@ -1,4 +1,4 @@
-import { HubStatus, BotStatus, MissionPlan, Engineering } from "./gui/JAIAProtobuf"
+import { HubStatus, BotStatus, MissionPlan, Engineering } from "./shared/JAIAProtobuf"
 
 
 export interface PortalBotStatus extends BotStatus {

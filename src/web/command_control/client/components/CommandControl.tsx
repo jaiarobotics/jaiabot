@@ -82,7 +82,7 @@ import OlAttribution from 'ol/control/Attribution';
 import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
 import { deepcopy, areEqual, randomBase57 } from './Utilities';
 
-import * as MissionFeatures from './gui/MissionFeatures'
+import * as MissionFeatures from './shared/MissionFeatures'
 
 import $ from 'jquery';
 // import 'jquery-ui/themes/base/core.css';
@@ -147,7 +147,7 @@ import { createBaseLayerGroup } from './BaseLayers'
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './gui/JAIAProtobuf'
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './shared/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
@@ -155,10 +155,10 @@ import { EventsKey } from 'ol/events'
 import { Feature as TFeature, Units } from '@turf/turf'
 import TileLayer from 'ol/layer/Tile'
 import { PodStatus } from './PortalStatus'
-import * as Styles from './gui/Styles'
+import * as Styles from './shared/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
-import { createBotFeature } from './gui/BotFeature'
-import { createHubFeature } from './gui/HubFeature'
+import { createBotFeature } from './shared/BotFeature'
+import { createHubFeature } from './shared/HubFeature'
 import { run } from 'node:test'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
@@ -344,6 +344,8 @@ export default class CommandControl extends React.Component {
 	timerID: NodeJS.Timer
 
 	oldPodStatus?: PodStatus
+
+	getCoordinateCallback?: (coordinate: GeographicCoordinate) => void
 
 	constructor(props: Props) {
 		super(props)
@@ -2314,6 +2316,9 @@ export default class CommandControl extends React.Component {
 			mapLayerActive,
 			engineeringPanelActive,
 			missionPanelActive,
+			goalBeingEdited,
+			goalBeingEditedBotId,
+			goalBeingEditedGoalIndex
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2325,19 +2330,33 @@ export default class CommandControl extends React.Component {
 		let hubs = this.podStatus?.hubs
 
 		let goalSettingsPanel: ReactElement = null
-		if (this.state.goalBeingEdited != null) {
+		const clickingMap = (this.getCoordinateCallback != null) // Are we currently clicking the map for constant heading goal?
+
+		if (goalBeingEdited != null) {
 			goalSettingsPanel = 
 				<GoalSettingsPanel 
-					botId={this.state.goalBeingEditedBotId}
-					goalIndex={this.state.goalBeingEditedGoalIndex}
-					goal={this.state.goalBeingEdited} 
+					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
+					botId={goalBeingEditedBotId}
+					goalIndex={goalBeingEditedGoalIndex}
+					goal={goalBeingEdited} 
+					clickingMap={clickingMap}
 					onChange={() => { this.updateMissionLayer() }} 
 					onClose={() => 
-						{ 
+						{
+							this.getCoordinateCallback = null
 							this.setState({goalBeingEdited: null})
 							this.changeMissions(() => {}, previous_mission_history);
 						}
 					} 
+					getCoordinate={
+						() => {
+							return new Promise((resolve) => {
+								this.getCoordinateCallback = (coordinate: GeographicCoordinate) => {
+									resolve(coordinate)
+								}
+							})
+						}
+					}
 				/>
 		}
 
@@ -3438,7 +3457,17 @@ export default class CommandControl extends React.Component {
 
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
-		console.log("Clicked on map");
+
+		// If we've set a callback, then call it
+		if (this.getCoordinateCallback != null) {
+			// Pass the click coordinates back to the callback
+			this.getCoordinateCallback(this.locationFromCoordinate(evt.coordinate))
+			// Set to null to get only one click
+			this.getCoordinateCallback = null
+			// Done
+			return
+		}
+
 		if (this.state.mode == Mode.SET_HOME) {
 			this.placeHomeAtCoordinate(evt.coordinate)
 			return false // Not a drag event
@@ -3458,11 +3487,8 @@ export default class CommandControl extends React.Component {
 			return feature
 		});
 
-		console.log(feature);
-
 		if (feature) {
 
-			console.log("Feature == true");
 			// Clicked on a goal / waypoint
 			let goal = feature.get('goal')
 			let botId = feature.get('botId')
