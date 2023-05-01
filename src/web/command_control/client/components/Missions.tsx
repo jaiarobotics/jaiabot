@@ -67,7 +67,6 @@ export class Missions {
             this.addRunWithGoals(-1, goals, mission['Mission-1']);
         }
 
-        console.log('defaultMissions = ', mission)
         return mission
     }
 

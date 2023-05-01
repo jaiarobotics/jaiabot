@@ -81,7 +81,7 @@ message CommandForHub
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 
-    enum CommandType
+    enum HubCommandType
     {
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;
@@ -89,7 +89,7 @@ message CommandForHub
         SHUTDOWN_COMPUTER = 42;
     }
 
-    required CommandType type = 10;
+    required HubCommandType type = 10;
 }
 
 message BotStatus
