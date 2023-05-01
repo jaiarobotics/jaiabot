@@ -3558,7 +3558,6 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		else {
-			console.log("Feature == false");
 			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
