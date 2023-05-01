@@ -257,6 +257,7 @@ export interface GobyMessageOptions {
 export interface GeographicCoordinate {
     lat?: number
     lon?: number
+    rawCoordinate?: number[]
 }
 
 export interface LatLonPoint {

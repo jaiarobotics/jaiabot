@@ -2884,7 +2884,6 @@ export default class CommandControl extends React.Component {
 				this.addRunFlag(coordinate, run, false)
 			}
 		}
-
 	}
 
 	addRunFlag(coordinate: number[], run: RunInterface, duplicate: boolean) {
