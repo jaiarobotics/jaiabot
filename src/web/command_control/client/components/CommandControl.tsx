@@ -2603,7 +2603,7 @@ export default class CommandControl extends React.Component {
 							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
 						</Button>
 					)}
-					{trackingTarget === 'all' ? (
+					{/*trackingTarget === 'all' ? (
 						<Button 
 							onClick={() => {
 								this.zoomToAll(false);
@@ -2623,7 +2623,7 @@ export default class CommandControl extends React.Component {
 						>
 							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Follow All" />
 						</Button>
-					)}
+					)*/}
 					{trackingTarget === 'pod' ? (
 						<Button 							
 							onClick={() => {
@@ -3659,9 +3659,6 @@ export default class CommandControl extends React.Component {
 				</Button>
 				<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
-				</Button>
-				<Button id= "missionRecover" className="button-jcc" onClick={this.recoverAllClicked.bind(this)}>
-					<Icon path={mdiDownload} title="Recover All"/>
 				</Button>
 				{ this.undoButton() }					
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
