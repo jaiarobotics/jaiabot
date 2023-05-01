@@ -1,4 +1,4 @@
-import { HubStatus, BotStatus, HealthState } from "./gui/JAIAProtobuf"
+import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import React = require("react")
 import { PodStatus } from "./PortalStatus"
 

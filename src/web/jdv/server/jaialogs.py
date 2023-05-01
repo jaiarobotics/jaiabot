@@ -2,7 +2,7 @@ from cmath import isnan
 from dataclasses import dataclass, field
 from email.policy import default
 import glob
-from typing import Iterable, Type
+from typing import Iterable, Type, Optional
 import h5py
 import logging
 import json
@@ -12,11 +12,17 @@ import copy
 import datetime
 import os
 
-import numpy
 import bisect
 
 from objects import *
 from moos_messages import *
+from pprint import pprint
+from kmz import create_kmz
+
+
+# JAIA message types as python dataclasses
+from jaia_messages import *
+
 
 INT32_MAX = (2 << 30) - 1
 UINT32_MAX = (2 << 31) - 1
@@ -409,65 +415,9 @@ def get_active_goals(log_filenames):
 
     return results
 
-################################################
-# Reading tasks
-# get_task_packets returns a list of tasks like so:
-# [
-#   {
-#     "_datenum_": 815848.3725064587,
-#     "_scheme_": 2,
-#     "_utime_": 8321993784558025,
-#     "bot_id": 1,
-#     "dive": {
-#       "depth_achieved": 10,
-#       "dive_rate": 0.5,
-#       "duration_to_acquire_gps": 1.5,
-#       "measurement": {
-#         "mean_depth": [
-#           10,
-#           null
-#         ],
-#         "mean_salinity": [
-#           20,
-#           null
-#         ],
-#         "mean_temperature": [
-#           14.5,
-#           null
-#         ]
-#       },
-#       "powered_rise_rate": 0.3,
-#       "start_location": {
-#         "lat": 43.517494,
-#         "lon": -72.115236
-#       },
-#       "unpowered_rise_rate": 0.3
-#     },
-#     "drift": {
-#       "drift_duration": 0,
-#       "end_location": {
-#         "lat": 43.517738,
-#         "lon": -72.115225
-#       },
-#       "estimated_drift": {
-#         "speed": 0
-#       },
-#       "start_location": {
-#         "lat": 43.517736,
-#         "lon": -72.115225
-#       }
-#     },
-#     "end_time": 1664441785000000,
-#     "start_time": 1664441686000000,
-#     "type": "DIVE"
-#   },
-#   ...
-#   ]
-
-
 TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
 
-def get_task_packets(log_filenames):
+def get_task_packets_json(log_filenames):
 
     # Open all our logs
     log_files = [h5py.File(log_name) for log_name in log_filenames]
@@ -490,3 +440,18 @@ def get_task_packets(log_filenames):
                 results += task_packets
 
     return results
+
+
+def get_task_packets(log_filenames) -> Iterable[TaskPacket]:
+    return [TaskPacket.from_dict(task_packet_json) for task_packet_json in get_task_packets_json(log_filenames)]
+
+
+def generate_kmz(h5_filename: str, kmz_filename: str):
+    task_packets = get_task_packets([h5_filename])
+    create_kmz(task_packets, kmz_filename)
+
+
+# Testing
+if __name__ == '__main__':
+    filename = '/var/log/jaiabot/bot_offload/bot3_fleet1_20230411T181720.h5'
+    generate_kmz(filename, 'test.kmz')

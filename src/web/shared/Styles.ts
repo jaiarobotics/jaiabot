@@ -315,6 +315,7 @@ export function driftTask(drift: DriftTask) {
 // The mission path linestring
 export function missionPath(feature: Feature) {
     const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
+    const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
 
@@ -322,13 +323,15 @@ export function missionPath(feature: Feature) {
         new Style({
             stroke: new Stroke({
                 width: 4,
-                color: 'black'
+                color: 'black',
+                lineDash: lineDash
             })
         }),
         new Style({
             stroke: new Stroke({
                 width: 2,
-                color: pathColor
+                color: pathColor,
+                lineDash: lineDash
             })
         })
     ]

@@ -1,8 +1,5 @@
 import numpy
-import pprint
 import cmath
-import logging
-import struct
 
 def get_leaf(dataset, indices):
     '''Gets the leaf data as a python object, from a dataset, indexing into it using the indices list'''
@@ -86,8 +83,9 @@ def jaialog_get_object_list(group, repeated_members=set(), indices=[]):
     while True:
         try:
             new_item = jaialog_get_object(group, repeated_members, indices + [item_index])
-            items.append(new_item)
             item_index += 1
+            if new_item is not None:
+                items.append(new_item)
         except IndexError:
             break
 
