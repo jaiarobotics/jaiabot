@@ -16,9 +16,9 @@ import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
 import { Vector as VectorLayer } from "ol/layer"
-import {createTaskPacketFeatures} from './gui/TaskPacketFeatures'
-import { geoJSONToDepthContourFeatures } from "./gui/Contours"
-import { TaskPacket } from "./gui/JAIAProtobuf"
+import {createTaskPacketFeatures} from './shared/TaskPacketFeatures'
+import { geoJSONToDepthContourFeatures } from "./shared/Contours"
+import { TaskPacket } from "./shared/JAIAProtobuf"
 import { Map } from "ol"
 import { Units } from "@turf/turf"
 
