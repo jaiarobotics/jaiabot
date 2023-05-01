@@ -1,0 +1,8 @@
+{
+    "devDependencies": {
+        "ol": "7.2.2",
+        "@turf/turf": "^6.5.0"
+    },
+    "dependencies": {
+    }
+  }

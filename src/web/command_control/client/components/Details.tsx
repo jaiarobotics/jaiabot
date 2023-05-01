@@ -24,7 +24,7 @@ import { GlobalSettings } from './Settings';
 // TurfJS
 import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
-import { Command, CommandType, HubCommandType, BotStatus, HubStatus, MissionState, Engineering } from './gui/JAIAProtobuf';
+import { Command, CommandType, HubCommandType, BotStatus, HubStatus, MissionState, Engineering } from './shared/JAIAProtobuf';
 import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
 import { MissionInterface } from './CommandControl';
 import RCControllerPanel from './RCControllerPanel'

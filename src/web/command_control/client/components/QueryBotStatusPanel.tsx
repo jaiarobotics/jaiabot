@@ -9,7 +9,7 @@ import React from 'react'
 import $ from 'jquery'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './gui/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
 interface Props {
@@ -47,7 +47,7 @@ export default class QueryBotStatusPanel extends React.Component {
                         </tr>
                     </tbody>
                 </table>
-                <Button className="button-jcc" type="button" id="submit_query_bot_status" onClick={this.submitQueryBotStatus.bind(this)}>Query Bot Status</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="submit_query_bot_status" onClick={this.submitQueryBotStatus.bind(this)}>Query Bot Status</Button>
             </div>
         )
 

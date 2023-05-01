@@ -16,9 +16,9 @@ import OlText from 'ol/style/Text';
 // TurfJS
 import * as turf from '@turf/turf';
 import { Vector as VectorLayer } from "ol/layer"
-import {createTaskPacketFeatures} from './gui/TaskPacketFeatures'
-import { geoJSONToDepthContourFeatures } from "./gui/Contours"
-import { TaskPacket } from "./gui/JAIAProtobuf"
+import {createTaskPacketFeatures} from './shared/TaskPacketFeatures'
+import { geoJSONToDepthContourFeatures } from "./shared/Contours"
+import { TaskPacket } from "./shared/JAIAProtobuf"
 import { Map } from "ol"
 import { Units } from "@turf/turf"
 
@@ -46,6 +46,7 @@ export class TaskData {
         zIndex: 25,
         opacity: 0.5,
         source: null,
+        visible: false,
       })
 
     taskPacketDiveLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -80,6 +81,7 @@ export class TaskData {
         },
         zIndex: 1001,
         source: null,
+        visible: false
     })
 
     taskPacketDriftLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -97,6 +99,7 @@ export class TaskData {
         zIndex: 1001,
         opacity: 1,
         source: null,
+        visible: false
     })
 
     taskPacketSource: VectorSource = new VectorSource()
@@ -108,6 +111,7 @@ export class TaskData {
         zIndex: 1001,
         opacity: 1,
         source: this.taskPacketSource,
+        visible: false
     })
 
 

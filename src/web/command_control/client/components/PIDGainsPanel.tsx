@@ -7,7 +7,7 @@ import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './gui/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
 let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
@@ -333,17 +333,17 @@ export class PIDGainsPanel extends React.Component {
                 {
                     botSelector
                 }
-                <Button className="button-jcc" type="button" id="query_engineering_status" onClick={this.queryEngineeringStatus.bind(this)}>Query Selected Status</Button>
-                <Button className="button-jcc" type="button" id="query_all_engineering_status" onClick={this.queryAllEngineeringStatus.bind(this)}>Query All Statuses</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="query_engineering_status" onClick={this.queryEngineeringStatus.bind(this)}>Query Selected Status</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="query_all_engineering_status" onClick={this.queryAllEngineeringStatus.bind(this)}>Query All Statuses</Button>
                 {
                     pidGainsTable(engineering)
                 }
-                <Button className="button-jcc" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
                 {
                     botRequirementsTable(engineering)
                 }
-                <Button className="button-jcc" type="button" id="submit_bot_requirements" onClick={this.submitBotRequirements.bind(this)}>Update Selected Bot</Button>
-                <Button className="button-jcc" type="button" id="submit_all_bot_requirements" onClick={this.submitAllBotRequirements.bind(this)}>Update All Bots</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="submit_bot_requirements" onClick={this.submitBotRequirements.bind(this)}>Update Selected Bot</Button>
+                <Button className="button-jcc engineering-panel-btn" type="button" id="submit_all_bot_requirements" onClick={this.submitAllBotRequirements.bind(this)}>Update All Bots</Button>
             </div>
         )
     

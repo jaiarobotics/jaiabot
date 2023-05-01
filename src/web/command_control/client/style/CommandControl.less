@@ -303,51 +303,54 @@ textarea {
     }
 
     position: absolute;
-    bottom: 40px + (2 * @map-button-size) + (2 * @layout-margin-px);
-    right: @command-button-size + (2 * @command-button-padding);;
-    height: (8 * @map-button-size) + (6 * @layout-margin-px);
-    max-height: 50%;
-    max-width: 20em;
-    height: auto;
-    width: auto;
+    top: @command-button-size + (2 * @command-button-padding);
+    right: @command-button-size + (2 * @command-button-padding);
+    width: 400px;
+    height: calc(100% - @command-button-size + (2 * @command-button-padding));
     background: @overlay-background;
     color: @cc-maplayers-text-color;
-
-    padding: @layout-margin 1em 0 0;
-    margin: 0 @layout-margin;
-
-    border-radius: @panel-corner-radius;
     overflow-y: auto;
     z-index: @map-layers;
 
     button {
-      min-width: 10px;
-      min-height: 10px;
-      height: auto;
-      width: auto;
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+      border-radius: 4px;
     }
 
     > ul:before {
       content: "Map Layers";
-      font-weight: bolder;
-      margin: 8px 0 0 -10px;
       display: block;
+      width: 396px;
+      background-color: #FFFFFF;
+      color: #000000;
+      margin-top: -8px;
+      margin-left: -10px;
+      margin-bottom: 20px;
+      padding: 0.25vw 2px;
+      text-align: center;
+      font-weight: bold;
+      border-radius: 8px;
     }
 
-    ul {
-      padding-left: 1em;
-      padding-right: 1em;
-      padding-bottom: @layout-margin;
+    > ul {
+      padding: 12px;
+      margin-bottom: 24px;
       list-style: none;
     }
 
     li.group {
-      padding-top: 5px;
-      margin-top: @layout-margin;
+      // 1px gap between folds...need -8px to shift all folds up to match look of mission panel
+      margin-top: -8px;
+      margin-bottom: 9px;
     }
 
-    li.group > label {
-      font-weight: bold;
+
+    li.group > label {}
+
+    li.group > ul {
+      padding: 12px 12px 12px 24px;
     }
 
     li.layer {
@@ -375,6 +378,7 @@ textarea {
         padding-left: 1.8em;
         line-height: 1.1em;
         box-shadow: #333 1px 1px 5px;
+        border-radius: 8px;
       }
 
       input[type="checkbox"] + label:before,
@@ -449,19 +453,35 @@ textarea {
     }
 
     .group.layer-switcher-fold.layer-switcher-close > label:before {
-      transform: rotate(-45deg);
-      -webkit-transform: rotate(-45deg);
+      transform: rotate(45deg);
+      -webkit-transform: rotate(45deg);
+      margin-right: 12px;
     }
 
     .group.layer-switcher-fold.layer-switcher-open > label:before {
-      transform: rotate(45deg);
-      -webkit-transform: rotate(45deg);
+      transform: rotate(225deg);
+      -webkit-transform: rotate(225deg);
+      margin-right: 12px;
     }
 
     .group.layer-switcher-fold.layer-switcher-close > ul {
       overflow: hidden;
       height: 0;
       padding: 0;
+    }
+
+    .layer-switcher-fold {
+      padding: 16px;
+      background-color: @cc-accordian-color;
+    }
+
+    .layer-switcher-fold > button {
+      display: none;
+    }
+
+    // 9px (margin btm of closed fold) + 12px = 21px...Adds 12px margin to btm of open fold
+    .group.layer-switcher-fold.layer-switcher-open {
+      margin-bottom: 21px;
     }
   }
 
@@ -894,6 +914,14 @@ textarea {
 
   }
 
+  .mission-speeds-label {
+    text-align: right;
+  }
+
+  .engineering-panel-btn {
+    width: 90%;
+  }
+
   /******** Remote Control Panel *****************************/
 
   #remoteControlPanel {
@@ -1009,6 +1037,35 @@ textarea {
   .fault-state-7 {
     background: none;
   }
+
+  .GoalSettingsPanel {
+    background-color: @cc-background-color;
+    color: @cc-text-color;
+    position: absolute;
+    right: @command-button-size + (2 * @command-button-padding);
+    top: @command-button-size + (2 * @command-button-padding);;
+    padding: 8pt;
+    border-radius: 8pt;
+  
+    button.select-on-map {
+      display: block;
+      margin: 10pt auto 10pt auto;
+      background-color: lightgreen;
+
+    }
+
+    button.select-on-map.clicking-map {
+      background-color: yellow;
+    }
+
+    .ConstantHeadingParametersTable {
+      td {
+        padding: 5pt;
+      }
+    }
+    
+  }
+  
 }
 
 .opacity(@opacity) {
@@ -1196,6 +1253,8 @@ div.hoverable:hover {
 
   background-color: @error-color;
   color: @cc-text-color;
+
+  z-index: 12;
 }
 
 .icon {
@@ -1293,4 +1352,12 @@ div.closeButton {
 
 #runList {
   margin: 10px;
+}
+
+.task-options {
+  margin-left: 10pt;
+
+  td {
+      padding: 5pt;
+  }
 }

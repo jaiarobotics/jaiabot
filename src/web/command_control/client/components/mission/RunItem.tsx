@@ -207,7 +207,7 @@ export default class RunItem extends React.Component {
                     <span className="runItemInfo">
                         {runAssignSelect}
                         {duplicateRunButton}
-                        {edit}
+                        {/*edit*/}
                         {runDeleteButton}
                     </span>
                     <div>
