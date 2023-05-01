@@ -181,7 +181,7 @@ const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
-const POLLING_INTERVAL_MS = 300;
+const POLLING_INTERVAL_MS = 500;
 
 const MAX_GOALS = 30;
 
@@ -1559,8 +1559,7 @@ export default class CommandControl extends React.Component {
 								missionPlanningLines: alongLines,
 								missionPlanningGrid: alongPoints,
 								missionParams: missionParams
-							})
-							this.updateMissionLayer();
+							}, () => this.updateMissionLayer())
 						}
 
 						// Metadata/Stats
@@ -2249,6 +2248,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	restoreUndo() {
+		if (!confirm('Click the OK button to undo the previous run edit that was made:')) return
+
 		if (this.state.undoRunListStack.length >= 1) {
 			this.state.runList = this.state.undoRunListStack.pop()
 			this.setState({goalBeingEdited: null})
@@ -2261,7 +2262,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendStop() {
-		if (!this.takeControl()) return
+		if (!this.takeControl() || !confirm('Click the OK button to stop all missions:')) return
 
 		this.api.allStop().then(response => {
 			if (response.message) {
@@ -2424,7 +2425,8 @@ export default class CommandControl extends React.Component {
 												this.api, 
 												closeDetails, 
 												this.state.detailsExpanded,
-												this.takeControl.bind(this));
+												this.takeControl.bind(this),
+												this.detailsDefaultExpanded.bind(this));
 				
 				break;
 			case 'bot':
@@ -2444,7 +2446,8 @@ export default class CommandControl extends React.Component {
 												this.state.remoteControlValues,
 												this.weAreInControl.bind(this),
 												this.weHaveRemoteControlInterval.bind(this),
-												this.deleteSingleRun.bind(this));
+												this.deleteSingleRun.bind(this),
+												this.detailsDefaultExpanded.bind(this));
 				break;
 			default:
 				detailsBox = null;
@@ -2740,6 +2743,23 @@ export default class CommandControl extends React.Component {
 		);
 	}
 
+ 	detailsDefaultExpanded(accordian: keyof DetailsExpandedState)
+	{
+		let detailsExpanded = this.state.detailsExpanded;
+
+		const newDetailsExpanded = this.state.detailsExpanded;
+		
+		if(detailsExpanded[accordian])
+		{
+			newDetailsExpanded[accordian] = false;
+		} else
+		{
+			newDetailsExpanded[accordian] = true;
+		}
+
+		this.setState({ detailsExpanded:newDetailsExpanded });
+	}
+
 	createRemoteControlInterval() {
 		// Before creating a new interval, clear the current one
 		this.clearRemoteControlInterval();
@@ -2767,7 +2787,6 @@ export default class CommandControl extends React.Component {
 		{
 			return false;
 		}
-
 	}
 
 	didClickBot(bot_id: number) {
@@ -3713,7 +3732,7 @@ export default class CommandControl extends React.Component {
 	}
 	
 	activateAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run a system check for all active bots:')) return;
 
 		this.api.allActivate().then(response => {
 			if (response.message) {
@@ -3726,7 +3745,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	nextTaskAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all mission-active bots:')) return;
 
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
