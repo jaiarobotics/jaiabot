@@ -8,20 +8,9 @@ pushd "$DIR"
 output_path='dist/client'
 [[ ! -z "$1" ]] && output_path="$1"
 
-which npm
-npm --version
-which webpack
-webpack --version
+echo "🟢 JCC:  Installing dependencies"
+npm install --no-audit
 
-if [[ "$DIR/package.json" -nt "$DIR/node_modules" ]]
-then
-	echo "Installing dependencies"
-	npm install --no-audit
-  # Touch, in case no modules had to be installed
-  touch "$DIR/node_modules"
-fi
-
-echo "🟢 Building app package"
-
+echo "🟢 JCC:  Building app package"
 webpack --mode development --config ./webpack.config.js --output-path $output_path # --display errors-only
 echo "✅ Done"

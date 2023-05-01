@@ -9,7 +9,7 @@ import React from 'react'
 import $ from 'jquery'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './gui/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
 interface Props {
