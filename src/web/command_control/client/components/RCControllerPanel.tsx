@@ -1,7 +1,7 @@
 import React from 'react'
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { Joystick, JoystickShape } from 'react-joystick-component'
-import { Engineering } from './gui/JAIAProtobuf'
+import { Engineering } from './shared/JAIAProtobuf'
 import { PortalBotStatus } from './PortalStatus'
 import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';

@@ -1,6 +1,6 @@
 // Saving and loading settings from browser's localStorage
 
-import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./gui/JAIAProtobuf"
+import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 import $ from 'jquery'
 
