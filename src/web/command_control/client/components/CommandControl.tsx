@@ -925,8 +925,8 @@ export default class CommandControl extends React.Component {
 			layers: [
 				this.activeMissionLayer,
 				this.missionPlanningLayer,
-				this.exclusionsLayer,
-				this.selectedMissionLayer
+				//this.exclusionsLayer,
+				//this.selectedMissionLayer
 			]
 		})
 		
