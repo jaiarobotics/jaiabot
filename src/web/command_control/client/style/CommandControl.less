@@ -1009,6 +1009,35 @@ textarea {
   .fault-state-7 {
     background: none;
   }
+
+  .GoalSettingsPanel {
+    background-color: @cc-background-color;
+    color: @cc-text-color;
+    position: absolute;
+    right: @command-button-size + (2 * @command-button-padding);
+    top: @command-button-size + (2 * @command-button-padding);;
+    padding: 8pt;
+    border-radius: 8pt;
+  
+    button.select-on-map {
+      display: block;
+      margin: 10pt auto 10pt auto;
+      background-color: lightgreen;
+
+    }
+
+    button.select-on-map.clicking-map {
+      background-color: yellow;
+    }
+
+    .ConstantHeadingParametersTable {
+      td {
+        padding: 5pt;
+      }
+    }
+    
+  }
+  
 }
 
 .opacity(@opacity) {
@@ -1293,4 +1322,12 @@ div.closeButton {
 
 #runList {
   margin: 10px;
+}
+
+.task-options {
+  margin-left: 10pt;
+
+  td {
+      padding: 5pt;
+  }
 }

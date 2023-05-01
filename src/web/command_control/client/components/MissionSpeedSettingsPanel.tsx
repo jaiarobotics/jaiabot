@@ -2,7 +2,7 @@ import React from 'react'
 import { GlobalSettings, Save } from './Settings'
 import Slider, { SliderClassKey } from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
-import {Speeds} from './gui/JAIAProtobuf'
+import {Speeds} from './shared/JAIAProtobuf'
 
 
 interface Props {
