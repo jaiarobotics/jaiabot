@@ -47,7 +47,7 @@ export class GoalSettingsPanel extends React.Component {
                 <div className="goalSettingsHeader">Bot {botId}</div>
             </div>
             <div>
-                <TaskSettingsPanel task={goal.task} location={this.props.goal.location} map={this.props.map} onChange={task => {
+                <TaskSettingsPanel task={goal.task} map={this.props.map} onChange={task => {
                     goal.task = task
                 }} />
 

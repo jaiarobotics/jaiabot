@@ -12,7 +12,7 @@ import React, { MouseEvent, ReactElement } from 'react'
 import { Load, Save, GlobalSettings } from './Settings'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
-import { MissionSettingsPanel, MissionSettings } from './MissionSettings'
+import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
@@ -208,21 +208,6 @@ enum Mode {
 	SET_HOME = 'setHome',
 	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
 	SET_RALLY_POINT_RED = "setRallyPointRed"
-}
-
-interface MissionParams {
-	mission_type: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
-	num_bots: number,
-	num_goals: number,
-	spacing: number,
-	orientation: number,
-	rally_spacing: number,
-	sp_area: number,
-	sp_perimeter: number,
-	sp_rally_start_dist: number,
-	sp_rally_finish_dist: number,
-	selected_bots: number[],
-	use_max_length: boolean
 }
 
 interface HubOrBot {
@@ -2357,7 +2342,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.mode === Mode.MISSION_PLANNING) {
 			missionSettingsPanel = <MissionSettingsPanel
 				map={map}
-				rallyPointRedLocation={this.state.rallyPointRedLocation}
 				mission_params={this.state.missionParams}
 				bot_list={this.podStatus?.bots}
 				missionBaseGoal={this.state.missionBaseGoal}

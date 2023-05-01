@@ -16,13 +16,26 @@ export interface MissionSettings {
     endTask: MissionTask
 }
 
+export interface MissionParams {
+	mission_type: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
+	num_bots: number,
+	num_goals: number,
+	spacing: number,
+	orientation: number,
+	rally_spacing: number,
+	sp_area: number,
+	sp_perimeter: number,
+	sp_rally_start_dist: number,
+	sp_rally_finish_dist: number,
+	selected_bots: number[],
+	use_max_length: boolean
+}
 
 interface Props {
     map: Map
     missionBaseGoal: Goal
     missionEndTask: MissionTask
-    rallyPointRedLocation: GeographicCoordinate
-    mission_params: any
+    mission_params: MissionParams
     bot_list?: {[key: string]: BotStatus}
 
     onClose: () => void
@@ -36,8 +49,8 @@ interface Props {
 
 interface State {
     missionBaseGoal: Goal
-    missionEndTask: MissionTask // This is the final task for bots to do at the recovery waypoint (station keep OR constant heading back to shore)
-    mission_params: any
+    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
+    mission_params: MissionParams
     bot_list?: {[key: string]: BotStatus}
 }
 
@@ -75,7 +88,7 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
-        const { map, rallyPointRedLocation } = this.props
+        const { map } = this.props
         let self = this
 
         let missionType = this.state.mission_params?.mission_type
@@ -133,7 +146,7 @@ export class MissionSettingsPanel extends React.Component {
                             </tr>
                             <tr hidden>
                                 <td>Use Max Line Length</td>
-                                <td><input type="checkbox" className="RadioInput" name="use_max_length" defaultValue={this.state.mission_params.use_max_length} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.mission_params.use_max_length} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             </tbody>
                         </table>
@@ -151,7 +164,6 @@ export class MissionSettingsPanel extends React.Component {
                     <TaskSettingsPanel 
                         title="End Task" 
                         map={map} 
-                        location={rallyPointRedLocation}
                         task={missionEndTask} onChange={(missionEndTask) => {
                             self.setState({missionEndTask})
                         }} 
@@ -197,13 +209,13 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionParameter(evt: Event) {
-        let {mission_params} = this.state
+        var {mission_params} = this.state
 
         const target = evt.target as any
         const key = target.name
-        const value = target.value
+        const value = target.value as any
 
-        mission_params[key] = value
+        (mission_params as any)[key] = value
 
         this.setState({mission_params})
     }
@@ -226,7 +238,7 @@ export class MissionSettingsPanel extends React.Component {
 
     changeMissionBotSelection() {
         const selected = document.querySelectorAll('#mission-bot-selection option:checked')
-        const missionBots = Array.from(selected).map(el => (el as HTMLSelectElement).value);
+        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value));
         // let missionBots = document.getElementById('mission-bot-selection').val();
         // console.log(missionBots);
         let {mission_params} = this.state;

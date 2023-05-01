@@ -8,7 +8,10 @@ import { rhumbBearing, rhumbDistance } from '@turf/turf';
 import Map from 'ol/Map'
 import PointerInteraction from 'ol/interaction/Pointer';
 import { toLonLat, transformWithProjections } from 'ol/proj';
-
+import { Draw } from 'ol/interaction';
+import { Vector as VectorLayer } from 'ol/layer';
+import { Vector as VectorSource } from 'ol/source';
+import { LineString } from 'ol/geom';
 
 // For keeping heading angles in the [0, 360] range
 function fmod(a: number, b: number) { 
@@ -20,7 +23,6 @@ interface Props {
     map?: Map
     title?: string
     task?: MissionTask
-    location?: GeographicCoordinate
     onChange?: (task?: MissionTask) => void
 }
 
@@ -87,60 +89,61 @@ function TaskOptionsPanel(props: Props) {
             return
         }
 
-        const selectOnMapInteraction = new PointerInteraction({
-            handleEvent: (evt) => {
+        // New layer for the constant heading line preview
+        const source = new VectorSource({wrapX: false});
 
-                switch(evt.type) {
-                    case 'click':
-                        // We're done getting these coordinates
-                        map.removeInteraction(selectOnMapInteraction)
-                        setClickingMap(false)
+        const vector = new VectorLayer({
+          source: source,
+        });
+        
+        map.addLayer(vector)
 
-                        let start = props.location ?? {lat: 0, lon: 0}
-                        const end = getGeographicCoordinate(evt.coordinate, map)
-                        let constant_heading = task.constant_heading
-                        let speed = constant_heading?.constant_heading_speed
-
-                        // Guard
-                        if (start == null || constant_heading == null) {
-                            return false
-                        }
-
-                        if (speed == null) {
-                            console.error(`Constant heading task has speed == ${speed}`)
-                            return false
-                        }
-
-                        if (props.location == null) {
-                            console.error('No location given to TaskSettingsPanel')
-                            return false
-                        }
-
-                        // Calculate heading and time from location and speed
-                        let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
-                        constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
-
-                        let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
-                        let t = rhumb_distance / speed
-                        constant_heading.constant_heading_time = Number(t.toFixed(0))
-
-                        return false // Do not propagate this click
-                        break;
-
-                    case 'pointerdown':
-                    case 'mousedown':
-                        return false // Do not propagate this click
-                        break;
-                    
-                    default:
-                        return true // Propagate everything else
-                        break;
-                }
-            }
+        // New interaction to get two points
+        let draw = new Draw({
+            source: source,
+            type: 'LineString',
+            maxPoints: 2,
+            stopClick: true,
         })
+        draw.stopDown = (handled) => { return handled }
 
-        map.addInteraction(selectOnMapInteraction)
+        map.addInteraction(draw)
         setClickingMap(true)
+
+        draw.on('drawend', (evt) => {
+            console.log(source)
+            map.removeLayer(vector)
+            map.removeInteraction(draw)
+            setClickingMap(false)
+
+            const feature = evt.feature
+            const geometry = feature.getGeometry() as LineString
+            const startCoordinate = geometry.getCoordinates()[0]
+            const endCoordinate = geometry.getCoordinates()[1]
+            const start = getGeographicCoordinate(startCoordinate, map)
+            const end = getGeographicCoordinate(endCoordinate, map)
+
+            let constant_heading = task.constant_heading
+            let speed = constant_heading?.constant_heading_speed
+
+            // Guard
+            if (start == null || constant_heading == null) {
+                return false
+            }
+
+            if (speed == null) {
+                console.error(`Constant heading task has speed == ${speed}`)
+                return false
+            }
+
+            // Calculate heading and time from location and speed
+            let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
+            constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
+
+            let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
+            let t = rhumb_distance / speed
+            constant_heading.constant_heading_time = Number(t.toFixed(0))
+        })
     }
     
     let dive = task.dive
