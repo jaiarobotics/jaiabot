@@ -927,9 +927,6 @@ export default class CommandControl extends React.Component {
 				this.selectedMissionLayer
 			]
 		})
-
-		const taskPacketInfoLayer = taskData.taskPacketInfoLayer
-		taskPacketInfoLayer.set('visible', false)
 		
 		this.measurementLayerGroup = new OlLayerGroup({
 			properties: { 
@@ -938,13 +935,10 @@ export default class CommandControl extends React.Component {
 			},
 			layers: [
 				taskData.getContourLayer(),
-				taskData.getTaskPacketDiveLayer(),
-				taskData.getTaskPacketDriftLayer(),
-				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
 				taskData.getTaskPacketDiveBottomInfoLayer(),
-				taskPacketInfoLayer
+				taskData.taskPacketInfoLayer
 			]
 		})
 
@@ -1109,7 +1103,33 @@ export default class CommandControl extends React.Component {
 
 		tooltips();
 
-		($('#mapLayers') as any).hide('blind', { direction: 'right' }, 0);
+		const mapLayersPanel = document.getElementById('mapLayers')
+		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
+		mapLayersPanel.style.width = '0px'
+
+		function handleLayerSwitcherClick(event: Event) {
+			let targetElement = event.target as HTMLElement
+
+			if (targetElement.tagName === 'LABEL' && targetElement.parentElement.classList.contains('layer-switcher-fold')) {
+				event.preventDefault()
+				const siblings = []
+				while ((targetElement = targetElement.previousElementSibling as HTMLElement)) {
+					siblings.push(targetElement)
+				}
+				siblings.forEach(sibling => {
+					if (sibling.tagName === 'BUTTON') {
+						sibling.click()
+					}
+				})
+			} else if (targetElement.classList.contains('layer-switcher-fold')) {
+				const children: HTMLElement[] = Array.prototype.slice.call(targetElement.children)
+				children.forEach(child => {
+					if (child.tagName === 'BUTTON') {
+						child.click()
+					}
+				})
+			}
+		}
 
 		// Hotkeys
 		function KeyPress(e: KeyboardEvent) {
@@ -2465,7 +2485,7 @@ export default class CommandControl extends React.Component {
 
 		function closeMapLayers() {
 			let mapLayersPanel = document.getElementById('mapLayers')
-			mapLayersPanel.style.display = 'none'
+			mapLayersPanel.style.width = '0px'
 			self.setState({mapLayerActive: false});
 		}
 
@@ -2511,8 +2531,10 @@ export default class CommandControl extends React.Component {
 						<Button className="button-jcc active"
 							onClick={() => {
 								this.setState({mapLayerActive: false}); 
-								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
-								$('#mapLayersButton').toggleClass('active');
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '0px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2523,8 +2545,10 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								closeOtherViewControlWindows('mapLayersPanel');
 								this.setState({mapLayerActive: true}); 
-								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
-								$('#mapLayersButton').toggleClass('active');
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '400px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
