@@ -110,7 +110,7 @@ export function createChartLayerGroup() {
     return new LayerGroup({
         properties: {
             title: 'Bathymetry',
-            fold: 'open'
+            fold: 'close'
         },
         layers: layers
     })

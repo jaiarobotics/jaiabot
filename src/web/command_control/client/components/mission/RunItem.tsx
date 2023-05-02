@@ -16,6 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Missions } from '../Missions'
+import { Slider } from '@mui/material';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -174,7 +175,30 @@ export default class RunItem extends React.Component {
                 onChange={self.editUpdate.bind(self)}
                 inputProps={{ 'aria-label': 'controlled' }}
             />
-  
+
+        let plan = this.props.run.command.plan
+        let repeats = plan?.repeats ?? 1
+        let repeatsInput =
+            <div>
+                Repeats: {repeats}
+                <Slider
+                    id="runRepeats"
+                    aria-label="Repeats"
+                    value={repeats}
+                    valueLabelDisplay="auto"
+                    step={1}
+                    marks
+                    min={1}
+                    max={10}
+                    onChange={(evt: Event, value: number, activeThumb: number) => {
+                        if (plan != null) {
+                            plan.repeats = value
+                            self.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
+                        }
+                    }}
+                />
+            </div>
+
         return (
             <Accordion className="run-accordian">
                 <AccordionSummary
@@ -190,9 +214,12 @@ export default class RunItem extends React.Component {
                     <span className="runItemInfo">
                         {runAssignSelect}
                         {duplicateRunButton}
-                        {edit}
+                        {/*edit*/}
                         {runDeleteButton}
                     </span>
+                    <div>
+                        {repeatsInput}
+                    </div>
                 </AccordionDetails>
             </Accordion>
         );
