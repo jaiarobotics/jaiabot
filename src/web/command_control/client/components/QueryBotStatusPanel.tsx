@@ -32,7 +32,7 @@ export default class QueryBotStatusPanel extends React.Component {
                 <table>
                     <tbody>
                         <tr key="bot_to_query">
-                            <td>Bot Id</td>
+                            <td>Bot-ID</td>
                             <td>
                                 <input style={{maxWidth: "80px"}} 
                                     type="number" 
