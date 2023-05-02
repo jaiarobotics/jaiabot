@@ -42,10 +42,6 @@ export class GoalSettingsPanel extends React.Component {
         this.oldGoal = deepcopy(props.goal)
     }
 
-    componentDidUpdate() {
-        this.props.onChange?.()
-    }
-
     render() {
         const { botId, goalIndex, goal } = this.props
         let self = this
