@@ -907,11 +907,11 @@ export default class CommandControl extends React.Component {
 			layers: [
 				this.activeMissionLayer,
 				this.missionPlanningLayer,
-				this.exclusionsLayer,
-				this.selectedMissionLayer
+				//this.exclusionsLayer,
+				//this.selectedMissionLayer
 			]
 		})
-
+		
 		this.measurementLayerGroup = new OlLayerGroup({
 			properties: { 
 				title: 'Measurements',
@@ -919,9 +919,6 @@ export default class CommandControl extends React.Component {
 			},
 			layers: [
 				taskData.getContourLayer(),
-				taskData.getTaskPacketDiveLayer(),
-				taskData.getTaskPacketDriftLayer(),
-				taskData.getTaskPacketDiveBottomLayer(),
 				taskData.getTaskPacketDiveInfoLayer(),
 				taskData.getTaskPacketDriftInfoLayer(),
 				taskData.getTaskPacketDiveBottomInfoLayer(),
@@ -1090,7 +1087,33 @@ export default class CommandControl extends React.Component {
 
 		tooltips();
 
-		($('#mapLayers') as any).hide('blind', { direction: 'right' }, 0);
+		const mapLayersPanel = document.getElementById('mapLayers')
+		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
+		mapLayersPanel.style.width = '0px'
+
+		function handleLayerSwitcherClick(event: Event) {
+			let targetElement = event.target as HTMLElement
+
+			if (targetElement.tagName === 'LABEL' && targetElement.parentElement.classList.contains('layer-switcher-fold')) {
+				event.preventDefault()
+				const siblings = []
+				while ((targetElement = targetElement.previousElementSibling as HTMLElement)) {
+					siblings.push(targetElement)
+				}
+				siblings.forEach(sibling => {
+					if (sibling.tagName === 'BUTTON') {
+						sibling.click()
+					}
+				})
+			} else if (targetElement.classList.contains('layer-switcher-fold')) {
+				const children: HTMLElement[] = Array.prototype.slice.call(targetElement.children)
+				children.forEach(child => {
+					if (child.tagName === 'BUTTON') {
+						child.click()
+					}
+				})
+			}
+		}
 
 		// Hotkeys
 		function KeyPress(e: KeyboardEvent) {
@@ -2464,7 +2487,7 @@ export default class CommandControl extends React.Component {
 
 		function closeMapLayers() {
 			let mapLayersPanel = document.getElementById('mapLayers')
-			mapLayersPanel.style.display = 'none'
+			mapLayersPanel.style.width = '0px'
 			self.setState({mapLayerActive: false});
 		}
 
@@ -2510,8 +2533,10 @@ export default class CommandControl extends React.Component {
 						<Button className="button-jcc active"
 							onClick={() => {
 								this.setState({mapLayerActive: false}); 
-								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
-								$('#mapLayersButton').toggleClass('active');
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '0px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2522,8 +2547,10 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								closeOtherViewControlWindows('mapLayersPanel');
 								this.setState({mapLayerActive: true}); 
-								($('#mapLayers') as any).toggle('blind', { direction: 'right' });
-								$('#mapLayersButton').toggleClass('active');
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '400px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2557,7 +2584,7 @@ export default class CommandControl extends React.Component {
 							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
 						</Button>
 					)}
-					{trackingTarget === 'all' ? (
+					{/*trackingTarget === 'all' ? (
 						<Button 
 							onClick={() => {
 								this.zoomToAll(false);
@@ -2577,7 +2604,7 @@ export default class CommandControl extends React.Component {
 						>
 							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Follow All" />
 						</Button>
-					)}
+					)*/}
 					{trackingTarget === 'pod' ? (
 						<Button 							
 							onClick={() => {
@@ -3548,7 +3575,6 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		else {
-			console.log("Feature == false");
 			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
@@ -3649,9 +3675,6 @@ export default class CommandControl extends React.Component {
 				</Button>
 				<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
-				</Button>
-				<Button id= "missionRecover" className="button-jcc" onClick={this.recoverAllClicked.bind(this)}>
-					<Icon path={mdiDownload} title="Recover All"/>
 				</Button>
 				{ this.undoButton() }					
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
@@ -3762,7 +3785,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	nextTaskAllClicked(evt: UIEvent) {
-		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all mission-active bots:')) return;
+		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all active bots:')) return;
 
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
@@ -3775,7 +3798,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	recoverAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return
+		if (!this.takeControl() || !confirm('Click the OK button to recover all active bots:')) return
 
 		this.api.allRecover().then(response => {
 				if (response.message) {
