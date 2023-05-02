@@ -140,7 +140,7 @@ export class Missions {
             assigned: botId,
             editing: false,
             command: commandWithGoals(botId, goals),
-            duplicate: duplicateRun ? {duplicateOf: duplicateRun.id, addedFlag: false} : {duplicateOf: '', addedFlag: false}
+            duplicate: duplicateRun ? {duplicateOf: duplicateRun.id, addedFlag: false} : null
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);

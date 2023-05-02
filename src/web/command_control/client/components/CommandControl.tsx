@@ -2426,6 +2426,14 @@ export default class CommandControl extends React.Component {
 							Missions.addRunWithGoals(this.state.missionPlans[id].bot_id, this.state.missionPlans[id].plan.goal, this.state.runList);
 						}
 
+						const runs = this.state.runList.runs
+						const startLocation = this.state.rallyPointGreenLocation.rawCoordinate
+						for (let runKey of Object.keys(runs)) {
+							const run = runs[runKey]
+							run.command.plan.goal[0].location.rawCoordinate = startLocation
+							this.addRunFlag(startLocation, run)
+						}
+
 						// Close panel after applying
 						this.changeInteraction();
 						this.setState({
@@ -2920,12 +2928,12 @@ export default class CommandControl extends React.Component {
 			const assignedBot = run.assigned
 			const isBotSelected = this.isBotSelected(assignedBot)
 			if (run.command.plan.goal.length === 1 && isBotSelected) {
-				this.addRunFlag(coordinate, run, false)
+				this.addRunFlag(coordinate, run)
 			}
 		}
 	}
 
-	addRunFlag(coordinate: number[], run: RunInterface, duplicate: boolean) {
+	addRunFlag(coordinate: number[], run: RunInterface) {
 			const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2)
 			const runName = `R${runNumber}`
 			const assignedBot = run.assigned
@@ -2953,11 +2961,10 @@ export default class CommandControl extends React.Component {
 			})
 			flagOverlay.setPosition(coordinate)
 
-			if (duplicate) {
-				const runFlagZIndex = this.state.runFlagZIndex + 1
-				flagOuterContainer.parentElement.style.zIndex = String(runFlagZIndex)
-				this.setState({ runFlagZIndex: runFlagZIndex })
-			}
+			// Reduces lag on switching between duplicate runs
+			const runFlagZIndex = this.state.runFlagZIndex + 1
+			flagOuterContainer.parentElement.style.zIndex = String(runFlagZIndex)
+			this.setState({ runFlagZIndex: runFlagZIndex })
 
 			// Add feature to overlay
 			map.addOverlay(flagOverlay)
@@ -3188,7 +3195,6 @@ export default class CommandControl extends React.Component {
 			if (selected && runFlag) {
 				runFlag.src = olFlagIconSelected
 				const runFlagZIndex = this.state.runFlagZIndex + 1
-				// Need to set z-index out Open Layers Overlay element
 				runFlag.parentElement.parentElement.parentElement.style.zIndex = String(runFlagZIndex)
 				this.setState({runFlagZIndex: runFlagZIndex})
 			}
@@ -3197,7 +3203,7 @@ export default class CommandControl extends React.Component {
 			if (run.duplicate && !run.duplicate.addedFlag && selected) {
 				// Create a new flag
 				const location = run.command.plan.goal[0].location.rawCoordinate
-				this.addRunFlag(location, run, true)
+				this.addRunFlag(location, run)
 				missions.runs[`run-${runNumber}`].duplicate.addedFlag = true
 			}
 		}
@@ -3450,9 +3456,8 @@ export default class CommandControl extends React.Component {
 			// Add flag to run above first waypoint
 			const runs = this.state.runList.runs
 			const run = runs[runName]
-			const assignedBot = run.assigned
 			const coordinate = run.command.plan.goal[0].location.rawCoordinate
-			this.addRunFlag(coordinate, run, false)
+			this.addRunFlag(coordinate, run)
 		}
 		this.updateMissionLayer()
 	}
@@ -3717,7 +3722,7 @@ export default class CommandControl extends React.Component {
 
 	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
 		let lonlat = mercator_to_equirectangular(coordinate)
-		let location = {lon: lonlat[0], lat: lonlat[1]}
+		let location = {lon: lonlat[0], lat: lonlat[1], rawCoordinate: coordinate}
 		this.setState({
 			rallyPointGreenLocation: location,
 			mode: ''
