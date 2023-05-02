@@ -354,6 +354,29 @@ jaiabot::apps::MissionManager::MissionManager()
                         command.gps_requirements().after_dive_gps_fix_checks());
                 }
             }
+            if (command.has_bottom_depth_safety_params())
+            {
+                if (command.bottom_depth_safety_params().has_constant_heading())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading(
+                        command.bottom_depth_safety_params().constant_heading());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_speed())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_speed(
+                        command.bottom_depth_safety_params().constant_heading_speed());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_time())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_time(
+                        command.bottom_depth_safety_params().constant_heading_time());
+                }
+                if (command.bottom_depth_safety_params().has_safety_depth())
+                {
+                    machine_->set_bottom_safety_depth(
+                        command.bottom_depth_safety_params().safety_depth());
+                }
+            }
         });
 
     // handle rf disable commands to make sure task packets are not sent
@@ -549,7 +572,17 @@ void jaiabot::apps::MissionManager::loop()
     gps_requirements.set_transit_gps_degraded_fix_checks(
         machine_->transit_gps_degraded_fix_checks());
     gps_requirements.set_after_dive_gps_fix_checks(machine_->after_dive_gps_fix_checks());
+
     *engineering_status.mutable_gps_requirements() = gps_requirements;
+
+    engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
+        machine_->bottom_safety_depth());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
+        machine_->bottom_depth_safety_constant_heading());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
+        machine_->bottom_depth_safety_constant_heading_speed());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
+        machine_->bottom_depth_safety_constant_heading_time());
 
     interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
 
