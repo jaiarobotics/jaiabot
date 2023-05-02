@@ -46,7 +46,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 <name>{depth_string}</name>
                 <description>
                     <h2>Dive</h2>
-                    Bot-Id: {bot_id}<br />
+                    Bot-ID: {bot_id}<br />
                     Time: {task_packet.date_string()}<br />
                     Depth: {depth_string}<br />
                     Bottom-Dive: {"Yes" if dive.bottom_dive else "No"}<br />
@@ -87,7 +87,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
 
         drift_description = f'''
             <h2>Drift</h2>
-            Bot-Id: {bot_id}<br />
+            Bot-ID: {bot_id}<br />
             Start: {task_packet.date_string()}<br />
             Duration: {drift.drift_duration} s<br />
             Speed: {speed_string}<br />
