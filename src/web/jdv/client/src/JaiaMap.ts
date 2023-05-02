@@ -152,7 +152,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                 <name>${depthString}</name>
                 <description>
                     <h2>Dive</h2>
-                    Bot-Id: ${bot_id}<br />
+                    Bot-ID: ${bot_id}<br />
                     Time: ${dateString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
@@ -186,7 +186,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
         const driftDescription = `
             <h2>Drift</h2>
-            Bot-Id: ${bot_id}<br />
+            Bot-ID: ${bot_id}<br />
             Start: ${dateString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
