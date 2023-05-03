@@ -43,7 +43,7 @@ export let GlobalSettings = {
     diveParameters: Load<DiveParameters>('diveParameters', {
         max_depth: 10,
         depth_interval: 10,
-        hold_time: 1
+        hold_time: 0
     }),
 
     // Default drift parameters for dive and drift tasks
@@ -64,7 +64,7 @@ export let GlobalSettings = {
     }),
 
     mapSettings: Load<MapSettings>('mapSettings', {
-        visibleLayers: new Set(['OpenStreetMap', 'NOAA ENC Charts']),
+        visibleLayers: new Set(['OpenStreetMap']),
         center: [0, 0],
         zoomLevel: 2,
         rotation: 0

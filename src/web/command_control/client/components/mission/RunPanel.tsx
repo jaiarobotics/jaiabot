@@ -8,7 +8,8 @@ interface Props {
     mission: MissionInterface,
     loadMissionClick: any,
     saveMissionClick: any,
-    deleteAllRunsInMission: any
+    deleteAllRunsInMission: any,
+    autoAssignBotsToRuns: any
 }
 
 
@@ -38,6 +39,7 @@ export default class RunPanel extends React.Component {
                     loadMissionClick={self.props.loadMissionClick}
 				    saveMissionClick={self.props.saveMissionClick}
                     deleteAllRunsInMission={self.props.deleteAllRunsInMission}
+                    autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
                 />}
             </React.Fragment>
         );

@@ -223,7 +223,7 @@ export class MissionSettingsPanel extends React.Component {
                     dive: {
                         max_depth: 10,
                         depth_interval: 10,
-                        hold_time: 1
+                        hold_time: 0
                     },
                     surface_drift: {
                         drift_time: 10
@@ -238,7 +238,7 @@ export class MissionSettingsPanel extends React.Component {
                 goal.task = {
                     type: taskType,
                     surface_drift: {
-                        drift_time: 10
+                        drift_time: 30
                     }
                 }
                 break;
