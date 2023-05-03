@@ -362,6 +362,7 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = "IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT",
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS",
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT",
+    IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = "IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING",
     IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = "IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING",
     IN_MISSION__UNDERWAY__TASK__IMU_RESTART = "IN_MISSION__UNDERWAY__TASK__IMU_RESTART",
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = "IN_MISSION__UNDERWAY__RECOVERY__TRANSIT",
@@ -1072,6 +1073,13 @@ export interface RFDisableOptions {
     rf_disable_timeout_mins?: number
 }
 
+export interface BottomDepthSafetyParams {
+    constant_heading?: number
+    constant_heading_time?: number
+    constant_heading_speed?: number
+    safety_depth?: number
+}
+
 export interface Engineering {
     bot_id?: number
     time?: number
@@ -1082,6 +1090,7 @@ export interface Engineering {
     bot_status_rate?: BotStatusRate
     gps_requirements?: GPSRequirements
     rf_disable_options?: RFDisableOptions
+    bottom_depth_safety_params?: BottomDepthSafetyParams
     flag?: number
 }
 

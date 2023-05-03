@@ -132,7 +132,9 @@ export class PIDGainsPanel extends React.Component {
 
         function botRequirementsTable(engineering: Engineering) {
             if (engineering) {
-                return  <table id="engineering_requirements_table">
+                return  <React.Fragment>
+                        <h3>Requirements</h3>
+                        <table id="engineering_requirements_table">
                             <tbody>
                                 <tr>
                                     <td key="current_status_rate_label">Current Status Rate</td>
@@ -322,6 +324,102 @@ export class PIDGainsPanel extends React.Component {
                                 </tr>
                             </tbody>
                         </table>
+                        </React.Fragment>
+            }
+            else {
+                return <div></div>
+            }
+        }
+
+        function botSafetyTable(engineering: Engineering) {
+            if (engineering) {
+                return  <React.Fragment>
+                        <h3>SRP</h3>
+                        <table id="engineering_safety_table">
+                            <tbody>
+                                <tr>
+                                    <td key="safety_depth_label">Current Depth Safety (m)</td>
+                                    <td key="safety_depth">
+                                        {engineering?.bottom_depth_safety_params?.safety_depth  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_bottom_depth_safety_heading_label">Current Depth Safety Heading (deg)</td>
+                                    <td key="current_bottom_depth_safety_heading">
+                                        {engineering?.bottom_depth_safety_params?.constant_heading  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_bottom_depth_safety_time_label">Current Depth Safety Time (s)</td>
+                                    <td key="current_bottom_depth_safety_time">
+                                        {engineering?.bottom_depth_safety_params?.constant_heading_time  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="current_bottom_depth_safety_speed_label">Current Depth Safety Speed (m/s)</td>
+                                    <td key="current_bottom_depth_safety_speed">
+                                        {engineering?.bottom_depth_safety_params?.constant_heading_speed  ?? "-"}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="safety_depth_label">Update Depth Safety (m)</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="safety_depth_input" 
+                                            name="safety_depth_input" 
+                                            defaultValue={engineering?.bottom_depth_safety_params?.safety_depth ?? "-"} 
+                                            min="0"
+                                            max="60"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="bottom_depth_safety_heading_label">Update Depth Safety Heading (deg)</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="bottom_depth_safety_heading_input" 
+                                            name="bottom_depth_safety_heading_input" 
+                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading ?? "-"} 
+                                            min="0"
+                                            max="360"
+                                            step="1"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="bottom_depth_safety_time_label">Update Depth Safety Time (s)</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="bottom_depth_safety_time_input" 
+                                            name="bottom_depth_safety_time_input" 
+                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading_time ?? "-"} 
+                                            min="0"
+                                            max="360"
+                                            step="1"
+                                        />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td key="bottom_depth_safety_speed_label">Update Depth Safety Speed (m/s)</td>
+                                    <td>
+                                        <input style={{maxWidth: "80px"}} 
+                                            type="number" 
+                                            id="bottom_depth_safety_speed_input" 
+                                            name="bottom_depth_safety_speed_input" 
+                                            defaultValue={engineering?.bottom_depth_safety_params?.constant_heading_speed ?? "-"} 
+                                            min="0"
+                                            max="3"
+                                            step="any"
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        </React.Fragment>
             }
             else {
                 return <div></div>
@@ -341,6 +439,9 @@ export class PIDGainsPanel extends React.Component {
                 <Button className="button-jcc engineering-panel-btn" type="button" id="submit_gains" onClick={this.submitGains.bind(this)}>Change Gains</Button>
                 {
                     botRequirementsTable(engineering)
+                }
+                {
+                    botSafetyTable(engineering)
                 }
                 <Button className="button-jcc engineering-panel-btn" type="button" id="submit_bot_requirements" onClick={this.submitBotRequirements.bind(this)}>Update Selected Bot</Button>
                 <Button className="button-jcc engineering-panel-btn" type="button" id="submit_all_bot_requirements" onClick={this.submitAllBotRequirements.bind(this)}>Update All Bots</Button>
@@ -443,6 +544,12 @@ export class PIDGainsPanel extends React.Component {
             },
             rf_disable_options: {
                 rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
+            },
+            bottom_depth_safety_params: {
+                constant_heading: Number($("#bottom_depth_safety_heading_input").val()),
+                constant_heading_speed: Number($("#bottom_depth_safety_speed_input").val()),
+                constant_heading_time: Number($("#bottom_depth_safety_time_input").val()),
+                safety_depth: Number($("#safety_depth_input").val())
             }
         }
 
@@ -481,6 +588,12 @@ export class PIDGainsPanel extends React.Component {
                 },
                 rf_disable_options: {
                     rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
+                },
+                bottom_depth_safety_params: {
+                    constant_heading: Number($("#bottom_depth_safety_heading_input").val()),
+                    constant_heading_speed: Number($("#bottom_depth_safety_speed_input").val()),
+                    constant_heading_time: Number($("#bottom_depth_safety_time_input").val()),
+                    safety_depth: Number($("#safety_depth_input").val())
                 }
             }
     
