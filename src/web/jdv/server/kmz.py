@@ -22,6 +22,8 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
     # Bail if this task packet is the less precise DCCL copy
     if (task_packet._scheme_ != 1):
         return []
+    
+    bot_id = task_packet.bot_id
 
     if task_packet.dive:
         dive = task_packet.dive
@@ -44,6 +46,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 <name>{depth_string}</name>
                 <description>
                     <h2>Dive</h2>
+                    Bot-ID: {bot_id}<br />
                     Time: {task_packet.date_string()}<br />
                     Depth: {depth_string}<br />
                     Bottom-Dive: {"Yes" if dive.bottom_dive else "No"}<br />
@@ -84,6 +87,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
 
         drift_description = f'''
             <h2>Drift</h2>
+            Bot-ID: {bot_id}<br />
             Start: {task_packet.date_string()}<br />
             Duration: {drift.drift_duration} s<br />
             Speed: {speed_string}<br />
