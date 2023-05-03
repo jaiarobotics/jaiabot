@@ -326,7 +326,7 @@ message DriftPacket
         (dccl.field) = {
             min: 0
             max: 3600
-            precision: -1
+            precision: 1
             units { base_dimensions: "T" }
         }
     ];
@@ -425,11 +425,11 @@ message DivePacket
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 199 bytes / 1592 bits
+    Actual maximum size of message: 200 bytes / 1600 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1570
-        padding to full byte...................6
+        body................................1577
+        padding to full byte...................7
     Allowed maximum size of message: 200 bytes / 1600 bits
     */
     option (dccl.msg) = {

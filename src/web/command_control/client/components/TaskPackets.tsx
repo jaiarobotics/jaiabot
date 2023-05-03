@@ -165,11 +165,13 @@ export class TaskData {
                     })
                 });
 
-                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved;
+                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
+                                    + `\nBottom Type: ` + divePacket.bottom_type;
 
                 if(divePacket.reached_min_depth)
                 {
                     bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
+                                        + `\nBottom Type: ` + divePacket.bottom_type
                                         + '\nReached Min Depth: ' + divePacket.reached_min_depth;
                 }
 
@@ -273,7 +275,9 @@ export class TaskData {
                             font : `15px Calibri,sans-serif`,
                             text : `Duration (s): ` + driftPacket.drift_duration 
                                 + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
-                                + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
+                                + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2)
+                                + '\nSig. Wave Height (m): ' + driftPacket.significant_wave_height.toFixed(2)
+                                + '\nSig. Wave Period (s): ' + driftPacket.wave_period.toFixed(2),
                             scale: 1,
                             fill: new OlFillStyle({color: 'white'}),
                             backgroundFill: new OlFillStyle({color: 'black'}),

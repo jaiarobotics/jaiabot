@@ -497,6 +497,14 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
             context<Dive>().dive_packet().set_max_acceleration_with_units(
                 this->machine().latest_max_acceleration());
 
+            // Determine Hard/Soft
+            if (this->machine().latest_max_acceleration().value() > 100)
+            {
+                // Set the bottom_type
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            }
+
             // used to correct dive rate calculation
             duration_correction_ = (now - last_depth_change_time_);
             post_event(EvDepthTargetReached());

@@ -365,6 +365,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         imu_data.mutable_calibration_status()->set_gyro(3);
         imu_data.mutable_calibration_status()->set_accel(3);
         imu_data.mutable_calibration_status()->set_mag(3);
+        imu_data.mutable_wave()->set_amplitude(1.5);
+        imu_data.mutable_wave()->set_frequency(5);
+        imu_data.set_max_acceleration(101);
         interprocess().publish<groups::imu>(imu_data);
     }
 
