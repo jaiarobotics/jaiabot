@@ -97,7 +97,7 @@ class SimulatorTranslation : public goby::moos::Translator
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    int time_out_sky_{1};
+    int time_out_sky_{200};
     double hdop_rand_max_{1};
     double pdop_rand_max_{1.5};
     double heading_rand_max_{0};
@@ -293,7 +293,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     }
 
     // publish gps sky data
-    if (sky_last_updated_ + std::chrono::seconds(time_out_sky_) < now)
+    if (sky_last_updated_ + std::chrono::milliseconds(time_out_sky_) < now)
     {
         goby::middleware::protobuf::gpsd::SkyView sky;
 
