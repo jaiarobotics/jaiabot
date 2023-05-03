@@ -492,11 +492,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
-                                <Icon path={mdiSkipNext} title="Next Task"/>
-                        </Button>
                         <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
                                 disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
                                 onClick={() => { deleteSingleMission() }}>
@@ -580,6 +575,12 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
+
+                            <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
+                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
+                                <Icon path={mdiSkipNext} title="Next Task"/>
+                            </Button>
 
                             {dataOffloadButton}
 
