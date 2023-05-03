@@ -2418,7 +2418,8 @@ export default class CommandControl extends React.Component {
 							mode: '',
 							surveyPolygonChanged: false,
 							missionPlanningGrid: null,
-							missionPlanningLines: null
+							missionPlanningLines: null,
+							goalBeingEdited: null
 						});
 
 						this.updateMissionLayer();
@@ -3679,7 +3680,7 @@ export default class CommandControl extends React.Component {
 		}} areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
 		></LoadMissionPanel>
 
-		this.setState({loadMissionPanel: panel})
+		this.setState({loadMissionPanel: panel, saveMissionPanel: null})
 	}
 
 	saveMissionButtonClicked() {
@@ -3687,7 +3688,7 @@ export default class CommandControl extends React.Component {
 			this.setState({saveMissionPanel: null})
 		}}></SaveMissionPanel>
 
-		this.setState({saveMissionPanel: panel})
+		this.setState({saveMissionPanel: panel, loadMissionPanel: null})
 	}
 
 	undoButton() {
