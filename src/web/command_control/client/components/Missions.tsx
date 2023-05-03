@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
-import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './gui/JAIAProtobuf'
+import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 
 
@@ -67,7 +67,6 @@ export class Missions {
             this.addRunWithGoals(-1, goals, mission['Mission-1']);
         }
 
-        console.log('defaultMissions = ', mission)
         return mission
     }
 

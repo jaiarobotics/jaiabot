@@ -603,16 +603,34 @@ struct InMission
 
     void increment_goal_index()
     {
+        const auto& repeats = this->machine().mission_plan().repeats();
+        const auto& goal_size = this->machine().mission_plan().goal_size();
+
         ++goal_index_;
+
         // all goals completed
-        if (goal_index_ >= this->machine().mission_plan().goal_size())
+        if (goal_index_ >= goal_size)
         {
-            goby::glog.is_verbose() && goby::glog << group("movement")
-                                                  << "All goals complete, mission is complete."
+            ++repeat_index_;
+
+            goby::glog.is_verbose() && goby::glog << group("movement") << "Repeat " << repeat_index_
+                                                  << "/" << repeats << ": all goals complete"
                                                   << std::endl;
 
-            set_mission_complete();
-            goal_index_ = RECOVERY_GOAL_INDEX;
+            // all repeats completed
+            if (repeat_index_ >= repeats)
+            {
+                goby::glog.is_verbose() &&
+                    goby::glog << group("movement") << "All repeats complete, mission is complete."
+                               << std::endl;
+                set_mission_complete();
+                goal_index_ = RECOVERY_GOAL_INDEX;
+            }
+            else
+            {
+                // Do next repeat, starting with first goal
+                goal_index_ = 0;
+            }
         }
     }
 
@@ -630,6 +648,7 @@ struct InMission
 
   private:
     int goal_index_{0};
+    int repeat_index_{0};
     bool mission_complete_{false};
 };
 
@@ -1183,7 +1202,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     using StateBase = boost::statechart::state<TaskSelection, Task>;
     TaskSelection(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug2() && goby::glog << "Entering TaskSelect" << std::endl;
+        goby::glog.is_debug2() && goby::glog << group("task") << "Entering TaskSelect" << std::endl;
         post_event(EvTaskSelect());
     }
     ~TaskSelection() {}
@@ -1699,6 +1718,12 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
 
     void loop(const EvLoop&);
 
+    void set_data_offload_percentage(const uint32_t& data_offload_percentage)
+    {
+        data_offload_percentage_ = data_offload_percentage;
+    }
+    uint32_t data_offload_percentage() const { return data_offload_percentage_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvDataOffloadComplete, Idle>,
         boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
@@ -1709,6 +1734,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
     const std::string offload_command_;
+    uint32_t data_offload_percentage_{0};
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,

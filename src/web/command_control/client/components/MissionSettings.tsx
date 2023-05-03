@@ -5,7 +5,7 @@
 
 import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
-import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './gui/JAIAProtobuf';
+import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './shared/JAIAProtobuf';
 
 
 interface Props {
@@ -133,7 +133,7 @@ export class MissionSettingsPanel extends React.Component {
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' type="number" className="NumberInput" name="orientation" defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
+                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
                             </tr>
                             <tr hidden>
                                 <td>Use Max Line Length</td>

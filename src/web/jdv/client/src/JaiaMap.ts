@@ -11,16 +11,16 @@ import { LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
-import * as Styles from './gui/Styles'
-import * as Popup from './gui/Popup'
+import * as Styles from './shared/Styles'
+import * as Popup from './shared/Popup'
+import { geoJSONToDepthContourFeatures } from './shared/Contours'
+import { TaskPacket, Command, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { createMissionFeatures } from './shared/MissionFeatures'
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { createMissionFeatures } from './gui/MissionFeatures'
-import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './gui/BotFeature'
-import { createTaskPacketFeatures } from './gui/TaskPacketFeatures'
-import { geoJSONToDepthContourFeatures } from './gui/Contours'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './shared/BotFeature'
+import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
-import { TaskPacket, Command, GeographicCoordinate } from './gui/JAIAProtobuf';
 
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
@@ -129,6 +129,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
     const date = new Date(taskPacket._utime_ / 1e3)
     const dateString = formatter.format(date)
+    const bot_id = taskPacket.bot_id
 
     const dive = taskPacket.dive
     if (dive != null) {
@@ -151,6 +152,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                 <name>${depthString}</name>
                 <description>
                     <h2>Dive</h2>
+                    Bot-ID: ${bot_id}<br />
                     Time: ${dateString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
@@ -184,6 +186,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
         const driftDescription = `
             <h2>Drift</h2>
+            Bot-ID: ${bot_id}<br />
             Start: ${dateString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />
