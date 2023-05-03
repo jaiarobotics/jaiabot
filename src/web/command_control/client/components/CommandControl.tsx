@@ -1177,7 +1177,7 @@ export default class CommandControl extends React.Component {
 			dive: {
 				max_depth: 10,
 				depth_interval: 10,
-				hold_time: 1
+				hold_time: 0
 			},
 			surface_drift: {
 				drift_time: 10
@@ -2045,7 +2045,7 @@ export default class CommandControl extends React.Component {
 		this.api.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
-					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+					this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 					return
@@ -2053,7 +2053,7 @@ export default class CommandControl extends React.Component {
 
 				if (!("bots" in result)) {
 					this.podStatus = null
-					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+					this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -2092,7 +2092,7 @@ export default class CommandControl extends React.Component {
 			},
 			(err) => {
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+				this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 			}
 		)
 	}

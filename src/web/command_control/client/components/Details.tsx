@@ -188,7 +188,7 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command_for_hub.description + " (" + command_for_hub.commandType + ")?")) {
+    if (confirm("Are you sure you'd like to " + command_for_hub.description + "?")) {
         let c = {
             hub_id: hub_id,
             type: command_for_hub.commandType as HubCommandType
