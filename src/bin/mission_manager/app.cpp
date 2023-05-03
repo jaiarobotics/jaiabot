@@ -667,7 +667,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::NEXT_TASK:
-            machine_->process_event(statechart::EvWaypointReached());
+            // Comment wpt reached event out because
+            // there is a bug here!! We need to investigate why
+            // we skip multiple waypoints (Happens in field, not in sim)
+            // machine_->process_event(statechart::EvWaypointReached());
             machine_->process_event(statechart::EvTaskComplete());
             break;
 

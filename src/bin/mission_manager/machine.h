@@ -1592,7 +1592,7 @@ struct SurfaceDrift
 
 struct ConstantHeading
     : boost::statechart::state<ConstantHeading, Dive>,
-      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING,
              protobuf::SETPOINT_IVP_HELM>
 {
     using StateBase = boost::statechart::state<ConstantHeading, Dive>;
