@@ -117,8 +117,8 @@ message BottomDepthSafetyParams
         default = 0,
         (dccl.field) = {
             min: 0
-            max: 3600
-            precision: -1
+            max: 360
+            precision: 0
             units { base_dimensions: "T" }
         }
     ];

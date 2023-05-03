@@ -497,6 +497,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
                                 <Icon path={mdiSkipNext} title="Next Task"/>
                         </Button>
+                        <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
+                                disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
+                                onClick={() => { deleteSingleMission() }}>
+                            <Icon path={mdiDelete} title="Clear Mission"/>
+                        </Button>
                     </div>
                 </div>
                 <div className="accordionContainer">
@@ -577,12 +582,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             </Button>}
 
                             {dataOffloadButton}
-                            
-                            <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
-                                    disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
-                                    onClick={() => { deleteSingleMission() }}>
-                                <Icon path={mdiDelete} title="Clear Mission"/>
-                            </Button>
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 

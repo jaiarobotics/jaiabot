@@ -215,9 +215,11 @@ jaiabot::apps::Health::Health()
                 interprocess().publish<groups::systemd_report_ack>(ack);
             }
         });
-
-    launch_thread<LinuxHardwareThread>(cfg().linux_hw());
-    launch_thread<NTPStatusThread>(cfg().ntp());
+    if (!cfg().is_in_sim())
+    {
+        launch_thread<LinuxHardwareThread>(cfg().linux_hw());
+        launch_thread<NTPStatusThread>(cfg().ntp());
+    }
 
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())

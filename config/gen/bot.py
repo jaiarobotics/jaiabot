@@ -130,7 +130,8 @@ elif common.app == 'jaiabot_health':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation()))
+                                     ignore_powerstate_changes=is_simulation(),
+                                     is_in_sim=is_simulation()))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
