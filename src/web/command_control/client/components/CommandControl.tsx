@@ -2418,7 +2418,8 @@ export default class CommandControl extends React.Component {
 							mode: '',
 							surveyPolygonChanged: false,
 							missionPlanningGrid: null,
-							missionPlanningLines: null
+							missionPlanningLines: null,
+							goalBeingEdited: null
 						});
 
 						this.updateMissionLayer();
