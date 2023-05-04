@@ -837,7 +837,8 @@ export default class CommandControl extends React.Component {
 			mode: '',
 			surveyPolygonChanged: false,
 			missionPlanningGrid: null,
-			missionPlanningLines: null
+			missionPlanningLines: null,
+			center_line_string: null
 		});
 		this.updateMissionLayer();
 	}
@@ -2381,7 +2382,8 @@ export default class CommandControl extends React.Component {
 							mode: '',
 							surveyPolygonChanged: false,
 							missionPlanningGrid: null,
-							missionPlanningLines: null
+							missionPlanningLines: null,
+							center_line_string: null
 						});
 
 						this.updateMissionLayer();
@@ -2638,6 +2640,8 @@ export default class CommandControl extends React.Component {
 										this.changeInteraction(this.surveyLinesInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'exclusions')
 										this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
+
+									this.setState({center_line_string: null}) // Forgive me
 
 									info('Touch map to set first polygon point');
 								} 

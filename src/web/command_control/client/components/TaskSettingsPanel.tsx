@@ -208,10 +208,13 @@ function TaskOptionsPanel(props: Props) {
             }
     
             const clickingMapClass = clickingMap ? " clicking-map" : ""
+
+            // Select on Map button is only present if a location is passed via Props
+            const selectOnMapButton = (props.location != null) ? <Button className={"button-jcc select-on-map" + clickingMapClass} onClick={selectOnMapClicked}>Select on Map</Button> : null
     
             return (
                 <div id="ConstantHeadingDiv" className='task-options'>
-                    <Button className={"button-jcc select-on-map" + clickingMapClass} onClick={selectOnMapClicked}>Select on Map</Button>
+                    { selectOnMapButton }
                     <table className="ConstantHeadingParametersTable">
                         <tbody>
                             <tr>
