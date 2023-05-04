@@ -46,6 +46,7 @@ export class TaskData {
         zIndex: 25,
         opacity: 0.5,
         source: null,
+        visible: false,
       })
 
     taskPacketDiveLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -80,6 +81,7 @@ export class TaskData {
         },
         zIndex: 1001,
         source: null,
+        visible: false
     })
 
     taskPacketDriftLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -97,6 +99,7 @@ export class TaskData {
         zIndex: 1001,
         opacity: 1,
         source: null,
+        visible: false
     })
 
     taskPacketSource: VectorSource = new VectorSource()
@@ -108,6 +111,7 @@ export class TaskData {
         zIndex: 1001,
         opacity: 1,
         source: this.taskPacketSource,
+        visible: false
     })
 
 
