@@ -14,6 +14,7 @@ fi
 
 if [ ! -z "$1" ]; then
     n_bots="$1"
+    ((n_bots=n_bots+1))
 fi
 if [ ! -z "$2" ]; then
     warp="$2"
@@ -27,8 +28,8 @@ cat <<EOF > ${launchfile}
 [env=jaia_n_bots=${n_bots},env=jaia_mode=simulation,env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
 EOF
 
-for i in `seq 0 $((n_bots-1))`; do
-    echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_mode=simulation,env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
+for i in `seq 1 $((n_bots-1))`; do
+    echo "[env=jaia_n_bots=${n_bots},env=jaia_bot_index=${i},env=jaia_mode=simulation,env=jaia_warp=${warp},env=jaia_electronics_stack=2] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
 
-echo "Generated all.launch with ${n_bots} bots @ warp ${warp}x"
+echo "Generated all.launch with $((n_bots-1)) bots @ warp ${warp}x"
