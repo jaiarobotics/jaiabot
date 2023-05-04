@@ -7,9 +7,10 @@ import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
 import { BotStatus, DiveParameters, DriftParameters, GeographicCoordinate, Goal, MissionTask, TaskType } from './shared/JAIAProtobuf';
 import { GlobalSettings } from './Settings';
-import { deepcopy } from './Utilities';
+import { deepcopy, getGeographicCoordinate } from './Utilities';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import Map from 'ol/Map'
+import turf from '@turf/turf';
 
 // This panel passes its settings back through onMissionApply using this interface
 export interface MissionSettings {
@@ -37,6 +38,7 @@ interface Props {
     missionEndTask: MissionTask
     mission_params: MissionParams
     bot_list?: {[key: string]: BotStatus}
+    center_line_string: turf.helpers.Feature<turf.helpers.LineString>
 
     onClose: () => void
     onChange?: () => void
@@ -88,12 +90,22 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
-        const { map } = this.props
+        const { map, center_line_string } = this.props
         let self = this
 
         let missionType = this.state.mission_params?.mission_type
 
         const {missionBaseGoal, missionEndTask} = this.state
+
+        // Get the final location, if available
+        var final_location: GeographicCoordinate
+
+        if (center_line_string != null) {
+            const coordinates = center_line_string.geometry.coordinates
+            if (coordinates.length >= 2) {
+                final_location = getGeographicCoordinate(coordinates[1], map)
+            }
+        }
 
         return (
             <div className="MissionSettingsPanel">
@@ -164,6 +176,7 @@ export class MissionSettingsPanel extends React.Component {
                     <TaskSettingsPanel 
                         title="End Task" 
                         map={map} 
+                        location={final_location}
                         task={missionEndTask} onChange={(missionEndTask) => {
                             self.setState({missionEndTask})
                         }} 

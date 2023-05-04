@@ -160,6 +160,7 @@ import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './shared/BotFeature'
 import { createHubFeature } from './shared/HubFeature'
 import { run } from 'node:test'
+import { getGeographicCoordinate } from './Utilities'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -249,7 +250,7 @@ interface State {
 	rallyPointRedLocation?: GeographicCoordinate,
 	mapLayerActive: boolean,
 	missionParams: MissionParams,
-	missionPlanningGrid?: any,
+	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
 	missionPlanningFeature?: OlFeature<Geometry>,
 	missionBaseGoal: Goal,
@@ -272,6 +273,8 @@ interface State {
 	undoRunListStack: MissionInterface[],
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 	remoteControlValues: Engineering
+
+	center_line_string: turf.helpers.Feature<turf.helpers.LineString>
 }
 
 export default class CommandControl extends React.Component {
@@ -408,7 +411,8 @@ export default class CommandControl extends React.Component {
 					rudder: 0,
 					timeout: 2
 				}
-			}
+			},
+			center_line_string: null
 		};
 
 		this.state.runList = {
@@ -1463,9 +1467,8 @@ export default class CommandControl extends React.Component {
 
 						let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
 						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
-
-
 						let centerLine = turf.getGeom(centerLineFc as any).features[0];
+						this.setState({center_line_string: centerLineString})						
 						let currentLineLength = turf.length(centerLine)
 
 
@@ -2340,9 +2343,11 @@ export default class CommandControl extends React.Component {
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel: ReactElement = null
 		if (this.state.mode === Mode.MISSION_PLANNING) {
+
 			missionSettingsPanel = <MissionSettingsPanel
 				map={map}
 				mission_params={this.state.missionParams}
+				center_line_string={this.state.center_line_string}
 				bot_list={this.podStatus?.bots}
 				missionBaseGoal={this.state.missionBaseGoal}
 				missionEndTask={this.missionEndTask}

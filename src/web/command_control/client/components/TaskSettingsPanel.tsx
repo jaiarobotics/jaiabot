@@ -11,7 +11,7 @@ import { toLonLat, transformWithProjections } from 'ol/proj';
 import { Draw } from 'ol/interaction';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { LineString } from 'ol/geom';
+import { LineString, Point } from 'ol/geom';
 
 // For keeping heading angles in the [0, 360] range
 function fmod(a: number, b: number) { 
@@ -23,6 +23,7 @@ interface Props {
     map?: Map
     title?: string
     task?: MissionTask
+    location?: GeographicCoordinate
     onChange?: (task?: MissionTask) => void
 }
 
@@ -82,7 +83,7 @@ function TaskOptionsPanel(props: Props) {
 
     // For selecting target for constant heading task type    
     function selectOnMapClicked() {
-        const map = props.map
+        const { map, location } = props
 
         if (map == null) {
             console.warn('No map passed to the TaskSettingsPanel')
@@ -101,8 +102,7 @@ function TaskOptionsPanel(props: Props) {
         // New interaction to get two points
         let draw = new Draw({
             source: source,
-            type: 'LineString',
-            maxPoints: 2,
+            type: 'Point',
             stopClick: true,
         })
         draw.stopDown = (handled) => { return handled }
@@ -111,16 +111,19 @@ function TaskOptionsPanel(props: Props) {
         setClickingMap(true)
 
         draw.on('drawend', (evt) => {
-            console.log(source)
             map.removeLayer(vector)
             map.removeInteraction(draw)
             setClickingMap(false)
 
+            if (location == null) {
+                console.warn('No start location yet!')
+                return
+            }
+
             const feature = evt.feature
-            const geometry = feature.getGeometry() as LineString
-            const startCoordinate = geometry.getCoordinates()[0]
-            const endCoordinate = geometry.getCoordinates()[1]
-            const start = getGeographicCoordinate(startCoordinate, map)
+            const geometry = feature.getGeometry() as Point
+            const endCoordinate = geometry.getCoordinates()
+            const start = location
             const end = getGeographicCoordinate(endCoordinate, map)
 
             let constant_heading = task.constant_heading
