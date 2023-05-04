@@ -132,7 +132,7 @@ export function hubMarker(feature: Feature): Style[] {
         color = selectedColor
     }
 
-    const text = "H" + String(feature.get('hubId'))
+    const text = "HUB"
 
     var style = [ 
         // Hub body marker
