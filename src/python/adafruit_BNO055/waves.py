@@ -97,6 +97,11 @@ class Analyzer:
 
 
     def wave(self) -> Component:
+
+        # Guard against empty array
+        if len(self.acceleration_z) == 0:
+            return Component(0, 0)
+
         window_timespan = self.dt * len(self.acceleration_z)
 
         discrete_cosine_transform = dct(self.acceleration_z, norm='forward')
