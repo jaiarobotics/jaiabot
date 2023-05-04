@@ -74,7 +74,14 @@ while True:
 
         if not file_is_newer(kmz_filename, goby_mtime):
             logging.info(f'Generating {kmz_filename}')
-            jaialogs.generate_kmz(h5_filename, kmz_filename)
 
+            try:
+                jaialogs.generate_kmz(h5_filename, kmz_filename)
+            except OSError as exception:
+                logging.warning(f'Cannot generate kmz file from: {h5_filename}')
+                logging.warning(f'  {exception}')
+
+                # Touch the kmz file, so we don't try again
+                os.system(f'touch {kmz_filename}')
 
     time.sleep(5)
