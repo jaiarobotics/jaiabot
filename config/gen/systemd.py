@@ -263,7 +263,7 @@ jaiabot_apps=[
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
      'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_as-ezo-ec_py.service'},
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
