@@ -158,7 +158,7 @@ class Interface:
         self.pingCount += 1
 
         if self.pingCount > 1:
-            self.messages['error'] = 'No response from jaiabot_web_portal app'
+            self.messages['error'] = 'Connection Dropped To HUB'
 
     def post_take_control(self, clientId):
         self.setControllingClientId(clientId)

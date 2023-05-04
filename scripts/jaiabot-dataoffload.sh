@@ -12,7 +12,7 @@ hub_id=${jaia_dataoffload_hub_id:-0}
 
 set -u
 
-rsync -aP --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub${hub_id}:/var/log/jaiabot/bot_offload
+nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
 
 echo "Removing old log files..."
 # compress debug logs, omitting goby_intervehicle_subscriptions_bot.pb.txt
@@ -27,4 +27,4 @@ echo "Removing old log files..."
 find ${log_dir} -type f -mtime +7 -name '*.txt' -execdir rm -v -f -- {} \;
 
 # remove all logs older than 14 days
-find ${log_dir} -type f -mtime +14 -name '*' -execdir rm -v -f -- {} \;   
+find ${log_dir} -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   

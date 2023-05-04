@@ -154,6 +154,36 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si
                 {
                     latest_engineering.set_query_bot_status(engineering_status.query_bot_status());
                 }
+
+                if (engineering_status.has_bottom_depth_safety_params())
+                {
+                    if (engineering_status.bottom_depth_safety_params().has_constant_heading())
+                    {
+                        latest_engineering.mutable_bottom_depth_safety_params()
+                            ->set_constant_heading(
+                                engineering_status.bottom_depth_safety_params().constant_heading());
+                    }
+                    if (engineering_status.bottom_depth_safety_params()
+                            .has_constant_heading_speed())
+                    {
+                        latest_engineering.mutable_bottom_depth_safety_params()
+                            ->set_constant_heading_speed(
+                                engineering_status.bottom_depth_safety_params()
+                                    .constant_heading_speed());
+                    }
+                    if (engineering_status.bottom_depth_safety_params().has_constant_heading_time())
+                    {
+                        latest_engineering.mutable_bottom_depth_safety_params()
+                            ->set_constant_heading_time(
+                                engineering_status.bottom_depth_safety_params()
+                                    .constant_heading_time());
+                    }
+                    if (engineering_status.bottom_depth_safety_params().has_safety_depth())
+                    {
+                        latest_engineering.mutable_bottom_depth_safety_params()->set_safety_depth(
+                            engineering_status.bottom_depth_safety_params().safety_depth());
+                    }
+                }
             });
     }
 

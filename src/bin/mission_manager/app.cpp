@@ -323,6 +323,29 @@ jaiabot::apps::MissionManager::MissionManager()
                         command.gps_requirements().after_dive_gps_fix_checks());
                 }
             }
+            if (command.has_bottom_depth_safety_params())
+            {
+                if (command.bottom_depth_safety_params().has_constant_heading())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading(
+                        command.bottom_depth_safety_params().constant_heading());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_speed())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_speed(
+                        command.bottom_depth_safety_params().constant_heading_speed());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_time())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_time(
+                        command.bottom_depth_safety_params().constant_heading_time());
+                }
+                if (command.bottom_depth_safety_params().has_safety_depth())
+                {
+                    machine_->set_bottom_safety_depth(
+                        command.bottom_depth_safety_params().safety_depth());
+                }
+            }
         });
 
     // handle rf disable commands to make sure task packets are not sent
@@ -428,16 +451,20 @@ void jaiabot::apps::MissionManager::loop()
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
+    const auto* data_offload =
+        machine_->state_cast<const statechart::postdeployment::DataOffload*>();
 
-    if (in_mission)
+    if (data_offload)
     {
-        // Set Active Goal Index + 1 for User Interface And Log Review.
-        report.set_active_goal(in_mission->goal_index() + 1);
+        report.set_data_offload_percentage(data_offload->data_offload_percentage());
     }
 
     // only report the goal index when not in recovery
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
+        // Set Active Goal Index + 1 for User Interface And Log Review.
+        report.set_active_goal(in_mission->goal_index() + 1);
+
         if (in_mission->current_goal().has_value())
         {
             if (in_mission->current_goal()->has_location())
@@ -568,7 +595,17 @@ void jaiabot::apps::MissionManager::loop()
     gps_requirements.set_transit_gps_degraded_fix_checks(
         machine_->transit_gps_degraded_fix_checks());
     gps_requirements.set_after_dive_gps_fix_checks(machine_->after_dive_gps_fix_checks());
+
     *engineering_status.mutable_gps_requirements() = gps_requirements;
+
+    engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
+        machine_->bottom_safety_depth());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
+        machine_->bottom_depth_safety_constant_heading());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
+        machine_->bottom_depth_safety_constant_heading_speed());
+    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
+        machine_->bottom_depth_safety_constant_heading_time());
 
     interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
 
@@ -653,7 +690,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::NEXT_TASK:
-            machine_->process_event(statechart::EvWaypointReached());
+            // Comment wpt reached event out because
+            // there is a bug here!! We need to investigate why
+            // we skip multiple waypoints (Happens in field, not in sim)
+            // machine_->process_event(statechart::EvWaypointReached());
             machine_->process_event(statechart::EvTaskComplete());
             break;
 

@@ -103,7 +103,8 @@ elif common.app == 'jaiabot_health':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation()))
+                                     ignore_powerstate_changes=is_simulation(),
+                                     is_in_sim=is_simulation()))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():

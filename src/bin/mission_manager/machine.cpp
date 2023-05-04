@@ -264,8 +264,11 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
 jaiabot::statechart::inmission::underway::Task::~Task()
 {
     if (!has_manual_task_)
+    {
+        goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
         // each time we complete a autonomous task - we should increment the goal index
         context<InMission>().increment_goal_index();
+    }
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
@@ -923,6 +926,50 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
 
+// Dive::ConstantHeading
+jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::ConstantHeading(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    boost::units::quantity<boost::units::si::plane_angle> heading(
+        (this->machine().bottom_depth_safety_constant_heading() * boost::units::degree::degrees));
+
+    boost::units::quantity<boost::units::si::velocity> speed(
+        (this->machine().bottom_depth_safety_constant_heading_speed() *
+         boost::units::si::meters_per_second));
+
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+
+    constantHeadingUpdate = create_constant_heading_update(heading);
+    constantSpeedUpdate = create_constant_speed_update(speed);
+
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = this->machine().bottom_depth_safety_constant_heading_time();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::~ConstantHeading()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    constantHeadingUpdate.mutable_constantheading()->set_active(false);
+    constantSpeedUpdate.mutable_constantspeed()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvTaskComplete());
+}
+
 jaiabot::statechart::inmission::underway::task::StationKeep::~StationKeep()
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
@@ -1040,6 +1087,22 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                 glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
                                          << std::flush;
                 stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+
+                // Check if the line contains progress information
+                std::string percent_complete_str = "";
+                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
+                size_t pos = percent_complete_str.find("%");
+                if (pos != std::string::npos)
+                {
+                    if (pos >= 3)
+                    {
+                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
+                                                 << std::endl;
+
+                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
+                        this->set_data_offload_percentage(percent);
+                    }
+                }
             }
 
             if (!feof(pipe))

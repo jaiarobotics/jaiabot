@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::HubManager>(argc, argv));
 }
 
-jaiabot::apps::HubManager::HubManager() : ApplicationBase(2 * si::hertz)
+jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 {
     latest_hub_status_.set_hub_id(cfg().hub_id());
 
