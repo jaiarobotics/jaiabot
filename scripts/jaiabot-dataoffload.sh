@@ -29,6 +29,31 @@ else
   echo "Archive directory already exists."
 fi
 
+# Where the sym links get moved to after rsync to hub
+sym_dir="${parent_dir}/sym"
+
+# Move sym links to another directory to perserve them
+# First create a directory for them 
+if [ ! -d "${sym_dir}" ]; then
+  echo "Sym directory does not exist. Creating directory..."
+  # Create the directory
+  mkdir "${sym_dir}"
+  echo "Sym directory created successfully."
+else
+  echo "Sym directory already exists."
+fi
+
+# Find all symbolic links in the source directory
+find "$log_dir" -type l | while read link; do
+    # Use readlink to find the target file of each symbolic link
+    target=$(readlink "$link")
+
+    # Move the target file to the destination directory
+    mv "$target" "$sym_dir"
+
+    mv "$link" "$sym_dir"
+done
+
 # Check if there are files available to move to archive directory
 if [ "$(ls -A "${log_dir}")" ]; then
   echo "Moving log files to archive..."
@@ -38,14 +63,15 @@ else
   echo "No files available to move."
 fi
 
-echo "Compressing debug logs..."
-# compress debug logs, omitting goby_intervehicle_subscriptions_bot.pb.txt
-find "${archive_dir}" -type f -name '*[0-9].txt' -execdir xz -- {} \;
+# Then move the sym links and targets back for logging purposes
+if [ "$(ls -A "${sym_dir}")" ]; then
+  echo "Moving sym links to log dir..."
+  mv "${sym_dir}"/* "${log_dir}"
+  echo "Links moved successfully."
+else
+  echo "No links available to move."
+fi
 
 echo "Removing old log files..."
-# remove debug logs older than 7 days
-find "${archive_dir}" -type f -mtime +7 -name '*.txt.xz' -execdir rm -v -f -- {} \;
-find "${archive_dir}" -type f -mtime +7 -name '*.txt' -execdir rm -v -f -- {} \;
-
 # remove all logs older than 7 days
 find "${archive_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   
