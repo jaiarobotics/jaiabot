@@ -6,9 +6,6 @@ bot_id: $bot_id
 command_sub_cfg {
     intervehicle
     {
-        # hub modem id
-        publisher_id: 1
-
         # buffer configuration for the Command messages
         buffer {
             ack_required: false

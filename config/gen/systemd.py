@@ -42,7 +42,6 @@ parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Direct
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
 parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
-parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the fleet')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
@@ -101,14 +100,26 @@ if args.simulation:
 else:
     jaia_mode=Mode.RUNTIME
     warp=1
-    
+
+class Type(Enum):
+    BOT = 'bot'
+    HUB = 'hub'
+    BOTH = 'both'
+
+if args.type == 'bot':
+    jaia_type=Type.BOT
+    bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
+elif args.type == 'hub':
+    jaia_type=Type.HUB
+    bot_or_hub_index_str='export jaia_hub_index=' + str(args.hub_index) + '; '
+
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
+
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
-               'export jaia_bot_index=' + str(args.bot_index) + '; ' +
+               bot_or_hub_index_str + 
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
-               'export jaia_n_bots=' + str(args.n_bots) + '; ' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
@@ -136,20 +147,14 @@ try:
     common_macros['group']=os.getlogin()
 except:
     common_macros['user']=os.environ['USER']
-    common_macros['group']=os.environ['USER']    
-    
-class Type(Enum):
-     BOT = 'bot'
-     HUB = 'hub'
-     BOTH = 'both'
+    common_macros['group']=os.environ['USER']
 
-if args.type == 'bot':
-    jaia_type=Type.BOT
+if jaia_type == Type.BOT:
     common_macros['gen']=args.gen_dir + '/bot.py'
-elif args.type == 'hub':
-    jaia_type=Type.HUB
+elif jaia_type == Type.HUB:
     common_macros['gen']=args.gen_dir + '/hub.py'
-
+    
+    
 all_goby_apps=[]
     
 jaiabot_apps=[

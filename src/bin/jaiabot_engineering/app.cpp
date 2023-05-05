@@ -27,11 +27,11 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
-using ApplicationBase =
-    goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotEngineering>;
+using ApplicationBase = goby::zeromq::SingleThreadApplication<jaiabot::config::JaiabotEngineering>;
 
 namespace jaiabot
 {
@@ -39,7 +39,7 @@ namespace apps
 {
 namespace groups
 {
-  std::unique_ptr<goby::middleware::DynamicGroup> engineering_command_this_bot;
+std::unique_ptr<goby::middleware::DynamicGroup> engineering_command_this_bot;
 }
 
 class JaiabotEngineering : public ApplicationBase
@@ -52,9 +52,12 @@ class JaiabotEngineering : public ApplicationBase
     void loop() override;
 
     void handle_engineering_command(const jaiabot::protobuf::Engineering& command);
+    void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
 
     // Engineering state to be published over intervehicle on a regular basis
     jaiabot::protobuf::Engineering latest_engineering;
+
+    goby::middleware::protobuf::TransporterConfig latest_command_sub_cfg_;
 
     bool queried_for_status_{false};
 };
@@ -64,8 +67,7 @@ class JaiabotEngineering : public ApplicationBase
 int main(int argc, char* argv[])
 {
     return goby::run<jaiabot::apps::JaiabotEngineering>(
-        goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotEngineering>(argc,
-                                                                                          argv));
+        goby::middleware::ProtobufConfigurator<jaiabot::config::JaiabotEngineering>(argc, argv));
 }
 
 jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si::hertz)
@@ -185,35 +187,51 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si
             });
     }
 
-    // Intervehicle subscribe for commands from engineering
-    {
-        auto on_command_subscribed =
-            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
+}
 
-        // use vehicle ID as group for command
-        auto do_set_group = [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
-            return goby::middleware::Group(command.bot_id());
+void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
+    const jaiabot::protobuf::HubInfo& hub_info)
+{
+    glog.is_verbose() && glog << "Subscribing for Engineering commands from hub "
+                              << hub_info.hub_id() << " (modem id " << hub_info.modem_id() << ")"
+                              << std::endl;
+
+    // Intervehicle subscribe for commands from engineering
+    auto on_command_subscribed =
+        [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+               const goby::middleware::intervehicle::protobuf::AckData& ack) {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
         };
 
-        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
-            cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
+    // use vehicle ID as group for command
+    auto do_set_group =
+        [](const jaiabot::protobuf::Engineering& command) -> goby::middleware::Group {
+        return goby::middleware::Group(command.bot_id());
+    };
 
-        intervehicle().subscribe_dynamic<jaiabot::protobuf::Engineering>(
-            [this](const jaiabot::protobuf::Engineering& command) {
-                glog.is_debug1() && glog << "Engineering Command: " << command.ShortDebugString()
-                                         << std::endl;
+    latest_command_sub_cfg_ = cfg().command_sub_cfg();
 
-                handle_engineering_command(command);
-                // republish for logging purposes
-                interprocess().publish<jaiabot::groups::engineering_command>(command);
-            },
-            *groups::engineering_command_this_bot, command_subscriber);
-    }
+    // set command publisher to the hub that triggered this subscribe
+    latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
+    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
+
+    goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
+        latest_command_sub_cfg_, do_set_group, on_command_subscribed};
+
+    intervehicle().subscribe_dynamic<jaiabot::protobuf::Engineering>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            glog.is_debug1() && glog << "Engineering Command: " << command.ShortDebugString()
+                                     << std::endl;
+
+            handle_engineering_command(command);
+            // republish for logging purposes
+            interprocess().publish<jaiabot::groups::engineering_command>(command);
+        },
+        *groups::engineering_command_this_bot, command_subscriber);
 }
 
 jaiabot::apps::JaiabotEngineering::~JaiabotEngineering()
@@ -227,11 +245,11 @@ jaiabot::apps::JaiabotEngineering::~JaiabotEngineering()
                                          << "\nfor subscription:\n\t" << sub.ShortDebugString()
                                          << std::endl;
             };
-        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{cfg().command_sub_cfg(),
-                                                                           on_command_unsubscribed};
+        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
+            latest_command_sub_cfg_, on_command_unsubscribed};
 
-        intervehicle().unsubscribe_dynamic<jaiabot::protobuf::Engineering>(*groups::engineering_command_this_bot,
-                                                              command_subscriber);
+        intervehicle().unsubscribe_dynamic<jaiabot::protobuf::Engineering>(
+            *groups::engineering_command_this_bot, command_subscriber);
     }
 }
 
@@ -247,12 +265,15 @@ void jaiabot::apps::JaiabotEngineering::loop()
     if (latest_engineering.IsInitialized() && queried_for_status_)
     {
         queried_for_status_ = false;
-        glog.is_debug1() && glog << "Publishing latest_engineering over intervehicle(): " << latest_engineering.ShortDebugString() << std::endl;
+        glog.is_debug1() && glog << "Publishing latest_engineering over intervehicle(): "
+                                 << latest_engineering.ShortDebugString() << std::endl;
         intervehicle().publish<jaiabot::groups::engineering_status>(latest_engineering);
     }
 }
 
-void jaiabot::apps::JaiabotEngineering::handle_engineering_command(const jaiabot::protobuf::Engineering& command) {
+void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
+    const jaiabot::protobuf::Engineering& command)
+{
     if (command.query_engineering_status())
     {
         queried_for_status_ = command.query_engineering_status();

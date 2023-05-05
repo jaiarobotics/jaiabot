@@ -33,3 +33,7 @@ endif()
 if(build_web)
   add_subdirectory(web)
 endif()
+
+if(enable_testing)
+  add_subdirectory(test)
+endif()
