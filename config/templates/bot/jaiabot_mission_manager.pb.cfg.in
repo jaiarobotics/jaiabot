@@ -6,9 +6,6 @@ bot_id: $bot_id
 command_sub_cfg {
     intervehicle
     {
-        # hub modem id
-        publisher_id: 1
-
         # buffer configuration for the Command messages
         buffer {
             ack_required: true
@@ -68,3 +65,6 @@ min_depth_safety: 0 # (default = 0)
 
 # IMU Restart State Timeout
 imu_restart_seconds: 10 # (default = 10)
+
+# If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
+$subscribe_to_hub_on_start

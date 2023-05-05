@@ -8,8 +8,9 @@ if [[ -z "${log_dir}" || ! -e "${log_dir}" ]]; then
     exit 1;
 fi
 
-set -u
+hub_id=${jaia_dataoffload_hub_id:-0}
 
+set -u
 
 nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
 

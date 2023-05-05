@@ -150,14 +150,14 @@ message Engineering
     Actual maximum size of message: 98 bytes / 784 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................776
-        padding to full byte...................0
-    Allowed maximum size of message: 200 bytes / 1600 bits
+        body.................................723
+        padding to full byte...................5
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 127
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
