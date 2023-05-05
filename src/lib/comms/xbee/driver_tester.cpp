@@ -116,6 +116,7 @@ int goby::test::acomms::DriverTester::run()
                 case 4: test4(); break;
                 case 5: test5(); break;
                 case 6: test6(); break;
+                case 7: test7(); break;
                 case -1:
                     glog.is_verbose() && glog << group("test") << "all tests passed" << std::endl;
                     driver1_->shutdown();
@@ -172,6 +173,19 @@ void goby::test::acomms::DriverTester::handle_data_request1(protobuf::ModemTrans
             if (!msg->has_max_num_frames() || msg->max_num_frames() >= 3)
                 msg->add_frame(test_str3_);
 
+            if (!entered)
+            {
+                ++check_count_;
+                entered = true;
+            }
+        }
+        break;
+
+        case 7:
+        {
+            test_str_max_ = std::string(msg->max_frame_bytes(), 'A');
+            msg->add_frame(test_str_max_);
+            static bool entered = false;
             if (!entered)
             {
                 ++check_count_;
@@ -269,11 +283,12 @@ void goby::test::acomms::DriverTester::handle_data_receive1(const protobuf::Mode
         break;
 
         case 4:
+        case 7:
         {
             assert(msg.type() == protobuf::ModemTransmission::ACK);
             assert(msg.src() == 2);
             assert(msg.dest() == 1);
-            assert(msg.acked_frame_size() == 1 && msg.acked_frame(0) == 0);
+            assert(msg.acked_frame_size() == 1);
             ++check_count_;
         }
         break;
@@ -345,6 +360,7 @@ void goby::test::acomms::DriverTester::handle_data_request2(protobuf::ModemTrans
         }
 
         case 4: break;
+        case 7: break;
 
         case 6:
         {
@@ -400,6 +416,20 @@ void goby::test::acomms::DriverTester::handle_data_receive2(const protobuf::Mode
                 assert(msg.dest() == 2);
                 assert(msg.frame_size() == 1);
                 assert(msg.frame(0) == test_str0_);
+                ++check_count_;
+            }
+
+            break;
+        }
+
+        case 7:
+        {
+            if (msg.type() == protobuf::ModemTransmission::DATA)
+            {
+                assert(msg.src() == 1);
+                assert(msg.dest() == 2);
+                assert(msg.frame_size() == 1);
+                assert(msg.frame(0) == test_str_max_);
                 ++check_count_;
             }
 
@@ -573,6 +603,31 @@ void goby::test::acomms::DriverTester::test4()
     transmit.set_rate(0);
     transmit.set_ack_requested(true);
     //    transmit.set_ack_requested(false);
+    driver1_->handle_initiate_transmission(transmit);
+
+    int i = 0;
+    while (((i / 10) < 60) && check_count_ < 3)
+    {
+        driver1_->do_work();
+        driver2_->do_work();
+
+        usleep(100000);
+        ++i;
+    }
+    assert(check_count_ == 3);
+}
+
+void goby::test::acomms::DriverTester::test7()
+{
+    glog.is_verbose() && glog << group("test") << "Rate 0 test: max payload" << std::endl;
+
+    protobuf::ModemTransmission transmit;
+
+    transmit.set_type(protobuf::ModemTransmission::DATA);
+    transmit.set_src(1);
+    transmit.set_dest(2);
+    transmit.set_rate(0);
+    transmit.set_ack_requested(true);
     driver1_->handle_initiate_transmission(transmit);
 
     int i = 0;

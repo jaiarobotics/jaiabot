@@ -37,19 +37,14 @@ else:
     total_after_dive_gps_fix_checks=15
 
 try:
-    number_of_bots=int(os.environ['jaia_n_bots'])
-except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
-
-try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
-    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
+    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
 try:
     fleet_index=int(os.environ['jaia_fleet_index'])
 except:
-    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
@@ -61,7 +56,7 @@ bot_status_period=(bot_index * 10) + 1000
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
-{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -97,19 +92,28 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-if is_runtime():
-    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id),
-                                             xbee_config=common.comms.xbee_config())
+if common.jaia_comms_mode == common.CommsMode.XBEE:
+    subscribe_to_hub_on_start=''
+    if is_simulation():
+        xbee_serial_port='/tmp/xbeebot' + str(bot_index)
+    else:
+        xbee_serial_port='/dev/xbee'
 
-if is_simulation():
+    link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+                                            subnet_mask=common.comms.subnet_mask,                                            
+                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            mac_slots=common.comms.xbee_mac_slots(node_id),
+                                            serial_port=xbee_serial_port,
+                                            xbee_config=common.comms.xbee_config(),
+                                            xbee_hub_id='')
+
+elif common.jaia_comms_mode == common.CommsMode.WIFI:
+    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots, fleet_index),
+                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
@@ -197,6 +201,7 @@ elif common.app == 'jaiabot_mission_manager':
                                      bot_id=bot_index,
                                      log_dir=log_file_dir,
                                      mission_manager_in_simulation=is_simulation(),
+                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',

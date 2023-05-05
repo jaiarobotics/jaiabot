@@ -4,11 +4,12 @@ link {
     driver { 
         # returned by goby_driver_name() function in shared library listed in GOBY_MODEMDRIVER_PLUGINS
         driver_name: "xbee_driver"
-        serial_port: "/dev/xbee"
+        serial_port: "$serial_port"
         serial_baud: 9600
         modem_id: $modem_id
         [xbee.protobuf.config] {
             $xbee_config
+            $xbee_hub_id
         }
     }
     mac { 

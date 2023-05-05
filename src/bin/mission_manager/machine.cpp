@@ -274,6 +274,9 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 
     if (task_packet_.type() != protobuf::MissionTask::NONE && !this->machine().rf_disable())
     {
+        glog.is_debug2() && glog << "Publishing task packet: " << task_packet_.ShortDebugString()
+                                 << std::endl;
+
         intervehicle().publish<groups::task_packet>(task_packet_);
     }
     else if (task_packet_.type() != protobuf::MissionTask::NONE)

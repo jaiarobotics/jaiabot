@@ -18,12 +18,12 @@ message Command
         user head..............................0
         body................................1498
         padding to full byte...................6
-    Allowed maximum size of message: 200 bytes / 1600 bits
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 80
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -64,22 +64,25 @@ message Command
 
     required CommandType type = 10;
 
-    // required for type == MISSION_PLAN
-    optional MissionPlan plan = 20;
+    oneof command_data
+    {
+        // required for type == MISSION_PLAN
+        MissionPlan plan = 20;
 
-    // required for type == REMOTE_CONTROL_SETPOINT
-    optional RemoteControl rc = 30;
+        // required for type == REMOTE_CONTROL_SETPOINT
+        RemoteControl rc = 30;
 
-    // required for type == REMOTE_CONTROL_TASK
-    optional MissionTask rc_task = 31;
+        // required for type == REMOTE_CONTROL_TASK
+        MissionTask rc_task = 31;
+    }
 }
 
 message CommandForHub
 {
     option (dccl.msg) = {
         id: 90
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -103,17 +106,17 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 52 bytes / 416 bits
-            dccl.id head...........................8
-            user head..............................0
-            body.................................408
-            padding to full byte...................0
-    Allowed maximum size of message: 52 bytes / 416 bits
+      Actual maximum size of message: 52 bytes / 416 bits
+        dccl.id head...........................8
+        user head..............................0
+        body.................................401
+        padding to full byte...................7
+      Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 52
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -188,7 +191,8 @@ message BotStatus
 
     optional MissionState mission_state = 40;
 
-    // bounds should match MissionPlan.goal max_repeat value * expected_fragments max
+    // bounds should match MissionPlan.goal max_repeat value *
+    // expected_fragments max
     optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 29 }];
     optional double distance_to_active_goal = 42 [(dccl.field) = {
         min: 0
@@ -196,14 +200,12 @@ message BotStatus
         precision: 1
         units: { derived_dimensions: "length" }
     }];
-    optional uint32 active_goal_timeout = 43 [
-        (dccl.field) = {
-            min: 0
-            max: 3600
-            precision: 0
-            units { base_dimensions: "T" }
-        }
-    ];
+    optional uint32 active_goal_timeout = 43 [(dccl.field) = {
+        min: 0
+        max: 3600
+        precision: 0
+        units { base_dimensions: "T" }
+    }];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];
@@ -250,7 +252,7 @@ message BotStatus
     }];
 
     optional IMUData.CalibrationStatus calibration_status = 58;
-    
+
     optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
     optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
@@ -262,6 +264,7 @@ message BotStatus
             precision: 0
         }
     ];
+
 }
 
 message DriftPacket
@@ -305,7 +308,7 @@ message DriftPacket
     // location D
     optional GeographicCoordinate end_location = 12;
 
-    // Significant wave height is defined as the average wave height, 
+    // Significant wave height is defined as the average wave height,
     // from trough to crest, of the highest one-third of the waves
     optional double significant_wave_height = 13 [(dccl.field) = {
         min: 0
@@ -386,7 +389,7 @@ message DivePacket
             [(dccl.field) = { min: 0 max: 45 precision: 1 }];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 44 }];
+    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 50 }];
 
     // location A
     optional GeographicCoordinate start_location = 15;
@@ -417,17 +420,17 @@ message DivePacket
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 197 bytes / 1576 bits
+     Actual maximum size of message: 218 bytes / 1744 bits
         dccl.id head..........................16
         user head..............................0
-        body................................1560
+        body................................1728
         padding to full byte...................0
-    Allowed maximum size of message: 200 bytes / 1600 bits
+     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 0x5001
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
