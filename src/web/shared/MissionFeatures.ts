@@ -4,12 +4,12 @@ import { Style } from "ol/style"
 import { LineString, Geometry } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
-import { createMarker } from './Marker'
+import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -39,6 +39,14 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                 style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
             markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
             features.push(markerFeature)
+
+            if (goal_index_start_at_one === 1) {
+                if (!runNumber) {
+                    runNumber = ''
+                }
+                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(isSelected, runNumber, zIndex)})
+                features.push(flagFeature)
+            }
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point

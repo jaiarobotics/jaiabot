@@ -11,6 +11,7 @@ const end = require('./end.svg') as string
 const start = require('./start.svg')
 const bot = require('./bot.svg') as string
 const hub = require('./hub.svg') as string
+const runFlag = require('./run-flag.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
@@ -213,6 +214,16 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
 }
 
 
+export function flagIcon(isSelected: boolean) {
+    const src = runFlag
+
+    return new Icon({
+        src: src,
+        color: isSelected ? selectedColor : defaultColor,
+        anchor: [0.5, 1],
+    })
+}
+
 export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
     let icon = goalIcon(goal.task?.type, isActive, isSelected)
 
@@ -230,6 +241,23 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
     })
 }
 
+export function flag(isSelected: boolean, runNumber: string, zIndex: number) {
+    let icon = flagIcon(isSelected)
+
+    return new Style({
+        image: icon,
+        text: new Text({
+            text: `R${runNumber}`,
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            offsetY: -29.5,
+            offsetX: -2
+        }),
+        zIndex: zIndex
+    })
+}
 
 // Markers for dives
 export function divePacket(dive: DivePacket) {

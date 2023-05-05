@@ -3083,6 +3083,8 @@ export default class CommandControl extends React.Component {
 		let surveyPolygonColor = '#051d61'
 		let surveyExclusionsColor = '#c40a0a'
 
+		let zIndex = 2
+
 		let rallyPointRedStyle = new OlStyle({
 			image: new OlIcon({
 				src: rallyPointRedIcon,
@@ -3140,12 +3142,13 @@ export default class CommandControl extends React.Component {
 			// Add our goals
 			const plan = run.command?.plan
 			if (plan != null) {
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
+				const runNumber = run.id.length === 5 ? run.id.slice(-1) : run.id.slice(-2) // Works for runs ranging from 1 to 99
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected, runNumber, zIndex)
 				features.push(...missionFeatures)
-				if(selected)
-				{
+				if (selected) {
 					selectedFeatures.push(...missionFeatures);
 				}
+				zIndex += 1
 			}
 		}
 
