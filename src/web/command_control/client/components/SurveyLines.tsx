@@ -37,91 +37,61 @@ function round(value: any, precision: number): any {
 
 
 // Survey planning using lines
-function surveyLineStyle(commandControl: CommandControl) {
-    return function(feature: OlFeature<LineString>) {
+function surveyLineStyle(feature: OlFeature<LineString>) {
 
-        let rotationAngle = 0;
-        let rhumbDist = 0;
-        let rhumbHomeDist = 0;
-        let stringCoords = feature.getGeometry().getCoordinates();
-        let coords = stringCoords.slice(-2);
-        if (
-            coords[1][0] == coords[0][0] &&
-            coords[1][1] == coords[0][1] &&
-            stringCoords.length > 2
-        ) {
-            coords = stringCoords.slice(-3, -1);
-        }
+    let stringCoords = feature.getGeometry().getCoordinates();
+    let coords = stringCoords.slice(-2);
+    if (
+        coords[1][0] == coords[0][0] &&
+        coords[1][1] == coords[0][1] &&
+        stringCoords.length > 2
+    ) {
+        coords = stringCoords.slice(-3, -1);
+    }
 
-        let lineStyle = new OlStyle({
-            fill: new OlFillStyle({
+    const lineStyle = new OlStyle({
+        fill: new OlFillStyle({
+            color: 'rgb(196,10,10)'
+        }),
+        stroke: new OlStrokeStyle({
+            color: 'rgb(196,10,10)',
+            lineDash: [10, 10],
+            width: 3
+        }),
+        image: new OlCircleStyle({
+            radius: 5,
+            stroke: new OlStrokeStyle({
                 color: 'rgb(196,10,10)'
             }),
+            fill: new OlFillStyle({
+                color: 'rgb(196,10,10)'
+            })
+        })
+    });
+
+    let iconStyle = new OlStyle({
+        geometry: new OlPoint(coords[0]),
+        image: new OlIcon({
+            src: missionOrientationIcon,
+            scale: [0.5, 0.5],
+            rotation: Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
+        }),
+        text: new OlText({
+            font: '15px Calibri,sans-serif',
+            fill: new OlFillStyle({ color: '#000000' }),
             stroke: new OlStrokeStyle({
-                color: 'rgb(196,10,10)',
-                lineDash: [10, 10],
-                width: 3
+                color: '#ffffff', width: .1
             }),
-            image: new OlCircleStyle({
-                radius: 5,
-                stroke: new OlStrokeStyle({
-                    color: 'rgb(196,10,10)'
-                }),
-                fill: new OlFillStyle({
-                    color: 'rgb(196,10,10)'
-                })
-            })
-        });
+            placement: 'point',
+            textAlign: 'start',
+            justify: 'left',
+            textBaseline: 'bottom',
+            offsetY: -100,
+            offsetX: 100
+        })
+    });
 
-        let iconStyle = new OlStyle({
-            image: new OlIcon({
-                src: missionOrientationIcon,
-                scale: [0.5, 0.5]
-            }),
-            text: new OlText({
-                font: '15px Calibri,sans-serif',
-                fill: new OlFillStyle({ color: '#000000' }),
-                stroke: new OlStrokeStyle({
-                    color: '#ffffff', width: .1
-                }),
-                placement: 'point',
-                textAlign: 'start',
-                justify: 'left',
-                textBaseline: 'bottom',
-                offsetY: -100,
-                offsetX: 100
-            })
-        });
-
-        iconStyle.setGeometry(new OlPoint(coords[0]));
-        iconStyle
-            .getImage()
-            .setRotation(
-                Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
-            );
-        let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-
-        rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
-        if (rotationAngle < 0) {
-            rotationAngle = rotationAngle + 360;
-        }
-
-        const { homeLocation } = commandControl.state;
-        if (stringCoords[0].length >= 2) {
-            let previousIndex = stringCoords.length - 2;
-            let nextIndex = stringCoords.length - 1;
-            rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
-            let rhumbDistString = Number(rhumbDist.toFixed(2)).toString();
-            if (homeLocation !== null) {
-                rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
-                let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString();
-            }
-        }
-
-        commandControl.updateMissionLayer();
-
-        return [lineStyle, iconStyle]
-    }
+    return [lineStyle, iconStyle]
 }
 
         
@@ -132,8 +102,6 @@ export class SurveyLines {
     drawInteraction: OlDrawInteraction
 
     constructor(commandControl: CommandControl) {
-        console.log("commandControl = ")
-        console.log(commandControl)
         this.commandControl = commandControl
 
         this.vectorSource = new OlVectorSource({ wrapX: false });
@@ -145,7 +113,7 @@ export class SurveyLines {
             maxPoints: 2,
             clickTolerance: 10,
             type: 'LineString',
-            style: surveyLineStyle(commandControl)
+            style: surveyLineStyle
         })
 
         this.drawInteraction.on(
