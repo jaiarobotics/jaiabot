@@ -161,6 +161,10 @@ import { createBotFeature } from './gui/BotFeature'
 import { createHubFeature } from './gui/HubFeature'
 import { run } from 'node:test'
 
+// Jaia imports
+import { SurveyLines } from './SurveyLines'
+
+
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
@@ -328,7 +332,7 @@ export default class CommandControl extends React.Component {
 
 	measureInteraction: OlDrawInteraction
 	surveyPolygonInteraction: OlDrawInteraction
-	surveyLinesInteraction: OlDrawInteraction
+	surveyLines: SurveyLines
 	surveyExclusionsInteraction: OlDrawInteraction
 
 	missionLayer: OlVectorLayer<OlVectorSource>
@@ -808,6 +812,8 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
+		this.surveyLines = new SurveyLines(this)
+
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
 
@@ -869,7 +875,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionParams.mission_type === 'editing')
 			this.changeInteraction(this.selectInteraction(), 'grab');
 		if (this.state.missionParams.mission_type === 'lines')
-			this.changeInteraction(this.surveyLinesInteraction, 'crosshair');
+			this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'exclusions')
 			this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
 	}
@@ -1142,7 +1148,7 @@ export default class CommandControl extends React.Component {
 				this.updateMissionLayer();
 
 				// Show the preview of the survey
-				surveyLineslistener = evt.feature.on('change', (evt2) => {
+				this.surveyLines.listener = evt.feature.on('change', (evt2) => {
 					this.updateMissionLayer();
 					// console.log('surveyExclusions changed...')
 				})
@@ -1177,305 +1183,6 @@ export default class CommandControl extends React.Component {
 					surveyExclusions: turf.coordAll(turf.polygon(geometry.getCoordinates()))
 				})
 				OlUnobserveByKey(surveyExclusionslistener);
-			}
-		);
-
-		// Survey planning using lines
-		let surveyLineStyle = function(feature: OlFeature<LineString>) {
-
-			let rotationAngle = 0;
-			let rhumbDist = 0;
-			let rhumbHomeDist = 0;
-			let stringCoords = feature.getGeometry().getCoordinates();
-			let coords = stringCoords.slice(-2);
-			if (
-				coords[1][0] == coords[0][0] &&
-				coords[1][1] == coords[0][1] &&
-				stringCoords.length > 2
-			) {
-				coords = stringCoords.slice(-3, -1);
-			}
-
-			let lineStyle = new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgb(196,10,10)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: 'rgb(196,10,10)',
-					lineDash: [10, 10],
-					width: 3
-				}),
-				image: new OlCircleStyle({
-					radius: 5,
-					stroke: new OlStrokeStyle({
-						color: 'rgb(196,10,10)'
-					}),
-					fill: new OlFillStyle({
-						color: 'rgb(196,10,10)'
-					})
-				})
-			});
-
-			let iconStyle = new OlStyle({
-				image: new OlIcon({
-					src: missionOrientationIcon,
-					scale: [0.5, 0.5]
-				}),
-				text: new OlText({
-					font: '15px Calibri,sans-serif',
-					fill: new OlFillStyle({ color: '#000000' }),
-					stroke: new OlStrokeStyle({
-						color: '#ffffff', width: .1
-					}),
-					placement: 'point',
-					textAlign: 'start',
-					justify: 'left',
-					textBaseline: 'bottom',
-					offsetY: -100,
-					offsetX: 100
-				})
-			});
-
-			iconStyle.setGeometry(new OlPoint(coords[0]));
-			iconStyle
-				.getImage()
-				.setRotation(
-					Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
-				);
-			let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-
-			rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
-			if (rotationAngle < 0) {
-				rotationAngle = rotationAngle + 360;
-			}
-
-			const { homeLocation } = us.state;
-			if (stringCoords[0].length >= 2) {
-				let previousIndex = stringCoords.length - 2;
-				let nextIndex = stringCoords.length - 1;
-				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
-				let rhumbDistString = Number(rhumbDist.toFixed(2)).toString();
-				if (homeLocation !== null) {
-					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
-					let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString();
-				}
-			}
-
-			us.updateMissionLayer();
-
-			return [lineStyle, iconStyle];
-		};
-
-		let surveyLinesSource = new OlVectorSource({ wrapX: false });
-		this.surveyLinesInteraction = new OlDrawInteraction({
-			source: surveyLinesSource,
-			stopClick: true,
-			minPoints: 2,
-			maxPoints: 2,
-			clickTolerance: 10,
-			type: 'LineString',
-			style: surveyLineStyle
-		})
-
-		let surveyLineslistener: EventsKey
-
-		this.surveyLinesInteraction.on(
-			'drawstart',
-			(evt: DrawEvent) => {
-				this.setState({
-					missionPlanningFeature: null
-				})
-				this.updateMissionLayer();
-
-				// Show the preview of the survey
-				surveyLineslistener = evt.feature.on('change', (evt2) => {
-					// console.log('** START ********* ON CHANGE *************************')
-					const geom1 = evt2.target;
-					// console.log('geom1');
-					// console.log(geom1);
-
-					const format = new GeoJSON();
-
-					let { missionParams } = this.state;
-
-					let stringCoords = geom1.getGeometry().getCoordinates()
-
-					if (stringCoords[0].length >= 2) {
-						let coords = stringCoords.slice(-2);
-						let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-
-						let rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
-						if (rotationAngle < 0) {
-							rotationAngle = rotationAngle + 360;
-						}
-						missionParams.orientation = rotationAngle;
-						// document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
-
-						let bot_list = Object.keys(this.podStatus.bots);
-
-						// console.log('TESTING')
-						// console.log(this);
-						// console.log(this.podStatus.bots);
-						// console.log(turf);
-						// console.log(format);
-
-						let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
-						let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
-
-						// Check if user selects length > allowed (bots * spacing), if so make centerLine max length
-						let currentCenterLineLength = turf.length(turf.toWgs84(centerLineString));
-						// console.log('currentCenterLineLength');
-						// console.log(currentCenterLineLength);
-						// console.log('maxLineLength');
-						// console.log(maxLineLength);
-						if (currentCenterLineLength >= maxLineLength) {
-							let rhumbPoint = turf.rhumbDestination(turf.toWgs84(turf.point(stringCoords[0])), maxLineLength-(Number(missionParams.spacing)/1000), rotationAngle)
-							// console.log('rhumbPoint');
-							// console.log(rhumbPoint);
-							centerLineString = turf.lineString([stringCoords[0], turf.toMercator(rhumbPoint).geometry.coordinates])
-							// console.log('centerLineString');
-							// console.log(centerLineString);
-						}
-
-						let centerLineStringWgs84 = turf.toWgs84(centerLineString);
-
-						// TODO: Maybe use turf.shortestPath here to find a way around the exclusion
-						// let centerLineStringWgs84Diverted = null;
-						// let centerLineStringWgs84Points = turf.coordAll(centerLineStringWgs84);
-						// console.log('centerLineStringWgs84Points')
-						// console.log(centerLineStringWgs84Points)
-						// if (this.state.surveyExclusions === 6) {
-						// 	let se = this.state.surveyExclusions
-						// 	let optionsExc = {
-						// 		'obstacles': turf.polygon([turf.coordAll(turf.toWgs84(turf.multiPoint(se)))]),
-						// 		// 'minDistance': Number(missionParams.spacing)/1000,
-						// 		'resolution': maxLineLength
-						// 	}
-						// 	console.log('optionsExc')
-						// 	console.log(optionsExc)
-						// 	centerLineStringWgs84Diverted = turf.shortestPath(centerLineStringWgs84Points[0], centerLineStringWgs84Points[1], optionsExc)
-						// } else {
-						// 	centerLineStringWgs84Diverted = centerLineStringWgs84;
-						// }
-
-						let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
-						let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
-
-
-						let centerLine = turf.getGeom(centerLineFc as any).features[0];
-						let currentLineLength = turf.length(centerLine)
-
-
-
-						if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
-							let offsetLines: any[] = [];
-							let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((bot_list.length/2)*0.75))
-							let nextLineOffset = 0;
-							let currentLineOffset = 0;
-
-							bot_list.forEach(bot => {
-								let ol = deepcopy(centerLine);
-								currentLineOffset = lineOffsetStart + nextLineOffset
-
-								ol.properties['botId'] = bot;
-								ol = turf.transformTranslate(ol, currentLineOffset/1000, rotationAngle+90)
-
-								offsetLines.push(ol);
-								nextLineOffset = nextLineOffset + Number(missionParams.spacing)
-							})
-
-							let alongLines: any = {};
-							let alongPoints: {[key: string]: number[][]} = {};
-							offsetLines.forEach(offsetLine => {
-								turf.geomEach(offsetLine, function (currentGeometry, featureIndex, featureProperties, featureBBox, featureId) {
-									let botId = featureProperties.botId as number;
-									alongLines[botId] = turf.toMercator(currentGeometry).coordinates
-								});
-								if (this.state.surveyExclusions) {
-									let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
-									let alongPointsAfterExclusion: number[][] = []
-									alongPointsBeforeExclusion.forEach(point => {
-										// console.log('this.state.surveyExclusions');
-										let se = turf.coordAll(turf.toWgs84(turf.multiPoint(this.state.surveyExclusions)));
-										// console.log(se);
-										// console.log(point);
-										let options = {'ignoreBoundary': true}
-										if (turf.booleanPointInPolygon(point, turf.polygon([se]), options) === false) {
-											alongPointsAfterExclusion.push(point)
-										}
-									})
-									// let alongPointsAfterExclusion = turf.pointsWithinPolygon(turf.mutliPoint(alongPointsBeforeExclusion), turf.polygon(this.state.surveyExclusions))
-									alongPoints[offsetLine.properties.botId] = turf.coordAll(turf.toMercator(turf.multiPoint(alongPointsAfterExclusion)))
-								} else {
-									alongPoints[offsetLine.properties.botId] = turf.coordAll(turf.toMercator(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7)))))
-								}
-							})
-
-							// Metadata setup
-							// TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
-							// console.log('hubs');
-							// console.log(Object.values(this.podStatus?.hubs ?? {}));
-							let fcInput: turf.helpers.Feature<turf.helpers.Point>[] = []
-							Object.keys(alongPoints).forEach(key => {
-								let points = alongPoints[key]
-								points.forEach(point => {
-									fcInput.push(turf.toWgs84(turf.point(point)))
-								})
-							})
-
-							// Make sure this would be a valid polygon before changing the stats
-							if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
-								let fcOutput = turf.featureCollection(fcInput)
-								let fcOutputPoly = turf.concave(fcOutput)
-								missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
-								missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
-							}
-
-							missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([this.state.rallyPointGreenLocation.lon, this.state.rallyPointGreenLocation.lat])), 2)
-							missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([this.state.rallyPointRedLocation.lon, this.state.rallyPointRedLocation.lat])), 2)
-
-							this.setState({
-								missionPlanningLines: alongLines,
-								missionPlanningGrid: alongPoints,
-								missionParams: missionParams
-							}, () => this.updateMissionLayer())
-						}
-
-						// Metadata/Stats
-						$('#missionStatArea').text(this.state.missionParams.sp_area);
-						$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
-						$('#missionStatOrientation').text(this.state.missionParams.orientation);
-						$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
-						$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
-
-						// console.log('** END ********* ON CHANGE *************************')
-					}
-				})
-			}
-		);
-
-		this.surveyLinesInteraction.on(
-			'drawend',
-			(evt: DrawEvent) => {
-				// console.log('surveyLinesInteraction drawend');
-				// this.surveyLinesInteraction.finishDrawing();
-				// this.updateMissionLayer();
-				// console.log(evt);
-				// console.log(map);
-
-				this.setState({
-					missionPlanningFeature: evt.feature
-				})
-
-				// console.log(this.surveyLinesInteraction);
-				// console.log(this.surveyLinesInteraction.finishCoordinate_);
-				// console.log(this.surveyLinesInteraction.sketchCoords_);
-				this.updateMissionLayer();
-				OlUnobserveByKey(surveyLineslistener);
-
-				// map.changed();
-				// map.renderSync();
-				// map.updateSize();
 			}
 		);
 
@@ -2511,7 +2218,7 @@ export default class CommandControl extends React.Component {
 									if (this.state.missionParams.mission_type === 'editing')
 										this.changeInteraction(this.selectInteraction(), 'grab');
 									if (this.state.missionParams.mission_type === 'lines')
-										this.changeInteraction(this.surveyLinesInteraction, 'crosshair');
+										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'exclusions')
 										this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
 
