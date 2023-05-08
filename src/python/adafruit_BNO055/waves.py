@@ -9,23 +9,23 @@ from vector3 import Vector3
 @dataclass
 class Component:
     frequency: float
-    amplitude: float
+    height: float
 
 
 def get_components(input_dct: List[float], window_time_length: float):
     return [
-        Component(i / 2 / window_time_length, amplitude=2 * x)
+        Component(i / 2 / window_time_length, height=2 * x)
         for i, x in enumerate(input_dct)
     ]
 
 
 def sort_by_amplitude(spectrum: List[Component]) -> List[Component]:
-    return list(sorted(spectrum, key=lambda component: abs(component.amplitude), reverse=True))
+    return list(sorted(spectrum, key=lambda component: abs(component.height), reverse=True))
 
 
 def acceleration_to_height(acceleration_spectrum: List[Component]) -> List[Component]:
     return [
-        Component(acceleration_component.frequency, acceleration_component.amplitude / (2 * pi * acceleration_component.frequency) ** 2)
+        Component(acceleration_component.frequency, acceleration_component.height / (2 * pi * acceleration_component.frequency) ** 2)
         for acceleration_component in acceleration_spectrum if acceleration_component.frequency > 0
     ]
 
@@ -33,7 +33,7 @@ def acceleration_to_height(acceleration_spectrum: List[Component]) -> List[Compo
 def get_max_component(spectrum: List[Component]):
     max_component: Component = None
     for i, component in enumerate(spectrum):
-        if max_component is None or abs(component.amplitude) >= abs(max_component.amplitude):
+        if max_component is None or abs(component.height) >= abs(max_component.height):
             max_component = component
 
     return max_component
@@ -57,7 +57,7 @@ def peak_sum(spectrum: List[Component], center_frequency: float, n_pts: int) -> 
 
     for component in spectrum[start_index:end_index]:
         sum_component.frequency += component.frequency
-        sum_component.amplitude += abs(component.amplitude)
+        sum_component.height += abs(component.height)
 
     sum_component.frequency /= (end_index - start_index)
 
@@ -66,7 +66,7 @@ def peak_sum(spectrum: List[Component], center_frequency: float, n_pts: int) -> 
 
 def print_spectrum(spectrum: List[Component]):
     for component in spectrum:
-        print(f'{component.frequency:5.2f}  {abs(component.amplitude):5.2f}')
+        print(f'{component.frequency:5.2f}  {abs(component.height):5.2f}')
 
 
 class Analyzer:
