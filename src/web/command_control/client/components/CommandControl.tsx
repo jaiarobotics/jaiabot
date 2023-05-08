@@ -148,7 +148,7 @@ import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { fromLonLat } from 'ol/proj.js';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering } from './gui/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
+import { MapBrowserEvent, MapEvent, getUid } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
 import { EventsKey } from 'ol/events'
@@ -163,6 +163,7 @@ import { run } from 'node:test'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
+import { SurveyPolygon } from './SurveyPolygon'
 
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
@@ -206,7 +207,7 @@ interface Props {
 
 }
 
-enum Mode {
+export enum Mode {
 	NONE = '',
 	MISSION_PLANNING = 'missionPlanning',
 	SET_HOME = 'setHome',
@@ -331,8 +332,8 @@ export default class CommandControl extends React.Component {
 	coordinate_to_location_transform = equirectangular_to_mercator
 
 	measureInteraction: OlDrawInteraction
-	surveyPolygonInteraction: OlDrawInteraction
 	surveyLines: SurveyLines
+	surveyPolygon: SurveyPolygon
 	surveyExclusionsInteraction: OlDrawInteraction
 
 	missionLayer: OlVectorLayer<OlVectorSource>
@@ -553,266 +554,8 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
-		let surveyPolygonSource = new OlVectorSource({ wrapX: false });
-
-		this.surveyPolygonInteraction = new OlDrawInteraction({
-			// features: map.missionPlanningLayer.features,
-			//source: surveyPolygonSource,
-			stopClick: true,
-			minPoints: 3,
-			clickTolerance: 10,
-			// finishCondition: event => {
-			// 	return this.surveyPolygonInteraction.finishCoordinate_ === this.surveyPolygonInteraction.sketchCoords_[0][0];
-			// },
-			type: 'Polygon',
-			style: new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgba(255, 255, 255, 0.2)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: 'rgba(0, 0, 0, 0.5)',
-					lineDash: [10, 10],
-					width: 2
-				}),
-				image: new OlCircleStyle({
-					radius: 5,
-					stroke: new OlStrokeStyle({
-						color: 'rgba(0, 0, 0, 0.7)'
-					}),
-					fill: new OlFillStyle({
-						color: 'rgba(255, 255, 255, 0.2)'
-					})
-				})
-			})
-		});
-
-		let surveyPolygonlistener: EventsKey
-
-		this.surveyPolygonInteraction.on(
-			'drawstart',
-			(evt: DrawEvent) => {
-				this.setState({
-					surveyPolygonChanged: true,
-					mode: Mode.MISSION_PLANNING,
-					missionPlanningFeature: null
-				});
-				this.updateMissionLayer();
-
-				surveyPolygonlistener = evt.feature.on('change', (evt2: BaseEvent) => {
-					const geom1 = evt2.target;
-
-					const format = new GeoJSON();
-					const turfPolygon = format.writeFeatureObject(geom1) as any
-
-					if (turfPolygon.geometry.coordinates[0].length > 500) {
-
-						let cellSide = this.state.missionParams.spacing;
-
-						let options = {units: 'meters' as Units, mask: turf.toWgs84(turfPolygon)};
-
-						let turfPolygonBbox = turf.bbox(turf.toWgs84(turfPolygon));
-
-						let missionPlanningGridTurf = turf.pointGrid(turfPolygonBbox, cellSide, options);
-
-						if (missionPlanningGridTurf.features.length > 0) {
-
-							let missionPlanningGridTurfCentroid = turf.centroid(missionPlanningGridTurf);
-							let optionsRotate = {pivot: missionPlanningGridTurfCentroid};
-							let missionPlanningGridTurfRotated = turf.transformRotate(missionPlanningGridTurf, this.state.missionParams.orientation, optionsRotate);
-
-							if (missionPlanningGridTurfRotated.features.length > 0) {
-								// const missionPlanningGridOl = format.readFeatures(missionPlanningGridTurf, {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
-								let turfCombined = turf.combine(missionPlanningGridTurfRotated);
-
-								const missionPlanningGridOl = format.readFeature(turfCombined.features[0].geometry, {
-									dataProjection: 'EPSG:4326',
-									featureProjection: 'EPSG:3857'
-								});
-
-								let optionsMissionLines = {units: 'meters' as Units};
-								let bot_dict_length = Object.keys(this.podStatus.bots).length
-								let bot_list = Array.from(Array(bot_dict_length).keys());
-								let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, this.state.missionParams.spacing * bot_dict_length, this.state.missionParams.orientation, optionsMissionLines);
-
-								let centerLine = turf.lineString([missionPlanningGridTurfCentroid.geometry.coordinates, missionRhumbDestPoint.geometry.coordinates]);
-
-								let lineSegments: any[] = [];
-								let firstDistance = 0;
-								let nextDistance = this.state.missionParams.spacing;
-								bot_list.forEach(bot => {
-									let ls = turf.lineSliceAlong(centerLine, firstDistance, nextDistance, {units: 'meters'});
-									lineSegments.push(ls);
-									firstDistance = nextDistance;
-									nextDistance = nextDistance + this.state.missionParams.spacing;
-								})
-
-								// let lineSegmentsFc = turf.featureCollection(lineSegments);
-								let lineSegmentsMl = turf.multiLineString(lineSegments)
-								// console.log('lineSegmentsMl');
-								// console.log(lineSegmentsMl);
-
-
-
-								let offsetLines: any[] = [];
-
-
-								// let x = turf.getGeom(lineSegmentsMl);
-								// let y = [];
-								// x.coordinates.forEach(coord => {
-								// 	y.push()
-								// })
-
-								let ol = turf.lineOffset(centerLine, 0, {units: 'meters'});
-								offsetLines.push(ol);
-								bot_list.forEach(bot => {
-									ol = turf.lineOffset(ol, this.state.missionParams.spacing, {units: 'meters'});
-									offsetLines.push(ol);
-								})
-
-
-
-
-								// let offsetLine = turf.lineOffset(centerLine, this.state.missionParams.spacing, {units: 'meters'});
-								// console.log('offsetLines');
-								// console.log(offsetLines);
-
-								let missionPlanningLinesTurf = turf.multiLineString(offsetLines);
-								// console.log('missionPlanningLinesTurf');
-								// console.log(missionPlanningLinesTurf);
-
-								// console.log(OlFeature);
-								// console.log(OlMultiLineString);
-								let a = turf.getGeom(missionPlanningLinesTurf)
-								let b: any[] = []
-								a.coordinates.forEach(coord => {
-									b.push((format.readFeature(coord, {
-										dataProjection: 'EPSG:4326',
-										featureProjection: 'EPSG:3857'
-									}).getGeometry() as any).getCoordinates());
-								})
-								// console.log(b);
-								// const missionPlanningLinesOl = format.readFeatures(turf.getGeom(missionPlanningLinesTurf), {
-								// 	dataProjection: 'EPSG:4326',
-								// 	featureProjection: 'EPSG:3857'
-								// })
-
-								let c = turf.getGeom(missionPlanningLinesTurf)
-								let d: any[] = []
-								c.coordinates.forEach(coord => {
-									d.push((format.readFeature(turf.explode(coord as any).features[0], {
-										dataProjection: 'EPSG:4326',
-										featureProjection: 'EPSG:3857'
-									}).getGeometry() as any).getCoordinates())
-								})
-
-								this.setState({
-									missionPlanningLines: b,
-									missionPlanningGrid: d
-								})
-							}
-						}
-
-						// tooltipCoord = geom.getLastCoordinate();
-						// $('#surveyPolygonResult').text(CommandControl.formatLength(geom));
-					}
-
-					let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
-					let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon))*100)/100
-					if (spArea !== undefined && spPerimeter !== undefined) {
-						this.state.missionParams.sp_area = spArea
-						this.state.missionParams.sp_perimeter = spPerimeter;
-					}
-
-					$('#missionStatArea').text(this.state.missionParams.sp_area);
-					$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
-					$('#missionStatOrientation').text(this.state.missionParams.orientation);
-					$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
-					$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
-
-					this.updateMissionLayer();
-
-					// if (turfPolygon.geometry.coordinates[0].length > 5) {
-					// 	let geo_geom = geom1.getGeometry();
-					// 	geo_geom.transform("EPSG:3857", "EPSG:4326")
-					// 	let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-					//
-					// 	this.setState({
-					// 		// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
-					// 		// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
-					// 		surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-					// 		surveyPolygonCoords: geo_geom,
-					// 		surveyPolygonChanged: true
-					// 	});
-					// 	this.updateMissionLayer();
-					// }
-
-
-				});
-				this.updateMissionLayer();
-			}
-		);
-
-		this.surveyPolygonInteraction.on(
-			'drawend',
-			(evt: DrawEvent) => {
-				this.setState({
-					surveyPolygonChanged: true,
-					mode: Mode.MISSION_PLANNING,
-					missionPlanningFeature: evt.feature
-				});
-				this.updateMissionLayer();
-
-				const geom1 = evt.feature;
-				// console.log('geom1');
-				// console.log(geom1);
-
-				const format = new GeoJSON();
-				const turfPolygon = format.writeFeatureObject(geom1);
-				let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
-				let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon))*100)/100
-				// console.log('spArea');
-				// console.log(spArea);
-				// if (spArea !== undefined && spPerimeter !== undefined) {
-				// 	this.setState({
-				// 		missionParams['sp_area']: spArea,
-				// 		missionParams['sp_perimeter']: spPerimeter
-				// 	})
-				// 	this.state.missionParams.sp_area = spArea
-				// 	this.state.missionParams.sp_perimeter = spPerimeter;
-				// }
-
-				let geo_geom = (evt.feature as OlFeature<LineString>).getGeometry();
-				geo_geom.transform("EPSG:3857", "EPSG:4326")
-				let surveyPolygonGeoCoords = geo_geom.getCoordinates()
-
-				this.setState({
-					surveyPolygonFeature: evt.feature,
-					surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-					surveyPolygonCoords: geo_geom,
-					surveyPolygonChanged: true,
-					missionPlanningFeature: geom1
-				})
-
-				// console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
-
-				$('#missionStatArea').text(this.state.missionParams.sp_area);
-				$('#missionStatPerimeter').text(this.state.missionParams.sp_perimeter);
-				$('#missionStatOrientation').text(this.state.missionParams.orientation);
-				$('#missionStatRallyStartDistance').text(this.state.missionParams.sp_rally_start_dist);
-				$('#missionStatRallyFinishDistance').text(this.state.missionParams.sp_rally_finish_dist);
-
-				this.updateMissionLayer();
-				OlUnobserveByKey(surveyPolygonlistener);
-
-
-
-				// map.changed();
-				map.renderSync();
-				// map.updateSize();
-			}
-		);
-
 		this.surveyLines = new SurveyLines(this)
+		this.surveyPolygon = new SurveyPolygon(this)
 
 		// Callbacks
 		this.changeInteraction = this.changeInteraction.bind(this);
@@ -871,7 +614,7 @@ export default class CommandControl extends React.Component {
 	changeMissionMode() {
 		// console.log('changeMissionMode');
 		if (this.state.missionParams.mission_type === 'polygon-grid')
-			this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
+			this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'editing')
 			this.changeInteraction(this.selectInteraction(), 'grab');
 		if (this.state.missionParams.mission_type === 'lines')
@@ -2214,7 +1957,7 @@ export default class CommandControl extends React.Component {
 									closeOtherViewControlWindows('missionSettingsPanel');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
-										this.changeInteraction(this.surveyPolygonInteraction, 'crosshair');
+										this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'editing')
 										this.changeInteraction(this.selectInteraction(), 'grab');
 									if (this.state.missionParams.mission_type === 'lines')
@@ -2578,7 +2321,7 @@ export default class CommandControl extends React.Component {
 
 	updateMissionLayer() {
 		// Update the mission layer
-		let features = []
+		let features = new OlCollection<OlFeature>([], {unique:true})
 
 		let selectedFeatures = [];
 
@@ -2647,7 +2390,7 @@ export default class CommandControl extends React.Component {
 			const plan = run.command?.plan
 			if (plan != null) {
 				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
-				features.push(...missionFeatures)
+				features.extend(missionFeatures)
 				if(selected)
 				{
 					selectedFeatures.push(...missionFeatures);
@@ -2806,9 +2549,15 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		let vectorSource = new OlVectorSource({
-			features: features as any
-		})
+		var vectorSource: OlVectorSource
+		try {
+			vectorSource = new OlVectorSource({
+				features: features
+			})
+		}
+		catch (error) {
+			debugger;
+		}
 
 		let vectorSelectedSource = new OlVectorSource({
 			features: selectedFeatures as any
