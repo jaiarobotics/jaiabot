@@ -132,7 +132,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const bot_id = taskPacket.bot_id
 
     const dive = taskPacket.dive
-    if (dive != null) {
+    if (dive != null && dive.depth_achieved != 0) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`
         let depthMeasurementString = ``; 
 
