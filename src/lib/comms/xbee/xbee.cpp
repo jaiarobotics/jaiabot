@@ -156,6 +156,32 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         assert_ok();
     }
 
+    {
+        /*
+        Sets the network security key value that the device uses for encryption and decryption.
+        This command is write-only. If you attempt to read KY, the device returns an OK status.
+        Set this command parameter the same on all devices in a network.
+        The value passes in as hex characters when you set it from AT command mode, and as binary bytes
+        when you set it in API mode.
+        */
+        stringstream cmd;
+        cmd << "ATKY=123" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Enables or disables Advanced Encryption Standard (AES) encryption.
+        Set this command parameter the same on all devices in a network.
+        1 = encryption enabled
+        */
+        stringstream cmd;
+        cmd << "ATEE=1" << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
     exit_command_mode();
 
     get_maximum_payload_size();
@@ -204,6 +230,17 @@ void jaiabot::comms::XBeeDevice::shutdown()
         // Set modem API options to 0 (not explicit frames)
         stringstream cmd;
         cmd << "ATAO=0\r";
+        write(cmd.str());
+        assert_ok();
+    }
+    {
+        /*
+        Enables or disables Advanced Encryption Standard (AES) encryption.
+        Set this command parameter the same on all devices in a network.
+        1 = encryption enabled
+        */
+        stringstream cmd;
+        cmd << "ATEE=0" << '\r';
         write(cmd.str());
         assert_ok();
     }
