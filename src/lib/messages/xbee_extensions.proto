@@ -52,6 +52,18 @@ message Config
     optional int32 hub_id = 6
         [(goby.field).description =
              "If this node is a hub, set its hub_id here."];
+
+    optional bool use_xbee_encryption = 7 [
+        default = false,
+        (goby.field).description =
+            "This is used to determine if we should enable encryption."
+    ];
+
+    optional string xbee_encryption_password = 8 [
+        default = "",
+        (goby.field).description =
+            "This is used for the encryption password."
+    ];
 }
 
 extend goby.acomms.protobuf.DriverConfig

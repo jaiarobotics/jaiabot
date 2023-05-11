@@ -58,7 +58,7 @@ node_id=common.bot.bot_index_to_node_id(bot_index)
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
@@ -92,6 +92,11 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+try:
+    xbee_encryption = open('/etc/jaiabot/xbee_encryption.pb.cfg').read()
+except FileNotFoundError:
+    xbee_encryption = ''
+
 if common.jaia_comms_mode == common.CommsMode.XBEE:
     subscribe_to_hub_on_start=''
     if is_simulation():
@@ -105,7 +110,8 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
-                                            xbee_hub_id='')
+                                            xbee_hub_id='',
+                                            xbee_encryption=xbee_encryption)
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'

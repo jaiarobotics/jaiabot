@@ -65,7 +65,8 @@ class XBeeDevice
   public:
     XBeeDevice();
     void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
-                 const uint16_t network_id, const std::string& xbee_info_location);
+                 const uint16_t network_id, const std::string& xbee_info_location,
+                 const bool& use_encryption, const std::string& encryption_password);
     void shutdown();
 
     std::vector<NodeId> get_peers();

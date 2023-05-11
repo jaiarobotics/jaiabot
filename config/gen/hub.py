@@ -58,6 +58,11 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
+try:
+    xbee_encryption = open('/etc/jaiabot/xbee_encryption.pb.cfg').read()
+except FileNotFoundError:
+    xbee_encryption = ''
+
 if common.jaia_comms_mode == common.CommsMode.XBEE:
     if is_simulation():
         xbee_serial_port='/tmp/xbeehub' + str(hub_index)
@@ -71,7 +76,8 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
-                                            xbee_hub_id='hub_id: ' + str(hub_index))
+                                            xbee_hub_id='hub_id: ' + str(hub_index),
+                                            xbee_encryption=xbee_encryption)
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',

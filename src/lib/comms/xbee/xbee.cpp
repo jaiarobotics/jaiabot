@@ -77,8 +77,16 @@ jaiabot::comms::XBeeDevice::XBeeDevice()
 
 void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int baud_rate,
                                          const std::string& _my_node_id, const uint16_t network_id,
-                                         const std::string& xbee_info_location)
+                                         const std::string& xbee_info_location,
+                                         const bool& use_encryption,
+                                         const std::string& encryption_password)
 {
+    std::string enable_encryption = "0";
+    if (use_encryption)
+    {
+        enable_encryption = "1";
+    }
+
     my_node_id = _my_node_id;
     my_xbee_info_location_ = xbee_info_location;
     glog_group = "xbee id" + my_node_id;
@@ -165,7 +173,9 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         when you set it in API mode.
         */
         stringstream cmd;
-        cmd << "ATKY=123" << '\r';
+        glog.is_verbose() && glog << group(glog_group)
+                                  << "Encryption Password: " << encryption_password << endl;
+        cmd << "ATKY=" + encryption_password << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -177,7 +187,9 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         1 = encryption enabled
         */
         stringstream cmd;
-        cmd << "ATEE=1" << '\r';
+        glog.is_verbose() && glog << group(glog_group) << "Enable Encryption: " << enable_encryption
+                                  << endl;
+        cmd << "ATEE=" + enable_encryption << '\r';
         write(cmd.str());
         assert_ok();
     }
