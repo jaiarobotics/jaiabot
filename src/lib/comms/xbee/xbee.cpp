@@ -171,6 +171,7 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         Set this command parameter the same on all devices in a network.
         The value passes in as hex characters when you set it from AT command mode, and as binary bytes
         when you set it in API mode.
+        128 bit value (16 bytes)
         */
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group)

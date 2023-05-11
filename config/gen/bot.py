@@ -92,11 +92,6 @@ try:
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-try:
-    xbee_encryption = open('/etc/jaiabot/xbee_encryption.pb.cfg').read()
-except FileNotFoundError:
-    xbee_encryption = ''
-
 if common.jaia_comms_mode == common.CommsMode.XBEE:
     subscribe_to_hub_on_start=''
     if is_simulation():
@@ -111,7 +106,7 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
                                             xbee_hub_id='',
-                                            xbee_encryption=xbee_encryption)
+                                            xbee_encryption=common.comms.xbee_encryption())
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'

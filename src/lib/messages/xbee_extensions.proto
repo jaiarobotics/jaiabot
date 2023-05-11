@@ -62,7 +62,8 @@ message Config
     optional string xbee_encryption_password = 8 [
         default = "",
         (goby.field).description =
-            "This is used for the encryption password."
+            "This is used for the encryption password. Password is a 128 bit value (16 bytes or 16 characters)",
+        (dccl.field).max_length = 16
     ];
 }
 
