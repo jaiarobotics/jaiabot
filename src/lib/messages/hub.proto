@@ -26,4 +26,6 @@ message HubStatus
     repeated Warning warning = 6 [(dccl.field).max_repeat = 255];
 
     optional GeographicCoordinate location = 10;
+
+    repeated uint32 bot_ids_in_radio_file = 11;
 }

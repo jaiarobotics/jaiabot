@@ -6,9 +6,6 @@ bot_id: $bot_id
 command_sub_cfg {
     intervehicle
     {
-        # hub modem id
-        publisher_id: 1
-
         # buffer configuration for the Command messages
         buffer {
             ack_required: false
@@ -20,3 +17,6 @@ command_sub_cfg {
         }
     }
 }
+
+# If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
+$subscribe_to_hub_on_start

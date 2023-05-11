@@ -11,6 +11,9 @@ num_modems_in_subnet=(0xFFFF ^ subnet_mask)+1
 # first id is hub id
 hub_node_id=0
 
+# same as jaiabot/src/lib/comms/comms.h
+number_of_bots_max=151
+
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
 
@@ -23,7 +26,6 @@ def wifi_modem_id(node_id):
 
 def xbee_modem_id(node_id):
     return base_modem_id(node_id) + subnet_index['xbee']*num_modems_in_subnet
-
 
 def runtime_wifi_ip_addr(node_id, fleet_index):
     if node_id == hub_node_id:
@@ -55,11 +57,11 @@ def wifi_remotes(this_node_id, number_vehicles, fleet_index):
     return remotes
 
 def wifi_mac_slots(node_id):
-    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.01 max_frame_bytes: 128 }\n'
+    slots = 'slot { src: ' + str(wifi_modem_id(node_id)) + ' slot_seconds: 0.1 max_frame_bytes: 250 }\n'
     return slots
 
 def xbee_mac_slots(node_id):
-    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.01 max_frame_bytes: 200 }\n'
+    slots = 'slot { src: ' + str(xbee_modem_id(node_id)) + ' slot_seconds: 0.1 }\n'
     return slots
 
 def xbee_config():

@@ -25,7 +25,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
     
     bot_id = task_packet.bot_id
 
-    if task_packet.dive:
+    if task_packet.dive and task_packet.dive.depth_achieved != 0:
         dive = task_packet.dive
         depth_string = f"{dive.depth_achieved:.2f} m"
         depth_measurement_string = '' 
@@ -35,7 +35,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 depth_measurement_string += f'''
                     Index: {i+1} <br />
                     {entry("Mean-Depth", measurement.mean_depth, "m")}
-                    {entry("Mean-Tempuratute", measurement.mean_temperature, "°C")}
+                    {entry("Mean-Temperature", measurement.mean_temperature, "°C")}
                     {entry("Mean-Salinity", measurement.mean_salinity, "PSS")}
                 '''
 
@@ -166,7 +166,7 @@ def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
 
 def create_kmz(task_packets: Iterable[TaskPacket], output_kmz_path: str):
     '''Creates a kmz file at output_kmz_path, containing placemarks for the input task_packets'''
-
+   
     with zipfile.ZipFile(output_kmz_path, 'w') as output_kmz_file:
         kml_file_string = kml_from_task_packets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)
