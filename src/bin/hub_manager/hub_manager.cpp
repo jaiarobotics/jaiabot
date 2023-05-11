@@ -108,7 +108,10 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     for (auto peer : cfg().xbee().peers())
     {
         if (peer.has_bot_id())
+        {
             managed_bot_modem_ids_.insert(jaiabot::comms::modem_id_from_bot_id(peer.bot_id()));
+            latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(peer.bot_id());
+        }
     }
 
     for (auto id : managed_bot_modem_ids_) intervehicle_subscribe(id);
@@ -163,15 +166,27 @@ void jaiabot::apps::HubManager::handle_subscription_report(
         switch (sub_report.changed().action())
         {
             case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
+                glog.is_debug3() && glog << group("main") << "CHECK SUBSCRIBE: " << bot_id
+                                         << std::endl;
+
                 if (!managed_bot_modem_ids_.count(bot_id))
                 {
+                    glog.is_debug3() && glog << group("main") << "SUBSCRIBE: " << bot_id
+                                             << std::endl;
+
                     managed_bot_modem_ids_.insert(bot_id);
                     intervehicle_subscribe(bot_id);
                 }
                 break;
             case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
+                glog.is_debug3() && glog << group("main") << "CHECK UNSUBSCRIBE: " << bot_id
+                                         << std::endl;
+
                 if (managed_bot_modem_ids_.count(bot_id))
                 {
+                    glog.is_debug3() && glog << group("main") << "UNSUBSCRIBE: " << bot_id
+                                             << std::endl;
+
                     intervehicle_unsubscribe(bot_id);
                     managed_bot_modem_ids_.erase(bot_id);
                 }
@@ -274,7 +289,7 @@ void jaiabot::apps::HubManager::intervehicle_unsubscribe(int id)
 
         goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(subscriber_cfg);
 
-        intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::TaskPacket>(
+        intervehicle().unsubscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
             subscriber);
     }
 
@@ -344,10 +359,76 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 void jaiabot::apps::HubManager::handle_command_for_hub(
     const jaiabot::protobuf::CommandForHub& input_command_for_hub)
 {
+    glog.is_debug3() && glog << group("main") << "Received Command For Hub: "
+                             << input_command_for_hub.ShortDebugString() << std::endl;
+
     // publish computer shutdown command to jaiabot_health which is run as root so it
     // can actually carry out the shutdown
     switch (input_command_for_hub.type())
     {
+        case protobuf::CommandForHub::SCAN_FOR_BOTS:
+            if (input_command_for_hub.has_scan_for_bot_id())
+            {
+                uint32_t modem_id =
+                    jaiabot::comms::modem_id_from_bot_id(input_command_for_hub.scan_for_bot_id());
+                uint32_t bot_id = input_command_for_hub.scan_for_bot_id();
+
+                glog.is_debug3() && glog << group("main") << "Scan for bot: " << bot_id
+                                         << std::endl;
+
+                if (bot_id)
+                {
+                    glog.is_debug3() &&
+                        glog << group("main")
+                             << "Check if we are not managing modem id: " << modem_id << std::endl;
+
+                    if (!managed_bot_modem_ids_.count(modem_id))
+                    {
+                        glog.is_debug3() && glog << group("main")
+                                                 << "We are not managing modem id: " << modem_id
+                                                 << std::endl;
+
+                        managed_bot_modem_ids_.insert(modem_id);
+                        intervehicle_subscribe(modem_id);
+                    }
+                    else
+                    {
+                        intervehicle_subscribe(modem_id);
+                    }
+                }
+            }
+            else
+            {
+                for (auto bot_id : latest_hub_status_.bot_ids_in_radio_file())
+                {
+                    uint32_t modem_id = jaiabot::comms::modem_id_from_bot_id(bot_id);
+
+                    glog.is_debug3() && glog << group("main") << "Scan for bot: " << bot_id
+                                             << std::endl;
+
+                    if (bot_id)
+                    {
+                        glog.is_debug3() &&
+                            glog << group("main")
+                                 << "Check if we are managing modem id: " << modem_id << std::endl;
+
+                        if (!managed_bot_modem_ids_.count(modem_id))
+                        {
+                            glog.is_debug3() && glog << group("main")
+                                                     << "We are not managing modem id: " << modem_id
+                                                     << std::endl;
+
+                            managed_bot_modem_ids_.insert(modem_id);
+                            intervehicle_subscribe(modem_id);
+                        }
+                        else
+                        {
+                            intervehicle_subscribe(modem_id);
+                        }
+                    }
+                }
+            }
+            break;
         case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
