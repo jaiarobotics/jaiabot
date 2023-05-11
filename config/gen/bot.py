@@ -203,6 +203,12 @@ elif common.app == 'jaiabot_mission_manager':
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks))
+elif common.app == 'jaiabot_engineering':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index,
+                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

@@ -35,7 +35,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 depth_measurement_string += f'''
                     Index: {i+1} <br />
                     {entry("Mean-Depth", measurement.mean_depth, "m")}
-                    {entry("Mean-Tempuratute", measurement.mean_temperature, "°C")}
+                    {entry("Mean-Temperature", measurement.mean_temperature, "°C")}
                     {entry("Mean-Salinity", measurement.mean_salinity, "PSS")}
                 '''
 

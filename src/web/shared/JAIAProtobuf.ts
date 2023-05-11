@@ -926,6 +926,7 @@ export interface Command {
 }
 
 export enum HubCommandType {
+    SCAN_FOR_BOTS = "SCAN_FOR_BOTS",
     RESTART_ALL_SERVICES = "RESTART_ALL_SERVICES",
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
@@ -935,6 +936,7 @@ export interface CommandForHub {
     hub_id?: number
     time?: number
     type?: HubCommandType
+    scan_for_bot_id?: number
 }
 
 export interface Attitude {
@@ -1101,5 +1103,6 @@ export interface HubStatus {
     error?: Error[]
     warning?: Warning[]
     location?: GeographicCoordinate
+    bot_ids_in_radio_file?: number[]
 }
 
