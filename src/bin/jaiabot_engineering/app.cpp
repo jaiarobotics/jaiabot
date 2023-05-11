@@ -189,6 +189,11 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(1 * si
 
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
         [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
+
+    if (cfg().has_subscribe_to_hub_on_start())
+    {
+        intervehicle_subscribe(cfg().subscribe_to_hub_on_start());
+    }
 }
 
 void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
