@@ -94,6 +94,8 @@ message CommandForHub
 
     enum HubCommandType
     {
+        SCAN_FOR_BOTS = 5;
+
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
@@ -101,6 +103,7 @@ message CommandForHub
     }
 
     required HubCommandType type = 10;
+    optional uint32 scan_for_bot_id = 11;
 }
 
 message BotStatus
