@@ -129,9 +129,10 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
     const date = new Date(taskPacket._utime_ / 1e3)
     const dateString = formatter.format(date)
+    const bot_id = taskPacket.bot_id
 
     const dive = taskPacket.dive
-    if (dive != null) {
+    if (dive != null && dive.depth_achieved != 0) {
         const depthString = `${dive.depth_achieved.toFixed(2)} m`
         let depthMeasurementString = ``; 
 
@@ -151,6 +152,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                 <name>${depthString}</name>
                 <description>
                     <h2>Dive</h2>
+                    Bot-ID: ${bot_id}<br />
                     Time: ${dateString}<br />
                     Depth: ${depthString}<br />
                     Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
@@ -184,6 +186,7 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
 
         const driftDescription = `
             <h2>Drift</h2>
+            Bot-ID: ${bot_id}<br />
             Start: ${dateString}<br />
             Duration: ${drift.drift_duration} s<br />
             Speed: ${speedString}<br />

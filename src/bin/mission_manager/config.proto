@@ -7,6 +7,7 @@ import "goby/middleware/protobuf/transporter_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/health.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/modem_message_extensions.proto";
 
 package jaiabot.config;
 
@@ -86,10 +87,7 @@ message MissionManager
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
     // Min depth safety behavior
-    optional uint32 min_depth_safety = 41 [default = 0];
-
-    // Min depth skip drift task after reacquiring gps
-    optional bool min_depth_safety_skip_drift = 42 [default = false];
+    optional double min_depth_safety = 41 [default = 0];
 
     // Time factor used to increase/decrease time to travel to goal
     optional double goal_timeout_buffer_factor = 44 [default = 1];
@@ -121,6 +119,7 @@ message MissionManager
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
+    // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
     required string data_offload_command = 60;
 
     enum EngineeringTestMode
@@ -136,4 +135,6 @@ message MissionManager
     repeated jaiabot.protobuf.Error ignore_error = 81;
 
     optional bool is_sim = 82 [default = false];
+
+    optional jaiabot.protobuf.HubInfo subscribe_to_hub_on_start = 83;
 }

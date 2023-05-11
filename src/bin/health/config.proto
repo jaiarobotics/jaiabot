@@ -93,6 +93,7 @@ message Health
     optional bool ignore_powerstate_changes = 20 [default = false];
     optional bool check_helm_ivp_status = 21 [default = true];
     optional bool check_arduino_status = 22 [default = true];
+    optional bool is_in_sim = 23 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;

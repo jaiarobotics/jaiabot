@@ -4,7 +4,7 @@ import Icon from '@mdi/react'
 import { PortalBotStatus } from '../PortalStatus';
 import RunItem from './RunItem';
 import { MissionInterface } from '../CommandControl';
-import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave } from '@mdi/js';
+import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave, mdiAutoFix } from '@mdi/js';
 import { Missions } from '../Missions'
 
 interface Props {
@@ -12,7 +12,8 @@ interface Props {
     mission: MissionInterface
     loadMissionClick: any,
     saveMissionClick: any,
-    deleteAllRunsInMission: any
+    deleteAllRunsInMission: any,
+    autoAssignBotsToRuns: any
 }
 
 interface State {
@@ -80,6 +81,12 @@ export default class RunList extends React.Component {
                     onClick={() => { this.props.saveMissionClick() }}
                 >
 					<Icon path={mdiContentSave} title="Save Mission"/>
+				</Button>
+                <Button 
+                    className="button-jcc" 
+                    onClick={() => { this.props.autoAssignBotsToRuns() }}
+                >
+					<Icon path={mdiAutoFix} title="Auto Assign Bots"/>
 				</Button>
             </React.Fragment>
         );

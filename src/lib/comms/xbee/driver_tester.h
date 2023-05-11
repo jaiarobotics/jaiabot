@@ -66,6 +66,7 @@ class DriverTester
     void test4();
     void test5();
     void test6();
+    void test7();
 
   private:
     std::shared_ptr<goby::acomms::ModemDriverBase> driver1_, driver2_;
@@ -76,7 +77,7 @@ class DriverTester
     int tests_to_run_index_;
     int test_number_;
 
-    std::string test_str0_, test_str1_, test_str2_, test_str3_;
+    std::string test_str0_, test_str1_, test_str2_, test_str3_, test_str_max_;
     goby::acomms::protobuf::DriverType driver_type_;
 };
 } // namespace acomms

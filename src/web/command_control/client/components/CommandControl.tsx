@@ -366,7 +366,7 @@ export default class CommandControl extends React.Component {
 				'num_goals': (MAX_GOALS - 2),
 				'spacing': 30,
 				'orientation': 0,
-				'rally_spacing': 20,
+				'rally_spacing': 1,
 				'sp_area': 0,
 				'sp_perimeter': 0,
 				'sp_rally_start_dist': 0,
@@ -913,7 +913,7 @@ export default class CommandControl extends React.Component {
 				this.activeMissionLayer,
 				this.missionPlanningLayer,
 				//this.exclusionsLayer,
-				//this.selectedMissionLayer
+				this.selectedMissionLayer
 			]
 		})
 		
@@ -1164,7 +1164,7 @@ export default class CommandControl extends React.Component {
 			dive: {
 				max_depth: 10,
 				depth_interval: 10,
-				hold_time: 1
+				hold_time: 0
 			},
 			surface_drift: {
 				drift_time: 10
@@ -2037,7 +2037,7 @@ export default class CommandControl extends React.Component {
 		this.api.getStatus().then(
 			(result) => {
 				if (result instanceof Error) {
-					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+					this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 					return
@@ -2045,7 +2045,7 @@ export default class CommandControl extends React.Component {
 
 				if (!("bots" in result)) {
 					this.podStatus = null
-					this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+					this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 					console.error(result)
 					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
 				}
@@ -2084,7 +2084,7 @@ export default class CommandControl extends React.Component {
 			},
 			(err) => {
 				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				this.setState({disconnectionMessage: "No response from JaiaBot API (app.py)"})
+				this.setState({disconnectionMessage: "Connection Dropped To HUB"})
 			}
 		)
 	}
@@ -2517,7 +2517,7 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
 				<MissionControllerPanel 
 					api={this.api} 
@@ -2526,6 +2526,7 @@ export default class CommandControl extends React.Component {
 					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
+					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
 				/>
 				
 				<div id={this.mapDivId} className="map-control" />
@@ -2620,7 +2621,7 @@ export default class CommandControl extends React.Component {
 							}} 
 							className="button-jcc active"
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow" />
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
 						</Button>
 					) : (
 						<Button
@@ -2630,7 +2631,7 @@ export default class CommandControl extends React.Component {
 								this.trackBot('pod');
 							}}
 						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Pod" />
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
 						</Button>
 					)}
 
@@ -2760,8 +2761,42 @@ export default class CommandControl extends React.Component {
 		);
 	}
 
- 	detailsDefaultExpanded(accordian: keyof DetailsExpandedState)
-	{
+    autoAssignBotsToRuns() {
+        let podStatusBotIds = Object.keys(this.podStatus?.bots);
+        let botsAssignedToRunsIds = Object.keys(this.state.runList.botsAssignedToRuns);
+        let botsNotAssigned: number[] = [];
+
+		// Find the difference between the current botIds available
+        // And the bots that are already assigned to get the ones that
+        // Have not been assigned yet
+        podStatusBotIds.forEach((key) => {
+            if (!botsAssignedToRunsIds.includes(key)) {
+                let id = Number(key);
+                if(isFinite(id))
+                {
+                    botsNotAssigned.push(id);
+                }
+            }
+        });
+
+        botsNotAssigned.forEach((assigned_key) => {
+            for (let run_key in this.state.runList.runs) {
+                if (this.state.runList.runs[run_key].assigned == -1) {
+                    // Delete assignment
+                    delete this.state.runList.botsAssignedToRuns[this.state.runList.runs[run_key].assigned];
+
+                    this.state.runList.runs[run_key].assigned = Number(assigned_key); 
+                    this.state.runList.runs[run_key].command.bot_id = Number(assigned_key); 
+                    this.state.runList.botsAssignedToRuns[this.state.runList.runs[run_key].assigned] = this.state.runList.runs[run_key].id
+
+                    this.setState({runList: this.state.runList})
+                    break;
+                }
+            }
+        })
+    }
+
+    detailsDefaultExpanded(accordian: keyof DetailsExpandedState) {
 		let detailsExpanded = this.state.detailsExpanded;
 
 		const newDetailsExpanded = this.state.detailsExpanded;
@@ -3682,9 +3717,9 @@ export default class CommandControl extends React.Component {
 				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
+				{/*<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
-				</Button>
+				</Button>*/}
 				{ this.undoButton() }					
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
@@ -3705,7 +3740,7 @@ export default class CommandControl extends React.Component {
 		}} areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
 		></LoadMissionPanel>
 
-		this.setState({loadMissionPanel: panel})
+		this.setState({loadMissionPanel: panel, saveMissionPanel: null})
 	}
 
 	saveMissionButtonClicked() {
@@ -3713,7 +3748,7 @@ export default class CommandControl extends React.Component {
 			this.setState({saveMissionPanel: null})
 		}}></SaveMissionPanel>
 
-		this.setState({saveMissionPanel: panel})
+		this.setState({saveMissionPanel: panel, loadMissionPanel: null})
 	}
 
 	undoButton() {

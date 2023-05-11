@@ -362,6 +362,7 @@ export enum MissionState {
     IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = "IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT",
     IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = "IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS",
     IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = "IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT",
+    IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = "IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING",
     IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = "IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING",
     IN_MISSION__UNDERWAY__TASK__IMU_RESTART = "IN_MISSION__UNDERWAY__TASK__IMU_RESTART",
     IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = "IN_MISSION__UNDERWAY__RECOVERY__TRANSIT",
@@ -925,6 +926,7 @@ export interface Command {
 }
 
 export enum HubCommandType {
+    SCAN_FOR_BOTS = "SCAN_FOR_BOTS",
     RESTART_ALL_SERVICES = "RESTART_ALL_SERVICES",
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
@@ -934,6 +936,7 @@ export interface CommandForHub {
     hub_id?: number
     time?: number
     type?: HubCommandType
+    scan_for_bot_id?: number
 }
 
 export interface Attitude {
@@ -1072,6 +1075,13 @@ export interface RFDisableOptions {
     rf_disable_timeout_mins?: number
 }
 
+export interface BottomDepthSafetyParams {
+    constant_heading?: number
+    constant_heading_time?: number
+    constant_heading_speed?: number
+    safety_depth?: number
+}
+
 export interface Engineering {
     bot_id?: number
     time?: number
@@ -1082,6 +1092,7 @@ export interface Engineering {
     bot_status_rate?: BotStatusRate
     gps_requirements?: GPSRequirements
     rf_disable_options?: RFDisableOptions
+    bottom_depth_safety_params?: BottomDepthSafetyParams
     flag?: number
 }
 
@@ -1092,5 +1103,6 @@ export interface HubStatus {
     error?: Error[]
     warning?: Warning[]
     location?: GeographicCoordinate
+    bot_ids_in_radio_file?: number[]
 }
 

@@ -188,7 +188,7 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command_for_hub.description + " (" + command_for_hub.commandType + ")?")) {
+    if (confirm("Are you sure you'd like to " + command_for_hub.description + "?")) {
         let c = {
             hub_id: hub_id,
             type: command_for_hub.commandType as HubCommandType
@@ -492,10 +492,10 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
-                                <Icon path={mdiSkipNext} title="Next Task"/>
+                        <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
+                                disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
+                                onClick={() => { deleteSingleMission() }}>
+                            <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
                     </div>
                 </div>
@@ -576,13 +576,13 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
-                            {dataOffloadButton}
-                            
-                            <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
-                                    disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
-                                    onClick={() => { deleteSingleMission() }}>
-                                <Icon path={mdiDelete} title="Clear Mission"/>
+                            <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
+                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
+                                <Icon path={mdiSkipNext} title="Next Task"/>
                             </Button>
+
+                            {dataOffloadButton}
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
