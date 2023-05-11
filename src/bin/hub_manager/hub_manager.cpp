@@ -378,14 +378,14 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
 
                 if (bot_id)
                 {
-                    glog.is_debug3() && glog << group("main")
-                                             << "Check if we are not managing mode id: " << modem_id
-                                             << std::endl;
+                    glog.is_debug3() &&
+                        glog << group("main")
+                             << "Check if we are not managing modem id: " << modem_id << std::endl;
 
                     if (!managed_bot_modem_ids_.count(modem_id))
                     {
                         glog.is_debug3() && glog << group("main")
-                                                 << "We are not managing mode id: " << modem_id
+                                                 << "We are not managing modem id: " << modem_id
                                                  << std::endl;
 
                         managed_bot_modem_ids_.insert(modem_id);
@@ -408,14 +408,14 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
 
                     if (bot_id)
                     {
-                        glog.is_debug3() && glog << group("main")
-                                                 << "Check if we are not managing mode id: "
-                                                 << modem_id << std::endl;
+                        glog.is_debug3() &&
+                            glog << group("main")
+                                 << "Check if we are managing modem id: " << modem_id << std::endl;
 
                         if (!managed_bot_modem_ids_.count(modem_id))
                         {
                             glog.is_debug3() && glog << group("main")
-                                                     << "We are not managing mode id: " << modem_id
+                                                     << "We are not managing modem id: " << modem_id
                                                      << std::endl;
 
                             managed_bot_modem_ids_.insert(modem_id);
