@@ -627,7 +627,7 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
         xbeeFile.open(my_xbee_info_location_);
         xbeeFile << "  node_id: '" << my_node_id << "'\n";
         xbeeFile << "  serial_number: "
-                 << "'0x00" << std::hex << my_serial_number << "'";
+                 << "'0x00" << std::hex << my_serial_number << "'\n";
         xbeeFile.close();
     }
 
