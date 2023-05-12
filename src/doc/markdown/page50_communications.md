@@ -68,6 +68,12 @@ The XBee driver takes the following configuration (within `gobyd`'s configuratio
                                               # )
         hub_id:   # If this node is a hub, set its hub_id here. 
                   # (optional)
+        use_xbee_encryption: false # This is used to determine if we should enable encryption.
+                                   # If true, then all systems will need to use encryption.
+                                   # Advanced Encryption Standard (AES)
+                                   # (optional)
+        xbee_encryption_password: "" # This is used for the encryption password. 
+                                     # Password is a 128 bit value (16 bytes) 
       }
     }
 ```
@@ -102,6 +108,8 @@ An example configuration for hub 1 in a two bot/two hub fleet is:
                 serial_number: 0x13A200421F6B7A
             }
             hub_id: 1
+            use_xbee_encryption: false 
+            xbee_encryption_password: "" 
         }
     }
 ```
@@ -119,8 +127,19 @@ and for bot 0 in the same fleet:
             peers {
               ... // same as for hub 1
             }
+            use_xbee_encryption: false 
+            xbee_encryption_password: "" 
         }
     }
+```
+
+The xbee encryption configuration can be read in: /etc/jaiabot/xbee_encryption.pb.cfg
+
+```
+# Use Advanced Encryption Standard (AES)
+use_xbee_encryption: true
+# Password is a 128 bit value (16 bytes)
+xbee_encryption_password: "TEST1"
 ```
 
 ### XBeeDriver Wire protocol
