@@ -133,7 +133,7 @@ and for bot 0 in the same fleet:
     }
 ```
 
-The xbee encryption configuration can be read in: /etc/jaiabot/xbee_encryption.pb.cfg
+The xbee encryption configuration can be read in from: /etc/jaiabot/xbee_encryption.pb.cfg
 
 ```
 # Use Advanced Encryption Standard (AES)
@@ -141,6 +141,10 @@ use_xbee_encryption: true
 # Password is a 128 bit value (16 bytes)
 xbee_encryption_password: "TEST1"
 ```
+
+The xbee_encryption.pb.cfg file is located on every bot and hub in /etc/jaiabot.
+If the use_xbee_encryption configuration is set to true then the rest of the fleet should set the configuration to true as well.
+If the use of encryption is not set to true or false fleet wide then you will experience communication issues. 
 
 ### XBeeDriver Wire protocol
 
