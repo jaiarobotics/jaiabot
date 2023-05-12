@@ -166,12 +166,14 @@ void jaiabot::apps::HubManager::handle_subscription_report(
         switch (sub_report.changed().action())
         {
             case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
-                glog.is_debug3() && glog << group("main") << "CHECK SUBSCRIBE: " << bot_id
-                                         << std::endl;
+                glog.is_debug3() &&
+                    glog << group("main")
+                         << "(Handle SUBSCRIBE) Check if we are not managing modem_id: " << bot_id
+                         << std::endl;
 
                 if (!managed_bot_modem_ids_.count(bot_id))
                 {
-                    glog.is_debug3() && glog << group("main") << "SUBSCRIBE: " << bot_id
+                    glog.is_debug3() && glog << group("main") << "Subscribe to bot: " << bot_id
                                              << std::endl;
 
                     managed_bot_modem_ids_.insert(bot_id);
@@ -179,12 +181,14 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                 }
                 break;
             case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
-                glog.is_debug3() && glog << group("main") << "CHECK UNSUBSCRIBE: " << bot_id
-                                         << std::endl;
+                glog.is_debug3() &&
+                    glog << group("main")
+                         << "(Handle UNSUBSCRIBE) Check if we are not managing modem_id: " << bot_id
+                         << std::endl;
 
                 if (managed_bot_modem_ids_.count(bot_id))
                 {
-                    glog.is_debug3() && glog << group("main") << "UNSUBSCRIBE: " << bot_id
+                    glog.is_debug3() && glog << group("main") << "Unsubscribe to bot: " << bot_id
                                              << std::endl;
 
                     intervehicle_unsubscribe(bot_id);
