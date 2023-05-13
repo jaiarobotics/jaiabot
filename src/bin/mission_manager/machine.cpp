@@ -272,16 +272,21 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-    if (task_packet_.type() != protobuf::MissionTask::NONE && !this->machine().rf_disable())
+    if (task_packet_.type() == protobuf::MissionTask::DIVE ||
+        task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        glog.is_debug2() && glog << "Publishing task packet: " << task_packet_.ShortDebugString()
-                                 << std::endl;
-
-        intervehicle().publish<groups::task_packet>(task_packet_);
-    }
-    else if (task_packet_.type() != protobuf::MissionTask::NONE)
-    {
-        interprocess().publish<groups::task_packet>(task_packet_);
+        if (this->machine().rf_disable())
+        {
+            glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
+                                     << task_packet_.DebugString() << std::endl;
+            interprocess().publish<groups::task_packet>(task_packet_);
+        }
+        else
+        {
+            glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
+                                     << task_packet_.DebugString() << std::endl;
+            intervehicle().publish<groups::task_packet>(task_packet_);
+        }
     }
 }
 

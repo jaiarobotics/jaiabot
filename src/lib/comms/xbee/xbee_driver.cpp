@@ -103,9 +103,12 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     auto network_id = config_extension().network_id();
     test_comms_ = config_extension().test_comms();
     auto xbee_info_location = config_extension().xbee_info_location();
+    bool use_encryption = config_extension().use_xbee_encryption();
+    std::string encryption_password = config_extension().xbee_encryption_password();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
-                    encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location);
+                    encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
+                    use_encryption, encryption_password);
 
     for (auto peer : config_extension().peers())
     {

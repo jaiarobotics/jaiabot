@@ -587,6 +587,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 const auto& hub_info =
                     rx_msg.data().GetExtension(jaiabot::protobuf::transmission).hub();
+
+                glog.is_debug1() && glog << hub_info.ShortDebugString() << std::endl;
+
                 if (hub_info.changed())
                 {
                     interprocess().publish<jaiabot::groups::intervehicle_subscribe_request>(
