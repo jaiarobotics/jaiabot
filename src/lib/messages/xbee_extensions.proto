@@ -49,9 +49,10 @@ message Config
             "Location to write a file with serial number and node id to be used by jaiabot_metadata"
     ];
 
-    optional int32 hub_id = 6
-        [(goby.field).description =
-             "If this node is a hub, set its hub_id here."];
+    optional int32 hub_id = 6 [ 
+        (goby.field).description =
+             "If this node is a hub, set its hub_id here."
+    ];
 
     optional bool use_xbee_encryption = 7 [
         default = false,

@@ -10,7 +10,6 @@ link {
         [xbee.protobuf.config] {
             $xbee_config
             $xbee_hub_id
-            $xbee_encryption
         }
     }
     mac { 

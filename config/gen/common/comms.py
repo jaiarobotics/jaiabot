@@ -70,8 +70,3 @@ def xbee_config():
     except FileNotFoundError:
         return ''
     
-def xbee_encryption():
-    try:
-        return open('/etc/jaiabot/xbee_encryption.pb.cfg').read()
-    except FileNotFoundError:
-        return ''

@@ -105,8 +105,7 @@ if common.jaia_comms_mode == common.CommsMode.XBEE:
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
                                             xbee_config=common.comms.xbee_config(),
-                                            xbee_hub_id='',
-                                            xbee_encryption=common.comms.xbee_encryption())
+                                            xbee_hub_id='')
 
 elif common.jaia_comms_mode == common.CommsMode.WIFI:
     subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 0 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
