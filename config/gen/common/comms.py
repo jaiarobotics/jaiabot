@@ -69,3 +69,4 @@ def xbee_config():
         return open('/etc/jaiabot/xbee.pb.cfg').read()
     except FileNotFoundError:
         return ''
+    
