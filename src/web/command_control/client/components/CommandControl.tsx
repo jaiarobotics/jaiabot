@@ -2948,10 +2948,11 @@ export default class CommandControl extends React.Component {
 		this.setState({
 			rallyPointGreenLocation: location,
 			mode: ''
+		}, () => {
+			this.updateMissionLayer()
 		})
 
 		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
-		this.updateMissionLayer()
 	}
 
 	placeRallyPointRedAtCoordinate(coordinate: number[]) {
@@ -2960,10 +2961,11 @@ export default class CommandControl extends React.Component {
 		this.setState({
 			rallyPointRedLocation: location,
 			mode: ''
+		}, () => {
+			this.updateMissionLayer()
 		})
 
 		this.toggleMode(Mode.SET_RALLY_POINT_RED)
-		this.updateMissionLayer()
 	}
 
 	stopDown(arg: boolean) {
