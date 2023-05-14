@@ -206,7 +206,6 @@ interface Props {
 export enum Mode {
 	NONE = '',
 	MISSION_PLANNING = 'missionPlanning',
-	SET_HOME = 'setHome',
 	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
 	SET_RALLY_POINT_RED = "setRallyPointRed"
 }
@@ -2231,21 +2230,13 @@ export default class CommandControl extends React.Component {
 
 	}
 
-	setGrid2Style(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-		return Styles.goalIcon(taskType, false, false)
-	}
-
-	setGridStyle(self: CommandControl, taskType: TaskType) {
-		return Styles.goalIcon(taskType, false, false)
-	}
-
 	surveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
 			// console.log('WHAT IS GOING ON!!!!');
 			// console.log(feature);
 			// console.log(self.state);
 			// console.log(self.homeLocation);
 
-		let iStyle = this.setGridStyle(self, taskType)
+		let iStyle = Styles.goalIcon(taskType, false, false)
 
 			let lineStyle = new OlStyle({
 				fill: new OlFillStyle({
@@ -2327,17 +2318,6 @@ export default class CommandControl extends React.Component {
 	setSurveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
 		let featureStyles = this.surveyStyle(self, feature, taskType);
 		feature.setStyle(featureStyles);
-		return feature
-	}
-
-	setGridFeatureStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-		if (feature) {
-			let gridStyle = new OlStyle({
-				image: this.setGrid2Style(self, feature, taskType)
-			})
-			
-			feature.setStyle(gridStyle);
-		}
 		return feature
 	}
 
@@ -2559,14 +2539,18 @@ export default class CommandControl extends React.Component {
 
 			let mpGridFeature = new OlFeature(
 				{
-					geometry: new OlMultiPoint(mpg[key])
+					geometry: new OlMultiPoint(mpg[key]),
+					style: new OlStyle({
+						image: Styles.goalIcon(this.state.missionBaseGoal.task.type, false, false)
+					})
 				}
 			)
 			mpGridFeature.setProperties({'botId': key});
-			// let activeGridStyle = this.setGridStyle(this, mpGridFeature, this.state.missionBaseGoal.task.type)
+			mpGridFeature.setStyle(new OlStyle({
+				image: Styles.goalIcon(this.state.missionBaseGoal.task.type, false, false)
+			}))
 
-			let mpGridFeatureStyled = this.setGridFeatureStyle(this, mpGridFeature, this.state.missionBaseGoal.task.type);
-			features.push(mpGridFeatureStyled);
+			features.push(mpGridFeature);
 		})
 
 		return features
@@ -2872,11 +2856,6 @@ export default class CommandControl extends React.Component {
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
 
-		if (this.state.mode == Mode.SET_HOME) {
-			this.placeHomeAtCoordinate(evt.coordinate)
-			return false // Not a drag event
-		}
-
 		if (this.state.mode == Mode.SET_RALLY_POINT_GREEN) {
 			this.placeRallyPointGreenAtCoordinate(evt.coordinate)
 			return false // Not a drag event
@@ -2941,24 +2920,9 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-	placeHomeAtCoordinate(coordinate: number[]) {
-		let lonlat = mercator_to_equirectangular(coordinate)
-		let location = {lon: lonlat[0], lat: lonlat[1]}
-
-		this.setState({
-			homeLocation: location,
-			mode: ''
-		})
-
-		this.toggleMode(Mode.SET_HOME)
-		this.updateMissionLayer()
-	}
-
 	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
-		let lonlat = mercator_to_equirectangular(coordinate)
-		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
-			rallyPointGreenLocation: location,
+			rallyPointGreenLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
 		}, () => {
 			this.updateMissionLayer()
@@ -2968,10 +2932,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	placeRallyPointRedAtCoordinate(coordinate: number[]) {
-		let lonlat = mercator_to_equirectangular(coordinate)
-		let location = {lon: lonlat[0], lat: lonlat[1]}
 		this.setState({
-			rallyPointRedLocation: location,
+			rallyPointRedLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
 		}, () => {
 			this.updateMissionLayer()
@@ -3071,10 +3033,6 @@ export default class CommandControl extends React.Component {
 
 	undoButton() {
 		return (<Button className={"globalCommand" + " button-jcc"} onClick={this.restoreUndo.bind(this)}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
-	}
-
-	setHomeClicked(evt: UIEvent) {
-		this.toggleMode(Mode.SET_HOME)
 	}
 
 	setRallyPointRedClicked(evt: Event) {
