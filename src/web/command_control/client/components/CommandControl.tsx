@@ -138,7 +138,6 @@ const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
-import { persistVisibility } from './VisibleLayerPersistance'
 
 import { KMZ } from './KMZ'
 import { createChartLayerGroup, gebcoLayer } from './ChartLayers';
