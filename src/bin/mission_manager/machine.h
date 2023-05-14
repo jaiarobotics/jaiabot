@@ -93,6 +93,7 @@ STATECHART_EVENT(EvGPSFix)
 STATECHART_EVENT(EvGPSNoFix)
 STATECHART_EVENT(EvIMURestart)
 STATECHART_EVENT(EvIMURestartCompleted)
+STATECHART_EVENT(EvBottomDepthAbort)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
@@ -207,6 +208,7 @@ struct UnpoweredAscent;
 struct PoweredAscent;
 struct ReacquireGPS;
 struct SurfaceDrift;
+struct ConstantHeading;
 } // namespace dive
 } // namespace task
 
@@ -390,6 +392,42 @@ struct MissionManagerStateMachine
     }
     const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
 
+    void
+    set_bottom_depth_safety_constant_heading(const double& bottom_depth_safety_constant_heading)
+    {
+        bottom_depth_safety_constant_heading_ = bottom_depth_safety_constant_heading;
+    }
+    const double& bottom_depth_safety_constant_heading()
+    {
+        return bottom_depth_safety_constant_heading_;
+    }
+
+    void set_bottom_depth_safety_constant_heading_speed(
+        const double& bottom_depth_safety_constant_heading_speed)
+    {
+        bottom_depth_safety_constant_heading_speed_ = bottom_depth_safety_constant_heading_speed;
+    }
+    const double& bottom_depth_safety_constant_heading_speed()
+    {
+        return bottom_depth_safety_constant_heading_speed_;
+    }
+
+    void set_bottom_depth_safety_constant_heading_time(
+        const double& bottom_depth_safety_constant_heading_time)
+    {
+        bottom_depth_safety_constant_heading_time_ = bottom_depth_safety_constant_heading_time;
+    }
+    const double& bottom_depth_safety_constant_heading_time()
+    {
+        return bottom_depth_safety_constant_heading_time_;
+    }
+
+    void set_bottom_safety_depth(const double& bottom_safety_depth)
+    {
+        bottom_safety_depth_ = bottom_safety_depth;
+    }
+    const double& bottom_safety_depth() { return bottom_safety_depth_; }
+
     void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
     {
         latest_lat_ = latest_lat;
@@ -425,6 +463,10 @@ struct MissionManagerStateMachine
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
     bool rf_disable_{false};
+    double bottom_depth_safety_constant_heading_{0};
+    double bottom_depth_safety_constant_heading_speed_{0};
+    double bottom_depth_safety_constant_heading_time_{0};
+    double bottom_safety_depth_{cfg().min_depth_safety()};
 };
 
 struct PreDeployment
@@ -547,6 +589,7 @@ struct InMission
       AppMethodsAccess<InMission>
 {
     constexpr static int RECOVERY_GOAL_INDEX{-1};
+    constexpr static int SURF_EGRESS_GOAL_INDEX{-2};
 
     using StateBase =
         boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>;
@@ -589,16 +632,34 @@ struct InMission
 
     void increment_goal_index()
     {
+        const auto& repeats = this->machine().mission_plan().repeats();
+        const auto& goal_size = this->machine().mission_plan().goal_size();
+
         ++goal_index_;
+
         // all goals completed
-        if (goal_index_ >= this->machine().mission_plan().goal_size())
+        if (goal_index_ >= goal_size)
         {
-            goby::glog.is_verbose() && goby::glog << group("movement")
-                                                  << "All goals complete, mission is complete."
+            ++repeat_index_;
+
+            goby::glog.is_verbose() && goby::glog << group("movement") << "Repeat " << repeat_index_
+                                                  << "/" << repeats << ": all goals complete"
                                                   << std::endl;
 
-            set_mission_complete();
-            goal_index_ = RECOVERY_GOAL_INDEX;
+            // all repeats completed
+            if (repeat_index_ >= repeats)
+            {
+                goby::glog.is_verbose() &&
+                    goby::glog << group("movement") << "All repeats complete, mission is complete."
+                               << std::endl;
+                set_mission_complete();
+                goal_index_ = RECOVERY_GOAL_INDEX;
+            }
+            else
+            {
+                // Do next repeat, starting with first goal
+                goal_index_ = 0;
+            }
         }
     }
 
@@ -616,6 +677,7 @@ struct InMission
 
   private:
     int goal_index_{0};
+    int repeat_index_{0};
     bool mission_complete_{false};
 };
 
@@ -1129,15 +1191,10 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
     void loop(const EvLoop&)
     {
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+
         if (now >= drift_time_stop_)
         {
             this->post_event(EvTaskComplete());
-
-            if (this->template context<Task>().task_packet().dive().reached_min_depth())
-            {
-                this->template context<InMission>().set_goal_index_to_final_goal();
-                this->post_event(statechart::EvReturnToHome());
-            }
         }
 
         protobuf::DesiredSetpoints setpoint_msg;
@@ -1169,7 +1226,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     using StateBase = boost::statechart::state<TaskSelection, Task>;
     TaskSelection(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug2() && goby::glog << "Entering TaskSelect" << std::endl;
+        goby::glog.is_debug2() && goby::glog << group("task") << "Entering TaskSelect" << std::endl;
         post_event(EvTaskSelect());
     }
     ~TaskSelection() {}
@@ -1305,13 +1362,17 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
         dive_depths_.push_back(seafloor_depth);
         dive_packet().set_bottom_dive(true);
 
-        goby::glog.is_debug2() && goby::glog << "Seafloor Depth: " << seafloor_depth.value()
-                                             << " , Safety Depth: " << cfg().min_depth_safety()
-                                             << std::endl;
+        goby::glog.is_debug2() &&
+            goby::glog << "Seafloor Depth: " << seafloor_depth.value()
+                       << " , Safety Depth: " << this->machine().bottom_safety_depth() << std::endl;
 
-        if (seafloor_depth.value() <= (cfg().min_depth_safety() + cfg().dive_depth_eps()))
+        if (seafloor_depth.value() <=
+            (this->machine().bottom_safety_depth() + cfg().dive_depth_eps()))
         {
             dive_packet().set_reached_min_depth(true);
+            this->machine().insert_warning(
+                jaiabot::protobuf::
+                    WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED);
         }
     }
 
@@ -1486,14 +1547,12 @@ struct ReacquireGPS
                 goby::glog.is_debug2() &&
                     goby::glog << "Reached Min depth: "
                                << context<Task>().task_packet().dive().reached_min_depth()
-                               << " , Skip drift: " << this->cfg().min_depth_safety_skip_drift()
                                << std::endl;
 
-                if (context<Task>().task_packet().dive().reached_min_depth() &&
-                    this->cfg().min_depth_safety_skip_drift())
+                if (context<Task>().task_packet().dive().reached_min_depth())
                 {
                     context<InMission>().set_goal_index_to_final_goal();
-                    this->post_event(statechart::EvReturnToHome());
+                    this->post_event(EvBottomDepthAbort());
                 }
                 else
                 {
@@ -1511,6 +1570,7 @@ struct ReacquireGPS
 
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>,
+        boost::statechart::transition<EvBottomDepthAbort, ConstantHeading>,
         boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
 
   private:
@@ -1528,6 +1588,24 @@ struct SurfaceDrift
                                  protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT>(c)
     {
     }
+};
+
+struct ConstantHeading
+    : boost::statechart::state<ConstantHeading, Dive>,
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING,
+             protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<ConstantHeading, Dive>;
+    ConstantHeading(typename StateBase::my_context c);
+    ~ConstantHeading();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 } // namespace dive

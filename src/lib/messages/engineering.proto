@@ -97,20 +97,67 @@ message RFDisableOptions
     optional int32 rf_disable_timeout_mins = 2 [default = 10, (dccl.field) = { min: 1 max: 255 }];
 }
 
+message BottomDepthSafetyParams
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    
+    optional double constant_heading = 1 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }
+    ];
+
+    optional int32 constant_heading_time = 2 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
+
+    optional double constant_heading_speed = 3 [
+        default = 2,
+        (dccl.field) = {
+            min: 0,
+            max: 3.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+
+    optional double safety_depth = 4 [
+        default = 0,
+        (dccl.field) = {
+            min: 0,
+            max: 60,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+}
+
 message Engineering
 {
     /*
-    Actual maximum size of message: 94 bytes / 752 bits
+    Actual maximum size of message: 98 bytes / 784 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................742
-        padding to full byte...................2
-    Allowed maximum size of message: 200 bytes / 1600 bits
+        body.................................723
+        padding to full byte...................5
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 127
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -133,6 +180,8 @@ message Engineering
     optional GPSRequirements gps_requirements = 15;
 
     optional RFDisableOptions rf_disable_options = 16;
+
+    optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

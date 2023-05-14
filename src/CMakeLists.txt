@@ -34,7 +34,6 @@ if(build_web)
   add_subdirectory(web)
 endif()
 
-if(build_jdv)
-  add_subdirectory(jdv)
+if(enable_testing)
+  add_subdirectory(test)
 endif()
-

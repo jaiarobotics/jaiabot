@@ -24,7 +24,7 @@ import { GlobalSettings } from './Settings';
 // TurfJS
 import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
-import { Command, CommandType, BotStatus, HubStatus, MissionState, Engineering } from './gui/JAIAProtobuf';
+import { Command, CommandType, HubCommandType, BotStatus, HubStatus, MissionState, Engineering } from './shared/JAIAProtobuf';
 import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
 import { MissionInterface } from './CommandControl';
 import RCControllerPanel from './RCControllerPanel'
@@ -34,7 +34,7 @@ let prec = 2
 
 
 interface CommandInfo {
-    commandType: CommandType,
+    commandType: CommandType | HubCommandType,
     description: string,
     statesAvailable?: RegExp[],
     statesNotAvailable?: RegExp[],
@@ -175,7 +175,7 @@ function issueCommand(api: JaiaAPI, bot_id: number, command: CommandInfo) {
     if (confirm(`Are you sure you'd like to ${command.description} bot: ${bot_id}?`)) {
         let c = {
             bot_id: bot_id,
-            type: command.commandType
+            type: command.commandType as CommandType
         }
 
         console.log(c)
@@ -188,10 +188,10 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command_for_hub.description + " (" + command_for_hub.commandType + ")?")) {
+    if (confirm("Are you sure you'd like to " + command_for_hub.description + "?")) {
         let c = {
             hub_id: hub_id,
-            type: command_for_hub.commandType
+            type: command_for_hub.commandType as HubCommandType
         }
 
         console.log(c)
@@ -492,10 +492,10 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
-                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
-                                <Icon path={mdiSkipNext} title="Next Task"/>
+                        <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
+                                disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
+                                onClick={() => { deleteSingleMission() }}>
+                            <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
                     </div>
                 </div>
@@ -576,13 +576,13 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
-                            {dataOffloadButton}
-                            
-                            <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}
-                                    disabled={disableClearMissionButton(bot.bot_id, mission).isDisabled}
-                                    onClick={() => { deleteSingleMission() }}>
-                                <Icon path={mdiDelete} title="Clear Mission"/>
+                            <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
+                                    onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
+                                <Icon path={mdiSkipNext} title="Next Task"/>
                             </Button>
+
+                            {dataOffloadButton}
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
