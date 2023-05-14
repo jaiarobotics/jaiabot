@@ -200,9 +200,8 @@ export class SurveyLines {
         
         
                         let centerLine = turf.getGeom(centerLineFc as any).features[0];
+                        this.commandControl.setState({center_line_string: centerLineString})						
                         let currentLineLength = turf.length(centerLine)
-        
-        
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
                             let offsetLines: any[] = [];
