@@ -80,7 +80,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import OlAttribution from 'ol/control/Attribution';
 import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
-import { deepcopy, areEqual, randomBase57 } from './Utilities';
+import { deepcopy, areEqual, randomBase57, getMapCoordinate } from './Utilities';
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
@@ -177,7 +177,6 @@ let map: OlMap
 const mercator = 'EPSG:3857'
 const equirectangular = 'EPSG:4326'
 const equirectangular_to_mercator = (input: number[]) => getTransform(equirectangular, mercator)(input, undefined, undefined)
-const mercator_to_equirectangular = (input: number[]) => getTransform(mercator, equirectangular)(input, undefined, undefined)
 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
@@ -308,8 +307,6 @@ export default class CommandControl extends React.Component {
 		formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
 	})
 	dragAndDropVectorLayer = new OlVectorLayer()
-
-	coordinate_to_location_transform = equirectangular_to_mercator
 
 	measureInteraction: OlDrawInteraction
 	surveyLines: SurveyLines
@@ -483,10 +480,6 @@ export default class CommandControl extends React.Component {
 
 		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
 		taskData.map = map
-
-		this.coordinate_to_location_transform = (coordinate: number[]) => {
-			return getTransform(map.getView().getProjection(), equirectangular)(coordinate, undefined, undefined)
-		}
 
 		this.measureInteraction = new OlDrawInteraction({
 			source: new OlVectorSource(),
@@ -1120,7 +1113,7 @@ export default class CommandControl extends React.Component {
 
 			hubFeature.setId(hub_id);
 
-			const coordinate = equirectangular_to_mercator([hubLongitude, hubLatitude]);
+			const coordinate = getMapCoordinate(hub.location, map)
 
 			hubFeature.setGeometry(new OlPoint(coordinate));
 			hubFeature.setProperties({
@@ -1202,6 +1195,8 @@ export default class CommandControl extends React.Component {
 
 			const botLayer = this.getLiveLayerFromBotId(bot_id);
 
+			const coordinate = getMapCoordinate(bot.location, map)
+
 			const botFeature = createBotFeature({
 				map: map,
 				botId: Number(botId),
@@ -1212,7 +1207,6 @@ export default class CommandControl extends React.Component {
 
 			botFeature.setId(bot_id);
 
-			const coordinate = equirectangular_to_mercator([botLongitude, botLatitude]);
 
 			// Fault Levels
 
@@ -2185,13 +2179,8 @@ export default class CommandControl extends React.Component {
 		)
 	}
 
-	locationFromCoordinate(coordinate: number[]) {
-		let latlon = this.coordinate_to_location_transform(coordinate)
-		return {lat: latlon[1], lon: latlon[0]}
-	}
-
 	addWaypointAtCoordinate(coordinate: number[]) {
-		this.addWaypointAt(this.locationFromCoordinate(coordinate))
+		this.addWaypointAt(getGeographicCoordinate(coordinate, map))
 	}
 
 	addWaypointAt(location: GeographicCoordinate) {
@@ -2435,14 +2424,14 @@ export default class CommandControl extends React.Component {
 
 		// Add Home, if available
 		if (this.state.rallyPointRedLocation) {
-			let pt = equirectangular_to_mercator([this.state.rallyPointRedLocation.lon, this.state.rallyPointRedLocation.lat])
+			let pt = getMapCoordinate(this.state.rallyPointRedLocation, map)
 			let rallyPointRedFeature = new OlFeature({ geometry: new OlPoint(pt) })
 			rallyPointRedFeature.setStyle(rallyPointRedStyle)
 			features.push(rallyPointRedFeature)
 		}
 
 		if (this.state.rallyPointGreenLocation) {
-			let pt = equirectangular_to_mercator([this.state.rallyPointGreenLocation.lon, this.state.rallyPointGreenLocation.lat])
+			let pt = getMapCoordinate(this.state.rallyPointGreenLocation, map)
 			let rallyPointGreenFeature = new OlFeature({ geometry: new OlPoint(pt) })
 			rallyPointGreenFeature.setStyle(rallyPointGreenStyle)
 			features.push(rallyPointGreenFeature)
