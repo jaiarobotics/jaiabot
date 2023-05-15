@@ -220,7 +220,7 @@ export function flagIcon(taskType: TaskType | null, isSelected: boolean) {
     return new Icon({
         src: src,
         color: isSelected ? selectedColor : defaultColor,
-        anchor: taskType? [0.21, 1.92] : [0.21, 1.62],
+        anchor: taskType ? [0.21, 1.92] : [0.21, 1.62],
     })
 }
 
