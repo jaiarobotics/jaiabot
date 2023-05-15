@@ -61,10 +61,12 @@ export default class EngineeringPanel extends React.Component {
 						<b>Engineering Panels (Beta)</b><br />						
 					</div>
 					<div className="panel">
-						<Button className="button-jcc engineering-panel-btn" onClick={function() {
-							window.location.assign('/jed/')
-						} }>
+						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
 							JaiaBot Engineer & Debug
+						</Button>
+						{/* 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py */}
+						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("http://localhost:40010")}>
+							JaiaBot Data Vision
 						</Button>
 					</div>
 
