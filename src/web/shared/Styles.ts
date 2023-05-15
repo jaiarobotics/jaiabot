@@ -214,13 +214,13 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
 }
 
 
-export function flagIcon(isSelected: boolean) {
+export function flagIcon(taskType: TaskType | null, isSelected: boolean) {
     const src = runFlag
 
     return new Icon({
         src: src,
         color: isSelected ? selectedColor : defaultColor,
-        anchor: [0.5, 1],
+        anchor: taskType? [0.21, 1.92] : [0.21, 1.62],
     })
 }
 
@@ -241,8 +241,8 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
     })
 }
 
-export function flag(isSelected: boolean, runNumber: string, zIndex: number) {
-    let icon = flagIcon(isSelected)
+export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number) {
+    let icon = flagIcon(goal.task?.type, isSelected)
 
     return new Style({
         image: icon,
@@ -252,8 +252,8 @@ export function flag(isSelected: boolean, runNumber: string, zIndex: number) {
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: -29.5,
-            offsetX: -2
+            offsetY: goal.task?.type ? -76.75 : -61.2175,
+            offsetX: 20
         }),
         zIndex: zIndex
     })

@@ -55,17 +55,12 @@ export function createMarker(map: Map, parameters: MarkerParameters) {
 }
 
 export function createFlagMarker(map: Map, parameters: MarkerParameters) {
-    // Using adjusted coordinate so flag maintains its position directly on top of the waypoint regardless of zoom level
     const lonLat = [parameters.lon, parameters.lat]
     const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-    const pixel = map.getPixelFromCoordinate(coordinate)
-    // (+21, -32) positions the flag directly on top of the waypoint
-    const adjustedPixel = [pixel[0] + 21, pixel[1] - 32]
-    const adjustedCoordinate = map.getCoordinateFromPixel(adjustedPixel)
 
     const flagFeature = new Feature({
         name: 'Run Flag',
-        geometry: new Point(adjustedCoordinate)
+        geometry: new Point(coordinate)
     })
 
     if (parameters.style != null) {

@@ -44,7 +44,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                 if (!runNumber) {
                     runNumber = ''
                 }
-                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(isSelected, runNumber, zIndex)})
+                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex)})
                 features.push(flagFeature)
             }
         }
