@@ -99,7 +99,7 @@ while True:
                 # Touch the kmz file, so we don't try again
                 os.system(f'touch {kmz_filename}')
 
-        convert_taskpacket_files_to_kmz_files(path)
+    convert_taskpacket_files_to_kmz_files(path)
 
     time.sleep(30)
 
