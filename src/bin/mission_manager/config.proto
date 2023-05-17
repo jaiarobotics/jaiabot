@@ -127,7 +127,7 @@ message MissionManager
 
     // Set to true if we want to not send goby files to hub during offload,
     // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packets = 62 [default = false];
+    optional bool data_offload_only_task_packet_file = 62 [default = false];
 
     enum EngineeringTestMode
     {

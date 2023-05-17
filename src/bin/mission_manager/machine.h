@@ -439,17 +439,17 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
-    void set_init_task_packet(const bool& init_task_packet)
+    void set_create_task_packet_file(const bool& create_task_packet_file)
     {
-        init_task_packet_ = init_task_packet;
+        create_task_packet_file_ = create_task_packet_file;
     }
-    const bool& init_task_packet() { return init_task_packet_; }
+    const bool& create_task_packet_file() { return create_task_packet_file_; }
 
-    void set_task_packet_name(const std::string& task_packet_file_name)
+    void set_task_packet_file_name(const std::string& task_packet_file_name)
     {
         task_packet_file_name_ = task_packet_file_name;
     }
-    const std::string& task_packet_name() { return task_packet_file_name_; }
+    const std::string& task_packet_file_name() { return task_packet_file_name_; }
 
     const std::string& create_file_date_time()
     {
@@ -507,7 +507,7 @@ struct MissionManagerStateMachine
     double bottom_depth_safety_constant_heading_time_{0};
     double bottom_safety_depth_{cfg().min_depth_safety()};
     // Task Packet
-    bool init_task_packet_{true};
+    bool create_task_packet_file_{true};
     std::string task_packet_file_name_{""};
     std::string data_time_string_{""};
     std::string data_offload_command_{cfg().data_offload_command()};

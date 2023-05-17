@@ -275,13 +275,13 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        if (cfg().data_offload_only_task_packets())
+        if (cfg().data_offload_only_task_packet_file())
         {
-            if (this->machine().init_task_packet())
+            if (this->machine().create_task_packet_file())
             {
-                this->machine().set_task_packet_name(cfg().interprocess().platform() + "_" +
-                                                     this->machine().create_file_date_time() +
-                                                     ".taskpacket");
+                this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
+                                                          this->machine().create_file_date_time() +
+                                                          ".taskpacket");
 
                 glog.is_debug1() && glog << "Create a task packet file and only offload that file"
                                          << "to hub (ignore sending goby files)" << std::endl;
@@ -291,7 +291,7 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 
             // Open task packet file
             std::ofstream task_packet_file(
-                cfg().log_dir() + "/" + this->machine().task_packet_name(), std::ios::app);
+                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
 
             // Convert to json string
             std::string json_string;
@@ -301,10 +301,11 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 
             google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
 
-            if (this->machine().init_task_packet())
+            // Check if it is a new task packet file
+            if (this->machine().create_task_packet_file())
             {
                 task_packet_file << json_string;
-                this->machine().set_init_task_packet(false);
+                this->machine().set_create_task_packet_file(false);
             }
             else
             {
@@ -1105,13 +1106,13 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().data_offload_only_task_packets())
+    if (cfg().data_offload_only_task_packet_file())
     {
         // Reset if recovered
         // If bot is activated again and more task packets
         // are received, then the bot will create a new file
         // to log them
-        this->machine().set_init_task_packet(true);
+        this->machine().set_create_task_packet_file(true);
     }
 
     // currently we do not do any data processing on the bot
