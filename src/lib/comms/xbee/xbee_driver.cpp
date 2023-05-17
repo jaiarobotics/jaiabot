@@ -154,6 +154,8 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     {
         glog.is_verbose() && glog << "Initializing hub info with: " << hub_info.ShortDebugString()
                                   << std::endl;
+
+        set_active_hub_peer(hub_info.hub_id());
         signal_receive(init_hub_info);
     }
 }
@@ -407,8 +409,6 @@ void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
     {
         glog.is_verbose() && glog << group(glog_in_group())
                                   << "Updating active hub to hub_id: " << hub_id << std::endl;
-        active_hub_id_ = hub_id;
-        have_active_hub_ = true;
         hub_info.set_changed(true);
 
         if (!write_hub_info_file(hub_info))
@@ -445,6 +445,9 @@ bool jaiabot::comms::XBeeDriver::write_hub_info_file(const jaiabot::protobuf::Hu
 
 void jaiabot::comms::XBeeDriver::set_active_hub_peer(int hub_id)
 {
+    active_hub_id_ = hub_id;
+    have_active_hub_ = true;
+
     bool is_bot = !config_extension().has_hub_id();
     if (is_bot) // for bots, swap the serial number corresponding to the new active hub
     {
