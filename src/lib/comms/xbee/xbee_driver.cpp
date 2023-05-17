@@ -43,6 +43,9 @@
 #include <boost/system/error_code.hpp>               // for error_code
 #include <boost/units/quantity.hpp>                  // for quantity
 
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/text_format.h>
+
 #include "goby/acomms/acomms_constants.h"          // for BROADCAST_ID
 #include "goby/acomms/protobuf/modem_message.pb.h" // for ModemTransmi...
 #include "goby/acomms/protobuf/udp_driver.pb.h"    // for Config, Conf...
@@ -57,7 +60,6 @@
 #include "goby/util/protobuf/io.h" // for operator<<
 
 #include "jaiabot/comms/comms.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -138,6 +140,21 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
                                  peer.serial_number());
             }
         }
+    }
+
+    goby::acomms::protobuf::ModemTransmission init_hub_info;
+    auto& hub_info =
+        *init_hub_info.MutableExtension(jaiabot::protobuf::transmission)->mutable_hub();
+    if (!read_hub_info_file(hub_info))
+    {
+        glog.is_debug1() && glog << "No valid hub info file yet, will wait for hub to subscribe."
+                                 << std::endl;
+    }
+    else
+    {
+        glog.is_verbose() && glog << "Initializing hub info with: " << hub_info.ShortDebugString()
+                                  << std::endl;
+        signal_receive(init_hub_info);
     }
 }
 
@@ -394,22 +411,55 @@ void jaiabot::comms::XBeeDriver::update_active_hub(int hub_id,
         have_active_hub_ = true;
         hub_info.set_changed(true);
 
-        bool is_bot = !config_extension().has_hub_id();
-        if (is_bot) // for bots, swap the serial number corresponding to the new active hub
+        if (!write_hub_info_file(hub_info))
+            glog.is_warn() && glog << "Could not write hub info to: "
+                                   << config_extension().hub_info_location() << std::endl;
+
+        set_active_hub_peer(hub_id);
+    }
+}
+
+bool jaiabot::comms::XBeeDriver::read_hub_info_file(jaiabot::protobuf::HubInfo& hub_info)
+{
+    const char* hub_info_file = config_extension().hub_info_location().c_str();
+    const int read_fd = open(hub_info_file, O_RDONLY);
+    if (read_fd < 0)
+        return false;
+
+    google::protobuf::io::FileInputStream hub_info_is(read_fd);
+    const bool success = google::protobuf::TextFormat::Parse(&hub_info_is, &hub_info);
+    return success;
+}
+
+bool jaiabot::comms::XBeeDriver::write_hub_info_file(const jaiabot::protobuf::HubInfo& hub_info)
+{
+    const char* hub_info_file = config_extension().hub_info_location().c_str();
+    const int write_fd = open(hub_info_file, O_WRONLY | O_TRUNC | O_CREAT, 0600);
+    if (write_fd < 0)
+        return false;
+
+    google::protobuf::io::FileOutputStream hub_info_os(write_fd);
+    const bool success = google::protobuf::TextFormat::Print(hub_info, &hub_info_os);
+    return success;
+}
+
+void jaiabot::comms::XBeeDriver::set_active_hub_peer(int hub_id)
+{
+    bool is_bot = !config_extension().has_hub_id();
+    if (is_bot) // for bots, swap the serial number corresponding to the new active hub
+    {
+        auto hub_peer_it = hub_peers_.find(hub_id);
+        if (hub_peer_it != hub_peers_.end())
         {
-            auto hub_peer_it = hub_peers_.find(hub_id);
-            if (hub_peer_it != hub_peers_.end())
-            {
-                device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
-                                 hub_peer_it->second.serial_number());
-            }
-            else
-            {
-                glog.is_warn() &&
-                    glog << group(glog_in_group())
-                         << "Failed to update active hub as we have no mapping for hub_id: "
-                         << hub_id << " in the peers {} table" << std::endl;
-            }
+            device_.add_peer(std::to_string(jaiabot::comms::hub_modem_id),
+                             hub_peer_it->second.serial_number());
+        }
+        else
+        {
+            glog.is_warn() &&
+                glog << group(glog_in_group())
+                     << "Failed to update active hub as we have no mapping for hub_id: " << hub_id
+                     << " in the peers {} table" << std::endl;
         }
     }
 }
