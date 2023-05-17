@@ -122,6 +122,13 @@ message MissionManager
     // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
     required string data_offload_command = 60;
 
+    // e.g. /var/log/jaiabot/bot/*/
+    required string log_dir = 61;
+
+    // Set to true if we want to not send goby files to hub during offload,
+    // We instead would send a taskpacket file
+    optional bool data_offload_only_task_packets = 62 [default = false];
+
     enum EngineeringTestMode
     {
         ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE = 1;

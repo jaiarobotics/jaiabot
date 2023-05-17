@@ -64,12 +64,6 @@ message Command
 
     required CommandType type = 10;
 
-    enum DataOffloadType
-    {
-        DATA_OFFLOAD_GOBY = 1;
-        DATA_OFFLOAD_KMZ = 2;
-    }
-
     oneof command_data
     {
         // required for type == MISSION_PLAN
@@ -80,9 +74,6 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
-
-        // required for type == RECOVERED && RETRY_DATA_OFFLOAD
-        DataOffloadType data_offload_type = 40 [default = DATA_OFFLOAD_GOBY];
     }
 }
 

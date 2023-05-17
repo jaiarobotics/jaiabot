@@ -270,43 +270,50 @@ jaiabot::statechart::inmission::underway::Task::~Task()
         context<InMission>().increment_goal_index();
     }
 
-    if (this->machine().init_task_packet())
-    {
-        this->machine().set_task_packet_name("bot_" + std::to_string(cfg().bot_id()) +
-                                             "_task_packet_" +
-                                             this->machine().create_file_date_time() + ".json");
-
-        std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
-
-        task_packet_file << "[";
-
-        // Close the json file
-        task_packet_file.close();
-    }
-
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
-        std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
-
-        std::string json_string;
-        google::protobuf::util::JsonPrintOptions json_options;
-        google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
-
-        if (this->machine().init_task_packet())
+        if (cfg().data_offload_only_task_packets())
         {
-            task_packet_file << json_string;
-            this->machine().set_init_task_packet(false);
-        }
-        else
-        {
-            task_packet_file << "," << json_string;
-        }
+            if (this->machine().init_task_packet())
+            {
+                this->machine().set_task_packet_name(cfg().interprocess().platform() + "_" +
+                                                     this->machine().create_file_date_time() +
+                                                     ".taskpacket");
 
-        // Close the json file
-        task_packet_file.close();
+                glog.is_debug1() && glog << "Create a task packet file and only offload that file"
+                                         << "to hub (ignore sending goby files)" << std::endl;
+                this->machine().set_data_offload_command(cfg().data_offload_command() +
+                                                         "exlcude=*goby");
+            }
+
+            // Open task packet file
+            std::ofstream task_packet_file(
+                cfg().log_dir() + "/" + this->machine().task_packet_name(), std::ios::app);
+
+            // Convert to json string
+            std::string json_string;
+            google::protobuf::util::JsonPrintOptions json_options;
+            // Set the snake_case option
+            json_options.preserve_proto_field_names = true;
+
+            google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
+
+            if (this->machine().init_task_packet())
+            {
+                task_packet_file << json_string;
+                this->machine().set_init_task_packet(false);
+            }
+            else
+            {
+                task_packet_file << "\n" << json_string;
+            }
+
+            // Close the json file
+            task_packet_file.close();
+        }
 
         if (this->machine().rf_disable())
         {
@@ -1098,16 +1105,14 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    // Open the json file for writing
-    std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
-
-    task_packet_file << "]";
-
-    // Close the json file and clean up
-    task_packet_file.close();
-
-    // Reset if recovered
-    this->machine().set_init_task_packet(true);
+    if (cfg().data_offload_only_task_packets())
+    {
+        // Reset if recovered
+        // If bot is activated again and more task packets
+        // are received, then the bot will create a new file
+        // to log them
+        this->machine().set_init_task_packet(true);
+    }
 
     // currently we do not do any data processing on the bot
     post_event(EvDataProcessingComplete());
@@ -1115,7 +1120,7 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
 
 // PostDeployment::DataOffload
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
-    : StateBase(c), offload_command_(cfg().data_offload_command() + " 2>&1")
+    : StateBase(c), offload_command_(this->machine().data_offload_command() + " 2>&1")
 {
     auto offload_func = [this]() {
         glog.is_debug1() && glog << "Offloading data with command: [" << offload_command_ << "]"

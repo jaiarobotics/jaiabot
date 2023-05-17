@@ -473,6 +473,12 @@ struct MissionManagerStateMachine
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
+    void set_data_offload_command(const std::string& data_offload_command)
+    {
+        data_offload_command_ = data_offload_command;
+    }
+    const std::string& data_offload_command() { return data_offload_command_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -504,6 +510,7 @@ struct MissionManagerStateMachine
     bool init_task_packet_{true};
     std::string task_packet_file_name_{""};
     std::string data_time_string_{""};
+    std::string data_offload_command_{cfg().data_offload_command()};
 };
 
 struct PreDeployment
