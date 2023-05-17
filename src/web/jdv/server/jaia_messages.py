@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from typing import Optional, List
+from typing import Optional, List, Union
 import datetime
 
 
@@ -56,8 +56,6 @@ class DriftPacket:
 @dataclass_json
 @dataclass
 class TaskPacket:
-    _scheme_: int
-    _utime_: int
     bot_id: int
     start_time: int
     end_time: int
@@ -66,8 +64,9 @@ class TaskPacket:
     dive: Optional[DivePacket] = None
     drift: Optional[DriftPacket] = None
 
-    def date_string(self):
-        # _utime_ is in microseconds, but datetime wants seconds
-        date = datetime.datetime.fromtimestamp(self._utime_ / 1e6)
-        return date.strftime(r'%b %-d, %Y, %I:%M:%S %p')
+    _scheme_: Optional[int] = 1
+    _utime_: Optional[int] = 0
 
+
+def micros_to_string(micros: Union[float, str], format_string=r'%b %-d, %Y, %I:%M:%S %p'):
+    return datetime.datetime.fromtimestamp(float(micros) / 1e6).strftime(format_string)
