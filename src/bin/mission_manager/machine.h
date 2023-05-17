@@ -24,7 +24,9 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
+#include <fstream>
 #include <goby/util/seawater.h>
+#include <google/protobuf/util/json_util.h>
 
 namespace jaiabot
 {
@@ -437,6 +439,37 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_init_task_packet(const bool& init_task_packet)
+    {
+        init_task_packet_ = init_task_packet;
+    }
+    const bool& init_task_packet() { return init_task_packet_; }
+
+    void set_task_packet_name(const std::string& task_packet_file_name)
+    {
+        task_packet_file_name_ = task_packet_file_name;
+    }
+    const std::string& task_packet_name() { return task_packet_file_name_; }
+
+    const std::string& create_file_date_time()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+
+        std::tm* localTime = std::localtime(&currentTime);
+
+        std::ostringstream oss;
+        oss << (localTime->tm_year + 1900) << std::setw(2) << std::setfill('0')
+            << (localTime->tm_mon + 1) << std::setw(2) << std::setfill('0') << localTime->tm_mday
+            << "T" << std::setw(2) << std::setfill('0') << localTime->tm_hour << std::setw(2)
+            << std::setfill('0') << localTime->tm_min << std::setw(2) << std::setfill('0')
+            << localTime->tm_sec;
+
+        data_time_string_ = oss.str();
+
+        return data_time_string_;
+    }
+
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
@@ -467,6 +500,10 @@ struct MissionManagerStateMachine
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
     double bottom_safety_depth_{cfg().min_depth_safety()};
+    // Task Packet
+    bool init_task_packet_{true};
+    std::string task_packet_file_name_{""};
+    std::string data_time_string_{""};
 };
 
 struct PreDeployment

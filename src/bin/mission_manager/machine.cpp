@@ -270,11 +270,44 @@ jaiabot::statechart::inmission::underway::Task::~Task()
         context<InMission>().increment_goal_index();
     }
 
+    if (this->machine().init_task_packet())
+    {
+        this->machine().set_task_packet_name("bot_" + std::to_string(cfg().bot_id()) +
+                                             "_task_packet_" +
+                                             this->machine().create_file_date_time() + ".json");
+
+        std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
+
+        task_packet_file << "[";
+
+        // Close the json file
+        task_packet_file.close();
+    }
+
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
     if (task_packet_.type() == protobuf::MissionTask::DIVE ||
         task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
     {
+        std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
+
+        std::string json_string;
+        google::protobuf::util::JsonPrintOptions json_options;
+        google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
+
+        if (this->machine().init_task_packet())
+        {
+            task_packet_file << json_string;
+            this->machine().set_init_task_packet(false);
+        }
+        else
+        {
+            task_packet_file << "," << json_string;
+        }
+
+        // Close the json file
+        task_packet_file.close();
+
         if (this->machine().rf_disable())
         {
             glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
@@ -1065,6 +1098,17 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    // Open the json file for writing
+    std::ofstream task_packet_file(this->machine().task_packet_name(), std::ios::app);
+
+    task_packet_file << "]";
+
+    // Close the json file and clean up
+    task_packet_file.close();
+
+    // Reset if recovered
+    this->machine().set_init_task_packet(true);
+
     // currently we do not do any data processing on the bot
     post_event(EvDataProcessingComplete());
 }
