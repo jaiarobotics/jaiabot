@@ -475,7 +475,7 @@ struct MissionManagerStateMachine
 
     void set_data_offload_command(const std::string& data_offload_command)
     {
-        data_offload_command_ = data_offload_command;
+        data_offload_command_ = data_offload_command + " 2>&1";
     }
     const std::string& data_offload_command() { return data_offload_command_; }
 
@@ -1813,6 +1813,12 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     }
     uint32_t data_offload_percentage() const { return data_offload_percentage_; }
 
+    void set_offload_command(const std::string& offload_command)
+    {
+        offload_command_ = offload_command;
+    }
+    std::string offload_command() const { return offload_command_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvDataOffloadComplete, Idle>,
         boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
@@ -1822,7 +1828,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
-    const std::string offload_command_;
+    std::string offload_command_{this->machine().data_offload_command()};
     uint32_t data_offload_percentage_{0};
 };
 
