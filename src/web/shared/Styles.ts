@@ -214,13 +214,15 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
 }
 
 
-export function flagIcon(taskType: TaskType | null, isSelected: boolean) {
+export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number) {
     const src = runFlag
 
     return new Icon({
         src: src,
         color: isSelected ? selectedColor : defaultColor,
-        anchor: taskType ? [0.21, 1.92] : [0.21, 1.62],
+        // Need a bigger flag for a 3-digit run number...this also causes new anchor values
+        anchor: runNumber > 99 ? (taskType ? [0.21, 1.85] : [0.21, 1.55]) : (taskType ? [0.21, 1.92] : [0.21, 1.62]),
+        scale: runNumber > 99 ? 1.075 : 1.0
     })
 }
 
@@ -242,7 +244,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
 }
 
 export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number) {
-    let icon = flagIcon(goal.task?.type, isSelected)
+    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber))
 
     return new Style({
         image: icon,
@@ -252,8 +254,9 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: goal.task?.type ? -76.75 : -61.2175,
-            offsetX: 20
+            // Text needs additional adjustments for 3-digit run numbers
+            offsetY: Number(runNumber) > 99 ? goal.task?.type ? -78.875 : -62.125 : goal.task?.type ? -76.75 : -61.2175,
+            offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
         zIndex: zIndex
     })
