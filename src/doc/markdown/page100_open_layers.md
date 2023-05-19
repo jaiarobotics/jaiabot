@@ -2,15 +2,22 @@
 
 ## Adding an element to the map
 
+<br>
+
 ### Should I add an OpenLayers Feature or OpenLayers Overlay?
 
-* If you are adding a popup or notificiation use either an Overlay or a traditional DOM element. Otherwise, use a Feature for components that depict the the run or mission on the map.
+* If you are adding a popup or notificiation use either an Overlay or a traditional DOM element. Otherwise, use a Feature for components that depict the run or mission on the map.
+
+<br>
 
 ### Implementing a Feature in the current Jaiabot repo
 * Follow the model set by creating waypoints
-1. In MissionFeatures.ts assign a new variable to the output of the createMarker function located in Marker.ts
-2. Push this new feature to the features array
-3. The feature will appear on the map when the updateMissionLayer function is called
+1. In MissionFeatures.ts, assign a new variable to the output of the createMarker function located in Marker.ts
+* In the funtion createMarker, add a new Feature in a similar fashion to the creation of markerFeature
+3. Push this new feature to the features array
+4. The feature will appear on the map when the updateMissionLayer function is called
+
+<br>
 
 ### Implementing a Feature from scratch
 
@@ -28,7 +35,7 @@ const newFeature = new Feature({
     geometry: new Point(coordinate)
 })
 ```
-3. Set the style on the new feature by calling the method setStyle and passing an OpenLayers Style object.
+3. Set the style on the new feature by calling the method setStyle and passing an OpenLayers Style object
 ```
 import { Fill, Icon, Style, Text} from 'ol/style';
 
@@ -56,7 +63,7 @@ const style = new Style({
 
 newFeature.setStyle(style)
 ````
-4. Push the new feature to an array.
+4. Push the new feature to an array
 ```
 const features  = []
 features.push(newFeature)
@@ -91,7 +98,7 @@ map = new OlMap({
 });
 ```
 
-8. To adjust the positoning of this feature on the map change the values of the icons anchor property. This will keep the icon correctly positioned independent of the map's zoom.
+8. **To adjust the positoning of this feature on the map change the values of the icon's anchor property. This will keep the icon correctly positioned independent of the map's zoom**
 ```
 const icon = new Icon({
     src: src,
@@ -99,6 +106,8 @@ const icon = new Icon({
     anchor: [0.5, 1]
 })
 ```
+
+<br>
 
 ### Implementing an Overlay from scratch
 ```
@@ -144,7 +153,7 @@ render() {
 
         <div>        .
             <div id="popup" onClick={this.closePopup.bind(this)}>
-                <div id="popup-content" className="ol-popup-content">Content</div>
+                <div id="popup-content className="ol-popup-content">Content</div>
                 <div id="popup-closer" className="ol-popup-closer">
                     <Icon path={mdiCloseCircleOutline} className="ol-popup-closer-icon"/>
                 </div>
@@ -157,4 +166,4 @@ render() {
     )
 }
 ```
-* Style the popup using traditional CSS
+* **Style the popup using traditional CSS**
