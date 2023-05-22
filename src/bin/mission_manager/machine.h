@@ -453,12 +453,6 @@ struct MissionManagerStateMachine
     }
     const double& latest_significant_wave_height() { return latest_significant_wave_height_; }
 
-    void set_latest_wave_period(const double& latest_wave_period)
-    {
-        latest_wave_period_ = latest_wave_period;
-    }
-    const double& latest_wave_period() { return latest_wave_period_; }
-
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
@@ -489,7 +483,6 @@ struct MissionManagerStateMachine
     boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{
         0 * boost::units::si::meter_per_second_squared};
     double latest_significant_wave_height_{0};
-    double latest_wave_period_{0};
     double bottom_depth_safety_constant_heading_{0};
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
@@ -1216,7 +1209,6 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             // Set the wave height and period
             drift_packet().set_significant_wave_height(
                 this->machine().latest_significant_wave_height());
-            drift_packet().set_wave_period(this->machine().latest_wave_period());
         }
     }
 

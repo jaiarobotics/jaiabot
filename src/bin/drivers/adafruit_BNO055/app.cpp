@@ -141,8 +141,7 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
 
       output.set_bot_rolled_over(std::stod(fields[index++]));
 
-      output.mutable_wave()->set_frequency(std::stod(fields[index++]));
-      output.mutable_wave()->set_amplitude(std::stod(fields[index++]));
+      output.set_significant_wave_height(std::stod(fields[index++]));
 
       output.set_max_acceleration(std::stod(fields[index++]));
 

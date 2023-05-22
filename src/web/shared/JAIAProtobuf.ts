@@ -697,6 +697,7 @@ export enum Warning {
     WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL",
     WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL",
     WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL",
+    WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = "WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED",
     WARNING__MISSION__DATA_OFFLOAD_FAILED = "WARNING__MISSION__DATA_OFFLOAD_FAILED",
 }
 
@@ -881,6 +882,8 @@ export interface IMUData {
     gravity?: Acceleration
     calibration_status?: CalibrationStatus
     bot_rolled_over?: boolean
+    significant_wave_height?: number
+    max_acceleration?: number
 }
 
 export enum SolutionType {
@@ -988,8 +991,6 @@ export interface DriftPacket {
     start_location?: GeographicCoordinate
     end_location?: GeographicCoordinate
     significant_wave_height?: number
-    wave_height?: number
-    wave_period?: number
 }
 
 export interface Measurements {
@@ -1014,6 +1015,7 @@ export interface DivePacket {
     bottom_dive?: boolean
     reached_min_depth?: boolean
     bottom_type?: BottomType
+    max_acceleration?: number
 }
 
 export interface TaskPacket {
