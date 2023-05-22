@@ -497,6 +497,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 onClick={() => { deleteSingleMission() }}>
                             <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
+                        <Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                                    disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
+                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
+                            <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
+                        </Button>
                     </div>
                 </div>
                 <div className="accordionContainer">
@@ -560,21 +565,12 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            {/*<Button className="button-jcc inactive" disabled>
-                                <Icon path={mdiPause} title="Pause Mission"/>
-                            </Button>*/}
 
                             <Button className={disableButton(commands.active, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.active, mission_state).isDisabled} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.active) }}>
                                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
                             </Button>
-
-                            {<Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
-                                    disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
-                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
-                                <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
-                            </Button>}
 
                             <Button className={disableButton(commands.nextTask, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.nextTask, mission_state).isDisabled} 
