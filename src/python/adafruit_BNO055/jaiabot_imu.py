@@ -17,7 +17,7 @@ parser.add_argument('port', metavar='port', nargs='?', type=int, help='port to p
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU only')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Console interactive mode')
-parser.add_argument('-f', dest='frequency', default=5, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
+parser.add_argument('-f', dest='frequency', default=10, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 args = parser.parse_args()
 
 log.setLevel(args.logging_level)
@@ -56,13 +56,13 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
 
             # Wave analysis
-            wave = wave_analyzer.wave()
+            significantWaveHeight = wave_analyzer.significantWaveHeight()
             maxAcceleration = wave_analyzer.maxAcceleration()
 
             try:
                 line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
                     f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
-                    f'{wave.frequency:0.2f},{wave.amplitude:0.2f},{maxAcceleration:0.2f}'
+                    f'{significantWaveHeight:0.2f},{maxAcceleration:0.2f}'
 
                 log.debug('Sent: ' + line)
 
@@ -77,7 +77,7 @@ def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):
     while True:
         input()
         log.info(f'IMU data = {imu.getData()}')
-        log.info(f'  wave = {wave_analyzer.wave()}')
+        log.info(f'  significantWaveHeight = {wave_analyzer.significantWaveHeight()}')
         log.info(f'  maxAcceleration = {wave_analyzer.maxAcceleration()}')
 
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     if args.simulator:
         log.info('Device: Simulator')
-        imu = Simulator(wave_frequency=1.0, wave_height=1)
+        imu = Simulator(wave_frequency=0.5, wave_height=1)
     else:
         log.info('Device: Adafruit')
         imu = Adafruit()
@@ -101,18 +101,8 @@ if __name__ == '__main__':
     log.info(f'Wave height sampling rate: {args.frequency} Hz')
     log.info(f'Wave height sample time: {SAMPLE_TIME} sec')
 
-    analyzer = Analyzer(N, dt)
-        
-    def do_wave_analysis():
-        while True:
-            sleep(dt)
-            reading = imu.getData()
-            if reading is not None:
-                analyzer.addAcceleration(reading.linear_acceleration_world)
-
-    analysis_thread = Thread(target=do_wave_analysis)
-    analysis_thread.daemon = True
-    analysis_thread.start()
+    analyzer = Analyzer(imu, N, dt)
+    analyzer.start()        
 
     # Main loop
     if args.interactive:

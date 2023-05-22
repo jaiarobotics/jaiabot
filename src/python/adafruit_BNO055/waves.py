@@ -1,72 +1,65 @@
 from dataclasses import dataclass
 from math import *
 from typing import *
-from scipy.fft import dct, fft
+from scipy.fft import dct, idct
+from numpy import std
 import numpy
 from vector3 import Vector3
+import plotly.express as px
+from imu import IMU
+from threading import Thread, Lock
+from time import sleep
+from copy import deepcopy
+from numpy.linalg import lstsq
 
 
-@dataclass
-class Component:
-    frequency: float
-    height: float
+def remove_linear_component(values: Iterable):
+    '''Fit data to a line, and subtract the line to remove any linear trending'''
+    indices = numpy.arange(0, len(values))
+    A = numpy.vstack([indices, numpy.ones(len(indices))]).T
+    m, c = lstsq(A, values, rcond=None)[0]
+
+    newValues = []
+    for i, value in enumerate(values):
+        newValues.append(value - i * m)
+    return newValues
 
 
-def get_components(input_dct: List[float], window_time_length: float):
-    return [
-        Component(i / 2 / window_time_length, height=2 * x)
-        for i, x in enumerate(input_dct)
-    ]
+class TimeSeries:
+    dt: float
+    values: List[float]
 
+    def __init__(self, dt: float, values: List[float]) -> None:
+        self.dt = dt
+        self.values = values
 
-def sort_by_amplitude(spectrum: List[Component]) -> List[Component]:
-    return list(sorted(spectrum, key=lambda component: abs(component.height), reverse=True))
+    def plot(self):
+        x = numpy.arange(0, len(self.values) * self.dt, self.dt)
+        fig = px.line(x=x, y=self.values)
+        fig.show()
 
+    def get_heights_from_accelerations(self):
+        speed = 0
+        height = 0
+        heights = []
 
-def acceleration_to_height(acceleration_spectrum: List[Component]) -> List[Component]:
-    return [
-        Component(acceleration_component.frequency, acceleration_component.height / (2 * pi * acceleration_component.frequency) ** 2)
-        for acceleration_component in acceleration_spectrum if acceleration_component.frequency > 0
-    ]
+        for value in self.values:
+            speed += value * self.dt
+            height += speed * self.dt
+            heights.append(height)
 
+        # Eliminate any constant speed
+        heights = remove_linear_component(heights)
 
-def get_max_component(spectrum: List[Component]):
-    max_component: Component = None
-    for i, component in enumerate(spectrum):
-        if max_component is None or abs(component.height) >= abs(max_component.height):
-            max_component = component
+        integral = TimeSeries(dt=self.dt, values=heights)
+        return integral
 
-    return max_component
+    def significant_wave_height(self):
+        if len(self.values) <= 1:
+            return 0
 
-
-def peak_sum(spectrum: List[Component], center_frequency: float, n_pts: int) -> Component:
-    index = None
-
-    for i, component in enumerate(spectrum):
-        if component.frequency == center_frequency:
-            index = i
-            break
-
-    if index is None:
-        return Component(0, 0)
-    
-    start_index = max(0, index - n_pts)
-    end_index = min(len(spectrum), index + n_pts + 1)
-
-    sum_component = Component(0, 0)
-
-    for component in spectrum[start_index:end_index]:
-        sum_component.frequency += component.frequency
-        sum_component.height += abs(component.height)
-
-    sum_component.frequency /= (end_index - start_index)
-
-    return sum_component
-
-
-def print_spectrum(spectrum: List[Component]):
-    for component in spectrum:
-        print(f'{component.frequency:5.2f}  {abs(component.height):5.2f}')
+        # Significant wave height is defined as 4 times standard deviation
+        return 4 * float(std(self.values))
 
 
 class Analyzer:
@@ -76,62 +69,94 @@ class Analyzer:
         b) the maximum acceleration (for bottom type characterization)
     '''
 
-    acceleration_z: List[float] = []
-    acceleration_mag: List[float] = []
+    acceleration_z: TimeSeries
+    acceleration_mag: TimeSeries
+
+    imu: IMU
     max_points = 100
     dt: float
 
+    _thread: Thread
+    _lock: Lock
 
-    def __init__(self, max_points: int, dt: float) -> None:
+    def __init__(self, imu: IMU, max_points: int, dt: float) -> None:
+        self.imu = imu
         self.max_points = max_points
         self.dt = dt
+        self.acceleration_z = TimeSeries(dt=dt, values=[])
+        self.acceleration_mag = TimeSeries(dt=dt, values=[])
+
+        self._lock = Lock()
+
+
+    def start(self):
+        def do_wave_analysis():
+            while True:
+                sleep(self.dt)
+                reading = self.imu.getData()
+                if reading is not None:
+                    self.addAcceleration(reading.linear_acceleration_world)
+
+        self._thread = Thread(target=do_wave_analysis)
+        self._thread.daemon = True
+        self._thread.start()
 
 
     def addAcceleration(self, acceleration: Vector3):
-        self.acceleration_z.append(acceleration.z)
-        self.acceleration_mag.append(acceleration.magnitude())
 
-        if len(self.acceleration_z) > self.max_points:
-            self.acceleration_z.pop(0)
-            self.acceleration_mag.pop(0)
+        with self._lock:
+            self.acceleration_z.values.append(acceleration.z)
+            self.acceleration_mag.values.append(acceleration.magnitude())
+
+            if len(self.acceleration_z.values) > self.max_points:
+                self.acceleration_z.values.pop(0)
+                self.acceleration_mag.values.pop(0)
 
 
-    def wave(self) -> Component:
+    def significantWaveHeight(self):
 
-        # Guard against empty array
-        if len(self.acceleration_z) == 0:
-            return Component(0, 0)
+        with self._lock:
+            acceleration_z = deepcopy(self.acceleration_z)
 
-        window_timespan = self.dt * len(self.acceleration_z)
-
-        discrete_cosine_transform = dct(self.acceleration_z, norm='forward')
-        acceleration_spectrum = get_components(discrete_cosine_transform, window_timespan)
-        max_component = get_max_component(acceleration_spectrum)
-
-        height_spectrum = acceleration_to_height(acceleration_spectrum)
-
-        primary_component = peak_sum(height_spectrum, max_component.frequency, n_pts=4)
-
-        return primary_component
+        return acceleration_z.get_heights_from_accelerations().significant_wave_height()
 
 
     def maxAcceleration(self) -> float:
         '''Return the maximum acceleration amplitude acheived in the sample window'''
-        try:
-            return max(self.acceleration_mag)
-        except ValueError:
-            # Empty sequence?
-            return 0
+
+        with self._lock:
+            if len(self.acceleration_mag.values) < 1:
+                return 0
+
+            return max(self.acceleration_mag.values)
+
+
+    def debug(self):
+
+        with self._lock:
+            acceleration_z = deepcopy(self.acceleration_z)
+
+        acceleration_z.plot()
+        acceleration_z.get_heights_from_accelerations().plot()
+
+        print(self.significantWaveHeight())
 
 
 if __name__ == '__main__':
 
-    x = numpy.array([3 * cos(2 * pi * i / 10) for i in range(0, 50)])
-    print(x)
-    wave_analyzer = Analyzer(max_points=100, dt=0.1)
+    # Test accelerations
+    AMPLITUDE = 1.5
+    OFFSET = pi
+    STEP = 0.1
+    N = 500
+    FREQ = 0.1
 
-    wave_analyzer.acceleration_z = list(x)
-    wave_analyzer.acceleration_mag = [abs(z) for z in x]
-    print(f'Wave Component: {wave_analyzer.wave()}')
-    print(f'maxAcceleration: {wave_analyzer.maxAcceleration()}')
+    accelerations = TimeSeries(STEP, numpy.array([AMPLITUDE * cos(2 * pi * i * STEP * FREQ + OFFSET) for i in range(0, N)]))
+    accelerations.plot()
 
+    ###
+
+    x = accelerations.get_heights_from_accelerations()
+    x.plot()
+
+    print(x.significant_wave_height())
