@@ -178,7 +178,7 @@ class Interface:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
     
     def post_single_waypoint_mission(self, single_waypoint_mission_dict, clientId):
-        logging.warning(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
+        logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
 
         if 'lat' and 'lon' in single_waypoint_mission_dict:
             command_dict = {'bot_id': 1, 'time': now(), 'type': 'MISSION_PLAN', 
@@ -219,13 +219,13 @@ class Interface:
 
             if 'bot_id' in single_waypoint_mission_dict:
                 command_dict['bot_id'] = single_waypoint_mission_dict['bot_id']
-                logging.warning(f'Sending single waypoint mission: {command_dict}')
+                logging.debug(f'Sending single waypoint mission: {command_dict}')
                     
                 self.post_command(command_dict, clientId)
             else:
                 for bot in self.bots.values():
                     command_dict['bot_id'] = bot['bot_id']
-                    logging.warning(f'Sending single waypoint mission: {command_dict}')
+                    logging.debug(f'Sending single waypoint mission: {command_dict}')
                     
                     self.post_command(command_dict, clientId)
 
