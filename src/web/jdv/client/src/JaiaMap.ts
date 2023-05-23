@@ -192,8 +192,6 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
             Speed: ${speedString}<br />
             Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
             Significant-Wave-Height ${drift.significant_wave_height?.toFixed(2)} m<br />
-            Wave-Height ${drift.wave_height?.toFixed(2)} m<br />
-            Wave-Period ${drift.wave_period?.toFixed(2)} s<br />
         `
 
         placemarks.push(`
