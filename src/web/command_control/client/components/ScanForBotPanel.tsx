@@ -38,7 +38,7 @@ export default class ScanForBotPanel extends React.Component {
                                     id="scan_for_bot_input" 
                                     name="scan_for_bot_input" 
                                     defaultValue="1"
-                                    min="1"
+                                    min="0"
                                     max="30"
                                     step="1" 
                                 />
