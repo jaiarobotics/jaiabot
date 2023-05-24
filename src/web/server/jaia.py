@@ -176,6 +176,65 @@ class Interface:
             return {'status': 'ok'}
         else:
             return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+    
+    def post_single_waypoint_mission(self, single_waypoint_mission_dict, clientId):
+        logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
+
+        if 'lat' and 'lon' in single_waypoint_mission_dict:
+            command_dict = {'bot_id': 1, 'time': now(), 'type': 'MISSION_PLAN', 
+                            'plan': {'start': 'START_IMMEDIATELY', 'movement': 'TRANSIT', 
+                            'goal': [{'location': {'lat': single_waypoint_mission_dict["lat"], 'lon': single_waypoint_mission_dict["lon"]}}], 
+                            'recovery': {'recover_at_final_goal': True}, 'speeds': {'transit': 2, 'stationkeep_outer': 1.5}}}
+
+            if 'dive_depth' in single_waypoint_mission_dict:
+                # default 10 seconds
+                drift_time = 10
+
+                if 'surface_drift_time' in single_waypoint_mission_dict:
+                    drift_time = single_waypoint_mission_dict['surface_drift_time']
+
+                command_dict['plan']['goal'] = [{
+                        'location': {
+                            'lat': single_waypoint_mission_dict["lat"],
+                            'lon': single_waypoint_mission_dict["lon"]
+                        },
+                        'task': {
+                            'type': 'DIVE',
+                            'dive': {
+                                'max_depth': single_waypoint_mission_dict['dive_depth'],
+                                'depth_interval': single_waypoint_mission_dict['dive_depth'],
+                                'hold_time': 0  
+                            },
+                            'surface_drift': {
+                                'drift_time': drift_time
+                            }
+                        }
+                    }]
+
+            if 'tansit_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['tansit_speed']
+
+            if 'station_keep_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['stationkeep_outer'] = single_waypoint_mission_dict['station_keep_speed']
+
+            if 'bot_id' in single_waypoint_mission_dict:
+                command_dict['bot_id'] = single_waypoint_mission_dict['bot_id']
+                logging.debug(f'Sending single waypoint mission: {command_dict}')
+                    
+                self.post_command(command_dict, clientId)
+            else:
+                for bot in self.bots.values():
+                    command_dict['bot_id'] = bot['bot_id']
+                    logging.debug(f'Sending single waypoint mission: {command_dict}')
+                    
+                    self.post_command(command_dict, clientId)
+
+            self.setControllingClientId(clientId)
+
+            return {'status': 'ok'}
+        
+        else:
+            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"tansit_speed": 2.5, "station_keep_speed": 0.5}'}
 
     def post_command_for_hub(self, command_for_hub_dict, clientId):
         command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
