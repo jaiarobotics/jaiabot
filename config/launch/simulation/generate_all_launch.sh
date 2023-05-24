@@ -25,7 +25,7 @@ launchdelay=100
 cat <<EOF > ${launchfile}
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
 
-[env=jaia_n_bots=${n_bots},env=jaia_mode=simulation,env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
+[env=jaia_mode=simulation,env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch
 EOF
 
 for i in `seq 1 $((n_bots-1))`; do

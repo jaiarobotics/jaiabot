@@ -25,7 +25,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
     
     bot_id = task_packet.bot_id
 
-    if task_packet.dive:
+    if task_packet.dive and task_packet.dive.depth_achieved != 0:
         dive = task_packet.dive
         depth_string = f"{dive.depth_achieved:.2f} m"
         depth_measurement_string = '' 
@@ -35,7 +35,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 depth_measurement_string += f'''
                     Index: {i+1} <br />
                     {entry("Mean-Depth", measurement.mean_depth, "m")}
-                    {entry("Mean-Tempuratute", measurement.mean_temperature, "°C")}
+                    {entry("Mean-Temperature", measurement.mean_temperature, "°C")}
                     {entry("Mean-Salinity", measurement.mean_salinity, "PSS")}
                 '''
 
@@ -47,7 +47,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
                 <description>
                     <h2>Dive</h2>
                     Bot-ID: {bot_id}<br />
-                    Time: {task_packet.date_string()}<br />
+                    Time: {micros_to_string(task_packet.start_time)}<br />
                     Depth: {depth_string}<br />
                     Bottom-Dive: {"Yes" if dive.bottom_dive else "No"}<br />
                     {duration_to_acquire_gps_string}
@@ -88,7 +88,7 @@ def task_packet_to_kml_placemarks(task_packet: TaskPacket):
         drift_description = f'''
             <h2>Drift</h2>
             Bot-ID: {bot_id}<br />
-            Start: {task_packet.date_string()}<br />
+            Start: {micros_to_string(task_packet.start_time)}<br />
             Duration: {drift.drift_duration} s<br />
             Speed: {speed_string}<br />
             Heading: {drift.estimated_drift.heading or 0.0:.2f} deg<br />
@@ -164,9 +164,9 @@ def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
     '''
 
 
-def create_kmz(task_packets: Iterable[TaskPacket], output_kmz_path: str):
+def write_file(task_packets: Iterable[TaskPacket], output_kmz_path: str):
     '''Creates a kmz file at output_kmz_path, containing placemarks for the input task_packets'''
-
+   
     with zipfile.ZipFile(output_kmz_path, 'w') as output_kmz_file:
         kml_file_string = kml_from_task_packets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)

@@ -9,7 +9,9 @@ add_executable(${APP}
 target_link_libraries(${APP}
   goby
   goby_zeromq
-  jaiabot_messages)
+  jaiabot_messages
+  jaiabot_xbee
+  )
 
 if(export_goby_interfaces)
   generate_interfaces(${APP})

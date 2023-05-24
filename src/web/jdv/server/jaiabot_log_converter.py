@@ -9,6 +9,8 @@ from posixpath import islink
 import time
 import glob
 import jaialogs
+import kmz
+import taskpacketfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest="path", type=str, default="/var/log/jaiabot/bot_offload", help="Path to monitor for new goby files to convert")
@@ -33,6 +35,19 @@ def file_is_newer(filename: str, mtime: float):
 
     return file_mtime > mtime
 
+
+def convert_taskpacket_files_to_kmz_files(path: str):
+    # Convert .taskpacket files to kmz files
+    taskpacket_file_paths = glob.glob(f'{path}/**/*.taskpacket', recursive=True)
+
+    for taskpacket_file_path in taskpacket_file_paths:
+        # Skip symlinks
+        if os.path.islink(taskpacket_file_path):
+            continue
+
+        taskpackets = taskpacketfile.read_file(taskpacket_file_path)
+        kmz_file_path = taskpacket_file_path.replace('.taskpacket', '.kmz')
+        kmz.write_file(taskpackets, kmz_file_path)
 
 while True:
     # Get all goby files
@@ -74,7 +89,17 @@ while True:
 
         if not file_is_newer(kmz_filename, goby_mtime):
             logging.info(f'Generating {kmz_filename}')
-            jaialogs.generate_kmz(h5_filename, kmz_filename)
 
+            try:
+                jaialogs.generate_kmz(h5_filename, kmz_filename)
+            except OSError as exception:
+                logging.warning(f'Cannot generate kmz file from: {h5_filename}')
+                logging.warning(f'  {exception}')
+
+                # Touch the kmz file, so we don't try again
+                os.system(f'touch {kmz_filename}')
+
+    convert_taskpacket_files_to_kmz_files(path)
 
     time.sleep(30)
+

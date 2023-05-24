@@ -24,7 +24,9 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
+#include <fstream>
 #include <goby/util/seawater.h>
+#include <google/protobuf/util/json_util.h>
 
 namespace jaiabot
 {
@@ -453,8 +455,45 @@ struct MissionManagerStateMachine
     }
     const double& latest_significant_wave_height() { return latest_significant_wave_height_; }
 
+    void set_create_task_packet_file(const bool& create_task_packet_file)
+    {
+        create_task_packet_file_ = create_task_packet_file;
+    }
+    const bool& create_task_packet_file() { return create_task_packet_file_; }
+
+    void set_task_packet_file_name(const std::string& task_packet_file_name)
+    {
+        task_packet_file_name_ = task_packet_file_name;
+    }
+    const std::string& task_packet_file_name() { return task_packet_file_name_; }
+
+    const std::string& create_file_date_time()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+
+        std::tm* localTime = std::localtime(&currentTime);
+
+        std::ostringstream oss;
+        oss << (localTime->tm_year + 1900) << std::setw(2) << std::setfill('0')
+            << (localTime->tm_mon + 1) << std::setw(2) << std::setfill('0') << localTime->tm_mday
+            << "T" << std::setw(2) << std::setfill('0') << localTime->tm_hour << std::setw(2)
+            << std::setfill('0') << localTime->tm_min << std::setw(2) << std::setfill('0')
+            << localTime->tm_sec;
+
+        data_time_string_ = oss.str();
+
+        return data_time_string_;
+    }
+
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
+
+    void set_data_offload_command(const std::string& data_offload_command)
+    {
+        data_offload_command_ = data_offload_command + " 2>&1";
+    }
+    const std::string& data_offload_command() { return data_offload_command_; }
 
   private:
     apps::MissionManager& app_;
@@ -487,6 +526,11 @@ struct MissionManagerStateMachine
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
     double bottom_safety_depth_{cfg().min_depth_safety()};
+    // Task Packet
+    bool create_task_packet_file_{true};
+    std::string task_packet_file_name_{""};
+    std::string data_time_string_{""};
+    std::string data_offload_command_{cfg().data_offload_command()};
 };
 
 struct PreDeployment
@@ -1793,6 +1837,12 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     }
     uint32_t data_offload_percentage() const { return data_offload_percentage_; }
 
+    void set_offload_command(const std::string& offload_command)
+    {
+        offload_command_ = offload_command;
+    }
+    std::string offload_command() const { return offload_command_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvDataOffloadComplete, Idle>,
         boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
@@ -1802,7 +1852,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
-    const std::string offload_command_;
+    std::string offload_command_{this->machine().data_offload_command()};
     uint32_t data_offload_percentage_{0};
 };
 

@@ -27,18 +27,19 @@
 
 #include "xbee.h"
 
-#include <array>    // for array
-#include <cstddef>  // for size_t
-#include <cstdint>  // for uint32_t
-#include <map>      // for multimap
-#include <memory>   // for unique_ptr
-#include <set>      // for set
+#include <array>   // for array
+#include <cstddef> // for size_t
+#include <cstdint> // for uint32_t
+#include <map>     // for multimap
+#include <memory>  // for unique_ptr
+#include <set>     // for set
 
 #include "goby/acomms/modemdriver/driver_base.h" // for ModemDriverBase
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
 #include "goby/time/steady_clock.h"              // for SteadyClock
 
-#include "config.pb.h" // For our custom config
+#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
+#include "jaiabot/messages/xbee_extensions.pb.h"          // For our custom config
 
 extern "C"
 {
@@ -62,27 +63,48 @@ namespace protobuf
 {
 class ModemTransmission;
 } // namespace protobuf
+} // namespace acomms
+} // namespace goby
 
-class XBeeDriver : public ModemDriverBase
+namespace jaiabot
+{
+namespace comms
+{
+class XBeeDriver : public goby::acomms::ModemDriverBase
 {
   public:
     XBeeDriver();
     ~XBeeDriver() override;
 
-    void startup(const protobuf::DriverConfig& cfg) override;
+    void startup(const goby::acomms::protobuf::DriverConfig& cfg) override;
     void shutdown() override;
     void do_work() override;
-    void handle_initiate_transmission(const protobuf::ModemTransmission& m) override;
+    void handle_initiate_transmission(const goby::acomms::protobuf::ModemTransmission& m) override;
 
   private:
-    void start_send(const protobuf::ModemTransmission& msg);
+    void start_send(const goby::acomms::protobuf::ModemTransmission& msg);
     void send_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
     void start_receive();
     void receive_complete(const boost::system::error_code& error, std::size_t bytes_transferred);
-    void receive_message(const protobuf::ModemTransmission& m);
+    void receive_message(const goby::acomms::protobuf::ModemTransmission& m);
+
+    bool parse_modem_message(std::string in, goby::acomms::protobuf::ModemTransmission* out);
+    void serialize_modem_message(std::string* out,
+                                 const goby::acomms::protobuf::ModemTransmission& in);
+
+    const xbee::protobuf::Config& config_extension()
+    {
+        return driver_cfg_.GetExtension(xbee::protobuf::config);
+    }
+
+    void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
+    void set_active_hub_peer(int hub_id);
+
+    bool read_hub_info_file(jaiabot::protobuf::HubInfo& hub_info);
+    bool write_hub_info_file(const jaiabot::protobuf::HubInfo& hub_info);
 
   private:
-    protobuf::DriverConfig driver_cfg_;
+    goby::acomms::protobuf::DriverConfig driver_cfg_;
 
     XBeeDevice device_;
 
@@ -93,7 +115,13 @@ class XBeeDriver : public ModemDriverBase
     bool test_comms_{false};
     std::map<int32_t, goby::time::SteadyClock::time_point> send_time_{};
     std::size_t number_of_bytes_to_send_{0};
+
+    bool have_active_hub_{false};
+    int active_hub_id_{-1};
+
+    // maps hub_id to Peer struct
+    std::map<int, xbee::protobuf::Peer> hub_peers_;
 };
-} // namespace acomms
-} // namespace goby
+} // namespace comms
+} // namespace jaiabot
 #endif

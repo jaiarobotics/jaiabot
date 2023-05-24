@@ -26,10 +26,10 @@
 #ifndef XBEE_H
 #define XBEE_H
 
-#include <map>    // for map
-#include <string> // for string
+#include <boost/asio.hpp> // for serial_port
+#include <map>            // for map
 #include <queue>
-#include <boost/asio.hpp>   // for serial_port
+#include <string> // for string
 
 // basic file operations
 #include <fstream>
@@ -37,7 +37,10 @@
 
 #include "xbee.pb.h"
 
-using namespace std;
+namespace jaiabot
+{
+namespace comms
+{
 typedef unsigned char byte;
 
 // SerialNumber is an immutable value that uniquely identifies an XBee modem
@@ -48,12 +51,13 @@ typedef uint64_t SerialNumber;
 typedef std::string NodeId;
 
 // Packet structure for queuing up packets for transmit
-struct Packet {
+struct Packet
+{
     NodeId dest;
-    string data;
+    std::string data;
 
-    Packet() { }
-    Packet(const NodeId& dest, const string& data) : dest(dest), data(data) {}
+    Packet() {}
+    Packet(const NodeId& dest, const std::string& data) : dest(dest), data(data) {}
 };
 
 class XBeeDevice
@@ -61,16 +65,16 @@ class XBeeDevice
   public:
     XBeeDevice();
     void startup(const std::string& port_name, const int baud_rate, const NodeId& my_node_id,
-                 const uint16_t network_id, const bool should_discover_peers,
-                 const std::string& xbee_info_location);
+                 const uint16_t network_id, const std::string& xbee_info_location,
+                 const bool& use_encryption, const std::string& encryption_password);
     void shutdown();
 
-    vector<NodeId> get_peers();
+    std::vector<NodeId> get_peers();
 
     void send_packet(const NodeId& dest, const std::string& s);
     void send_test_links(const NodeId& dest, const NodeId& com_dest);
 
-    vector<string> get_packets();
+    std::vector<std::string> get_packets();
 
     void do_work();
 
@@ -86,40 +90,33 @@ class XBeeDevice
 
   private:
     static const SerialNumber broadcast_serial_number;
-    
-    boost::asio::io_service *io;
-    boost::asio::serial_port *port;
+
+    boost::asio::io_service* io;
+    boost::asio::serial_port* port;
     NodeId my_node_id;
     SerialNumber my_serial_number;
     byte frame_id;
-
-    bool should_discover_peers = false;
+    std::string glog_group;
 
     // Map of node_id onto serial number
     std::map<NodeId, SerialNumber> node_id_to_serial_number_map;
     std::map<SerialNumber, NodeId> serial_number_to_node_id_map;
 
-    vector<string> received_packets;
-
-    // Packet queue (for packets waiting for a serial number)
-    deque<Packet> outbound_packet_queue;
+    std::vector<std::string> received_packets;
 
     // Called during startup
     void get_my_serial_number();
     void get_maximum_payload_size();
     void broadcast_node_id();
-    void network_discover();
 
     // Packet sending
-    void _send_packet(const SerialNumber& dest, const xbee::protobuf::XBeePacket& packet);
-    void send_packet(const SerialNumber& dest, const string& data);
-    void send_node_id(const SerialNumber& dest, const bool xbee_address_entry_request);
+    void send_packet(const SerialNumber& dest, const std::string& data);
 
     // Low level reads and writes
     void write(const std::string& raw);
     std::string read_until(const std::string& delimiter);
     size_t bytes_available();
-    void read(void *ptr, const size_t n_bytes);
+    void read(void* ptr, const size_t n_bytes);
 
     // Command mode stuff
     void enter_command_mode();
@@ -127,23 +124,23 @@ class XBeeDevice
     void exit_command_mode();
 
     // Frame stuff
-    string read_frame();
+    std::string read_frame();
 
     // API mode stuff
     SerialNumber read_frame_discover_node_response(const NodeId& node_id);
     SerialNumber get_serial_number(const NodeId& node_id);
-
+    std::string api_transmit_request(const SerialNumber& dest, const byte frame_id, const byte* ptr,
+                                     const size_t length);
+    std::string api_explicit_transmit_request(const SerialNumber& dest,
+                                              const SerialNumber& com_dest, const byte frame_id);
     // Processing frames
     void process_frame();
     void process_frame_if_available();
-    void process_frame_extended_transmit_status(const string& response_string);
-    void process_frame_at_command_response(const string& response_string);
-    void process_frame_receive_packet(const string& response_string);
-    void process_frame_node_identification_indicator(const string& response_string);
-    void process_frame_explicit_rx_indicator(const string& response_string);
-
-    // Processing queued packets
-    void flush_packets_for_node(const NodeId& node_id);
+    void process_frame_extended_transmit_status(const std::string& response_string);
+    void process_frame_at_command_response(const std::string& response_string);
+    void process_frame_receive_packet(const std::string& response_string);
+    void process_frame_node_identification_indicator(const std::string& response_string);
+    void process_frame_explicit_rx_indicator(const std::string& response_string);
 
     // Query RSSI from Radio
     void query_rssi();
@@ -155,7 +152,7 @@ class XBeeDevice
     void query_bc();
     // Query Transmission Failure Count
     void query_tr();
-    
+
     // Check if we received diagnostics
     bool received_rssi_{false};
     bool received_er_{false};
@@ -181,9 +178,11 @@ class XBeeDevice
     uint16_t received_good_count_{0};
 
     // Transmission Failure Count
-    uint16_t transimission_failure_count_{0};
+    uint16_t transmission_failure_count_{0};
 
     std::string my_xbee_info_location_{""};
 };
-#endif
+} // namespace comms
+} // namespace jaiabot
 
+#endif

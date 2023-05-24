@@ -6,9 +6,6 @@ bot_id: $bot_id
 command_sub_cfg {
     intervehicle
     {
-        # hub modem id
-        publisher_id: 1
-
         # buffer configuration for the Command messages
         buffer {
             ack_required: true
@@ -42,6 +39,8 @@ gps_after_dive_hdop_fix: 1.3 # (optional) (default=1.3)
 gps_after_dive_pdop_fix: 2.2 # (optional) (default=2.2)
 
 data_offload_command: "jaiabot-dataoffload.sh $log_dir"  #  (required)
+log_dir: "$log_dir" # (required)
+data_offload_only_task_packet_file: false # (optional)
 
 # Can enable one or more test modes to override normal operational settings
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
@@ -68,3 +67,6 @@ min_depth_safety: 0 # (default = 0)
 
 # IMU Restart State Timeout
 imu_restart_seconds: 10 # (default = 10)
+
+# If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
+$subscribe_to_hub_on_start
