@@ -13,16 +13,23 @@ from copy import deepcopy
 from numpy.linalg import lstsq
 
 
-def remove_linear_component(values: Iterable):
-    '''Fit data to a line, and subtract the line to remove any linear trending'''
+def filter_quadratic(values: Iterable):
+    '''Fit data to a quadratic, and subtract it to remove any drift due to constant acceleration error'''
     indices = numpy.arange(0, len(values))
-    A = numpy.vstack([indices, numpy.ones(len(indices))]).T
-    m, c = lstsq(A, values, rcond=None)[0]
+    A = numpy.vstack([indices*indices, indices, numpy.ones(len(indices))]).T
+    a, b, c = lstsq(A, values, rcond=None)[0]
 
     newValues = []
     for i, value in enumerate(values):
-        newValues.append(value - i * m)
+        correction = a*i*i + b*i + c
+        newValues.append(value - correction)
     return newValues
+
+
+def plotValues(values: Iterable[float], dt: float = 1.0):
+    x = numpy.arange(0, len(values) * dt, dt)
+    fig = px.line(x=x, y=values)
+    fig.show()
 
 
 class TimeSeries:
@@ -34,22 +41,22 @@ class TimeSeries:
         self.values = values
 
     def plot(self):
-        x = numpy.arange(0, len(self.values) * self.dt, self.dt)
-        fig = px.line(x=x, y=self.values)
-        fig.show()
+        plotValues(self.values, self.dt)
 
     def get_heights_from_accelerations(self):
         speed = 0
         height = 0
         heights = []
 
-        for value in self.values:
-            speed += value * self.dt
+        accelerations = self.values
+
+        for accel in accelerations:
+            speed += accel * self.dt
             height += speed * self.dt
             heights.append(height)
 
         # Eliminate any constant speed
-        heights = remove_linear_component(heights)
+        heights = filter_quadratic(heights)
 
         integral = TimeSeries(dt=self.dt, values=heights)
         return integral
