@@ -63,7 +63,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
-                                    min={0}
+                                    min={0.5}
                                     max={this.state.speed_max}
                                     onChange={
                                         (evt) => 
@@ -113,7 +113,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     valueLabelDisplay="auto"
                                     step={0.5}
                                     marks
-                                    min={0}
+                                    min={0.5}
                                     max={this.state.speed_max}
                                     onChange={
                                         (evt) => 
