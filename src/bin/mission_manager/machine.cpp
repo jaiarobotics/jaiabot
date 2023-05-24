@@ -112,6 +112,20 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
     int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
     goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
     timeout_stop_ = timeout_start + timeout_duration;
+
+    if (cfg().data_offload_only_task_packet_file())
+    {
+        if (this->machine().create_task_packet_file())
+        {
+            this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
+                                                      this->machine().create_file_date_time() +
+                                                      ".taskpacket");
+
+            glog.is_debug1() && glog << "Create a task packet file and only offload that file"
+                                     << "to hub (ignore sending goby files)" << std::endl;
+            this->machine().set_data_offload_command(cfg().data_offload_command() + " '*.goby'");
+        }
+    }
 }
 
 jaiabot::statechart::predeployment::StartingUp::~StartingUp() {}
@@ -277,18 +291,6 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     {
         if (cfg().data_offload_only_task_packet_file())
         {
-            if (this->machine().create_task_packet_file())
-            {
-                this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
-                                                          this->machine().create_file_date_time() +
-                                                          ".taskpacket");
-
-                glog.is_debug1() && glog << "Create a task packet file and only offload that file"
-                                         << "to hub (ignore sending goby files)" << std::endl;
-                this->machine().set_data_offload_command(cfg().data_offload_command() +
-                                                         "exlcude=*goby");
-            }
-
             // Open task packet file
             std::ofstream task_packet_file(
                 cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
@@ -1121,13 +1123,15 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
 
 // PostDeployment::DataOffload
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
-    : StateBase(c), offload_command_(this->machine().data_offload_command() + " 2>&1")
+    : StateBase(c)
 {
-    auto offload_func = [this]() {
-        glog.is_debug1() && glog << "Offloading data with command: [" << offload_command_ << "]"
-                                 << std::endl;
+    this->set_offload_command(this->machine().data_offload_command());
 
-        FILE* pipe = popen(offload_command_.c_str(), "r");
+    auto offload_func = [this]() {
+        glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
+                                 << "]" << std::endl;
+
+        FILE* pipe = popen(this->offload_command().c_str(), "r");
         if (!pipe)
         {
             glog.is_warn() && glog << "Error opening pipe to data offload command: "

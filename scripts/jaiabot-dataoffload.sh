@@ -11,16 +11,14 @@ fi
 additional_exclude_files=""
 
 if [ -n "$2" ]; then
-  additional_exclude_files="--exclude='$2'" 
+  additional_exclude_files="$2"
 fi
-
-echo ${additional_exclude_files}
 
 hub_id=${jaia_dataoffload_hub_id:-0}
 
 set -u
 
-nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude='*.txt*' --exclude='*.latest.goby*' ${additional_exclude_files} ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
+nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude=${additional_exclude_files} --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
 
 # Set the path of the directory one level up
 parent_dir="${log_dir}/.."
