@@ -274,26 +274,52 @@ export default class RCControllerPanel extends React.Component {
 								
 								if(axisName == "LeftStickX") {
 									self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									if(value > 0) {
+										self.state.rudderDirection = "RIGHT";
+									} else if(value < 0) {
+										self.state.rudderDirection = "LEFT";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.rudder = 0;
+										self.state.rudderDirection = "";
+									}
 								} 
 								
 								if(axisName == "LeftStickY") {	
-									if(value >= 0) {
+									if(value > 0) {
 										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										self.state.throttleDirection = "FORWARD";
 									} else if(value < 0) {
 										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										self.state.throttleDirection = "BACKWARD";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.throttle = 0;
+										self.state.throttleDirection = "";
 									}
 								}
 							} else if(self.state.controlType == "Manual Dual") {
 								if(axisName == "LeftStickY") {
-									if(value >= 0) {
+									if(value > 0) {
 										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										self.state.throttleDirection = "FORWARD";
 									} else if(value < 0) {
 										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										self.state.throttleDirection = "BACKWARD";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.throttle = 0;
+										self.state.throttleDirection = "";
 									}
 								}
 
 								if(axisName == "RightStickX") {
 									self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									if(value > 0) {
+										self.state.rudderDirection = "RIGHT";
+									} else if(value < 0) {
+										self.state.rudderDirection = "LEFT";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.rudder = 0;
+										self.state.rudderDirection = "";
+									}
 								}
 							}
 						}}
