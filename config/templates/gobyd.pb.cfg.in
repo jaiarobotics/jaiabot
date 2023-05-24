@@ -10,4 +10,7 @@ hold {
   # don't allow any apps to publish until jaiabot_health is ready
   required_client: "jaiabot_health"
   required_client: "goby_logger"
+
+  $required_clients
 }
+

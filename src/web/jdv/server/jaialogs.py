@@ -13,11 +13,11 @@ import datetime
 import os
 
 import bisect
+import kmz
 
 from objects import *
 from moos_messages import *
 from pprint import pprint
-from kmz import create_kmz
 
 
 # JAIA message types as python dataclasses
@@ -448,7 +448,7 @@ def get_task_packets(log_filenames) -> Iterable[TaskPacket]:
 
 def generate_kmz(h5_filename: str, kmz_filename: str):
     task_packets = get_task_packets([h5_filename])
-    create_kmz(task_packets, kmz_filename)
+    kmz.write_file(task_packets, kmz_filename)
 
 
 # Testing
