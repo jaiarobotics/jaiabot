@@ -2544,7 +2544,6 @@ export default class CommandControl extends React.Component {
 								const mapLayers = document.getElementById('mapLayers')
 								mapLayers.style.width = '0px'
 								const mapLayersBtn = document.getElementById('mapLayersButton')
-								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2558,7 +2557,6 @@ export default class CommandControl extends React.Component {
 								const mapLayers = document.getElementById('mapLayers')
 								mapLayers.style.width = '400px'
 								const mapLayersBtn = document.getElementById('mapLayersButton')
-								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />

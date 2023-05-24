@@ -58,7 +58,7 @@ node_id=common.bot.bot_index_to_node_id(bot_index)
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG2'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
   'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
@@ -124,7 +124,9 @@ if common.app == 'gobyd':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
-                                     persist_subscriptions='persist_subscriptions { name: "bot" dir: "' + debug_log_file_dir + '" }'))
+                                     persist_subscriptions='', # no persistent subscriptions on the bot as we get our subscriptions from the hub whenever we subscribe to the hub
+                                     required_clients='required_client: "gobyd" required_client: "jaiabot_fusion" required_client: "jaiabot_mission_manager" required_client: "jaiabot_engineering"' # these are all required in the gobyd "hold" so that the initial hub info isn't published before they're ready (allowing persist to disk of last hub in use)
+                                     ))
 elif common.app == 'goby_coroner':    
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,
