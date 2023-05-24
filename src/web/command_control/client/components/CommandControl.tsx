@@ -159,6 +159,8 @@ import { createHubFeature } from './shared/HubFeature'
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
 import { SurveyPolygon } from './SurveyPolygon'
+import { createMap } from './Map'
+import { layers } from './Layers'
 
 import { getGeographicCoordinate } from './Utilities'
 
@@ -289,39 +291,16 @@ export default class CommandControl extends React.Component {
 	}
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
-	chartLayerGroup = createChartLayerGroup()
-	measureLayer: OlVectorLayer<OlVectorSource>
-	graticuleLayer: OlGraticule
-
-	botsLayerCollection: OlCollection<OlVectorLayer<OlVectorSource>> = new OlCollection([], { unique: true })
-	botsLayerGroup: OlLayerGroup = new OlLayerGroup({
-		layers: this.botsLayerCollection
-	})
-
-	hubsLayerCollection: OlCollection<OlVectorLayer<OlVectorSource>> = new OlCollection([], { unique: true })
-	hubsLayerGroup: OlLayerGroup = new OlLayerGroup({
-		layers: this.hubsLayerCollection
-	})
 
 	dragAndDropInteraction = new DragAndDropInteraction({
 		formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
 	})
-	dragAndDropVectorLayer = new OlVectorLayer()
+	
 
 	measureInteraction: OlDrawInteraction
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
 	surveyExclusionsInteraction: OlDrawInteraction
-
-	missionLayer: OlVectorLayer<OlVectorSource>
-	selectedMissionLayer: OlVectorLayer<OlVectorSource>
-	activeMissionLayer: OlVectorLayer<OlVectorSource>
-	missionPlanningLayer: OlVectorLayer<OlVectorSource>
-	exclusionsLayer: OlVectorLayer<OlVectorSource>
-	missionLayerGroup: OlLayerGroup
-
-	measurementLayerGroup: OlLayerGroup
-	baseLayerGroup: OlLayerGroup
 
 	timerID: NodeJS.Timer
 
@@ -419,64 +398,12 @@ export default class CommandControl extends React.Component {
 			botsAssignedToRuns: {}
 		}
 
-		// Measure tool
+		map = createMap()
 
-		this.measureLayer = new OlVectorLayer({
-			source: new OlVectorSource(),
-			style: new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgba(255, 255, 255, 0.2)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: '#ffcc33',
-					width: 2
-				}),
-				image: new OlCircleStyle({
-					radius: 7,
-					fill: new OlFillStyle({
-						color: '#ffcc33'
-					})
-				})
-			})
-		});
-
-		this.graticuleLayer = new OlGraticule({
-			// the style to use for the lines, optional.
-			strokeStyle: new OlStrokeStyle({
-				color: 'rgb(0,0,0)',
-				width: 2,
-				lineDash: [0.5, 4],
-			}),
-			zIndex: 30,
-			opacity: 0.8,
-			showLabels: true,
-			wrapX: false,
-		});
-
-		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
-			layers: this.createLayers(),
-			controls: [
-				new OlZoom(),
-				new OlRotate(),
-				new OlScaleLine({ units: 'metric' }),
-				new OlMousePosition({
-					coordinateFormat: OlCreateStringXY(6),
-					projection: equirectangular,
-				}),
-				new OlAttribution({
-					collapsible: false
-				})
-			],
-			view: new OlView({
-				projection: mercator,
-				center: [0, 0],
-				zoom: 0,
-				maxZoom: 24
-			}),
-			maxTilesLoading: 64,
-			moveTolerance: 20
-		});
+		map.addInteraction(this.pointerInteraction())
+		map.addInteraction(this.selectInteraction())
+		map.addInteraction(this.translateInteraction())
+		map.addInteraction(this.dragAndDropInteraction)
 
 		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
 		taskData.map = map
@@ -607,84 +534,6 @@ export default class CommandControl extends React.Component {
 		this.setState({
 			missionParams: missionParams
 		})
-	}
-
-	createLayers() {
-		this.missionLayer = new OlVectorLayer();
-		this.selectedMissionLayer = new OlVectorLayer({
-			properties: {
-				title: 'Selected Mission',
-			},
-			source: new OlVectorSource(),
-			zIndex: 1001
-		})
-		this.activeMissionLayer = new OlVectorLayer({
-			properties: {
-				title: 'Active Missions',
-			},
-			source: new OlVectorSource(),
-			zIndex: 999,
-			opacity: 0.25
-		})
-
-		this.missionPlanningLayer = new OlVectorLayer({
-			properties: { 
-				name: 'missionPlanningLayer',
-				title: 'Mission Planning'
-			},
-		});
-		this.exclusionsLayer = new OlVectorLayer({
-			properties: { 
-				name: 'exclusionsLayer',
-				title: 'Mission Exclusion Areas'
-			}
-		});
-
-		this.missionLayerGroup = new OlLayerGroup({
-			properties: {
-				title: 'Mission',
-				fold: 'close',
-			},
-			layers: [
-				this.activeMissionLayer,
-				this.missionPlanningLayer,
-				//this.exclusionsLayer,
-				this.selectedMissionLayer
-			]
-		})
-		
-		this.measurementLayerGroup = new OlLayerGroup({
-			properties: { 
-				title: 'Measurements',
-				fold: 'close',
-			},
-			layers: [
-				taskData.getContourLayer(),
-				taskData.getTaskPacketDiveInfoLayer(),
-				taskData.getTaskPacketDriftInfoLayer(),
-				taskData.getTaskPacketDiveBottomInfoLayer(),
-				taskData.taskPacketInfoLayer
-			]
-		})
-
-		this.baseLayerGroup = createBaseLayerGroup()
-
-		let layers = [
-			this.baseLayerGroup,
-			this.chartLayerGroup,
-			this.measurementLayerGroup,
-			this.graticuleLayer,
-			this.measureLayer,
-			this.missionLayer,
-			this.missionLayerGroup,
-			this.hubsLayerGroup,
-			this.botsLayerGroup,
-			this.dragAndDropVectorLayer,
-		]
-
-		// console.log(layers)
-
-		return layers
 	}
 
 	componentDidMount() {
@@ -902,8 +751,8 @@ export default class CommandControl extends React.Component {
 					features: featuresExclusions,
 				});
 
-				this.exclusionsLayer.setSource(vectorSource);
-				this.exclusionsLayer.setZIndex(5000);
+				layers.exclusionsLayer.setSource(vectorSource);
+				layers.exclusionsLayer.setZIndex(5000);
 
 				this.setState({
 					surveyExclusions: turf.coordAll(turf.polygon(geometry.getCoordinates()))
@@ -938,7 +787,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	getLiveLayerFromHubId(hub_id: number) {
-		const hubsLayerCollection = this.hubsLayerCollection
+		const hubsLayerCollection = layers.hubsLayerCollection
 		// eslint-disable-next-line no-plusplus
 		for (let i = 0; i < hubsLayerCollection.getLength(); i++) {
 			const layer = hubsLayerCollection.item(i);
@@ -967,7 +816,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	getLiveLayerFromBotId(bot_id: number) {
-		const botsLayerCollection = this.botsLayerCollection
+		const botsLayerCollection = layers.botsLayerCollection
 
 		// eslint-disable-next-line no-plusplus
 		for (let i = 0; i < botsLayerCollection.getLength(); i++) {
@@ -1164,7 +1013,7 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		let source = this.activeMissionLayer.getSource()
+		let source = layers.activeMissionLayer.getSource()
 		source.clear()
 		source.addFeatures(allFeatures)
 	}
@@ -1399,12 +1248,12 @@ export default class CommandControl extends React.Component {
 	}
 
 	zoomToAllBots(firstMove = false) {
-		if (this.botsLayerGroup.getLayers().getLength() <= 0) {
+		if (layers.botsLayerGroup.getLayers().getLength() <= 0) {
 			return;
 		}
 		const extent = OlCreateEmptyExtent();
 		let layerCount = 0;
-		this.botsLayerGroup.getLayers().forEach((layer: OlVectorLayer<OlVectorSource>) => {
+		layers.botsLayerGroup.getLayers().forEach((layer: OlVectorLayer<OlVectorSource>) => {
 			if (layer.getSource().getFeatures().length <= 0) return;
 			OlExtendExtent(extent, layer.getSource().getExtent());
 			layerCount += 1;
@@ -1420,7 +1269,7 @@ export default class CommandControl extends React.Component {
 			OlExtendExtent(extent, layer.getSource().getExtent());
 			layerCount += 1;
 		};
-		this.botsLayerGroup.getLayers().forEach(addExtent);
+		layers.botsLayerGroup.getLayers().forEach(addExtent);
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
@@ -1443,7 +1292,7 @@ export default class CommandControl extends React.Component {
 		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
 
 		const { selectedBotsFeatureCollection } = this.state;
-		const botsLayerCollection = this.botsLayerCollection
+		const botsLayerCollection = layers.botsLayerCollection
 
 		selectedBotsFeatureCollection.clear();
 		botsLayerCollection.getArray().forEach((layer) => {
@@ -1471,7 +1320,7 @@ export default class CommandControl extends React.Component {
 		hub_ids = hub_ids.map(hub_id => { return Number(hub_id) })
 
 		const { selectedHubsFeatureCollection } = this.state;
-		const hubsLayerCollection = this.hubsLayerCollection
+		const hubsLayerCollection = layers.hubsLayerCollection
 
 		selectedHubsFeatureCollection.clear();
 		hubsLayerCollection.getArray().forEach((layer) => {
@@ -2484,8 +2333,8 @@ export default class CommandControl extends React.Component {
 				let missionPlanningSource = new OlVectorSource({
 					features: missionPlanningFeaturesList
 				})
-				this.missionPlanningLayer.setSource(missionPlanningSource);
-				this.missionPlanningLayer.setZIndex(2000);
+				layers.missionPlanningLayer.setSource(missionPlanningSource);
+				layers.missionPlanningLayer.setZIndex(2000);
 			}
 		}
 
@@ -2503,11 +2352,12 @@ export default class CommandControl extends React.Component {
 			features: selectedFeatures as any
 		})
 
-		this.missionLayer.setSource(vectorSource)
-		this.missionLayer.setZIndex(1000)
 
-		this.selectedMissionLayer.setSource(vectorSelectedSource)
-		this.selectedMissionLayer.setZIndex(1001)
+		layers.missionLayer.setSource(vectorSource)
+		layers.missionLayer.setZIndex(1000)
+
+		layers.selectedMissionLayer.setSource(vectorSelectedSource)
+		layers.selectedMissionLayer.setZIndex(1001)
 	}
 
 	// This function returns a set of features illustrating the missionPlanningGrid
