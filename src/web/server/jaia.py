@@ -211,8 +211,8 @@ class Interface:
                         }
                     }]
 
-            if 'tansit_speed' in single_waypoint_mission_dict:
-                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['tansit_speed']
+            if 'transit_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['transit_speed']
 
             if 'station_keep_speed' in single_waypoint_mission_dict:
                 command_dict['plan']['speeds']['stationkeep_outer'] = single_waypoint_mission_dict['station_keep_speed']
