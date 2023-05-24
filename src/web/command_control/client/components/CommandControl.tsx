@@ -20,10 +20,10 @@ import { taskData } from './TaskPackets'
 
 // Material Design Icons
 import Icon from '@mdi/react'
-import { mdiPlay, mdiFolderOpen, mdiContentSave, 
+import { mdiPlay, 
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
-	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
-    mdiStop, mdiPause, mdiViewList} from '@mdi/js'
+	mdiFlagVariantPlus, mdiArrowULeftTop,
+    mdiStop, mdiViewList} from '@mdi/js'
 
 import Button from '@mui/material/Button';
 
@@ -38,22 +38,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 // Openlayers
 import OlMap from 'ol/Map';
 import {
-	DragAndDrop as DragAndDropInteraction,
-	Select as SelectInteraction,
-	Translate as TranslateInteraction,
-	Pointer as PointerInteraction,
-	defaults as defaultInteractions,
 	Interaction,
-	DragAndDrop,
 } from 'ol/interaction';
-import OlView from 'ol/View';
 import OlIcon from 'ol/style/Icon'
 import OlText from 'ol/style/Text'
-import OlLayerGroup from 'ol/layer/Group';
-import OlSourceOsm from 'ol/source/OSM';
-import OlSourceXYZ from 'ol/source/XYZ';
-import { doubleClick } from 'ol/events/condition';
-import OlGraticule from 'ol/layer/Graticule';
 import { Vector as OlVectorSource } from 'ol/source';
 import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
@@ -61,15 +49,8 @@ import OlPoint from 'ol/geom/Point';
 import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
-import GeoJSON from 'ol/format/GeoJSON';
-import {GPX, IGC, KML, TopoJSON} from 'ol/format';
-import OlTileLayer from 'ol/layer/Tile';
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
-import OlScaleLine from 'ol/control/ScaleLine';
-import OlMousePosition from 'ol/control/MousePosition';
-import OlZoom from 'ol/control/Zoom';
-import OlRotate from 'ol/control/Rotate';
-import { Coordinate, createStringXY as OlCreateStringXY } from 'ol/coordinate';
+import { Coordinate } from 'ol/coordinate';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
 import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
@@ -78,9 +59,8 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import OlAttribution from 'ol/control/Attribution';
-import { TransformFunction, getTransform, toUserResolution } from 'ol/proj';
-import { deepcopy, areEqual, randomBase57, getMapCoordinate } from './Utilities';
+import { getTransform } from 'ol/proj';
+import { deepcopy, getMapCoordinate } from './Utilities';
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
@@ -102,19 +82,17 @@ import 'jquery-ui/ui/effects/effect-blind';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
 	faMapMarkerAlt,
-	faMapMarkedAlt,
 	faRuler,
 	faEdit,
 	faLayerGroup,
 	faWrench,
-	IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 
 
 const jaiabot_icon = require('../icons/jaiabot.png')
 
 import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
-import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
+import { jaiaAPI } from '../../common/JaiaAPI';
 
 import tooltips from '../libs/tooltips'
 
@@ -127,7 +105,6 @@ import { error, success, warning, info} from '../libs/notifications';
 import 'reset-css';
 // import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/CommandControl.less';
-import { transform } from 'ol/proj';
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
@@ -139,20 +116,16 @@ import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
 
-import { KMZ } from './KMZ'
-import { createChartLayerGroup, gebcoLayer } from './ChartLayers';
-import { createBaseLayerGroup } from './BaseLayers'
+import { gebcoLayer } from './ChartLayers';
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { fromLonLat } from 'ol/proj.js';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
+import { Goal, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { MapBrowserEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
 import { PodStatus } from './PortalStatus'
 import * as Styles from './shared/Styles'
-import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './shared/BotFeature'
 import { createHubFeature } from './shared/HubFeature'
 
@@ -163,6 +136,7 @@ import { createMap } from './Map'
 import { layers } from './Layers'
 
 import { getGeographicCoordinate } from './Utilities'
+import { Interactions } from './Interactions'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -292,12 +266,6 @@ export default class CommandControl extends React.Component {
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
 
-	dragAndDropInteraction = new DragAndDropInteraction({
-		formatConstructors: [KMZ, GPX, GeoJSON, IGC, KML, TopoJSON],
-	})
-	
-
-	measureInteraction: OlDrawInteraction
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
 	surveyExclusionsInteraction: OlDrawInteraction
@@ -308,6 +276,8 @@ export default class CommandControl extends React.Component {
 
 	missionEndTask: MissionTask = {type: TaskType.STATION_KEEP}
 	missionPlans?: CommandList = null
+
+	interactions: Interactions
 
 	constructor(props: Props) {
 		super(props)
@@ -400,61 +370,15 @@ export default class CommandControl extends React.Component {
 
 		map = createMap()
 
-		map.addInteraction(this.pointerInteraction())
-		map.addInteraction(this.selectInteraction())
-		map.addInteraction(this.translateInteraction())
-		map.addInteraction(this.dragAndDropInteraction)
+		this.interactions = new Interactions(this, map)
+
+		map.addInteraction(this.interactions.pointerInteraction)
+		map.addInteraction(this.interactions.selectInteraction)
+		map.addInteraction(this.interactions.translateInteraction)
+		map.addInteraction(this.interactions.dragAndDropInteraction)
 
 		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
 		taskData.map = map
-
-		this.measureInteraction = new OlDrawInteraction({
-			source: new OlVectorSource(),
-			type: 'LineString',
-			style: new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgba(255, 255, 255, 0.2)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: 'rgba(0, 0, 0, 0.5)',
-					lineDash: [10, 10],
-					width: 2
-				}),
-				image: new OlCircleStyle({
-					radius: 5,
-					stroke: new OlStrokeStyle({
-						color: 'rgba(0, 0, 0, 0.7)'
-					}),
-					fill: new OlFillStyle({
-						color: 'rgba(255, 255, 255, 0.2)'
-					})
-				})
-			})
-		});
-
-		let listener: EventsKey
-
-		this.measureInteraction.on(
-			'drawstart',
-			(evt: DrawEvent) => {
-				this.setState({ measureFeature: evt.feature });
-
-				listener = evt.feature.getGeometry().on('change', (evt2) => {
-					const geom = evt2.target;
-					// tooltipCoord = geom.getLastCoordinate();
-					$('#measureResult').text(CommandControl.formatLength(geom));
-				});
-			}
-		);
-
-		this.measureInteraction.on(
-			'drawend',
-			() => {
-				this.setState({ measureActive: false, measureFeature: null });
-				OlUnobserveByKey(listener);
-				this.changeInteraction();
-			}
-		);
 
 		this.surveyLines = new SurveyLines(this)
 		this.surveyPolygon = new SurveyPolygon(this)
@@ -519,7 +443,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionParams.mission_type === 'polygon-grid')
 			this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'editing')
-			this.changeInteraction(this.selectInteraction(), 'grab');
+			this.changeInteraction(this.interactions.selectInteraction, 'grab');
 		if (this.state.missionParams.mission_type === 'lines')
 			this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'exclusions')
@@ -660,20 +584,6 @@ export default class CommandControl extends React.Component {
 						document.getElementById('layerinfo').innerHTML = html;
 					});
 			}
-		});
-
-		// Set addFeatures interaction
-		this.dragAndDropInteraction.on('addfeatures', function (event: DragAndDropEvent) {
-			const vectorSource = new OlVectorSource({
-				features: event.features as any,
-			});
-			map.addLayer(
-				new OlVectorLayer({
-					source: vectorSource,
-					zIndex: 2000
-				})
-			);
-			map.getView().fit(vectorSource.getExtent());
 		});
 
 		/* ////////////////////////////////////////////////////////////////////////// */
@@ -1737,7 +1647,7 @@ export default class CommandControl extends React.Component {
 							onClick={() => {
 								closeOtherViewControlWindows('measureTool')
 								this.setState({ measureActive: true });
-								this.changeInteraction(this.measureInteraction, 'crosshair');
+								this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
 								info('Touch map to set first measure point');
 							}}
 						>
@@ -1815,7 +1725,7 @@ export default class CommandControl extends React.Component {
 									if (this.state.missionParams.mission_type === 'polygon-grid')
 										this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'editing')
-										this.changeInteraction(this.selectInteraction(), 'grab');
+										this.changeInteraction(this.interactions.selectInteraction, 'grab');
 									if (this.state.missionParams.mission_type === 'lines')
 										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'exclusions')
@@ -2658,28 +2568,6 @@ export default class CommandControl extends React.Component {
 		return hubIds
 	}
 
-	// SelectInteraction
-
-	selectInteraction() {
-		return new SelectInteraction()
-	}
-
-	// TranslateInteraction
-
-	translateInteraction() {
-		return new TranslateInteraction({
-			features: this.state.selectedFeatures
-		})
-	}
-
-	// PointerInteraction
-
-	pointerInteraction() {
-		return new PointerInteraction({
-			handleEvent: this.handleEvent.bind(this),
-			stopDown: this.stopDown.bind(this)
-		})
-	}
 
 	handleEvent(evt: any) {
 		switch(evt.type) {
