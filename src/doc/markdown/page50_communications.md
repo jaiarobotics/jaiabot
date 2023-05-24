@@ -68,12 +68,20 @@ The XBee driver takes the following configuration (within `gobyd`'s configuratio
                                               # )
         hub_id:   # If this node is a hub, set its hub_id here. 
                   # (optional)
+        use_xbee_encryption: false # This is used to determine if we should enable AES-128 encryption.
+                                   # If true, then all systems will need to use encryption.
+                                   # Advanced Encryption Standard (AES-128)
+                                   # (optional) (default=false)
+        xbee_encryption_password: "" # This is used for the encryption password. 
+                                     # Password is a 128 bit value (16 bytes)
+                                     # (optional) (default = "") 
       }
     }
 ```
 
 
 The `peers` table must match for all bots and hubs in a particular fleet, and is required since the XBee serial numbers are factory set and cannot be changed.
+The `encryption` settings must match as well for the fleet.
 
 An example configuration for hub 1 in a two bot/two hub fleet is:
 
@@ -102,6 +110,8 @@ An example configuration for hub 1 in a two bot/two hub fleet is:
                 serial_number: 0x13A200421F6B7A
             }
             hub_id: 1
+            use_xbee_encryption: false 
+            xbee_encryption_password: "" 
         }
     }
 ```
@@ -119,6 +129,8 @@ and for bot 0 in the same fleet:
             peers {
               ... // same as for hub 1
             }
+            use_xbee_encryption: false 
+            xbee_encryption_password: "" 
         }
     }
 ```

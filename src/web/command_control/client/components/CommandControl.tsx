@@ -2531,7 +2531,7 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
 				<MissionControllerPanel 
 					api={this.api} 
@@ -2558,7 +2558,6 @@ export default class CommandControl extends React.Component {
 								const mapLayers = document.getElementById('mapLayers')
 								mapLayers.style.width = '0px'
 								const mapLayersBtn = document.getElementById('mapLayersButton')
-								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2572,7 +2571,6 @@ export default class CommandControl extends React.Component {
 								const mapLayers = document.getElementById('mapLayers')
 								mapLayers.style.width = '400px'
 								const mapLayersBtn = document.getElementById('mapLayersButton')
-								mapLayersBtn.classList.toggle('active')
 							}}
 						>
 							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />

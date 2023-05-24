@@ -84,7 +84,6 @@ class HubManager : public ApplicationBase
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
 
     void intervehicle_subscribe(int bot_modem_id);
-    void intervehicle_unsubscribe(int bot_modem_id);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -108,7 +107,10 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     for (auto peer : cfg().xbee().peers())
     {
         if (peer.has_bot_id())
+        {
             managed_bot_modem_ids_.insert(jaiabot::comms::modem_id_from_bot_id(peer.bot_id()));
+            latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(peer.bot_id());
+        }
     }
 
     for (auto id : managed_bot_modem_ids_) intervehicle_subscribe(id);
@@ -117,18 +119,19 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
-        [this](const protobuf::CommandForHub& input_command_for_hub) {
-            handle_command_for_hub(input_command_for_hub);
-        });
+        [this](const protobuf::CommandForHub& input_command_for_hub)
+        { handle_command_for_hub(input_command_for_hub); });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        {
             last_health_report_time_ = goby::time::SteadyClock::now();
             jaiabot::health::populate_status_from_health(latest_hub_status_, vehicle_health);
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
@@ -142,15 +145,11 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 
     // automatically subscribe to bots that send us subscriptions
     interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
-        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report) {
-            handle_subscription_report(report);
-        });
+        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report)
+        { handle_subscription_report(report); });
 }
 
-jaiabot::apps::HubManager::~HubManager()
-{
-    for (auto id : managed_bot_modem_ids_) intervehicle_unsubscribe(id);
-}
+jaiabot::apps::HubManager::~HubManager() {}
 
 void jaiabot::apps::HubManager::handle_subscription_report(
     const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
@@ -163,18 +162,16 @@ void jaiabot::apps::HubManager::handle_subscription_report(
         switch (sub_report.changed().action())
         {
             case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
-                if (!managed_bot_modem_ids_.count(bot_id))
-                {
-                    managed_bot_modem_ids_.insert(bot_id);
-                    intervehicle_subscribe(bot_id);
-                }
+                glog.is_verbose() && glog << group("main") << "Subscribe to bot: " << bot_id
+                                          << std::endl;
+
+                managed_bot_modem_ids_.insert(bot_id);
+                intervehicle_subscribe(bot_id);
+
                 break;
             case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
-                if (managed_bot_modem_ids_.count(bot_id))
-                {
-                    intervehicle_unsubscribe(bot_id);
-                    managed_bot_modem_ids_.erase(bot_id);
-                }
+                // do nothing as the bot subscriptions no longer persist across restarts
+                // this reduces edge cases problems with unsubscription messages getting through or not
                 break;
         }
     }
@@ -211,9 +208,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
         glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
         intervehicle().subscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
-            [this](const jaiabot::protobuf::TaskPacket& task_packet) {
-                handle_task_packet(task_packet);
-            },
+            [this](const jaiabot::protobuf::TaskPacket& task_packet)
+            { handle_task_packet(task_packet); },
             subscriber);
     }
 
@@ -230,7 +226,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
 
         intervehicle()
             .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
+                [this](const jaiabot::protobuf::Engineering& input_engineering_status)
+                {
                     glog.is_debug1() && glog << "Received input_engineering_status: "
                                              << input_engineering_status.ShortDebugString()
                                              << std::endl;
@@ -245,49 +242,6 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
 
                     interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
                 },
-                subscriber);
-    }
-}
-
-void jaiabot::apps::HubManager::intervehicle_unsubscribe(int id)
-{
-    glog.is_verbose() && glog << "Performing intervehicle unsubscribe actions for bot "
-                              << jaiabot::comms::bot_id_from_modem_id(id) << " (modem id " << id
-                              << ")" << std::endl;
-
-    {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
-
-        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(subscriber_cfg);
-
-        intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
-            subscriber);
-    }
-    {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().task_packet_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
-
-        goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(subscriber_cfg);
-
-        intervehicle().unsubscribe<jaiabot::groups::bot_status, jaiabot::protobuf::TaskPacket>(
-            subscriber);
-    }
-
-    {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
-
-        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(subscriber_cfg);
-
-        intervehicle()
-            .unsubscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
                 subscriber);
     }
 }
@@ -344,10 +298,45 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 void jaiabot::apps::HubManager::handle_command_for_hub(
     const jaiabot::protobuf::CommandForHub& input_command_for_hub)
 {
+    glog.is_verbose() && glog << group("main") << "Received Command For Hub: "
+                              << input_command_for_hub.ShortDebugString() << std::endl;
+
     // publish computer shutdown command to jaiabot_health which is run as root so it
     // can actually carry out the shutdown
     switch (input_command_for_hub.type())
     {
+        case protobuf::CommandForHub::SCAN_FOR_BOTS:
+            if (input_command_for_hub.has_scan_for_bot_id())
+            {
+                uint32_t modem_id =
+                    jaiabot::comms::modem_id_from_bot_id(input_command_for_hub.scan_for_bot_id());
+                uint32_t bot_id = input_command_for_hub.scan_for_bot_id();
+
+                glog.is_debug2() && glog << group("main") << "Scan for bot: " << bot_id
+                                         << std::endl;
+
+                if (bot_id)
+                {
+                    glog.is_debug2() &&
+                        glog << group("main")
+                             << "Check if we are not managing modem id: " << modem_id << std::endl;
+
+                    if (!managed_bot_modem_ids_.count(modem_id))
+                    {
+                        glog.is_debug2() && glog << group("main")
+                                                 << "We are not managing modem id: " << modem_id
+                                                 << std::endl;
+
+                        managed_bot_modem_ids_.insert(modem_id);
+                        intervehicle_subscribe(modem_id);
+                    }
+                    else
+                    {
+                        intervehicle_subscribe(modem_id);
+                    }
+                }
+            }
+            break;
         case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
@@ -465,13 +454,14 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
 
         for (auto frag : command_fragments)
-        { glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl; }
+        {
+            glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl;
+        }
     }
 
     goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group) {
-            cmd.set_bot_id(group.numeric());
-        });
+        {}, [](Command& cmd, const goby::middleware::Group& group)
+        { cmd.set_bot_id(group.numeric()); });
 
     if (!command_fragments.empty())
     {

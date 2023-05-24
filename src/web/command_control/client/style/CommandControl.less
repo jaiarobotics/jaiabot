@@ -38,6 +38,10 @@
 @goal-settings: 11;
 @map-layers: 11;
 
+// Fonts
+@global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+"Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -50,8 +54,7 @@ body {
   background: @overlay-background;
   font-size: 16pt;
   margin: 0;
-  font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: @global-font-family !important;
 }
 *,
 *::before,
@@ -63,7 +66,8 @@ input,
 button,
 select,
 optgroup,
-textarea {
+textarea,
+td {
   margin: 0;
   padding: 0;
   border-width: 1px;
@@ -83,6 +87,16 @@ textarea {
   width: 100 vw;
   height: 100 vh;
   overflow: hidden;
+
+  // Needed to override default mui font settings
+  p,
+  button,
+  div,
+  label {
+    font-family: inherit;
+    letter-spacing: 0;
+    line-height: 1;
+  }
 
   .button-jcc {
     display: inline-block;
@@ -473,6 +487,10 @@ textarea {
     .layer-switcher-fold {
       padding: 16px;
       background-color: @cc-accordian-color;
+    }
+
+    .layer-switcher-fold label {
+      font-size: 1.08rem;
     }
 
     .layer-switcher-fold > button {
@@ -1204,7 +1222,7 @@ div.hoverable:hover {
 .LoadMissionPanel .title {
   padding: 5pt;
 
-  font-size: medium;
+  font-size: 1.25rem;
 
   color: @cc-text-color;
 }
@@ -1219,9 +1237,7 @@ div.hoverable:hover {
 
 .LoadMissionPanel .row {
   padding: 5pt;
-
-  font-size: small;
-
+  font-size: 1rem;
   background-color: @cc-background-color;
   color: @cc-text-color;
 }
