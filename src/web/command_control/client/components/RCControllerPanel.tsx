@@ -3,12 +3,11 @@ import {JaiaAPI} from '../../common/JaiaAPI'
 import { Joystick, JoystickShape } from 'react-joystick-component'
 import { Engineering } from './shared/JAIAProtobuf'
 import { PortalBotStatus } from './PortalStatus'
-import Box from '@mui/material/Box';
-import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
+import OutlinedInput from '@mui/material/OutlinedInput';
 import Gamepad from 'react-gamepad';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 interface Props {
 	api: JaiaAPI,
@@ -43,7 +42,7 @@ export default class RCControllerPanel extends React.Component {
 			isJoyStickStart: false,
 			throttleDirection: '',
 			rudderDirection: '',
-			controlType: "Manual Single",
+			controlType: "Manual Dual",
 			botStateShow: /^IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL.+$/,
 			panelHeight: "0px",
 			rcMode: false
@@ -63,214 +62,275 @@ export default class RCControllerPanel extends React.Component {
 		// This means our max backward throttle would be 10 or 0.5 m/s.
 		let limitBackwardThrottle = 0.1;
 
-		if (self.state.botStateShow.test(self.props.bot.mission_state)
-			&& self.props.weAreInControl()) {
-			self.state.panelHeight = "30vh"
+		if (self.state.botStateShow.test(self.props.bot.mission_state) && self.props.weAreInControl()) {
+			self.state.panelHeight = ""
 			self.state.rcMode = true;
 		} else {
 			self.state.panelHeight = "0px"
 			self.state.rcMode = false;
 		}
 
-		if(!self.state.rcMode) {
+		if (!self.state.rcMode) {
 			self.props.clearInterval();
 		}
 
+		const theme = createTheme({
+			components: {
+			  MuiOutlinedInput: {
+				styleOverrides: {
+				  root: {
+					"&:hover .MuiOutlinedInput-notchedOutline": {
+					  borderColor: "white",
+					},
+					"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+					  borderColor: "white",
+					},
+				  },
+				  notchedOutline: {
+					borderColor: "white",
+					padding: "0px",
+				  },
+				},
+			  },
+			},
+		  });
+
 		// Create the Select Object
-        let selectControlType =
-            <Box sx={{ minWidth: 120 }}>
-                <FormControl fullWidth>
-                <InputLabel id="control-type-select-label">Control</InputLabel>
-                    <Select
-                        labelId="control-type-select-label"
-                        id="control-type-select"
-                        value={self.state.controlType}
-                        label="Assign"
-                        onChange={self.controlChange}
-                    >
-						<MenuItem key={1} value={"Manual Single"}>Manual Single</MenuItem>
-						<MenuItem key={2} value={"Manual Dual"}>Manual Dual</MenuItem>
-						{/*<MenuItem key={3} value={"Heading Dual"}>Heading Dual</MenuItem>*/}
-                    </Select>
-                </FormControl>
-            </Box>
+        let selectControlType = (
+			<div className="rc-dropdown">
+				<div>Control:</div>
+				<ThemeProvider theme={theme}>
+					<Select
+						labelId="control-type-select-label"
+						id="control-type-select"
+						value={self.state.controlType}
+						label="Assign"
+						onChange={self.controlChange}
+						sx={{ color: 'white', fontSize: '1.25rem' }}
+						input={
+							<OutlinedInput
+								notched
+								sx={{
+									"&.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+									borderColor: "red"
+									},
+									"&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+									borderColor: "blue"
+									},
+									"&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+									borderColor: "green"
+									}
+								}}
+							/>
+						}
+					>
+						<MenuItem key={1} value={"Manual Dual"}>Manual Dual</MenuItem>
+						<MenuItem key={2} value={"Manual Single"}>Manual Single</MenuItem>
+					</Select>
+				</ThemeProvider>
+			</div>
+		)
 
-		let controller = null;
+		let leftController = null;
+		let rightController = null;
+		let soleController = null;
 
-		if(self.state.controlType == "Manual Dual") {
-			controller = 
-				<React.Fragment>
-					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', left: '14vw' }}>
-						<Joystick
-							baseColor="white" 
-							stickColor="black"
-							controlPlaneShape={JoystickShape.AxisY}
-							size={100}
-							throttle={100}
-							start={(e) => {
-								if(!self.props.weHaveInterval()) {
-									self.props.createInterval();
-								}
-							}}
-							move={(e) => { 
-								self.state.throttleDirection = e.direction.toString();
+		leftController = (
+			<div className="controller">
+				<Joystick
+					baseColor="white" 
+					stickColor="black"
+					controlPlaneShape={JoystickShape.AxisY}
+					size={100}
+					throttle={100}
+					start={(e) => {
+						if(!self.props.weHaveInterval()) {
+							self.props.createInterval();
+						}
+					}}
+					move={(e) => { 
+						self.state.throttleDirection = e.direction.toString();
 
-								if(e.direction.toString() == "FORWARD") {
-									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
-								} else if(e.direction.toString() == "BACKWARD")
-								{
-									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitBackwardThrottle;
-								}
-							}}
-							stop={(e) => { 
-								self.props.remoteControlValues.pid_control.throttle = 0;
-								self.state.throttleDirection = "";
-							}}
-						/>
-					</div>
-				
-					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', right: '10vw' }}>
-						<Joystick
-							baseColor="white" 
-							stickColor="black"
-							controlPlaneShape={JoystickShape.AxisX}
-							size={100}
-							throttle={100}
-							start={(e) => {
-								if(!self.props.weHaveInterval()) {
-									self.props.createInterval();
-								}
-							}}
-							move={(e) => { 
-								let rudder_adjust_value = this.adjustThrottleResponse(e.x);
+						if(e.direction.toString() == "FORWARD") {
+							self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
+						} else if(e.direction.toString() == "BACKWARD")
+						{
+							self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitBackwardThrottle;
+						}
+					}}
+					stop={(e) => { 
+						self.props.remoteControlValues.pid_control.throttle = 0;
+						self.state.throttleDirection = "";
+					}}
+				/>
+			</div>
+		)
 
-								self.state.rudderDirection = e.direction.toString();
-								self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
-							}}
-							stop={(e) => {
-								self.props.remoteControlValues.pid_control.rudder = 0; 
-								self.state.rudderDirection = "";
-							}}
-						/>
-					</div>
-				</React.Fragment>
-		} else if(self.state.controlType == "Manual Single") {
-			controller = 
-					<div style={{ zIndex: 100, position: 'absolute', top: '7vh', left: '14vw' }}>
-						<Joystick
-							baseColor="white" 
-							stickColor="black"
-							size={100}
-							throttle={100}
-							start={(e) => {
-								if(!self.props.weHaveInterval()) {
-									self.props.createInterval();
-								}
-							}}
-							move={(e) => { 
-								let rudder_adjust_value = this.adjustThrottleResponse(e.x);
+		rightController = (
+			<div className={`controller ${this.state.controlType === "Manual Single" ? "hide-controller" : ""}`}>
+				<Joystick
+					baseColor="white" 
+					stickColor="black"
+					controlPlaneShape={JoystickShape.AxisX}
+					size={100}
+					throttle={100}
+					start={(e) => {
+						if(!self.props.weHaveInterval()) {
+							self.props.createInterval();
+						}
+					}}
+					move={(e) => { 
+						let rudder_adjust_value = this.adjustThrottleResponse(e.x);
 
-								if(e.y >= 0) {
-									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
-									self.state.throttleDirection = "FORWARD";
-								} else if(e.y < 0) {
-									self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitBackwardThrottle;
-									self.state.throttleDirection = "BACKWARD";
-								}
+						self.state.rudderDirection = e.direction.toString();
+						self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+					}}
+					stop={(e) => {
+						self.props.remoteControlValues.pid_control.rudder = 0; 
+						self.state.rudderDirection = "";
+					}}
+				/>
+			</div>
+		)
 
-								self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+		soleController = (
+			<div className="controller">
+				<Joystick
+					baseColor="white" 
+					stickColor="black"
+					size={100}
+					throttle={100}
+					start={(e) => {
+						if(!self.props.weHaveInterval()) {
+							self.props.createInterval();
+						}
+					}}
+					move={(e) => { 
+						let rudder_adjust_value = this.adjustThrottleResponse(e.x);
 
-								if(e.x >= 0) {
-									self.state.rudderDirection = "RIGHT";
-								} else if(e.x < 0) {
-									self.state.rudderDirection = "LEFT";
-								}
-							}}
-							stop={(e) => { 
-								self.clearRemoteControlValues();
-							}}
-						/>
-					</div>
-		}
+						if(e.y >= 0) {
+							self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitForwardThrottle;
+							self.state.throttleDirection = "FORWARD";
+						} else if(e.y < 0) {
+							self.props.remoteControlValues.pid_control.throttle = (e.y * 100) * limitBackwardThrottle;
+							self.state.throttleDirection = "BACKWARD";
+						}
+
+						self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+
+						if(e.x >= 0) {
+							self.state.rudderDirection = "RIGHT";
+						} else if(e.x < 0) {
+							self.state.rudderDirection = "LEFT";
+						}
+					}}
+					stop={(e) => { 
+						self.clearRemoteControlValues();
+					}}
+				/>
+			</div>
+		)
 
 		return (
-			<React.Fragment>
-				<div id="remoteControlPanel"
-					style={{height: self.state.panelHeight}}
-				>
-					<div className="panel" >
-						<b>Remote Control Panel: Bot {self.props.bot.bot_id}</b><br />						
-					</div>
-					<div style={{ zIndex: 100, position: 'absolute', top: '4vh', left: '42vw' }}>
-						<div className="panel" >
-							{selectControlType}
+			<div id="remoteControlPanelContainer" style={{height: this.state.panelHeight}}>
+				
+				<div className="rc-heading">Remote Control Panel: Bot {self.props.bot.bot_id}</div>
+
+				<div className="stick-container">
+
+					{this.state.controlType === 'Manual Dual' ? leftController : soleController}
+
+					<div className="rc-labels-container">
+						{selectControlType}
+						<div className="rc-info-container" >
+							<div>Throttle Direction:</div>
+							<div className="rc-data">{self.state.throttleDirection}</div>
+							<div>Throttle:</div>
+							<div className="rc-data">{self.props.remoteControlValues.pid_control.throttle.toFixed(0)}</div>
+						</div>
+						<div className="rc-info-container">
+							<div>Rudder Direction:</div>
+							<div className="rc-data">{self.state.rudderDirection}</div>	
+							<div>Rudder:</div>					
+							<div className="rc-data">{self.props.remoteControlValues.pid_control.rudder.toFixed(0)}</div>
 						</div>
 					</div>
-					<div id="sticks">
-						<div style={{ zIndex: 100, position: 'absolute', top: '13vh', left: '42vw', width: '350px' }}>
-							<div className="panel" >
-								<b>Throttle Direction: {self.state.throttleDirection}</b>
-								<br />
-								<b>Throttle: {self.props.remoteControlValues.pid_control.throttle.toFixed(0)}</b>						
-							</div>
-						</div>
-						<div style={{ zIndex: 100, position: 'absolute', top: '20vh', left: '42vw', width: '350px' }}>
-							<div className="panel" >
-								<b>Rudder Direction: {self.state.rudderDirection}</b>
-								<br />
-								<b>Rudder: {self.props.remoteControlValues.pid_control.rudder.toFixed(0)}</b>						
-							</div>
-						</div>
-						{controller}
-						<Gamepad
-							deadZone={0.2}
-							onConnect={() => {
-								console.log("connected");
-							}}
-							onAxisChange={(axisName: string, value: number, previousValue: number) => {
-								if(!self.props.weHaveInterval() && self.state.rcMode) {
-									self.props.createInterval();
-								}
 
-								let rudder_adjust_value = this.adjustThrottleResponse(value);
+					{rightController}
 
-								if(self.state.controlType == "Manual Single") {
-									
-									if(axisName == "LeftStickX") {
-										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
-									} 
-									
-									if(axisName == "LeftStickY") {	
-										if(value >= 0) {
-											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
-										} else if(value < 0) {
-											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
-										}
+					<Gamepad
+						deadZone={0.2}
+						onConnect={() => {
+							console.log("connected");
+						}}
+						onAxisChange={(axisName: string, value: number, previousValue: number) => {
+							if(!self.props.weHaveInterval() && self.state.rcMode) {
+								self.props.createInterval();
+							}
+
+							let rudder_adjust_value = this.adjustThrottleResponse(value);
+
+							if(self.state.controlType == "Manual Single") {
+								
+								if(axisName == "LeftStickX") {
+									self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									if(value > 0) {
+										self.state.rudderDirection = "RIGHT";
+									} else if(value < 0) {
+										self.state.rudderDirection = "LEFT";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.rudder = 0;
+										self.state.rudderDirection = "";
 									}
-								} else if(self.state.controlType == "Manual Dual") {
-									if(axisName == "LeftStickY") {
-										if(value >= 0) {
-											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
-										} else if(value < 0) {
-											self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
-										}
-									}
-
-									if(axisName == "RightStickX") {
-										self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+								} 
+								
+								if(axisName == "LeftStickY") {	
+									if(value > 0) {
+										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										self.state.throttleDirection = "FORWARD";
+									} else if(value < 0) {
+										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										self.state.throttleDirection = "BACKWARD";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.throttle = 0;
+										self.state.throttleDirection = "";
 									}
 								}
-								// Handle joystick movements
-								console.log(axisName, value);
-							}}
-						>
-							<React.Fragment />
-						</Gamepad>
-					</div>
+							} else if(self.state.controlType == "Manual Dual") {
+								if(axisName == "LeftStickY") {
+									if(value > 0) {
+										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitForwardThrottle;
+										self.state.throttleDirection = "FORWARD";
+									} else if(value < 0) {
+										self.props.remoteControlValues.pid_control.throttle = (value * 100) * limitBackwardThrottle;
+										self.state.throttleDirection = "BACKWARD";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.throttle = 0;
+										self.state.throttleDirection = "";
+									}
+								}
+
+								if(axisName == "RightStickX") {
+									self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value;
+									if(value > 0) {
+										self.state.rudderDirection = "RIGHT";
+									} else if(value < 0) {
+										self.state.rudderDirection = "LEFT";
+									} else if(value == 0) {
+										self.props.remoteControlValues.pid_control.rudder = 0;
+										self.state.rudderDirection = "";
+									}
+								}
+							}
+						}}
+					>
+						<React.Fragment />
+					</Gamepad>
 				</div>
-			</React.Fragment>
+			</div>
 		);
     }
+
 	controlChange = (event: SelectChangeEvent) => {
 		this.state.controlType = event.target.value;
 	};
@@ -292,5 +352,4 @@ export default class RCControllerPanel extends React.Component {
 
 		return rudder_adjust_value;
 	}
-
 }
