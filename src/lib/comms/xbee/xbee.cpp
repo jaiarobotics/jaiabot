@@ -77,8 +77,16 @@ jaiabot::comms::XBeeDevice::XBeeDevice()
 
 void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int baud_rate,
                                          const std::string& _my_node_id, const uint16_t network_id,
-                                         const std::string& xbee_info_location)
+                                         const std::string& xbee_info_location,
+                                         const bool& use_encryption,
+                                         const std::string& encryption_password)
 {
+    std::string enable_encryption = "0";
+    if (use_encryption)
+    {
+        enable_encryption = "1";
+    }
+
     my_node_id = _my_node_id;
     my_xbee_info_location_ = xbee_info_location;
     glog_group = "xbee id" + my_node_id;
@@ -156,6 +164,37 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         assert_ok();
     }
 
+    {
+        /*
+        Sets the network security key value that the device uses for encryption and decryption.
+        This command is write-only. If you attempt to read KY, the device returns an OK status.
+        Set this command parameter the same on all devices in a network.
+        The value passes in as hex characters when you set it from AT command mode, and as binary bytes
+        when you set it in API mode.
+        128 bit value (16 bytes)
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group)
+                                  << "Encryption Password: " << encryption_password << endl;
+        cmd << "ATKY=" + encryption_password << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        Enables or disables Advanced Encryption Standard (AES) encryption.
+        Set this command parameter the same on all devices in a network.
+        1 = encryption enabled
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Enable Encryption: " << enable_encryption
+                                  << endl;
+        cmd << "ATEE=" + enable_encryption << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
     exit_command_mode();
 
     get_maximum_payload_size();
@@ -204,6 +243,17 @@ void jaiabot::comms::XBeeDevice::shutdown()
         // Set modem API options to 0 (not explicit frames)
         stringstream cmd;
         cmd << "ATAO=0\r";
+        write(cmd.str());
+        assert_ok();
+    }
+    {
+        /*
+        Enables or disables Advanced Encryption Standard (AES) encryption.
+        Set this command parameter the same on all devices in a network.
+        1 = encryption enabled
+        */
+        stringstream cmd;
+        cmd << "ATEE=0" << '\r';
         write(cmd.str());
         assert_ok();
     }
@@ -577,7 +627,7 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
         xbeeFile.open(my_xbee_info_location_);
         xbeeFile << "  node_id: '" << my_node_id << "'\n";
         xbeeFile << "  serial_number: "
-                 << "'0x00" << std::hex << my_serial_number << "'";
+                 << "'0x00" << std::hex << my_serial_number << "'\n";
         xbeeFile.close();
     }
 

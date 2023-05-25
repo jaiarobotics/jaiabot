@@ -53,7 +53,7 @@ export let GlobalSettings = {
 
     constantHeadingParameters: Load<ConstantHeadingParameters>('constantHeadingParameters', {
         constant_heading: 0,
-        constant_heading_speed: 1,
+        constant_heading_speed: 3,
         constant_heading_time: 10
     }),
 
