@@ -1105,6 +1105,17 @@ td {
     background: none;
   }
 
+  button.select-on-map {
+    display: block;
+    margin: 10pt auto 10pt auto;
+    background-color: lightgreen;
+
+  }
+
+  button.select-on-map.clicking-map {
+    background-color: yellow;
+  }
+
   .GoalSettingsPanel {
     background-color: @cc-background-color;
     color: @cc-text-color;
@@ -1114,17 +1125,6 @@ td {
     padding: 8pt;
     border-radius: 8pt;
   
-    button.select-on-map {
-      display: block;
-      margin: 10pt auto 10pt auto;
-      background-color: lightgreen;
-
-    }
-
-    button.select-on-map.clicking-map {
-      background-color: yellow;
-    }
-
     .ConstantHeadingParametersTable {
       td {
         padding: 5pt;
@@ -1148,11 +1148,14 @@ td {
   background-color: @cc-background-color;
   color: @cc-text-color;
   position: absolute;
+  bottom: 0;
   right: @command-button-size + (2 * @command-button-padding);
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
   z-index: @mission-settings;
+  overflow: visible;
+  overflow-y: auto;
 }
 
 #mission-type {
