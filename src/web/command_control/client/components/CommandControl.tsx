@@ -331,7 +331,7 @@ export default class CommandControl extends React.Component {
 
 	oldPodStatus?: PodStatus
 
-	missionEndTask: MissionTask = {type: TaskType.STATION_KEEP}
+	missionEndTask: MissionTask = {type: TaskType.NONE}
 	missionPlans?: CommandList = null
 
 	constructor(props: Props) {
@@ -3293,7 +3293,7 @@ export default class CommandControl extends React.Component {
 					"lat": rallyStartPoints[key][1],
 					"lon": rallyStartPoints[key][0]
 				},
-				"task": {"type": TaskType.STATION_KEEP}
+				"task": {"type": TaskType.NONE}
 			}
 			bot_goals.push(bot_goal)
 
@@ -3324,7 +3324,7 @@ export default class CommandControl extends React.Component {
 					"lon": rallyFinishPoints[key][0]
 				},
 				"task": {
-					type: TaskType.STATION_KEEP
+					type: TaskType.NONE
 				}
 			}
 			bot_goals.push(bot_goal)

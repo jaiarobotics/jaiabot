@@ -1148,11 +1148,14 @@ td {
   background-color: @cc-background-color;
   color: @cc-text-color;
   position: absolute;
+  bottom: 0;
   right: @command-button-size + (2 * @command-button-padding);
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
   z-index: @mission-settings;
+  overflow: visible;
+  overflow-y: auto;
 }
 
 #mission-type {
