@@ -1,3 +1,8 @@
+import { Map } from "ol"
+import { Coordinate } from "ol/coordinate"
+import { toLonLat } from "ol/proj"
+import { GeographicCoordinate } from "./shared/JAIAProtobuf"
+
 let abs = Math.abs
 
 export function formatLatitude(lat: number, prec=5) {
@@ -31,7 +36,7 @@ export function formatAttitudeAngle(angle_deg: number, prec=2) {
     return angle_deg.toFixed(prec) + '°'
 }
 
-export function deepcopy(aObject: any) {
+export function deepcopy<T>(aObject: T): T {
     // Prevent undefined objects
     // if (!aObject) return aObject;
   
@@ -75,4 +80,20 @@ export function downloadToFile(data: string, mimeType: string, fileName: string)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+}
+
+// getGeographicCoordinate()
+//   Returns the GeographicCoordinate of an OpenLayers coordinate on a map
+//   
+//   Inputs
+//     coordinate: coordinate to convert
+//     map: an OpenLayers map that the coordinates refer to
+export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
+    const lonLat = toLonLat(coordinate, map.getView().getProjection())
+    const geographicCoordinate: GeographicCoordinate = {
+        lon: lonLat[0],
+        lat: lonLat[1]
+    }
+
+    return geographicCoordinate
 }

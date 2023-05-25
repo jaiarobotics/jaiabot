@@ -1,6 +1,13 @@
 #!/bin/bash
 
-echo Installing npm dendencies to: $1
+# Install dependencies to current directory, or command-line parameter
+if [[ -z $1 ]]; then
+    NODE_MODULES_DIR="./"
+else
+    NODE_MODULES_DIR=$1
+fi
 
-cd $1
+echo Installing npm dendencies to: $NODE_MODULES_DIR
+
+cd $NODE_MODULES_DIR
 npm install --no-audit
