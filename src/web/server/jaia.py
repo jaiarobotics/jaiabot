@@ -234,7 +234,7 @@ class Interface:
             return {'status': 'ok'}
         
         else:
-            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"tansit_speed": 2.5, "station_keep_speed": 0.5}'}
+            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"transit_speed": 2.5, "station_keep_speed": 0.5}'}
 
     def post_command_for_hub(self, command_for_hub_dict, clientId):
         command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
