@@ -120,8 +120,9 @@ import { gebcoLayer } from './ChartLayers';
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { Goal, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent } from 'ol'
+import { fromLonLat } from 'ol/proj.js';
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
 import { PodStatus } from './PortalStatus'
@@ -274,7 +275,7 @@ export default class CommandControl extends React.Component {
 
 	oldPodStatus?: PodStatus
 
-	missionEndTask: MissionTask = {type: TaskType.STATION_KEEP}
+	missionEndTask: MissionTask = {type: TaskType.NONE}
 	missionPlans?: CommandList = null
 
 	interactions: Interactions
@@ -2398,6 +2399,7 @@ export default class CommandControl extends React.Component {
 
 		this.missionPlans = missionPlans
 	}
+
 
 	// Runs a mission
 	_runMission(bot_mission: Command) {

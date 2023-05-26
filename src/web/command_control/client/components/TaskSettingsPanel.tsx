@@ -288,7 +288,8 @@ export function TaskSettingsPanel(props: Props) {
 
     return (
         <div>
-            {title}<select name="GoalType" id="GoalType" onChange={onChangeTaskType} value={props.task?.type ?? "NONE"}>
+            {title}
+            <select name="GoalType" id="GoalType" onChange={onChangeTaskType} value={props.task?.type ?? "NONE"}>
                 <option value="NONE">None</option>
                 <option value="DIVE">Dive</option>
                 <option value="SURFACE_DRIFT">Surface Drift</option>
