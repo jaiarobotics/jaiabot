@@ -34,7 +34,7 @@ def getRootNode(h5_filename: str):
     def addDataset(name: str, dataset: h5py.Dataset):
         try:
             nbytes = dataset.nbytes
-        except:
+        except AttributeError:
             # This is a Group
             return
 
@@ -46,7 +46,7 @@ def getRootNode(h5_filename: str):
 
             try:
                 currentNode = currentNode.children[component]
-            except:
+            except KeyError:
                 currentNode.children[component] = SizeNode(component, nbytes, {})
                 currentNode = currentNode.children[component]
 
