@@ -45,8 +45,13 @@ def convert_taskpacket_files_to_kmz_files(path: str):
         if os.path.islink(taskpacket_file_path):
             continue
 
-        taskpackets = taskpacketfile.read_file(taskpacket_file_path)
         kmz_file_path = taskpacket_file_path.replace('.taskpacket', '.kmz')
+        taskpacket_mtime = os.path.getmtime(taskpacket_file_path)
+
+        if file_is_newer(kmz_file_path, taskpacket_mtime):
+            continue
+
+        taskpackets = taskpacketfile.read_file(taskpacket_file_path)
         kmz.write_file(taskpackets, kmz_file_path)
 
 while True:
