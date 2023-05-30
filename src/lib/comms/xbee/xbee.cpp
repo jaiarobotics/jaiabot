@@ -79,7 +79,8 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
                                          const std::string& _my_node_id, const uint16_t network_id,
                                          const std::string& xbee_info_location,
                                          const bool& use_encryption,
-                                         const std::string& encryption_password)
+                                         const std::string& encryption_password,
+                                         const uint8_t rf_datarate)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -191,6 +192,25 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         glog.is_verbose() && glog << group(glog_group) << "Enable Encryption: " << enable_encryption
                                   << endl;
         cmd << "ATEE=" + enable_encryption << '\r';
+        write(cmd.str());
+        assert_ok();
+    }
+
+    {
+        /*
+        This command applies to the XBee/XBee-PRO SX RF Module.
+        Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data
+        over-the-air).
+        Synchronous sleep is not supported when BR = 0. All devices on the network must have the same BR
+        value set in order to communicate. BR directly affects the range of the device. The higher the RF data
+        rate, the lower the receive sensitivity.
+        BR also affects the number of hopping patterns (HP) and the number of channels based on region
+        (0 - 2, default is 2)
+        */
+        stringstream cmd;
+        glog.is_verbose() && glog << group(glog_group) << "Set RF Datarate: " << rf_datarate
+                                  << endl;
+        cmd << "ATBR=" + std::to_string(rf_datarate) << '\r';
         write(cmd.str());
         assert_ok();
     }

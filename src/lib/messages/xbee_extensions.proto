@@ -72,6 +72,11 @@ message Config
         (goby.field).description =
             "Location to write a file with last hub id received from to initialize to that hub on restart."
     ];
+
+    optional uint32 rf_datarate = 10 [
+        default = 0,
+        (goby.field).description =
+             "The higher the RF datarate, the lower the receive sensitivity. (0 - 2 range)"];
 }
 
 extend goby.acomms.protobuf.DriverConfig
