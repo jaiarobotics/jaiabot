@@ -207,8 +207,8 @@ enum Mode {
 	NONE = '',
 	MISSION_PLANNING = 'missionPlanning',
 	SET_HOME = 'setHome',
-	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
-	SET_RALLY_POINT_RED = "setRallyPointRed"
+	SET_RALLY_POINT_GREEN = 'setRallyPointGreen',
+	SET_RALLY_POINT_RED = 'setRallyPointRed'
 }
 
 interface HubOrBot {
@@ -221,7 +221,8 @@ export interface RunInterface {
 	name: string,
 	assigned: number,
 	editing: boolean,
-	command: Command
+	command: Command,
+	isActive: boolean
 }
 
 export interface MissionInterface {
@@ -424,7 +425,6 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Measure tool
-
 		this.measureLayer = new OlVectorLayer({
 			source: new OlVectorSource(),
 			style: new OlStyle({
@@ -1634,6 +1634,16 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.timerID)
 	}
 
+	setActiveRun(runCommand: Command, isRunActive: boolean,) {
+		const runs = this.state.runList.runs
+		for (const runIndex of Object.keys(runs)) {
+			const run = runs[runIndex]
+			if (run.assigned === runCommand.bot_id) {
+				run.isActive = isRunActive
+			}
+		}
+	}
+
 	getLiveLayerFromHubId(hub_id: number) {
 		const hubsLayerCollection = this.hubsLayerCollection
 		// eslint-disable-next-line no-plusplus
@@ -1852,16 +1862,16 @@ export default class CommandControl extends React.Component {
 		let allFeatures = []
 
 		for (let botId in bots) {
-			let bot = bots[botId]
-
-			const active_mission_plan = bot.active_mission_plan
-			if (active_mission_plan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, Number(botId), active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
+			const bot = bots[botId]
+			const activeMissionPlan = bot.active_mission_plan
+			if (activeMissionPlan) {
+				const isActiveRun = true
+				const features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), isActiveRun)
 				allFeatures.push(...features)
 			}
 		}
 
-		let source = this.activeMissionLayer.getSource()
+		const source = this.activeMissionLayer.getSource()
 		source.clear()
 		source.addFeatures(allFeatures)
 	}
@@ -2458,7 +2468,8 @@ export default class CommandControl extends React.Component {
 												this.weAreInControl.bind(this),
 												this.weHaveRemoteControlInterval.bind(this),
 												this.deleteSingleRun.bind(this),
-												this.detailsDefaultExpanded.bind(this));
+												this.detailsDefaultExpanded.bind(this),
+												this.setActiveRun.bind(this));
 				break;
 			default:
 				detailsBox = null;
@@ -2885,54 +2896,44 @@ export default class CommandControl extends React.Component {
 
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotIds().at(-1)
-
-		if (botId == null) {
-			return
-		}
+		if (!botId) { return }
 
 		this.changeMissions((missions) => {
 			let runs = missions?.runs;
 			let botsAssignedToRuns = missions?.botsAssignedToRuns;
 
-
-			if(!(botId in botsAssignedToRuns))
-			{
+			if (!(botId in botsAssignedToRuns)) {
 				missions = Missions.addRunWithWaypoints(botId, [], this.state.runList);
 			}
 
-			if(runs[botsAssignedToRuns[botId]].command == null)
-			{
+			if (!runs[botsAssignedToRuns[botId]].command) {
 				runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 			}
 
-			let runCommand = runs[botsAssignedToRuns[botId]].command;
+			let run = runs[botsAssignedToRuns[botId]]
 
-			if(runCommand.plan.goal.length < MAX_GOALS)
-			{
-				runCommand.plan.goal.push({location: location})	
+			if (run.isActive) {
+				warning('Cannot add a new waypoint to an active run')
+				return
 			}
-			else
-			{
-				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
+
+			if (run.command.plan.goal.length < MAX_GOALS ) {
+				run.command.plan.goal.push({location: location})	
+			} else {
+				warning(`Adding this goal exceeds the limit of ${MAX_GOALS}!`);
 			}
 		}, null)
-
 	}
 
 	setGrid2Style(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-		return Styles.goalIcon(taskType, false, false)
+		return Styles.goalIcon(taskType, false, false, false)
 	}
 
 	setGridStyle(self: CommandControl, taskType: TaskType) {
-		return Styles.goalIcon(taskType, false, false)
+		return Styles.goalIcon(taskType, false, false, false)
 	}
 
 	surveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-			// console.log('WHAT IS GOING ON!!!!');
-			// console.log(feature);
-			// console.log(self.state);
-			// console.log(self.homeLocation);
-
 		let iStyle = this.setGridStyle(self, taskType)
 
 			let lineStyle = new OlStyle({
@@ -3123,19 +3124,18 @@ export default class CommandControl extends React.Component {
 
 		for (let key in missions?.runs) {
 			// Different style for the waypoint marker, depending on if the associated bot is selected or not
-			let lineStyle
-			let run = missions?.runs[key];
-			let assignedBot = run.assigned
-			let selected = this.isBotSelected(assignedBot)
-			let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal;
+			const run = missions?.runs[key];
+			const assignedBot = run.assigned
+			const activeGoalIndex = this.podStatus?.bots?.[assignedBot]?.active_goal;
+			const isSelected = this.isBotSelected(assignedBot)
+			const isActiveRun = run.isActive
 
 			// Add our goals
 			const plan = run.command?.plan
-			if (plan != null) {
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
+			if (plan) {
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, isActiveRun)
 				features.push(...missionFeatures)
-				if(selected)
-				{
+				if (isSelected) {
 					selectedFeatures.push(...missionFeatures);
 				}
 			}
@@ -3364,26 +3364,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Runs a set of missions, and updates the GUI
-	runMissions(missions: MissionInterface, add_runs: CommandList) {
+	runMissions(missions: MissionInterface, addRuns: CommandList) {
 		if (!this.takeControl()) return
 
-		let botIds: number[] = [];
-		let botIdsInIdleState: number[] = [];
-
-		let runs = missions.runs;
+		const botIds: number[] = [];
+		const botIdsInIdleState: number[] = [];
+		const runs = missions.runs;
 
 		Object.keys(runs).map(key => {
 			let botIndex = runs[key].assigned;
-			if(botIndex != -1)
-			{
+			if (botIndex !== -1) {
 				let botState = this.podStatus.bots[botIndex]?.mission_state;
-				if(botState == "PRE_DEPLOYMENT__IDLE"
-					|| botState == "POST_DEPLOYMENT__IDLE")
-				{
+				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
-				}
-				else
-				{
+				} else {
 					botIds.push(botIndex);
 				}
 			}
@@ -3392,27 +3386,23 @@ export default class CommandControl extends React.Component {
 		botIds.sort()
 		botIdsInIdleState.sort();
 
-		if(botIdsInIdleState.length != 0)
-		{
+		if (botIdsInIdleState.length !== 0) {
 			warning("Please activate bots: " + botIdsInIdleState);
-		} 
-		else
-		{
+		} else {
 			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-				if(add_runs)
-				{
+				if (addRuns) {
 					this.deleteAllRunsInMission(missions);
-					Object.keys(add_runs).map(key => {
-						Missions.addRunWithCommand(Number(key), add_runs[Number(key)], missions);
+					Object.keys(addRuns).map(key => {
+						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
 					});
 				}
 
 				Object.keys(runs).map(key => {
 					let botIndex = runs[key].assigned;
-					if(botIndex != -1)
-					{
-						let runCommand = runs[key].command;
+					if (botIndex !== -1) {
+						const runCommand = runs[key].command
 						this._runMission(runCommand)
+						this.setActiveRun(runCommand, true)
 					}
 				})
 				success("Submitted missions")
@@ -3574,13 +3564,23 @@ export default class CommandControl extends React.Component {
 		});
 
 		if (feature) {
+			// Clicked on a waypoint
+			const botId = feature.get('botId')
+			
+			// Check to make sure the waypoint is not part of an active run
+			const runs = this.state.runList.runs
+			for (const runIndex of Object.keys(runs)) {
+				const run = runs[runIndex]
+				if (run.assigned === botId && run.isActive) {
+					warning('Cannot add a task to an active run')
+					return
+				}
+			}
 
-			// Clicked on a goal / waypoint
-			let goal = feature.get('goal')
-			let botId = feature.get('botId')
-			let goalIndex = feature.get('goalIndex')
+			const goal = feature.get('goal')
+			const goalIndex = feature.get('goalIndex')
 
-			if (goal != null) {
+			if (goal) {
 				previous_mission_history = deepcopy(this.state.runList);
 				this.setState({
 					goalBeingEdited: goal, 

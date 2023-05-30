@@ -199,29 +199,30 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
     }
 }
 
-function issueRunCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+function issueRunCommand(api: JaiaAPI, botRun: Command, botId: number, setActiveRun: (botRun: Command, isActiveRun: boolean) => void) {
 
     if (!takeControlFunction()) return;
 
-    if (bot_mission) {
-        if (confirm("Are you sure you'd like to play this run for bot: " + bot_id + "?")) {
+    if (botRun) {
+        if (confirm("Are you sure you'd like to play this run for bot: " + botId + "?")) {
             // Set the speed values
-            bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
+            botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
            
             console.debug('playing run:')
-            console.debug(bot_mission)
+            console.debug(botRun)
 
-            info('Submitted for bot: ' + bot_id);
+            info('Submitted for bot: ' + botId);
 
-            api.postCommand(bot_mission).then(response => {
+            setActiveRun(botRun, true)
+
+            api.postCommand(botRun).then(response => {
                 if (response.message) {
                     error(response.message)
                 }
             })
         }   
-    } else
-    {
-        warning('No run is available for bot: ' + bot_id);
+    } else {
+        warning('No run is available for bot: ' + botId);
     }
 }
 
@@ -381,7 +382,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
         createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
         weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void,
-        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
+        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void, setActiveRun: (botRun: Command, isRunActive: boolean) => void) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -489,7 +490,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </Button>
                         <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.play, mission_state).isDisabled} 
-                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
+                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id, setActiveRun) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
                         <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}

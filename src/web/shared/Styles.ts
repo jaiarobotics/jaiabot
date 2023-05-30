@@ -33,6 +33,7 @@ const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
+const editColor = 'yellow'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -202,19 +203,26 @@ export function goalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, isActiveRun: boolean) {
     const src = goalSrc(taskType)
+    let nonActiveGoalColor: string
+
+    if (!isActiveRun) {
+        nonActiveGoalColor = isSelected ? editColor : defaultColor
+    } else {
+        nonActiveGoalColor = isSelected ? selectedColor : defaultColor
+    }
 
     return new Icon({
         src: src,
-        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
+        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
         anchor: [0.5, 1],
     })
 }
 
 
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected)
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, isActiveRun: boolean) {
+    let icon = goalIcon(goal.task?.type, isActive, isSelected, isActiveRun)
 
     return new Style({
         image: icon,
@@ -314,8 +322,17 @@ export function driftTask(drift: DriftTask) {
 
 // The mission path linestring
 export function missionPath(feature: Feature) {
-    const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
-    const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
+    const isSelected = feature.get('isSelected')
+    const isActiveRun = feature.get('isActiveRun')
+    let pathColor: string
+
+    if (!isActiveRun) {
+        pathColor = isSelected ? editColor : defaultPathColor
+    } else {
+        pathColor = isSelected ? selectedColor : defaultPathColor
+    }
+
+    const lineDash = feature.get('isConstantHeading') ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
 

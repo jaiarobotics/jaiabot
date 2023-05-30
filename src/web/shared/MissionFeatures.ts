@@ -9,7 +9,7 @@ import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, isActiveRun: boolean) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -26,20 +26,17 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         const location = goal.location
 
         // Increment by one to account for 0 index
-        const goal_index_start_at_one = goal_index + 1;
+        const goalIndexStartAtOne = goal_index + 1;
 
-        if (location == null) {
+        if (!location) {
             continue
         }
 
-        {
-            // OpenLayers
-            const activeRun = plan.hasOwnProperty('speeds') ? true : false
-            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
-                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
-            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
-            features.push(markerFeature)
-        }
+        // OpenLayers
+        const markerFeature = createMarker(map, {title: 'Goal ' + goalIndexStartAtOne, lon: location.lon, lat: location.lat,
+            style: Styles.goal(goalIndexStartAtOne, goal, isActiveRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, isActiveRun)})
+        markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goalIndexStartAtOne})
+        features.push(markerFeature)
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
         let task = goal.task
@@ -84,7 +81,8 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
             ]
 
             const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
-            missionPathFeature.set("isSelected", isSelected)
+            missionPathFeature.set('isSelected', isSelected)
+            missionPathFeature.set('isActiveRun', isActiveRun)
             missionPathFeature.setStyle(Styles.missionPath)
             features.push(missionPathFeature)
         }
