@@ -113,7 +113,6 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
             command: Missions.commandWithWaypoints(botId, locations),
             isActive: false
         }
@@ -138,7 +137,6 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
             command: commandWithGoals(botId, goals),
             isActive: false
         }
@@ -165,7 +163,6 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
             command: command,
             isActive: false
         }

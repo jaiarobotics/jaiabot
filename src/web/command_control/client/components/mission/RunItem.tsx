@@ -160,15 +160,7 @@ export default class RunItem extends React.Component {
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
-            </Button>    
-
-        // Create Edit Toggle
-        let edit =
-            <Switch
-                checked={self.state.editing}
-                onChange={self.editUpdate.bind(self)}
-                inputProps={{ 'aria-label': 'controlled' }}
-            />
+            </Button>
 
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
@@ -208,7 +200,6 @@ export default class RunItem extends React.Component {
                     <span className="runItemInfo">
                         {runAssignSelect}
                         {duplicateRunButton}
-                        {/*edit*/}
                         {runDeleteButton}
                     </span>
                     <div>
@@ -217,10 +208,6 @@ export default class RunItem extends React.Component {
                 </AccordionDetails>
             </Accordion>
         );
-    }
-
-    editUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
-        this.props.run.editing = event.target.checked;
     }
 
     assignChange = (event: SelectChangeEvent) => {

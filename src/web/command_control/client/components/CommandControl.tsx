@@ -220,7 +220,6 @@ export interface RunInterface {
 	id: string,
 	name: string,
 	assigned: number,
-	editing: boolean,
 	command: Command,
 	isActive: boolean
 }
