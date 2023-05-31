@@ -1878,19 +1878,16 @@ export default class CommandControl extends React.Component {
 
 	updateBotsLayer() {
 		const { selectedBotsFeatureCollection } = this.state;
-		let bots = this.podStatus.bots
-
 		const { trackingTarget } = this.state;
-
+		const bots = this.podStatus.bots
 		const botExtents: {[key: number]: number[]} = {};
 
 		// This needs to be synchronized somehow?
-		for (let botId in bots) {
-			let bot = bots[botId]
+		for (let index of Object.keys(bots)) {
+			let bot = bots[index]
 
 			// ID
-			const bot_id = bot.bot_id
-
+			const botId = bot.bot_id
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
@@ -1900,22 +1897,22 @@ export default class CommandControl extends React.Component {
 			const botTimestamp = new Date(null)
 			botTimestamp.setSeconds(bot.time / 1e6)
 
-			const botLayer = this.getLiveLayerFromBotId(bot_id);
+			const botLayer = this.getLiveLayerFromBotId(botId);
 
 			const botFeature = createBotFeature({
 				map: map,
 				botId: Number(botId),
 				lonLat: [botLongitude, botLatitude],
 				heading: botHeading,
-				courseOverGround: bot.attitude?.course_over_ground
+				courseOverGround: bot.attitude?.course_over_ground,
+				isBotRunActive: this.isBotRunActive(botId)
 			})
 
-			botFeature.setId(bot_id);
+			botFeature.setId(botId);
 
 			const coordinate = equirectangular_to_mercator([botLongitude, botLatitude]);
 
 			// Fault Levels
-
 			let faultLevel = 0
 
 			switch(bot.health_state) {
@@ -1930,12 +1927,9 @@ export default class CommandControl extends React.Component {
 					break;
 			}
 
-
 			// Sounds for disconnect / reconnect
 			const disconnectThreshold = 30 * 1e6 // microseconds
-
 			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
-
 			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
 
 			if (oldPortalStatusAge != null) {
@@ -1971,7 +1965,7 @@ export default class CommandControl extends React.Component {
 			const zoomExtentWidth = 0.001; // Degrees
 
 			// An array of numbers representing an extent: [minx, miny, maxx, maxy].
-			botExtents[bot_id] = [
+			botExtents[botId] = [
 				botLongitude - zoomExtentWidth / 2,
 				botLatitude - zoomExtentWidth / 2,
 				botLongitude + zoomExtentWidth / 2,
@@ -1987,7 +1981,7 @@ export default class CommandControl extends React.Component {
 			if (selectedBotsFeatureCollection.getLength() !== 0) {
 				for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
 					const feature = selectedBotsFeatureCollection.item(i);
-					if (feature.getId() === bot_id) {
+					if (feature.getId() === botId) {
 						botFeature.set('selected', true);
 						selectedBotsFeatureCollection.setAt(i, botFeature);
 						break;
@@ -1995,7 +1989,7 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
-			if (trackingTarget === bot_id) {
+			if (trackingTarget === botId) {
 				botFeature.set('tracked', true);
 			}
 
@@ -2004,7 +1998,7 @@ export default class CommandControl extends React.Component {
 			botLayer.getSource().clear();
 			botLayer.getSource().addFeature(botFeature);
 
-			if (trackingTarget === bot_id) {
+			if (trackingTarget === botId) {
 				this.centerOn(botFeature.getGeometry().getCoordinates());
 			}
 
@@ -2037,6 +2031,16 @@ export default class CommandControl extends React.Component {
 		});
 		// map.render();
 		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
+	}
+
+	isBotRunActive(botId: number) {
+		for (let runIndex of Object.keys(this.state.runList.runs)) {
+			const run = this.state.runList.runs[runIndex]
+			if (run.assigned === botId && run.isActive) {
+				return true
+			}
+		}
+		return false
 	}
 
 	// POLL THE BOTS

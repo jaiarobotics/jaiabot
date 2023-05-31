@@ -9,7 +9,8 @@ interface Properties {
     botId: number
     lonLat: number[]
     heading: number
-    courseOverGround: number
+    courseOverGround: number,
+    isBotRunActive: boolean
 }
 
 

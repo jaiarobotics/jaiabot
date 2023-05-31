@@ -28,12 +28,12 @@ export const bottomStrikePng = require('./bottomStrike.png') as string
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'
-const activeGoalColor = 'chartreuse'
-const selectedColor = 'turquoise'
+const activeGoalColor = '#39FF14'
+const selectedColor = '#4ADE80'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
-const editColor = 'yellow'
+const editColor = '#FDE68A'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -69,16 +69,18 @@ export function botMarker(feature: Feature): Style[] {
 
     const textOffsetRadius = 11
 
-    var color = defaultColor
+    let color: string
 
     if (feature.get('isDisconnected')) {
         color = disconnectedColor
-    }
-    else if (feature.get('remoteControlled')) {
+    } else if (feature.get('remoteControlled')) {
         color = remoteControlledColor
-    }
-    else if (feature.get('selected')) {
+    } else if (feature.get('selected') && feature.get('isBotRunActive')) {
         color = selectedColor
+    } else if (feature.get('selected') && !feature.get('isBotRunActive')) {
+        color = editColor
+    } else {
+        color = defaultColor
     }
 
     const text = String(feature.get('botId'))
