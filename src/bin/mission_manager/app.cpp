@@ -393,6 +393,9 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     // set environmental variable for dataoffload
     setenv("jaia_dataoffload_hub_id", std::to_string(hub_info.hub_id()).c_str(), 1 /*overwrite*/);
 
+    // Set the hub id for machine (Competing ways to do dataoffload)
+    machine_->set_hub_id(hub_info.hub_id());
+
     glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
                               << " (modem id " << hub_info.modem_id() << ")" << std::endl;
 

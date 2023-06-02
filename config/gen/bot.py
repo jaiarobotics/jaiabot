@@ -204,7 +204,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      log_dir=log_file_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      subscribe_to_hub_on_start=subscribe_to_hub_on_start,
-                                     total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks))
+                                     total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
+                                     fleet_index=fleet_index))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,

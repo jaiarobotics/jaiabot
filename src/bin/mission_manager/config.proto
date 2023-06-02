@@ -19,6 +19,7 @@ message MissionManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
+    required int32 fleet_index = 9;
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
 

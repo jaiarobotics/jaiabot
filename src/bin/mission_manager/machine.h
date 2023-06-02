@@ -479,6 +479,15 @@ struct MissionManagerStateMachine
     }
     const std::string& data_offload_command() { return data_offload_command_; }
 
+    void set_hub_id(const int32_t& hub_id) { hub_id_ = hub_id; }
+    const int32_t& hub_id() { return hub_id_; }
+
+    void set_data_offload_exclude(const std::string& data_offload_exclude)
+    {
+        data_offload_exclude_ = data_offload_exclude;
+    }
+    const std::string& data_offload_exclude() { return data_offload_exclude_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -511,6 +520,8 @@ struct MissionManagerStateMachine
     std::string task_packet_file_name_{""};
     std::string data_time_string_{""};
     std::string data_offload_command_{cfg().data_offload_command()};
+    int32_t hub_id_{0};
+    std::string data_offload_exclude_{""};
 };
 
 struct PreDeployment

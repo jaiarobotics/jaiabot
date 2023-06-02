@@ -123,7 +123,9 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
 
             glog.is_debug1() && glog << "Create a task packet file and only offload that file"
                                      << "to hub (ignore sending goby files)" << std::endl;
-            this->machine().set_data_offload_command(cfg().data_offload_command() + " '*.goby'");
+
+            // Extra exclusions for rsync
+            this->machine().set_data_offload_exclude(" '*.goby'");
         }
     }
 }
@@ -1116,6 +1118,11 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
         // to log them
         this->machine().set_create_task_packet_file(true);
     }
+
+    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
+    this->machine().set_data_offload_command(
+        cfg().data_offload_command() + " 10.23." + std::to_string(cfg().fleet_index()) +
+        std::to_string(this->machine().hub_id()) + this->machine().data_offload_exclude());
 
     // currently we do not do any data processing on the bot
     post_event(EvDataProcessingComplete());
