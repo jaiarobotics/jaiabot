@@ -1,7 +1,6 @@
 $app_block
 $interprocess_block
 
-fleet_index: $fleet_index
 bot_id: $bot_id
 
 command_sub_cfg {

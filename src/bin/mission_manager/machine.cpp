@@ -1119,11 +1119,6 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
         this->machine().set_create_task_packet_file(true);
     }
 
-    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
-    this->machine().set_data_offload_command(
-        cfg().data_offload_command() + " 10.23." + std::to_string(cfg().fleet_index()) +
-        std::to_string(this->machine().hub_id()) + this->machine().data_offload_exclude());
-
     // currently we do not do any data processing on the bot
     post_event(EvDataProcessingComplete());
 }
@@ -1132,7 +1127,9 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
     : StateBase(c)
 {
-    this->set_offload_command(this->machine().data_offload_command());
+    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
+    //this->set_offload_command(cfg().data_offload_command() + " 10.23." + std::to_string(cfg().fleet_id()) +
+    //    std::to_string(this->machine().hub_id()) + this->machine().data_offload_exclude() + " 2>&1");
 
     auto offload_func = [this]() {
         glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
