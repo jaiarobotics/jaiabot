@@ -20,7 +20,7 @@ echo "Hub ip: ${hub_ip}"
 
 additional_exclude_files=""
 if [ -n "$3" ]; then
-  additional_exclude_files="$2"
+  additional_exclude_files="$3"
 fi
 
 echo "Extra files to exclude: ${additional_exclude_files}"

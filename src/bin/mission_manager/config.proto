@@ -19,7 +19,7 @@ message MissionManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    optional int32 fleet_id = 9;
+    required int32 fleet_id = 9;
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
 
@@ -129,6 +129,8 @@ message MissionManager
     // Set to true if we want to not send goby files to hub during offload,
     // We instead would send a taskpacket file
     optional bool data_offload_only_task_packet_file = 62 [default = false];
+
+    optional int32 hub_start_ip = 63 [default = 10];
 
     enum EngineeringTestMode
     {
