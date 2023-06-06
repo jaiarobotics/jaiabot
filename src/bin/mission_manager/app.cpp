@@ -809,6 +809,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     initial_fragment.plan().recovery();
             }
 
+            if (initial_fragment.plan().has_repeats())
+            {
+                out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
+            }
+
             // Loop through fragments and all the waypoints in each
             for (const auto fragment : track_command_fragments.at(input_command_fragment.time()))
             {

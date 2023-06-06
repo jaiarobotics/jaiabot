@@ -38,6 +38,10 @@
 @goal-settings: 11;
 @map-layers: 11;
 
+// Fonts
+@global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+"Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
 /******** CSS JaiaBot Command & Control ********************/
 
 .bgcolor(@col) {
@@ -50,8 +54,7 @@ body {
   background: @overlay-background;
   font-size: 16pt;
   margin: 0;
-  font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: @global-font-family !important;
 }
 *,
 *::before,
@@ -63,7 +66,8 @@ input,
 button,
 select,
 optgroup,
-textarea {
+textarea,
+td {
   margin: 0;
   padding: 0;
   border-width: 1px;
@@ -83,6 +87,16 @@ textarea {
   width: 100 vw;
   height: 100 vh;
   overflow: hidden;
+
+  // Needed to override default mui font settings
+  p,
+  button,
+  div,
+  label {
+    font-family: inherit;
+    letter-spacing: 0;
+    line-height: 1;
+  }
 
   .button-jcc {
     display: inline-block;
@@ -476,10 +490,7 @@ textarea {
     }
 
     .layer-switcher-fold label {
-      font-family: Roboto, Helvetica, Arial, sans-serif;
-      font-size: 1.075rem;
-      font-weight: 400;
-      letter-spacing: 0.00938em;
+      font-size: 1.08rem;
     }
 
     .layer-switcher-fold > button {
@@ -938,34 +949,76 @@ textarea {
 
   /******** Remote Control Panel *****************************/
 
-  #remoteControlPanel {
+  #remoteControlPanelContainer {
     position: absolute;
-    height: 0;
     bottom: 0;
-    z-index: @column-right;
+    width: calc(100% - ((@command-button-size + (@command-button-margin * 2)) * 1));
     background-color: @overlay-background;
-    width: 100%;
-    right: @command-button-size + (2 * @command-button-padding);
+    z-index: 1;
+  }
 
-    div.panel {
-      margin: @layout-margin / 2 2px;
-      padding: @layout-margin / 2 2px;
-      background-color: @cc-background-color;
-      color: @cc-text-color;
-      border-radius: @panel-corner-radius;
-      overflow: visible;
-      position: relative;
-      text-align: center;
-      font-weight: bold;
+  .rc-heading {
+    background-color: white;
+    text-align: center;
+    padding: 4px;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
 
-      > h2,
-      > a > h2 {
-        margin: 0;
-        padding: 3px 5px;
-        color: @cc-text-color;
-      }
+  .stick-container {
+    display: flex;
+    justify-content: space-around;
+    margin: 1.5rem;
+  }
 
+  .rc-labels-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: white;
+    font-size: 1.25rem;
+  }
+
+  .rc-info-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    border: 1px solid white;
+    border-radius: 4px;
+    padding: 8px;
+  }
+
+  .rc-data {
+    justify-self: center;
+    font-weight: 700;
+  }
+
+  .rc-dropdown {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0 0 8px;
+
+    .MuiSelect-select {
+      display: flex;
+      align-items: center;
+      height: 46.25px;
+      padding: 8px;
     }
+
+    .MuiSvgIcon-root {
+      color: white
+    }
+  }
+
+  .controller {
+    display: flex;
+    align-items: center;
+  }
+
+  .hide-controller {
+    visibility: hidden;
   }
 
   /******** CSS System Health Information ********************/
@@ -1052,6 +1105,17 @@ textarea {
     background: none;
   }
 
+  button.select-on-map {
+    display: block;
+    margin: 10pt auto 10pt auto;
+    background-color: lightgreen;
+
+  }
+
+  button.select-on-map.clicking-map {
+    background-color: yellow;
+  }
+
   .GoalSettingsPanel {
     background-color: @cc-background-color;
     color: @cc-text-color;
@@ -1061,17 +1125,6 @@ textarea {
     padding: 8pt;
     border-radius: 8pt;
   
-    button.select-on-map {
-      display: block;
-      margin: 10pt auto 10pt auto;
-      background-color: lightgreen;
-
-    }
-
-    button.select-on-map.clicking-map {
-      background-color: yellow;
-    }
-
     .ConstantHeadingParametersTable {
       td {
         padding: 5pt;
@@ -1095,11 +1148,14 @@ textarea {
   background-color: @cc-background-color;
   color: @cc-text-color;
   position: absolute;
+  bottom: 0;
   right: @command-button-size + (2 * @command-button-padding);
   top: @command-button-size + (2 * @command-button-padding);
   padding: 8pt;
   border-radius: 8pt;
   z-index: @mission-settings;
+  overflow: visible;
+  overflow-y: auto;
 }
 
 #mission-type {
@@ -1211,7 +1267,7 @@ div.hoverable:hover {
 .LoadMissionPanel .title {
   padding: 5pt;
 
-  font-size: medium;
+  font-size: 1.25rem;
 
   color: @cc-text-color;
 }
@@ -1226,9 +1282,7 @@ div.hoverable:hover {
 
 .LoadMissionPanel .row {
   padding: 5pt;
-
-  font-size: small;
-
+  font-size: 1rem;
   background-color: @cc-background-color;
   color: @cc-text-color;
 }

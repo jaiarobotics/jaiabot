@@ -104,6 +104,11 @@ def postEngineeringPanel():
     jaia_interface.post_ep_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
 
+@app.route('/jaia/single-waypoint-mission', methods=['POST'])
+def postSingleWaypointMission():
+    jaia_interface.post_single_waypoint_mission(request.json, clientId=request.headers['clientId'])
+    return JSONResponse({"status": "ok"})
+
 ######## Map tiles
 
 @app.route('/tiles/index', methods=['GET'])

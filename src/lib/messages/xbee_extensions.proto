@@ -19,8 +19,10 @@ message Peer
                               "Bot ID number for this peer (if peer is bot)"];
     }
 
-    required uint64 serial_number = 2 [(goby.field).description =
-                              "XBee serial number for this peer (determined by querying ATSH and ATSL)"];
+    required uint64 serial_number = 2 [
+        (goby.field).description =
+            "XBee serial number for this peer (determined by querying ATSH and ATSL)"
+    ];
 }
 
 message Config
@@ -46,13 +48,12 @@ message Config
     optional string xbee_info_location = 5 [
         default = "/etc/jaiabot/xbee_info.pb.cfg",
         (goby.field).description =
-            "Location to write a file with serial number and node id to be used by jaiabot_metadata"
+            "Location to write a file with serial number and node id to be used by jaiabot_metadata."
     ];
 
-    optional int32 hub_id = 6 [ 
-        (goby.field).description =
-             "If this node is a hub, set its hub_id here."
-    ];
+    optional int32 hub_id = 6
+        [(goby.field).description =
+             "If this node is a hub, set its hub_id here."];
 
     optional bool use_xbee_encryption = 7 [
         default = false,
@@ -64,6 +65,12 @@ message Config
         default = "",
         (goby.field).description =
             "This is used for the encryption password. Password is a 128 bit value (16 bytes)"
+    ];
+
+    optional string hub_info_location = 9 [
+        default = "/etc/jaiabot/hub_info.pb.cfg",
+        (goby.field).description =
+            "Location to write a file with last hub id received from to initialize to that hub on restart."
     ];
 }
 
