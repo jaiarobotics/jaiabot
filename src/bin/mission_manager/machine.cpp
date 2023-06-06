@@ -1128,7 +1128,7 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
     : StateBase(c)
 {
     // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
-    this->set_offload_command(cfg().data_offload_command() + " 10.23." +
+    this->set_offload_command(cfg().data_offload_command() + " " + cfg().class_b_network() + "." +
                               std::to_string(cfg().fleet_id()) + "." +
                               std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
                               this->machine().data_offload_exclude() + " 2>&1");

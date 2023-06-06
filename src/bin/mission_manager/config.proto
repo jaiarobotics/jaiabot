@@ -132,6 +132,8 @@ message MissionManager
 
     optional int32 hub_start_ip = 63 [default = 10];
 
+    optional string class_b_network = 64 [default = "10.23"];
+
     enum EngineeringTestMode
     {
         ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE = 1;
