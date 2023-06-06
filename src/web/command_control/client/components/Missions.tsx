@@ -5,6 +5,7 @@
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 
+const MAX_RUNS: number = 99
 
 const hardcoded_goals: Goal[][] = [
     [
@@ -98,9 +99,19 @@ export class Missions {
         return commandWithGoals(botId, goals)
     }
 
+    static isValidRunNumber(mission: MissionInterface) {
+        const isRunNumberLessThanMaxRuns = Object.keys(mission.runs).length < MAX_RUNS
+        if (!isRunNumberLessThanMaxRuns) {
+            alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
+        }
+        return isRunNumberLessThanMaxRuns
+    }
+
     static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -125,6 +136,8 @@ export class Missions {
     static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -149,6 +162,8 @@ export class Missions {
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
