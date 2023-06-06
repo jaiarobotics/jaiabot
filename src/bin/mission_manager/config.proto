@@ -130,9 +130,9 @@ message MissionManager
     // We instead would send a taskpacket file
     optional bool data_offload_only_task_packet_file = 62 [default = false];
 
-    optional int32 hub_start_ip = 63 [default = 10];
+    required int32 hub_start_ip = 63 [default = 10];
 
-    optional string class_b_network = 64 [default = "10.23"];
+    required string class_b_network = 64 [default = "10.23"];
 
     enum EngineeringTestMode
     {
