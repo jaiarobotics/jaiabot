@@ -168,7 +168,8 @@ const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500;
 
-const MAX_GOALS = 30;
+const MAX_RUNS: number = 99;
+const MAX_GOALS = 15;
 
 // Store Previous Mission History
 let previousMissionHistory: any;
@@ -2879,13 +2880,16 @@ export default class CommandControl extends React.Component {
 			let runs = missions?.runs;
 			let botsAssignedToRuns = missions?.botsAssignedToRuns;
 
-
 			if(!(botId in botsAssignedToRuns))
 			{
 				missions = Missions.addRunWithWaypoints(botId, [], this.state.runList);
 			}
 
-			if(runs[botsAssignedToRuns[botId]].command == null)
+			// Attempted to create a run greater than MAX_RUNS
+			// The check for MAX_RUNS occurs in Missions.tsx
+			if (!missions) { return }
+
+			if(runs[botsAssignedToRuns[botId]]?.command == null)
 			{
 				runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 			}
@@ -3055,6 +3059,8 @@ export default class CommandControl extends React.Component {
 		let surveyPolygonColor = '#051d61'
 		let surveyExclusionsColor = '#c40a0a'
 
+		let zIndex = 2
+
 		let rallyPointRedStyle = new OlStyle({
 			image: new OlIcon({
 				src: rallyPointRedIcon,
@@ -3117,12 +3123,14 @@ export default class CommandControl extends React.Component {
 			// Add our goals
 			const plan = run.command?.plan
 			if (plan != null) {
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected)
+				// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
+				const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, selected, runNumber, zIndex)
 				features.push(...missionFeatures)
-				if(selected)
-				{
+				if (selected) {
 					selectedFeatures.push(...missionFeatures);
 				}
+				zIndex += 1
 			}
 		}
 

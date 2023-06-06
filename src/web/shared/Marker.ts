@@ -53,3 +53,19 @@ export function createMarker(map: Map, parameters: MarkerParameters) {
 
     return markerFeature
 }
+
+export function createFlagMarker(map: Map, parameters: MarkerParameters) {
+    const lonLat = [parameters.lon, parameters.lat]
+    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+
+    const flagFeature = new Feature({
+        name: 'Run Flag',
+        geometry: new Point(coordinate)
+    })
+
+    if (parameters.style != null) {
+        flagFeature.setStyle(parameters.style)
+    }
+
+    return flagFeature
+}
