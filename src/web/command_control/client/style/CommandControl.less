@@ -28,6 +28,8 @@
 @warning-color: #d5d506;
 @error-color: #cc0505;
 
+@rc-active-color: mediumpurple;
+
 @overlay-background: rgba(0, 0, 0, 0.7);
 
 // Z-Index
@@ -121,10 +123,12 @@ td {
       // Going for low contrast here
       color: if(luminance(@inactive-color) < 45, black, white);
     }
+
     &.selected,
     &.active {
       .bgcolor(@selected-color);
     }
+
     &.buttonCheckbox,
     &.not-a-button {
       background: none;
@@ -135,18 +139,22 @@ td {
         border: none;
       }
     }
-    &.active-rc {
-      .bgcolor(@controlled-color);
-    }
+
     &.active-track {
       .bgcolor(@tracked-color);
     }
+
+    &.rc-active {
+      .bgcolor(@rc-active-color);
+    }
+
     img {
       display: block;
       width: @command-button-size - (2 * @command-button-padding);
       height: auto;
       font-size: @command-button-size - (2 * @command-button-padding);
     }
+    
     svg {
       display: block;
       width: @command-button-size - (2 * @command-button-padding);
@@ -256,7 +264,8 @@ td {
     color: @cc-details-text-color;
     padding: 8pt;
     border-radius: 8pt;
-    max-height: 80vh;
+    // 282.54 is the height of the rc control panel
+    max-height: calc(100vh - 282.54px);
     max-width: 25vw;
 
     display: flex;

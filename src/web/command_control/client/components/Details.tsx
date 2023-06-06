@@ -54,6 +54,9 @@ let commands: {[key: string]: CommandInfo} = {
         description: 'go to the Next Task for',
         statesAvailable: [
             /^IN_MISSION__.+$/
+        ],
+        statesNotAvailable: [
+            /REMOTE_CONTROL/
         ]
     },
     goHome: {
@@ -225,37 +228,41 @@ function issueRunCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
     }
 }
 
-function issueRCCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number, isRCModeActive: (botId: number) => boolean) {
 
-    if (!takeControlFunction()) return;
+    if (!takeControlFunction() || !botMission) return;
 
-    if (bot_mission) {
-        if (confirm("Are you sure you'd like to use remote control mode for: " + bot_id + "?")) {
+    const isRCActive = isRCModeActive(botId)
+
+    if (!isRCActive) {
+        if (confirm("Are you sure you'd like to use remote control mode for Bot: " + botId + "?")) {
 
             console.debug('Running Remote Control:')
-            console.debug(bot_mission)
+            console.debug(botMission)
 
-            info('Submitted request for RC Mode for: ' + bot_id);
+            info('Submitted request for RC Mode for: ' + botId);
 
-            api.postCommand(bot_mission).then(response => {
+            api.postCommand(botMission).then(response => {
                 if (response.message) {
                     error(response.message)
                 }
             })
         }   
+    } else {
+        issueCommand(api, botId, commands.stop)
     }
 }
 
 function runRCMode(bot: PortalBotStatus) {
-    let bot_id = bot.bot_id;
-    if (bot_id == null) {
+    const bot_id = bot.bot_id;
+    if (!bot_id) {
         warning("No bots selected")
         return null
     }
 
-    var datum_location = bot?.location 
+    let datum_location = bot?.location 
 
-    if (datum_location == null) {
+    if (!datum_location) {
         const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
         if (!confirm(warning_string)) {
@@ -283,37 +290,32 @@ function runMission(bot_id: number, mission: MissionInterface) {
 }
 
 // Check mission state for disabling button
-function disableButton(command: CommandInfo, mission_state: MissionState)
-{
-    let disable = false;
+function disableButton(command: CommandInfo, mission_state: MissionState) {
+    let disable = false
     let statesAvailable = command.statesAvailable
     let statesNotAvailable = command.statesNotAvailable
-    if (statesAvailable != null
-            && statesAvailable != undefined) {
-        disable = true;
+    
+    if (statesAvailable) {
+        disable = true
         for (let stateAvailable of statesAvailable) {
-            if (stateAvailable.test(mission_state))
-            {
-                disable = false; 
-                break;
+            if (stateAvailable.test(mission_state)) {
+                disable = false;
+                break
             }
         }
     }
 
-    if (statesNotAvailable != null
-        || statesNotAvailable != undefined) {
+    if (statesNotAvailable) {
         for (let stateNotAvailable of statesNotAvailable) {
-            if (stateNotAvailable.test(mission_state))
-            {
-                disable = true;
-                break;
+            if (stateNotAvailable.test(mission_state)) {
+                disable = true
+                break
             }
         }
     }
 
     let disableButton = {class: '', isDisabled: disable};
-    if(disable)
-    {
+    if (disable) {
         disableButton.class = "inactive";
     }
     return disableButton;
@@ -328,6 +330,13 @@ function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
         disableButton.isDisabled = true      
     }
     return disableButton
+}
+
+function toggleRCModeButton(missionState: MissionState) {
+    if (missionState.includes('REMOTE_CONTROL')) {
+        return true
+    }
+    return false
 }
 
 // Get the table row for the health of the vehicle
@@ -379,9 +388,8 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
-        createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
-        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void,
-        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
+        deleteSingleMission: () => void, detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+        isRCModeActive: (botId: number) => boolean) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -465,15 +473,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
 
     return (
         <React.Fragment>
-            <RCControllerPanel 
-                api={api} 
-                bot={bot}  
-                createInterval={createRemoteControlInterval} 
-                clearInterval={clearRemoteControlInterval} 
-                remoteControlValues={remoteControlValues}
-                weAreInControl={weAreInControl}
-                weHaveInterval={weHaveRemoteControlInterval}
-            />
             <div id='botDetailsBox'>
                 <div className="botDetailsHeading">
                     <div className='HorizontalFlexbox'>
@@ -570,9 +569,9 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
                             </Button>
 
-                            {<Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                            {<Button className={`${disableButton(commands.rcMode, mission_state).class} ${toggleRCModeButton(mission_state) ? 'rc-active' : 'rc-inactive' }  button-jcc`} 
                                     disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
-                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
+                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive) }}>
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
