@@ -123,7 +123,9 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
 
             glog.is_debug1() && glog << "Create a task packet file and only offload that file"
                                      << "to hub (ignore sending goby files)" << std::endl;
-            this->machine().set_data_offload_command(cfg().data_offload_command() + " '*.goby'");
+
+            // Extra exclusions for rsync
+            this->machine().set_data_offload_exclude(" '*.goby'");
         }
     }
 }
@@ -1125,7 +1127,11 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
     : StateBase(c)
 {
-    this->set_offload_command(this->machine().data_offload_command());
+    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
+    this->set_offload_command(cfg().data_offload_command() + " " + cfg().class_b_network() + "." +
+                              std::to_string(cfg().fleet_id()) + "." +
+                              std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
+                              this->machine().data_offload_exclude() + " 2>&1");
 
     auto offload_func = [this]() {
         glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
