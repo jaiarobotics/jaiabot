@@ -65,7 +65,13 @@ class Health : public ApplicationBase
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    void restart_services() { system("systemctl restart jaiabot"); }
+    void restart_services()
+    {
+        // Restart jaiabot applications
+        system("systemctl restart jaiabot");
+        // Restart apache which is hosting JCC
+        system("systemctl restart apache2");
+    }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
