@@ -398,6 +398,7 @@ export default class CommandControl extends React.Component {
 				imu: false,
 				sensor: false,
 				power: false,
+				links: false
 			},
 			mapLayerActive: false, 
 			engineeringPanelActive: false,
@@ -2526,9 +2527,9 @@ export default class CommandControl extends React.Component {
 					bots={bots} 
 					hubs={hubs} 
 					getSelectedBotId={this.selectedBotId.bind(this)}
-					getSelectedHubId={this.selectedHubId.bind(this)}
 					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} />
+					control={this.takeControl.bind(this)} 
+				/>
 
 				<MissionControllerPanel 
 					api={this.api} 
