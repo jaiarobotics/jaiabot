@@ -2518,7 +2518,14 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+				<EngineeringPanel 
+					api={this.api} 
+					bots={bots} 
+					hubs={hubs} 
+					getSelectedBotId={this.selectedBotId.bind(this)}
+					getSelectedHubId={this.selectedHubId.bind(this)}
+					getFleetId={this.getFleetId.bind(this)}
+					control={this.takeControl.bind(this)} />
 
 				<MissionControllerPanel 
 					api={this.api} 
@@ -3490,6 +3497,10 @@ export default class CommandControl extends React.Component {
 
 	selectedHubId() {
 		return this.selectedHubIds().at(-1)
+	}
+
+	getFleetId() {
+		return this.podStatus.hubs[0].fleet_id
 	}
 
 	selectedBotIds() {

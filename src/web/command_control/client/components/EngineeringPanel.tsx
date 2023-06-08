@@ -16,6 +16,8 @@ interface Props {
 	bots: {[key: number]: PortalBotStatus}
 	hubs: {[key: number]: PortalHubStatus}
 	getSelectedBotId: () => number
+	getSelectedHubId: () => number
+	getFleetId: () => number
 	control: () => boolean
 }
 
@@ -65,7 +67,14 @@ export default class EngineeringPanel extends React.Component {
 							JaiaBot Engineer & Debug
 						</Button>
 						{/* 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py */}
-						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("http://localhost:40010")}>
+						<Button className="button-jcc engineering-panel-btn" onClick={() => {
+							// Default hubId set to 0 in the case where a hub is not selected
+							const hubId = 10 + (this.props.getSelectedHubId() ? this.props.getSelectedHubId() : 0)
+							const fleetId = this.props.getFleetId()
+							const url = `10.23.${fleetId}.${hubId}:40010`
+							window.open(url)
+						}}
+						>
 							JaiaBot Data Vision
 						</Button>
 					</div>
