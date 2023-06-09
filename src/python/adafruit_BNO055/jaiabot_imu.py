@@ -138,7 +138,8 @@ class IMU:
         imu_data = IMUData()
 
         euler = quaternion_to_euler_angles(self.sensor.quaternion)
-        imu_data.euler_angles.heading = euler.heading
+        # There is a 90 degree offset, even after reading and implementing the docs as well as we could, sorry! -- Ed & Jason
+        imu_data.euler_angles.heading = euler.heading + 90.0
         imu_data.euler_angles.pitch = euler.pitch
         imu_data.euler_angles.roll = euler.roll
 
@@ -195,40 +196,13 @@ def do_port_loop():
 
         # Respond to anyone who sends us a packet
         try:
-            data = imu.getDataDict()
-            log.debug(data)
+            imu_data = imu.getData()
+            log.debug(imu_data)
         except Exception as e:
             log.error(e)
             continue
         
-        now = datetime.utcnow()
-       
-        if data['is_data_good'] == True:
-
-            # Use caluclated Euler angles from the quaternion
-            euler: Orientation = data['calculated_euler']
-            linear_acceleration = data['linear_acceleration']
-            gravity = data['gravity']
-            # 1 is calibrated, 0 is not
-            calibration_status = data['calibration_status']
-            # Did we roll over?
-            bot_rolled = int(abs(euler.roll) > 90)
-            # correct orientation since we have a 90 degree offset
-            corrected_orientation = euler.heading + 90
-
-            try:
-                line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
-                    (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-                    corrected_orientation, euler.pitch, euler.roll,
-                    linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
-                    gravity[0], gravity[2], gravity[1],
-                    calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],
-                    bot_rolled)
-                log.debug('Sent: ' + line)
-
-                sock.sendto(line.encode('utf8'), addr)
-            except TypeError as e:
-                log.error(e)
+        sock.sendto(imu_data.SerializeToString(), addr)
 
 
 def do_interactive_loop():
