@@ -1,8 +1,8 @@
-import Stroke from 'ol/style/Stroke';
-import { Fill, Icon, Style, Text} from 'ol/style';
-import { LineString, Point } from 'ol/geom';
-import {Feature} from 'ol'
-import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
+import Stroke from 'ol/style/Stroke'
+import { Fill, Icon, Style, Text } from 'ol/style'
+import { LineString, Point } from 'ol/geom'
+import { Feature } from 'ol'
+import { Goal, DivePacket, TaskType } from './JAIAProtobuf'
 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
@@ -25,7 +25,6 @@ const satellite = require('./satellite.svg') as string
 export const arrowHeadPng = require('./arrowHead.png') as string
 export const bottomStrikePng = require('./bottomStrike.png') as string
 
-
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'
@@ -38,14 +37,14 @@ const remoteControlledColor = 'mediumpurple'
 export const startMarker = new Style({
     image: new Icon({
         src: start,
-        anchor: [1/16, 1]
+        anchor: [1 / 16, 1]
     })
 })
 
 export const endMarker = new Style({
     image: new Icon({
         src: end,
-        anchor: [1/16, 1]
+        anchor: [1 / 16, 1]
     })
 })
 
@@ -73,17 +72,15 @@ export function botMarker(feature: Feature): Style[] {
 
     if (feature.get('isDisconnected')) {
         color = disconnectedColor
-    }
-    else if (feature.get('remoteControlled')) {
+    } else if (feature.get('remoteControlled')) {
         color = remoteControlledColor
-    }
-    else if (feature.get('selected')) {
+    } else if (feature.get('selected')) {
         color = selectedColor
     }
 
     const text = String(feature.get('botId'))
 
-    var style = [ 
+    var style = [
         // Bot body marker
         new Style({
             image: new Icon({
@@ -133,9 +130,9 @@ export function hubMarker(feature: Feature): Style[] {
         color = selectedColor
     }
 
-    const text = "HUB"
+    const text = 'HUB'
 
-    var style = [ 
+    var style = [
         // Hub body marker
         new Style({
             image: new Icon({
@@ -174,7 +171,6 @@ export function courseOverGroundArrow(feature: Feature): Style {
     })
 }
 
-
 export function desiredHeadingArrow(feature: Feature): Style {
     const desiredHeading = feature.get('desiredHeading') * DEG
     const color = 'green'
@@ -192,12 +188,12 @@ export function desiredHeadingArrow(feature: Feature): Style {
 
 // Markers for the mission goals
 export function goalSrc(taskType: TaskType | null) {
-    const srcMap: {[key: string]: string} = {
-        'DIVE': taskDive,
-        'STATION_KEEP': taskStationKeep,
-        'SURFACE_DRIFT': taskDrift,
-        'CONSTANT_HEADING': taskConstantHeading,
-        'NONE': taskNone       
+    const srcMap: { [key: string]: string } = {
+        DIVE: taskDive,
+        STATION_KEEP: taskStationKeep,
+        SURFACE_DRIFT: taskDrift,
+        CONSTANT_HEADING: taskConstantHeading,
+        NONE: taskNone
     }
 
     return srcMap[taskType ?? 'NONE'] ?? taskNone
@@ -208,11 +204,10 @@ export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelecte
 
     return new Icon({
         src: src,
-        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
-        anchor: [0.5, 1],
+        color: isActive ? activeGoalColor : isSelected ? selectedColor : defaultColor,
+        anchor: [0.5, 1]
     })
 }
-
 
 export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number) {
     const src = runFlag
@@ -222,7 +217,14 @@ export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumb
         src: src,
         color: isSelected ? selectedColor : defaultColor,
         // Need a bigger flag for a 3-digit run number...this also causes new anchor values
-        anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
+        anchor:
+            runNumber > 99
+                ? isTask
+                    ? [0.21, 1.85]
+                    : [0.21, 1.55]
+                : isTask
+                ? [0.21, 1.92]
+                : [0.21, 1.62],
         scale: runNumber > 99 ? 1.075 : 1.0
     })
 }
@@ -238,7 +240,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: -15,
+            offsetY: -15
         }),
         zIndex: 2
     })
@@ -257,7 +259,8 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
                 color: 'black'
             }),
             // Text needs additional adjustments for 3-digit run numbers
-            offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
+            offsetY:
+                Number(runNumber) > 99 ? (isTask ? -78.875 : -62.125) : isTask ? -76.75 : -61.2175,
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
         zIndex: zIndex
@@ -266,13 +269,11 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
 
 // Markers for dives
 export function divePacket(dive: DivePacket) {
-
     // Depth text
     var text = dive.depth_achieved?.toFixed(1)
     if (text != null) {
         text = text + 'm'
-    }
-    else {
+    } else {
         text = ''
     }
 
@@ -295,33 +296,26 @@ export function divePacket(dive: DivePacket) {
     })
 }
 
+interface EstimatedDrift {
+    speed: number
+    heading: number
+}
+
+interface DriftTask {
+    estimated_drift: EstimatedDrift
+}
 
 interface EstimatedDrift {
     speed: number
     heading: number
 }
 
-
 interface DriftTask {
     estimated_drift: EstimatedDrift
 }
-
-
-
-interface EstimatedDrift {
-    speed: number
-    heading: number
-}
-
-
-interface DriftTask {
-    estimated_drift: EstimatedDrift
-}
-
 
 // Markers for surface drift tasks
 export function driftTask(drift: DriftTask) {
-
     // Icon color
     const color = '#D07103'
 
@@ -330,10 +324,10 @@ export function driftTask(drift: DriftTask) {
             src: driftTaskPacket,
             anchor: [0.5, 0.908],
             color: color,
-            scale: [1.0, drift.estimated_drift.speed / 0.20],
+            scale: [1.0, drift.estimated_drift.speed / 0.2],
             rotateWithView: true,
-            rotation: drift.estimated_drift.heading * Math.PI / 180.0,
-        }),
+            rotation: (drift.estimated_drift.heading * Math.PI) / 180.0
+        })
         // text: new Text({
         //     text: new String(text),
         //     font: '12pt sans-serif',
@@ -347,8 +341,8 @@ export function driftTask(drift: DriftTask) {
 
 // The mission path linestring
 export function missionPath(feature: Feature) {
-    const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
-    const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
+    const pathColor = feature.get('isSelected') ?? false ? selectedColor : defaultPathColor
+    const lineDash = feature.get('isConstantHeading') ?? false ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
 
@@ -370,10 +364,10 @@ export function missionPath(feature: Feature) {
     ]
 
     geometry.forEachSegment(function (start, end) {
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
+        const dx = end[0] - start[0]
+        const dy = end[1] - start[1]
         const midpoint = [start[0] + dx / 2, start[1] + dy / 2]
-        const rotation = Math.atan2(dy, dx);
+        const rotation = Math.atan2(dy, dx)
 
         // arrows
         styles.push(
@@ -384,12 +378,12 @@ export function missionPath(feature: Feature) {
                     anchor: [0.5, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
-                    color: pathColor,
+                    color: pathColor
                 }),
                 zIndex: 1
             })
-        );
-    });
+        )
+    })
 
     return styles
 }
@@ -415,9 +409,9 @@ export function driftArrow(feature: Feature) {
     ]
 
     geometry.forEachSegment(function (start, end) {
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
-        const rotation = Math.atan2(dy, dx);
+        const dx = end[0] - start[0]
+        const dy = end[1] - start[1]
+        const rotation = Math.atan2(dy, dx)
 
         // arrows
         styles.push(
@@ -428,12 +422,12 @@ export function driftArrow(feature: Feature) {
                     anchor: [0, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
-                    color: color,
+                    color: color
                 }),
                 zIndex: 1
             })
-        );
-    });
+        )
+    })
 
     return styles
 }

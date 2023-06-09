@@ -1,11 +1,10 @@
-import { HubStatus, BotStatus, MissionPlan, Engineering } from "./shared/JAIAProtobuf"
-
+import { HubStatus, BotStatus, MissionPlan, Engineering } from './shared/JAIAProtobuf'
 
 export interface PortalBotStatus extends BotStatus {
-	active_mission_plan?: MissionPlan,
-	portalStatusAge: number,
-	isDisconnected?: boolean,
-	engineering: Engineering
+    active_mission_plan?: MissionPlan
+    portalStatusAge: number
+    isDisconnected?: boolean
+    engineering: Engineering
 }
 
 export interface PortalHubStatus extends HubStatus {
@@ -13,7 +12,7 @@ export interface PortalHubStatus extends HubStatus {
 }
 
 export interface PodStatus {
-	hubs: {[key: string]: PortalHubStatus},
-	bots: {[key: string]: PortalBotStatus},
-	controllingClientId: string
+    hubs: { [key: string]: PortalHubStatus }
+    bots: { [key: string]: PortalBotStatus }
+    controllingClientId: string
 }

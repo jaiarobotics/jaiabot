@@ -4,14 +4,13 @@
 /* eslint-disable no-unused-vars */
 
 import React from 'react'
-import Button from '@mui/material/Button';
-import { Goal, GeographicCoordinate } from './shared/JAIAProtobuf';
+import Button from '@mui/material/Button'
+import { Goal, GeographicCoordinate } from './shared/JAIAProtobuf'
 import { deepcopy } from './Utilities'
-import { taskNone } from './shared/Styles';
-import { rhumbDistance, rhumbBearing } from '@turf/turf';
-import { TaskSettingsPanel } from './TaskSettingsPanel';
-import { Map } from 'ol';
-
+import { taskNone } from './shared/Styles'
+import { rhumbDistance, rhumbBearing } from '@turf/turf'
+import { TaskSettingsPanel } from './TaskSettingsPanel'
+import { Map } from 'ol'
 
 interface Props {
     key: string // When this changes, React will create a new component
@@ -23,9 +22,7 @@ interface Props {
     map: Map
 }
 
-
 export class GoalSettingsPanel extends React.Component {
-
     props: Props
     oldGoal: Goal
 
@@ -40,24 +37,32 @@ export class GoalSettingsPanel extends React.Component {
         const { botId, goalIndex, goal } = this.props
 
         return (
-        <div className="GoalSettingsPanel">
-            <div className='HorizontalFlexbox'>
-                <img src={taskNone} />
-                <div className="goalSettingsHeader">Goal {goalIndex}</div>
-                <div className="goalSettingsHeader">Bot {botId}</div>
-            </div>
-            <div>
-                <TaskSettingsPanel task={goal.task} map={this.props.map} location={goal.location} onChange={task => {
-                    goal.task = task
-                }} />
-
+            <div className='GoalSettingsPanel'>
                 <div className='HorizontalFlexbox'>
-                    <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
-                    <Button className="button-jcc" onClick={this.doneClicked.bind(this)}>Done</Button>
+                    <img src={taskNone} />
+                    <div className='goalSettingsHeader'>Goal {goalIndex}</div>
+                    <div className='goalSettingsHeader'>Bot {botId}</div>
                 </div>
+                <div>
+                    <TaskSettingsPanel
+                        task={goal.task}
+                        map={this.props.map}
+                        location={goal.location}
+                        onChange={(task) => {
+                            goal.task = task
+                        }}
+                    />
 
+                    <div className='HorizontalFlexbox'>
+                        <Button className='button-jcc' onClick={this.cancelClicked.bind(this)}>
+                            Cancel
+                        </Button>
+                        <Button className='button-jcc' onClick={this.doneClicked.bind(this)}>
+                            Done
+                        </Button>
+                    </div>
+                </div>
             </div>
-        </div>
         )
     }
 
@@ -80,5 +85,4 @@ export class GoalSettingsPanel extends React.Component {
 
         this.props.onClose?.()
     }
-
 }

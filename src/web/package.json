@@ -64,6 +64,7 @@
         "node": "^19.2.0",
         "npm": "^9.2.0",
         "plotly": "^1.0.6",
+        "prettier": "2.8.8",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.3.0",

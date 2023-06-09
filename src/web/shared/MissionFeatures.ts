@@ -1,15 +1,22 @@
-import { Feature, Map } from "ol"
-import { Coordinate } from "ol/coordinate"
-import { Style } from "ol/style"
-import { LineString, Geometry } from "ol/geom"
-import { fromLonLat } from "ol/proj"
-import * as Styles from "./Styles"
+import { Feature, Map } from 'ol'
+import { Coordinate } from 'ol/coordinate'
+import { Style } from 'ol/style'
+import { LineString, Geometry } from 'ol/geom'
+import { fromLonLat } from 'ol/proj'
+import * as Styles from './Styles'
 import { createMarker, createFlagMarker } from './Marker'
-import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
-import { transformTranslate, point } from "@turf/turf"
+import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf'
+import { transformTranslate, point } from '@turf/turf'
 
-
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number) {
+export function createMissionFeatures(
+    map: Map,
+    botId: number,
+    plan: MissionPlan,
+    activeGoalIndex: number,
+    isSelected: boolean,
+    runNumber?: string,
+    zIndex?: number
+) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -26,7 +33,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         const location = goal.location
 
         // Increment by one to account for 0 index
-        const goal_index_start_at_one = goal_index + 1;
+        const goal_index_start_at_one = goal_index + 1
 
         if (location == null) {
             continue
@@ -35,16 +42,33 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         {
             // OpenLayers
             const activeRun = plan.hasOwnProperty('speeds') ? true : false
-            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
-                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
-            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
+            const markerFeature = createMarker(map, {
+                title: 'Goal ' + goal_index_start_at_one,
+                lon: location.lon,
+                lat: location.lat,
+                style: Styles.goal(
+                    goal_index_start_at_one,
+                    goal,
+                    activeRun ? goal_index_start_at_one == activeGoalIndex : false,
+                    isSelected
+                )
+            })
+            markerFeature.setProperties({
+                goal: goal,
+                botId: botId,
+                goalIndex: goal_index_start_at_one
+            })
             features.push(markerFeature)
 
             if (goal_index_start_at_one === 1) {
                 if (!runNumber) {
                     runNumber = ''
                 }
-                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex)})
+                const flagFeature = createFlagMarker(map, {
+                    lon: location.lon,
+                    lat: location.lat,
+                    style: Styles.flag(goal, isSelected, runNumber, zIndex)
+                })
                 features.push(flagFeature)
             }
         }
@@ -56,23 +80,35 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         if (task?.type == TaskType.CONSTANT_HEADING) {
             // Calculate targetPoint
             let constantHeadingStartPoint = point([location.lon, location.lat])
-            let distance = task.constant_heading.constant_heading_speed * task.constant_heading.constant_heading_time
+            let distance =
+                task.constant_heading.constant_heading_speed *
+                task.constant_heading.constant_heading_time
             let heading = task.constant_heading.constant_heading
-            let constantHeadingEndPoint = transformTranslate(constantHeadingStartPoint, distance, heading, {units: 'meters'})
-            let constantHeadingEndCoordinate = fromLonLat(constantHeadingEndPoint.geometry.coordinates, projection)
-            let coordinatesArray = [fromLonLat(constantHeadingStartPoint.geometry.coordinates, projection), constantHeadingEndCoordinate]
+            let constantHeadingEndPoint = transformTranslate(
+                constantHeadingStartPoint,
+                distance,
+                heading,
+                { units: 'meters' }
+            )
+            let constantHeadingEndCoordinate = fromLonLat(
+                constantHeadingEndPoint.geometry.coordinates,
+                projection
+            )
+            let coordinatesArray = [
+                fromLonLat(constantHeadingStartPoint.geometry.coordinates, projection),
+                constantHeadingEndCoordinate
+            ]
 
             // Create and add the constant heading arrow feature (dotted line)
             let constantHeadingSegment = new Feature({ geometry: new LineString(coordinatesArray) })
-            constantHeadingSegment.set("isSelected", isSelected)
-            constantHeadingSegment.set("isConstantHeading", true)
+            constantHeadingSegment.set('isSelected', isSelected)
+            constantHeadingSegment.set('isConstantHeading', true)
             constantHeadingSegment.setStyle(Styles.missionPath)
             features.push(constantHeadingSegment)
 
             // This mission leg line segment (solid lline) will start at the constant heading end coordinate
             startCoordinate = constantHeadingEndCoordinate
-        }
-        else {
+        } else {
             // This mission leg line segment will start at this goal's location
             startCoordinate = GeograpicCoordinateToCoordinate(location)
         }
@@ -91,8 +127,10 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                 GeograpicCoordinateToCoordinate(next_location)
             ]
 
-            const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
-            missionPathFeature.set("isSelected", isSelected)
+            const missionPathFeature = new Feature({
+                geometry: new LineString(missionLineStringCoordinates)
+            })
+            missionPathFeature.set('isSelected', isSelected)
             missionPathFeature.setStyle(Styles.missionPath)
             features.push(missionPathFeature)
         }

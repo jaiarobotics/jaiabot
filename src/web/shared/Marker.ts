@@ -1,9 +1,8 @@
-import * as Popup from "./Popup"
-import { fromLonLat } from "ol/proj"
-import { Feature, Map } from "ol"
-import { Point } from "ol/geom"
-import Style from "ol/style/Style"
-
+import * as Popup from './Popup'
+import { fromLonLat } from 'ol/proj'
+import { Feature, Map } from 'ol'
+import { Point } from 'ol/geom'
+import Style from 'ol/style/Style'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros: number): string {
@@ -18,7 +17,6 @@ function dateStringFromMicros(timestamp_micros: number): string {
     })
 }
 
-
 interface MarkerParameters {
     lon: number
     lat: number
@@ -26,7 +24,6 @@ interface MarkerParameters {
     title?: string
     style?: Style
 }
-
 
 // Creates an OpenLayers marker feature with a popup using options
 // parameters: {title?, lon, lat, style?, time?, popupHTML?}
@@ -46,7 +43,7 @@ export function createMarker(map: Map, parameters: MarkerParameters) {
     // If we received a popupHTML, then use it
     if (parameters.popupHTML != null) {
         var popupElement = document.createElement('div')
-        popupElement.classList.add("popup")
+        popupElement.classList.add('popup')
         popupElement.innerHTML = parameters.popupHTML
         Popup.addPopup(map, markerFeature, popupElement)
     }

@@ -1,37 +1,34 @@
 import React from 'react'
 import { PIDGainsPanel } from './PIDGainsPanel'
 import { RCDiveParametersPanel } from './RCDiveParametersPanel'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
-import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
-import Button from '@mui/material/Button';
-import {JaiaAPI} from '../../common/JaiaAPI'
-import { PortalBotStatus, PortalHubStatus } from './PortalStatus';
-import QueryBotStatusPanel from "./QueryBotStatusPanel"
-import ScanForBotPanel from './ScanForBotPanel';
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
+import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel'
+import Button from '@mui/material/Button'
+import { JaiaAPI } from '../../common/JaiaAPI'
+import { PortalBotStatus, PortalHubStatus } from './PortalStatus'
+import QueryBotStatusPanel from './QueryBotStatusPanel'
+import ScanForBotPanel from './ScanForBotPanel'
 
 interface Props {
-	api: JaiaAPI
-	bots: {[key: number]: PortalBotStatus}
-	hubs: {[key: number]: PortalHubStatus}
-	getSelectedBotId: () => number
-	control: () => boolean
+    api: JaiaAPI
+    bots: { [key: number]: PortalBotStatus }
+    hubs: { [key: number]: PortalHubStatus }
+    getSelectedBotId: () => number
+    control: () => boolean
 }
-
 
 interface State {
-	bots: {[key: number]: PortalBotStatus}
-	hubs: {[key: number]: PortalHubStatus}
+    bots: { [key: number]: PortalBotStatus }
+    hubs: { [key: number]: PortalHubStatus }
 }
 
-
 export default class EngineeringPanel extends React.Component {
-	api: JaiaAPI
-	getSelectedBotId: () => number
+    api: JaiaAPI
+    getSelectedBotId: () => number
 
-	props: Props
-	state: State
+    props: Props
+    state: State
 
     constructor(props: Props) {
         super(props)
@@ -52,33 +49,43 @@ export default class EngineeringPanel extends React.Component {
     }
 
     render() {
-		let self = this
+        let self = this
 
-		return (
-			<div id="engineeringPanel" className="column-right">
-				<div className="panelsContainerVertical">
-					<div className="panel" >
-						<b>Engineering Panels (Beta)</b><br />						
-					</div>
-					<div className="panel">
-						<Button className="button-jcc engineering-panel-btn" onClick={function() {
-							window.location.assign('/jed/')
-						} }>
-							JaiaBot Engineer & Debug
-						</Button>
-					</div>
+        return (
+            <div id='engineeringPanel' className='column-right'>
+                <div className='panelsContainerVertical'>
+                    <div className='panel'>
+                        <b>Engineering Panels (Beta)</b>
+                        <br />
+                    </div>
+                    <div className='panel'>
+                        <Button
+                            className='button-jcc engineering-panel-btn'
+                            onClick={function () {
+                                window.location.assign('/jed/')
+                            }}
+                        >
+                            JaiaBot Engineer & Debug
+                        </Button>
+                    </div>
 
-					<MissionSpeedSettingsPanel />
+                    <MissionSpeedSettingsPanel />
 
-					<PIDGainsPanel bots={self.state.bots}  control={this.props.control} api={this.api} />
+                    <PIDGainsPanel
+                        bots={self.state.bots}
+                        control={this.props.control}
+                        api={this.api}
+                    />
 
-					<QueryBotStatusPanel control={this.props.control} api={this.api} />
+                    <QueryBotStatusPanel control={this.props.control} api={this.api} />
 
-					<ScanForBotPanel hubs={self.state.hubs} control={this.props.control} api={this.api} />
-
-				</div>
-			</div>
-		)
-
+                    <ScanForBotPanel
+                        hubs={self.state.hubs}
+                        control={this.props.control}
+                        api={this.api}
+                    />
+                </div>
+            </div>
+        )
     }
 }

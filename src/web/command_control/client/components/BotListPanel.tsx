@@ -1,7 +1,6 @@
-import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
-import React = require("react")
-import { PodStatus } from "./PortalStatus"
-
+import { HubStatus, BotStatus, HealthState } from './shared/JAIAProtobuf'
+import React = require('react')
+import { PodStatus } from './PortalStatus'
 
 interface Props {
     podStatus: PodStatus | null
@@ -12,13 +11,14 @@ interface Props {
     didClickHub: (hub_id: number) => void
 }
 
-
 function faultLevel(health_state: HealthState) {
-    return {
-        'HEALTH__OK': 0,
-        'HEALTH__DEGRADED': 1,
-        'HEALTH__FAILED': 2
-    }[health_state] ?? 0
+    return (
+        {
+            HEALTH__OK: 0,
+            HEALTH__DEGRADED: 1,
+            HEALTH__FAILED: 2
+        }[health_state] ?? 0
+    )
 }
 
 export function BotListPanel(props: Props) {
@@ -34,7 +34,7 @@ export function BotListPanel(props: Props) {
 
     let bots = Object.values(props.podStatus?.bots ?? {}).sort(compare_by_botId)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compare_by_hubId)
-    
+
     function BotDiv(bot: BotStatus) {
         var key = 'bot-' + bot.bot_id
         var botClass = 'bot-item'
@@ -46,15 +46,14 @@ export function BotListPanel(props: Props) {
         return (
             <div
                 key={key}
-                onClick={
-                    () => { props.didClickBot(bot.bot_id) }
-                }
+                onClick={() => {
+                    props.didClickBot(bot.bot_id)
+                }}
                 className={`${botClass} ${faultLevelClass} ${selected} ${tracked}`}
             >
-                { bot.bot_id }
+                {bot.bot_id}
             </div>
-        );
-
+        )
     }
 
     function HubDiv(hub: HubStatus) {
@@ -69,25 +68,18 @@ export function BotListPanel(props: Props) {
         return (
             <div
                 key={key}
-                onClick={
-                    () => props.didClickHub(hub.hub_id)
-                }
+                onClick={() => props.didClickHub(hub.hub_id)}
                 className={`${bothubClass} ${faultLevelClass} ${selected}`}
             >
-                {"HUB"} 
+                {'HUB'}
             </div>
-        );
+        )
     }
 
-
     return (
-        <div id="botsList">
-            {
-                hubs.map(HubDiv)
-            }
-            {
-                bots.map(BotDiv)
-            }
+        <div id='botsList'>
+            {hubs.map(HubDiv)}
+            {bots.map(BotDiv)}
         </div>
     )
 }

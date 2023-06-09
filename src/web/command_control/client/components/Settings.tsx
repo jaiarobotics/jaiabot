@@ -1,14 +1,18 @@
 // Saving and loading settings from browser's localStorage
 
-import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
+import {
+    ConstantHeadingParameters,
+    DiveParameters,
+    DriftParameters,
+    Speeds
+} from './shared/JAIAProtobuf'
 import { Coordinate } from 'ol/coordinate'
 import $ from 'jquery'
 
-
 export function Load<T>(key: string, defaultValue: T) {
-    var value = defaultValue;
+    var value = defaultValue
 
-    (value as any)._localStorageKeyFunc = () => key
+    ;(value as any)._localStorageKeyFunc = () => key
 
     const s = localStorage.getItem(key)
     if (s) {
@@ -22,12 +26,10 @@ export function Load<T>(key: string, defaultValue: T) {
     return value
 }
 
-
 export function Save(value: any) {
     const key = value._localStorageKeyFunc()
     localStorage.setItem(key, JSON.stringify(value))
 }
-
 
 export interface MapSettings {
     visibleLayers: Set<string>
@@ -36,9 +38,7 @@ export interface MapSettings {
     rotation: number
 }
 
-
 export let GlobalSettings = {
-
     // Default dive parameters when creating a new dive task
     diveParameters: Load<DiveParameters>('diveParameters', {
         max_depth: 10,
@@ -69,7 +69,6 @@ export let GlobalSettings = {
         zoomLevel: 2,
         rotation: 0
     })
-    
 }
 
 // Process the array from JSON into the proper type:  a Set

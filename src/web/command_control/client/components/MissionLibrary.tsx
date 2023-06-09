@@ -1,6 +1,6 @@
 import { Load, Save } from './Settings'
 import { Missions, RunLibrary } from './Missions'
-import { MissionInterface } from './CommandControl';
+import { MissionInterface } from './CommandControl'
 
 const savedMissions = Load<RunLibrary>('savedMissions', Missions.defaultMissions())
 
@@ -14,18 +14,19 @@ export class MissionLibraryLocalStorage {
         return MissionLibraryLocalStorage.missionLibraryLocalStorage
     }
 
-    constructor() {
-    }
+    constructor() {}
 
     missionNames() {
-        let savedMissionNames = Object.keys(savedMissions).filter((value) => {
-            return value != '_localStorageKeyFunc'
-        }). sort()
+        let savedMissionNames = Object.keys(savedMissions)
+            .filter((value) => {
+                return value != '_localStorageKeyFunc'
+            })
+            .sort()
         return savedMissionNames
     }
 
     hasMission(name: string) {
-        return (name in savedMissions)
+        return name in savedMissions
     }
 
     loadMission(key: string) {
@@ -49,5 +50,4 @@ export class MissionLibraryLocalStorage {
         delete savedMissions[key]
         Save(savedMissions)
     }
-
 }

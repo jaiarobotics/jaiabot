@@ -8,12 +8,11 @@ import React from 'react'
 // Material Design Icons
 import Icon from '@mdi/react'
 import { mdiDelete, mdiPlay, mdiFolderOpen, mdiContentSave, mdiFolderDownload } from '@mdi/js'
-import Button from '@mui/material/Button';
-import { downloadToFile } from './Utilities';
-import { MissionLibraryLocalStorage } from './MissionLibrary';
-import { CommandList } from './Missions';
-import { MissionInterface } from './CommandControl';
-
+import Button from '@mui/material/Button'
+import { downloadToFile } from './Utilities'
+import { MissionLibraryLocalStorage } from './MissionLibrary'
+import { CommandList } from './Missions'
+import { MissionInterface } from './CommandControl'
 
 interface Props {
     missionLibrary: MissionLibraryLocalStorage
@@ -21,14 +20,11 @@ interface Props {
     onDone: () => void
 }
 
-
 interface State {
     selectedMissionName: string | null
 }
 
-
 export class SaveMissionPanel extends React.Component {
-
     props: Props
     state: State
 
@@ -44,57 +40,74 @@ export class SaveMissionPanel extends React.Component {
         let self = this
 
         // Nem text input
-        const nameInput = (<div>
-            <input type="text" className="textInput" autoFocus placeholder="Mission Name" defaultValue={this.state.selectedMissionName} onInput={(e) => {
-                this.state.selectedMissionName = (e.target as any).value
-            }} onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    this.saveClicked()
-                }
-            }}></input>
-        </div>)
+        const nameInput = (
+            <div>
+                <input
+                    type='text'
+                    className='textInput'
+                    autoFocus
+                    placeholder='Mission Name'
+                    defaultValue={this.state.selectedMissionName}
+                    onInput={(e) => {
+                        this.state.selectedMissionName = (e.target as any).value
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            this.saveClicked()
+                        }
+                    }}
+                ></input>
+            </div>
+        )
 
         // Mission rows
         let missionNames = this.props.missionLibrary.missionNames()
         let missionNameRows = missionNames.map((name) => {
-
-            var rowClasses = "LoadMissionPanel row hoverable"
+            var rowClasses = 'LoadMissionPanel row hoverable'
             if (name == this.state.selectedMissionName) {
                 rowClasses += ' selected'
             }
 
-            let row = (<div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
-                {name}
-            </div>)
+            let row = (
+                <div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
+                    {name}
+                </div>
+            )
 
             return row
         })
 
         // Buttons
-        let buttonRow = (<div className="LoadMissionPanel HorizontalFlexbox">
-            <Button className="button-jcc" onClick={this.deleteClicked.bind(this)}>
-                <Icon path={mdiDelete}></Icon>
-            </Button>
-            <Button className="button-jcc" onClick={this.downloadClicked.bind(this)}>
-                <Icon path={mdiFolderDownload}></Icon>
-            </Button>
-            <div className='flexSpacer'></div>
-            <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
-            <Button className="button-jcc" onClick={this.saveClicked.bind(this)}>Save</Button>
-        </div>)
-
-        return (<div className="LoadMissionPanel centered rounded shadowed">
-            <div className="LoadMissionPanel title">Save Mission As</div>
-            {nameInput}
-            <div className="LoadMissionPanel missionList">
-                {missionNameRows}
+        let buttonRow = (
+            <div className='LoadMissionPanel HorizontalFlexbox'>
+                <Button className='button-jcc' onClick={this.deleteClicked.bind(this)}>
+                    <Icon path={mdiDelete}></Icon>
+                </Button>
+                <Button className='button-jcc' onClick={this.downloadClicked.bind(this)}>
+                    <Icon path={mdiFolderDownload}></Icon>
+                </Button>
+                <div className='flexSpacer'></div>
+                <Button className='button-jcc' onClick={this.cancelClicked.bind(this)}>
+                    Cancel
+                </Button>
+                <Button className='button-jcc' onClick={this.saveClicked.bind(this)}>
+                    Save
+                </Button>
             </div>
-            {buttonRow}
-        </div>)
+        )
+
+        return (
+            <div className='LoadMissionPanel centered rounded shadowed'>
+                <div className='LoadMissionPanel title'>Save Mission As</div>
+                {nameInput}
+                <div className='LoadMissionPanel missionList'>{missionNameRows}</div>
+                {buttonRow}
+            </div>
+        )
     }
 
     didClick(name: string) {
-        this.setState({selectedMissionName: name})
+        this.setState({ selectedMissionName: name })
     }
 
     saveClicked() {
@@ -104,7 +117,7 @@ export class SaveMissionPanel extends React.Component {
         }
 
         if (this.props.missionLibrary.hasMission(name)) {
-            if (!confirm('Do you really want to replace mission named \"' + name + '\"?')) {
+            if (!confirm('Do you really want to replace mission named "' + name + '"?')) {
                 return
             }
         }
@@ -120,10 +133,10 @@ export class SaveMissionPanel extends React.Component {
         if (name == null) {
             return
         }
-        
-        if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
+
+        if (confirm('Are you sure you want to delete the mission named "' + name + '"?')) {
             this.props.missionLibrary.deleteMission(name)
-            this.state.selectedMissionName = null;
+            this.state.selectedMissionName = null
             this.forceUpdate()
         }
     }
@@ -135,5 +148,4 @@ export class SaveMissionPanel extends React.Component {
     downloadClicked() {
         downloadToFile(JSON.stringify(this.props.mission), 'application/json', 'mission.json')
     }
-
 }
