@@ -93,6 +93,9 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
         statesAvailable: [
+            /^PRE_DEPLOYMENT__IDLE$/,
+            /^PRE_DEPLOYMENT__FAILED$/,
+            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
@@ -438,9 +441,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     let mission_state = bot.mission_state;
     takeControlFunction = takeControl;
 
-    // Reuse data offload button icon for recover and retry data offload
-    let dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/;
-
     let dataOffloadButton = 
         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
             disabled={disableButton(commands.recover, mission_state).isDisabled} 
@@ -448,7 +448,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
             <Icon path={mdiDownload} title="Data Offload"/>
         </Button>
 
-    if(!dataOffloadStatesAvailable.test(mission_state)) {
+    if(disableButton(commands.recover, mission_state).isDisabled) {
         dataOffloadButton = 
             <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
                 disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
