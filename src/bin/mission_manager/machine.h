@@ -532,7 +532,8 @@ struct PreDeployment
     ~PreDeployment() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
+                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
 
 namespace predeployment
@@ -562,9 +563,7 @@ struct Idle : boost::statechart::state<Idle, PreDeployment>,
     Idle(typename StateBase::my_context c);
     ~Idle();
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
-                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
 };
 
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
@@ -593,9 +592,7 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
     // while the vehicle is powered on (e.g. GPS fix after several minutes).
     // If Activate is sent and the vehicle still has an error,
     // SelfTest will simply fail again and we'll end up back here in Failed (as desired)
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
-                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
 };
 
 struct WaitForMissionPlan
@@ -608,7 +605,6 @@ struct WaitForMissionPlan
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvMissionFeasible, Ready>,
-                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>,
                          // maybe change to in_state_reaction?
                          boost::statechart::transition<EvMissionInfeasible, WaitForMissionPlan>>;
 };

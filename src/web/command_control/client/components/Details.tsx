@@ -93,9 +93,7 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
         statesAvailable: [
-            /^PRE_DEPLOYMENT__IDLE$/,
-            /^PRE_DEPLOYMENT__FAILED$/,
-            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
+            /^PRE_DEPLOYMENT.+$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
