@@ -6,8 +6,7 @@
   "main": "server/index.js",
   "scripts": {
     "build": "webpack --mode production",
-    "test": "webpack --mode production --watch --progress",
-    "prettier-command-control": "npx prettier --write **/*.ts*"
+    "test": "webpack --mode production --watch --progress"
   },
   "keywords": [],
   "author": "Jaia Robotics",
