@@ -1,1 +1,7 @@
-server/**
+server
+command_control/node_modules
+command_control/dist
+command_control/client/libs
+jdv
+jed
+shared

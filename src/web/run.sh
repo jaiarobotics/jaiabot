@@ -17,5 +17,6 @@ popd
 # Build Command Control
 pushd command_control
     npm install --no-audit
+    npm run prettier-command-control
     npm run test
 popd
