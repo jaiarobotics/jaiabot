@@ -13,7 +13,7 @@ from jaiabot.messages.imu_pb2 import IMUData
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
-parser.add_argument('-l', dest='logging_level', default='DEBUG', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('--simulator', action='store_true')
 parser.add_argument('--interactive', action='store_true')
 args = parser.parse_args()
