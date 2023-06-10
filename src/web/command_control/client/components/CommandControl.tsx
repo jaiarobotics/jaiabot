@@ -2035,59 +2035,64 @@ export default class CommandControl extends React.Component {
 			lastBotCount: botCount
 		});
 		// map.render();
-		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 	}
 
 	// POLL THE BOTS
 	pollPodStatus() {
 		clearInterval(this.timerID);
-		const us = this;
+		const us = this
 
+		function hubConnectionError(errorMessage: String) {
+			us.setState({disconnectionMessage: "Connection Dropped To HUB"})
+			console.error(errorMessage)
+			us.timerID = setInterval(() => us.pollPodStatus(), 2500)
+		}
+
+		console.log("polling podStatus")
 		this.api.getStatus().then(
 			(result) => {
+				console.log("Got response")
 				if (result instanceof Error) {
-					this.setState({disconnectionMessage: "Connection Dropped To HUB"})
-					console.error(result)
-					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+					hubConnectionError(result.message)
 					return
 				}
 
 				if (!("bots" in result)) {
-					this.setState({podStatus: null, disconnectionMessage: "Connection Dropped To HUB"})
-					console.error(result)
-					this.timerID = setInterval(() => this.pollPodStatus(), 2500)
+					hubConnectionError(String(result))
+					return
+				}
+
+				this.oldPodStatus = this.state.podStatus
+				this.setState({podStatus: result})
+
+				let messages = result.messages
+
+				if (messages) {
+					if (messages.info) {
+						info(messages.info)
+					}
+
+					if (messages.warning) {
+						warning(messages.warning)
+					}
+				}
+
+				if (messages?.error) {
+					this.setState({disconnectionMessage: messages.error})
 				}
 				else {
-					this.oldPodStatus = this.state.podStatus
-					this.setState({podStatus: result})
-
-					let messages = result.messages
-
-					if (messages) {
-						if (messages.info) {
-							info(messages.info)
-						}
-
-						if (messages.warning) {
-							warning(messages.warning)
-						}
-					}
-
-					if (messages?.error) {
-						this.setState({disconnectionMessage: messages.error})
-					}
-					else {
-						this.setState({disconnectionMessage: null})
-					}
-
-					if (this.state.mode !== Mode.MISSION_PLANNING) {
-						this.updateMissionLayer()
-					}
+					this.setState({disconnectionMessage: null})
 				}
+
+				if (this.state.mode !== Mode.MISSION_PLANNING) {
+					this.updateMissionLayer()
+				}
+
+				this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 			},
 			(err) => {
-				this.timerID = setInterval(() => this.pollPodStatus(), 2500);
-				this.setState({disconnectionMessage: "Connection Dropped To HUB"})
+				console.log("error response")
+				hubConnectionError(err.message)
 			}
 		)
 	}
