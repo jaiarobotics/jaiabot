@@ -1,14 +1,9 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 import { GlobalSettings, Save } from './Settings'
 
 export function RCDiveParametersPanel(): JSX.Element {
-    let diveParameters = GlobalSettings.diveParameters
-    let driftParameters = GlobalSettings.driftParameters
+    const diveParameters = GlobalSettings.diveParameters
+    const driftParameters = GlobalSettings.driftParameters
 
     return (
         <div className='panel'>

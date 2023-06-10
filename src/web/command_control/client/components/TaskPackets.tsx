@@ -111,18 +111,16 @@ export class TaskData {
         visible: false
     })
 
-    constructor() {}
-
     updateDiveLocations() {
-        let taskDiveFeatures = []
-        let taskDiveInfoFeatures = []
-        let taskDiveBottomFeatures = []
-        let taskDiveBottomInfoFeatures = []
+        const taskDiveFeatures = []
+        const taskDiveInfoFeatures = []
+        const taskDiveBottomFeatures = []
+        const taskDiveBottomInfoFeatures = []
 
-        for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
+        for (const [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
             if (taskPacket.type == 'DIVE') {
-                let divePacket = taskPacket.dive
-                let iconStyle = new OlStyle({
+                const divePacket = taskPacket.dive
+                const iconStyle = new OlStyle({
                     image: new OlIcon({
                         src: diveLocationIcon,
                         // the real size of your icon
@@ -132,7 +130,7 @@ export class TaskData {
                     })
                 })
 
-                let iconInfoStyle = new OlStyle({
+                const iconInfoStyle = new OlStyle({
                     text: new OlText({
                         font: `15px Calibri,sans-serif`,
                         text:
@@ -152,7 +150,7 @@ export class TaskData {
                     })
                 })
 
-                let iconBottomStyle = new OlStyle({
+                const iconBottomStyle = new OlStyle({
                     image: new OlIcon({
                         src: bottomDiveLocationIcon,
                         // the real size of your icon
@@ -172,7 +170,7 @@ export class TaskData {
                         divePacket.reached_min_depth
                 }
 
-                let iconBottomInfoStyle = new OlStyle({
+                const iconBottomInfoStyle = new OlStyle({
                     text: new OlText({
                         font: `15px Calibri,sans-serif`,
                         text: bottomDiveText,
@@ -188,15 +186,15 @@ export class TaskData {
                     })
                 })
 
-                let task_calcs = this.calculateDiveDrift(taskPacket)
-                let dive_lon = task_calcs.dive_location.lon
-                let dive_lat = task_calcs.dive_location.lat
-                let pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
+                const task_calcs = this.calculateDiveDrift(taskPacket)
+                const dive_lon = task_calcs.dive_location.lon
+                const dive_lat = task_calcs.dive_location.lat
+                const pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
 
-                let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                const diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                const diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                const diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                const diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
 
                 diveFeature.setStyle(iconStyle)
                 diveInfoFeature.setStyle(iconInfoStyle)
@@ -213,19 +211,19 @@ export class TaskData {
             }
         }
 
-        let diveVectorSource = new VectorSource({
+        const diveVectorSource = new VectorSource({
             features: taskDiveFeatures
         })
 
-        let diveInfoVectorSource = new VectorSource({
+        const diveInfoVectorSource = new VectorSource({
             features: taskDiveInfoFeatures
         })
 
-        let diveBottomVectorSource = new VectorSource({
+        const diveBottomVectorSource = new VectorSource({
             features: taskDiveBottomFeatures
         })
 
-        let diveBottomInfoVectorSource = new VectorSource({
+        const diveBottomInfoVectorSource = new VectorSource({
             features: taskDiveBottomInfoFeatures
         })
 
@@ -236,23 +234,23 @@ export class TaskData {
     }
 
     updateDriftLocations() {
-        let taskDriftFeatures = []
-        let taskDriftInfoFeatures = []
+        const taskDriftFeatures = []
+        const taskDriftInfoFeatures = []
 
-        for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
+        for (const [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
             if (taskPacket.type == 'DIVE' || taskPacket.type == 'SURFACE_DRIFT') {
-                let driftPacket = taskPacket.drift
+                const driftPacket = taskPacket.drift
 
                 if (
                     taskPacket?.drift != null &&
                     taskPacket.drift?.drift_duration != null &&
                     driftPacket.drift_duration > 0
                 ) {
-                    let task_calcs = this.calculateDiveDrift(taskPacket)
+                    const task_calcs = this.calculateDiveDrift(taskPacket)
 
-                    let rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
+                    const rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
 
-                    let iconStyle = new OlStyle({
+                    const iconStyle = new OlStyle({
                         image: new OlIcon({
                             src: currentDirection,
                             // the real size of your icon
@@ -264,7 +262,7 @@ export class TaskData {
                         })
                     })
 
-                    let iconInfoStyle = new OlStyle({
+                    const iconInfoStyle = new OlStyle({
                         text: new OlText({
                             font: `15px Calibri,sans-serif`,
                             text:
@@ -286,13 +284,13 @@ export class TaskData {
                         })
                     })
 
-                    let pt = equirectangular_to_mercator(
+                    const pt = equirectangular_to_mercator(
                         [driftPacket.end_location.lon, driftPacket.end_location.lat],
                         undefined,
                         undefined
                     )
-                    let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                    let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    const driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    const driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     driftFeature.setStyle(iconStyle)
                     driftInfoFeature.setStyle(iconInfoStyle)
                     taskDriftFeatures.push(driftFeature)
@@ -301,11 +299,11 @@ export class TaskData {
             }
         }
 
-        let driftVectorSource = new VectorSource({
+        const driftVectorSource = new VectorSource({
             features: taskDriftFeatures
         })
 
-        let driftInfoVectorSource = new VectorSource({
+        const driftInfoVectorSource = new VectorSource({
             features: taskDriftInfoFeatures
         })
 
@@ -317,7 +315,7 @@ export class TaskData {
         let driftPacket
         let divePacket
         let task_calcs
-        let options = { units: 'meters' as Units }
+        const options = { units: 'meters' as Units }
 
         if (taskPacket.type == 'DIVE') {
             divePacket = taskPacket.dive
@@ -337,10 +335,10 @@ export class TaskData {
         ) {
             driftPacket = taskPacket.drift
 
-            let drift_start = [driftPacket.start_location.lon, driftPacket.start_location.lat]
-            let drift_end = [driftPacket.end_location.lon, driftPacket.end_location.lat]
+            const drift_start = [driftPacket.start_location.lon, driftPacket.start_location.lat]
+            const drift_end = [driftPacket.end_location.lon, driftPacket.end_location.lat]
 
-            let drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start)
+            const drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start)
 
             if (
                 taskPacket.type == 'DIVE' &&
@@ -349,21 +347,21 @@ export class TaskData {
                 taskPacket?.dive.dive_rate > 0
             ) {
                 // Calculate the distance we traveled while acquiring gps
-                let distance_between_breach_point_and_acquire_gps =
+                const distance_between_breach_point_and_acquire_gps =
                     divePacket.duration_to_acquire_gps * driftPacket.estimated_drift.speed
 
                 // Calculate the breach point
-                let breach_point = turf.destination(
+                const breach_point = turf.destination(
                     drift_start,
                     distance_between_breach_point_and_acquire_gps,
                     drift_to_dive_ascent_bearing,
                     options
                 )
 
-                let dive_start = [divePacket.start_location.lon, divePacket.start_location.lat]
+                const dive_start = [divePacket.start_location.lon, divePacket.start_location.lat]
 
                 // Calculate the total time the bot took to reach the required depth
-                let dive_total_descent_seconds = divePacket.dive_rate * divePacket.depth_achieved
+                const dive_total_descent_seconds = divePacket.dive_rate * divePacket.depth_achieved
 
                 // Caclulate the total time the bot took to reach the surface
                 // This is assuming we are in either unpowered ascent or powered ascent
@@ -378,37 +376,37 @@ export class TaskData {
 
                 // Calculate the total time it took to dive to required depth
                 // and ascent to the surface
-                let total_dive_to_ascent_seconds =
+                const total_dive_to_ascent_seconds =
                     dive_total_descent_seconds + dive_total_ascent_seconds
 
                 // Calculate the distance between the dive start and breach point
-                let distance_between_dive_and_breach = turf.distance(
+                const distance_between_dive_and_breach = turf.distance(
                     dive_start,
                     breach_point,
                     options
                 )
 
                 // Calculate the percentage the dive took when compared to breach point time
-                let dive_percent_in_total_dive_seconds =
+                const dive_percent_in_total_dive_seconds =
                     dive_total_descent_seconds / total_dive_to_ascent_seconds
 
                 // Calculate the distance to the achieved depth starting from the dive start
-                let dive_distance_to_depth_achieved =
+                const dive_distance_to_depth_achieved =
                     distance_between_dive_and_breach * dive_percent_in_total_dive_seconds
 
                 // Calculate the bearing from the dive start and the breach point
-                let dive_start_to_breach_point_bearing = turf.bearing(dive_start, breach_point)
+                const dive_start_to_breach_point_bearing = turf.bearing(dive_start, breach_point)
 
                 // Calculate the achieved depth location
-                let dive_location = turf.destination(
+                const dive_location = turf.destination(
                     dive_start,
                     dive_distance_to_depth_achieved,
                     dive_start_to_breach_point_bearing,
                     options
                 )
 
-                let dive_lon = dive_location.geometry.coordinates[0]
-                let dive_lat = dive_location.geometry.coordinates[1]
+                const dive_lon = dive_location.geometry.coordinates[0]
+                const dive_lat = dive_location.geometry.coordinates[1]
                 task_calcs.dive_location = { lat: dive_lat, lon: dive_lon }
             }
 

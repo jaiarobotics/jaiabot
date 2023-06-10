@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 import Button from '@mui/material/Button'
 import { Goal, GeographicCoordinate } from './shared/JAIAProtobuf'
@@ -71,7 +66,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     cancelClicked() {
-        var { goal } = this.props
+        const { goal } = this.props
 
         // Clear this goal
         Object.keys(goal).forEach((key: keyof Goal) => {

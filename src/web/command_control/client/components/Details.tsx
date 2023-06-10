@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import Accordion from '@mui/material/Accordion'
@@ -47,7 +42,7 @@ import { MissionInterface } from './CommandControl'
 import RCControllerPanel from './RCControllerPanel'
 import { Missions } from './Missions'
 
-let prec = 2
+const prec = 2
 
 interface CommandInfo {
     commandType: CommandType | HubCommandType
@@ -56,7 +51,7 @@ interface CommandInfo {
     statesNotAvailable?: RegExp[]
 }
 
-let commands: { [key: string]: CommandInfo } = {
+const commands: { [key: string]: CommandInfo } = {
     active: {
         commandType: CommandType.ACTIVATE,
         description: 'system check',
@@ -127,7 +122,7 @@ let commands: { [key: string]: CommandInfo } = {
     }
 }
 
-let commandsForHub: { [key: string]: CommandInfo } = {
+const commandsForHub: { [key: string]: CommandInfo } = {
     shutdown: {
         commandType: CommandType.SHUTDOWN_COMPUTER,
         description: 'Shutdown Hub',
@@ -157,13 +152,13 @@ export interface DetailsExpandedState {
     power: boolean
 }
 
-var takeControlFunction: () => boolean
+let takeControlFunction: () => boolean
 
 function issueCommand(api: JaiaAPI, bot_id: number, command: CommandInfo) {
     if (!takeControlFunction()) return
 
     if (confirm(`Are you sure you'd like to ${command.description} bot: ${bot_id}?`)) {
-        let c = {
+        const c = {
             bot_id: bot_id,
             type: command.commandType as CommandType
         }
@@ -179,7 +174,7 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
     if (!takeControlFunction()) return
 
     if (confirm("Are you sure you'd like to " + command_for_hub.description + '?')) {
-        let c = {
+        const c = {
             hub_id: hub_id,
             type: command_for_hub.commandType as HubCommandType
         }
@@ -233,13 +228,13 @@ function issueRCCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
 }
 
 function runRCMode(bot: PortalBotStatus) {
-    let bot_id = bot.bot_id
+    const bot_id = bot.bot_id
     if (bot_id == null) {
         warning('No bots selected')
         return null
     }
 
-    var datum_location = bot?.location
+    let datum_location = bot?.location
 
     if (datum_location == null) {
         const warning_string =
@@ -257,9 +252,9 @@ function runRCMode(bot: PortalBotStatus) {
 
 // Check if there is a mission to run
 function runMission(bot_id: number, mission: MissionInterface) {
-    let runs = mission.runs
-    let runId = mission.botsAssignedToRuns[bot_id]
-    let run = runs[runId]
+    const runs = mission.runs
+    const runId = mission.botsAssignedToRuns[bot_id]
+    const run = runs[runId]
 
     if (run) {
         return run.command
@@ -271,11 +266,11 @@ function runMission(bot_id: number, mission: MissionInterface) {
 // Check mission state for disabling button
 function disableButton(command: CommandInfo, mission_state: MissionState) {
     let disable = false
-    let statesAvailable = command.statesAvailable
-    let statesNotAvailable = command.statesNotAvailable
+    const statesAvailable = command.statesAvailable
+    const statesNotAvailable = command.statesNotAvailable
     if (statesAvailable != null && statesAvailable != undefined) {
         disable = true
-        for (let stateAvailable of statesAvailable) {
+        for (const stateAvailable of statesAvailable) {
             if (stateAvailable.test(mission_state)) {
                 disable = false
                 break
@@ -284,7 +279,7 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
     }
 
     if (statesNotAvailable != null || statesNotAvailable != undefined) {
-        for (let stateNotAvailable of statesNotAvailable) {
+        for (const stateNotAvailable of statesNotAvailable) {
             if (stateNotAvailable.test(mission_state)) {
                 disable = true
                 break
@@ -292,7 +287,7 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
         }
     }
 
-    let disableButton = { class: '', isDisabled: disable }
+    const disableButton = { class: '', isDisabled: disable }
     if (disable) {
         disableButton.class = 'inactive'
     }
@@ -302,7 +297,7 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
 // Check that bot has a mission for disabling button
 function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
     const hasAMission = mission.botsAssignedToRuns[bot_id] ? true : false
-    let disableButton = { class: '', isDisabled: false }
+    const disableButton = { class: '', isDisabled: false }
     if (!hasAMission) {
         disableButton.class = 'inactive'
         disableButton.isDisabled = true
@@ -312,17 +307,17 @@ function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
 
 // Get the table row for the health of the vehicle
 function healthRow(bot: BotStatus, allInfo: boolean) {
-    let healthClassName =
+    const healthClassName =
         {
             HEALTH__OK: 'healthOK',
             HEALTH__DEGRADED: 'healthDegraded',
             HEALTH__FAILED: 'healthFailed'
         }[bot.health_state] ?? 'healthOK'
 
-    let healthStateElement = <div className={healthClassName}>{bot.health_state}</div>
+    const healthStateElement = <div className={healthClassName}>{bot.health_state}</div>
 
-    let errors = bot.error ?? []
-    let errorElements = errors.map((error) => {
+    const errors = bot.error ?? []
+    const errorElements = errors.map((error) => {
         return (
             <div key={error} className='healthFailed'>
                 {error}
@@ -330,8 +325,8 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
         )
     })
 
-    let warnings = bot.warning ?? []
-    let warningElements = warnings.map((warning) => {
+    const warnings = bot.warning ?? []
+    const warningElements = warnings.map((warning) => {
         return (
             <div key={warning} className='healthDegraded'>
                 {warning}
@@ -380,7 +375,7 @@ export function BotDetailsComponent(
         return <div></div>
     }
 
-    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
+    const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
 
     let statusAgeClassName = ''
     if (statusAge > 30) {
@@ -410,18 +405,18 @@ export function BotDetailsComponent(
     // Distance from hub
     let distToHub = 'N/A'
     if (bot?.location != null && hub?.location != null) {
-        let botloc = turf.point([bot.location.lon, bot.location.lat])
-        let hubloc = turf.point([hub.location.lon, hub.location.lat])
-        var options = { units: 'meters' as turf.Units }
+        const botloc = turf.point([bot.location.lon, bot.location.lat])
+        const hubloc = turf.point([hub.location.lon, hub.location.lat])
+        const options = { units: 'meters' as turf.Units }
 
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1)
     }
 
-    let mission_state = bot.mission_state
+    const mission_state = bot.mission_state
     takeControlFunction = takeControl
 
     // Reuse data offload button icon for recover and retry data offload
-    let dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
+    const dataOffloadStatesAvailable = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
 
     let dataOffloadButton = (
         <Button
@@ -973,9 +968,9 @@ export function HubDetailsComponent(
         return <div></div>
     }
 
-    let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
+    const statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
 
-    var statusAgeClassName = ''
+    let statusAgeClassName = ''
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
     } else if (statusAge > 10) {

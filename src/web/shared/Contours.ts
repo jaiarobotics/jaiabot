@@ -6,7 +6,7 @@ const equirectangular = 'EPSG:4326'
 
 export function geoJSONToDepthContourFeatures(projection: ProjectionLike, geojson: object) {
     // Manually transform features from lon/lat to the view's projection.
-    var features = new GeoJSON().readFeatures(geojson)
+    const features = new GeoJSON().readFeatures(geojson)
     features.forEach((feature) => {
         // Transform to the map's projection
         feature.getGeometry().transform(equirectangular, projection)

@@ -49,8 +49,6 @@ export default class EngineeringPanel extends React.Component {
     }
 
     render() {
-        let self = this
-
         return (
             <div id='engineeringPanel' className='column-right'>
                 <div className='panelsContainerVertical'>
@@ -72,7 +70,7 @@ export default class EngineeringPanel extends React.Component {
                     <MissionSpeedSettingsPanel />
 
                     <PIDGainsPanel
-                        bots={self.state.bots}
+                        bots={this.state.bots}
                         control={this.props.control}
                         api={this.api}
                     />
@@ -80,7 +78,7 @@ export default class EngineeringPanel extends React.Component {
                     <QueryBotStatusPanel control={this.props.control} api={this.api} />
 
                     <ScanForBotPanel
-                        hubs={self.state.hubs}
+                        hubs={this.state.hubs}
                         control={this.props.control}
                         api={this.api}
                     />

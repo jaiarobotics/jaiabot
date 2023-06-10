@@ -29,17 +29,15 @@ export default class RunList extends React.Component {
     }
 
     render() {
-        let self = this
-
         return (
             <React.Fragment>
                 <div id='runList'>
                     {Object.entries(this.props?.mission?.runs).map(([key, value]) => (
                         <React.Fragment key={key}>
                             <RunItem
-                                bots={self.props.bots}
+                                bots={this.props.bots}
                                 run={value}
-                                mission={self.props.mission}
+                                mission={this.props.mission}
                             />
                         </React.Fragment>
                     ))}

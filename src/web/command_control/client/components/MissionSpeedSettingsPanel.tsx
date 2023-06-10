@@ -58,7 +58,7 @@ export default class MissionSpeedSettingsPanel extends React.Component {
                                     min={0.5}
                                     max={this.state.speed_max}
                                     onChange={(evt) => {
-                                        let target = evt.target as any
+                                        const target = evt.target as any
                                         this.state.speeds.transit = target.value
 
                                         if (

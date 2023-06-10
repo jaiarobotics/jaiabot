@@ -14,10 +14,8 @@ export class MissionLibraryLocalStorage {
         return MissionLibraryLocalStorage.missionLibraryLocalStorage
     }
 
-    constructor() {}
-
     missionNames() {
-        let savedMissionNames = Object.keys(savedMissions)
+        const savedMissionNames = Object.keys(savedMissions)
             .filter((value) => {
                 return value != '_localStorageKeyFunc'
             })

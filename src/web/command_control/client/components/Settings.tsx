@@ -10,7 +10,7 @@ import { Coordinate } from 'ol/coordinate'
 import $ from 'jquery'
 
 export function Load<T>(key: string, defaultValue: T) {
-    var value = defaultValue
+    const value = defaultValue
 
     ;(value as any)._localStorageKeyFunc = () => key
 
@@ -38,7 +38,7 @@ export interface MapSettings {
     rotation: number
 }
 
-export let GlobalSettings = {
+export const GlobalSettings = {
     // Default dive parameters when creating a new dive task
     diveParameters: Load<DiveParameters>('diveParameters', {
         max_depth: 10,

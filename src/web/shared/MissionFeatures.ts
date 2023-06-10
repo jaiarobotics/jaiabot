@@ -17,7 +17,7 @@ export function createMissionFeatures(
     runNumber?: string,
     zIndex?: number
 ) {
-    var features = []
+    const features = []
     const projection = map.getView().getProjection()
 
     function GeograpicCoordinateToCoordinate(geographicCoordinate: GeographicCoordinate) {
@@ -25,9 +25,9 @@ export function createMissionFeatures(
     }
 
     // Add markers for each waypoint
-    var missionLineStringCoordinates: Coordinate[] = []
+    const missionLineStringCoordinates: Coordinate[] = []
 
-    let goals = plan.goal ?? []
+    const goals = plan.goal ?? []
 
     for (const [goal_index, goal] of goals.entries()) {
         const location = goal.location
@@ -41,7 +41,7 @@ export function createMissionFeatures(
 
         {
             // OpenLayers
-            const activeRun = plan.hasOwnProperty('speeds') ? true : false
+            const activeRun = Object.prototype.hasOwnProperty.call(plan, 'speeds') ? true : false
             const markerFeature = createMarker(map, {
                 title: 'Goal ' + goal_index_start_at_one,
                 lon: location.lon,
@@ -74,33 +74,33 @@ export function createMissionFeatures(
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
-        let task = goal.task
-        var startCoordinate: Coordinate
+        const task = goal.task
+        let startCoordinate: Coordinate
 
         if (task?.type == TaskType.CONSTANT_HEADING) {
             // Calculate targetPoint
-            let constantHeadingStartPoint = point([location.lon, location.lat])
-            let distance =
+            const constantHeadingStartPoint = point([location.lon, location.lat])
+            const distance =
                 task.constant_heading.constant_heading_speed *
                 task.constant_heading.constant_heading_time
-            let heading = task.constant_heading.constant_heading
-            let constantHeadingEndPoint = transformTranslate(
+            const heading = task.constant_heading.constant_heading
+            const constantHeadingEndPoint = transformTranslate(
                 constantHeadingStartPoint,
                 distance,
                 heading,
                 { units: 'meters' }
             )
-            let constantHeadingEndCoordinate = fromLonLat(
+            const constantHeadingEndCoordinate = fromLonLat(
                 constantHeadingEndPoint.geometry.coordinates,
                 projection
             )
-            let coordinatesArray = [
+            const coordinatesArray = [
                 fromLonLat(constantHeadingStartPoint.geometry.coordinates, projection),
                 constantHeadingEndCoordinate
             ]
 
             // Create and add the constant heading arrow feature (dotted line)
-            let constantHeadingSegment = new Feature({ geometry: new LineString(coordinatesArray) })
+            const constantHeadingSegment = new Feature({ geometry: new LineString(coordinatesArray) })
             constantHeadingSegment.set('isSelected', isSelected)
             constantHeadingSegment.set('isConstantHeading', true)
             constantHeadingSegment.setStyle(Styles.missionPath)
@@ -122,7 +122,7 @@ export function createMissionFeatures(
                 continue
             }
 
-            let missionLineStringCoordinates = [
+            const missionLineStringCoordinates = [
                 startCoordinate,
                 GeograpicCoordinateToCoordinate(next_location)
             ]

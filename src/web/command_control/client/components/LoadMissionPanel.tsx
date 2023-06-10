@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 
 // Material Design Icons
@@ -37,18 +32,16 @@ export class LoadMissionPanel extends React.Component {
     }
 
     render() {
-        let self = this
-
         // Mission rows
-        let missionNames = this.props.missionLibrary.missionNames()
-        let missionNameRows = missionNames.map((name) => {
-            var rowClasses = 'LoadMissionPanel row hoverable'
+        const missionNames = this.props.missionLibrary.missionNames()
+        const missionNameRows = missionNames.map((name) => {
+            let rowClasses = 'LoadMissionPanel row hoverable'
             if (name == this.state.selectedMissionName) {
                 rowClasses += ' selected'
             }
 
-            let row = (
-                <div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
+            const row = (
+                <div key={name} className={rowClasses} onClick={this.didClick.bind(this, name)}>
                     {name}
                 </div>
             )
@@ -57,7 +50,7 @@ export class LoadMissionPanel extends React.Component {
         })
 
         // Buttons
-        let buttonRow = (
+        const buttonRow = (
             <div className='LoadMissionPanel HorizontalFlexbox'>
                 <Button className='button-jcc' onClick={this.deleteClicked.bind(this)}>
                     <Icon path={mdiDelete}></Icon>
@@ -103,7 +96,7 @@ export class LoadMissionPanel extends React.Component {
     }
 
     deleteClicked() {
-        let name = this.state.selectedMissionName
+        const name = this.state.selectedMissionName
 
         if (name == null) {
             return
@@ -121,22 +114,22 @@ export class LoadMissionPanel extends React.Component {
     }
 
     uploadClicked() {
-        let input = document.createElement('input')
+        const input = document.createElement('input')
         input.type = 'file'
         input.onchange = (_) => {
-            let file = input.files[0]
+            const file = input.files[0]
 
             // setting up the reader
-            var reader = new FileReader()
+            const reader = new FileReader()
             reader.readAsText(file, 'UTF-8')
 
             // here we tell the reader what to do when it's done reading...
             reader.onload = (readerEvent) => {
-                var content = readerEvent.target.result as string // this is the content!
+                const content = readerEvent.target.result as string // this is the content!
 
                 // try to read the mission as JSON
                 try {
-                    let mission = JSON.parse(content)
+                    const mission = JSON.parse(content)
                     this.props.selectedMission?.(mission)
                 } catch (err) {
                     alert('Error: ' + err)

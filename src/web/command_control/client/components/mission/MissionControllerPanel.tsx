@@ -36,16 +36,14 @@ export default class MissionControllerPanel extends React.Component {
     }
 
     render() {
-        let self = this
-
-        let runPanelComponent = (
+        const runPanelComponent = (
             <RunPanel
-                bots={self.props.bots}
-                mission={self.props.mission}
-                loadMissionClick={self.props.loadMissionClick}
-                saveMissionClick={self.props.saveMissionClick}
-                deleteAllRunsInMission={self.props.deleteAllRunsInMission}
-                autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
+                bots={this.props.bots}
+                mission={this.props.mission}
+                loadMissionClick={this.props.loadMissionClick}
+                saveMissionClick={this.props.saveMissionClick}
+                deleteAllRunsInMission={this.props.deleteAllRunsInMission}
+                autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
             />
         )
 

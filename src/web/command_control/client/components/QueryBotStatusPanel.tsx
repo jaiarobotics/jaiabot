@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 import $ from 'jquery'
 import { error, success, warning, info, debug } from '../libs/notifications'
@@ -66,10 +61,10 @@ export default class QueryBotStatusPanel extends React.Component {
     submitQueryBotStatus() {
         if (!this.props.control()) return
 
-        let botId = Number($('#query_bot_status_input').val())
+        const botId = Number($('#query_bot_status_input').val())
         info('Query Bot Status for botId: ' + botId)
 
-        let engineering_command: Engineering = {
+        const engineering_command: Engineering = {
             bot_id: botId,
             query_bot_status: true
         }

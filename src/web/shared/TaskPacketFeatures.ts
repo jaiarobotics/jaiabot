@@ -7,7 +7,7 @@ import { Map } from 'ol'
 import { DriftPacket, DivePacket, TaskPacket } from './JAIAProtobuf'
 
 function DivePacketDescription(dive: DivePacket): string[] {
-    var rows: string[] = [`Depth achieved: ${dive.depth_achieved.toFixed(2)} m`]
+    const rows: string[] = [`Depth achieved: ${dive.depth_achieved.toFixed(2)} m`]
 
     if (dive.duration_to_acquire_gps != null) {
         rows.push(`Duration to acquire GPS: ${dive.duration_to_acquire_gps.toFixed(2)} s`)
@@ -42,7 +42,7 @@ interface FieldDescriptor {
 }
 
 export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
-    var features = []
+    const features = []
 
     // Drift markers
     const drift = taskPacket.drift

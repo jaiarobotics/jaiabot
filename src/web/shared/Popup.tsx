@@ -36,7 +36,7 @@ export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) 
 }
 
 export function addPopupHTML(map: Map, feature: Feature, popupHTML: string) {
-    var popupElement = document.createElement('div') as HTMLDivElement
+    const popupElement = document.createElement('div') as HTMLDivElement
     popupElement.classList.add('popup')
     popupElement.innerHTML = popupHTML
 

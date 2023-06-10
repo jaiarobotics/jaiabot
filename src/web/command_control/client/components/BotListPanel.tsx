@@ -32,16 +32,16 @@ export function BotListPanel(props: Props) {
         return bot1.bot_id - bot2.bot_id
     }
 
-    let bots = Object.values(props.podStatus?.bots ?? {}).sort(compare_by_botId)
-    let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compare_by_hubId)
+    const bots = Object.values(props.podStatus?.bots ?? {}).sort(compare_by_botId)
+    const hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compare_by_hubId)
 
     function BotDiv(bot: BotStatus) {
-        var key = 'bot-' + bot.bot_id
-        var botClass = 'bot-item'
+        const key = 'bot-' + bot.bot_id
+        const botClass = 'bot-item'
 
-        let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
-        let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
-        let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
+        const faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
+        const selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
+        const tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
 
         return (
             <div
@@ -57,11 +57,11 @@ export function BotListPanel(props: Props) {
     }
 
     function HubDiv(hub: HubStatus) {
-        var key = 'hub-' + hub.hub_id
-        var bothubClass = 'hub-item'
+        const key = 'hub-' + hub.hub_id
+        const bothubClass = 'hub-item'
 
-        let faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
-        let selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
+        const faultLevelClass = 'faultLevel' + faultLevel(hub.health_state)
+        const selected = hub.hub_id == props.selectedHubId ? 'selected' : ''
 
         //For now we are naming HUB, HUB with no id
         //In the future we will have to revisit this

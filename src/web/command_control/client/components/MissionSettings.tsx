@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button'
 import {
@@ -97,14 +92,13 @@ export class MissionSettingsPanel extends React.Component {
 
     render() {
         const { map, center_line_string } = this.props
-        let self = this
 
-        let missionType = this.state.mission_params?.mission_type
+        const missionType = this.state.mission_params?.mission_type
 
         const { missionBaseGoal, missionEndTask } = this.state
 
         // Get the final location, if available
-        var final_location: GeographicCoordinate
+        let final_location: GeographicCoordinate
 
         if (center_line_string != null) {
             const coordinates = center_line_string.geometry.coordinates
@@ -128,7 +122,7 @@ export class MissionSettingsPanel extends React.Component {
                                             multiple
                                             name='mission_bot_selection'
                                             id='mission-bot-selection'
-                                            onChange={(evt) => self.changeMissionBotSelection()}
+                                            onChange={(evt) => this.changeMissionBotSelection()}
                                         >
                                             <option value='0'>Bot 0</option>
                                             <option value='1'>Bot 1</option>
@@ -145,7 +139,7 @@ export class MissionSettingsPanel extends React.Component {
                                             id='mission-type'
                                             defaultValue={missionType ?? 'editing'}
                                             onChange={(evt) =>
-                                                self.changeMissionEditMode(evt.target.value)
+                                                this.changeMissionEditMode(evt.target.value)
                                             }
                                         >
                                             {/*<option value="editing">Editing</option>*/}
@@ -228,7 +222,7 @@ export class MissionSettingsPanel extends React.Component {
                         task={missionBaseGoal.task}
                         onChange={(task) => {
                             missionBaseGoal.task = task
-                            self.setState({ missionBaseGoal })
+                            this.setState({ missionBaseGoal })
                         }}
                     />
                     <hr />
@@ -239,7 +233,7 @@ export class MissionSettingsPanel extends React.Component {
                         location={final_location}
                         task={missionEndTask}
                         onChange={(missionEndTask) => {
-                            self.setState({ missionEndTask })
+                            this.setState({ missionEndTask })
                         }}
                     />
                     <hr />
@@ -302,7 +296,7 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionParameter(evt: Event) {
-        var { mission_params } = this.state
+        const { mission_params } = this.state
 
         const target = evt.target as any
         const key = target.name
@@ -341,7 +335,7 @@ export class MissionSettingsPanel extends React.Component {
         )
         // let missionBots = document.getElementById('mission-bot-selection').val();
         // console.log(missionBots);
-        let { mission_params } = this.state
+        const { mission_params } = this.state
         mission_params.selected_bots = missionBots
         this.setState({ mission_params })
         this.onMissionChangeBotList?.()
@@ -349,7 +343,7 @@ export class MissionSettingsPanel extends React.Component {
 
     changeMissionEditMode(missionEditMode: string) {
         // console.log(missionEditMode);
-        let { mission_params } = this.state
+        const { mission_params } = this.state
 
         if (missionEditMode === mission_params?.mission_type) {
             return

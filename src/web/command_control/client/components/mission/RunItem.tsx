@@ -43,14 +43,13 @@ export default class RunItem extends React.Component {
     }
 
     render() {
-        let self = this
         let runDeleteButton = null
         let runAssignSelect = null
         let duplicateRunButton = null
-        let title = this.props.run.name
-        let podStatusBotIds = Object.keys(self.props.bots)
-        let botsAssignedToRunsIds = Object.keys(self.props.mission.botsAssignedToRuns)
-        self.botsNotAssigned = []
+        const title = this.props.run.name
+        const podStatusBotIds = Object.keys(this.props.bots)
+        const botsAssignedToRunsIds = Object.keys(this.props.mission.botsAssignedToRuns)
+        this.botsNotAssigned = []
         let assignedLabel = ''
         let assignedOption = null
 
@@ -59,9 +58,9 @@ export default class RunItem extends React.Component {
         // Have not been assigned yet
         podStatusBotIds.forEach((key) => {
             if (!botsAssignedToRunsIds.includes(key)) {
-                let id = Number(key)
+                const id = Number(key)
                 if (isFinite(id)) {
-                    self.botsNotAssigned.push(id)
+                    this.botsNotAssigned.push(id)
                 }
             }
         })
@@ -69,12 +68,12 @@ export default class RunItem extends React.Component {
         // Check to see if that run is assigned
         // And the bot id is not included in the botsNotAssigned array
         if (
-            self.props.run.assigned != -1 &&
-            !self.botsNotAssigned.includes(self.props.run.assigned)
+            this.props.run.assigned != -1 &&
+            !this.botsNotAssigned.includes(this.props.run.assigned)
         ) {
-            assignedLabel = 'Bot-' + self.props.run.assigned
+            assignedLabel = 'Bot-' + this.props.run.assigned
             assignedOption = (
-                <MenuItem key={self.props.run.assigned} value={self.props.run.assigned}>
+                <MenuItem key={this.props.run.assigned} value={this.props.run.assigned}>
                     {assignedLabel}
                 </MenuItem>
             )
@@ -90,27 +89,27 @@ export default class RunItem extends React.Component {
                         id='bot-assigned-select'
                         value={this.props.run.assigned.toString()}
                         label='Assign'
-                        onChange={self.assignChange}
+                        onChange={this.assignChange}
                     >
                         <MenuItem key={-1} value={-1}>
                             Unassigned
                         </MenuItem>
 
                         {assignedOption ? (
-                            <MenuItem key={self.props.run.assigned} value={self.props.run.assigned}>
+                            <MenuItem key={this.props.run.assigned} value={this.props.run.assigned}>
                                 {assignedLabel}
                             </MenuItem>
                         ) : (
                             ''
                         )}
 
-                        {self.botsNotAssigned
-                            ? Object.keys(self.botsNotAssigned).map((id) => (
+                        {this.botsNotAssigned
+                            ? Object.keys(this.botsNotAssigned).map((id) => (
                                   <MenuItem
-                                      key={self.botsNotAssigned[Number(id)]}
-                                      value={self.botsNotAssigned[Number(id)]}
+                                      key={this.botsNotAssigned[Number(id)]}
+                                      value={this.botsNotAssigned[Number(id)]}
                                   >
-                                      Bot-{self.botsNotAssigned[Number(id)]}
+                                      Bot-{this.botsNotAssigned[Number(id)]}
                                   </MenuItem>
                               ))
                             : ''}
@@ -131,7 +130,7 @@ export default class RunItem extends React.Component {
 
                     if (confirm(warning_string)) {
                         //Deep copy
-                        let mission = this.props.mission
+                        const mission = this.props.mission
 
                         delete mission?.runs[this.props.run.id]
 
@@ -161,17 +160,17 @@ export default class RunItem extends React.Component {
         )
 
         // Create Edit Toggle
-        let edit = (
+        const edit = (
             <Switch
-                checked={self.state.editing}
-                onChange={self.editUpdate.bind(self)}
+                checked={this.state.editing}
+                onChange={this.editUpdate.bind(this)}
                 inputProps={{ 'aria-label': 'controlled' }}
             />
         )
 
-        let plan = this.props.run.command.plan
-        let repeats = plan?.repeats ?? 1
-        let repeatsInput = (
+        const plan = this.props.run.command.plan
+        const repeats = plan?.repeats ?? 1
+        const repeatsInput = (
             <div>
                 Repeats: {repeats}
                 <Slider
@@ -186,7 +185,7 @@ export default class RunItem extends React.Component {
                     onChange={(evt: Event, value: number, activeThumb: number) => {
                         if (plan != null) {
                             plan.repeats = value
-                            self.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
+                            this.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
                         }
                     }}
                 />
@@ -220,7 +219,7 @@ export default class RunItem extends React.Component {
     }
 
     assignChange = (event: SelectChangeEvent) => {
-        let value = Number(event.target.value)
+        const value = Number(event.target.value)
 
         if (isFinite(value)) {
             // Delete bot assignment if changed from previous

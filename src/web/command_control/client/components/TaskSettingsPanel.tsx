@@ -49,7 +49,7 @@ function TaskOptionsPanel(props: Props) {
         const key = target.name as keyof DiveParameters
         const value = Number(target.value)
 
-        var newTask = deepcopy(task)
+        const newTask = deepcopy(task)
         newTask.dive[key] = value
 
         GlobalSettings.diveParameters[key] = value
@@ -63,7 +63,7 @@ function TaskOptionsPanel(props: Props) {
         const key = target.name as keyof DriftParameters
         const value = Number(target.value)
 
-        var newTask = deepcopy(task)
+        const newTask = deepcopy(task)
         newTask.surface_drift[key] = value
 
         GlobalSettings.driftParameters[key] = value
@@ -77,7 +77,7 @@ function TaskOptionsPanel(props: Props) {
         const key = target.name as keyof ConstantHeadingParameters
         const value = Number(target.value)
 
-        var newTask = deepcopy(task)
+        const newTask = deepcopy(task)
         newTask.constant_heading[key] = value
 
         GlobalSettings.constantHeadingParameters[key] = value
@@ -105,7 +105,7 @@ function TaskOptionsPanel(props: Props) {
         map.addLayer(vector)
 
         // New interaction to get two points
-        let draw = new Draw({
+        const draw = new Draw({
             source: source,
             type: 'Point',
             stopClick: true
@@ -133,8 +133,8 @@ function TaskOptionsPanel(props: Props) {
             const start = location
             const end = getGeographicCoordinate(endCoordinate, map)
 
-            let constant_heading = task.constant_heading
-            let speed = constant_heading?.constant_heading_speed
+            const constant_heading = task.constant_heading
+            const speed = constant_heading?.constant_heading_speed
 
             // Guard
             if (start == null || constant_heading == null) {
@@ -147,20 +147,38 @@ function TaskOptionsPanel(props: Props) {
             }
 
             // Calculate heading and time from location and speed
-            let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
+            const rhumb_bearing = fmod(
+                rhumbBearing([start.lon, start.lat], [end.lon, end.lat]),
+                360
+            )
             constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
 
-            let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {
+            const rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {
                 units: 'meters'
             })
-            let t = rhumb_distance / speed
+            const t = rhumb_distance / speed
             constant_heading.constant_heading_time = Number(t.toFixed(0))
         })
     }
 
-    let dive = task.dive
-    let surface_drift = task.surface_drift
-    let constant_heading = task.constant_heading
+    const dive = task.dive
+    const surface_drift = task.surface_drift
+    const constant_heading = task.constant_heading
+    const clickingMapClass = clickingMap ? ' clicking-map' : ''
+    const selectOnMapButton =
+        props.location != null ? (
+            <Button
+                className={'button-jcc select-on-map' + clickingMapClass}
+                onClick={selectOnMapClicked}
+            >
+                Select on Map
+            </Button>
+        ) : null
+
+    function calculateDistance(speed: number, time: number) {
+        if (speed == null || time == null) return null
+        else return speed * time
+    }
 
     switch (task.type) {
         case TaskType.NONE:
@@ -261,24 +279,7 @@ function TaskOptionsPanel(props: Props) {
             )
             break
         case TaskType.CONSTANT_HEADING:
-            function calculateDistance(speed: number, time: number) {
-                if (speed == null || time == null) return null
-                else return speed * time
-            }
-
-            const clickingMapClass = clickingMap ? ' clicking-map' : ''
-
             // Select on Map button is only present if a location is passed via Props
-            const selectOnMapButton =
-                props.location != null ? (
-                    <Button
-                        className={'button-jcc select-on-map' + clickingMapClass}
-                        onClick={selectOnMapClicked}
-                    >
-                        Select on Map
-                    </Button>
-                ) : null
-
             return (
                 <div id='ConstantHeadingDiv' className='task-options'>
                     {selectOnMapButton}
@@ -347,7 +348,7 @@ function TaskOptionsPanel(props: Props) {
 }
 
 export function TaskSettingsPanel(props: Props) {
-    let taskOptionsPanel = <div></div>
+    const taskOptionsPanel = <div></div>
 
     function onChangeTaskType(evt: React.ChangeEvent<HTMLSelectElement>) {
         const newTaskType = evt.target.value as TaskType
@@ -363,7 +364,7 @@ export function TaskSettingsPanel(props: Props) {
         }
 
         // Use default parameters depending on which type of task we've switched to
-        var newTask: MissionTask = {
+        const newTask: MissionTask = {
             type: newTaskType
         }
 

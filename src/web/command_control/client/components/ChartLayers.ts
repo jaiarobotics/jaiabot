@@ -99,7 +99,7 @@ export const gebcoLayer = new TileLayer({
 
 export function createChartLayerGroup() {
     // Configure the basemap layers
-    let layers = [
+    const layers = [
         new TileLayer({
             properties: {
                 title: 'NOAA ENC Charts'

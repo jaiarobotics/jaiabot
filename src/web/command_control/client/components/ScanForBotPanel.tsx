@@ -1,7 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
 import React from 'react'
 import $ from 'jquery'
 import { error, success, warning, info, debug } from '../libs/notifications'
@@ -69,10 +65,10 @@ export default class ScanForBotPanel extends React.Component {
     submitScanForBot() {
         if (!this.props.control()) return
 
-        let botId = Number($('#scan_for_bot_input').val())
+        const botId = Number($('#scan_for_bot_input').val())
         info('Scan for BOT-ID: ' + botId)
 
-        let hubs = this.props.hubs
+        const hubs = this.props.hubs
         const hubKey = Object.keys(hubs)[0]
         const hub = hubs[Number(hubKey)]
 
@@ -80,7 +76,7 @@ export default class ScanForBotPanel extends React.Component {
         console.log(hub?.hub_id)
 
         if (hub?.hub_id != null) {
-            let command_for_hub: CommandForHub = {
+            const command_for_hub: CommandForHub = {
                 hub_id: hub?.hub_id,
                 type: HubCommandType.SCAN_FOR_BOTS,
                 scan_for_bot_id: botId
@@ -95,7 +91,7 @@ export default class ScanForBotPanel extends React.Component {
     submitScanForAllBots() {
         if (!this.props.control()) return
 
-        let hubs = this.props.hubs
+        const hubs = this.props.hubs
         const hubKey = Object.keys(hubs)[0]
         const hub = hubs[Number(hubKey)]
 
@@ -103,8 +99,8 @@ export default class ScanForBotPanel extends React.Component {
         console.log(hub?.hub_id)
 
         if (hub?.hub_id != null) {
-            for (let botId in hub?.bot_ids_in_radio_file) {
-                let command_for_hub: CommandForHub = {
+            for (const botId in hub?.bot_ids_in_radio_file) {
+                const command_for_hub: CommandForHub = {
                     hub_id: hub?.hub_id,
                     type: HubCommandType.SCAN_FOR_BOTS,
                     scan_for_bot_id: hub?.bot_ids_in_radio_file[botId]

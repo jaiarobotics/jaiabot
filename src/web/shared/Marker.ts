@@ -42,7 +42,7 @@ export function createMarker(map: Map, parameters: MarkerParameters) {
 
     // If we received a popupHTML, then use it
     if (parameters.popupHTML != null) {
-        var popupElement = document.createElement('div')
+        const popupElement = document.createElement('div')
         popupElement.classList.add('popup')
         popupElement.innerHTML = parameters.popupHTML
         Popup.addPopup(map, markerFeature, popupElement)

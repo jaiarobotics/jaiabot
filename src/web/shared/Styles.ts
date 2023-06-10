@@ -68,7 +68,7 @@ export function botMarker(feature: Feature): Style[] {
 
     const textOffsetRadius = 11
 
-    var color = defaultColor
+    let color = defaultColor
 
     if (feature.get('isDisconnected')) {
         color = disconnectedColor
@@ -80,7 +80,7 @@ export function botMarker(feature: Feature): Style[] {
 
     const text = String(feature.get('botId'))
 
-    var style = [
+    const style = [
         // Bot body marker
         new Style({
             image: new Icon({
@@ -124,7 +124,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const textOffsetRadius = 11
 
-    var color = defaultColor
+    let color = defaultColor
 
     if (feature.get('selected')) {
         color = selectedColor
@@ -132,7 +132,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const text = 'HUB'
 
-    var style = [
+    const style = [
         // Hub body marker
         new Style({
             image: new Icon({
@@ -230,7 +230,7 @@ export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumb
 }
 
 export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected)
+    const icon = goalIcon(goal.task?.type, isActive, isSelected)
 
     return new Style({
         image: icon,
@@ -247,7 +247,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
 }
 
 export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number) {
-    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber))
+    const icon = flagIcon(goal.task?.type, isSelected, Number(runNumber))
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
 
     return new Style({
@@ -270,7 +270,7 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
 // Markers for dives
 export function divePacket(dive: DivePacket) {
     // Depth text
-    var text = dive.depth_achieved?.toFixed(1)
+    let text = dive.depth_achieved?.toFixed(1)
     if (text != null) {
         text = text + 'm'
     } else {

@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
 
 // Material Design Icons
@@ -37,8 +32,6 @@ export class SaveMissionPanel extends React.Component {
     }
 
     render() {
-        let self = this
-
         // Nem text input
         const nameInput = (
             <div>
@@ -61,15 +54,15 @@ export class SaveMissionPanel extends React.Component {
         )
 
         // Mission rows
-        let missionNames = this.props.missionLibrary.missionNames()
-        let missionNameRows = missionNames.map((name) => {
-            var rowClasses = 'LoadMissionPanel row hoverable'
+        const missionNames = this.props.missionLibrary.missionNames()
+        const missionNameRows = missionNames.map((name) => {
+            let rowClasses = 'LoadMissionPanel row hoverable'
             if (name == this.state.selectedMissionName) {
                 rowClasses += ' selected'
             }
 
-            let row = (
-                <div key={name} className={rowClasses} onClick={self.didClick.bind(self, name)}>
+            const row = (
+                <div key={name} className={rowClasses} onClick={this.didClick.bind(this, name)}>
                     {name}
                 </div>
             )
@@ -78,7 +71,7 @@ export class SaveMissionPanel extends React.Component {
         })
 
         // Buttons
-        let buttonRow = (
+        const buttonRow = (
             <div className='LoadMissionPanel HorizontalFlexbox'>
                 <Button className='button-jcc' onClick={this.deleteClicked.bind(this)}>
                     <Icon path={mdiDelete}></Icon>
@@ -111,7 +104,7 @@ export class SaveMissionPanel extends React.Component {
     }
 
     saveClicked() {
-        let name = this.state.selectedMissionName
+        const name = this.state.selectedMissionName
         if (name == null) {
             return
         }
@@ -128,7 +121,7 @@ export class SaveMissionPanel extends React.Component {
     }
 
     deleteClicked() {
-        let name = this.state.selectedMissionName
+        const name = this.state.selectedMissionName
 
         if (name == null) {
             return

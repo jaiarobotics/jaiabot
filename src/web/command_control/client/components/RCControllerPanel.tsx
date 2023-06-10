@@ -50,17 +50,17 @@ export default class RCControllerPanel extends React.Component {
     }
 
     render() {
-        let self = this
+        const self = this
 
         // Set bot id
         self.props.remoteControlValues.bot_id = self.props.bot.bot_id
 
         // Take 40 % of the event distance provides
         // This means our max forward throttle would be 40 or 2 m/s.
-        let limitForwardThrottle = 0.4
+        const limitForwardThrottle = 0.4
         // Take 10 % of the event distance provides
         // This means our max backward throttle would be 10 or 0.5 m/s.
-        let limitBackwardThrottle = 0.1
+        const limitBackwardThrottle = 0.1
 
         if (
             self.state.botStateShow.test(self.props.bot.mission_state) &&
@@ -99,7 +99,7 @@ export default class RCControllerPanel extends React.Component {
         })
 
         // Create the Select Object
-        let selectControlType = (
+        const selectControlType = (
             <div className='rc-dropdown'>
                 <div>Control:</div>
                 <ThemeProvider theme={theme}>
@@ -194,7 +194,7 @@ export default class RCControllerPanel extends React.Component {
                         }
                     }}
                     move={(e) => {
-                        let rudder_adjust_value = this.adjustThrottleResponse(e.x)
+                        const rudder_adjust_value = this.adjustThrottleResponse(e.x)
 
                         self.state.rudderDirection = e.direction.toString()
                         self.props.remoteControlValues.pid_control.rudder = rudder_adjust_value
@@ -220,7 +220,7 @@ export default class RCControllerPanel extends React.Component {
                         }
                     }}
                     move={(e) => {
-                        let rudder_adjust_value = this.adjustThrottleResponse(e.x)
+                        const rudder_adjust_value = this.adjustThrottleResponse(e.x)
 
                         if (e.y >= 0) {
                             self.props.remoteControlValues.pid_control.throttle =
@@ -286,7 +286,7 @@ export default class RCControllerPanel extends React.Component {
                                 self.props.createInterval()
                             }
 
-                            let rudder_adjust_value = this.adjustThrottleResponse(value)
+                            const rudder_adjust_value = this.adjustThrottleResponse(value)
 
                             if (self.state.controlType == 'Manual Single') {
                                 if (axisName == 'LeftStickX') {

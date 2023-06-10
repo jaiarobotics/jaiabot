@@ -1,7 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
 import {
     Goal,
     GeographicCoordinate,
@@ -12,7 +8,7 @@ import {
 } from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl'
 
-const MAX_RUNS: number = 99
+const MAX_RUNS = 99
 
 const hardcoded_goals: Goal[][] = [
     [
@@ -34,7 +30,7 @@ const hardcoded_goals: Goal[][] = [
 ]
 
 function commandWithGoals(botId: number | undefined, goals: Goal[]) {
-    let millisecondsSinceEpoch = new Date().getTime()
+    const millisecondsSinceEpoch = new Date().getTime()
 
     const command: Command = {
         bot_id: botId,
@@ -58,7 +54,7 @@ export type CommandList = { [key: number]: Command }
 
 export class Missions {
     static defaultMissions() {
-        let mission: RunLibrary = {
+        const mission: RunLibrary = {
             'Mission-1': {
                 id: 'mission-1',
                 name: 'Mission 1',
@@ -68,7 +64,7 @@ export class Missions {
             }
         }
 
-        for (let [index, goals] of hardcoded_goals.entries()) {
+        for (const [index, goals] of hardcoded_goals.entries()) {
             this.addRunWithGoals(-1, goals, mission['Mission-1'])
         }
 
@@ -76,8 +72,8 @@ export class Missions {
     }
 
     static RCMode(botId: number, datum_location: GeographicCoordinate) {
-        let millisecondsSinceEpoch = new Date().getTime()
-        var command: Command = {}
+        const millisecondsSinceEpoch = new Date().getTime()
+        let command: Command = {}
         command = {
             bot_id: botId,
             time: millisecondsSinceEpoch,
@@ -99,7 +95,7 @@ export class Missions {
         if (!Array.isArray(locations)) {
             locations = [locations]
         }
-        let goals = locations.map((location): Goal => ({ location: location }))
+        const goals = locations.map((location): Goal => ({ location: location }))
         return commandWithGoals(botId, goals)
     }
 
@@ -116,8 +112,8 @@ export class Missions {
         locations: GeographicCoordinate[],
         mission: MissionInterface
     ) {
-        let incr = mission.runIdIncrement + 1
-        let botsAssignedToRuns = mission?.botsAssignedToRuns
+        const incr = mission.runIdIncrement + 1
+        const botsAssignedToRuns = mission?.botsAssignedToRuns
 
         if (!Missions.isValidRunNumber(mission)) {
             return
@@ -143,8 +139,8 @@ export class Missions {
     }
 
     static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
-        let incr = mission.runIdIncrement + 1
-        let botsAssignedToRuns = mission?.botsAssignedToRuns
+        const incr = mission.runIdIncrement + 1
+        const botsAssignedToRuns = mission?.botsAssignedToRuns
 
         if (!Missions.isValidRunNumber(mission)) {
             return
@@ -170,8 +166,8 @@ export class Missions {
     }
 
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
-        let incr = mission.runIdIncrement + 1
-        let botsAssignedToRuns = mission?.botsAssignedToRuns
+        const incr = mission.runIdIncrement + 1
+        const botsAssignedToRuns = mission?.botsAssignedToRuns
 
         if (!Missions.isValidRunNumber(mission)) {
             return

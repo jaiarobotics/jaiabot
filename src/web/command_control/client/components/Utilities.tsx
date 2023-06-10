@@ -3,7 +3,7 @@ import { Coordinate } from 'ol/coordinate'
 import { toLonLat } from 'ol/proj'
 import { GeographicCoordinate } from './shared/JAIAProtobuf'
 
-let abs = Math.abs
+const abs = Math.abs
 
 export function formatLatitude(lat: number, prec = 5) {
     if (lat == null) {
@@ -38,7 +38,7 @@ export function deepcopy<T>(aObject: T): T {
     // Prevent undefined objects
     // if (!aObject) return aObject;
 
-    let bObject: any = Array.isArray(aObject) ? [] : {}
+    const bObject: any = Array.isArray(aObject) ? [] : {}
 
     let value
     for (const key in aObject) {
@@ -60,7 +60,7 @@ export function areEqual(a: any, b: any) {
 export function randomBase57(stringLength: number) {
     const base75Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstvwxyz'
 
-    var s = ''
+    let s = ''
     for (let i = 0; i < stringLength; i++) {
         s = s.concat(base75Chars[Math.floor(Math.random() * base75Chars.length)])
     }
@@ -70,7 +70,7 @@ export function randomBase57(stringLength: number) {
 export function downloadToFile(data: string, mimeType: string, fileName: string) {
     const blob = new Blob([data], { type: mimeType })
 
-    var link = window.document.createElement('a')
+    const link = window.document.createElement('a')
     link.href = window.URL.createObjectURL(blob)
     // Construct filename dynamically and set to link.download
     link.download = fileName

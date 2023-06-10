@@ -1,2 +1,8 @@
-legacy/**
-server/**
+legacy
+server
+jdv
+jed
+node_modules
+command_control/dist
+command_control/node_modules
+command_control/client/libs

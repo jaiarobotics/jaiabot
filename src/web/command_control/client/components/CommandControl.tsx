@@ -1,15 +1,5 @@
-/* eslint-disable react/jsx-no-bind */
-/* eslint-disable react/self-closing-comp */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable react/sort-comp */
-/* eslint-disable react/no-danger */
-/* eslint-disable max-len */
-/* eslint-disable react/no-unused-state */
-/* eslint-disable react/no-multi-comp */
-
 import React, { MouseEvent, ReactElement } from 'react'
-import { Load, Save, GlobalSettings } from './Settings'
+import { Save, GlobalSettings } from './Settings'
 import { Missions } from './Missions'
 import { GoalSettingsPanel } from './GoalSettings'
 import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
@@ -22,16 +12,11 @@ import { taskData } from './TaskPackets'
 import Icon from '@mdi/react'
 import {
     mdiPlay,
-    mdiFolderOpen,
-    mdiContentSave,
     mdiLanDisconnect,
     mdiCheckboxMarkedCirclePlusOutline,
     mdiFlagVariantPlus,
-    mdiSkipNext,
     mdiArrowULeftTop,
-    mdiDownload,
     mdiStop,
-    mdiPause,
     mdiViewList
 } from '@mdi/js'
 
@@ -53,16 +38,12 @@ import {
     Translate as TranslateInteraction,
     Pointer as PointerInteraction,
     defaults as defaultInteractions,
-    Interaction,
-    DragAndDrop
+    Interaction
 } from 'ol/interaction'
 import OlView from 'ol/View'
 import OlIcon from 'ol/style/Icon'
 import OlText from 'ol/style/Text'
 import OlLayerGroup from 'ol/layer/Group'
-import OlSourceOsm from 'ol/source/OSM'
-import OlSourceXYZ from 'ol/source/XYZ'
-import { doubleClick } from 'ol/events/condition'
 import OlGraticule from 'ol/layer/Graticule'
 import { Vector as OlVectorSource } from 'ol/source'
 import { Vector as OlVectorLayer } from 'ol/layer'
@@ -73,7 +54,6 @@ import OlMultiLineString from 'ol/geom/MultiLineString'
 import OlFeature from 'ol/Feature'
 import GeoJSON from 'ol/format/GeoJSON'
 import { GPX, IGC, KML, TopoJSON } from 'ol/format'
-import OlTileLayer from 'ol/layer/Tile'
 import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent'
 import OlScaleLine from 'ol/control/ScaleLine'
 import OlMousePosition from 'ol/control/MousePosition'
@@ -82,7 +62,7 @@ import OlRotate from 'ol/control/Rotate'
 import { Coordinate, createStringXY as OlCreateStringXY } from 'ol/coordinate'
 import { unByKey as OlUnobserveByKey } from 'ol/Observable'
 import { getLength as OlGetLength } from 'ol/sphere'
-import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom'
+import { Geometry, LineString, MultiLineString, LineString as OlLineString } from 'ol/geom'
 import OlDrawInteraction, { DrawEvent } from 'ol/interaction/Draw'
 import {
     Circle as OlCircleStyle,
@@ -92,41 +72,29 @@ import {
 } from 'ol/style'
 import OlLayerSwitcher from 'ol-layerswitcher'
 import OlAttribution from 'ol/control/Attribution'
-import { TransformFunction, getTransform, toUserResolution } from 'ol/proj'
-import { deepcopy, areEqual, randomBase57 } from './Utilities'
+import { getTransform } from 'ol/proj'
+import { deepcopy } from './Utilities'
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
 import $ from 'jquery'
-// import 'jquery-ui/themes/base/core.css';
-// import 'jquery-ui/themes/base/theme.css';
 import 'jquery-ui/ui/widgets/resizable'
-// import 'jquery-ui/themes/base/resizable.css';
 import 'jquery-ui/ui/widgets/slider'
-// import 'jquery-ui/themes/base/slider.css';
 import 'jquery-ui/ui/widgets/sortable'
-// import 'jquery-ui/themes/base/sortable.css';
 import 'jquery-ui/ui/widgets/button'
-// import 'jquery-ui/themes/base/button.css';
 import 'jquery-ui/ui/effects/effect-blind'
-// import 'jquery-ui/themes/base/checkboxradio.css';
-// import 'jquery-ui/ui/widgets/checkboxradio';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
     faMapMarkerAlt,
-    faMapMarkedAlt,
     faRuler,
     faEdit,
     faLayerGroup,
-    faWrench,
-    IconDefinition
+    faWrench
 } from '@fortawesome/free-solid-svg-icons'
 
-const jaiabot_icon = require('../icons/jaiabot.png')
-
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState } from './Details'
-import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI'
+import { jaiaAPI } from '../../common/JaiaAPI'
 
 import tooltips from '../libs/tooltips'
 
@@ -137,9 +105,7 @@ import { error, success, warning, info } from '../libs/notifications'
 
 // Don't use any third party css exept reset-css!
 import 'reset-css'
-// import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/CommandControl.less'
-import { transform } from 'ol/proj'
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
@@ -150,7 +116,6 @@ const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import SoundEffects from './SoundEffects'
-import { persistVisibility } from './VisibleLayerPersistance'
 
 import { KMZ } from './KMZ'
 import { createChartLayerGroup, gebcoLayer } from './ChartLayers'
@@ -158,14 +123,10 @@ import { createBaseLayerGroup } from './BaseLayers'
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions'
-import { fromLonLat } from 'ol/proj.js'
 import {
     Goal,
-    HubStatus,
-    BotStatus,
     TaskType,
     GeographicCoordinate,
-    MissionPlan,
     CommandType,
     MissionStart,
     MovementType,
@@ -173,26 +134,21 @@ import {
     Engineering,
     MissionTask
 } from './shared/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
+import { MapBrowserEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import BaseEvent from 'ol/events/Event'
 import { EventsKey } from 'ol/events'
 import { Feature as TFeature, Units } from '@turf/turf'
-import TileLayer from 'ol/layer/Tile'
 import { PodStatus } from './PortalStatus'
 import * as Styles from './shared/Styles'
 import { DragAndDropEvent } from 'ol/interaction/DragAndDrop'
 import { createBotFeature } from './shared/BotFeature'
 import { createHubFeature } from './shared/HubFeature'
-import { run } from 'node:test'
-import { getGeographicCoordinate } from './Utilities'
+import { constants } from 'crypto'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
-// eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less')
-
-const COLOR_SELECTED = lessVars.selectedColor
 
 punchJQuery($)
 // jqueryDrawer($);
@@ -211,7 +167,6 @@ const sidebarInitialWidth = 0
 
 const POLLING_INTERVAL_MS = 500
 
-const MAX_RUNS: number = 99
 const MAX_GOALS = 15
 
 // Store Previous Mission History
@@ -225,7 +180,7 @@ String.prototype.endsWith = function (suffix) {
 
 // ===========================================================================================================================
 
-var mapSettings = GlobalSettings.mapSettings
+const mapSettings = GlobalSettings.mapSettings
 
 interface Props {}
 
@@ -569,7 +524,7 @@ export default class CommandControl extends React.Component {
             this.changeInteraction()
         })
 
-        let surveyPolygonSource = new OlVectorSource({ wrapX: false })
+        const surveyPolygonSource = new OlVectorSource({ wrapX: false })
 
         this.surveyPolygonInteraction = new OlDrawInteraction({
             // features: map.missionPlanningLayer.features,
@@ -619,18 +574,23 @@ export default class CommandControl extends React.Component {
                 const turfPolygon = format.writeFeatureObject(geom1) as any
 
                 if (turfPolygon.geometry.coordinates[0].length > 500) {
-                    let cellSide = this.state.missionParams.spacing
+                    const cellSide = this.state.missionParams.spacing
 
-                    let options = { units: 'meters' as Units, mask: turf.toWgs84(turfPolygon) }
+                    const options = { units: 'meters' as Units, mask: turf.toWgs84(turfPolygon) }
 
-                    let turfPolygonBbox = turf.bbox(turf.toWgs84(turfPolygon))
+                    const turfPolygonBbox = turf.bbox(turf.toWgs84(turfPolygon))
 
-                    let missionPlanningGridTurf = turf.pointGrid(turfPolygonBbox, cellSide, options)
+                    const missionPlanningGridTurf = turf.pointGrid(
+                        turfPolygonBbox,
+                        cellSide,
+                        options
+                    )
 
                     if (missionPlanningGridTurf.features.length > 0) {
-                        let missionPlanningGridTurfCentroid = turf.centroid(missionPlanningGridTurf)
-                        let optionsRotate = { pivot: missionPlanningGridTurfCentroid }
-                        let missionPlanningGridTurfRotated = turf.transformRotate(
+                        const missionPlanningGridTurfCentroid =
+                            turf.centroid(missionPlanningGridTurf)
+                        const optionsRotate = { pivot: missionPlanningGridTurfCentroid }
+                        const missionPlanningGridTurfRotated = turf.transformRotate(
                             missionPlanningGridTurf,
                             this.state.missionParams.orientation,
                             optionsRotate
@@ -638,7 +598,7 @@ export default class CommandControl extends React.Component {
 
                         if (missionPlanningGridTurfRotated.features.length > 0) {
                             // const missionPlanningGridOl = format.readFeatures(missionPlanningGridTurf, {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
-                            let turfCombined = turf.combine(missionPlanningGridTurfRotated)
+                            const turfCombined = turf.combine(missionPlanningGridTurfRotated)
 
                             const missionPlanningGridOl = format.readFeature(
                                 turfCombined.features[0].geometry,
@@ -648,26 +608,26 @@ export default class CommandControl extends React.Component {
                                 }
                             )
 
-                            let optionsMissionLines = { units: 'meters' as Units }
-                            let bot_dict_length = Object.keys(this.podStatus.bots).length
-                            let bot_list = Array.from(Array(bot_dict_length).keys())
-                            let missionRhumbDestPoint = turf.rhumbDestination(
+                            const optionsMissionLines = { units: 'meters' as Units }
+                            const bot_dict_length = Object.keys(this.podStatus.bots).length
+                            const bot_list = Array.from(Array(bot_dict_length).keys())
+                            const missionRhumbDestPoint = turf.rhumbDestination(
                                 missionPlanningGridTurfCentroid,
                                 this.state.missionParams.spacing * bot_dict_length,
                                 this.state.missionParams.orientation,
                                 optionsMissionLines
                             )
 
-                            let centerLine = turf.lineString([
+                            const centerLine = turf.lineString([
                                 missionPlanningGridTurfCentroid.geometry.coordinates,
                                 missionRhumbDestPoint.geometry.coordinates
                             ])
 
-                            let lineSegments: any[] = []
+                            const lineSegments: any[] = []
                             let firstDistance = 0
                             let nextDistance = this.state.missionParams.spacing
                             bot_list.forEach((bot) => {
-                                let ls = turf.lineSliceAlong(
+                                const ls = turf.lineSliceAlong(
                                     centerLine,
                                     firstDistance,
                                     nextDistance,
@@ -679,11 +639,11 @@ export default class CommandControl extends React.Component {
                             })
 
                             // let lineSegmentsFc = turf.featureCollection(lineSegments);
-                            let lineSegmentsMl = turf.multiLineString(lineSegments)
+                            const lineSegmentsMl = turf.multiLineString(lineSegments)
                             // console.log('lineSegmentsMl');
                             // console.log(lineSegmentsMl);
 
-                            let offsetLines: any[] = []
+                            const offsetLines: any[] = []
 
                             // let x = turf.getGeom(lineSegmentsMl);
                             // let y = [];
@@ -704,14 +664,14 @@ export default class CommandControl extends React.Component {
                             // console.log('offsetLines');
                             // console.log(offsetLines);
 
-                            let missionPlanningLinesTurf = turf.multiLineString(offsetLines)
+                            const missionPlanningLinesTurf = turf.multiLineString(offsetLines)
                             // console.log('missionPlanningLinesTurf');
                             // console.log(missionPlanningLinesTurf);
 
                             // console.log(OlFeature);
                             // console.log(OlMultiLineString);
-                            let a = turf.getGeom(missionPlanningLinesTurf)
-                            let b: any[] = []
+                            const a = turf.getGeom(missionPlanningLinesTurf)
+                            const b: any[] = []
                             a.coordinates.forEach((coord) => {
                                 b.push(
                                     (
@@ -730,8 +690,8 @@ export default class CommandControl extends React.Component {
                             // 	featureProjection: 'EPSG:3857'
                             // })
 
-                            let c = turf.getGeom(missionPlanningLinesTurf)
-                            let d: any[] = []
+                            const c = turf.getGeom(missionPlanningLinesTurf)
+                            const d: any[] = []
                             c.coordinates.forEach((coord) => {
                                 d.push(
                                     (
@@ -756,9 +716,9 @@ export default class CommandControl extends React.Component {
                     // $('#surveyPolygonResult').text(CommandControl.formatLength(geom));
                 }
 
-                let spArea =
+                const spArea =
                     Math.trunc((turf.area(turf.toWgs84(turfPolygon)) / 1000000) * 100) / 100
-                let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon)) * 100) / 100
+                const spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon)) * 100) / 100
                 if (spArea !== undefined && spPerimeter !== undefined) {
                     this.state.missionParams.sp_area = spArea
                     this.state.missionParams.sp_perimeter = spPerimeter
@@ -808,8 +768,8 @@ export default class CommandControl extends React.Component {
 
             const format = new GeoJSON()
             const turfPolygon = format.writeFeatureObject(geom1)
-            let spArea = Math.trunc((turf.area(turf.toWgs84(turfPolygon)) / 1000000) * 100) / 100
-            let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon)) * 100) / 100
+            const spArea = Math.trunc((turf.area(turf.toWgs84(turfPolygon)) / 1000000) * 100) / 100
+            const spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon)) * 100) / 100
             // console.log('spArea');
             // console.log(spArea);
             // if (spArea !== undefined && spPerimeter !== undefined) {
@@ -821,9 +781,9 @@ export default class CommandControl extends React.Component {
             // 	this.state.missionParams.sp_perimeter = spPerimeter;
             // }
 
-            let geo_geom = (evt.feature as OlFeature<LineString>).getGeometry()
+            const geo_geom = (evt.feature as OlFeature<LineString>).getGeometry()
             geo_geom.transform('EPSG:3857', 'EPSG:4326')
-            let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+            const surveyPolygonGeoCoords = geo_geom.getCoordinates()
 
             this.setState({
                 surveyPolygonFeature: evt.feature,
@@ -985,7 +945,7 @@ export default class CommandControl extends React.Component {
 
         this.baseLayerGroup = createBaseLayerGroup()
 
-        let layers = [
+        const layers = [
             this.baseLayerGroup,
             this.chartLayerGroup,
             this.measurementLayerGroup,
@@ -1004,7 +964,7 @@ export default class CommandControl extends React.Component {
     }
 
     componentDidMount() {
-        let test = 'test'
+        const test = 'test'
 
         //const backgroundColor = 0x000000;
 
@@ -1130,8 +1090,6 @@ export default class CommandControl extends React.Component {
         const viewport = document.getElementById(this.mapDivId)
         map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)))
 
-        const us = this
-
         this.timerID = setInterval(() => this.pollPodStatus(), 0)
         ;($('.panel > h2') as any).disableSelection()
 
@@ -1173,7 +1131,7 @@ export default class CommandControl extends React.Component {
 
         // Hotkeys
         function KeyPress(e: KeyboardEvent) {
-            let target = e.target as any
+            const target = e.target as any
 
             switch (target.tagName.toLowerCase()) {
                 case 'input':
@@ -1226,7 +1184,7 @@ export default class CommandControl extends React.Component {
             document.getElementById('layerinfo').innerHTML = ''
             const viewResolution = /** @type {number} */ map.getView().getResolution()
 
-            let theSource = gebcoLayer.getSource()
+            const theSource = gebcoLayer.getSource()
 
             const url = theSource.getFeatureInfoUrl(evt.coordinate, viewResolution, 'EPSG:4326', {
                 INFO_FORMAT: 'text/html',
@@ -1276,7 +1234,7 @@ export default class CommandControl extends React.Component {
 
         // Survey exclusion areas
         const surveyExclusionsStyle = function (feature: OlFeature) {
-            let lineStyle = new OlStyle({
+            const lineStyle = new OlStyle({
                 fill: new OlFillStyle({
                     color: 'rgb(196,10,10)'
                 }),
@@ -1299,7 +1257,7 @@ export default class CommandControl extends React.Component {
             return [lineStyle]
         }
 
-        let surveyExclusionsSource = new OlVectorSource({ wrapX: false })
+        const surveyExclusionsSource = new OlVectorSource({ wrapX: false })
         this.surveyExclusionsInteraction = new OlDrawInteraction({
             source: surveyExclusionsSource,
             stopClick: true,
@@ -1326,10 +1284,10 @@ export default class CommandControl extends React.Component {
         this.surveyExclusionsInteraction.on('drawend', (evt: DrawEvent) => {
             // console.log('surveyExclusionsInteraction drawend');
 
-            let featuresExclusions = []
-            let geometry = evt.feature.getGeometry() as MultiLineString
+            const featuresExclusions = []
+            const geometry = evt.feature.getGeometry() as MultiLineString
 
-            let surveyExclusionsFeature = new OlFeature({
+            const surveyExclusionsFeature = new OlFeature({
                 geometry: new OlLineString(turf.coordAll(turf.polygon(geometry.getCoordinates()))),
                 name: 'Exclusions'
             })
@@ -1350,11 +1308,11 @@ export default class CommandControl extends React.Component {
         })
 
         // Survey planning using lines
-        let surveyLineStyle = function (feature: OlFeature<LineString>) {
+        const surveyLineStyle = function (feature: OlFeature<LineString>) {
             let rotationAngle = 0
             let rhumbDist = 0
             let rhumbHomeDist = 0
-            let stringCoords = feature.getGeometry().getCoordinates()
+            const stringCoords = feature.getGeometry().getCoordinates()
             let coords = stringCoords.slice(-2)
             if (
                 coords[1][0] == coords[0][0] &&
@@ -1364,7 +1322,7 @@ export default class CommandControl extends React.Component {
                 coords = stringCoords.slice(-3, -1)
             }
 
-            let lineStyle = new OlStyle({
+            const lineStyle = new OlStyle({
                 fill: new OlFillStyle({
                     color: 'rgb(196,10,10)'
                 }),
@@ -1384,7 +1342,7 @@ export default class CommandControl extends React.Component {
                 })
             })
 
-            let iconStyle = new OlStyle({
+            const iconStyle = new OlStyle({
                 image: new OlIcon({
                     src: missionOrientationIcon,
                     scale: [0.5, 0.5]
@@ -1409,7 +1367,10 @@ export default class CommandControl extends React.Component {
             iconStyle
                 .getImage()
                 .setRotation(Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]))
-            let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
+            const rotAngRadians = Math.atan2(
+                coords[1][0] - coords[0][0],
+                coords[1][1] - coords[0][1]
+            )
 
             rotationAngle = Number(
                 (Math.trunc(turf.radiansToDegrees(rotAngRadians) * 100) / 100).toFixed(2)
@@ -1418,32 +1379,32 @@ export default class CommandControl extends React.Component {
                 rotationAngle = rotationAngle + 360
             }
 
-            const { homeLocation } = us.state
+            const { homeLocation } = this.state
             if (stringCoords[0].length >= 2) {
-                let previousIndex = stringCoords.length - 2
-                let nextIndex = stringCoords.length - 1
+                const previousIndex = stringCoords.length - 2
+                const nextIndex = stringCoords.length - 1
                 rhumbDist = turf.rhumbDistance(
                     turf.toWgs84(turf.point(stringCoords[previousIndex])),
                     turf.toWgs84(turf.point(stringCoords[nextIndex])),
                     { units: 'kilometers' }
                 )
-                let rhumbDistString = Number(rhumbDist.toFixed(2)).toString()
+                const rhumbDistString = Number(rhumbDist.toFixed(2)).toString()
                 if (homeLocation !== null) {
                     rhumbHomeDist = turf.rhumbDistance(
                         turf.toWgs84(turf.point(stringCoords[nextIndex])),
                         turf.point([homeLocation.lon, homeLocation.lat]),
                         { units: 'kilometers' }
                     )
-                    let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString()
+                    const rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString()
                 }
             }
 
-            us.updateMissionLayer()
+            this.updateMissionLayer()
 
             return [lineStyle, iconStyle]
         }
 
-        let surveyLinesSource = new OlVectorSource({ wrapX: false })
+        const surveyLinesSource = new OlVectorSource({ wrapX: false })
         this.surveyLinesInteraction = new OlDrawInteraction({
             source: surveyLinesSource,
             stopClick: true,
@@ -1471,13 +1432,13 @@ export default class CommandControl extends React.Component {
 
                 const format = new GeoJSON()
 
-                let { missionParams } = this.state
+                const { missionParams } = this.state
 
-                let stringCoords = geom1.getGeometry().getCoordinates()
+                const stringCoords = geom1.getGeometry().getCoordinates()
 
                 if (stringCoords[0].length >= 2) {
-                    let coords = stringCoords.slice(-2)
-                    let rotAngRadians = Math.atan2(
+                    const coords = stringCoords.slice(-2)
+                    const rotAngRadians = Math.atan2(
                         coords[1][0] - coords[0][0],
                         coords[1][1] - coords[0][1]
                     )
@@ -1491,7 +1452,7 @@ export default class CommandControl extends React.Component {
                     missionParams.orientation = rotationAngle
                     // document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
 
-                    let bot_list = Object.keys(this.podStatus.bots)
+                    const bot_list = Object.keys(this.podStatus.bots)
 
                     // console.log('TESTING')
                     // console.log(this);
@@ -1499,18 +1460,18 @@ export default class CommandControl extends React.Component {
                     // console.log(turf);
                     // console.log(format);
 
-                    let maxLineLength =
+                    const maxLineLength =
                         (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000
                     let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]])
 
                     // Check if user selects length > allowed (bots * spacing), if so make centerLine max length
-                    let currentCenterLineLength = turf.length(turf.toWgs84(centerLineString))
+                    const currentCenterLineLength = turf.length(turf.toWgs84(centerLineString))
                     // console.log('currentCenterLineLength');
                     // console.log(currentCenterLineLength);
                     // console.log('maxLineLength');
                     // console.log(maxLineLength);
                     if (currentCenterLineLength >= maxLineLength) {
-                        let rhumbPoint = turf.rhumbDestination(
+                        const rhumbPoint = turf.rhumbDestination(
                             turf.toWgs84(turf.point(stringCoords[0])),
                             maxLineLength - Number(missionParams.spacing) / 1000,
                             rotationAngle
@@ -1525,7 +1486,7 @@ export default class CommandControl extends React.Component {
                         // console.log(centerLineString);
                     }
 
-                    let centerLineStringWgs84 = turf.toWgs84(centerLineString)
+                    const centerLineStringWgs84 = turf.toWgs84(centerLineString)
 
                     // TODO: Maybe use turf.shortestPath here to find a way around the exclusion
                     // let centerLineStringWgs84Diverted = null;
@@ -1546,18 +1507,18 @@ export default class CommandControl extends React.Component {
                     // 	centerLineStringWgs84Diverted = centerLineStringWgs84;
                     // }
 
-                    let centerLineStringWgs84Chunked = turf.lineChunk(
+                    const centerLineStringWgs84Chunked = turf.lineChunk(
                         centerLineStringWgs84,
                         Number(missionParams.spacing) / 1000
                     )
-                    let centerLineFc = turf.combine(centerLineStringWgs84Chunked)
-                    let centerLine = turf.getGeom(centerLineFc as any).features[0]
+                    const centerLineFc = turf.combine(centerLineStringWgs84Chunked)
+                    const centerLine = turf.getGeom(centerLineFc as any).features[0]
                     this.setState({ center_line_string: centerLineString })
-                    let currentLineLength = turf.length(centerLine)
+                    const currentLineLength = turf.length(centerLine)
 
                     if (currentLineLength <= maxLineLength - Number(missionParams.spacing) / 1000) {
-                        let offsetLines: any[] = []
-                        let lineOffsetStart =
+                        const offsetLines: any[] = []
+                        const lineOffsetStart =
                             -1 * (Number(missionParams.spacing) * ((bot_list.length / 2) * 0.75))
                         let nextLineOffset = 0
                         let currentLineOffset = 0
@@ -1577,8 +1538,8 @@ export default class CommandControl extends React.Component {
                             nextLineOffset = nextLineOffset + Number(missionParams.spacing)
                         })
 
-                        let alongLines: any = {}
-                        let alongPoints: { [key: string]: number[][] } = {}
+                        const alongLines: any = {}
+                        const alongPoints: { [key: string]: number[][] } = {}
                         offsetLines.forEach((offsetLine) => {
                             turf.geomEach(
                                 offsetLine,
@@ -1589,27 +1550,27 @@ export default class CommandControl extends React.Component {
                                     featureBBox,
                                     featureId
                                 ) {
-                                    let botId = featureProperties.botId as number
+                                    const botId = featureProperties.botId as number
                                     alongLines[botId] = turf.toMercator(currentGeometry).coordinates
                                 }
                             )
                             if (this.state.surveyExclusions) {
-                                let alongPointsBeforeExclusion = turf.coordAll(
+                                const alongPointsBeforeExclusion = turf.coordAll(
                                     turf.cleanCoords(
                                         turf.multiPoint(
                                             round(turf.coordAll(turf.explode(offsetLine)), 7)
                                         )
                                     )
                                 )
-                                let alongPointsAfterExclusion: number[][] = []
+                                const alongPointsAfterExclusion: number[][] = []
                                 alongPointsBeforeExclusion.forEach((point) => {
                                     // console.log('this.state.surveyExclusions');
-                                    let se = turf.coordAll(
+                                    const se = turf.coordAll(
                                         turf.toWgs84(turf.multiPoint(this.state.surveyExclusions))
                                     )
                                     // console.log(se);
                                     // console.log(point);
-                                    let options = { ignoreBoundary: true }
+                                    const options = { ignoreBoundary: true }
                                     if (
                                         turf.booleanPointInPolygon(
                                             point,
@@ -1641,9 +1602,9 @@ export default class CommandControl extends React.Component {
                         // TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
                         // console.log('hubs');
                         // console.log(Object.values(this.podStatus?.hubs ?? {}));
-                        let fcInput: turf.helpers.Feature<turf.helpers.Point>[] = []
+                        const fcInput: turf.helpers.Feature<turf.helpers.Point>[] = []
                         Object.keys(alongPoints).forEach((key) => {
-                            let points = alongPoints[key]
+                            const points = alongPoints[key]
                             points.forEach((point) => {
                                 fcInput.push(turf.toWgs84(turf.point(point)))
                             })
@@ -1651,8 +1612,8 @@ export default class CommandControl extends React.Component {
 
                         // Make sure this would be a valid polygon before changing the stats
                         if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
-                            let fcOutput = turf.featureCollection(fcInput)
-                            let fcOutputPoly = turf.concave(fcOutput)
+                            const fcOutput = turf.featureCollection(fcInput)
+                            const fcOutputPoly = turf.concave(fcOutput)
                             missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
                             missionParams.sp_area = round(turf.area(fcOutputPoly) / 1000, 2)
                         }
@@ -1753,7 +1714,6 @@ export default class CommandControl extends React.Component {
 
     getLiveLayerFromHubId(hub_id: number) {
         const hubsLayerCollection = this.hubsLayerCollection
-        // eslint-disable-next-line no-plusplus
         for (let i = 0; i < hubsLayerCollection.getLength(); i++) {
             const layer = hubsLayerCollection.item(i)
             if (layer.get('hub_id') === hub_id) {
@@ -1783,7 +1743,6 @@ export default class CommandControl extends React.Component {
     getLiveLayerFromBotId(bot_id: number) {
         const botsLayerCollection = this.botsLayerCollection
 
-        // eslint-disable-next-line no-plusplus
         for (let i = 0; i < botsLayerCollection.getLength(); i++) {
             const layer = botsLayerCollection.item(i)
             if (layer.get('bot_id') === bot_id) {
@@ -1903,10 +1862,10 @@ export default class CommandControl extends React.Component {
 
     updateHubsLayer() {
         const { selectedHubsFeatureCollection } = this.state
-        let hubs = this.podStatus.hubs
+        const hubs = this.podStatus.hubs
 
-        for (let hubId in hubs) {
-            let hub = hubs[hubId]
+        for (const hubId in hubs) {
+            const hub = hubs[hubId]
 
             // ID
             const hub_id = hub.hub_id
@@ -1967,14 +1926,14 @@ export default class CommandControl extends React.Component {
 
     updateActiveMissionLayer() {
         const bots = this.podStatus.bots
-        let allFeatures = []
+        const allFeatures = []
 
-        for (let botId in bots) {
-            let bot = bots[botId]
+        for (const botId in bots) {
+            const bot = bots[botId]
 
             const active_mission_plan = bot.active_mission_plan
             if (active_mission_plan != null) {
-                let features = MissionFeatures.createMissionFeatures(
+                const features = MissionFeatures.createMissionFeatures(
                     map,
                     Number(botId),
                     active_mission_plan,
@@ -1985,22 +1944,22 @@ export default class CommandControl extends React.Component {
             }
         }
 
-        let source = this.activeMissionLayer.getSource()
+        const source = this.activeMissionLayer.getSource()
         source.clear()
         source.addFeatures(allFeatures)
     }
 
     updateBotsLayer() {
         const { selectedBotsFeatureCollection } = this.state
-        let bots = this.podStatus.bots
+        const bots = this.podStatus.bots
 
         const { trackingTarget } = this.state
 
         const botExtents: { [key: number]: number[] } = {}
 
         // This needs to be synchronized somehow?
-        for (let botId in bots) {
-            let bot = bots[botId]
+        for (const botId in bots) {
+            const bot = bots[botId]
 
             // ID
             const bot_id = bot.bot_id
@@ -2158,7 +2117,6 @@ export default class CommandControl extends React.Component {
     // POLL THE BOTS
     pollPodStatus() {
         clearInterval(this.timerID)
-        const us = this
 
         this.api.getStatus().then(
             (result) => {
@@ -2179,7 +2137,7 @@ export default class CommandControl extends React.Component {
 
                     this.podStatus = result
 
-                    let messages = result.messages
+                    const messages = result.messages
 
                     if (messages) {
                         if (messages.info) {
@@ -2420,7 +2378,7 @@ export default class CommandControl extends React.Component {
             return
         }
 
-        let returnToHomeMissions = this.selectedBotIds().map((selectedBotId) =>
+        const returnToHomeMissions = this.selectedBotIds().map((selectedBotId) =>
             Missions.commandWithWaypoints(selectedBotId, [this.state.homeLocation])
         )
 
@@ -2453,7 +2411,6 @@ export default class CommandControl extends React.Component {
     }
 
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    // eslint-disable-next-line class-methods-use-this
 
     render() {
         const {
@@ -2471,10 +2428,10 @@ export default class CommandControl extends React.Component {
         // Are we currently in control of the bots?
         const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
 
-        let self: CommandControl = this
+        const self: CommandControl = this
 
-        let bots = this.podStatus?.bots
-        let hubs = this.podStatus?.hubs
+        const bots = this.podStatus?.bots
+        const hubs = this.podStatus?.hubs
 
         let goalSettingsPanel: ReactElement = null
 
@@ -2526,7 +2483,7 @@ export default class CommandControl extends React.Component {
 
                             this.deleteAllRunsInMission(this.state.runList)
 
-                            for (let id in this.missionPlans) {
+                            for (const id in this.missionPlans) {
                                 Missions.addRunWithGoals(
                                     this.missionPlans[id].bot_id,
                                     this.missionPlans[id].plan.goal,
@@ -2560,8 +2517,8 @@ export default class CommandControl extends React.Component {
         }
 
         // Details box
-        let detailsBoxItem = this.state.detailsBoxItem
-        var detailsBox = null
+        const detailsBoxItem = this.state.detailsBoxItem
+        let detailsBox = null
 
         function closeDetails() {
             self.setState({ detailsBoxItem: null })
@@ -2610,13 +2567,13 @@ export default class CommandControl extends React.Component {
         }
 
         function closeMissionPanel() {
-            let missionPanel = document.getElementById('missionPanel')
+            const missionPanel = document.getElementById('missionPanel')
             missionPanel.style.width = '0px'
             self.setState({ missionPanelActive: false })
         }
 
         function closeEngineeringPanel() {
-            let engineeringPanel = document.getElementById('engineeringPanel')
+            const engineeringPanel = document.getElementById('engineeringPanel')
             engineeringPanel.style.width = '0px'
             self.setState({ engineeringPanelActive: false })
         }
@@ -2634,7 +2591,7 @@ export default class CommandControl extends React.Component {
         }
 
         function closeMapLayers() {
-            let mapLayersPanel = document.getElementById('mapLayers')
+            const mapLayersPanel = document.getElementById('mapLayers')
             mapLayersPanel.style.width = '0px'
             self.setState({ mapLayerActive: false })
         }
@@ -2943,16 +2900,16 @@ export default class CommandControl extends React.Component {
     }
 
     autoAssignBotsToRuns() {
-        let podStatusBotIds = Object.keys(this.podStatus?.bots)
-        let botsAssignedToRunsIds = Object.keys(this.state.runList.botsAssignedToRuns)
-        let botsNotAssigned: number[] = []
+        const podStatusBotIds = Object.keys(this.podStatus?.bots)
+        const botsAssignedToRunsIds = Object.keys(this.state.runList.botsAssignedToRuns)
+        const botsNotAssigned: number[] = []
 
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
         // Have not been assigned yet
         podStatusBotIds.forEach((key) => {
             if (!botsAssignedToRunsIds.includes(key)) {
-                let id = Number(key)
+                const id = Number(key)
                 if (isFinite(id)) {
                     botsNotAssigned.push(id)
                 }
@@ -2960,7 +2917,7 @@ export default class CommandControl extends React.Component {
         })
 
         botsNotAssigned.forEach((assigned_key) => {
-            for (let run_key in this.state.runList.runs) {
+            for (const run_key in this.state.runList.runs) {
                 if (this.state.runList.runs[run_key].assigned == -1) {
                     // Delete assignment
                     delete this.state.runList.botsAssignedToRuns[
@@ -2981,7 +2938,7 @@ export default class CommandControl extends React.Component {
     }
 
     detailsDefaultExpanded(accordian: keyof DetailsExpandedState) {
-        let detailsExpanded = this.state.detailsExpanded
+        const detailsExpanded = this.state.detailsExpanded
 
         const newDetailsExpanded = this.state.detailsExpanded
 
@@ -3057,7 +3014,7 @@ export default class CommandControl extends React.Component {
     }
 
     locationFromCoordinate(coordinate: number[]) {
-        let latlon = this.coordinate_to_location_transform(coordinate)
+        const latlon = this.coordinate_to_location_transform(coordinate)
         return { lat: latlon[1], lon: latlon[0] }
     }
 
@@ -3066,15 +3023,15 @@ export default class CommandControl extends React.Component {
     }
 
     addWaypointAt(location: GeographicCoordinate) {
-        let botId = this.selectedBotIds().at(-1)
+        const botId = this.selectedBotIds().at(-1)
 
         if (botId == null) {
             return
         }
 
         this.changeMissions((missions) => {
-            let runs = missions?.runs
-            let botsAssignedToRuns = missions?.botsAssignedToRuns
+            const runs = missions?.runs
+            const botsAssignedToRuns = missions?.botsAssignedToRuns
 
             if (!(botId in botsAssignedToRuns)) {
                 missions = Missions.addRunWithWaypoints(botId, [], this.state.runList)
@@ -3090,7 +3047,7 @@ export default class CommandControl extends React.Component {
                 runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, [])
             }
 
-            let runCommand = runs[botsAssignedToRuns[botId]].command
+            const runCommand = runs[botsAssignedToRuns[botId]].command
 
             if (runCommand.plan.goal.length < MAX_GOALS) {
                 runCommand.plan.goal.push({ location: location })
@@ -3114,9 +3071,9 @@ export default class CommandControl extends React.Component {
         // console.log(self.state);
         // console.log(self.homeLocation);
 
-        let iStyle = this.setGridStyle(self, taskType)
+        const iStyle = this.setGridStyle(self, taskType)
 
-        let lineStyle = new OlStyle({
+        const lineStyle = new OlStyle({
             fill: new OlFillStyle({
                 color: 'rgba(255, 255, 255, 0.2)'
             }),
@@ -3128,7 +3085,7 @@ export default class CommandControl extends React.Component {
             image: iStyle
         })
 
-        let iconStyle = new OlStyle({
+        const iconStyle = new OlStyle({
             image: new OlIcon({
                 src: missionOrientationIcon,
                 scale: [0.5, 0.5]
@@ -3153,10 +3110,10 @@ export default class CommandControl extends React.Component {
         let rotationAngle = 0
         let rhumbDist = 0
         let rhumbHomeDist = 0
-        let stringCoords = (feature.getGeometry() as LineString).getCoordinates()
+        const stringCoords = (feature.getGeometry() as LineString).getCoordinates()
         // console.log('stringCoords');
         // console.log(stringCoords);
-        let coords = stringCoords.slice(0, 2)
+        const coords = stringCoords.slice(0, 2)
 
         // console.log('iconStyle');
         // console.log(iconStyle);
@@ -3164,7 +3121,7 @@ export default class CommandControl extends React.Component {
         iconStyle
             .getImage()
             .setRotation(Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]))
-        let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
+        const rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
 
         rotationAngle = Number(
             (Math.trunc(turf.radiansToDegrees(rotAngRadians) * 100) / 100).toFixed(2)
@@ -3178,8 +3135,8 @@ export default class CommandControl extends React.Component {
 
         const { homeLocation } = self.state
         if (stringCoords[0].length >= 2) {
-            let previousIndex = stringCoords.length - 2
-            let nextIndex = stringCoords.length - 1
+            const previousIndex = stringCoords.length - 2
+            const nextIndex = stringCoords.length - 1
             // console.log('INDEXES');
             // console.log(previousIndex);
             // console.log(nextIndex);
@@ -3188,14 +3145,14 @@ export default class CommandControl extends React.Component {
                 turf.toWgs84(turf.point(stringCoords[nextIndex])),
                 { units: 'kilometers' }
             )
-            let rhumbDistString = Number(rhumbDist.toFixed(2)).toString()
+            const rhumbDistString = Number(rhumbDist.toFixed(2)).toString()
             if (homeLocation !== null) {
                 rhumbHomeDist = turf.rhumbDistance(
                     turf.toWgs84(turf.point(stringCoords[nextIndex])),
                     turf.point([homeLocation.lon, homeLocation.lat]),
                     { units: 'kilometers' }
                 )
-                let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString()
+                const rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString()
             }
         }
 
@@ -3203,14 +3160,14 @@ export default class CommandControl extends React.Component {
     }
 
     setSurveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-        let featureStyles = this.surveyStyle(self, feature, taskType)
+        const featureStyles = this.surveyStyle(self, feature, taskType)
         feature.setStyle(featureStyles)
         return feature
     }
 
     setGridFeatureStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
         if (feature) {
-            let gridStyle = new OlStyle({
+            const gridStyle = new OlStyle({
                 image: this.setGrid2Style(self, feature, taskType)
             })
 
@@ -3226,14 +3183,14 @@ export default class CommandControl extends React.Component {
         rallySpacing: number
     ) {
         // Bot rally point separation scheme
-        let rallyPoints: any = {}
-        let center = [feature.lon, feature.lat]
-        let radius = rallySpacing / 1000
+        const rallyPoints: any = {}
+        const center = [feature.lon, feature.lat]
+        const radius = rallySpacing / 1000
         if (bot_list.length >= 3) {
             // We can use a circle to separate the bots
-            let options = { steps: bot_list.length }
-            let circle = turf.circle(center, radius, options)
-            let circleRallyPointsBasic = turf.coordAll(
+            const options = { steps: bot_list.length }
+            const circle = turf.circle(center, radius, options)
+            const circleRallyPointsBasic = turf.coordAll(
                 turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0]))
             )
             circleRallyPointsBasic.forEach((p) => {
@@ -3241,7 +3198,7 @@ export default class CommandControl extends React.Component {
             })
         } else {
             // Alternative to using a circle for bot separation
-            let rhumbDestinationPoints: number[][][] = []
+            const rhumbDestinationPoints: number[][][] = []
             let nextRadius = 0
             bot_list.forEach((bot) => {
                 rhumbDestinationPoints.push(
@@ -3262,25 +3219,25 @@ export default class CommandControl extends React.Component {
         // Update the mission layer
         let features: OlFeature<Geometry>[] = []
 
-        let selectedFeatures = []
+        const selectedFeatures = []
 
-        let missions = this.state.runList
+        const missions = this.state.runList
 
-        let selectedColor = '#34d2eb'
-        let unselectedColor = 'white'
-        let surveyPolygonColor = '#051d61'
-        let surveyExclusionsColor = '#c40a0a'
+        const selectedColor = '#34d2eb'
+        const unselectedColor = 'white'
+        const surveyPolygonColor = '#051d61'
+        const surveyExclusionsColor = '#c40a0a'
 
         let zIndex = 2
 
-        let rallyPointRedStyle = new OlStyle({
+        const rallyPointRedStyle = new OlStyle({
             image: new OlIcon({
                 src: rallyPointRedIcon,
                 scale: [0.5, 0.5]
             })
         })
 
-        let rallyPointGreenStyle = new OlStyle({
+        const rallyPointGreenStyle = new OlStyle({
             image: new OlIcon({
                 src: rallyPointGreenIcon,
                 scale: [0.5, 0.5]
@@ -3299,22 +3256,22 @@ export default class CommandControl extends React.Component {
         // 	// image: new OlIcon({ src: waypointIcon })
         // })
 
-        let selectedLineStyle = new OlStyle({
+        const selectedLineStyle = new OlStyle({
             fill: new OlFillStyle({ color: selectedColor }),
             stroke: new OlStrokeStyle({ color: selectedColor, width: 2.5 })
         })
 
-        let defaultLineStyle = new OlStyle({
+        const defaultLineStyle = new OlStyle({
             fill: new OlFillStyle({ color: unselectedColor }),
             stroke: new OlStrokeStyle({ color: unselectedColor, width: 2.0 })
         })
 
-        let surveyPolygonLineStyle = new OlStyle({
+        const surveyPolygonLineStyle = new OlStyle({
             fill: new OlFillStyle({ color: surveyPolygonColor }),
             stroke: new OlStrokeStyle({ color: surveyPolygonColor, width: 3.0 })
         })
 
-        let surveyPlanLineStyle = new OlStyle({
+        const surveyPlanLineStyle = new OlStyle({
             fill: new OlFillStyle({ color: surveyPolygonColor }),
             stroke: new OlStrokeStyle({ color: surveyPolygonColor, width: 1.0 })
         })
@@ -3324,13 +3281,13 @@ export default class CommandControl extends React.Component {
             features = features.concat(this.featuresFromMissionPlanningGrid())
         }
 
-        for (let key in missions?.runs) {
+        for (const key in missions?.runs) {
             // Different style for the waypoint marker, depending on if the associated bot is selected or not
             let lineStyle
-            let run = missions?.runs[key]
-            let assignedBot = run.assigned
-            let selected = this.isBotSelected(assignedBot)
-            let active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal
+            const run = missions?.runs[key]
+            const assignedBot = run.assigned
+            const selected = this.isBotSelected(assignedBot)
+            const active_goal_index = this.podStatus?.bots?.[assignedBot]?.active_goal
 
             // Add our goals
             const plan = run.command?.plan
@@ -3361,31 +3318,31 @@ export default class CommandControl extends React.Component {
 
         // Add Home, if available
         if (this.state.rallyPointRedLocation) {
-            let pt = equirectangular_to_mercator([
+            const pt = equirectangular_to_mercator([
                 this.state.rallyPointRedLocation.lon,
                 this.state.rallyPointRedLocation.lat
             ])
-            let rallyPointRedFeature = new OlFeature({ geometry: new OlPoint(pt) })
+            const rallyPointRedFeature = new OlFeature({ geometry: new OlPoint(pt) })
             rallyPointRedFeature.setStyle(rallyPointRedStyle)
             features.push(rallyPointRedFeature)
         }
 
         if (this.state.rallyPointGreenLocation) {
-            let pt = equirectangular_to_mercator([
+            const pt = equirectangular_to_mercator([
                 this.state.rallyPointGreenLocation.lon,
                 this.state.rallyPointGreenLocation.lat
             ])
-            let rallyPointGreenFeature = new OlFeature({ geometry: new OlPoint(pt) })
+            const rallyPointGreenFeature = new OlFeature({ geometry: new OlPoint(pt) })
             rallyPointGreenFeature.setStyle(rallyPointGreenStyle)
             features.push(rallyPointGreenFeature)
         }
 
         if (this.state.surveyPolygonCoords) {
-            let pts = this.state.surveyPolygonCoords.getCoordinates()
-            let transformed_survey_pts = pts.map((pt) => {
+            const pts = this.state.surveyPolygonCoords.getCoordinates()
+            const transformed_survey_pts = pts.map((pt) => {
                 return equirectangular_to_mercator([pt[0], pt[1]])
             })
-            let surveyPolygonFeature = new OlFeature({
+            const surveyPolygonFeature = new OlFeature({
                 geometry: new OlLineString(transformed_survey_pts),
                 name: 'Survey Bounds'
             })
@@ -3394,13 +3351,13 @@ export default class CommandControl extends React.Component {
         }
 
         if (this.state.missionPlanningLines) {
-            let mpl = this.state.missionPlanningLines
-            let mplKeys = Object.keys(mpl)
+            const mpl = this.state.missionPlanningLines
+            const mplKeys = Object.keys(mpl)
             // console.log('this.state.missionPlanningLines');
             // console.log(mplKeys);
             // console.log(mpl);
             mplKeys.forEach((key) => {
-                let mpLineFeatures = new OlFeature({
+                const mpLineFeatures = new OlFeature({
                     geometry: new OlMultiLineString(mpl[key])
                 })
                 mpLineFeatures.setProperties({ botId: key })
@@ -3411,15 +3368,15 @@ export default class CommandControl extends React.Component {
 
         if (this.state.missionPlanningFeature) {
             // Place all the mission planning features in this for the missionLayer
-            let missionPlanningFeaturesList = []
+            const missionPlanningFeaturesList = []
 
             if (
                 this.state.missionParams.mission_type === 'lines' &&
                 this.state.mode === Mode.MISSION_PLANNING
             ) {
                 // Add the mission planning feature
-                let mpFeature = this.state.missionPlanningFeature
-                let mpStyledFeature = this.setSurveyStyle(
+                const mpFeature = this.state.missionPlanningFeature
+                const mpStyledFeature = this.setSurveyStyle(
                     this,
                     mpFeature,
                     this.state.missionBaseGoal.task.type
@@ -3427,7 +3384,7 @@ export default class CommandControl extends React.Component {
                 missionPlanningFeaturesList.push(mpStyledFeature)
 
                 // Add all the features in the list to the map layer
-                let missionPlanningSource = new OlVectorSource({
+                const missionPlanningSource = new OlVectorSource({
                     features: missionPlanningFeaturesList
                 })
                 this.missionPlanningLayer.setSource(missionPlanningSource)
@@ -3435,11 +3392,11 @@ export default class CommandControl extends React.Component {
             }
         }
 
-        let vectorSource = new OlVectorSource({
+        const vectorSource = new OlVectorSource({
             features: features as any
         })
 
-        let vectorSelectedSource = new OlVectorSource({
+        const vectorSelectedSource = new OlVectorSource({
             features: selectedFeatures as any
         })
 
@@ -3458,21 +3415,21 @@ export default class CommandControl extends React.Component {
     //   Return value:
     //     A list of features
     featuresFromMissionPlanningGrid() {
-        var features: OlFeature<Geometry>[] = []
+        const features: OlFeature<Geometry>[] = []
 
-        let mpg = this.state.missionPlanningGrid
-        let mpgKeys = Object.keys(mpg)
+        const mpg = this.state.missionPlanningGrid
+        const mpgKeys = Object.keys(mpg)
 
         mpgKeys.forEach((key) => {
             const bot_id = Number(key)
 
-            let mpGridFeature = new OlFeature({
+            const mpGridFeature = new OlFeature({
                 geometry: new OlMultiPoint(mpg[key])
             })
             mpGridFeature.setProperties({ botId: key })
             // let activeGridStyle = this.setGridStyle(this, mpGridFeature, this.state.missionBaseGoal.task.type)
 
-            let mpGridFeatureStyled = this.setGridFeatureStyle(
+            const mpGridFeatureStyled = this.setGridFeatureStyle(
                 this,
                 mpGridFeature,
                 this.state.missionBaseGoal.task.type
@@ -3495,14 +3452,14 @@ export default class CommandControl extends React.Component {
     //    Return value:
     //      MissionPlans
     updateMissionPlansFromMissionPlanningGrid() {
-        let missionPlans: CommandList = {}
-        let millisecondsSinceEpoch = new Date().getTime()
-        let bot_list = Object.keys(this.podStatus.bots).map((value: string) => {
+        const missionPlans: CommandList = {}
+        const millisecondsSinceEpoch = new Date().getTime()
+        const bot_list = Object.keys(this.podStatus.bots).map((value: string) => {
             return Number(value)
         })
 
         // Bot rally point separation scheme
-        let rallyStartPoints = this.findRallySeparation(
+        const rallyStartPoints = this.findRallySeparation(
             deepcopy(bot_list),
             this.state.rallyPointGreenLocation,
             this.state.missionParams.orientation,
@@ -3510,7 +3467,7 @@ export default class CommandControl extends React.Component {
         )
         // console.log('rallyStartPoints');
         // console.log(rallyStartPoints);
-        let rallyFinishPoints = this.findRallySeparation(
+        const rallyFinishPoints = this.findRallySeparation(
             deepcopy(bot_list),
             this.state.rallyPointRedLocation,
             this.state.missionParams.orientation,
@@ -3519,14 +3476,14 @@ export default class CommandControl extends React.Component {
         // console.log('rallyFinishPoints');
         // console.log(rallyFinishPoints);
 
-        let mpg = this.state.missionPlanningGrid
-        let mpgKeys = Object.keys(mpg)
+        const mpg = this.state.missionPlanningGrid
+        const mpgKeys = Object.keys(mpg)
         mpgKeys.forEach((key) => {
             const bot_id = Number(key)
 
             // TODO: Update the mission plan for the bots at the same time??
             // Create the goals from the missionPlanningGrid
-            let bot_goals = []
+            const bot_goals = []
 
             // Rally Point Goals
             let bot_goal: Goal = {
@@ -3542,7 +3499,7 @@ export default class CommandControl extends React.Component {
             const bot_mission_goal_positions: turf.helpers.Position[] = mpg[key]
 
             bot_mission_goal_positions.forEach((goal: turf.helpers.Position, index: number) => {
-                let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
+                const goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
 
                 // For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
                 const is_last_goal = index == bot_mission_goal_positions.length - 1
@@ -3570,7 +3527,7 @@ export default class CommandControl extends React.Component {
             }
             bot_goals.push(bot_goal)
 
-            let mission_dict: Command = {
+            const mission_dict: Command = {
                 bot_id: Number(key),
                 time: millisecondsSinceEpoch,
                 type: CommandType.MISSION_PLAN,
@@ -3608,15 +3565,15 @@ export default class CommandControl extends React.Component {
     runMissions(missions: MissionInterface, add_runs: CommandList) {
         if (!this.takeControl()) return
 
-        let botIds: number[] = []
-        let botIdsInIdleState: number[] = []
+        const botIds: number[] = []
+        const botIdsInIdleState: number[] = []
 
-        let runs = missions.runs
+        const runs = missions.runs
 
         Object.keys(runs).map((key) => {
-            let botIndex = runs[key].assigned
+            const botIndex = runs[key].assigned
             if (botIndex != -1) {
-                let botState = this.podStatus.bots[botIndex]?.mission_state
+                const botState = this.podStatus.bots[botIndex]?.mission_state
                 if (botState == 'PRE_DEPLOYMENT__IDLE' || botState == 'POST_DEPLOYMENT__IDLE') {
                     botIdsInIdleState.push(botIndex)
                 } else {
@@ -3640,9 +3597,9 @@ export default class CommandControl extends React.Component {
                 }
 
                 Object.keys(runs).map((key) => {
-                    let botIndex = runs[key].assigned
+                    const botIndex = runs[key].assigned
                     if (botIndex != -1) {
-                        let runCommand = runs[key].command
+                        const runCommand = runs[key].command
                         this._runMission(runCommand)
                     }
                 })
@@ -3655,7 +3612,7 @@ export default class CommandControl extends React.Component {
     // Loads the set of runs, and updates the GUI
     loadMissions(mission: MissionInterface) {
         this.deleteAllRunsInMission(this.state.runList)
-        for (let run in mission.runs) {
+        for (const run in mission.runs) {
             Missions.addRunWithCommand(-1, mission.runs[run].command, this.state.runList)
         }
 
@@ -3672,11 +3629,11 @@ export default class CommandControl extends React.Component {
     }
 
     deleteAllRunsInMission(mission: MissionInterface) {
-        for (let run in mission.runs) {
+        for (const run in mission.runs) {
             delete mission.runs[run]
         }
 
-        for (let botId in mission.botsAssignedToRuns) {
+        for (const botId in mission.botsAssignedToRuns) {
             delete mission.botsAssignedToRuns[botId]
         }
 
@@ -3715,7 +3672,7 @@ export default class CommandControl extends React.Component {
 
     selectedBotIds() {
         const { selectedBotsFeatureCollection } = this.state
-        let botIds: number[] = []
+        const botIds: number[] = []
 
         // Update feature in selected set
         for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
@@ -3732,7 +3689,7 @@ export default class CommandControl extends React.Component {
     selectedHubIds() {
         const { selectedHubsFeatureCollection } = this.state
         // console.log('selectedHubsFeatureCollection', selectedHubsFeatureCollection)
-        let hubIds: number[] = []
+        const hubIds: number[] = []
 
         // Update feature in selected set
         for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
@@ -3807,9 +3764,9 @@ export default class CommandControl extends React.Component {
 
         if (feature) {
             // Clicked on a goal / waypoint
-            let goal = feature.get('goal')
-            let botId = feature.get('botId')
-            let goalIndex = feature.get('goalIndex')
+            const goal = feature.get('goal')
+            const botId = feature.get('botId')
+            const goalIndex = feature.get('goalIndex')
 
             if (goal != null) {
                 previous_mission_history = deepcopy(this.state.runList)
@@ -3854,8 +3811,8 @@ export default class CommandControl extends React.Component {
     }
 
     placeHomeAtCoordinate(coordinate: number[]) {
-        let lonlat = mercator_to_equirectangular(coordinate)
-        let location = { lon: lonlat[0], lat: lonlat[1] }
+        const lonlat = mercator_to_equirectangular(coordinate)
+        const location = { lon: lonlat[0], lat: lonlat[1] }
 
         this.setState({
             homeLocation: location,
@@ -3867,8 +3824,8 @@ export default class CommandControl extends React.Component {
     }
 
     placeRallyPointGreenAtCoordinate(coordinate: number[]) {
-        let lonlat = mercator_to_equirectangular(coordinate)
-        let location = { lon: lonlat[0], lat: lonlat[1] }
+        const lonlat = mercator_to_equirectangular(coordinate)
+        const location = { lon: lonlat[0], lat: lonlat[1] }
         this.setState({
             rallyPointGreenLocation: location,
             mode: ''
@@ -3879,8 +3836,8 @@ export default class CommandControl extends React.Component {
     }
 
     placeRallyPointRedAtCoordinate(coordinate: number[]) {
-        let lonlat = mercator_to_equirectangular(coordinate)
-        let location = { lon: lonlat[0], lat: lonlat[1] }
+        const lonlat = mercator_to_equirectangular(coordinate)
+        const location = { lon: lonlat[0], lat: lonlat[1] }
         this.setState({
             rallyPointRedLocation: location,
             mode: ''
@@ -3897,7 +3854,7 @@ export default class CommandControl extends React.Component {
     generateMissions() {
         if (!this.takeControl()) return
 
-        let bot_list = []
+        const bot_list = []
         for (const bot in this.podStatus.bots) {
             bot_list.push(this.podStatus.bots[bot]['bot_id'])
         }
@@ -3920,7 +3877,7 @@ export default class CommandControl extends React.Component {
 
     // Command Drawer
     commandDrawer() {
-        let element = (
+        const element = (
             <div id='commandsDrawer'>
                 <Button
                     id='system-check-all-bots'
@@ -3988,7 +3945,7 @@ export default class CommandControl extends React.Component {
     }
 
     loadMissionButtonClicked() {
-        let panel = (
+        const panel = (
             <LoadMissionPanel
                 missionLibrary={MissionLibraryLocalStorage.shared()}
                 selectedMission={(mission) => {
@@ -4006,7 +3963,7 @@ export default class CommandControl extends React.Component {
     }
 
     saveMissionButtonClicked() {
-        let panel = (
+        const panel = (
             <SaveMissionPanel
                 missionLibrary={MissionLibraryLocalStorage.shared()}
                 mission={this.state.runList}
@@ -4047,7 +4004,7 @@ export default class CommandControl extends React.Component {
     }
 
     goToRallyGreen(evt: UIEvent) {
-        let add_runs: CommandList = {}
+        const add_runs: CommandList = {}
 
         if (!this.state.rallyPointGreenLocation) {
             alert(
@@ -4065,7 +4022,7 @@ export default class CommandControl extends React.Component {
             return
         }
 
-        for (let bot in this.podStatus.bots) {
+        for (const bot in this.podStatus.bots) {
             add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [
                 this.state.rallyPointGreenLocation
             ])
@@ -4075,7 +4032,7 @@ export default class CommandControl extends React.Component {
     }
 
     goToRallyRed(evt: UIEvent) {
-        let add_runs: CommandList = {}
+        const add_runs: CommandList = {}
 
         if (!this.state.rallyPointRedLocation) {
             alert(
@@ -4093,7 +4050,7 @@ export default class CommandControl extends React.Component {
             return
         }
 
-        for (let bot in this.podStatus.bots) {
+        for (const bot in this.podStatus.bots) {
             add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [
                 this.state.rallyPointRedLocation
             ])
@@ -4152,13 +4109,13 @@ export default class CommandControl extends React.Component {
     }
 
     runRCMode() {
-        let botId = this.selectedBotId()
+        const botId = this.selectedBotId()
         if (botId == null) {
             warning('No bots selected')
             return
         }
 
-        var datum_location = this.podStatus?.bots?.[botId]?.location
+        let datum_location = this.podStatus?.bots?.[botId]?.location
 
         if (datum_location == null) {
             const warning_string =
@@ -4178,8 +4135,8 @@ export default class CommandControl extends React.Component {
         if (!this.takeControl()) return
 
         // Send a user flag, to get recorded in the bot's logs
-        let botId = this.selectedBotIds().at(-1) || 0
-        let engineeringCommand = {
+        const botId = this.selectedBotIds().at(-1) || 0
+        const engineeringCommand = {
             bot_id: botId,
             flag: this.flagNumber
         }
@@ -4194,7 +4151,7 @@ export default class CommandControl extends React.Component {
     toggleMode(modeName: Mode) {
         if (this.state.mode == modeName) {
             if (this.state.mode) {
-                let selectedButton = $('#' + this.state.mode)
+                const selectedButton = $('#' + this.state.mode)
                 if (selectedButton) {
                     selectedButton.removeClass('selected')
                 }
@@ -4202,13 +4159,13 @@ export default class CommandControl extends React.Component {
 
             this.state.mode = Mode.NONE
         } else {
-            let button = $('#' + modeName)?.addClass('selected')
+            const button = $('#' + modeName)?.addClass('selected')
             this.state.mode = modeName
         }
     }
 
     disconnectionPanel() {
-        let msg = this.state.disconnectionMessage
+        const msg = this.state.disconnectionMessage
         if (msg == null) {
             return null
         }
@@ -4222,7 +4179,7 @@ export default class CommandControl extends React.Component {
     }
 
     toggleEngineeringPanel() {
-        let engineeringPanel = document.getElementById('engineeringPanel')
+        const engineeringPanel = document.getElementById('engineeringPanel')
         if (engineeringPanel.style.width == '400px') {
             engineeringPanel.style.width = '0px'
         } else {
@@ -4231,7 +4188,7 @@ export default class CommandControl extends React.Component {
     }
 
     toggleMissionPanel() {
-        let missionPanel = document.getElementById('missionPanel')
+        const missionPanel = document.getElementById('missionPanel')
         if (missionPanel.style.width == '400px') {
             missionPanel.style.width = '0px'
         } else {

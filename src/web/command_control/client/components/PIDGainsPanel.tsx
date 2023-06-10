@@ -1,8 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug } from '../libs/notifications'
@@ -16,8 +11,8 @@ import {
 } from './shared/JAIAProtobuf'
 import { JaiaAPI } from '../../common/JaiaAPI'
 
-let pid_types = ['speed', 'heading', 'roll', 'pitch', 'depth']
-let pid_gains = ['Kp', 'Ki', 'Kd']
+const pid_types = ['speed', 'heading', 'roll', 'pitch', 'depth']
+const pid_gains = ['Kp', 'Ki', 'Kd']
 
 interface APIBotStatus extends BotStatus {
     engineering: Engineering
@@ -53,9 +48,9 @@ export class PIDGainsPanel extends React.Component {
     }
 
     render() {
-        let botStatusRate = Object.keys(BotStatusRate)
+        const botStatusRate = Object.keys(BotStatusRate)
 
-        let bots = this.state.bots
+        const bots = this.state.bots
 
         // No bots in list
         if (bots == null || Object.keys(bots).length == 0) {
@@ -67,9 +62,7 @@ export class PIDGainsPanel extends React.Component {
             this.botId = Number(Object.keys(bots)[0])
         }
 
-        let self = this
-
-        let botSelector = (
+        const botSelector = (
             <div>
                 <label style={{ fontSize: '32px', marginRight: '25px', color: '#0bc9cd' }}>
                     Bot
@@ -78,8 +71,8 @@ export class PIDGainsPanel extends React.Component {
                     style={{ width: '50px', marginBottom: '10px', color: '#0bc9cd' }}
                     name='bot'
                     id='pid_gains_bot_selector'
-                    defaultValue={self.botId}
-                    onChange={self.didSelectBot.bind(self)}
+                    defaultValue={this.botId}
+                    onChange={this.didSelectBot.bind(this)}
                 >
                     {bots
                         ? Object.keys(bots).map((botId) => (
@@ -92,16 +85,16 @@ export class PIDGainsPanel extends React.Component {
             </div>
         )
 
-        let engineering = bots[self.botId]?.engineering
+        const engineering = bots[this.botId]?.engineering
 
         //console.log(engineering);
 
-        let bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz'
+        const bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz'
         let show_rate = 'N/A'
 
         if (engineering) {
             if (bot_status_rate != null || bot_status_rate != undefined) {
-                let split_rate = bot_status_rate.split('_')
+                const split_rate = bot_status_rate.split('_')
                 show_rate = split_rate[1] + '_' + split_rate[2]
             }
         }
@@ -124,10 +117,10 @@ export class PIDGainsPanel extends React.Component {
                                     <tr key={pid_type}>
                                         <td key='pid_type_name'>{pid_type}</td>
                                         {pid_gains.map(function (pid_gain) {
-                                            let pid_type_gain = pid_type + '_' + pid_gain
-                                            let botId_pid_type_gain =
-                                                self.botId + '_' + pid_type_gain
-                                            let pid_control = engineering.pid_control as any
+                                            const pid_type_gain = pid_type + '_' + pid_gain
+                                            const botId_pid_type_gain =
+                                                this.botId + '_' + pid_type_gain
+                                            const pid_control = engineering.pid_control as any
 
                                             return (
                                                 <td key={botId_pid_type_gain}>
@@ -243,8 +236,9 @@ export class PIDGainsPanel extends React.Component {
                                             </option>
 
                                             {botStatusRate.map((rate, index) => {
-                                                let split_rate = rate.split('_')
-                                                let show_rate = split_rate[1] + '_' + split_rate[2]
+                                                const split_rate = rate.split('_')
+                                                const show_rate =
+                                                    split_rate[1] + '_' + split_rate[2]
                                                 return (
                                                     <option value={index} key={index}>
                                                         {show_rate}
@@ -601,10 +595,10 @@ export class PIDGainsPanel extends React.Component {
     queryEngineeringStatus() {
         if (!this.props.control()) return
 
-        let botId = $('#pid_gains_bot_selector').val()
+        const botId = $('#pid_gains_bot_selector').val()
         info('Query Engineering Status for botId: ' + botId)
 
-        let engineering_command = {
+        const engineering_command = {
             botId: botId,
             query_engineering_status: true
         }
@@ -617,11 +611,11 @@ export class PIDGainsPanel extends React.Component {
     queryAllEngineeringStatus() {
         if (!this.props.control()) return
 
-        let botId = $('#pid_gains_bot_selector').val()
+        const botId = $('#pid_gains_bot_selector').val()
         info('Query Engineering Status for All Bots')
 
-        for (let bot in this.state.bots) {
-            let engineering_command = {
+        for (const bot in this.state.bots) {
+            const engineering_command = {
                 botId: bot,
                 query_engineering_status: true
             }
@@ -635,18 +629,18 @@ export class PIDGainsPanel extends React.Component {
     submitGains() {
         if (!this.props.control()) return
 
-        let botId = Number($('#pid_gains_bot_selector').val())
+        const botId = Number($('#pid_gains_bot_selector').val())
         info('Submit gains for botId: ' + botId)
 
-        var pid_control: any = {}
-        for (let pid_type of pid_types) {
+        const pid_control: any = {}
+        for (const pid_type of pid_types) {
             pid_control[pid_type] = {}
-            for (let pid_gain of pid_gains) {
+            for (const pid_gain of pid_gains) {
                 pid_control[pid_type][pid_gain] = Number($('#' + pid_type + '_' + pid_gain).val())
             }
         }
 
-        let engineering_command: Engineering = {
+        const engineering_command: Engineering = {
             bot_id: botId,
             pid_control: pid_control as PIDControl
         }
@@ -659,7 +653,7 @@ export class PIDGainsPanel extends React.Component {
     submitBotRequirements() {
         if (!this.props.control()) return
 
-        let botId = Number($('#pid_gains_bot_selector').val())
+        const botId = Number($('#pid_gains_bot_selector').val())
         info('Submit BotStatusRate for botId: ' + botId)
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate
@@ -668,7 +662,7 @@ export class PIDGainsPanel extends React.Component {
             bot_status_rate_change = $('#status_rate_input').val() as BotStatusRate
         }
 
-        let engineering_command: Engineering = {
+        const engineering_command: Engineering = {
             bot_id: botId,
             bot_status_rate: bot_status_rate_change,
             gps_requirements: {
@@ -701,7 +695,7 @@ export class PIDGainsPanel extends React.Component {
     submitAllBotRequirements() {
         if (!this.props.control()) return
 
-        let botId = Number($('#pid_gains_bot_selector').val())
+        const botId = Number($('#pid_gains_bot_selector').val())
         info('Submit BotStatusRate for All Bots: ')
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate
@@ -710,8 +704,8 @@ export class PIDGainsPanel extends React.Component {
             bot_status_rate_change = $('#status_rate_input').val() as BotStatusRate
         }
 
-        for (let bot in this.state.bots) {
-            let engineering_command: Engineering = {
+        for (const bot in this.state.bots) {
+            const engineering_command: Engineering = {
                 bot_id: Number(bot),
                 bot_status_rate: bot_status_rate_change,
                 gps_requirements: {

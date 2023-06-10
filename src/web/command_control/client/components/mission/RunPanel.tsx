@@ -24,18 +24,16 @@ export default class RunPanel extends React.Component {
     }
 
     render() {
-        let self = this
-
         return (
             <React.Fragment>
                 {
                     <RunList
-                        bots={self.props.bots}
-                        mission={self.props.mission}
-                        loadMissionClick={self.props.loadMissionClick}
-                        saveMissionClick={self.props.saveMissionClick}
-                        deleteAllRunsInMission={self.props.deleteAllRunsInMission}
-                        autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
+                        bots={this.props.bots}
+                        mission={this.props.mission}
+                        loadMissionClick={this.props.loadMissionClick}
+                        saveMissionClick={this.props.saveMissionClick}
+                        deleteAllRunsInMission={this.props.deleteAllRunsInMission}
+                        autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
                     />
                 }
             </React.Fragment>
