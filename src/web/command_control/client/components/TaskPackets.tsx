@@ -404,7 +404,9 @@ export class TaskData {
     }
 
     _updateContourPlot() {
-        jaiaAPI.getDepthContours().then((geojson) => {
+        jaiaAPI.getDepthContours().catch((error) => {
+            console.error(error)
+        }).then((geojson) => {
                 const features = geoJSONToDepthContourFeatures(mercator, geojson)
 
                 const vectorSource = new VectorSource({
@@ -416,7 +418,9 @@ export class TaskData {
     }
 
     _pollTaskPackets() {
-        jaiaAPI.getTaskPackets().then((taskPackets: TaskPacket[]) => {
+        jaiaAPI.getTaskPackets().catch((error) => {
+            console.error(error)
+        }).then((taskPackets: TaskPacket[]) => {
 
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
