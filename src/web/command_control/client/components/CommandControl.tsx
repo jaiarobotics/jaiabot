@@ -237,8 +237,7 @@ interface State {
 	missionPanelActive: boolean,
 	mode: Mode,
 	currentInteraction: Interaction | null,
-	selectedBotsFeatureCollection: OlCollection<OlFeature>,
-	selectedHubsFeatureCollection: OlCollection<OlFeature>,
+	selectedHubOrBot?: HubOrBot,
 	lastBotCount: number,
 	botExtents: {[key: number]: number[]},
 	trackingTarget: number | string,
@@ -342,11 +341,9 @@ export default class CommandControl extends React.Component {
 				hubs: {},
 				controllingClientId: null
 			},
+			selectedHubOrBot: null,
 			lastBotCount: 0,
 			currentInteraction: null,
-			// Map layers
-			selectedBotsFeatureCollection: new OlCollection([], { unique: true }),
-			selectedHubsFeatureCollection: new OlCollection([], { unique: true }),
 			// incoming data
 			botExtents: {},
 			trackingTarget: null,
@@ -1632,11 +1629,17 @@ export default class CommandControl extends React.Component {
 		*/
 
 		// Update layers derived from the podStatus
-		if (prevState.podStatus !== this.state.podStatus) {
+		if (prevState.podStatus !== this.state.podStatus ||
+			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 			this.updateHubsLayer()
 			this.updateBotsLayer()
 			this.updateActiveMissionLayer()
 			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
+		}
+
+		// If we select another bot, we need to re-render the mission layer to re-color the mission lines
+		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
+			this.updateMissionLayer()
 		}
 	}
 
@@ -1794,7 +1797,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	updateHubsLayer() {
-		const { selectedHubsFeatureCollection } = this.state
+		const { selectedHubOrBot } = this.state
 		let hubs = this.state.podStatus.hubs;
 
 		for (let hubId in hubs) {
@@ -1831,19 +1834,8 @@ export default class CommandControl extends React.Component {
 
 			const zoomExtentWidth = 0.001; // Degrees
 
-			hubFeature.set('selected', false);
-
-			// Update feature in selected set
-			if (selectedHubsFeatureCollection.getLength() !== 0) {
-				for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
-					const feature = selectedHubsFeatureCollection.item(i);
-					if (feature.getId() === hub_id) {
-						hubFeature.set('selected', true);
-						selectedHubsFeatureCollection.setAt(i, hubFeature);
-						break;
-					}
-				}
-			}
+			const selected = selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
+			hubFeature.set('selected', selected);
 
 			hubLayer.getSource().clear();
 			hubLayer.getSource().addFeature(hubFeature);
@@ -1851,10 +1843,6 @@ export default class CommandControl extends React.Component {
 			hubLayer.setZIndex(100);
 			hubLayer.changed();
 		} // end foreach hub
-
-		this.setState({ selectedHubsFeatureCollection });
-
-		//this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
 	}
 
 	updateActiveMissionLayer() {
@@ -1877,7 +1865,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	updateBotsLayer() {
-		const { selectedBotsFeatureCollection } = this.state;
+		const { selectedHubOrBot } = this.state
 		let bots = this.state.podStatus.bots
 
 		const { trackingTarget } = this.state;
@@ -1955,22 +1943,12 @@ export default class CommandControl extends React.Component {
 				botLatitude + zoomExtentWidth / 2
 			];
 
-			botFeature.set('selected', false);
+			const isSelected = selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
+			botFeature.set('selected', isSelected)
+
 			botFeature.set('controlled', false);
 			botFeature.set('tracked', false);
 			botFeature.set('completed', false);
-
-			// Update feature in selected set
-			if (selectedBotsFeatureCollection.getLength() !== 0) {
-				for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-					const feature = selectedBotsFeatureCollection.item(i);
-					if (feature.getId() === bot_id) {
-						botFeature.set('selected', true);
-						selectedBotsFeatureCollection.setAt(i, botFeature);
-						break;
-					}
-				}
-			}
 
 			if (trackingTarget === bot_id) {
 				botFeature.set('tracked', true);
@@ -2009,7 +1987,6 @@ export default class CommandControl extends React.Component {
 		}
 		this.setState({
 			botExtents,
-			selectedBotsFeatureCollection,
 			lastBotCount: botCount
 		});
 		// map.render();
@@ -2105,95 +2082,50 @@ export default class CommandControl extends React.Component {
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
-	selectBot(bot_id: number) {
-		this.selectBots([bot_id]);
-	}
-
-	selectHub(hub_id: number) {
-		this.selectHubs([hub_id]);
-	}
-
 	toggleBot(bot_id: number) {
-		const botsToSelect = this.isBotSelected(bot_id) ? [] : [bot_id]
-		this.selectBots(botsToSelect)
+		if (this.isBotSelected(bot_id)) {
+			this.unselectHubOrBot()
+		}
+		else {
+			this.selectBot(bot_id)
+		}
 	}
 
-	selectBots(bot_ids: number[]) {
+	toggleHub(id: number) {
+		if (this.isHubSelected(id)) {
+			this.unselectHubOrBot()
+		}
+		else {
+			this.selectHub(id)
+		}
+	}
+
+	selectBot(id: number) {
 		// Clear remote control interval if there is one
 		this.clearRemoteControlInterval();
-		bot_ids = bot_ids.map(bot_id => { return Number(bot_id) })
-
-		const { selectedBotsFeatureCollection } = this.state;
-		const botsLayerCollection = this.botsLayerCollection
-
-		selectedBotsFeatureCollection.clear();
-		botsLayerCollection.getArray().forEach((layer) => {
-			const feature = layer.getSource().getFeatureById(layer.get('bot_id'));
-			if (feature) {
-				if (bot_ids.includes(feature.getId() as number)) {
-					feature.set('selected', true);
-					selectedBotsFeatureCollection.push(feature);
-				} else {
-					feature.set('selected', false);
-				}
-			}
-		});
-		this.setState({ selectedBotsFeatureCollection });
-
-		if (bot_ids.length > 0) {
-			this.setState({detailsBoxItem: {type: 'bot', id: bot_ids[0]}})
-		}
-
-		this.updateMissionLayer()
-		map.render();
+		const hubOrBot = {type: "bot", id: id}
+		this.setState({selectedHubOrBot: hubOrBot, detailsBoxItem: hubOrBot})
 	}
 
-	selectHubs(hub_ids: number[]) {
-		hub_ids = hub_ids.map(hub_id => { return Number(hub_id) })
+	selectHub(id: number) {
+		// Clear remote control interval if there is one
+		this.clearRemoteControlInterval();
+		const hubOrBot = {type: "hub", id: id}
+		this.setState({selectedHubOrBot: hubOrBot, detailsBoxItem: hubOrBot})
+	}
 
-		const { selectedHubsFeatureCollection } = this.state;
-		const hubsLayerCollection = this.hubsLayerCollection
-
-		selectedHubsFeatureCollection.clear();
-		hubsLayerCollection.getArray().forEach((layer) => {
-			const feature = layer.getSource().getFeatureById(layer.get('hub_id'));
-			if (feature) {
-				if (hub_ids.includes(feature.getId() as number)) {
-					feature.set('selected', true);
-					selectedHubsFeatureCollection.push(feature);
-				} else {
-					feature.set('selected', false);
-				}
-			}
-		});
-		this.setState({ selectedHubsFeatureCollection });
-
-		if (hub_ids.length > 0) {
-			this.setState({detailsBoxItem: {type: 'hub', id: hub_ids[0]}})
-		}
-
-		this.updateMissionLayer()
-		map.render();
+	unselectHubOrBot() {
+		this.setState({selectedHubOrBot: null, detailsBoxItem: null})
 	}
 
 	isBotSelected(bot_id: number) {
-		const { selectedBotsFeatureCollection } = this.state;
-		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-			if (selectedBotsFeatureCollection.item(i).getId() == bot_id) {
-				return true;
-			}
-		}
-		return false;
+		const { selectedHubOrBot } = this.state
+		return selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
 	}
 
 	isHubSelected(hub_id: number) {
-		const { selectedHubsFeatureCollection } = this.state;
-		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
-			if (selectedHubsFeatureCollection.item(i).getId() == hub_id) {
-				return true;
-			}
-		}
-		return false;
+		const { selectedHubOrBot } = this.state
+		return selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
 	}
 
 	zoomToBot(id: number, firstMove = false) {
@@ -2272,17 +2204,6 @@ export default class CommandControl extends React.Component {
 				info("Sent STOP")
 			}
 		})
-	}
-
-	returnToHome() {
-		if (!this.state.homeLocation) {
-			alert('No Home location selected.  Click on the map to select a Home location and try again.')
-			return
-		}
-
-		let returnToHomeMissions = this.selectedBotIds().map(selectedBotId => Missions.commandWithWaypoints(selectedBotId, [this.state.homeLocation]))
-
-		//this.runMissions(returnToHomeMissions, null)
 	}
 
 	static formatLength(line: Geometry) {
@@ -2826,22 +2747,11 @@ export default class CommandControl extends React.Component {
 	}
 
 	didClickBot(bot_id: number) {
-		if (this.isBotSelected(bot_id)) {
-			this.selectBots([])
-		}
-		else {
-			this.selectBot(bot_id)
-			this.selectHubs([])
-		}
+		this.toggleBot(bot_id)
 	}
 
 	didClickHub(hub_id: number) {
-		if (this.isHubSelected(hub_id)) {
-			this.selectHubs([])
-		} else {
-			this.selectHub(hub_id)
-			this.selectBots([])
-		}
+		this.toggleHub(hub_id)
 	}
 
 	takeControlPanel() {
@@ -2870,7 +2780,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	addWaypointAt(location: GeographicCoordinate) {
-		let botId = this.selectedBotIds().at(-1)
+		let botId = this.selectedBotId()
 
 		if (botId == null) {
 			return
@@ -3470,44 +3380,19 @@ export default class CommandControl extends React.Component {
 
 	// Currently selected botId
 	selectedBotId() {
-		return this.selectedBotIds().at(-1)
+		const { selectedHubOrBot } = this.state
+		if (selectedHubOrBot == null || selectedHubOrBot.type != "bot") return null
+		else {
+			return selectedHubOrBot.id
+		}
 	}
 
 	selectedHubId() {
-		return this.selectedHubIds().at(-1)
-	}
-
-	selectedBotIds() {
-		const { selectedBotsFeatureCollection } = this.state
-		let botIds: number[] = []
-
-		// Update feature in selected set
-		for (let i = 0; i < selectedBotsFeatureCollection.getLength(); i += 1) {
-			const feature = selectedBotsFeatureCollection.item(i)
-			const botId = feature.getId() as number
-			if (botId != null) {
-				botIds.push(botId)
-			}
+		const { selectedHubOrBot } = this.state
+		if (selectedHubOrBot == null || selectedHubOrBot.type != "hub") return null
+		else {
+			return selectedHubOrBot.id
 		}
-
-		return botIds
-	}
-
-	selectedHubIds() {
-		const { selectedHubsFeatureCollection } = this.state
-		// console.log('selectedHubsFeatureCollection', selectedHubsFeatureCollection)
-		let hubIds: number[] = []
-
-		// Update feature in selected set
-		for (let i = 0; i < selectedHubsFeatureCollection.getLength(); i += 1) {
-			const feature = selectedHubsFeatureCollection.item(i)
-			const hubId = feature.getId() as number
-			if (hubId != null) {
-				hubIds.push(hubId)
-			}
-		}
-
-		return hubIds
 	}
 
 	// SelectInteraction
@@ -3584,22 +3469,15 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on a bot
-			if (feature.get('botId') !== undefined) {
-				if (this.isBotSelected(Number(feature.getId()))) {
-					this.selectBots([])
-				} else {
-					this.selectBots([Number(feature.getId())])
-					this.selectHubs([])
-				}
-			} 
+			const bot_id = feature.get('botId')
+			if (bot_id != null) {
+				this.toggleBot(bot_id)
+			}
+
 			// Clicked on the hub
-			else if (feature.get('hubId') !== undefined) {
-				if (this.isHubSelected(Number(feature.getId()))) {
-					this.selectHubs([])
-				} else {
-					this.selectHubs([Number(feature.getId())])
-					this.selectBots([])
-				}
+			const hub_id = feature.get('hubId')
+			if (hub_id != null) {
+				this.toggleHub(hub_id)
 			}
 
 			// Clicked on mission planning point
@@ -3758,10 +3636,6 @@ export default class CommandControl extends React.Component {
 		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
 	}
 
-	goHomeClicked(evt: UIEvent) {
-		this.returnToHome()
-	}
-
 	goToRallyGreen(evt: UIEvent) {
 		let add_runs: CommandList = {}
 
@@ -3871,8 +3745,8 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		// Send a user flag, to get recorded in the bot's logs
-		let botId = this.selectedBotIds().at(-1) || 0
-		let engineeringCommand = {
+		const botId = this.selectedBotId() || 0
+		let engineeringCommand: Engineering = {
 			bot_id: botId,
 			flag: this.flagNumber
 		}
