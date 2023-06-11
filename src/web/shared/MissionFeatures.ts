@@ -8,7 +8,6 @@ import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 
-
 export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, isActiveRun: boolean, runNumber?: string, zIndex?: number) {
     var features = []
     const projection = map.getView().getProjection()
