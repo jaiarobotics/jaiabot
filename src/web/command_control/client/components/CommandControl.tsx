@@ -374,7 +374,6 @@ export default class CommandControl extends React.Component {
 		this.interactions = new Interactions(this, map)
 
 		map.addInteraction(this.interactions.pointerInteraction)
-		map.addInteraction(this.interactions.selectInteraction)
 		map.addInteraction(this.interactions.translateInteraction)
 		map.addInteraction(this.interactions.dragAndDropInteraction)
 
@@ -1039,6 +1038,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			botLayer.changed();
+
 		} // end foreach bot
 		const { lastBotCount } = this.state;
 		const botCount = Object.keys(bots).length
@@ -1054,7 +1054,6 @@ export default class CommandControl extends React.Component {
 			botExtents,
 			lastBotCount: botCount
 		});
-		// map.render();
 	}
 
 	// POLL THE BOTS
