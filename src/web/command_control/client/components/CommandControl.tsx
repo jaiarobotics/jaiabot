@@ -137,8 +137,6 @@ const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
-import SoundEffects from './SoundEffects'
-import { persistVisibility } from './VisibleLayerPersistance'
 
 import { KMZ } from './KMZ'
 import { createChartLayerGroup, gebcoLayer } from './ChartLayers';
@@ -161,6 +159,7 @@ import { createBotFeature } from './shared/BotFeature'
 import { createHubFeature } from './shared/HubFeature'
 import { run } from 'node:test'
 import { getGeographicCoordinate } from './Utilities'
+import { playDisconnectReconnectSounds } from './DisconnectSound'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1632,10 +1631,12 @@ export default class CommandControl extends React.Component {
 		});
 		*/
 
+		// Update layers derived from the podStatus
 		if (prevState.podStatus !== this.state.podStatus) {
 			this.updateHubsLayer()
 			this.updateBotsLayer()
 			this.updateActiveMissionLayer()
+			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
 		}
 	}
 
@@ -1930,29 +1931,6 @@ export default class CommandControl extends React.Component {
 			}
 
 
-			// Sounds for disconnect / reconnect
-			const disconnectThreshold = 30 * 1e6 // microseconds
-
-			const oldPortalStatusAge = this.oldPodStatus?.bots?.[botId]?.portalStatusAge
-
-			bot.isDisconnected = (bot.portalStatusAge >= disconnectThreshold)
-
-			if (oldPortalStatusAge != null) {
-				// Bot disconnect
-				if (bot.isDisconnected) {
-					if (oldPortalStatusAge < disconnectThreshold) {
-						SoundEffects.botDisconnect.play()
-					}
-				}
-
-				// Bot reconnect
-				if (bot.portalStatusAge < disconnectThreshold) {
-					if (oldPortalStatusAge >= disconnectThreshold) {
-						SoundEffects.botReconnect.play()
-					}
-				}
-			}
-
 			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
 				heading: botHeading,
@@ -2048,7 +2026,6 @@ export default class CommandControl extends React.Component {
 			us.timerID = setInterval(() => us.pollPodStatus(), 2500)
 		}
 
-		console.log("polling podStatus")
 		this.api.getStatus().then(
 			(result) => {
 				console.log("Got response")
@@ -2075,13 +2052,13 @@ export default class CommandControl extends React.Component {
 					if (messages.warning) {
 						warning(messages.warning)
 					}
-				}
 
-				if (messages?.error) {
-					this.setState({disconnectionMessage: messages.error})
-				}
-				else {
-					this.setState({disconnectionMessage: null})
+					if (messages.error) {
+						this.setState({disconnectionMessage: messages.error})
+					}
+					else {
+						this.setState({disconnectionMessage: null})
+					}
 				}
 
 				if (this.state.mode !== Mode.MISSION_PLANNING) {
