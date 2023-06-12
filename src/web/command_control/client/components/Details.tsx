@@ -12,8 +12,8 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
-	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
-         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
+	     mdiSkipNext, mdiDownload, mdiStop,
+         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete , mdiDatabaseEyeOutline} from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
@@ -164,6 +164,7 @@ export interface DetailsExpandedState {
     imu: boolean
     sensor: boolean
     power: boolean
+    links: boolean
 }
 
 
@@ -841,21 +842,35 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     )
 }
 
+export interface HubDetailsProps {
+    hub: PortalHubStatus,
+    api: JaiaAPI,
+    isExpanded: DetailsExpandedState,
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    getFleetId: () => number
+    closeWindow: React.MouseEventHandler<HTMLDivElement>,
+    takeControl: () => boolean,
+}
 
-export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, 
-    closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState, takeControl: () => boolean,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
-    if (hub == null) {
+export function HubDetailsComponent(props: HubDetailsProps) {
+    const hub = props.hub
+    const api = props.api
+    const isExpanded = props.isExpanded
+    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const getFleetId = props.getFleetId
+    const closeWindow = props.closeWindow
+    const takeControl = props.takeControl
+
+    if (!hub) {
         return (<div></div>)
     }
 
     let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
-
-    var statusAgeClassName = ''
+    let statusAgeClassName: string
+    
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
-    }
-    else if (statusAge > 10) {
+    } else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
 
@@ -926,6 +941,32 @@ export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI,
                         <Button className={" button-jcc"}  
                                 onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
                             <Icon path={mdiRestart} title="Restart Services"/>
+                        </Button>
+                    </AccordionDetails>
+                </Accordion>
+                <Accordion 
+                    expanded={isExpanded.links} 
+                    onChange={() => {detailsDefaultExpanded("links")}}
+                    className="accordion"
+                >
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
+                    >
+                        <Typography>Links</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Button
+                            className={"button-jcc"} 
+                            onClick={() => {							
+                                const hubId = 10 + hub?.hub_id
+                                const fleetId = getFleetId()
+                                // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+                                const url = `http://10.23.${fleetId}.${hubId}:40010`
+                                window.open(url, '_blank')}}
+                        >
+                            <Icon path={mdiDatabaseEyeOutline} title="JDV"/>
                         </Button>
                     </AccordionDetails>
                 </Accordion>
