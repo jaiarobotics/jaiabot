@@ -114,7 +114,7 @@ import {
 
 const jaiabot_icon = require('../icons/jaiabot.png')
 
-import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
+import {BotDetailsComponent, HubDetailsComponent, HubDetailsProps, DetailsExpandedState} from './Details'
 import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
 
 import tooltips from '../libs/tooltips'
@@ -399,6 +399,7 @@ export default class CommandControl extends React.Component {
 				imu: false,
 				sensor: false,
 				power: false,
+				links: false
 			},
 			mapLayerActive: false, 
 			engineeringPanelActive: false,
@@ -2447,13 +2448,16 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[this.selectedHubId()], 
-												this.api, 
-												closeDetails, 
-												this.state.detailsExpanded,
-												this.takeControl.bind(this),
-												this.detailsDefaultExpanded.bind(this));
-				
+				const hubDetailsProps: HubDetailsProps = {
+					hub: hubs?.[this.selectedHubId()],
+					api: this.api,
+					isExpanded: this.state.detailsExpanded,
+					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
+					getFleetId: this.getFleetId.bind(this),
+					takeControl: this.takeControl.bind(this),
+					closeWindow: closeDetails,
+				}
+				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
 				break;
 			case 'bot':
 				//**********************
@@ -2527,7 +2531,14 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+				<EngineeringPanel 
+					api={this.api} 
+					bots={bots} 
+					hubs={hubs} 
+					getSelectedBotId={this.selectedBotId.bind(this)}
+					getFleetId={this.getFleetId.bind(this)}
+					control={this.takeControl.bind(this)} 
+				/>
 
 				<MissionControllerPanel 
 					api={this.api} 
@@ -3505,6 +3516,10 @@ export default class CommandControl extends React.Component {
 
 	selectedHubId() {
 		return this.selectedHubIds().at(-1)
+	}
+
+	getFleetId() {
+		return this.podStatus.hubs[0].fleet_id
 	}
 
 	selectedBotIds() {

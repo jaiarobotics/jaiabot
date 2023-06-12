@@ -2,6 +2,74 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.5.2
+
+* JCC
+  * Hub highlights when selected
+  * Goals start at index 1
+  * Hosted using apache2
+  * Mission Creation Panel
+    * Assign/unassign bots to runs
+    * Flag on UI to indicate the run
+  * Constant heading click-on-map button update
+  * Remote control button
+    * UI joystick to drive bot
+    * Xbox controller support
+  * Data download has a percentage complete
+  * Most buttons have confirmations and alerts
+  * Optimize Survey Panel
+    * The ability to set the task of the last goal
+  * Max goal limit is set to 15 per run
+  * UI cleanup
+  * Button states
+  * Retry data offload in post deployment
+  * Task packet icon updates
+
+* Engineering Panel
+  * Bottom Depth Safety
+    * Default 0 meter
+    * Ability to configure constant heading task if depth safety is triggered
+
+* App Speed Increases
+  * Adafruit BNO055 (IMU)
+    * Loop speed increased from 1 Hz to 10 Hz
+  * Atlas Scientific Ezo Ec (Salinity)
+    * Loop speed increased from 1 Hz to 10 Hz
+  * Jaiabot Engineering
+    * Loop speed increased from 5 seconds to 1 Hz
+
+* Bot Data Speed Increases
+  * SPI gps increased from 1 Hz to 5 Hz
+  * Node status increased from 1 Hz to 5 Hz
+
+* Multi-Hub Support
+  * Ability to have hubs that work with the bots interchangeably
+  * They do not work as a team
+
+* Systemd Sim Support
+  * Ability to create virtual machines for the bots/hubs and run in a simulation
+
+* Data Offload
+  * Generation of KMZs that can be loaded in google earth
+  * Accurate Percentage complete when downloading
+  * Removal of logs decreased from 14 days old to 7 days old on the bots
+
+* Xbee Driver Updates
+  * Support for enabling AES (Advanced Encryption Standard)
+
+* API Endpoints
+  * Single waypoint endpoint (/jaia/single-waypoint-mission)
+
+* Hub LED Button
+  * The LED indicates different hub states
+  * The button can control certain hub states
+
+* Bug Fixes
+  * When bot has no gps UI would crash occasionally
+  * Using the tablet and optimize mission 
+    * The user had to click too many times to get the line tool to work
+  * Optimize mission bugs
+
 ### 1.4.0
 
 * JCC
