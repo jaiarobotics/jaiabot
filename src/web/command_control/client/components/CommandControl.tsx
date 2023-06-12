@@ -17,6 +17,7 @@ import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import { taskData } from './TaskPackets'
+import JaiaAbout from './JaiaAbout'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -2518,6 +2519,8 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
+				<JaiaAbout />
+
 				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
 
 				<MissionControllerPanel 
@@ -2591,27 +2594,7 @@ export default class CommandControl extends React.Component {
 							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
 						</Button>
 					)}
-					{/*trackingTarget === 'all' ? (
-						<Button 
-							onClick={() => {
-								this.zoomToAll(false);
-								this.trackBot(null);
-							}}
-							className="button-jcc active"
-						>
-							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Unfollow" />
-						</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								this.zoomToAll(true);
-								this.trackBot('all');
-							}}
-						>
-							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Follow All" />
-						</Button>
-					)*/}
+
 					{trackingTarget === 'pod' ? (
 						<Button 							
 							onClick={() => {

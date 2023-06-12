@@ -1,0 +1,29 @@
+.jaiaAboutContainer {
+    width: 300px;
+    background-color: #FFFFFF;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: min-content;
+    z-index: 100;
+  }
+
+  .jaiaAboutCloseBtn {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+  }
+
+  .jaiaAboutLogo {
+    height: 100px;
+    width: auto;
+    grid-column-start: 1;
+    grid-column-end: 3;
+  }
+
+  .jaiaAboutLabel {
+    grid-column: 1 / 3;
+  }
