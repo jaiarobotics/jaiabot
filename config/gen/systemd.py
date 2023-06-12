@@ -6,6 +6,7 @@ import os
 from string import Template
 import shutil
 import subprocess
+from typing import Dict
 
 # defaults based on $PATH settings
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -47,6 +48,7 @@ parser.add_argument('--disable', action='store_true', help='If set, run systemct
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
+parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 
@@ -122,9 +124,43 @@ subprocess.run('bash -ic "' +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
+               f'export jaia_goby_log_level={args.goby_log_level}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env"',
                check=True, shell=True)
+
+# Merge /tmp/runtime.env into the target env file, but don't overwrite existing entries in the target env file
+def load_env(path: str):
+    env_dict: Dict[str, str] = {}
+    try:
+        for line in open(path):
+            items = line.split('=')
+            if len(items) == 2:
+                env_dict[items[0]] = items[1].strip()
+    except FileNotFoundError:
+        pass
+    return env_dict
+
+
+def save_env(env: Dict[str, str], path: str):
+    with open(path, 'w') as out_file:
+        for key in sorted(env.keys()):
+            out_file.write(f'{key}={env[key]}\n')
+
+
+def merge_env(src_env_path: str, dest_env_path: str):
+    src_env = load_env(src_env_path)
+    dest_env = load_env(dest_env_path)
+
+    # Clobber with any entries that already exist at dest
+    src_env.update(dest_env)
+
+    save_env(src_env, dest_env_path)
+
+
+merge_env('/tmp/runtime.env', args.env_file)
+
+####
 
 common_macros=dict()
 
