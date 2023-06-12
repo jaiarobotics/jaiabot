@@ -44,7 +44,8 @@ The goal is to keep the state machine as simple as possible while still supporti
 				- PoweredAscent: Bot is performing a powered ascent to the surface.
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 				- SurfaceDrift: Bot is drifting to estimate currents.
-			* ConstantHeading: Bot is driving on a constant heading for a certain time
+				- ConstantHeading: Bot is driving on a constant heading for a certain time.
+			* ConstantHeading: Bot is driving on a constant heading for a certain time.
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
@@ -106,7 +107,8 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvGPSFix: Triggered whe the GPS Fix meets our requirements. 
 - EvGPSNoFix: Triggered whe the GPS Fix does not meet our requirements.
 - EvIMURestart: Triggered when we detect an IMU Issue.
-- EvIMURestartCompleted: Triggered when the IMU Restart is completed
+- EvIMURestartCompleted: Triggered when the IMU Restart is completed.
+- EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
 
 #### Internal events
 
