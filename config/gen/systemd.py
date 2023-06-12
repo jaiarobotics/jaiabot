@@ -6,7 +6,7 @@ import os
 from string import Template
 import shutil
 import subprocess
-import json
+from typing import Dict
 
 # defaults based on $PATH settings
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -40,6 +40,9 @@ parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Direct
 parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
+parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
+parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
+parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
@@ -49,21 +52,6 @@ parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, con
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 
 args=parser.parse_args()
-
-## Get fleet, bot, and hub indices from /etc/jaiabot/local.json file, if present, to avoid overwriting on re-deploy
-try:
-    local_config = json.load(open('/etc/jaiabot/local.json'))
-except FileNotFoundError:
-    local_config = {
-        'fleet_index': 0,
-        'hub_index': 0,
-        'bot_index': 0
-    }
-
-    json.dump(local_config, open('/etc/jaiabot/local.json', 'w'))
-
-##
-
 
 class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
@@ -121,10 +109,10 @@ class Type(Enum):
 
 if args.type == 'bot':
     jaia_type=Type.BOT
-    bot_or_hub_index_str='export jaia_bot_index=' + str(local_config['bot_index']) + '; '
+    bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
 elif args.type == 'hub':
     jaia_type=Type.HUB
-    bot_or_hub_index_str='export jaia_hub_index=' + str(local_config['hub_index']) + '; '
+    bot_or_hub_index_str='export jaia_hub_index=' + str(args.hub_index) + '; '
 
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -132,12 +120,45 @@ print('Writing ' + args.env_file + ' from preseed.goby')
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
                bot_or_hub_index_str + 
-               'export jaia_fleet_index=' + str(local_config['fleet_index']) + '; ' + 
+               'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env"',
                check=True, shell=True)
+
+# Merge /tmp/runtime.env into the target env file, but don't overwrite existing entries in the target env file
+def load_env(path: str):
+    env_dict: Dict[str, str] = {}
+    try:
+        for line in open(path):
+            items = line.split('=')
+            if len(items) == 2:
+                env_dict[items[0]] = items[1].strip()
+    except FileNotFoundError:
+        pass
+    return env_dict
+
+
+def save_env(env: Dict[str, str], path: str):
+    with open(path, 'w') as out_file:
+        for key in sorted(env.keys()):
+            out_file.write(f'{key}={env[key]}\n')
+
+
+def merge_env(src_env_path: str, dest_env_path: str):
+    src_env = load_env(src_env_path)
+    dest_env = load_env(dest_env_path)
+
+    # Clobber with any entries that already exist at dest
+    src_env.update(dest_env)
+
+    save_env(src_env, dest_env_path)
+
+
+merge_env('/tmp/runtime.env', args.env_file)
+
+####
 
 common_macros=dict()
 
