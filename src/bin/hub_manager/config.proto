@@ -47,5 +47,6 @@ message HubManager
         13;
 
     optional int32 hub_id = 14 [default = 0];
-    optional int32 health_report_timeout_seconds = 15 [default = 20];
+    optional int32 fleet_id = 15 [default = 0];
+    optional int32 health_report_timeout_seconds = 16 [default = 20];
 }
