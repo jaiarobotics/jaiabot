@@ -713,57 +713,15 @@ td {
 
     .ol-attribution {
       text-align: right;
-      bottom: 0.5em;
-      right: 0.5em;
+      bottom: 16px;
       max-width: calc(100% - 1.3em);
-    }
-    .ol-attribution ul {
-      margin: 0;
-      padding: 0 0.5em;
-      font-size: 0.7rem;
-      line-height: 1.375em;
-      color: @cc-text-color;
-      text-shadow: 0 0 2px #fff;
-      :before {
-        content: "©";
+      button {
+        display: none;
       }
     }
-    .ol-attribution li {
-      display: inline;
-      list-style: none;
-      line-height: inherit;
-    }
-    .ol-attribution li:not(:last-child):after {
-      content: " ";
-    }
-    .ol-attribution img {
-      max-height: 2em;
-      max-width: inherit;
-      vertical-align: middle;
-    }
-    .ol-attribution ul,
-    .ol-attribution button {
-      display: inline-block;
-    }
-    .ol-attribution.ol-collapsed ul {
-      display: none;
-    }
-    .ol-attribution:not(.ol-collapsed) {
-      background: none;
-    }
-    .ol-attribution.ol-uncollapsible {
-      bottom: 0;
-      right: 25%;
-      border-radius: @panel-corner-radius @panel-corner-radius 0 0;
-      height: 1em;
-      line-height: 1em;
-    }
-    .ol-attribution.ol-uncollapsible img {
-      margin-top: -0.2em;
-      max-height: 1.6em;
-    }
-    .ol-attribution.ol-uncollapsible button {
-      display: none;
+    .ol-attribution ul {
+      font-size: 0.7rem;
+      color: @cc-text-color;
     }
 
     .ol-zoomslider {
