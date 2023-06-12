@@ -261,6 +261,9 @@ export default class CommandControl extends React.Component {
 
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	api = jaiaAPI
+
+	botLayers?: {[key: number]: OlVectorLayer<OlVectorSource>} = {}
+
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
 
@@ -695,7 +698,7 @@ export default class CommandControl extends React.Component {
 		if (prevState.podStatus !== this.state.podStatus ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 			this.updateHubsLayer()
-			this.updateBotsLayer()
+			this.updateBotLayers()
 			this.updateActiveMissionLayer()
 			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
 		}
@@ -737,37 +740,6 @@ export default class CommandControl extends React.Component {
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
 
 		return hubsLayerCollection.item(hubsLayerCollection.getLength() - 1);
-	}
-
-	getLiveLayerFromBotId(bot_id: number) {
-		const botsLayerCollection = layers.botsLayerCollection
-
-		// eslint-disable-next-line no-plusplus
-		for (let i = 0; i < botsLayerCollection.getLength(); i++) {
-			const layer = botsLayerCollection.item(i);
-			if (layer.get('bot_id') === bot_id) {
-				return layer;
-			}
-		}
-
-		const botLayer = new OlVectorLayer({
-			properties: {
-				name: bot_id,
-				title: bot_id,
-				bot_id: bot_id
-			},
-			source: new OlVectorSource({
-				wrapX: false,
-				features: new OlCollection([], { unique: true })
-			})
-		});
-
-		botsLayerCollection.push(botLayer);
-
-		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
-		// $('input').checkboxradio();
-
-		return botsLayerCollection.item(botsLayerCollection.getLength() - 1);
 	}
 
 	// changeInteraction()
@@ -927,7 +899,30 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	updateBotsLayer() {
+	getBotLayer(bot_id: number) {
+		if (this.botLayers[bot_id] == null) {
+			this.botLayers[bot_id] = new OlVectorLayer({
+				properties: {
+					name: "Bots",
+					title: "Bots",
+				},
+				source: new OlVectorSource({
+					wrapX: false,
+					features: new OlCollection([], { unique: true })
+				})
+			})
+			map.addLayer(this.botLayers[bot_id])
+		}
+
+		return this.botLayers[bot_id]
+	}
+
+	deleteBotLayer(bot_id: number) {
+		map.removeLayer(this.botLayers[bot_id])
+		delete this.botLayers[bot_id]
+	}
+
+	updateBotLayers() {
 		const { selectedHubOrBot } = this.state
 		let bots = this.state.podStatus.bots
 
@@ -942,6 +937,9 @@ export default class CommandControl extends React.Component {
 			// ID
 			const bot_id = bot.bot_id
 
+			const botLayer = this.getBotLayer(bot_id)
+			const botSource = botLayer.getSource()
+	
 			// Geometry
 			const botLatitude = bot.location?.lat
 			const botLongitude = bot.location?.lon
@@ -951,20 +949,17 @@ export default class CommandControl extends React.Component {
 			const botTimestamp = new Date(null)
 			botTimestamp.setSeconds(bot.time / 1e6)
 
-			const botLayer = this.getLiveLayerFromBotId(bot_id);
+			var botFeature: OlFeature<OlPoint> = botSource.getFeatureById(bot_id) as OlFeature<OlPoint>
+			if (botFeature == null) {
+				botFeature = new OlFeature<OlPoint>({
+					name: String(bot_id),
+				})
+				botFeature.setId(bot_id)
+				botSource.addFeature(botFeature)
+			}
 
-			const coordinate = getMapCoordinate(bot.location, map)
-
-			const botFeature = createBotFeature({
-				map: map,
-				botId: Number(botId),
-				lonLat: [botLongitude, botLatitude],
-				heading: botHeading,
-				courseOverGround: bot.attitude?.course_over_ground
-			})
-
-			botFeature.setId(bot_id);
-
+			botFeature.setGeometry(new OlPoint(getMapCoordinate(bot.location, map)))
+			botFeature.setStyle(Styles.botMarker)
 
 			// Fault Levels
 
@@ -983,8 +978,9 @@ export default class CommandControl extends React.Component {
 			}
 
 
-			botFeature.setGeometry(new OlPoint(coordinate));
 			botFeature.setProperties({
+				lonLat: [botLongitude, botLatitude],
+				courseOverGround: bot.attitude?.course_over_ground,
 				heading: botHeading,
 				speed: botSpeed,
 				lastUpdated: bot.time,
@@ -1020,9 +1016,6 @@ export default class CommandControl extends React.Component {
 
 			botFeature.set('remoteControlled', bot.mission_state?.includes('REMOTE_CONTROL') || false)
 
-			botLayer.getSource().clear();
-			botLayer.getSource().addFeature(botFeature);
-
 			if (trackingTarget === bot_id) {
 				this.centerOn(botFeature.getGeometry().getCoordinates());
 			}
@@ -1040,6 +1033,14 @@ export default class CommandControl extends React.Component {
 			botLayer.changed();
 
 		} // end foreach bot
+
+		// Remove bot layers for bot_ids that have disappeared
+		const defunct_bot_ids = Object.keys(this.botLayers).filter((bot_id) => {return !(String(bot_id) in bots)})
+
+		defunct_bot_ids.forEach((bot_id_string) => {
+			this.deleteBotLayer(Number(bot_id_string))
+		})
+
 		const { lastBotCount } = this.state;
 		const botCount = Object.keys(bots).length
 
@@ -1069,7 +1070,6 @@ export default class CommandControl extends React.Component {
 
 		this.api.getStatus().then(
 			(result) => {
-				console.log("Got response")
 				if (result instanceof Error) {
 					hubConnectionError(result.message)
 					return
