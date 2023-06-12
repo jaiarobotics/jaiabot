@@ -93,7 +93,7 @@ def getCommands():
     return JSONResponse(jaialogs.get_commands(log_names))
 
 
-@app.route('/active_goal', methods=['GET'])
+@app.route('/active-goal', methods=['GET'])
 def getActiveGoals():
     log_names = parse_log_filenames(request.args.get('log'))
 
@@ -103,7 +103,7 @@ def getActiveGoals():
     return JSONResponse(jaialogs.get_active_goals(log_names))
 
 
-@app.route('/task_packet', methods=['GET'])
+@app.route('/task-packet', methods=['GET'])
 def getTaskPackets():
     log_names = parse_log_filenames(request.args.get('log'))
 
