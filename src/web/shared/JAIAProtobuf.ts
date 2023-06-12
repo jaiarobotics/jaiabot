@@ -1097,7 +1097,8 @@ export interface Engineering {
 }
 
 export interface HubStatus {
-    hub_id?: number
+    hub_id?: number,
+    fleet_id?: number,
     time?: number
     health_state?: HealthState
     error?: Error[]
