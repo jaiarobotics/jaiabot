@@ -1,4 +1,4 @@
-import { HubStatus, BotStatus, MissionPlan, Engineering } from "./shared/JAIAProtobuf"
+import { HubStatus, BotStatus, MissionPlan, Engineering, MissionState } from "./JAIAProtobuf"
 
 
 export interface PortalBotStatus extends BotStatus {
@@ -16,4 +16,8 @@ export interface PodStatus {
 	hubs: {[key: string]: PortalHubStatus},
 	bots: {[key: string]: PortalBotStatus},
 	controllingClientId: string
+}
+
+export function isRemoteControlled(mission_state?: MissionState) {
+	return mission_state?.includes('REMOTE_CONTROL')	|| false
 }

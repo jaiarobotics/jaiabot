@@ -1,0 +1,101 @@
+import { Map } from "ol"
+import VectorLayer from "ol/layer/Vector"
+import VectorSource from "ol/source/Vector"
+import Collection from "ol/Collection"
+import { PortalBotStatus } from "./shared/PortalStatus"
+import { HubOrBot } from "./HubOrBot"
+import Feature from "ol/Feature"
+import { Point } from "ol/geom"
+import { getMapCoordinate } from "./Utilities"
+import * as Styles from "./shared/Styles"
+import { isRemoteControlled } from "./shared/PortalStatus"
+
+export class BotLayers {
+    layers: {[key: number]: VectorLayer<VectorSource>} = {}
+    map: Map
+
+    constructor(map: Map) {
+        this.map = map
+    }
+
+    getBotLayer(bot_id: number) {
+		if (this.layers[bot_id] == null) {
+            console.log(`Created layer for bot ${bot_id}`)
+			this.layers[bot_id] = new VectorLayer({
+				properties: {
+					name: "Bots",
+					title: "Bots",
+				},
+				source: new VectorSource({
+					wrapX: false,
+					features: new Collection([], { unique: true })
+				})
+			})
+			this.map.addLayer(this.layers[bot_id])
+		}
+
+		return this.layers[bot_id]
+	}
+
+	deleteBotLayer(bot_id: number) {
+		this.map.removeLayer(this.layers[bot_id])
+		delete this.layers[bot_id]
+	}
+
+	update(bots: {[key: string]: PortalBotStatus}, selectedHubOrBot: HubOrBot) {
+		const botExtents: {[key: number]: number[]} = {};
+
+		// This needs to be synchronized somehow?
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			// ID
+			const bot_id = bot.bot_id
+
+			const botLayer = this.getBotLayer(bot_id)
+			const botSource = botLayer.getSource()
+	
+			// Geometry
+			const botLatitude = bot.location?.lat
+			const botLongitude = bot.location?.lon
+
+			var botFeature: Feature<Point> = botSource.getFeatureById(bot_id) as Feature<Point>
+			if (botFeature == null) {
+				botFeature = new Feature<Point>({
+					name: String(bot_id),
+				})
+				botFeature.setId(bot_id)
+				botSource.addFeature(botFeature)
+			}
+
+			botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
+			botFeature.set('bot', bot)
+			botFeature.setStyle(Styles.botMarker)
+
+			const isSelected = selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
+			botFeature.set('selected', isSelected)
+			botFeature.set('controlled', false);
+
+			if (isRemoteControlled(bot.mission_state)) {
+				botLayer.setZIndex(103);
+			} else if (botFeature.get('selected')) {
+				botLayer.setZIndex(102);
+			} else if (botFeature.get('tracked')) {
+				botLayer.setZIndex(101);
+			} else {
+				botLayer.setZIndex(100);
+			}
+
+			botLayer.changed();
+
+		} // end foreach bot
+
+		// Remove bot layers for bot_ids that have disappeared
+		const defunct_bot_ids = Object.keys(this.layers).filter((bot_id) => {return !(String(bot_id) in bots)})
+
+		defunct_bot_ids.forEach((bot_id_string) => {
+			this.deleteBotLayer(Number(bot_id_string))
+		})
+	}
+
+}

@@ -61,6 +61,7 @@ import {
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { getTransform } from 'ol/proj';
 import { deepcopy, getMapCoordinate } from './Utilities';
+import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
@@ -119,14 +120,12 @@ import { gebcoLayer } from './ChartLayers';
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { fromLonLat } from 'ol/proj.js';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
-import { PodStatus } from './PortalStatus'
+import { PodStatus, PortalBotStatus, isRemoteControlled } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
-import { createBotFeature } from './shared/BotFeature'
 import { createHubFeature } from './shared/HubFeature'
 
 // Jaia imports
@@ -138,6 +137,7 @@ import { layers } from './Layers'
 import { getGeographicCoordinate } from './Utilities'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { Interactions } from './Interactions'
+import { BotLayers } from './BotLayers'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -185,11 +185,6 @@ export enum Mode {
 	MISSION_PLANNING = 'missionPlanning',
 	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
 	SET_RALLY_POINT_RED = "setRallyPointRed"
-}
-
-interface HubOrBot {
-	type: 'hub' | 'bot',
-	id: number
 }
 
 export interface RunInterface {
@@ -262,7 +257,7 @@ export default class CommandControl extends React.Component {
 	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	api = jaiaAPI
 
-	botLayers?: {[key: number]: OlVectorLayer<OlVectorSource>} = {}
+	botLayers: BotLayers
 
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
@@ -464,8 +459,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidMount() {
-
-		let test = "test"
+		// Class that keeps track of the bot layers, and updates them
+		this.botLayers = new BotLayers(map)
 
 		map.setTarget(this.mapDivId);
 
@@ -698,7 +693,7 @@ export default class CommandControl extends React.Component {
 		if (prevState.podStatus !== this.state.podStatus ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 			this.updateHubsLayer()
-			this.updateBotLayers()
+			this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
 			this.updateActiveMissionLayer()
 			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
 		}
@@ -706,6 +701,12 @@ export default class CommandControl extends React.Component {
 		// If we select another bot, we need to re-render the mission layer to re-color the mission lines
 		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 			this.updateMissionLayer()
+		}
+
+		// If we track a different target, or the bots change position, update tracking
+		if (prevState.podStatus !== this.state.podStatus ||
+			prevState.trackingTarget !== this.state.trackingTarget) {
+			this.doTracking()
 		}
 	}
 
@@ -774,6 +775,28 @@ export default class CommandControl extends React.Component {
 				viewportDefaultPadding + dims[2],
 				viewportDefaultPadding + dims[3]
 			]
+		});
+	}
+
+	doTracking() {
+		const { lastBotCount, trackingTarget } = this.state;
+		const bots = this.state.podStatus.bots
+		const botCount = Object.keys(bots).length
+
+        if (String(trackingTarget) in bots) {
+            const trackedBot = bots[String(trackingTarget)]
+            this.centerOn(getMapCoordinate(trackedBot.location, map));
+        }
+
+		if (botCount > lastBotCount) {
+			this.zoomToPod(true);
+		} else if (trackingTarget === 'pod') {
+			this.zoomToPod();
+		} else if (trackingTarget === 'all') {
+			this.zoomToAll();
+		}
+		this.setState({
+			lastBotCount: botCount
 		});
 	}
 
@@ -899,164 +922,6 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	getBotLayer(bot_id: number) {
-		if (this.botLayers[bot_id] == null) {
-			this.botLayers[bot_id] = new OlVectorLayer({
-				properties: {
-					name: "Bots",
-					title: "Bots",
-				},
-				source: new OlVectorSource({
-					wrapX: false,
-					features: new OlCollection([], { unique: true })
-				})
-			})
-			map.addLayer(this.botLayers[bot_id])
-		}
-
-		return this.botLayers[bot_id]
-	}
-
-	deleteBotLayer(bot_id: number) {
-		map.removeLayer(this.botLayers[bot_id])
-		delete this.botLayers[bot_id]
-	}
-
-	updateBotLayers() {
-		const { selectedHubOrBot } = this.state
-		let bots = this.state.podStatus.bots
-
-		const { trackingTarget } = this.state;
-
-		const botExtents: {[key: number]: number[]} = {};
-
-		// This needs to be synchronized somehow?
-		for (let botId in bots) {
-			let bot = bots[botId]
-
-			// ID
-			const bot_id = bot.bot_id
-
-			const botLayer = this.getBotLayer(bot_id)
-			const botSource = botLayer.getSource()
-	
-			// Geometry
-			const botLatitude = bot.location?.lat
-			const botLongitude = bot.location?.lon
-			// Properties
-			const botHeading = bot.attitude?.heading
-			const botSpeed = bot.speed?.over_ground
-			const botTimestamp = new Date(null)
-			botTimestamp.setSeconds(bot.time / 1e6)
-
-			var botFeature: OlFeature<OlPoint> = botSource.getFeatureById(bot_id) as OlFeature<OlPoint>
-			if (botFeature == null) {
-				botFeature = new OlFeature<OlPoint>({
-					name: String(bot_id),
-				})
-				botFeature.setId(bot_id)
-				botSource.addFeature(botFeature)
-			}
-
-			botFeature.setGeometry(new OlPoint(getMapCoordinate(bot.location, map)))
-			botFeature.setStyle(Styles.botMarker)
-
-			// Fault Levels
-
-			let faultLevel = 0
-
-			switch(bot.health_state) {
-				case "HEALTH__OK":
-					faultLevel = 0
-					break;
-				case "HEALTH__DEGRADED":
-					faultLevel = 1
-					break;
-				default:
-					faultLevel = 2
-					break;
-			}
-
-
-			botFeature.setProperties({
-				lonLat: [botLongitude, botLatitude],
-				courseOverGround: bot.attitude?.course_over_ground,
-				heading: botHeading,
-				speed: botSpeed,
-				lastUpdated: bot.time,
-				lastUpdatedString: botTimestamp.toISOString(),
-				missionState: bot.mission_state,
-				healthState: bot.health_state,
-				faultLevel: faultLevel,
-				isDisconnected: bot.isDisconnected,
-				botId: botId,
-				isReacquiringGPS: bot.mission_state?.endsWith('REACQUIRE_GPS')
-			});
-
-			const zoomExtentWidth = 0.001; // Degrees
-
-			// An array of numbers representing an extent: [minx, miny, maxx, maxy].
-			botExtents[bot_id] = [
-				botLongitude - zoomExtentWidth / 2,
-				botLatitude - zoomExtentWidth / 2,
-				botLongitude + zoomExtentWidth / 2,
-				botLatitude + zoomExtentWidth / 2
-			];
-
-			const isSelected = selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
-			botFeature.set('selected', isSelected)
-
-			botFeature.set('controlled', false);
-			botFeature.set('tracked', false);
-			botFeature.set('completed', false);
-
-			if (trackingTarget === bot_id) {
-				botFeature.set('tracked', true);
-			}
-
-			botFeature.set('remoteControlled', bot.mission_state?.includes('REMOTE_CONTROL') || false)
-
-			if (trackingTarget === bot_id) {
-				this.centerOn(botFeature.getGeometry().getCoordinates());
-			}
-
-			if (botFeature.get('controlled')) {
-				botLayer.setZIndex(103);
-			} else if (botFeature.get('selected')) {
-				botLayer.setZIndex(102);
-			} else if (botFeature.get('tracked')) {
-				botLayer.setZIndex(101);
-			} else {
-				botLayer.setZIndex(100);
-			}
-
-			botLayer.changed();
-
-		} // end foreach bot
-
-		// Remove bot layers for bot_ids that have disappeared
-		const defunct_bot_ids = Object.keys(this.botLayers).filter((bot_id) => {return !(String(bot_id) in bots)})
-
-		defunct_bot_ids.forEach((bot_id_string) => {
-			this.deleteBotLayer(Number(bot_id_string))
-		})
-
-		const { lastBotCount } = this.state;
-		const botCount = Object.keys(bots).length
-
-		if (botCount > lastBotCount) {
-			this.zoomToAllBots(true);
-		} else if (trackingTarget === 'pod') {
-			this.zoomToAllBots();
-		} else if (trackingTarget === 'all') {
-			this.zoomToAll();
-		}
-		this.setState({
-			botExtents,
-			lastBotCount: botCount
-		});
-	}
-
 	// POLL THE BOTS
 	pollPodStatus() {
 		clearInterval(this.timerID);
@@ -1120,18 +985,11 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.timerID);
 	}
 
-	zoomToAllBots(firstMove = false) {
-		if (layers.botsLayerGroup.getLayers().getLength() <= 0) {
-			return;
+	zoomToPod(firstMove = false) {
+		const podExtent = this.getPodExtent()
+		if (podExtent != null) {
+			this.fit(podExtent, { duration: 100 }, false, firstMove)
 		}
-		const extent = OlCreateEmptyExtent();
-		let layerCount = 0;
-		layers.botsLayerGroup.getLayers().forEach((layer: OlVectorLayer<OlVectorSource>) => {
-			if (layer.getSource().getFeatures().length <= 0) return;
-			OlExtendExtent(extent, layer.getSource().getExtent());
-			layerCount += 1;
-		});
-		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
 	zoomToAll(firstMove = false) {
@@ -1146,8 +1004,8 @@ export default class CommandControl extends React.Component {
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
-	toggleBot(bot_id: number) {
-		if (this.isBotSelected(bot_id)) {
+	toggleBot(bot_id?: number) {
+		if (bot_id == null || this.isBotSelected(bot_id)) {
 			this.unselectHubOrBot()
 		}
 		else {
@@ -1192,9 +1050,44 @@ export default class CommandControl extends React.Component {
 		return selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
 	}
 
+	getBotExtent(bot_id: number) {
+		const zoomExtentWidth = 0.001 / 2 // Degrees
+		const bot = this.state.podStatus.bots[bot_id]
+
+		if (bot != null && bot.location != null) {
+			const coordinate = getMapCoordinate(bot.location, map)
+			return [
+				coordinate[0] - zoomExtentWidth,
+				coordinate[1] - zoomExtentWidth,
+				coordinate[0] + zoomExtentWidth,
+				coordinate[1] + zoomExtentWidth
+			]
+		}
+	}
+
+	getPodExtent() {
+		const zoomExtentWidth = 0.001 / 2 // Degrees
+		const bots = Object.values(this.state.podStatus.bots)
+
+		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon != null })
+		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat != null })
+
+		if (lons.length == 0 || lats.length == 0) return undefined
+
+		const minCoordinate = getMapCoordinate({ lon: Math.min(...lons) - zoomExtentWidth, lat: Math.min(...lats) + zoomExtentWidth }, map)
+		const maxCoordinate = getMapCoordinate({ lon: Math.max(...lons) - zoomExtentWidth, lat: Math.max(...lats) + zoomExtentWidth }, map)
+
+		return [
+			minCoordinate[0], minCoordinate[1],
+			maxCoordinate[0], maxCoordinate[1]
+		]
+	}
+
 	zoomToBot(id: number, firstMove = false) {
-		const { botExtents } = this.state;
-		this.fit(botExtents[id], { duration: 100 }, false, firstMove);
+		const extent = this.getBotExtent(id)
+		if (extent != null) {
+			this.fit(extent, { duration: 100 }, false, firstMove);
+		}
 	}
 
 	trackBot(id: number | string) {
@@ -1205,7 +1098,7 @@ export default class CommandControl extends React.Component {
 			this.zoomToAll(true);
 			info('Following all');
 		} else if (id === 'pod') {
-			this.zoomToAllBots(true);
+			this.zoomToPod(true);
 			info('Following pod');
 		} else if (id !== null) {
 			this.zoomToBot(id as number, true);
@@ -1562,31 +1455,10 @@ export default class CommandControl extends React.Component {
 							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
 						</Button>
 					)}
-					{/*trackingTarget === 'all' ? (
-						<Button 
-							onClick={() => {
-								this.zoomToAll(false);
-								this.trackBot(null);
-							}}
-							className="button-jcc active"
-						>
-							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Unfollow" />
-						</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								this.zoomToAll(true);
-								this.trackBot('all');
-							}}
-						>
-							<FontAwesomeIcon icon={faMapMarkedAlt as any} title="Follow All" />
-						</Button>
-					)*/}
 					{trackingTarget === 'pod' ? (
 						<Button 							
 							onClick={() => {
-								this.zoomToAllBots(false);
+								this.zoomToPod(false);
 								this.trackBot(null);
 							}} 
 							className="button-jcc active"
@@ -1597,7 +1469,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								this.zoomToAllBots(true);
+								this.zoomToPod(true);
 								this.trackBot('pod');
 							}}
 						>
@@ -2495,9 +2367,9 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on a bot
-			const bot_id = feature.get('botId')
-			if (bot_id != null) {
-				this.toggleBot(bot_id)
+			const botStatus = feature.get('bot') as PortalBotStatus
+			if (botStatus != null) {
+				this.toggleBot(botStatus.bot_id)
 			}
 
 			// Clicked on the hub

@@ -1,4 +1,4 @@
-import { PodStatus } from "./PortalStatus"
+import { PodStatus } from "./shared/PortalStatus"
 import SoundEffects from "./SoundEffects"
 
 
