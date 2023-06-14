@@ -11,8 +11,27 @@ import * as Style from 'ol/style';
 
 export class Layers {
 
-    missionLayer = new VectorLayer()
+    
+    /**
+     * Layer for the missions
+     * @date 6/14/2023 - 5:14:33 PM
+     *
+     */
+    missionLayer = new VectorLayer({
+        properties: {
+            title: 'Missions',
+        },
+        source: new VectorSource(),
+        zIndex: 1001
+    })
 
+    
+    /**
+     * Layer for the selected bot's mission
+     * @date 6/14/2023 - 5:16:06 PM
+     *
+     * @type {*}
+     */
     selectedMissionLayer = new VectorLayer({
         properties: {
             title: 'Selected Mission',
@@ -21,6 +40,13 @@ export class Layers {
         zIndex: 1001
     })
 
+    
+    /**
+     * Layer for the actively running missions for each bot
+     * @date 6/14/2023 - 5:16:26 PM
+     *
+     * @type {*}
+     */
     activeMissionLayer = new VectorLayer({
         properties: {
             title: 'Active Missions',
@@ -30,6 +56,13 @@ export class Layers {
         opacity: 0.25
     })
 
+    
+    /**
+     * Layer for planning survey missions
+     * @date 6/14/2023 - 5:16:44 PM
+     *
+     * @type {*}
+     */
     missionPlanningLayer = new VectorLayer({
         properties: { 
             name: 'missionPlanningLayer',
@@ -37,6 +70,13 @@ export class Layers {
         },
     });
 
+    
+    /**
+     * Layer for exclusion zones for survey missions
+     * @date 6/14/2023 - 5:17:04 PM
+     *
+     * @type {*}
+     */
     exclusionsLayer = new VectorLayer({
         properties: { 
             name: 'exclusionsLayer',
@@ -44,6 +84,13 @@ export class Layers {
         }
     });
 
+    
+    /**
+     * Layer for rally point icons
+     * @date 6/14/2023 - 5:17:23 PM
+     *
+     * @type {*}
+     */
     rallyPointLayer = new VectorLayer({
         properties: {
             title: 'Rally Points'
@@ -52,12 +99,20 @@ export class Layers {
         zIndex: 1001,
     })
 
+    
+    /**
+     * Layer group for mission-related layers
+     * @date 6/14/2023 - 5:17:34 PM
+     *
+     * @type {*}
+     */
     missionLayerGroup = new LayerGroup({
         properties: {
             title: 'Mission',
             fold: 'close',
         },
         layers: [
+            this.missionLayer,
             this.activeMissionLayer,
             this.rallyPointLayer,
             this.missionPlanningLayer,
@@ -65,7 +120,14 @@ export class Layers {
             this.selectedMissionLayer
         ]
     })
-        
+    
+    
+    /**
+     * Layer for measurement features
+     * @date 6/14/2023 - 5:19:11 PM
+     *
+     * @type {*}
+     */
     measurementLayerGroup = new LayerGroup({
         properties: { 
             title: 'Measurements',
@@ -80,6 +142,13 @@ export class Layers {
         ]
     })
 
+    
+    /**
+     * Layer for the map's graticule (lon/lat grid)
+     * @date 6/14/2023 - 5:19:27 PM
+     *
+     * @type {*}
+     */
     graticuleLayer = new Graticule({
         // the style to use for the lines, optional.
         strokeStyle: new Style.Stroke({
@@ -93,25 +162,7 @@ export class Layers {
         wrapX: false,
     })
 
-    measureLayer = new VectorLayer({
-        source: new VectorSource(),
-        style: new Style.Style({
-            fill: new Style.Fill({
-                color: 'rgba(255, 255, 255, 0.2)'
-            }),
-            stroke: new Style.Stroke({
-                color: '#ffcc33',
-                width: 2
-            }),
-            image: new Style.Circle({
-                radius: 7,
-                fill: new Style.Fill({
-                    color: '#ffcc33'
-                })
-            })
-        })
-    });
-
+    
     dragAndDropVectorLayer = new VectorLayer()
 
     baseLayerGroup = createBaseLayerGroup()
@@ -126,8 +177,6 @@ export class Layers {
             this.chartLayerGroup,
             this.measurementLayerGroup,
             this.graticuleLayer,
-            this.measureLayer,
-            this.missionLayer,
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
         ]
