@@ -103,16 +103,6 @@ export class Layers {
         })
     });
 
-    hubsLayerCollection: Collection<VectorLayer<VectorSource>> = new Collection([], { unique: true })
-    hubsLayerGroup = new LayerGroup({
-		layers: this.hubsLayerCollection
-	})
-
-    botsLayerCollection: Collection<VectorLayer<VectorSource>> = new Collection([], { unique: true })
-	botsLayerGroup = new LayerGroup({
-		layers: this.botsLayerCollection
-	})
-
     dragAndDropVectorLayer = new VectorLayer()
 
     baseLayerGroup = createBaseLayerGroup()
@@ -130,8 +120,6 @@ export class Layers {
             this.measureLayer,
             this.missionLayer,
             this.missionLayerGroup,
-            this.hubsLayerGroup,
-            this.botsLayerGroup,
             this.dragAndDropVectorLayer,
         ]
 

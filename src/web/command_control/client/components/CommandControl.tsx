@@ -124,7 +124,7 @@ import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
-import { PodStatus, PortalBotStatus, isRemoteControlled } from './shared/PortalStatus'
+import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
 import { createHubFeature } from './shared/HubFeature'
 
@@ -138,6 +138,7 @@ import { getGeographicCoordinate } from './Utilities'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'
+import { HubLayers } from './HubLayers'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -258,6 +259,7 @@ export default class CommandControl extends React.Component {
 	api = jaiaAPI
 
 	botLayers: BotLayers
+	hubLayers: HubLayers
 
 	flagNumber = 1
 	surveyExclusionsStyle?: StyleFunction = null
@@ -461,6 +463,7 @@ export default class CommandControl extends React.Component {
 	componentDidMount() {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
+		this.hubLayers = new HubLayers(map)
 
 		map.setTarget(this.mapDivId);
 
@@ -692,7 +695,7 @@ export default class CommandControl extends React.Component {
 		// Update layers derived from the podStatus
 		if (prevState.podStatus !== this.state.podStatus ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
-			this.updateHubsLayer()
+			this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 			this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
 			this.updateActiveMissionLayer()
 			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
@@ -712,35 +715,6 @@ export default class CommandControl extends React.Component {
 
 	componentWillUnmount() {
 		clearInterval(this.timerID)
-	}
-
-	getLiveLayerFromHubId(hub_id: number) {
-		const hubsLayerCollection = layers.hubsLayerCollection
-		// eslint-disable-next-line no-plusplus
-		for (let i = 0; i < hubsLayerCollection.getLength(); i++) {
-			const layer = hubsLayerCollection.item(i);
-			if (layer.get('hub_id') === hub_id) {
-				return layer;
-			}
-		}
-
-		const hubLayer = new OlVectorLayer({
-			properties: {
-				name: hub_id,
-				title: hub_id,
-				hub_id: hub_id
-			},
-			source: new OlVectorSource({
-				wrapX: false,
-				features: new OlCollection([], { unique: true })
-			})
-		});
-
-		hubsLayerCollection.push(hubLayer);
-
-		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
-
-		return hubsLayerCollection.item(hubsLayerCollection.getLength() - 1);
 	}
 
 	// changeInteraction()
@@ -854,55 +828,6 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-	updateHubsLayer() {
-		const { selectedHubOrBot } = this.state
-		let hubs = this.state.podStatus.hubs;
-
-		for (let hubId in hubs) {
-			let hub = hubs[hubId];
-
-			// ID
-			const hub_id = hub.hub_id
-			// Geometry
-			const hubLatitude = hub.location?.lat
-			const hubLongitude = hub.location?.lon
-			// Properties
-			const hubHeading = 0
-
-			const hubLayer = this.getLiveLayerFromHubId(hub_id);
-
-			const hubFeature = createHubFeature({
-				map: map,
-				hubId: Number(hubId),
-				lonLat: [hubLatitude, hubLongitude],
-				heading: Number(hubHeading),
-				courseOverGround: 0
-			})
-
-			hubFeature.setId(hub_id);
-
-			const coordinate = getMapCoordinate(hub.location, map)
-
-			hubFeature.setGeometry(new OlPoint(coordinate));
-			hubFeature.setProperties({
-				heading: 0,
-				speed: 0,
-				hubId: hubId,
-			});
-
-			const zoomExtentWidth = 0.001; // Degrees
-
-			const selected = selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
-			hubFeature.set('selected', selected);
-
-			hubLayer.getSource().clear();
-			hubLayer.getSource().addFeature(hubFeature);
-
-			hubLayer.setZIndex(100);
-			hubLayer.changed();
-		} // end foreach hub
-	}
-
 	updateActiveMissionLayer() {
 		const bots = this.state.podStatus.bots
 		let allFeatures = []
@@ -1000,7 +925,7 @@ export default class CommandControl extends React.Component {
 			OlExtendExtent(extent, layer.getSource().getExtent());
 			layerCount += 1;
 		};
-		layers.botsLayerGroup.getLayers().forEach(addExtent);
+		// layers.botsLayerGroup.getLayers().forEach(addExtent);
 		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
 	}
 
@@ -2373,9 +2298,9 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on the hub
-			const hub_id = feature.get('hubId')
-			if (hub_id != null) {
-				this.toggleHub(hub_id)
+			const hubStatus = feature.get('hub') as PortalHubStatus
+			if (hubStatus) {
+				this.toggleHub(hubStatus.hub_id)
 			}
 
 			// Clicked on mission planning point
