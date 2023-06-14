@@ -59,7 +59,6 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { getTransform } from 'ol/proj';
 import { deepcopy, getMapCoordinate } from './Utilities';
 import { HubOrBot } from './HubOrBot'
 
@@ -89,8 +88,6 @@ import {
 	faWrench,
 } from '@fortawesome/free-solid-svg-icons';
 
-
-const jaiabot_icon = require('../icons/jaiabot.png')
 
 import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
 import { jaiaAPI } from '../../common/JaiaAPI';
@@ -126,7 +123,6 @@ import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
 import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
-import { createHubFeature } from './shared/HubFeature'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
@@ -154,9 +150,6 @@ punchJQuery($);
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
-const mercator = 'EPSG:3857'
-const equirectangular = 'EPSG:4326'
-const equirectangular_to_mercator = (input: number[]) => getTransform(equirectangular, mercator)(input, undefined, undefined)
 
 const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
@@ -773,11 +766,14 @@ export default class CommandControl extends React.Component {
 
 		if (botCount > lastBotCount) {
 			this.zoomToPod(true);
-		} else if (trackingTarget === 'pod') {
+		} 
+		else if (trackingTarget === 'pod') {
 			this.zoomToPod();
-		} else if (trackingTarget === 'all') {
+		} 
+		else if (trackingTarget === 'all') {
 			this.zoomToAll();
 		}
+
 		this.setState({
 			lastBotCount: botCount
 		});
@@ -1008,8 +1004,8 @@ export default class CommandControl extends React.Component {
 
 		if (lons.length == 0 || lats.length == 0) return undefined
 
-		const minCoordinate = getMapCoordinate({ lon: Math.min(...lons) - zoomExtentWidth, lat: Math.min(...lats) + zoomExtentWidth }, map)
-		const maxCoordinate = getMapCoordinate({ lon: Math.max(...lons) - zoomExtentWidth, lat: Math.max(...lats) + zoomExtentWidth }, map)
+		const minCoordinate = getMapCoordinate({ lon: Math.min(...lons) - zoomExtentWidth, lat: Math.min(...lats) - zoomExtentWidth }, map)
+		const maxCoordinate = getMapCoordinate({ lon: Math.max(...lons) + zoomExtentWidth, lat: Math.max(...lats) + zoomExtentWidth }, map)
 
 		return [
 			minCoordinate[0], minCoordinate[1],
@@ -1098,7 +1094,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	static formatLength(line: Geometry) {
-		const length = OlGetLength(line, { projection: mercator });
+		const length = OlGetLength(line, { projection: map.getView().getProjection() });
 		if (length > 100) {
 			return `${Math.round((length / 1000) * 100) / 100} km`;
 		}
@@ -1900,7 +1896,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.surveyPolygonCoords) {
 			let pts = this.state.surveyPolygonCoords.getCoordinates()
 			let transformed_survey_pts = pts.map((pt) => {
-				return equirectangular_to_mercator([pt[0], pt[1]])
+				return getMapCoordinate({lon: pt[0], lat: pt[1]}, map)
 			})
 			let surveyPolygonFeature = new OlFeature(
 				{
