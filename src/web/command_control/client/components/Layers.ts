@@ -44,6 +44,14 @@ export class Layers {
         }
     });
 
+    rallyPointLayer = new VectorLayer({
+        properties: {
+            title: 'Rally Points'
+        },
+        source: new VectorSource(),
+        zIndex: 1001,
+    })
+
     missionLayerGroup = new LayerGroup({
         properties: {
             title: 'Mission',
@@ -51,6 +59,7 @@ export class Layers {
         },
         layers: [
             this.activeMissionLayer,
+            this.rallyPointLayer,
             this.missionPlanningLayer,
             //this.exclusionsLayer,
             this.selectedMissionLayer

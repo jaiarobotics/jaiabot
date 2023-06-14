@@ -140,6 +140,8 @@ import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
 
+import * as JCCStyles from './Styles'
+
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
@@ -702,7 +704,8 @@ export default class CommandControl extends React.Component {
 		}
 
 		// If we select another bot, we need to re-render the mission layer to re-color the mission lines
-		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
+		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot ||
+			prevState.mode !== this.state.mode) {
 			this.updateMissionLayer()
 		}
 
@@ -710,6 +713,12 @@ export default class CommandControl extends React.Component {
 		if (prevState.podStatus !== this.state.podStatus ||
 			prevState.trackingTarget !== this.state.trackingTarget) {
 			this.doTracking()
+		}
+
+		// If user changed rally point locations
+		if (prevState.rallyPointRedLocation !== this.state.rallyPointRedLocation ||
+			prevState.rallyPointGreenLocation !== this.state.rallyPointGreenLocation) {
+			this.updateRallyPointFeatures()
 		}
 	}
 
@@ -1794,6 +1803,26 @@ export default class CommandControl extends React.Component {
 		return rallyPoints
 	}
 
+	updateRallyPointFeatures() {
+		const source = layers.rallyPointLayer.getSource()
+		source.clear()
+
+		// Add Home, if available
+		if (this.state.rallyPointRedLocation) {
+			let pt = getMapCoordinate(this.state.rallyPointRedLocation, map)
+			const feature = new OlFeature({ geometry: new OlPoint(pt) })
+			feature.setStyle(JCCStyles.rallyPointRedStyle)
+			source.addFeature(feature)
+		}
+
+		if (this.state.rallyPointGreenLocation) {
+			let pt = getMapCoordinate(this.state.rallyPointGreenLocation, map)
+			const feature = new OlFeature({ geometry: new OlPoint(pt) })
+			feature.setStyle(JCCStyles.rallyPointGreenStyle)
+			source.addFeature(feature)
+		}
+	}
+
 	updateMissionLayer() {
 		// Update the mission layer
 		let features = new OlCollection<OlFeature>([], {unique:true})
@@ -1808,20 +1837,6 @@ export default class CommandControl extends React.Component {
 		let surveyExclusionsColor = '#c40a0a'
 
 		let zIndex = 2
-
-		let rallyPointRedStyle = new OlStyle({
-			image: new OlIcon({
-				src: rallyPointRedIcon,
-				scale: [0.5, 0.5]
-			})
-		})
-
-		let rallyPointGreenStyle = new OlStyle({
-			image: new OlIcon({
-				src: rallyPointGreenIcon,
-				scale: [0.5, 0.5]
-			})
-		})
 
 		// let missionOrientationPointStyle = new OlStyle({
 		// 	image: new OlIcon({
@@ -1880,21 +1895,6 @@ export default class CommandControl extends React.Component {
 				}
 				zIndex += 1
 			}
-		}
-
-		// Add Home, if available
-		if (this.state.rallyPointRedLocation) {
-			let pt = getMapCoordinate(this.state.rallyPointRedLocation, map)
-			let rallyPointRedFeature = new OlFeature({ geometry: new OlPoint(pt) })
-			rallyPointRedFeature.setStyle(rallyPointRedStyle)
-			features.push(rallyPointRedFeature)
-		}
-
-		if (this.state.rallyPointGreenLocation) {
-			let pt = getMapCoordinate(this.state.rallyPointGreenLocation, map)
-			let rallyPointGreenFeature = new OlFeature({ geometry: new OlPoint(pt) })
-			rallyPointGreenFeature.setStyle(rallyPointGreenStyle)
-			features.push(rallyPointGreenFeature)
 		}
 
 		if (this.state.surveyPolygonCoords) {
@@ -2321,8 +2321,6 @@ export default class CommandControl extends React.Component {
 		this.setState({
 			rallyPointGreenLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
-		}, () => {
-			this.updateMissionLayer()
 		})
 
 		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
@@ -2332,8 +2330,6 @@ export default class CommandControl extends React.Component {
 		this.setState({
 			rallyPointRedLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
-		}, () => {
-			this.updateMissionLayer()
 		})
 
 		this.toggleMode(Mode.SET_RALLY_POINT_RED)
