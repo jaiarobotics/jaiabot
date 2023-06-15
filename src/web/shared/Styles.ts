@@ -30,12 +30,12 @@ export const bottomStrikePng = require('./bottomStrike.png') as string
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'
-const activeGoalColor = '#39FF14'
-const selectedColor = '#4ADE80'
+const activeGoalColor = 'chartreuse'
+const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
-const editColor = '#FDE68A'
+const editColor = 'gold'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -77,10 +77,8 @@ export function botMarker(feature: Feature): Style[] {
         color = disconnectedColor
     } else if (feature.get('remoteControlled')) {
         color = remoteControlledColor
-    } else if (feature.get('selected') && feature.get('isBotRunActive')) {
+    } else if (feature.get('selected')) {
         color = selectedColor
-    } else if (feature.get('selected') && !feature.get('isBotRunActive')) {
-        color = editColor
     } else {
         color = defaultColor
     }
@@ -207,11 +205,11 @@ export function goalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, isActiveRun: boolean) {
+export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     const src = goalSrc(taskType)
     let nonActiveGoalColor: string
 
-    if (!isActiveRun) {
+    if (canEdit) {
         nonActiveGoalColor = isSelected ? editColor : defaultColor
     } else {
         nonActiveGoalColor = isSelected ? selectedColor : defaultColor
@@ -225,21 +223,21 @@ export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSel
 }
 
 
-export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, isActiveRun: boolean) {
+export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const src = runFlag
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
         src: src,
-        color: isSelected ? (isActiveRun ? selectedColor : editColor) : defaultColor,
+        color: isSelected ? (canEdit ? editColor : selectedColor) : defaultColor,
         // Need a bigger flag for a 3-digit run number...this also causes new anchor values
         anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
         scale: runNumber > 99 ? 1.075 : 1.0
     })
 }
 
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, isActiveRun: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected, isActiveRun)
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+    let icon = goalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
     return new Style({
         image: icon,
@@ -255,8 +253,8 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
     })
 }
 
-export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, isActiveRun: boolean) {
-    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber), isActiveRun)
+export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
+    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
 
     return new Style({
@@ -359,10 +357,10 @@ export function driftTask(drift: DriftTask) {
 // The mission path linestring
 export function missionPath(feature: Feature) {
     const isSelected = feature.get('isSelected')
-    const isActiveRun = feature.get('isActiveRun')
+    const canEdit = feature.get('canEdit')
     let pathColor: string
 
-    if (!isActiveRun) {
+    if (canEdit) {
         pathColor = isSelected ? editColor : defaultPathColor
     } else {
         pathColor = isSelected ? selectedColor : defaultPathColor

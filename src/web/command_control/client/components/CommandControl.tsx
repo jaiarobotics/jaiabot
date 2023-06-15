@@ -222,7 +222,7 @@ export interface RunInterface {
 	name: string,
 	assigned: number,
 	command: Command,
-	isActive: boolean
+	canEdit: boolean
 }
 
 export interface MissionInterface {
@@ -1634,14 +1634,16 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.timerID)
 	}
 
-	setActiveRun(runCommand: Command, isRunActive: boolean,) {
+	setEditRunMode(botIds: number[], canEdit: boolean) {
 		const runs = this.state.runList.runs
-		for (const runIndex of Object.keys(runs)) {
-			const run = runs[runIndex]
-			if (run.assigned === runCommand.bot_id) {
-				run.isActive = isRunActive
+		botIds.forEach(botId => {
+			for (const runIndex of Object.keys(runs)) {
+				const run = runs[runIndex]
+				if (run.assigned === botId) {
+					run.canEdit = canEdit
+				}
 			}
-		}
+		})
 	}
 
 	getLiveLayerFromHubId(hub_id: number) {
@@ -1865,8 +1867,8 @@ export default class CommandControl extends React.Component {
 			const bot = bots[botId]
 			const activeMissionPlan = bot.active_mission_plan
 			if (activeMissionPlan) {
-				const isActiveRun = true
-				const features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), isActiveRun)
+				const canEdit = false
+				const features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
 				allFeatures.push(...features)
 			}
 		}
@@ -1904,8 +1906,7 @@ export default class CommandControl extends React.Component {
 				botId: Number(botId),
 				lonLat: [botLongitude, botLatitude],
 				heading: botHeading,
-				courseOverGround: bot.attitude?.course_over_ground,
-				isBotRunActive: this.isBotRunActive(botId)
+				courseOverGround: bot.attitude?.course_over_ground
 			})
 
 			botFeature.setId(botId);
@@ -2031,16 +2032,6 @@ export default class CommandControl extends React.Component {
 		});
 		// map.render();
 		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
-	}
-
-	isBotRunActive(botId: number) {
-		for (let runIndex of Object.keys(this.state.runList.runs)) {
-			const run = this.state.runList.runs[runIndex]
-			if (run.assigned === botId && run.isActive) {
-				return true
-			}
-		}
-		return false
 	}
 
 	// POLL THE BOTS
@@ -2473,7 +2464,7 @@ export default class CommandControl extends React.Component {
 												this.weHaveRemoteControlInterval.bind(this),
 												this.deleteSingleRun.bind(this),
 												this.detailsDefaultExpanded.bind(this),
-												this.setActiveRun.bind(this));
+												this.setEditRunMode.bind(this))
 				break;
 			default:
 				detailsBox = null;
@@ -2542,6 +2533,7 @@ export default class CommandControl extends React.Component {
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
+					setEditRunMode={this.setEditRunMode.bind(this)}
 				/>
 				
 				<div id={this.mapDivId} className="map-control" />
@@ -2922,7 +2914,7 @@ export default class CommandControl extends React.Component {
 
 			let run = runs[botsAssignedToRuns[botId]]
 
-			if (run.isActive) {
+			if (!run.canEdit) {
 				warning('Cannot add a new waypoint to an active run')
 				return
 			}
@@ -3140,14 +3132,14 @@ export default class CommandControl extends React.Component {
 			const assignedBot = run.assigned
 			const activeGoalIndex = this.podStatus?.bots?.[assignedBot]?.active_goal;
 			const isSelected = this.isBotSelected(assignedBot)
-			const isActiveRun = run.isActive
+			const canEdit = run.canEdit
 
 			// Add our goals
 			const plan = run.command?.plan
 			if (plan) {
 				// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
 				const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, isActiveRun, runNumber, zIndex)
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex)
 				features.push(...missionFeatures)
 				if (isSelected) {
 					selectedFeatures.push(...missionFeatures);
@@ -3376,6 +3368,7 @@ export default class CommandControl extends React.Component {
 				error(response.message)
 			}
 		})
+		this.setEditRunMode([bot_mission.bot_id], false)
 	}
 
 	// Runs a set of missions, and updates the GUI
@@ -3417,7 +3410,6 @@ export default class CommandControl extends React.Component {
 					if (botIndex !== -1) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
-						this.setActiveRun(runCommand, true)
 					}
 				})
 				success("Submitted missions")
@@ -3586,7 +3578,7 @@ export default class CommandControl extends React.Component {
 			const runs = this.state.runList.runs
 			for (const runIndex of Object.keys(runs)) {
 				const run = runs[runIndex]
-				if (run.assigned === botId && run.isActive) {
+				if (run.assigned === botId && !run.canEdit) {
 					warning('Cannot add a task to an active run')
 					return
 				}
@@ -3724,15 +3716,9 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				{/*<Button id= "missionPause" className="button-jcc inactive" disabled>
-					<Icon path={mdiPause} title="Pause All Missions"/>
-				</Button>*/}
 				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				{/*<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
-					<Icon path={mdiSkipNext} title="All Next Task"/>
-				</Button>*/}
 				{ this.undoButton() }					
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>

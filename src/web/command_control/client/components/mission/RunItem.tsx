@@ -9,28 +9,31 @@ import Icon from '@mdi/react'
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import { PortalBotStatus } from '../PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
-import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import { Missions } from '../Missions'
-import { Slider } from '@mui/material';
+import { Missions } from '../Missions';
+import Switch from '@mui/material/Switch';
+import { Slider, FormGroup, FormControlLabel } from '@mui/material';
+import { alpha, styled } from '@mui/material/styles';
+import { amber } from '@mui/material/colors';
+import { deepcopy } from '../Utilities';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
     run: RunInterface
     mission: MissionInterface,
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
-
 interface State {
-    editing: boolean,
+    isChecked: boolean,
+    previousMissionState: string
 }
 
 export default class RunItem extends React.Component {
-
     props: Props
     state: State
     botId: number | null
@@ -40,23 +43,55 @@ export default class RunItem extends React.Component {
         super(props)
 
         this.state = {
-          editing: false,
+          isChecked: true,
+          previousMissionState: ''
         }
     }
 
-    render() {
+    toggleEditMode() {
+        const botId = this.props.run.assigned
+        const isChecked = !this.state.isChecked
+        this.props.setEditRunMode([botId], isChecked)
+        this.setState({ isChecked })
+    }
 
-        let self = this;
-        let runDeleteButton = null;
+    isEditModeToggleDisabled() {
+        const missionState = this.props.bots[1].mission_state
+        const enabledMissionStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT']
+        for (const enabledMissionState of enabledMissionStates) {
+            if (missionState.includes(enabledMissionState)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    handleMissionStateChange() {
+        const missionState = this.props.bots[1].mission_state
+        const previousMissionState = this.state.previousMissionState
+        if (missionState !== previousMissionState) {
+            this.setState({ previousMissionState: missionState }, () => {
+                if (!this.isEditModeToggleDisabled() && this.state.isChecked) {
+                    const botId = this.props.run.assigned
+                    this.props.setEditRunMode([botId], true)}
+            })
+        }
+    } 
+
+    render() {
         let runAssignSelect = null;
+        let runDeleteButton = null;
         let duplicateRunButton = null;
+        let editModeButton = null;
         let title = this.props.run.name;
-        let podStatusBotIds = Object.keys(self.props.bots);
-        let botsAssignedToRunsIds = Object.keys(self.props.mission.botsAssignedToRuns);
-        self.botsNotAssigned = [];
+        let podStatusBotIds = Object.keys(this.props.bots);
+        let botsAssignedToRunsIds = Object.keys(this.props.mission.botsAssignedToRuns);
+        this.botsNotAssigned = [];
         let assignedLabel = "";
         let assignedOption = null;
 
+        this.handleMissionStateChange()
+        
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
         // Have not been assigned yet
@@ -65,21 +100,21 @@ export default class RunItem extends React.Component {
                 let id = Number(key);
                 if(isFinite(id))
                 {
-                    self.botsNotAssigned.push(id);
+                    this.botsNotAssigned.push(id);
                 }
             }
         });
 
         // Check to see if that run is assigned
         // And the bot id is not included in the botsNotAssigned array
-        if(self.props.run.assigned != -1
-            && !self.botsNotAssigned.includes(self.props.run.assigned))
+        if(this.props.run.assigned != -1
+            && !this.botsNotAssigned.includes(this.props.run.assigned))
         {
-            assignedLabel = "Bot-" + self.props.run.assigned
+            assignedLabel = "Bot-" + this.props.run.assigned
             assignedOption = 
                 <MenuItem 
-                    key={self.props.run.assigned} 
-                    value={self.props.run.assigned}
+                    key={this.props.run.assigned} 
+                    value={this.props.run.assigned}
                 >
                     {assignedLabel}
                 </MenuItem>
@@ -95,7 +130,7 @@ export default class RunItem extends React.Component {
                         id="bot-assigned-select"
                         value={this.props.run.assigned.toString()}
                         label="Assign"
-                        onChange={self.assignChange}
+                        onChange={this.assignChange}
                     >
                         <MenuItem 
                             key={-1} 
@@ -107,28 +142,42 @@ export default class RunItem extends React.Component {
                         {
                             assignedOption ? 
                                 <MenuItem 
-                                    key={self.props.run.assigned} 
-                                    value={self.props.run.assigned}
+                                    key={this.props.run.assigned} 
+                                    value={this.props.run.assigned}
                                 >
                                     {assignedLabel}
                                 </MenuItem> : ""
                         }
                        
                         {
-                            self.botsNotAssigned ? Object.keys(self.botsNotAssigned).map((id) => (
+                            this.botsNotAssigned ? Object.keys(this.botsNotAssigned).map((id) => (
                                 <MenuItem 
-                                    key={self.botsNotAssigned[Number(id)]} 
-                                    value={self.botsNotAssigned[Number(id)]}>
-                                    Bot-{self.botsNotAssigned[Number(id)]}
+                                    key={this.botsNotAssigned[Number(id)]} 
+                                    value={this.botsNotAssigned[Number(id)]}>
+                                    Bot-{this.botsNotAssigned[Number(id)]}
                                 </MenuItem>
                             )) : ""
                         }
                     </Select>
                 </FormControl>
             </Box>
+
+        // Create Copy of Run Button
+        duplicateRunButton = (
+            <Button 
+                className={'button-jcc missionAccordian'}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    const goals = deepcopy(this.props.run.command.plan.goal)
+                    Missions.addRunWithGoals(-1, goals, this.props.mission);
+                }}
+            >
+                <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
+            </Button>
+        )
   
         // Create Delete Button
-        runDeleteButton = 
+        runDeleteButton = (
             <Button 
                 className={'button-jcc missionAccordian'}
                 onClick={(event) => {
@@ -149,18 +198,41 @@ export default class RunItem extends React.Component {
             >
                 <Icon path={mdiDelete} title="Delete Run"/>
             </Button>
+        )
 
-        // Create Copy of Run Button
-        duplicateRunButton =
-            <Button 
-                className={'button-jcc missionAccordian'}
-                onClick={(event) => {
-                    event.stopPropagation();
-                    Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
-                }}
-            >
-                <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
-            </Button>
+        // Create Edit Mode Toggle
+        // MUI Styling: mui.com/material-ui/react-switch
+        const AmberSwitch = styled(Switch)(({ theme }) => ({
+            '& .MuiSwitch-switchBase.Mui-checked': {
+              color: amber[600],
+              '&:hover': {
+                backgroundColor: alpha(amber[600], theme.palette.action.hoverOpacity),
+              },
+            },
+            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+              backgroundColor: amber[600],
+            },
+            '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
+                color: amber[300],
+            }
+
+        }));
+
+        editModeButton = (
+            <FormGroup>
+                <FormControlLabel 
+                    control={
+                        <AmberSwitch 
+                            checked={this.state.isChecked} 
+                            disabled={this.isEditModeToggleDisabled()} 
+                            onClick={() => this.toggleEditMode()}
+                        />
+                    }
+                    label="Edit" 
+                    title='Toggle Edit Mode'
+                />
+            </FormGroup>
+        )
 
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
@@ -179,7 +251,7 @@ export default class RunItem extends React.Component {
                     onChange={(evt: Event, value: number, activeThumb: number) => {
                         if (plan != null) {
                             plan.repeats = value
-                            self.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
+                            this.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
                         }
                     }}
                 />
@@ -201,6 +273,7 @@ export default class RunItem extends React.Component {
                         {runAssignSelect}
                         {duplicateRunButton}
                         {runDeleteButton}
+                        {editModeButton}
                     </span>
                     <div>
                         {repeatsInput}

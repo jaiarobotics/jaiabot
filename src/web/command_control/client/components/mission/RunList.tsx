@@ -14,6 +14,7 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
 interface State {
@@ -44,6 +45,7 @@ export default class RunList extends React.Component {
                                     bots={self.props.bots} 
                                     run={value} 
                                     mission={self.props.mission}
+                                    setEditRunMode={self.props.setEditRunMode}
                                 />
                             </React.Fragment>
                         )

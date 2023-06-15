@@ -8,7 +8,7 @@ import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, isActiveRun: boolean, runNumber?: string, zIndex?: number) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, canEdit: boolean, runNumber?: string, zIndex?: number) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -32,8 +32,9 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         }
 
         // OpenLayers
+        const isActiveGoal = !canEdit ? goalIndexStartAtOne == activeGoalIndex : false
         const markerFeature = createMarker(map, {title: 'Goal ' + goalIndexStartAtOne, lon: location.lon, lat: location.lat,
-            style: Styles.goal(goalIndexStartAtOne, goal, isActiveRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, isActiveRun)})
+            style: Styles.goal(goalIndexStartAtOne, goal, isActiveGoal, isSelected, canEdit)})
         markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goalIndexStartAtOne})
         features.push(markerFeature)
 
@@ -41,7 +42,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
             if (!runNumber) {
                 runNumber = ''
             }
-            const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex, isActiveRun)})
+            const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)})
             features.push(flagFeature)
         }
 
@@ -89,7 +90,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
 
             const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
             missionPathFeature.set('isSelected', isSelected)
-            missionPathFeature.set('isActiveRun', isActiveRun)
+            missionPathFeature.set('canEdit', canEdit)
             missionPathFeature.setStyle(Styles.missionPath)
             features.push(missionPathFeature)
         }

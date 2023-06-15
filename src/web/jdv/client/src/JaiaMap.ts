@@ -631,8 +631,7 @@ export default class JaiaMap {
                     lonLat: [point[2], point[1]],
                     heading: point[3],
                     courseOverGround: point[4],
-                    desiredHeading: point[5],
-                    isBotRunActive: false
+                    desiredHeading: point[5]
                 }
 
                 const botFeature = createBotFeature(properties)
