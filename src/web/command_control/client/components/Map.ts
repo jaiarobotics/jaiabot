@@ -10,7 +10,7 @@ const mercator = 'EPSG:3857'
 
 export function createMap() {
     return new ol.Map({
-        layers: layers.all,
+        layers: layers.getAllLayers(),
         controls: [
             new Control.Zoom(),
             new Control.Rotate(),

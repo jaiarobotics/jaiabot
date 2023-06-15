@@ -27,21 +27,6 @@ export class Layers {
 
     
     /**
-     * Layer for the selected bot's mission
-     * @date 6/14/2023 - 5:16:06 PM
-     *
-     * @type {*}
-     */
-    selectedMissionLayer = new VectorLayer({
-        properties: {
-            title: 'Selected Mission',
-        },
-        source: new VectorSource(),
-        zIndex: 1001
-    })
-
-    
-    /**
      * Layer for the actively running missions for each bot
      * @date 6/14/2023 - 5:16:26 PM
      *
@@ -68,6 +53,8 @@ export class Layers {
             name: 'missionPlanningLayer',
             title: 'Mission Planning'
         },
+        source: new VectorSource(),
+        zIndex: 2000
     });
 
     
@@ -116,8 +103,6 @@ export class Layers {
             this.activeMissionLayer,
             this.rallyPointLayer,
             this.missionPlanningLayer,
-            //this.exclusionsLayer,
-            this.selectedMissionLayer
         ]
     })
     
@@ -169,10 +154,8 @@ export class Layers {
 
     chartLayerGroup = createChartLayerGroup()
 
-    all: BaseLayer[]
-
-    constructor() {
-        this.all = [
+    getAllLayers() {
+        return [
             this.baseLayerGroup,
             this.chartLayerGroup,
             this.measurementLayerGroup,
@@ -180,7 +163,9 @@ export class Layers {
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
         ]
+    }
 
+    constructor() {
     }
 
 }
