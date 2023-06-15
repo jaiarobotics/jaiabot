@@ -103,6 +103,7 @@ int main(int argc, char* argv[])
 jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 {
     latest_hub_status_.set_hub_id(cfg().hub_id());
+    latest_hub_status_.set_fleet_id(cfg().fleet_id());
 
     for (auto peer : cfg().xbee().peers())
     {
@@ -406,6 +407,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             if (command.plan().has_recovery() && fragment_index == 0)
             {
                 *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
+            }
+
+            if (command.plan().has_repeats() && fragment_index == 0)
+            {
+                command_fragment.mutable_plan()->set_repeats(command.plan().repeats());
             }
 
             command_fragment.mutable_plan()->set_fragment_index(fragment_index);
