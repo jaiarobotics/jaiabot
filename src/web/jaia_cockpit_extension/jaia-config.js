@@ -86,7 +86,6 @@ function software_group_run() {
       .catch(software_group_fail);
 
   sg_result.innerHTML = "";
-  sg_output.innerHTML = "";
 }
 
 function software_group_success() {
