@@ -524,10 +524,10 @@ export function BotDetailsComponent(props: BotDetaisProps) {
         )
     }
 
-    let bot_offload_percentage: string;
+    let bot_offload_percentage = ""
 
     if (bot.data_offload_percentage) {
-        bot_offload_percentage = " " + bot.data_offload_percentage + "%";
+        bot_offload_percentage = " " + bot.data_offload_percentage + "%"
     }
 
     return (
