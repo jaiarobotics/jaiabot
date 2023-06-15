@@ -20,7 +20,7 @@ export class BotLayers {
 
     getBotLayer(bot_id: number) {
 		if (this.layers[bot_id] == null) {
-            console.log(`Created layer for bot ${bot_id}`)
+            // console.log(`Created layer for bot ${bot_id}`)
 			this.layers[bot_id] = new VectorLayer({
 				properties: {
 					name: "Bots",

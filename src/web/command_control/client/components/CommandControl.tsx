@@ -1077,7 +1077,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Do any alterations to the mission set
-		var runList = this.state.runList
+		var runList = deepcopy(this.state.runList)
 		func(runList)
 		// Set state to trigger GUI update
 		this.setState({runList})
@@ -1674,7 +1674,7 @@ export default class CommandControl extends React.Component {
 
 			if(!(botId in botsAssignedToRuns))
 			{
-				missions = Missions.addRunWithWaypoints(botId, [], this.state.runList);
+				missions = Missions.addRunWithWaypoints(botId, [], missions);
 			}
 
 			// Attempted to create a run greater than MAX_RUNS
@@ -2357,6 +2357,7 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
+//		console.debug('updateMissionLayer')
 
 		function getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
 			const features: OlFeature[] = []
@@ -2411,7 +2412,7 @@ export default class CommandControl extends React.Component {
 	 * this.isBotSelected()
 	 */
 	updateMissionPlanningLayer() {
-		console.debug('updateMissionPlanningLayer start')
+		// console.debug('updateMissionPlanningLayer start')
 
 		// Update the mission layer
 		let selectedColor = '#34d2eb'
