@@ -10,7 +10,7 @@ echo "Installed version of jaiabot-embedded: $installed_version"
 
 echo "Checking for updates..."
 
-apt update >/dev/null 2>&1
+sudo apt update >/dev/null 2>&1
 
 update_version=$(apt-cache policy jaiabot-embedded | grep -m1 "Candidate:" | awk '{print $2}')
 
