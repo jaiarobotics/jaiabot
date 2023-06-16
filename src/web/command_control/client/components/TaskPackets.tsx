@@ -125,92 +125,95 @@ export class TaskData {
         let taskDiveBottomInfoFeatures = []
 
         for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
-            if(taskPacket.type == "DIVE")
-            {            
-                let divePacket = taskPacket.dive;
-                let iconStyle = new OlStyle({
-                    image: new OlIcon({
-                        src: diveLocationIcon,
-                        // the real size of your icon
-                        size: [319, 299],
-                        // the scale factor
-                        scale: 0.1
-                    })
-                });
+            if (taskPacket.type
+                && taskPacket.type == "DIVE") {  
 
-                let iconInfoStyle = new OlStyle({
-                    text : new OlText({
-                        font : `15px Calibri,sans-serif`,
-                        text : `Depth (m): ` + divePacket.depth_achieved 
-                             + '\nDiveRate (m/s): ' + divePacket.dive_rate,
-                        scale: 1,
-                        fill: new OlFillStyle({color: 'white'}),
-                        backgroundFill: new OlFillStyle({color: 'black'}),
-                        textAlign: 'end',
-                        justify: 'left',
-                        textBaseline: 'bottom',
-                        padding: [3, 5, 3, 5],
-                        offsetY: -10,
-                        offsetX: -30
-                    })
-                });
-
-                let iconBottomStyle = new OlStyle({
-                    image: new OlIcon({
-                        src: bottomDiveLocationIcon,
-                        // the real size of your icon
-                        size: [225, 225],
-                        // the scale factor
-                        scale: 0.1
-                    })
-                });
-
-                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved;
-
-                if(divePacket.reached_min_depth)
-                {
-                    bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
-                                        + '\nReached Min Depth: ' + divePacket.reached_min_depth;
-                }
-
-                let iconBottomInfoStyle = new OlStyle({
-                    text : new OlText({
-                        font : `15px Calibri,sans-serif`,
-                        text : bottomDiveText,
-                        scale: 1,
-                        fill: new OlFillStyle({color: 'white'}),
-                        backgroundFill: new OlFillStyle({color: 'black'}),
-                        textAlign: 'end',
-                        justify: 'left',
-                        textBaseline: 'bottom',
-                        padding: [3, 5, 3, 5],
-                        offsetY: -10,
-                        offsetX: -30
-                    })
-                });
-
-                let task_calcs = this.calculateDiveDrift(taskPacket);
-                let dive_lon = task_calcs.dive_location.lon;
-                let dive_lat = task_calcs.dive_location.lat;
-                let pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
-
-                let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-
-                diveFeature.setStyle(iconStyle)  
-                diveInfoFeature.setStyle(iconInfoStyle)   
-                diveBottomFeature.setStyle(iconBottomStyle)  
-                diveBottomInfoFeature.setStyle(iconBottomInfoStyle)   
-
-                taskDiveFeatures.push(diveFeature) 
-                taskDiveInfoFeatures.push(diveInfoFeature)
-                
-                if (divePacket.bottom_dive)
-                {
-                    taskDiveBottomFeatures.push(diveBottomFeature) 
-                    taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
+                if (taskPacket.dive) {
+                    let divePacket = taskPacket.dive;
+                    let iconStyle = new OlStyle({
+                        image: new OlIcon({
+                            src: diveLocationIcon,
+                            // the real size of your icon
+                            size: [319, 299],
+                            // the scale factor
+                            scale: 0.1
+                        })
+                    });
+    
+                    let iconInfoStyle = new OlStyle({
+                        text : new OlText({
+                            font : `15px Calibri,sans-serif`,
+                            text : `Depth (m): ` + divePacket.depth_achieved 
+                                 + '\nDiveRate (m/s): ' + divePacket.dive_rate,
+                            scale: 1,
+                            fill: new OlFillStyle({color: 'white'}),
+                            backgroundFill: new OlFillStyle({color: 'black'}),
+                            textAlign: 'end',
+                            justify: 'left',
+                            textBaseline: 'bottom',
+                            padding: [3, 5, 3, 5],
+                            offsetY: -10,
+                            offsetX: -30
+                        })
+                    });
+    
+                    let iconBottomStyle = new OlStyle({
+                        image: new OlIcon({
+                            src: bottomDiveLocationIcon,
+                            // the real size of your icon
+                            size: [225, 225],
+                            // the scale factor
+                            scale: 0.1
+                        })
+                    });
+    
+                    let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved;
+    
+                    if(divePacket.reached_min_depth)
+                    {
+                        bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
+                                            + '\nReached Min Depth: ' + divePacket.reached_min_depth;
+                    }
+    
+                    let iconBottomInfoStyle = new OlStyle({
+                        text : new OlText({
+                            font : `15px Calibri,sans-serif`,
+                            text : bottomDiveText,
+                            scale: 1,
+                            fill: new OlFillStyle({color: 'white'}),
+                            backgroundFill: new OlFillStyle({color: 'black'}),
+                            textAlign: 'end',
+                            justify: 'left',
+                            textBaseline: 'bottom',
+                            padding: [3, 5, 3, 5],
+                            offsetY: -10,
+                            offsetX: -30
+                        })
+                    });
+    
+                    let task_calcs = this.calculateDiveDrift(taskPacket);
+                    let dive_lon = task_calcs.dive_location.lon;
+                    let dive_lat = task_calcs.dive_location.lat;
+                    let pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
+    
+                    let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+    
+                    diveFeature.setStyle(iconStyle)  
+                    diveInfoFeature.setStyle(iconInfoStyle)   
+                    diveBottomFeature.setStyle(iconBottomStyle)  
+                    diveBottomInfoFeature.setStyle(iconBottomInfoStyle)   
+    
+                    taskDiveFeatures.push(diveFeature) 
+                    taskDiveInfoFeatures.push(diveInfoFeature)
+                    
+                    if (divePacket.bottom_dive)
+                    {
+                        taskDiveBottomFeatures.push(diveBottomFeature) 
+                        taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
+                    }
                 }
             }
         }
