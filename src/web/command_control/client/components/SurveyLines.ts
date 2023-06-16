@@ -133,7 +133,7 @@ export class SurveyLines {
         
                     const format = new GeoJSON();
         
-                    let { missionParams, rallyPointGreenLocation, rallyPointRedLocation, surveyExclusions } = commandControl.state;
+                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusions } = commandControl.state;
         
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
@@ -267,8 +267,8 @@ export class SurveyLines {
                                 missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
                             }
         
-                            missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyPointGreenLocation.lon, rallyPointGreenLocation.lat])), 2)
-                            missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyPointRedLocation.lon, rallyPointRedLocation.lat])), 2)
+                            missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
+                            missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
         
                             commandControl.setState({
                                 missionPlanningLines: alongLines,

@@ -17,6 +17,7 @@ import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import { taskData } from './TaskPackets'
+import { getSurveyMissionPlans, featuresFromMissionPlanningGrid } from './SurveyMission'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -212,8 +213,8 @@ interface State {
 	measureFeature?: OlFeature,
 	measureActive: boolean,
 	homeLocation?: GeographicCoordinate,
-	rallyPointGreenLocation?: GeographicCoordinate,
-	rallyPointRedLocation?: GeographicCoordinate,
+	rallyStartLocation?: GeographicCoordinate,
+	rallyEndLocation?: GeographicCoordinate,
 	mapLayerActive: boolean,
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
@@ -298,8 +299,8 @@ export default class CommandControl extends React.Component {
 			measureFeature: null,
 			measureActive: false,
 			homeLocation: null,
-			rallyPointGreenLocation: null,
-			rallyPointRedLocation: null,
+			rallyStartLocation: null,
+			rallyEndLocation: null,
 			missionParams: {
 				'mission_type': 'lines',
 				'num_bots': 4,
@@ -730,14 +731,14 @@ export default class CommandControl extends React.Component {
 		// Update the mission planning layer whenever relevant state changes
 		const botsChanged = (prevState.podStatus.bots.length !== this.state.podStatus.bots.length)
 		if (stateHasChanged(['surveyPolygonCoords', 'missionPlanningLines', 'missionPlanningFeature', 'missionParams', 
-		    	'mode', 'missionBaseGoal', 'rallyPointGreenLocation', 'rallyPointRedLocation', 'missionPlanningGrid', 'missionEndTask'], false) ||
+		    	'mode', 'missionBaseGoal', 'rallyStartLocation', 'rallyEndLocation', 'missionPlanningGrid', 'missionEndTask'], false) ||
 				botsChanged) {
 			this.updateMissionPlanningLayer()
 		}
 
 		// If user changed rally point locations
-		if (prevState.rallyPointRedLocation !== this.state.rallyPointRedLocation ||
-			prevState.rallyPointGreenLocation !== this.state.rallyPointGreenLocation) {
+		if (prevState.rallyEndLocation !== this.state.rallyEndLocation ||
+			prevState.rallyStartLocation !== this.state.rallyStartLocation) {
 			this.updateRallyPointFeatures()
 		}
 	}
@@ -1207,7 +1208,8 @@ export default class CommandControl extends React.Component {
 					this.setState({missionEndTask: missionSettings.endTask})
 
 					if (this.state.missionParams.mission_type === 'lines') {
-						this.updateMissionPlansFromMissionPlanningGrid()
+						const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+						this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
 						this.deleteAllRunsInMission(this.state.runList);
 
@@ -1448,8 +1450,8 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								if (this.state.rallyPointRedLocation
-										&& this.state.rallyPointGreenLocation) {
+								if (this.state.rallyEndLocation
+										&& this.state.rallyStartLocation) {
 									closeOtherViewControlWindows('missionSettingsPanel');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
@@ -1700,139 +1702,20 @@ export default class CommandControl extends React.Component {
 
 	}
 
-	surveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-			// console.log('WHAT IS GOING ON!!!!');
-			// console.log(feature);
-			// console.log(self.state);
-			// console.log(self.homeLocation);
-
-		let iStyle = Styles.goalIcon(taskType, false, false)
-
-			let lineStyle = new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgba(255, 255, 255, 0.2)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: 'rgb(5,29,97)',
-					lineDash: [10, 10],
-					width: 2
-				}),
-				image: iStyle
-			});
-
-			let iconStyle = new OlStyle({
-				image: new OlIcon({
-					src: missionOrientationIcon,
-					scale: [0.5, 0.5]
-				}),
-				text: new OlText({
-					font: '15px Calibri,sans-serif',
-					fill: new OlFillStyle({ color: '#000000' }),
-					stroke: new OlStrokeStyle({
-						color: '#ffffff', width: .1
-					}),
-					placement: 'point',
-					textAlign: 'start',
-					justify: 'left',
-					textBaseline: 'bottom',
-					offsetY: -100,
-					offsetX: 100
-				})
-			});
-			// console.log('surveyLineStyle');
-			// console.log(feature);
-			let rotationAngle = 0;
-			let rhumbDist = 0;
-			let rhumbHomeDist = 0;
-			let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
-			// console.log('stringCoords');
-			// console.log(stringCoords);
-			let coords = stringCoords.slice(0, 2);
-
-			// console.log('iconStyle');
-			// console.log(iconStyle);
-			iconStyle.setGeometry(new OlPoint(stringCoords[0]));
-			iconStyle
-				.getImage()
-				.setRotation(
-					Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
-				);
-			let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-
-			rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
-			if (rotationAngle < 0) {
-				rotationAngle = rotationAngle + 360;
-			}
-			// console.log('coords');
-			// console.log(coords);
-			// console.log(coords.length);
-
-			const { homeLocation } = self.state;
-			if (stringCoords[0].length >= 2) {
-				let previousIndex = stringCoords.length - 2;
-				let nextIndex = stringCoords.length - 1;
-				// console.log('INDEXES');
-				// console.log(previousIndex);
-				// console.log(nextIndex);
-				rhumbDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[previousIndex])), turf.toWgs84(turf.point(stringCoords[nextIndex])), {units: 'kilometers'});
-				let rhumbDistString = Number(rhumbDist.toFixed(2)).toString();
-				if (homeLocation !== null) {
-					rhumbHomeDist = turf.rhumbDistance(turf.toWgs84(turf.point(stringCoords[nextIndex])), turf.point([homeLocation.lon, homeLocation.lat]), {units: 'kilometers'});
-					let rhumbHomeDistString = Number(rhumbHomeDist.toFixed(2)).toString();
-				}
-			}
-
-			return [lineStyle, iconStyle];
-		};
-
-	setSurveyStyle(self: CommandControl, feature: OlFeature<Geometry>, taskType: TaskType) {
-		let featureStyles = this.surveyStyle(self, feature, taskType);
-		feature.setStyle(featureStyles);
-		return feature
-	}
-
-	findRallySeparation(bot_list: number[], feature: GeographicCoordinate, rotationAngle: number, rallySpacing: number) {
-		// Bot rally point separation scheme
-		let rallyPoints: any = {};
-		let center = [feature.lon, feature.lat];
-		let radius = rallySpacing/1000;
-		if (bot_list.length >= 3) {
-			// We can use a circle to separate the bots
-			let options = {steps: bot_list.length};
-			let circle = turf.circle(center, radius, options);
-			let circleRallyPointsBasic = turf.coordAll(turf.cleanCoords(turf.multiPoint(circle.geometry.coordinates[0])));
-			circleRallyPointsBasic.forEach(p => {
-				rallyPoints[Number(bot_list.pop())] = p
-			})
-		} else {
-			// Alternative to using a circle for bot separation
-			let rhumbDestinationPoints: number[][][] = [];
-			let nextRadius = 0;
-			bot_list.forEach(bot => {
-				rhumbDestinationPoints.push(turf.coordAll(turf.rhumbDestination(turf.point(center), nextRadius, rotationAngle-90)));
-				nextRadius = nextRadius + radius;
-			})
-			rhumbDestinationPoints.forEach(p => {
-				rallyPoints[Number(bot_list.pop())] = p[0]
-			})
-		}
-		return rallyPoints
-	}
-
 	updateRallyPointFeatures() {
 		const source = layers.rallyPointLayer.getSource()
 		source.clear()
 
 		// Add Home, if available
-		if (this.state.rallyPointRedLocation) {
-			let pt = getMapCoordinate(this.state.rallyPointRedLocation, map)
+		if (this.state.rallyEndLocation) {
+			let pt = getMapCoordinate(this.state.rallyEndLocation, map)
 			const feature = new OlFeature({ geometry: new OlPoint(pt) })
 			feature.setStyle(JCCStyles.rallyPointRedStyle)
 			source.addFeature(feature)
 		}
 
-		if (this.state.rallyPointGreenLocation) {
-			let pt = getMapCoordinate(this.state.rallyPointGreenLocation, map)
+		if (this.state.rallyStartLocation) {
+			let pt = getMapCoordinate(this.state.rallyStartLocation, map)
 			const feature = new OlFeature({ geometry: new OlPoint(pt) })
 			feature.setStyle(JCCStyles.rallyPointGreenStyle)
 			source.addFeature(feature)
@@ -2055,7 +1938,7 @@ export default class CommandControl extends React.Component {
 
 	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
 		this.setState({
-			rallyPointGreenLocation: getGeographicCoordinate(coordinate, map),
+			rallyStartLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
 		})
 
@@ -2064,7 +1947,7 @@ export default class CommandControl extends React.Component {
 
 	placeRallyPointRedAtCoordinate(coordinate: number[]) {
 		this.setState({
-			rallyPointRedLocation: getGeographicCoordinate(coordinate, map),
+			rallyEndLocation: getGeographicCoordinate(coordinate, map),
 			mode: ''
 		})
 
@@ -2175,7 +2058,7 @@ export default class CommandControl extends React.Component {
 	goToRallyGreen(evt: UIEvent) {
 		let add_runs: CommandList = {}
 
-		if (!this.state.rallyPointGreenLocation) {
+		if (!this.state.rallyStartLocation) {
 			alert('No green rally point selected.  Click on the map to select a green rally location and try again.')
 			return
 		}
@@ -2186,7 +2069,7 @@ export default class CommandControl extends React.Component {
 
 		for(let bot in this.state.podStatus.bots)
 		{
-			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyPointGreenLocation]);
+			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyStartLocation]);
 		}
 
 		this.runMissions(this.state.runList, add_runs)
@@ -2195,7 +2078,7 @@ export default class CommandControl extends React.Component {
 	goToRallyRed(evt: UIEvent) {
 		let add_runs: CommandList = {}
 
-		if (!this.state.rallyPointRedLocation) {
+		if (!this.state.rallyEndLocation) {
 			alert('No red rally point selected.  Click on the map to select a red rally location and try again.')
 			return
 		}
@@ -2206,7 +2089,7 @@ export default class CommandControl extends React.Component {
 
 		for(let bot in this.state.podStatus.bots)
 		{
-			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyPointRedLocation]);
+			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyEndLocation]);
 		}
 
 		this.runMissions(this.state.runList, add_runs)
@@ -2391,6 +2274,14 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
+	 * 
+	 * @returns List of botIds
+	 */
+	getBotIdList() {
+		return Object.keys(this.state.podStatus.bots).map((value: string) => { return Number(value) })
+	}
+
+	/**
 	 * Updates the mission layer features.
 	 * 
 	 * Dependencies: 
@@ -2401,8 +2292,8 @@ export default class CommandControl extends React.Component {
 	 * this.state.mode,
 	 * this.state.missionBaseGoal,
 	 * this.state.podStatus,
-	 * this.state.rallyPointGreenLocation,
-	 * this.state.rallyPointRedLocation,
+	 * this.state.rallyStartLocation,
+	 * this.state.rallyEndLocation,
 	 * this.state.missionPlanningGrid,
 	 * this.missionEndTask
 	 * 
@@ -2454,9 +2345,11 @@ export default class CommandControl extends React.Component {
 		// Place all the mission planning features in this for the missionLayer
 		let missionPlanningFeaturesList: OlFeature[] = []
 
-		if (this.state.missionPlanningGrid) {
-			this.updateMissionPlansFromMissionPlanningGrid()
-			const planningGridFeatures = this.featuresFromMissionPlanningGrid()
+		const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
+
+		if (missionPlanningGrid) {
+			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
+			const planningGridFeatures = featuresFromMissionPlanningGrid(missionPlanningGrid, missionBaseGoal)
 			missionPlanningFeaturesList.push(...planningGridFeatures)
 		}
 
@@ -2494,153 +2387,88 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (this.state.missionPlanningFeature) {
+
+			function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
+				// console.log('WHAT IS GOING ON!!!!');
+				// console.log(feature);
+				// console.log(self.state);
+				// console.log(self.homeLocation);
+	
+				let iStyle = Styles.goalIcon(taskType, false, false)
+	
+				let lineStyle = new OlStyle({
+					fill: new OlFillStyle({
+						color: 'rgba(255, 255, 255, 0.2)'
+					}),
+					stroke: new OlStrokeStyle({
+						color: 'rgb(5,29,97)',
+						lineDash: [10, 10],
+						width: 2
+					}),
+					image: iStyle
+				});
+	
+				let iconStyle = new OlStyle({
+					image: new OlIcon({
+						src: missionOrientationIcon,
+						scale: [0.5, 0.5]
+					}),
+					text: new OlText({
+						font: '15px Calibri,sans-serif',
+						fill: new OlFillStyle({ color: '#000000' }),
+						stroke: new OlStrokeStyle({
+							color: '#ffffff', width: .1
+						}),
+						placement: 'point',
+						textAlign: 'start',
+						justify: 'left',
+						textBaseline: 'bottom',
+						offsetY: -100,
+						offsetX: 100
+					})
+				});
+				// console.log('surveyLineStyle');
+				// console.log(feature);
+				let rotationAngle = 0;
+				let rhumbDist = 0;
+				let rhumbHomeDist = 0;
+				let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
+				// console.log('stringCoords');
+				// console.log(stringCoords);
+				let coords = stringCoords.slice(0, 2);
+	
+				// console.log('iconStyle');
+				// console.log(iconStyle);
+				iconStyle.setGeometry(new OlPoint(stringCoords[0]));
+				iconStyle
+					.getImage()
+					.setRotation(
+						Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
+					);
+				let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
+	
+				rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
+				if (rotationAngle < 0) {
+					rotationAngle = rotationAngle + 360;
+				}
+				// console.log('coords');
+				// console.log(coords);
+				// console.log(coords.length);
+	
+				return [lineStyle, iconStyle];
+			};
+
 			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
-				let mpStyledFeature = this.setSurveyStyle(this, mpFeature, this.state.missionBaseGoal.task.type);
-				missionPlanningFeaturesList.push(mpStyledFeature)
+				mpFeature.setStyle(surveyStyle(mpFeature, this.state.missionBaseGoal.task.type))
+				missionPlanningFeaturesList.push(mpFeature)
 			}
 		}
 
 		const missionPlanningSource = layers.missionPlanningLayer.getSource()
 		missionPlanningSource.clear()
 		missionPlanningSource.addFeatures(missionPlanningFeaturesList)
-	}
-
-	/**
-	 * Returns a set of features illustrating the missionPlanningGrid
-	 * 
-	 * Dependencies:
-	 * this.state.missionPlanningGrid,
-	 * this.state.missionBaseGoal
-	 * 
-	 * @returns A list of features representing the mission planning waypoints (preview)
-	 */
-	featuresFromMissionPlanningGrid() {
-		var features: OlFeature<Geometry>[] = []
-
-		let mpg = this.state.missionPlanningGrid;
-		let mpgKeys = Object.keys(mpg);
-
-		mpgKeys.forEach(key => {
-			const bot_id = Number(key)
-
-			let mpGridFeature = new OlFeature(
-				{
-					geometry: new OlMultiPoint(mpg[key]),
-					style: new OlStyle({
-						image: Styles.goalIcon(this.state.missionBaseGoal.task.type, false, false)
-					})
-				}
-			)
-			mpGridFeature.setProperties({'botId': key});
-			mpGridFeature.setStyle(new OlStyle({
-				image: Styles.goalIcon(this.state.missionBaseGoal.task.type, false, false)
-			}))
-
-			features.push(mpGridFeature);
-		})
-
-		return features
-	}
-
-	/**
-	 * Updates this.missionPlans
-	 * 
-	 * Dependencies:
-	 * this.state.podStatus,
-	 * this.state.rallyPointGreenLocation,
-	 * this.state.rallyPointRedLocation,
-	 * this.state.missionParams,
-	 * this.state.missionPlanningGrid,
-	 * this.state.missionEndTask,
-	 * this.state.missionBaseGoal,
-	 * 
-	 * Calls:
-	 * this.findRallySeparation()
-	 * 
-	 */
-	updateMissionPlansFromMissionPlanningGrid() {
-		let missionPlans: CommandList = {};
-		let millisecondsSinceEpoch = new Date().getTime();
-		let bot_list = Object.keys(this.state.podStatus.bots).map((value: string) => { return Number(value) })
-
-		// Bot rally point separation scheme
-		let rallyStartPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointGreenLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
-		// console.log('rallyStartPoints');
-		// console.log(rallyStartPoints);
-		let rallyFinishPoints = this.findRallySeparation(deepcopy(bot_list), this.state.rallyPointRedLocation, this.state.missionParams.orientation, this.state.missionParams.rally_spacing);
-		// console.log('rallyFinishPoints');
-		// console.log(rallyFinishPoints);
-
-		let mpg = this.state.missionPlanningGrid;
-		let mpgKeys = Object.keys(mpg);
-		mpgKeys.forEach(key => {
-			const bot_id = Number(key)
-
-			// TODO: Update the mission plan for the bots at the same time??
-			// Create the goals from the missionPlanningGrid
-			let bot_goals = [];
-
-			// Rally Point Goals
-			let bot_goal: Goal = {
-				"location": {
-					"lat": rallyStartPoints[key][1],
-					"lon": rallyStartPoints[key][0]
-				},
-				"task": {"type": TaskType.STATION_KEEP}
-			}
-			bot_goals.push(bot_goal)
-
-			// Mission Goals
-			const bot_mission_goal_positions: turf.helpers.Position[] = mpg[key]
-
-			bot_mission_goal_positions.forEach((goal: turf.helpers.Position, index: number) => {
-				let goalWgs84 = turf.coordAll(turf.toWgs84(turf.point(goal)))[0]
-
-				// For each bot's final goal, we use the missionEndTask, (like a Constant Heading task)
-				const is_last_goal = index == bot_mission_goal_positions.length - 1
-				const task = is_last_goal ? this.state.missionEndTask : this.state.missionBaseGoal.task
-
-				bot_goal = {
-					"location": {
-						"lat": goalWgs84[1],
-						"lon": goalWgs84[0]
-					},
-					"task": task
-				}
-				bot_goals.push(bot_goal);
-			})
-
-			// Home Goals
-			bot_goal = {
-				"location": {
-					"lat": rallyFinishPoints[key][1],
-					"lon": rallyFinishPoints[key][0]
-				},
-				"task": {
-					type: TaskType.STATION_KEEP
-				}
-			}
-			bot_goals.push(bot_goal)
-
-			let mission_dict: Command = {
-				bot_id: Number(key),
-				time: millisecondsSinceEpoch,
-				type: CommandType.MISSION_PLAN,
-				plan: {
-					start: MissionStart.START_IMMEDIATELY,
-					movement: MovementType.TRANSIT,
-					goal: bot_goals,
-					recovery: {
-						recover_at_final_goal: true
-					}
-				}
-			}
-			missionPlans[bot_id] = mission_dict;
-		})
-
-		this.missionPlans = missionPlans
 	}
 
 }
