@@ -1593,7 +1593,7 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
-		info('Welcome to JaiaBot Command & Control!');
+		info('Welcome to Jaia Command & Control!');
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
