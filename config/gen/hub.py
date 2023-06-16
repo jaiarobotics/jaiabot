@@ -6,6 +6,7 @@
 import sys
 import os
 from common import config
+from common import logger
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
 from pathlib import Path
@@ -130,7 +131,8 @@ elif common.app == 'goby_logger':
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     goby_logger_dir=log_file_dir))
+                                     goby_logger_dir=log_file_dir,
+                                     goby_logger_group_regex=logger.group_regex))
 elif common.app == 'jaiabot_hub_manager':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
