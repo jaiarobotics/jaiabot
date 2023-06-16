@@ -100,7 +100,8 @@ export function botMarker(feature: Feature): Style[] {
                     color: 'black'
                 }),
                 offsetX: -textOffsetRadius * headingDelta.x,
-                offsetY: -textOffsetRadius * headingDelta.y
+                offsetY: -textOffsetRadius * headingDelta.y,
+                rotateWithView: true
             })
         })
     ]

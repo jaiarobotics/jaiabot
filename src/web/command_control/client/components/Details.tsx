@@ -3,7 +3,7 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -96,6 +96,7 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
         statesAvailable: [
+            /^PRE_DEPLOYMENT.+$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
@@ -387,21 +388,101 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
-        closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
-        deleteSingleMission: () => void, detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
-        isRCModeActive: (botId: number) => boolean) {
-    if (bot == null) {
+export interface BotDetaisProps {
+    bot: PortalBotStatus,
+    hub: PortalHubStatus,
+    api: JaiaAPI,
+    mission: MissionInterface,
+    closeWindow: React.MouseEventHandler<HTMLDivElement>,
+    takeControl: () => boolean,
+    isExpanded: DetailsExpandedState,
+    createRemoteControlInterval: () => void,
+    clearRemoteControlInterval: () => void,
+    remoteControlValues: Engineering,
+    weAreInControl: () => boolean,
+    weHaveRemoteControlInterval: () => boolean,
+    deleteSingleMission: () => void,
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    isRCModeActive: (botId: number) => boolean
+}
+
+export function BotDetailsComponent(props: BotDetaisProps) {
+    const bot = props.bot
+    const hub = props.hub
+    const api = props.api
+    const mission = props.mission
+    const closeWindow = props.closeWindow
+    const takeControl = props.takeControl
+    const isExpanded = props.isExpanded
+    const createRemoteControlInterval = props.createRemoteControlInterval
+    const clearRemoteControlInterval = props.clearRemoteControlInterval
+    const remoteControlValues = props.remoteControlValues
+    const weAreInControl = props.weAreInControl
+    const weHaveRemoteControlInterval = props.weHaveRemoteControlInterval
+    const deleteSingleMission = props.deleteSingleMission
+    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const isRCModeActive = props.isRCModeActive
+
+    if (!bot) {
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
+    // 'global' var becasue React async state updates are too slow!!
+    let dropdownContainer: HTMLElement
 
-    let statusAgeClassName = ''
+    useEffect(() => {
+        addDropdownListener('accordionContainer', adjustAccordionScrollPosition)
+    }, [])
+
+    const addDropdownListener = (targetClassName: string, adjustScroll: () => void) => {
+        const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
+        dropdownContainers.forEach((dropdownElement: HTMLElement) => {
+            dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, adjustScroll))
+        })
+    }
+
+    const handleAccordionDropdownClick = (event: Event, targetClassName: string, adjustScroll: () => void) => {
+        let clickedElement = event.target as HTMLElement
+        // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
+        //     reduces some of the lag
+        while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
+            clickedElement = clickedElement.parentElement
+        }
+        const dropdownTimeout: number = 400 // Milliseconds
+        setTimeout(() => {
+            dropdownContainer = clickedElement
+            adjustScroll()
+        }, dropdownTimeout)
+    }
+
+    const adjustAccordionScrollPosition = () => {
+        const parentContainer = document.getElementById('botDetailsAccordionContainer')
+        const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
+        const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
+
+        if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
+            const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
+            parentContainer.scrollBy({
+                // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+                top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
+                left: 0,
+                behavior: 'smooth'
+            })
+        } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
+            parentContainer.scrollBy({
+                top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
+                left: 0,
+                behavior: 'smooth'
+            })
+        }
+    }
+
+    const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
+    let statusAgeClassName: string
+
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
-    }
-    else if (statusAge > 10) {
+    } else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
 
@@ -410,66 +491,53 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     let distToGoal = bot.distance_to_active_goal ?? "N/A"
     let goalTimeout = bot.active_goal_timeout ?? "N/A"
 
-    if(activeGoal != "N/A"
-        && distToGoal == "N/A")
-    {
+    if (activeGoal !== "N/A" && distToGoal === "N/A") {
         distToGoal = "Distance To Goal > 1000"
-    } 
-    else if(activeGoal != "N/A"
-            && distToGoal != "N/A")
-    {
+    } else if (activeGoal !== "N/A" && distToGoal !== "N/A") {
         distToGoal = distToGoal + " m"
-    }
-    else if(activeGoal == "N/A"
-            && distToGoal != "N/A")
-    {
+    } else if (activeGoal === "N/A" && distToGoal !== "N/A") {
         activeGoal = "Recovery"
         distToGoal = distToGoal + " m"
     }
 
-    if(activeGoal != "N/A")
-    {
+    if (activeGoal !== "N/A") {
         goalTimeout = goalTimeout + " s"
     }
 
     // Distance from hub
     let distToHub = "N/A"
-    if (bot?.location != null
-        && hub?.location != null)
-    {
-        let botloc = turf.point([bot.location.lon, bot.location.lat]); 
-        let hubloc = turf.point([hub.location.lon, hub.location.lat]);
-        var options = {units: 'meters' as turf.Units};
-
-        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1);
+    if (bot?.location && hub?.location) {
+        const botloc = turf.point([bot.location.lon, bot.location.lat])
+        const hubloc = turf.point([hub.location.lon, hub.location.lat])
+        const options = {units: 'meters' as turf.Units}
+        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1)
     }
 
-    let mission_state = bot.mission_state;
-    takeControlFunction = takeControl;
+    const mission_state = bot.mission_state
+    takeControlFunction = takeControl
 
-    // Reuse data offload button icon for recover and retry data offload
-    let dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/;
-
-    let dataOffloadButton = 
+    let dataOffloadButton = (
         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
             disabled={disableButton(commands.recover, mission_state).isDisabled} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title="Data Offload"/>
         </Button>
+    )
 
-    if(!dataOffloadStatesAvailable.test(mission_state)) {
-        dataOffloadButton = 
+    if(disableButton(commands.recover, mission_state).isDisabled) {
+        dataOffloadButton = ( 
             <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
                 disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title="Retry Data Offload"/>
             </Button>
+        )
     }
 
-    let bot_offload_percentage = "";
+    let bot_offload_percentage = ""
 
-    if(bot.data_offload_percentage != undefined) {
-        bot_offload_percentage = " " + bot.data_offload_percentage + "%";
+    if (bot.data_offload_percentage) {
+        bot_offload_percentage = " " + bot.data_offload_percentage + "%"
     }
 
     return (
@@ -499,11 +567,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </Button>
                     </div>
                 </div>
-                <div className="accordionContainer">
+                <div id="botDetailsAccordionContainer" className="accordionParentContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
                         onChange={() => {detailsDefaultExpanded("quickLook")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -550,7 +618,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.commands} 
                         onChange={() => {detailsDefaultExpanded("commands")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -560,9 +628,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            {/*<Button className="button-jcc inactive" disabled>
-                                <Icon path={mdiPause} title="Pause Mission"/>
-                            </Button>*/}
 
                             <Button className={disableButton(commands.active, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.active, mission_state).isDisabled} 
@@ -587,7 +652,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
                                 onChange={() => {detailsDefaultExpanded("advancedCommands")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -644,7 +709,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.health} 
                         onChange={() => {detailsDefaultExpanded("health")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -665,7 +730,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.data} 
                         onChange={() => {detailsDefaultExpanded("data")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -679,7 +744,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.gps} 
                                 onChange={() => {detailsDefaultExpanded("gps")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -722,7 +787,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.imu} 
                                 onChange={() => {detailsDefaultExpanded("imu")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -769,7 +834,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.sensor} 
                                 onChange={() => {detailsDefaultExpanded("sensor")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -800,7 +865,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.power} 
                                 onChange={() => {detailsDefaultExpanded("power")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -885,7 +950,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 <Accordion 
                     expanded={isExpanded.quickLook} 
                     onChange={() => {detailsDefaultExpanded("quickLook")}}
-                    className="accordion"
+                    className="accordionContainer"
                 >
                     <AccordionSummary
                         expandIcon={<ExpandMoreIcon />}
@@ -918,7 +983,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 <Accordion 
                     expanded={isExpanded.commands} 
                     onChange={() => {detailsDefaultExpanded("commands")}}
-                    className="accordion"
+                    className="accordionContainer"
                 >
                     <AccordionSummary
                         expandIcon={<ExpandMoreIcon />}

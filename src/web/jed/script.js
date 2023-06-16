@@ -991,6 +991,6 @@ function onMouseUpDeadMansSwitch(evt) {
 }
 
 function takeControl(evt) {
-  fetch('/jaia/takeControl', {method: 'POST', headers: {clientId: clientId}})
+  fetch('/jaia/take-control', {method: 'POST', headers: {clientId: clientId}})
   .then((response) => response.json())
 }

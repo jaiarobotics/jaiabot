@@ -532,7 +532,8 @@ struct PreDeployment
     ~PreDeployment() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
+                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
 
 namespace predeployment
@@ -602,11 +603,10 @@ struct WaitForMissionPlan
     WaitForMissionPlan(typename StateBase::my_context c) : StateBase(c) {}
     ~WaitForMissionPlan() {}
 
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvMissionFeasible, Ready>,
-        boost::statechart::transition<EvMissionInfeasible,
-                                      WaitForMissionPlan> // maybe change to in_state_reaction?
-        >;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvMissionFeasible, Ready>,
+                         // maybe change to in_state_reaction?
+                         boost::statechart::transition<EvMissionInfeasible, WaitForMissionPlan>>;
 };
 
 struct Ready : boost::statechart::state<Ready, PreDeployment>,
@@ -619,8 +619,8 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
         if (mission_feasible_event)
         {
             const auto plan = mission_feasible_event->plan;
-            this->machine().set_mission_plan(plan,
-                                             true); // reset the datum on the initial mission
+            // reset the datum on the initial mission
+            this->machine().set_mission_plan(plan, true);
             if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
