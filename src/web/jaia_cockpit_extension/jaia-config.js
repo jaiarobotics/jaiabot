@@ -70,7 +70,7 @@ function software_status_output(data) {
   ss_output.append(document.createTextNode(data));
 }
 
-// Connect the button to starting the "software update" process
+// Connect the button to starting the "software status" process
 get_ss.addEventListener("click", software_status_run);
 
 /*
@@ -102,7 +102,7 @@ function software_group_output(data) {
   sg_output.append(document.createTextNode(data));
 }
 
-// Connect the button to starting the "software update" process
+// Connect the button to starting the "software group" process
 set_sg.addEventListener("click", software_group_run);
 
 // Send a 'init' message.  This tells integration tests that we are ready to go
