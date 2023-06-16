@@ -49,8 +49,6 @@ export default class RCControllerPanel extends React.Component {
 			rudderDirection: "",
 			controlType: "Manual Dual"
         }
-
-		this.props.remoteControlValues.bot_id = this.props.bot.bot_id
     }
 
 	updateThrottleDirectionMove(event: IJoystickUpdateEvent) {
@@ -275,6 +273,9 @@ export default class RCControllerPanel extends React.Component {
 				/>
 			</div>
 		)
+
+		// Set the remoteControlValues to the selected bot id
+		this.props.remoteControlValues.bot_id = this.props.bot.bot_id
 
 		return (
 			<div id="remoteControlPanelContainer">
