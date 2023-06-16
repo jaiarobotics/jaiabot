@@ -93,6 +93,7 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
         statesAvailable: [
+            /^PRE_DEPLOYMENT.+$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
@@ -504,9 +505,6 @@ export function BotDetailsComponent(props: BotDetaisProps) {
     const mission_state = bot.mission_state
     takeControlFunction = takeControl
 
-    // Reuse data offload button icon for recover and retry data offload
-    const dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
-
     let dataOffloadButton = (
         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
             disabled={disableButton(commands.recover, mission_state).isDisabled} 
@@ -515,8 +513,8 @@ export function BotDetailsComponent(props: BotDetaisProps) {
         </Button>
     )
 
-    if (!dataOffloadStatesAvailable.test(mission_state)) {
-        dataOffloadButton = (
+    if(disableButton(commands.recover, mission_state).isDisabled) {
+        dataOffloadButton = ( 
             <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
                 disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
