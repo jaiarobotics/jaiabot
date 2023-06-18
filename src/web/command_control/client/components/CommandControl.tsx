@@ -60,7 +60,7 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { deepcopy, getMapCoordinate } from './Utilities';
+import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
 import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
@@ -138,6 +138,8 @@ import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
+import { deepEqual } from 'assert'
+import RunList from './mission/RunList'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -159,9 +161,6 @@ const POLLING_INTERVAL_MS = 500;
 
 const MAX_RUNS: number = 99;
 const MAX_GOALS = 15;
-
-// Store Previous Mission History
-let previous_mission_history: any;
 
 String.prototype.endsWith = function(suffix) {
 	return this.slice(this.length - suffix.length, this.length) == suffix
@@ -238,6 +237,10 @@ interface State {
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
 	runList: MissionInterface,
+	/**
+	 * Incremented when runList has changed and mission needs a re-render
+	 */
+	runListVersion: number
 	undoRunListStack: MissionInterface[],
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 	remoteControlValues: Engineering
@@ -345,6 +348,7 @@ export default class CommandControl extends React.Component {
 			engineeringPanelActive: false,
 			missionPanelActive: false,
 			runList: null,
+			runListVersion: 0,
 			undoRunListStack: [],
 			remoteControlInterval: null,
 			remoteControlValues: {
@@ -717,7 +721,7 @@ export default class CommandControl extends React.Component {
 		// If we select another bot, we need to re-render the mission layer to re-color the mission lines
 		// If the podStatus changes, the active_goals may have changed or a bot could be added, so re-do missionLayer
 		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot ||
-			prevState.runList !== this.state.runList ||
+			prevState.runListVersion !== this.state.runListVersion ||
 			prevState.podStatus !== this.state.podStatus) {
 			this.updateMissionLayer()
 		}
@@ -1066,35 +1070,57 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	changeMissions(func: (runList: MissionInterface) => void, previousRunList: MissionInterface) {
-		// Save a backup of the current mission set
-		let oldMissions = deepcopy(this.state.runList)
-		//console.log(this.state.runList);
-
-		if(previousRunList != null
-			|| previousRunList != undefined)
-		{
-			oldMissions = deepcopy(previousRunList);
-		}
-
-		// Do any alterations to the mission set
-		var runList = deepcopy(this.state.runList)
-		func(runList)
-		// Set state to trigger GUI update
-		this.setState({runList})
-
-		// If something was changed
-		if (JSON.stringify(oldMissions) != JSON.stringify(this.state.runList) ) {
-			// then place the old mission set into the undoMissions
-			this.state.undoRunListStack.push(deepcopy(oldMissions))
-		}
+	/**
+	 * Gets the current runList
+	 * 
+	 * @returns Current runList
+	 */
+	getRunList() {
+		return this.state.runList
 	}
 
+	/**
+	 * Sets the runList, without pushing to the Undo stack
+	 * 
+	 * @param runList New runList
+	 */
+	setRunList(runList: MissionInterface) {
+		this.setState({runList, runListVersion: this.state.runListVersion + 1})
+	}
+	
+	/**
+	 * Push the current runList onto the undoRunListStack, if different from the top runList on the stack
+	 */
+	pushRunListToUndoStack() {
+		const { runList, undoRunListStack } = this.state
+
+		if (undoRunListStack.length >= 1) {
+			const topRunList = undoRunListStack[undoRunListStack.length - 1]
+			if (equalValues(topRunList, runList)) return this
+		}
+
+		undoRunListStack.push(deepcopy(runList))
+		this.setState({undoRunListStack})
+
+		// console.debug('Pushed to undoRunListStack')
+		// console.debug(deepcopy(undoRunListStack))
+
+		return this
+	}
+
+	/**
+	 * Restore the top of the runList undo stack
+	 * 
+	 * @returns Nothing
+	 */
 	restoreUndo() {
 		if (!confirm('Click the OK button to undo the previous run edit that was made:')) return
 
 		if (this.state.undoRunListStack.length >= 1) {
-			this.setState({runList: this.state.undoRunListStack.pop()})
+			const runList = this.state.undoRunListStack.pop()
+			// console.debug('Popped from undoRunListStack')
+			// console.debug(deepcopy(this.state.undoRunListStack))
+			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
 		} 
 		else
@@ -1171,13 +1197,12 @@ export default class CommandControl extends React.Component {
 					botId={goalBeingEditedBotId}
 					goalIndex={goalBeingEditedGoalIndex}
 					goal={goalBeingEdited} 
-					onChange={() => { 
-						this.setState({runList: this.state.runList}) // Trigger re-render
+					onChange={() => {
+						this.setRunList(this.getRunList())
 					}} 
 					onClose={() => 
 						{
 							this.setState({goalBeingEdited: null})
-							this.changeMissions(() => {}, previous_mission_history);
 						}
 					} 
 				/>
@@ -1211,12 +1236,15 @@ export default class CommandControl extends React.Component {
 						const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
 						this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
-						this.deleteAllRunsInMission(this.state.runList);
+						const runList = this.pushRunListToUndoStack().getRunList()
+						this.deleteAllRunsInMission(runList);
 
 						for(let id in this.missionPlans)
 						{
-							Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, this.state.runList);
+							Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 						}
+
+						this.setRunList(runList)
 
 						// Close panel after applying
 						this.changeInteraction();
@@ -1267,7 +1295,7 @@ export default class CommandControl extends React.Component {
 				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
 												hubs?.[0], 
 												this.api, 
-												this.state.runList, 
+												this.getRunList(), 
 												closeDetails,
 												this.takeControl.bind(this),
 												this.state.detailsExpanded,
@@ -1340,7 +1368,7 @@ export default class CommandControl extends React.Component {
 				<MissionControllerPanel 
 					api={this.api} 
 					bots={bots} 
-					mission={this.state.runList} 
+					mission={this.getRunList()} 
 					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
 					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
@@ -1557,7 +1585,7 @@ export default class CommandControl extends React.Component {
 
     autoAssignBotsToRuns() {
         let podStatusBotIds = Object.keys(this.state.podStatus?.bots);
-        let botsAssignedToRunsIds = Object.keys(this.state.runList.botsAssignedToRuns);
+        let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
         let botsNotAssigned: number[] = [];
 
 		// Find the difference between the current botIds available
@@ -1573,21 +1601,23 @@ export default class CommandControl extends React.Component {
             }
         });
 
+		const runList = this.pushRunListToUndoStack().getRunList()
+
         botsNotAssigned.forEach((assigned_key) => {
-            for (let run_key in this.state.runList.runs) {
-                if (this.state.runList.runs[run_key].assigned == -1) {
+            for (let run_key in runList.runs) {
+                if (runList.runs[run_key].assigned == -1) {
                     // Delete assignment
-                    delete this.state.runList.botsAssignedToRuns[this.state.runList.runs[run_key].assigned];
+                    delete runList.botsAssignedToRuns[runList.runs[run_key].assigned];
 
-                    this.state.runList.runs[run_key].assigned = Number(assigned_key); 
-                    this.state.runList.runs[run_key].command.bot_id = Number(assigned_key); 
-                    this.state.runList.botsAssignedToRuns[this.state.runList.runs[run_key].assigned] = this.state.runList.runs[run_key].id
-
-                    this.setState({runList: this.state.runList})
+                    runList.runs[run_key].assigned = Number(assigned_key); 
+                    runList.runs[run_key].command.bot_id = Number(assigned_key); 
+                    runList.botsAssignedToRuns[runList.runs[run_key].assigned] = runList.runs[run_key].id
                     break;
                 }
             }
         })
+
+		this.setRunList(runList)
     }
 
     detailsDefaultExpanded(accordian: keyof DetailsExpandedState) {
@@ -1670,36 +1700,37 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		this.changeMissions((missions) => {
-			let runs = missions?.runs;
-			let botsAssignedToRuns = missions?.botsAssignedToRuns;
+		var runList = this.pushRunListToUndoStack().getRunList()
 
-			if(!(botId in botsAssignedToRuns))
-			{
-				missions = Missions.addRunWithWaypoints(botId, [], missions);
-			}
+		let runs = runList?.runs;
+		let botsAssignedToRuns = runList?.botsAssignedToRuns;
 
-			// Attempted to create a run greater than MAX_RUNS
-			// The check for MAX_RUNS occurs in Missions.tsx
-			if (!missions) { return }
+		if(!(botId in botsAssignedToRuns))
+		{
+			runList = Missions.addRunWithWaypoints(botId, [], runList);
+		}
 
-			if(runs[botsAssignedToRuns[botId]]?.command == null)
-			{
-				runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
-			}
+		// Attempted to create a run greater than MAX_RUNS
+		// The check for MAX_RUNS occurs in Missions.tsx
+		if (!runList) { return }
 
-			let runCommand = runs[botsAssignedToRuns[botId]].command;
+		if(runs[botsAssignedToRuns[botId]]?.command == null)
+		{
+			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
+		}
 
-			if(runCommand.plan.goal.length < MAX_GOALS)
-			{
-				runCommand.plan.goal.push({location: location})	
-			}
-			else
-			{
-				warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
-			}
-		}, null)
+		let runCommand = runs[botsAssignedToRuns[botId]].command;
 
+		if(runCommand.plan.goal.length < MAX_GOALS)
+		{
+			runCommand.plan.goal.push({location: location})	
+		}
+		else
+		{
+			warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
+		}
+
+		this.setRunList(runList)
 	}
 
 	updateRallyPointFeatures() {
@@ -1796,17 +1827,20 @@ export default class CommandControl extends React.Component {
 
 	// Loads the set of runs, and updates the GUI
 	loadMissions(mission: MissionInterface) {
-		this.deleteAllRunsInMission(this.state.runList);
+		const runList = this.pushRunListToUndoStack().getRunList()
+
+		this.deleteAllRunsInMission(runList);
 		for(let run in mission.runs)
 		{
-			Missions.addRunWithCommand(-1, mission.runs[run].command, this.state.runList);
+			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
-		this.setState({runList: this.state.runList}) // Trigger re-render
+
+		this.setRunList(runList)
 	}
 
 	// Check if a run is assigned to any bot
 	areBotsAssignedToRuns() {
-		const botsAssignedToRuns = this.state.runList.botsAssignedToRuns
+		const botsAssignedToRuns = this.getRunList().botsAssignedToRuns
 		if (Object.keys(botsAssignedToRuns).length === 0) {
 			return false
 		}
@@ -1829,7 +1863,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	deleteSingleRun() {
-		const runList = this.state.runList
+		const runList = this.pushRunListToUndoStack().getRunList()
+
 		const selectedBotId = this.selectedBotId()
 		const runId = runList.botsAssignedToRuns[selectedBotId] ? runList.botsAssignedToRuns[selectedBotId] : -1
 		const warning_string = "Are you sure you want to delete run for bot: " + selectedBotId;
@@ -1901,10 +1936,11 @@ export default class CommandControl extends React.Component {
 			let goalIndex = feature.get('goalIndex')
 
 			if (goal != null) {
-				previous_mission_history = deepcopy(this.state.runList);
+				this.pushRunListToUndoStack()
+
 				this.setState({
-					goalBeingEdited: goal, 
-					goalBeingEditedBotId: botId, 
+					goalBeingEdited: goal,
+					goalBeingEditedBotId: botId,
 					goalBeingEditedGoalIndex: goalIndex
 				})
 				return false
@@ -2036,7 +2072,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	saveMissionButtonClicked() {
-		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} mission={this.state.runList} onDone={() => {
+		let panel = <SaveMissionPanel missionLibrary={MissionLibraryLocalStorage.shared()} mission={this.getRunList()} onDone={() => {
 			this.setState({saveMissionPanel: null})
 		}}></SaveMissionPanel>
 
@@ -2072,7 +2108,7 @@ export default class CommandControl extends React.Component {
 			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyStartLocation]);
 		}
 
-		this.runMissions(this.state.runList, add_runs)
+		this.runMissions(this.getRunList(), add_runs)
 	}
 
 	goToRallyRed(evt: UIEvent) {
@@ -2092,11 +2128,11 @@ export default class CommandControl extends React.Component {
 			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyEndLocation]);
 		}
 
-		this.runMissions(this.state.runList, add_runs)
+		this.runMissions(this.getRunList(), add_runs)
 	}
 
 	playClicked(evt: UIEvent) {
-		this.runMissions(this.state.runList, null);
+		this.runMissions(this.getRunList(), null);
 	}
 	
 	activateAllClicked(evt: UIEvent) {
@@ -2270,12 +2306,12 @@ export default class CommandControl extends React.Component {
 
 		const missionSource = layers.missionLayer.getSource()
 		missionSource.clear()
-		missionSource.addFeatures(getMissionFeatures(this.state.runList, this.state.podStatus, this.selectedBotId()))
+		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.state.podStatus, this.selectedBotId()))
 	}
 
 	/**
 	 * 
-	 * @returns List of botIds
+	 * @returns List of botIds from podStatus
 	 */
 	getBotIdList() {
 		return Object.keys(this.state.podStatus.bots).map((value: string) => { return Number(value) })

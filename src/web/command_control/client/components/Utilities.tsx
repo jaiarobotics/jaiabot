@@ -56,7 +56,7 @@ export function deepcopy<T>(aObject: T): T {
     return bObject;
 }
 
-export function areEqual(a: any, b: any) {
+export function equalValues(a: any, b: any) {
     return JSON.stringify(a) == JSON.stringify(b)
 }
 
