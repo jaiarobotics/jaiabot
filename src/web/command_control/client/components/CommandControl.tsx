@@ -31,11 +31,6 @@ import Button from '@mui/material/Button';
 // TurfJS
 import * as turf from '@turf/turf';
 
-// ThreeJS
-/*import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-*/
 // Openlayers
 import OlMap from 'ol/Map';
 import {
@@ -66,19 +61,13 @@ import { HubOrBot } from './HubOrBot'
 import * as MissionFeatures from './shared/MissionFeatures'
 
 import $ from 'jquery';
-// import 'jquery-ui/themes/base/core.css';
-// import 'jquery-ui/themes/base/theme.css';
 import 'jquery-ui/ui/widgets/resizable';
-// import 'jquery-ui/themes/base/resizable.css';
 import 'jquery-ui/ui/widgets/slider';
-// import 'jquery-ui/themes/base/slider.css';
 import 'jquery-ui/ui/widgets/sortable';
-// import 'jquery-ui/themes/base/sortable.css';
 import 'jquery-ui/ui/widgets/button';
-// import 'jquery-ui/themes/base/button.css';
 import 'jquery-ui/ui/effects/effect-blind';
-// import 'jquery-ui/themes/base/checkboxradio.css';
-// import 'jquery-ui/ui/widgets/checkboxradio';
+// jQuery UI touch punch
+import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -89,20 +78,18 @@ import {
 	faWrench,
 } from '@fortawesome/free-solid-svg-icons';
 
+const jaiabot_icon = require('../icons/jaiabot.png')
 
-import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState} from './Details'
+import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps} from './Details'
+
 import { jaiaAPI } from '../../common/JaiaAPI';
 
 import tooltips from '../libs/tooltips'
-
-// jQuery UI touch punch
-import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { error, success, warning, info} from '../libs/notifications';
 
 // Don't use any third party css exept reset-css!
 import 'reset-css';
-// import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/CommandControl.less';
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
@@ -172,9 +159,7 @@ String.prototype.endsWith = function(suffix) {
 
 var mapSettings = GlobalSettings.mapSettings
 
-interface Props {
-
-}
+interface Props {}
 
 export enum Mode {
 	NONE = '',
@@ -348,6 +333,7 @@ export default class CommandControl extends React.Component {
 				imu: false,
 				sensor: false,
 				power: false,
+				links: false
 			},
 			mapLayerActive: false, 
 			engineeringPanelActive: false,
@@ -693,7 +679,7 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
-		info('Welcome to JaiaBot Command & Control!');
+		info('Welcome to Jaia Command & Control!');
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
@@ -1303,33 +1289,39 @@ export default class CommandControl extends React.Component {
 
 		switch (detailsBoxItem?.type) {
 			case 'hub':
-				detailsBox = HubDetailsComponent(hubs?.[this.selectedHubId()], 
-												this.api, 
-												closeDetails, 
-												this.state.detailsExpanded,
-												this.takeControl.bind(this),
-												this.detailsDefaultExpanded.bind(this));
-				
+				const hubDetailsProps: HubDetailsProps = {
+					hub: hubs?.[this.selectedHubId()],
+					api: this.api,
+					isExpanded: this.state.detailsExpanded,
+					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
+					getFleetId: this.getFleetId.bind(this),
+					takeControl: this.takeControl.bind(this),
+					closeWindow: closeDetails,
+				}
+				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
 				break;
 			case 'bot':
 				//**********************
 				// TO DO  
-				// the following line assumes fleets to only have hub0 in use
+				// The following lines assume fleets only use hub0
 				//**********************
-				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
-												hubs?.[0], 
-												this.api, 
-												this.getRunList(), 
-												closeDetails,
-												this.takeControl.bind(this),
-												this.state.detailsExpanded,
-												this.createRemoteControlInterval.bind(this),
-												this.clearRemoteControlInterval.bind(this),
-												this.state.remoteControlValues,
-												this.weAreInControl.bind(this),
-												this.weHaveRemoteControlInterval.bind(this),
-												this.deleteSingleRun.bind(this),
-												this.detailsDefaultExpanded.bind(this));
+				const botDetailsProps: BotDetailsProps = {
+					bot: bots?.[this.selectedBotId()], 
+					hub: hubs?.[0], 
+					api: this.api, 
+					mission: this.getRunList(), 
+					closeWindow: closeDetails,
+					takeControl: this.takeControl.bind(this),
+					isExpanded: this.state.detailsExpanded,
+					createRemoteControlInterval: this.createRemoteControlInterval.bind(this),
+					clearRemoteControlInterval: this.clearRemoteControlInterval.bind(this),
+					remoteControlValues: this.state.remoteControlValues,
+					weAreInControl: this.weAreInControl.bind(this),
+					weHaveRemoteControlInterval: this.weHaveRemoteControlInterval.bind(this),
+					deleteSingleMission: this.deleteSingleRun.bind(this),
+					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this)
+				}
+				detailsBox = <BotDetailsComponent {...botDetailsProps} />
 				break;
 			default:
 				detailsBox = null;
@@ -1387,7 +1379,14 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<EngineeringPanel api={this.api} bots={bots} hubs={hubs} getSelectedBotId={this.selectedBotId.bind(this)} control={this.takeControl.bind(this)} />
+				<EngineeringPanel 
+					api={this.api} 
+					bots={bots} 
+					hubs={hubs} 
+					getSelectedBotId={this.selectedBotId.bind(this)}
+					getFleetId={this.getFleetId.bind(this)}
+					control={this.takeControl.bind(this)} 
+				/>
 
 				<MissionControllerPanel 
 					api={this.api} 
@@ -1915,6 +1914,10 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	getFleetId() {
+		return this.state.podStatus.hubs[0].fleet_id
+	}
+
 	selectedHubId() {
 		const { selectedHubOrBot } = this.state
 		if (selectedHubOrBot == null || selectedHubOrBot.type != "hub") return null
@@ -1961,7 +1964,6 @@ export default class CommandControl extends React.Component {
 
 			if (goal != null) {
 				this.pushRunListToUndoStack()
-
 				this.setState({
 					goalBeingEdited: goal,
 					goalBeingEditedBotId: botId,
