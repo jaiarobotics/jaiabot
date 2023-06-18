@@ -248,6 +248,10 @@ interface State {
 	center_line_string: turf.helpers.Feature<turf.helpers.LineString>
 
 	podStatus: PodStatus
+	/**
+	 * Incremented when podStatus is changed and needs a re-render
+	 */
+	podStatusVersion: number
 }
 
 export default class CommandControl extends React.Component {
@@ -287,6 +291,7 @@ export default class CommandControl extends React.Component {
 				hubs: {},
 				controllingClientId: null
 			},
+			podStatusVersion: 0,
 			selectedHubOrBot: null,
 			lastBotCount: 0,
 			currentInteraction: null,
@@ -428,6 +433,24 @@ export default class CommandControl extends React.Component {
 			missionPlanningLines: null,
 			center_line_string: null
 		});
+	}
+
+	/**
+	 * Gets the current podStatus
+	 * 
+	 * @returns Current podStatus
+	 */
+	getPodStatus() {
+		return this.state.podStatus
+	}
+
+	/**
+	 * Sets the current podStatus, and triggers a map re-render
+	 * 
+	 * @param podStatus New podStatus
+	 */
+	setPodStatus(podStatus: PodStatus) {
+		this.setState({podStatus, podStatusVersion: this.state.podStatusVersion + 1})
 	}
 
 	genMission() {
@@ -710,7 +733,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		// Update layers derived from the podStatus
-		if (prevState.podStatus !== this.state.podStatus ||
+		if (prevState.podStatusVersion !== this.state.podStatusVersion ||
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 			this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 			this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
@@ -722,12 +745,12 @@ export default class CommandControl extends React.Component {
 		// If the podStatus changes, the active_goals may have changed or a bot could be added, so re-do missionLayer
 		if (prevState.selectedHubOrBot !== this.state.selectedHubOrBot ||
 			prevState.runListVersion !== this.state.runListVersion ||
-			prevState.podStatus !== this.state.podStatus) {
+			prevState.podStatusVersion !== this.state.podStatusVersion) {
 			this.updateMissionLayer()
 		}
 
 		// If we track a different target, or the bots change position, update tracking
-		if (prevState.podStatus !== this.state.podStatus ||
+		if (prevState.podStatusVersion !== this.state.podStatusVersion ||
 			prevState.trackingTarget !== this.state.trackingTarget) {
 			this.doTracking()
 		}
@@ -788,7 +811,7 @@ export default class CommandControl extends React.Component {
 
 	doTracking() {
 		const { lastBotCount, trackingTarget } = this.state;
-		const bots = this.state.podStatus.bots
+		const bots = this.getPodStatus().bots
 		const botCount = Object.keys(bots).length
 
         if (String(trackingTarget) in bots) {
@@ -866,7 +889,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	updateActiveMissionLayer() {
-		const bots = this.state.podStatus.bots
+		const bots = this.getPodStatus().bots
 		let allFeatures = []
 
 		for (let botId in bots) {
@@ -907,8 +930,8 @@ export default class CommandControl extends React.Component {
 					return
 				}
 
-				this.oldPodStatus = this.state.podStatus
-				this.setState({podStatus: result})
+				this.oldPodStatus = this.getPodStatus()
+				this.setPodStatus(result)
 
 				let messages = result.messages
 
@@ -1010,7 +1033,7 @@ export default class CommandControl extends React.Component {
 
 	getBotExtent(bot_id: number) {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
-		const bot = this.state.podStatus.bots[bot_id]
+		const bot = this.getPodStatus().bots[bot_id]
 
 		if (bot != null && bot.location != null) {
 			const coordinate = getMapCoordinate(bot.location, map)
@@ -1025,7 +1048,7 @@ export default class CommandControl extends React.Component {
 
 	getPodExtent() {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
-		const bots = Object.values(this.state.podStatus.bots)
+		const bots = Object.values(this.getPodStatus().bots)
 
 		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon != null })
 		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat != null })
@@ -1151,7 +1174,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	weAreInControl() {
-		const {controllingClientId} = this.state.podStatus
+		const {controllingClientId} = this.getPodStatus()
 		return (controllingClientId == this.api.clientId) || controllingClientId == null
 	}
 
@@ -1184,8 +1207,9 @@ export default class CommandControl extends React.Component {
 
 		let self: CommandControl = this
 
-		let bots = this.state.podStatus?.bots
-		let hubs = this.state.podStatus?.hubs
+		const podStatus = this.getPodStatus()
+		let bots = podStatus?.bots
+		let hubs = podStatus?.hubs
 
 		let goalSettingsPanel: ReactElement = null
 
@@ -1554,7 +1578,7 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				<div id="botsDrawer">
-					<BotListPanel podStatus={this.state.podStatus} 
+					<BotListPanel podStatus={this.getPodStatus()} 
 						selectedBotId={this.selectedBotId()}
 						selectedHubId={this.selectedHubId()}
 						trackedBotId={this.state.trackingTarget}
@@ -1584,7 +1608,7 @@ export default class CommandControl extends React.Component {
 	}
 
     autoAssignBotsToRuns() {
-        let podStatusBotIds = Object.keys(this.state.podStatus?.bots);
+        let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
         let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
         let botsNotAssigned: number[] = [];
 
@@ -1781,7 +1805,7 @@ export default class CommandControl extends React.Component {
 			let botIndex = runs[key].assigned;
 			if(botIndex != -1)
 			{
-				let botState = this.state.podStatus.bots[botIndex]?.mission_state;
+				let botState = this.getPodStatus().bots[botIndex]?.mission_state;
 				if(botState == "PRE_DEPLOYMENT__IDLE"
 					|| botState == "POST_DEPLOYMENT__IDLE")
 				{
@@ -1998,8 +2022,8 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return;
 
 		let bot_list = [];
-		for (const bot in this.state.podStatus.bots) {
-			bot_list.push(this.state.podStatus.bots[bot]['bot_id'])
+		for (const bot in this.getPodStatus().bots) {
+			bot_list.push(this.getPodStatus().bots[bot]['bot_id'])
 		}
 
 		this.api.postMissionFilesCreate({
@@ -2103,7 +2127,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		for(let bot in this.state.podStatus.bots)
+		for(let bot in this.getPodStatus().bots)
 		{
 			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyStartLocation]);
 		}
@@ -2123,7 +2147,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		for(let bot in this.state.podStatus.bots)
+		for(let bot in this.getPodStatus().bots)
 		{
 			add_runs[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyEndLocation]);
 		}
@@ -2181,7 +2205,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		var datum_location = this.state.podStatus?.bots?.[botId]?.location 
+		var datum_location = this.getPodStatus()?.bots?.[botId]?.location 
 
 		if (datum_location == null) {
 			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
@@ -2306,7 +2330,7 @@ export default class CommandControl extends React.Component {
 
 		const missionSource = layers.missionLayer.getSource()
 		missionSource.clear()
-		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.state.podStatus, this.selectedBotId()))
+		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
 	}
 
 	/**
@@ -2314,7 +2338,7 @@ export default class CommandControl extends React.Component {
 	 * @returns List of botIds from podStatus
 	 */
 	getBotIdList() {
-		return Object.keys(this.state.podStatus.bots).map((value: string) => { return Number(value) })
+		return Object.keys(this.getPodStatus().bots).map((value: string) => { return Number(value) })
 	}
 
 	/**
