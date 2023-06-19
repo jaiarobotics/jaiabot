@@ -20,6 +20,9 @@ import { Slider, FormGroup, FormControlLabel } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import { amber } from '@mui/material/colors';
 import { deepcopy } from '../Utilities';
+import { jaiaAPI } from '../../../common/JaiaAPI';
+import { CommandType } from '../shared/JAIAProtobuf';
+import { error } from '../../libs/notifications';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -29,8 +32,7 @@ interface Props {
 }
 
 interface State {
-    isChecked: boolean,
-    previousMissionState: string
+    isCheckedPreRunStart: boolean
 }
 
 export default class RunItem extends React.Component {
@@ -38,45 +40,62 @@ export default class RunItem extends React.Component {
     state: State
     botId: number | null
     botsNotAssigned: number[]
+    enabledMissionStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT']
+    api = jaiaAPI
 
     constructor(props: Props) {
         super(props)
-
         this.state = {
-          isChecked: true,
-          previousMissionState: ''
+          isCheckedPreRunStart: true
         }
     }
 
     toggleEditMode() {
         const botId = this.props.run.assigned
-        const isChecked = !this.state.isChecked
-        this.props.setEditRunMode([botId], isChecked)
-        this.setState({ isChecked })
+        const isCheckedPreRunStart = !this.state.isCheckedPreRunStart
+        this.props.setEditRunMode([botId], isCheckedPreRunStart)
+        this.setState({ isCheckedPreRunStart })
+    }
+
+    updateEditModeToggle() {
+        if (!this.props.run.canEdit) {
+            return false
+        } else if (this.state.isCheckedPreRunStart) {
+            return true
+        }
+        return false
     }
 
     isEditModeToggleDisabled() {
-        const missionState = this.props.bots[1].mission_state
-        const enabledMissionStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT']
-        for (const enabledMissionState of enabledMissionStates) {
-            if (missionState.includes(enabledMissionState)) {
-                return false
+        for (const bot of Object.values(this.props.bots)) {
+            const botId = this.props.run.assigned
+            if (botId === bot.bot_id) {
+                const missionState = bot.mission_state
+                for (const enabledMissionState of this.enabledMissionStates) {
+                    if (missionState.includes(enabledMissionState)) {
+                        return false
+                    }
+                }
             }
         }
         return true
     }
 
     handleMissionStateChange() {
-        const missionState = this.props.bots[1].mission_state
-        const previousMissionState = this.state.previousMissionState
-        if (missionState !== previousMissionState) {
-            this.setState({ previousMissionState: missionState }, () => {
-                if (!this.isEditModeToggleDisabled() && this.state.isChecked) {
-                    const botId = this.props.run.assigned
-                    this.props.setEditRunMode([botId], true)}
-            })
+        for (const bot of Object.values(this.props.bots)) {
+            const botId = this.props.run.assigned
+            if (botId === bot.bot_id) {
+                const missionState = bot.mission_state
+                for (const enabledMissionState of this.enabledMissionStates) {
+                    if (missionState.includes(enabledMissionState) && this.state.isCheckedPreRunStart) {
+                        this.props.setEditRunMode([botId], true)
+                        return
+                    }
+                }
+                this.props.setEditRunMode([botId], false)
+            }
         }
-    } 
+    }
 
     render() {
         let runAssignSelect = null;
@@ -186,13 +205,24 @@ export default class RunItem extends React.Component {
                     const warning_string = "Are you sure you want to delete " + this.props.run.name + "?";
 
 		            if (confirm(warning_string)) {
-
                         //Deep copy
-                        let mission = this.props.mission;
-
+                        const mission = this.props.mission;
+                        const run = this.props.run
                         delete mission?.runs[this.props.run.id];
-
                         delete mission?.botsAssignedToRuns[this.props.run.assigned]
+                        
+                        // Stop the bot after deleting the run
+                        if (run.assigned > 0) {
+                            const command = {
+                                bot_id: run.assigned,
+                                type: "STOP" as CommandType
+                            }
+                            this.api.postCommand(command).then(response => {
+                                if (response.message) {
+                                    error(response.message)
+                                }
+                            })
+                        }
                     }
                 }}
             >
@@ -223,7 +253,7 @@ export default class RunItem extends React.Component {
                 <FormControlLabel 
                     control={
                         <AmberSwitch 
-                            checked={this.state.isChecked} 
+                            checked={this.updateEditModeToggle()} 
                             disabled={this.isEditModeToggleDisabled()} 
                             onClick={() => this.toggleEditMode()}
                         />

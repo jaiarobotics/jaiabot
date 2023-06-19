@@ -202,7 +202,7 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: Comma
     }
 }
 
-function issueRunCommand(api: JaiaAPI, botRun: Command, botId: number, setEditRunMode: (botIds: number[], canEdit: boolean) => void) {
+function issueRunCommand(api: JaiaAPI, botRun: Command, botId: number) {
 
     if (!takeControlFunction()) return;
 
@@ -215,8 +215,6 @@ function issueRunCommand(api: JaiaAPI, botRun: Command, botId: number, setEditRu
             console.debug(botRun)
 
             info('Submitted for bot: ' + botId);
-
-            setEditRunMode([botId], false)
 
             api.postCommand(botRun).then(response => {
                 if (response.message) {
@@ -385,7 +383,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
         closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
         createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
         weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void,
-        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void, setEditRunMode: (botIds: number[], canEdit: boolean) => void) {
+        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
     if (bot == null) {
         return (<div></div>)
     }
@@ -493,7 +491,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </Button>
                         <Button className={disableButton(commands.play, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.play, mission_state).isDisabled} 
-                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id, setEditRunMode) }}>
+                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
                         <Button className={disableClearMissionButton(bot.bot_id, mission).class + " button-jcc"}

@@ -804,7 +804,7 @@ export default class CommandControl extends React.Component {
 		this.centerOn = this.centerOn.bind(this);
 		this.fit = this.fit.bind(this);
 
-		this.sendStop = this.sendStop.bind(this);
+		this.sendStopAll = this.sendStopAll.bind(this);
 
 		// center persistence
 		map.getView().setCenter(mapSettings.center)
@@ -2282,7 +2282,7 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	sendStop() {
+	sendStopAll() {
 		if (!this.takeControl() || !confirm('Click the OK button to stop all missions:')) return
 
 		this.api.allStop().then(response => {
@@ -2467,8 +2467,7 @@ export default class CommandControl extends React.Component {
 												this.weAreInControl.bind(this),
 												this.weHaveRemoteControlInterval.bind(this),
 												this.deleteSingleRun.bind(this),
-												this.detailsDefaultExpanded.bind(this),
-												this.setEditRunMode.bind(this))
+												this.detailsDefaultExpanded.bind(this))
 				break;
 			default:
 				detailsBox = null;
@@ -2926,7 +2925,7 @@ export default class CommandControl extends React.Component {
 			let run = runs[botsAssignedToRuns[botId]]
 
 			if (!run.canEdit) {
-				warning('Cannot add a new waypoint to an active run')
+				warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
 				return
 			}
 
@@ -3379,7 +3378,6 @@ export default class CommandControl extends React.Component {
 				error(response.message)
 			}
 		})
-		this.setEditRunMode([bot_mission.bot_id], false)
 	}
 
 	// Runs a set of missions, and updates the GUI
@@ -3450,18 +3448,22 @@ export default class CommandControl extends React.Component {
 	}
 
 	deleteAllRunsInMission(mission: MissionInterface) {
+		const runs = this.state.runList.runs
+		for (const run of Object.values(runs)) {
+			if (run.assigned > 0) {
+				this.postStopCommand(run.assigned)
+			}
+		}
 		
-		for(let run in mission.runs)
-		{
-			delete mission.runs[run];
+		for (const run in mission.runs) {
+			delete mission.runs[run]
 		}
 
-		for(let botId in mission.botsAssignedToRuns)
-		{
+		for (const botId in mission.botsAssignedToRuns) {
 			delete mission.botsAssignedToRuns[botId]
 		}
 
-		mission.runIdIncrement = 0;
+		mission.runIdIncrement = 0
 	}
 
 	deleteSingleRun() {
@@ -3477,10 +3479,24 @@ export default class CommandControl extends React.Component {
 			}
 
 			const run = runList.runs[runId]
-
+			const botId = run.assigned
+			this.postStopCommand(botId)
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
 		}
+	}
+
+	postStopCommand(botId: number) {
+		let command = {
+			bot_id: botId,
+			type: "STOP" as CommandType
+		}
+
+		this.api.postCommand(command).then(response => {
+			if (response.message) {
+				error(response.message)
+			}
+		})
 	}
 
 	// Currently selected botId
@@ -3594,7 +3610,7 @@ export default class CommandControl extends React.Component {
 			for (const runIndex of Object.keys(runs)) {
 				const run = runs[runIndex]
 				if (run.assigned === botId && !run.canEdit) {
-					warning('Cannot add a task to an active run')
+					warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
 					return
 				}
 			}
@@ -3728,7 +3744,7 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" id="goToRallyRed" onClick={this.goToRallyRed.bind(this)}>
 					<img src={goToRallyRed} title="Go To Finish Rally" />
 				</Button>
-				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
+				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
 				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
