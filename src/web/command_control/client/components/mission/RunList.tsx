@@ -66,7 +66,7 @@ export default class RunList extends React.Component {
                         const warning_string = "Are you sure you want to delete all of the runs?";
 
                         if (confirm(warning_string)) {
-                            this.props.deleteAllRunsInMission(this.props.mission) 
+                            this.props.deleteAllRunsInMission(this.props.mission, true) 
                         }
                     }}
                 >

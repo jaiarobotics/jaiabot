@@ -2397,7 +2397,7 @@ export default class CommandControl extends React.Component {
 					if (this.state.missionParams.mission_type === 'lines') {
 						this.updateMissionPlansFromMissionPlanningGrid()
 
-						this.deleteAllRunsInMission(this.state.runList);
+						this.deleteAllRunsInMission(this.state.runList, true);
 
 						for(let id in this.missionPlans)
 						{
@@ -3392,6 +3392,7 @@ export default class CommandControl extends React.Component {
 			let botIndex = runs[key].assigned;
 			if (botIndex !== -1) {
 				let botState = this.podStatus.bots[botIndex]?.mission_state;
+				console.log('botState', botState)
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
 				} else {
@@ -3447,14 +3448,18 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-	deleteAllRunsInMission(mission: MissionInterface) {
+	deleteAllRunsInMission(mission: MissionInterface, postCommand: boolean = false) {
 		const runs = this.state.runList.runs
-		for (const run of Object.values(runs)) {
-			if (run.assigned > 0) {
-				this.postStopCommand(run.assigned)
-			}
+		// Needed if the operator deletes all runs and plans to add runs manually rather than enter a new run immediately (e.g. go to start rally)
+		// If not the bot state will remain in transit and the operator will not be able to edit the new run
+		if (postCommand) {
+			for (const run of Object.values(runs)) {
+				if (run.assigned > 0) {
+					this.postStopCommand(run.assigned)
+				}
+			}	
 		}
-		
+
 		for (const run in mission.runs) {
 			delete mission.runs[run]
 		}
