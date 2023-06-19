@@ -3607,6 +3607,8 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
+			const goal = feature.get('goal')
+			const goalIndex = feature.get('goalIndex')
 			if (goal != null) {
 				previousMissionHistory = deepcopy(this.state.runList);
 				this.setState({
