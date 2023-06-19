@@ -245,7 +245,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
             }),
             offsetY: -15,
         }),
-        zIndex: 2
+        zIndex: isSelected ? 102 : 2
     })
 }
 
@@ -352,7 +352,9 @@ export function driftTask(drift: DriftTask) {
 
 // The mission path linestring
 export function missionPath(feature: Feature) {
-    const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
+    const isSelected: boolean = feature.get('isSelected') ?? false
+    const zIndex = isSelected ? 101 : 1
+    const pathColor = isSelected ? selectedColor : defaultPathColor
     const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
@@ -370,7 +372,8 @@ export function missionPath(feature: Feature) {
                 width: 2,
                 color: pathColor,
                 lineDash: lineDash
-            })
+            }),
+            zIndex: zIndex
         })
     ]
 
@@ -391,7 +394,7 @@ export function missionPath(feature: Feature) {
                     rotation: -rotation,
                     color: pathColor,
                 }),
-                zIndex: 1
+                zIndex: zIndex
             })
         );
     });

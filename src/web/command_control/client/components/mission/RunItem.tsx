@@ -157,6 +157,7 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
                     Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
+                    console.log("Duplicated!")
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>

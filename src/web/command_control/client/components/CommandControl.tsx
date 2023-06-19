@@ -1665,7 +1665,6 @@ export default class CommandControl extends React.Component {
 
 		this.state.remoteControlInterval = 
 			setInterval(() => {
-				console.log(this.state.remoteControlValues.pid_control);
 				this.api.postEngineeringPanel(this.state.remoteControlValues);
 			}, 100)
 	}
