@@ -69,7 +69,7 @@ export class LogApi {
 
   // Get active_goals
   static get_active_goal(logs: string[]) {
-    var url = new URL('active_goal', window.location.origin)
+    var url = new URL('active-goal', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
     return this.get_json(url.toString())
@@ -77,7 +77,7 @@ export class LogApi {
 
   // Get task_packets
   static get_task_packets(logs: string[]) {
-    var url = new URL('task_packet', window.location.origin)
+    var url = new URL('task-packet', window.location.origin)
     url.searchParams.append('log', logs.join(','))
 
     return this.get_json(url.toString())

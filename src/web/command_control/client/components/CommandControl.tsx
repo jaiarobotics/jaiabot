@@ -459,7 +459,7 @@ export default class CommandControl extends React.Component {
 		});
 
 		map = new OlMap({
-			interactions: defaultInteractions().extend([this.pointerInteraction(), this.selectInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
+			interactions: defaultInteractions().extend([this.pointerInteraction(), this.translateInteraction(), this.dragAndDropInteraction]),
 			layers: this.createLayers(),
 			controls: [
 				new OlZoom(),
@@ -2015,6 +2015,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			botLayer.changed();
+
 		} // end foreach bot
 		const { lastBotCount } = this.state;
 		const botCount = Object.keys(bots).length
@@ -2033,6 +2034,7 @@ export default class CommandControl extends React.Component {
 		});
 		// map.render();
 		this.timerID = setInterval(() => this.pollPodStatus(), POLLING_INTERVAL_MS);
+
 	}
 
 	// POLL THE BOTS
