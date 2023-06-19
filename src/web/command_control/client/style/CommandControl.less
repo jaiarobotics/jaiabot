@@ -600,7 +600,7 @@ td {
     }
 
     .ol-mouse-position {
-      bottom: 34px;
+      bottom: 49px;
       right: 27px;
       height: (2 * 18px) + (2 * 2px);
       position: absolute;
@@ -617,11 +617,20 @@ td {
       bottom: 16px;
       right: 27px;
       position: absolute;
-      width: 100px;
       padding: 2px;
       font-size: 14px;
       text-align: center;
       .bgcolor(@overlay-background);
+    }
+
+    .ol-scale-line-inner {
+      border: 1px solid white;
+      border-top: none;
+      padding: 4px;
+      font-size: 14px;
+      text-align: center;
+      margin: 1px;
+      will-change: contents, width;
     }
 
     .ol-rotate {
