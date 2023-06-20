@@ -42,7 +42,7 @@
 @global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-/******** CSS JaiaBot Command & Control ********************/
+/******** CSS Jaia Command & Control ********************/
 
 .bgcolor(@col) {
   background-color: @col;
@@ -174,7 +174,6 @@ td {
     height: auto;
     max-height: 85vh;
     background: @overlay-background;
-    border-radius: 0 0 @panel-corner-radius 0;
     display: flex;
     flex-flow: column nowrap;
 
@@ -255,7 +254,6 @@ td {
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    border-radius: 8pt;
     max-height: 80vh;
     max-width: 25vw;
 
@@ -1309,16 +1307,16 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-.accordionContainer {
+#botDetailsAccordionContainer {
   overflow-y: auto;
 }
 
-.accordion,
-.nestedAccordion {
+.accordionContainer,
+.nestedAccordionContainer {
   overflow: auto;
 }
 
-.nestedAccordion {
+.nestedAccordionContainer {
   margin-top: 8px !important;
 }
 

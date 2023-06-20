@@ -24,17 +24,11 @@ import { mdiPlay, mdiFolderOpen, mdiContentSave,
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
 	mdiFlagVariantPlus, mdiSkipNext, mdiArrowULeftTop, mdiDownload,
     mdiStop, mdiPause, mdiViewList} from '@mdi/js'
-
 import Button from '@mui/material/Button';
 
 // TurfJS
 import * as turf from '@turf/turf';
 
-// ThreeJS
-/*import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-*/
 // Openlayers
 import OlMap from 'ol/Map';
 import {
@@ -85,19 +79,13 @@ import { deepcopy, areEqual, randomBase57 } from './Utilities';
 import * as MissionFeatures from './shared/MissionFeatures'
 
 import $ from 'jquery';
-// import 'jquery-ui/themes/base/core.css';
-// import 'jquery-ui/themes/base/theme.css';
 import 'jquery-ui/ui/widgets/resizable';
-// import 'jquery-ui/themes/base/resizable.css';
 import 'jquery-ui/ui/widgets/slider';
-// import 'jquery-ui/themes/base/slider.css';
 import 'jquery-ui/ui/widgets/sortable';
-// import 'jquery-ui/themes/base/sortable.css';
 import 'jquery-ui/ui/widgets/button';
-// import 'jquery-ui/themes/base/button.css';
 import 'jquery-ui/ui/effects/effect-blind';
-// import 'jquery-ui/themes/base/checkboxradio.css';
-// import 'jquery-ui/ui/widgets/checkboxradio';
+// jQuery UI touch punch
+import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -110,22 +98,18 @@ import {
 	IconDefinition
 } from '@fortawesome/free-solid-svg-icons';
 
-
 const jaiabot_icon = require('../icons/jaiabot.png')
 
-import {BotDetailsComponent, HubDetailsComponent, HubDetailsProps, DetailsExpandedState} from './Details'
+import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetaisProps, HubDetailsProps} from './Details'
+
 import { jaiaAPI, JaiaAPI } from '../../common/JaiaAPI';
 
 import tooltips from '../libs/tooltips'
-
-// jQuery UI touch punch
-import punchJQuery from '../libs/jquery.ui.touch-punch'
 
 import { error, success, warning, info} from '../libs/notifications';
 
 // Don't use any third party css exept reset-css!
 import 'reset-css';
-// import 'ol-layerswitcher/src/ol-layerswitcher.css';
 import '../style/CommandControl.less';
 import { transform } from 'ol/proj';
 
@@ -188,7 +172,7 @@ const MAX_RUNS: number = 99;
 const MAX_GOALS = 15;
 
 // Store Previous Mission History
-let previous_mission_history: any;
+let previousMissionHistory: any;
 
 String.prototype.endsWith = function(suffix) {
 	return this.slice(this.length - suffix.length, this.length) == suffix
@@ -200,9 +184,7 @@ String.prototype.endsWith = function(suffix) {
 
 var mapSettings = GlobalSettings.mapSettings
 
-interface Props {
-
-}
+interface Props {}
 
 enum Mode {
 	NONE = '',
@@ -1611,7 +1593,7 @@ export default class CommandControl extends React.Component {
 			}
 		);
 
-		info('Welcome to JaiaBot Command & Control!');
+		info('Welcome to Jaia Command & Control!');
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
@@ -2362,7 +2344,7 @@ export default class CommandControl extends React.Component {
 					onClose={() => 
 						{
 							this.setState({goalBeingEdited: null})
-							this.changeMissions(() => {}, previous_mission_history);
+							this.changeMissions(() => {}, previousMissionHistory);
 						}
 					} 
 				/>
@@ -2450,22 +2432,25 @@ export default class CommandControl extends React.Component {
 			case 'bot':
 				//**********************
 				// TO DO  
-				// the following line assumes fleets to only have hub0 in use
+				// The following lines assume fleets only use hub0
 				//**********************
-				detailsBox = BotDetailsComponent(bots?.[this.selectedBotId()], 
-												hubs?.[0], 
-												this.api, 
-												this.state.runList, 
-												closeDetails,
-												this.takeControl.bind(this),
-												this.state.detailsExpanded,
-												this.createRemoteControlInterval.bind(this),
-												this.clearRemoteControlInterval.bind(this),
-												this.state.remoteControlValues,
-												this.weAreInControl.bind(this),
-												this.weHaveRemoteControlInterval.bind(this),
-												this.deleteSingleRun.bind(this),
-												this.detailsDefaultExpanded.bind(this));
+				const botDetailsProps: BotDetaisProps = {
+					bot: bots?.[this.selectedBotId()], 
+					hub: hubs?.[0], 
+					api: this.api, 
+					mission: this.state.runList, 
+					closeWindow: closeDetails,
+					takeControl: this.takeControl.bind(this),
+					isExpanded: this.state.detailsExpanded,
+					createRemoteControlInterval: this.createRemoteControlInterval.bind(this),
+					clearRemoteControlInterval: this.clearRemoteControlInterval.bind(this),
+					remoteControlValues: this.state.remoteControlValues,
+					weAreInControl: this.weAreInControl.bind(this),
+					weHaveRemoteControlInterval: this.weHaveRemoteControlInterval.bind(this),
+					deleteSingleMission: this.deleteSingleRun.bind(this),
+					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this)
+				}
+				detailsBox = <BotDetailsComponent {...botDetailsProps} />
 				break;
 			default:
 				detailsBox = null;
@@ -3606,7 +3591,7 @@ export default class CommandControl extends React.Component {
 			let goalIndex = feature.get('goalIndex')
 
 			if (goal != null) {
-				previous_mission_history = deepcopy(this.state.runList);
+				previousMissionHistory = deepcopy(this.state.runList);
 				this.setState({
 					goalBeingEdited: goal, 
 					goalBeingEditedBotId: botId, 
