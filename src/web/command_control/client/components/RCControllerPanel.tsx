@@ -130,8 +130,14 @@ export default class RCControllerPanel extends React.Component {
 				this.props.remoteControlValues.pid_control.throttle = 0
 			}
 		}
+		
+		if (throttleDirection) {
+			this.setState({ throttleDirection })
+		}
 
-		this.setState({ throttleDirection, rudderDirection })
+		if (rudderDirection) {
+			this.setState({ rudderDirection })
+		}
 	}
 
 	controlChange(event: SelectChangeEvent) {
