@@ -7,7 +7,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
 import Switch from '@mui/material/Switch';
 import Box from '@mui/material/Box';
@@ -157,6 +157,7 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
                     Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
+                    console.log("Duplicated!")
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
