@@ -1,6 +1,6 @@
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import React = require("react")
-import { PodStatus } from "./PortalStatus"
+import { PodStatus } from "./shared/PortalStatus"
 
 
 interface Props {

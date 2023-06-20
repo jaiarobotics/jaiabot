@@ -7,7 +7,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
 import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
@@ -230,6 +230,7 @@ export default class RunItem extends React.Component {
             </Button>
         )
 
+<<<<<<< HEAD
         // Create Edit Mode Toggle
         // MUI Styling: mui.com/material-ui/react-switch
         const AmberSwitch = styled(Switch)(({ theme }) => ({
@@ -245,6 +246,20 @@ export default class RunItem extends React.Component {
             '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
                 color: amber[300],
             }
+=======
+        // Create Copy of Run Button
+        duplicateRunButton =
+            <Button 
+                className={'button-jcc missionAccordian'}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    Missions.addRunWithGoals(-1, this.props.run.command.plan.goal, this.props.mission);
+                    console.log("Duplicated!")
+                }}
+            >
+                <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
+            </Button>    
+>>>>>>> 7d8e89143a51acda517d9256065e230dddc3744a
 
         }));
 

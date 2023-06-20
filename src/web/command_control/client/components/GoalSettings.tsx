@@ -49,6 +49,7 @@ export class GoalSettingsPanel extends React.Component {
             <div>
                 <TaskSettingsPanel task={goal.task} map={this.props.map} location={goal.location} onChange={task => {
                     goal.task = task
+                    this.props.onChange?.()
                 }} />
 
                 <div className='HorizontalFlexbox'>
