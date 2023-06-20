@@ -1,6 +1,6 @@
 import React from 'react'
 import {JaiaAPI} from '../../../common/JaiaAPI'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import { MissionInterface } from '../CommandControl';
 import RunPanel from './RunPanel';
 

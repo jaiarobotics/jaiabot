@@ -1,5 +1,5 @@
 import React from 'react';
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import RunList from './RunList';
 import { MissionInterface } from '../CommandControl';
 

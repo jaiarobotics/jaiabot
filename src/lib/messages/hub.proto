@@ -14,7 +14,8 @@ message HubStatus
     };
 
     required uint32 hub_id = 1;
-    required uint64 time = 2 [
+    required uint32 fleet_id = 2;
+    required uint64 time = 3 [
         (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
     ];
 
