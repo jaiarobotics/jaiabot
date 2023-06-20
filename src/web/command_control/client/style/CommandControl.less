@@ -254,15 +254,14 @@ td {
     }
   }
 
-  #botDetailsBox {
-
+  #botDetailsBox,
+  #hubDetailsBox {
     position: absolute;
     background-color: @overlay-background;
     top: 0pt;
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    max-height: 80vh;
     border-radius: 8pt;
     // 282.54 is the height of the rc control panel
     max-height: calc(100vh - 282.54px);
@@ -1318,7 +1317,8 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-#botDetailsAccordionContainer {
+#botDetailsAccordionContainer,
+#hubDetailsAccordionContainer {
   overflow-y: auto;
 }
 

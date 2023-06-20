@@ -393,16 +393,55 @@ export interface BotDetailsProps {
     hub: PortalHubStatus,
     api: JaiaAPI,
     mission: MissionInterface,
-    closeWindow: React.MouseEventHandler<HTMLDivElement>,
+    closeWindow: () => void,
     takeControl: () => boolean,
     isExpanded: DetailsExpandedState,
-    createRemoteControlInterval: () => void,
-    clearRemoteControlInterval: () => void,
-    remoteControlValues: Engineering,
-    weAreInControl: () => boolean,
-    weHaveRemoteControlInterval: () => boolean,
     deleteSingleMission: () => void,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    isRCModeActive: (botId: number) => boolean
+}
+
+function addDropdownListener(targetClassName: string, parentContainerId: string) {
+    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
+    dropdownContainers.forEach((dropdownElement: HTMLElement) => {
+        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId))
+    })
+}
+
+function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string) {
+    let clickedElement = event.target as HTMLElement
+    // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
+    //     reduces some of the lag
+    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
+        clickedElement = clickedElement.parentElement
+    }
+    const dropdownTimeout: number = 400 // Milliseconds
+    setTimeout(() => {
+        const dropdownContainer = clickedElement
+        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
+    }, dropdownTimeout)
+}
+
+function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+    const parentContainer = document.getElementById(parentContainerId)
+    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
+    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
+
+    if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
+        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
+        parentContainer.scrollBy({
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
+            left: 0,
+            behavior: 'smooth'
+        })
+    } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
+        parentContainer.scrollBy({
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
+            left: 0,
+            behavior: 'smooth'
+        })
+    }
 }
 
 export function BotDetailsComponent(props: BotDetailsProps) {
@@ -413,67 +452,17 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     const closeWindow = props.closeWindow
     const takeControl = props.takeControl
     const isExpanded = props.isExpanded
-    const createRemoteControlInterval = props.createRemoteControlInterval
-    const clearRemoteControlInterval = props.clearRemoteControlInterval
-    const remoteControlValues = props.remoteControlValues
-    const weAreInControl = props.weAreInControl
-    const weHaveRemoteControlInterval = props.weHaveRemoteControlInterval
     const deleteSingleMission = props.deleteSingleMission
     const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const isRCModeActive = props.isRCModeActive
 
     if (!bot) {
         return (<div></div>)
     }
 
-    // 'global' var becasue React async state updates are too slow!!
-    let dropdownContainer: HTMLElement
-
     useEffect(() => {
-        addDropdownListener('accordionContainer', adjustAccordionScrollPosition)
+        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer')
     }, [])
-
-    const addDropdownListener = (targetClassName: string, adjustScroll: () => void) => {
-        const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
-        dropdownContainers.forEach((dropdownElement: HTMLElement) => {
-            dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, adjustScroll))
-        })
-    }
-
-    const handleAccordionDropdownClick = (event: Event, targetClassName: string, adjustScroll: () => void) => {
-        let clickedElement = event.target as HTMLElement
-        // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
-        //     reduces some of the lag
-        while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
-            clickedElement = clickedElement.parentElement
-        }
-        const dropdownTimeout: number = 400 // Milliseconds
-        setTimeout(() => {
-            dropdownContainer = clickedElement
-            adjustScroll()
-        }, dropdownTimeout)
-    }
-
-    const adjustAccordionScrollPosition = () => {
-        const parentContainer = document.getElementById('botDetailsAccordionContainer')
-        const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
-        const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
-
-        if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
-            const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
-            parentContainer.scrollBy({
-                // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
-                top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-                left: 0,
-                behavior: 'smooth'
-            })
-        } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
-            parentContainer.scrollBy({
-                top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-                left: 0,
-                behavior: 'smooth'
-            })
-        }
-    }
 
     const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
     let statusAgeClassName: string
@@ -544,7 +533,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                 <div className="botDetailsHeading">
                     <div className='HorizontalFlexbox'>
                         <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
-                        <div onClick={closeWindow} className="closeButton">⨯</div>
+                        <div onClick={() => closeWindow()} className="closeButton">⨯</div>
                     </div>
                     <h3 className="name">Click on the map to create goals</h3>
                     <div className="botDetailsToolbar">
@@ -909,7 +898,7 @@ export interface HubDetailsProps {
     isExpanded: DetailsExpandedState,
     detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
     getFleetId: () => number
-    closeWindow: React.MouseEventHandler<HTMLDivElement>,
+    closeWindow: () => void,
     takeControl: () => boolean,
 }
 
@@ -921,6 +910,10 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const getFleetId = props.getFleetId
     const closeWindow = props.closeWindow
     const takeControl = props.takeControl
+
+    useEffect(() => {
+        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer')
+    }, [])
 
     if (!hub) {
         return (<div></div>)
@@ -938,99 +931,100 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     takeControlFunction = takeControl;
 
     return (
-        <div id='botDetailsBox'>
-            <div id="botDetailsComponent">
+        <div id='hubDetailsBox'>
+            <div id="hubDetailsAccordionContainer" className="accordionParentContainer">
                 <div className='HorizontalFlexbox'>
                     <h2 className="name">{`Hub ${hub?.hub_id}`}</h2>
-                    <div onClick={closeWindow} className="closeButton">⨯</div>
+                    <div onClick={() => closeWindow()} className="closeButton">⨯</div>
                 </div>
-
-                <Accordion 
-                    expanded={isExpanded.quickLook} 
-                    onChange={() => {detailsDefaultExpanded("quickLook")}}
-                    className="accordionContainer"
-                >
-                    <AccordionSummary
-                        expandIcon={<ExpandMoreIcon />}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
+                <div id="hubDetailsAccordionContainer">
+                    <Accordion 
+                        expanded={isExpanded.quickLook} 
+                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        className="accordionContainer"
                     >
-                        <Typography>Quick Look</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <table>
-                            <tbody>
-                                {healthRow(hub, false)}
-                                <tr>
-                                    <td>Latitude</td>
-                                    <td>{formatLatitude(hub.location?.lat)}</td>
-                                </tr>
-                                <tr>
-                                    <td>Longitude</td>
-                                    <td>{formatLongitude(hub.location?.lon)}</td>
-                                </tr>
-                                <tr className={statusAgeClassName}>
-                                    <td>Status Age</td>
-                                    <td>{statusAge.toFixed(0)} s</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </AccordionDetails>
-                </Accordion>
-                <Accordion 
-                    expanded={isExpanded.commands} 
-                    onChange={() => {detailsDefaultExpanded("commands")}}
-                    className="accordionContainer"
-                >
-                    <AccordionSummary
-                        expandIcon={<ExpandMoreIcon />}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
-                    >
-                        <Typography>Commands</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Button className={" button-jcc"} 
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
-                            <Icon path={mdiPower} title="Shutdown"/>
-                        </Button>
-                        <Button className={" button-jcc"} 
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
-                            <Icon path={mdiRestartAlert} title="Reboot"/>
-                        </Button>
-                        <Button className={" button-jcc"}  
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
-                            <Icon path={mdiRestart} title="Restart Services"/>
-                        </Button>
-                    </AccordionDetails>
-                </Accordion>
-                <Accordion 
-                    expanded={isExpanded.links} 
-                    onChange={() => {detailsDefaultExpanded("links")}}
-                    className="accordion"
-                >
-                    <AccordionSummary
-                        expandIcon={<ExpandMoreIcon />}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
-                    >
-                        <Typography>Links</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Button
-                            className={"button-jcc"} 
-                            onClick={() => {							
-                                const hubId = 10 + hub?.hub_id
-                                const fleetId = getFleetId()
-                                // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
-                                const url = `http://10.23.${fleetId}.${hubId}:40010`
-                                window.open(url, '_blank')}}
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
                         >
-                            <Icon path={mdiDatabaseEyeOutline} title="JDV"/>
-                        </Button>
-                    </AccordionDetails>
-                </Accordion>
+                            <Typography>Quick Look</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <table>
+                                <tbody>
+                                    {healthRow(hub, false)}
+                                    <tr>
+                                        <td>Latitude</td>
+                                        <td>{formatLatitude(hub.location?.lat)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Longitude</td>
+                                        <td>{formatLongitude(hub.location?.lon)}</td>
+                                    </tr>
+                                    <tr className={statusAgeClassName}>
+                                        <td>Status Age</td>
+                                        <td>{statusAge.toFixed(0)} s</td>
+                                    </tr>
+
+                                </tbody>
+                            </table>
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion 
+                        expanded={isExpanded.commands} 
+                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        className="accordionContainer"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Commands</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button className={" button-jcc"} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
+                                <Icon path={mdiPower} title="Shutdown"/>
+                            </Button>
+                            <Button className={" button-jcc"} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
+                                <Icon path={mdiRestartAlert} title="Reboot"/>
+                            </Button>
+                            <Button className={" button-jcc"}  
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
+                                <Icon path={mdiRestart} title="Restart Services"/>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion 
+                        expanded={isExpanded.links} 
+                        onChange={() => {detailsDefaultExpanded("links")}}
+                        className="accordionContainer"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Links</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button
+                                className={"button-jcc"} 
+                                onClick={() => {							
+                                    const hubId = 10 + hub?.hub_id
+                                    const fleetId = getFleetId()
+                                    // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+                                    const url = `http://10.23.${fleetId}.${hubId}:40010`
+                                    window.open(url, '_blank')}}
+                            >
+                                <Icon path={mdiDatabaseEyeOutline} title="JDV"/>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </div>
             </div>
         </div>
     )
