@@ -265,7 +265,7 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
             offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
-        zIndex: zIndex
+        zIndex: isSelected ? 102 : 2
     })
 }
 
