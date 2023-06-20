@@ -2705,10 +2705,11 @@ export default class CommandControl extends React.Component {
 						</Button>
 					)}
 
-					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
-						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
-							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
-						}}>	
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => {
+							const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
+							jaiaInfoContainer.style.display = "grid"
+						}}
+					>
 					</img>
 
 				</div>
