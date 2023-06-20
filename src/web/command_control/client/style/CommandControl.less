@@ -9,6 +9,7 @@
 @map-button-size: 50px;
 @layout-margin: 0.5vw;
 @layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
+@rc-panel-height-px: 282.54px;
 
 // Colors
 @cc-background-color: white;
@@ -263,8 +264,7 @@ td {
     color: @cc-details-text-color;
     padding: 8pt;
     border-radius: 8pt;
-    // 282.54 is the height of the rc control panel
-    max-height: calc(100vh - 282.54px);
+    max-height: calc(100vh - @rc-panel-height-px);
     max-width: 25vw;
 
     display: flex;
