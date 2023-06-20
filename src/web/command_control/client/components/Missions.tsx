@@ -4,6 +4,7 @@
 /* eslint-disable no-unused-vars */
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
+import { deepcopy } from './Utilities';
 
 const MAX_RUNS: number = 99
 
@@ -31,7 +32,7 @@ const hardcoded_goals: Goal[][] = [
 function commandWithGoals(botId: number | undefined, goals: Goal[]) {
     let millisecondsSinceEpoch = new Date().getTime();
 
-    const command: Command = {
+    let command: Command = {
         bot_id: botId,
         time: millisecondsSinceEpoch,
         type: CommandType.MISSION_PLAN,
@@ -151,7 +152,7 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             editing: false,
-            command: commandWithGoals(botId, goals)
+            command: commandWithGoals(botId, deepcopy(goals))
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);

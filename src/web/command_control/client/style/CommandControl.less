@@ -44,7 +44,7 @@
 @global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-/******** CSS JaiaBot Command & Control ********************/
+/******** CSS Jaia Command & Control ********************/
 
 .bgcolor(@col) {
   background-color: @col;
@@ -182,7 +182,6 @@ td {
     height: auto;
     max-height: 85vh;
     background: @overlay-background;
-    border-radius: 0 0 @panel-corner-radius 0;
     display: flex;
     flex-flow: column nowrap;
 
@@ -263,6 +262,7 @@ td {
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
+    max-height: 80vh;
     border-radius: 8pt;
     // 282.54 is the height of the rc control panel
     max-height: calc(100vh - 282.54px);
@@ -607,38 +607,35 @@ td {
       bottom: 16px;
       right: -(@command-button-size + (@command-button-padding));
     }
-    .ol-zoom .ol-zoom-in {
-      border-radius: @control-corner-radius @control-corner-radius 0 0;
-    }
-    .ol-zoom .ol-zoom-out {
-      border-radius: 0 0 @control-corner-radius @control-corner-radius;
-    }
 
     .ol-mouse-position {
-      bottom: 50px;
-      right: 110px;
+      bottom: 49px;
+      right: 27px;
       height: (2 * 18px) + (2 * 2px);
       position: absolute;
-      .bgcolor(@overlay-background);
-      border-radius: @panel-corner-radius;
+      width: 100px;
       padding: 2px;
       font-size: 14px;
       line-height: 18px;
-      width: 100px;
       text-align: center;
+      .bgcolor(@overlay-background);
+
     }
 
     .ol-scale-line {
-      .bgcolor(@overlay-background);
-      border-radius: @panel-corner-radius;
-      padding: 2px;
+      bottom: 16px;
+      right: 27px;
       position: absolute;
-      bottom: 20px;
-      right: 110px;
+      padding: 2px;
+      font-size: 14px;
+      text-align: center;
+      .bgcolor(@overlay-background);
     }
+
     .ol-scale-line-inner {
       border: 1px solid white;
       border-top: none;
+      padding: 4px;
       font-size: 14px;
       text-align: center;
       margin: 1px;
@@ -646,7 +643,7 @@ td {
     }
 
     .ol-rotate {
-      bottom: 170px;
+      bottom: 115px;
       right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
@@ -664,12 +661,8 @@ td {
       }
     }
     .ol-rotate.ol-hidden {
-      // opacity: 0;
-      // visibility: hidden;
-      // transition: opacity 0.25s linear, visibility 0s linear 0.25s;
       button {
         color: @overlay-background;
-        border-radius: @control-corner-radius;
         height: @map-button-size;
         width: @map-button-size;
         min-width: @map-button-size;
@@ -738,57 +731,15 @@ td {
 
     .ol-attribution {
       text-align: right;
-      bottom: 0.5em;
-      right: 0.5em;
+      bottom: 16px;
       max-width: calc(100% - 1.3em);
-    }
-    .ol-attribution ul {
-      margin: 0;
-      padding: 0 0.5em;
-      font-size: 0.7rem;
-      line-height: 1.375em;
-      color: @cc-text-color;
-      text-shadow: 0 0 2px #fff;
-      :before {
-        content: "©";
+      button {
+        display: none;
       }
     }
-    .ol-attribution li {
-      display: inline;
-      list-style: none;
-      line-height: inherit;
-    }
-    .ol-attribution li:not(:last-child):after {
-      content: " ";
-    }
-    .ol-attribution img {
-      max-height: 2em;
-      max-width: inherit;
-      vertical-align: middle;
-    }
-    .ol-attribution ul,
-    .ol-attribution button {
-      display: inline-block;
-    }
-    .ol-attribution.ol-collapsed ul {
-      display: none;
-    }
-    .ol-attribution:not(.ol-collapsed) {
-      background: none;
-    }
-    .ol-attribution.ol-uncollapsible {
-      bottom: 0;
-      right: 25%;
-      border-radius: @panel-corner-radius @panel-corner-radius 0 0;
-      height: 1em;
-      line-height: 1em;
-    }
-    .ol-attribution.ol-uncollapsible img {
-      margin-top: -0.2em;
-      max-height: 1.6em;
-    }
-    .ol-attribution.ol-uncollapsible button {
-      display: none;
+    .ol-attribution ul {
+      font-size: 0.7rem;
+      color: @cc-text-color;
     }
 
     .ol-zoomslider {
@@ -1367,16 +1318,16 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-.accordionContainer {
+#botDetailsAccordionContainer {
   overflow-y: auto;
 }
 
-.accordion,
-.nestedAccordion {
+.accordionContainer,
+.nestedAccordionContainer {
   overflow: auto;
 }
 
-.nestedAccordion {
+.nestedAccordionContainer {
   margin-top: 8px !important;
 }
 

@@ -2,7 +2,7 @@ import React, { ReactElement } from 'react'
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { Joystick, JoystickShape } from 'react-joystick-component'
 import { Engineering } from './shared/JAIAProtobuf'
-import { PortalBotStatus } from './PortalStatus'
+import { PortalBotStatus } from './shared/PortalStatus'
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import OutlinedInput from '@mui/material/OutlinedInput';

@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import RunItem from './RunItem';
 import { MissionInterface } from '../CommandControl';
 import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave, mdiAutoFix } from '@mdi/js';
