@@ -74,7 +74,7 @@ export class Missions {
 
     static RCMode(botId: number, datum_location: GeographicCoordinate) {
         let millisecondsSinceEpoch = new Date().getTime();
-        var command: Command = {}
+        let command: Command
         command = {
             bot_id: botId,
             time: millisecondsSinceEpoch,
