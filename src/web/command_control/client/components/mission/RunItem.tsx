@@ -32,7 +32,7 @@ interface Props {
 }
 
 interface State {
-    isCheckedPreRunStart: boolean
+    isChecked: boolean
 }
 
 export default class RunItem extends React.Component {
@@ -46,21 +46,21 @@ export default class RunItem extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-          isCheckedPreRunStart: true
+          isChecked: true
         }
     }
 
     toggleEditMode() {
         const botId = this.props.run.assigned
-        const isCheckedPreRunStart = !this.state.isCheckedPreRunStart
-        this.props.setEditRunMode([botId], isCheckedPreRunStart)
-        this.setState({ isCheckedPreRunStart })
+        const isChecked = !this.state.isChecked
+        this.props.setEditRunMode([botId], isChecked)
+        this.setState({ isChecked: isChecked })
     }
 
     updateEditModeToggle() {
         if (!this.props.run.canEdit) {
             return false
-        } else if (this.state.isCheckedPreRunStart) {
+        } else if (this.state.isChecked) {
             return true
         }
         return false
@@ -78,6 +78,9 @@ export default class RunItem extends React.Component {
                 }
             }
         }
+        if (this.state.isChecked) {
+            this.setState({isChecked: false})
+        }
         return true
     }
 
@@ -87,7 +90,7 @@ export default class RunItem extends React.Component {
             if (botId === bot.bot_id) {
                 const missionState = bot.mission_state
                 for (const enabledMissionState of this.enabledMissionStates) {
-                    if (missionState.includes(enabledMissionState) && this.state.isCheckedPreRunStart) {
+                    if (missionState.includes(enabledMissionState) && this.state.isChecked) {
                         this.props.setEditRunMode([botId], true)
                         return
                     }
