@@ -16,6 +16,7 @@ import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionS
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
+import RCControllerPanel from './RCControllerPanel'
 import { taskData } from './TaskPackets'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid } from './SurveyMission'
 
@@ -448,7 +449,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	changeMissionMode() {
-		// console.log('changeMissionMode');
 		if (this.state.missionParams.mission_type === 'polygon-grid')
 			this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'editing')
@@ -1191,100 +1191,111 @@ export default class CommandControl extends React.Component {
 		// Are we currently in control of the bots?
 		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
 
-		let self: CommandControl = this
-
 		const podStatus = this.getPodStatus()
-		let bots = podStatus?.bots
-		let hubs = podStatus?.hubs
+		const bots = podStatus?.bots
+		const hubs = podStatus?.hubs
 
 		let goalSettingsPanel: ReactElement = null
 
-		if (goalBeingEdited != null) {
-			goalSettingsPanel = 
+		if (goalBeingEdited) {
+			goalSettingsPanel = (
 				<GoalSettingsPanel 
 					map={map}
 					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
 					botId={goalBeingEditedBotId}
 					goalIndex={goalBeingEditedGoalIndex}
 					goal={goalBeingEdited} 
-					onChange={() => {
-						this.setRunList(this.getRunList())
-					}} 
-					onClose={() => 
-						{
-							this.setState({goalBeingEdited: null})
-						}
-					} 
+					onChange={() => this.setRunList(this.getRunList())} 
+					onClose={() => this.setState({goalBeingEdited: null})} 
 				/>
+			)
 		}
 
 		// Add mission generation form to UI if the survey polygon has changed.
-		let missionSettingsPanel: ReactElement = null
+		let missionSettingsPanel: ReactElement
 		if (this.state.mode === Mode.MISSION_PLANNING) {
 
-			missionSettingsPanel = <MissionSettingsPanel
-				map={map}
-				mission_params={this.state.missionParams}
-				center_line_string={this.state.center_line_string}
-				bot_list={bots}
-				missionBaseGoal={this.state.missionBaseGoal}
-				missionEndTask={this.state.missionEndTask}
-				onClose={() => {
-					this.clearMissionPlanningState()
-				}}
-				onMissionChangeEditMode={() => {
-					this.changeMissionMode()
-				}}
-				onTaskTypeChange={() => {
-					this.missionPlans = null
-					this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
-				}}
-				onMissionApply={(missionSettings: MissionSettings) => {
-					this.setState({missionEndTask: missionSettings.endTask})
+			missionSettingsPanel = (
+				<MissionSettingsPanel
+					map={map}
+					mission_params={this.state.missionParams}
+					center_line_string={this.state.center_line_string}
+					bot_list={bots}
+					missionBaseGoal={this.state.missionBaseGoal}
+					missionEndTask={this.state.missionEndTask}
+					onClose={() => {
+						this.clearMissionPlanningState()
+					}}
+					onMissionChangeEditMode={() => {
+						this.changeMissionMode()
+					}}
+					onTaskTypeChange={() => {
+						this.missionPlans = null
+						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
+					}}
+					onMissionApply={(missionSettings: MissionSettings) => {
+						this.setState({missionEndTask: missionSettings.endTask})
 
-					if (this.state.missionParams.mission_type === 'lines') {
-						const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
-						this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
+						if (this.state.missionParams.mission_type === 'lines') {
+							const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
-						const runList = this.pushRunListToUndoStack().getRunList()
-						this.deleteAllRunsInMission(runList);
+							const runList = this.pushRunListToUndoStack().getRunList()
+							this.deleteAllRunsInMission(runList);
 
-						for(let id in this.missionPlans)
-						{
-							Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
+							for(let id in this.missionPlans)
+							{
+								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
+							}
+
+							this.setRunList(runList)
+
+							// Close panel after applying
+							this.changeInteraction();
+							this.setState({
+								surveyPolygonActive: false,
+								mode: '',
+								surveyPolygonChanged: false,
+								missionPlanningGrid: null,
+								missionPlanningLines: null,
+								goalBeingEdited: null,
+								center_line_string: null
+							});
+						} else {
+							// Polygon
+							this.genMission()
 						}
-
-						this.setRunList(runList)
-
-						// Close panel after applying
-						this.changeInteraction();
-						this.setState({
-							surveyPolygonActive: false,
-							mode: '',
-							surveyPolygonChanged: false,
-							missionPlanningGrid: null,
-							missionPlanningLines: null,
-							goalBeingEdited: null,
-							center_line_string: null
-						});
-					} else {
-						// Polygon
-						this.genMission()
-					}
-				}}
-				onMissionChangeBotList={() => {
-					this.changeMissionBotList()
-				}}
-				areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+					}}
+					onMissionChangeBotList={() => {
+						this.changeMissionBotList()
+					}}
+					areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
 				/>
+			)
+		}
+
+		let rcControllerPanel: ReactElement = null
+		if (this.isRCModeActive(this.selectedBotId())) {
+			rcControllerPanel = (
+				<RCControllerPanel 
+					api={this.api} 
+					bot={bots[this.selectedBotId()]}  
+					createInterval={this.createRemoteControlInterval.bind(this)} 
+					clearInterval={this.clearRemoteControlInterval.bind(this)} 
+					remoteControlValues={this.state.remoteControlValues}
+					weAreInControl={this.weAreInControl.bind(this)}
+					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
+					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
+			/>
+			)
 		}
 
 		// Details box
 		let detailsBoxItem = this.state.detailsBoxItem
-		var detailsBox = null
+		let detailsBox
 
 		function closeDetails() {
-			self.setState({detailsBoxItem: null})
+			this.setState({detailsBoxItem: null})
 		}
 
 		switch (detailsBoxItem?.type) {
@@ -1296,7 +1307,7 @@ export default class CommandControl extends React.Component {
 					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
 					getFleetId: this.getFleetId.bind(this),
 					takeControl: this.takeControl.bind(this),
-					closeWindow: closeDetails,
+					closeWindow: closeDetails.bind(this),
 				}
 				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
 				break;
@@ -1310,22 +1321,17 @@ export default class CommandControl extends React.Component {
 					hub: hubs?.[0], 
 					api: this.api, 
 					mission: this.getRunList(), 
-					closeWindow: closeDetails,
+					closeWindow: closeDetails.bind(this),
 					takeControl: this.takeControl.bind(this),
 					isExpanded: this.state.detailsExpanded,
-					createRemoteControlInterval: this.createRemoteControlInterval.bind(this),
-					clearRemoteControlInterval: this.clearRemoteControlInterval.bind(this),
-					remoteControlValues: this.state.remoteControlValues,
-					weAreInControl: this.weAreInControl.bind(this),
-					weHaveRemoteControlInterval: this.weHaveRemoteControlInterval.bind(this),
 					deleteSingleMission: this.deleteSingleRun.bind(this),
-					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this)
+					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
+					isRCModeActive: this.isRCModeActive.bind(this)
 				}
 				detailsBox = <BotDetailsComponent {...botDetailsProps} />
 				break;
 			default:
 				detailsBox = null;
-				
 				// Clear remote control interval if there is one
 				this.clearRemoteControlInterval();
 				break;
@@ -1334,18 +1340,18 @@ export default class CommandControl extends React.Component {
 		function closeMissionPanel() {
 			let missionPanel = document.getElementById('missionPanel')
 			missionPanel.style.width = "0px"
-			self.setState({missionPanelActive: false})
+			this.setState({missionPanelActive: false})
 		}
 
 		function closeEngineeringPanel() {
 			let engineeringPanel = document.getElementById('engineeringPanel')
 			engineeringPanel.style.width = "0px"
-			self.setState({engineeringPanelActive: false})
+			this.setState({engineeringPanelActive: false})
 		}
 
 		function closeMissionSettingsPanel() {
-			self.changeInteraction();
-			self.setState({
+			this.changeInteraction();
+			this.setState({
 				surveyPolygonActive: false,
 				mode: '',
 				surveyPolygonChanged: false,
@@ -1357,7 +1363,7 @@ export default class CommandControl extends React.Component {
 		function closeMapLayers() {
 			let mapLayersPanel = document.getElementById('mapLayers')
 			mapLayersPanel.style.width = '0px'
-			self.setState({mapLayerActive: false});
+			this.setState({mapLayerActive: false});
 		}
 
 		function closeOtherViewControlWindows(openPanel: string) {
@@ -1365,7 +1371,7 @@ export default class CommandControl extends React.Component {
 				{ name: 'missionPanel', closeFunction: closeMissionPanel },
 				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
 				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
-				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
+				{ name: 'measureTool', closeFunction: () => this.setState({ measureActive: false })},
 				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
 			]
 
@@ -1592,6 +1598,8 @@ export default class CommandControl extends React.Component {
 
 				{missionSettingsPanel}
 
+				{rcControllerPanel}
+
 				{this.takeControlPanel()}
 
 				{this.commandDrawer()}
@@ -1661,7 +1669,7 @@ export default class CommandControl extends React.Component {
 
 	createRemoteControlInterval() {
 		// Before creating a new interval, clear the current one
-		this.clearRemoteControlInterval();
+		this.clearRemoteControlInterval()
 
 		this.state.remoteControlInterval = 
 			setInterval(() => {
@@ -1670,21 +1678,25 @@ export default class CommandControl extends React.Component {
 	}
 
 	clearRemoteControlInterval() {
-		if(this.state.remoteControlInterval)
-		{
+		if (this.state.remoteControlInterval) {
 			clearInterval(this.state.remoteControlInterval);
-			this.state.remoteControlInterval = null;
+			this.state.remoteControlInterval = null
 		}
 	}
 
 	weHaveRemoteControlInterval() {
-		if(this.state.remoteControlInterval)
-		{
-			return true;
-		} else
-		{
-			return false;
+		if (this.state.remoteControlInterval) {
+			return true
 		}
+		return false
+	}
+
+	isRCModeActive(botId: number) {
+		const selectedBot = this.getPodStatus().bots[botId]
+		if (selectedBot?.mission_state.includes('REMOTE_CONTROL')) {
+			return true
+		}
+		return false
 	}
 
 	didClickBot(bot_id: number) {
