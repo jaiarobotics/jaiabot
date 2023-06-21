@@ -46,13 +46,13 @@ cd ~/jaiabot/config/launch/simulation
 ./all.launch
 ```
 
-* Run JaiaBot Command & Control (in a different terminal)
+* Run Jaia Command & Control (in a different terminal)
 ```
 cd ~/jaiabot/src/web
 ./run.sh
 ```
 
-* Open a web browser to view JaiaBot Command & Control:    http://localhost:40001/
+* Open a web browser to view Jaia Command & Control:    http://localhost:40001/
 
 ### Create Docker Image
 
