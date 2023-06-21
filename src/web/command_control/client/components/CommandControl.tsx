@@ -126,9 +126,7 @@ import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
-import { deepEqual } from 'assert'
 import RunList from './mission/RunList'
-import { constants } from 'crypto'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1261,6 +1259,7 @@ export default class CommandControl extends React.Component {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
+
 							this.setRunList(runList)
 
 							// Close panel after applying
@@ -2353,7 +2352,6 @@ export default class CommandControl extends React.Component {
 				const isSelected = (assignedBot === selectedBotId)
 				const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
 				const canEdit = run.canEdit
-
 
 				// Add our goals
 				const plan = run.command?.plan
