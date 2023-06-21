@@ -3,7 +3,7 @@ import { PIDGainsPanel } from './PIDGainsPanel'
 import MissionSpeedSettingsPanel from './MissionSpeedSettingsPanel';
 import Button from '@mui/material/Button';
 import {JaiaAPI} from '../../common/JaiaAPI'
-import { PortalBotStatus, PortalHubStatus } from './PortalStatus';
+import { PortalBotStatus, PortalHubStatus } from './shared/PortalStatus';
 import QueryBotStatusPanel from "./QueryBotStatusPanel"
 import ScanForBotPanel from './ScanForBotPanel';
 

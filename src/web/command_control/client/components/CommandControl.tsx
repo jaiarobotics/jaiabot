@@ -128,6 +128,7 @@ import { HubLayers } from './HubLayers'
 import * as JCCStyles from './Styles'
 import { deepEqual } from 'assert'
 import RunList from './mission/RunList'
+import { constants } from 'crypto'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1306,7 +1307,7 @@ export default class CommandControl extends React.Component {
 		let detailsBoxItem = this.state.detailsBoxItem
 		let detailsBox
 
-		function closeDetails() {
+		const closeDetails = () => {
 			this.setState({detailsBoxItem: null})
 		}
 
@@ -1349,19 +1350,19 @@ export default class CommandControl extends React.Component {
 				break;
 		}
 
-		function closeMissionPanel() {
+		const closeMissionPanel = () => {
 			let missionPanel = document.getElementById('missionPanel')
 			missionPanel.style.width = "0px"
 			this.setState({missionPanelActive: false})
 		}
 
-		function closeEngineeringPanel() {
+		const closeEngineeringPanel = () => {
 			let engineeringPanel = document.getElementById('engineeringPanel')
 			engineeringPanel.style.width = "0px"
 			this.setState({engineeringPanelActive: false})
 		}
 
-		function closeMissionSettingsPanel() {
+		const closeMissionSettingsPanel = () => {
 			this.changeInteraction();
 			this.setState({
 				surveyPolygonActive: false,
@@ -1372,13 +1373,13 @@ export default class CommandControl extends React.Component {
 			});
 		}
 
-		function closeMapLayers() {
+		const closeMapLayers = () => {
 			let mapLayersPanel = document.getElementById('mapLayers')
 			mapLayersPanel.style.width = '0px'
 			this.setState({mapLayerActive: false});
 		}
 
-		function closeOtherViewControlWindows(openPanel: string) {
+		const closeOtherViewControlWindows = (openPanel: string) => {
 			const panels = [
 				{ name: 'missionPanel', closeFunction: closeMissionPanel },
 				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
@@ -1749,7 +1750,6 @@ export default class CommandControl extends React.Component {
 		let runList = this.pushRunListToUndoStack().getRunList()
 		const runs = runList?.runs
 		const botsAssignedToRuns = runList?.botsAssignedToRuns
-		const run = runs[botsAssignedToRuns[botId]]
 
 		if (!(botId in botsAssignedToRuns)) {
 			runList = Missions.addRunWithWaypoints(botId, [], runList);
@@ -1763,6 +1763,8 @@ export default class CommandControl extends React.Component {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
 
+		const run = runs[botsAssignedToRuns[botId]]
+		
 		if (!run.canEdit) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
 			return
@@ -1847,10 +1849,11 @@ export default class CommandControl extends React.Component {
 				}
 
 				Object.keys(runs).map(key => {
-					let botIndex = runs[key].assigned;
+					const botIndex = runs[key].assigned;
 					if (botIndex !== -1) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
+						this.setEditRunMode([botIndex], true)
 					}
 				})
 				success("Submitted missions")

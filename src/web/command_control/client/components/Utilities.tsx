@@ -1,6 +1,6 @@
 import { Map } from "ol"
 import { Coordinate } from "ol/coordinate"
-import { toLonLat } from "ol/proj"
+import { toLonLat, fromLonLat } from "ol/proj"
 import { GeographicCoordinate } from "./shared/JAIAProtobuf"
 
 let abs = Math.abs
@@ -56,7 +56,7 @@ export function deepcopy<T>(aObject: T): T {
     return bObject;
 }
 
-export function areEqual(a: any, b: any) {
+export function equalValues(a: any, b: any) {
     return JSON.stringify(a) == JSON.stringify(b)
 }
 
@@ -96,4 +96,15 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     }
 
     return geographicCoordinate
+}
+
+// getMapCoordinate()
+//   Returns the OpenLayers Coordinate of an GeographicCoordinate on a map
+//   
+//   Inputs
+//     coordinate: coordinate to convert
+//     map: an OpenLayers map that the coordinates refer to
+export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
+    if (coordinate == null) return null
+    return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())
 }

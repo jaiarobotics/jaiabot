@@ -9,6 +9,7 @@
 @map-button-size: 50px;
 @layout-margin: 0.5vw;
 @layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
+@rc-panel-height-px: 282.54px;
 
 // Colors
 @cc-background-color: white;
@@ -27,6 +28,8 @@
 @good-color: #06c006;
 @warning-color: #d5d506;
 @error-color: #cc0505;
+
+@rc-active-color: mediumpurple;
 
 @overlay-background: rgba(0, 0, 0, 0.7);
 
@@ -121,10 +124,12 @@ td {
       // Going for low contrast here
       color: if(luminance(@inactive-color) < 45, black, white);
     }
+
     &.selected,
     &.active {
       .bgcolor(@selected-color);
     }
+
     &.buttonCheckbox,
     &.not-a-button {
       background: none;
@@ -135,18 +140,22 @@ td {
         border: none;
       }
     }
-    &.active-rc {
-      .bgcolor(@controlled-color);
-    }
+
     &.active-track {
       .bgcolor(@tracked-color);
     }
+
+    &.rc-active {
+      .bgcolor(@rc-active-color);
+    }
+
     img {
       display: block;
       width: @command-button-size - (2 * @command-button-padding);
       height: auto;
       font-size: @command-button-size - (2 * @command-button-padding);
     }
+    
     svg {
       display: block;
       width: @command-button-size - (2 * @command-button-padding);
@@ -246,15 +255,16 @@ td {
     }
   }
 
-  #botDetailsBox {
-
+  #botDetailsBox,
+  #hubDetailsBox {
     position: absolute;
     background-color: @overlay-background;
     top: 0pt;
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    max-height: 80vh;
+    border-radius: 8pt;
+    max-height: calc(100vh - @rc-panel-height-px);
     max-width: 25vw;
 
     display: flex;
@@ -596,38 +606,35 @@ td {
       bottom: 16px;
       right: -(@command-button-size + (@command-button-padding));
     }
-    .ol-zoom .ol-zoom-in {
-      border-radius: @control-corner-radius @control-corner-radius 0 0;
-    }
-    .ol-zoom .ol-zoom-out {
-      border-radius: 0 0 @control-corner-radius @control-corner-radius;
-    }
 
     .ol-mouse-position {
-      bottom: 50px;
-      right: 110px;
+      bottom: 49px;
+      right: 27px;
       height: (2 * 18px) + (2 * 2px);
       position: absolute;
-      .bgcolor(@overlay-background);
-      border-radius: @panel-corner-radius;
+      width: 100px;
       padding: 2px;
       font-size: 14px;
       line-height: 18px;
-      width: 100px;
       text-align: center;
+      .bgcolor(@overlay-background);
+
     }
 
     .ol-scale-line {
-      .bgcolor(@overlay-background);
-      border-radius: @panel-corner-radius;
-      padding: 2px;
+      bottom: 16px;
+      right: 27px;
       position: absolute;
-      bottom: 20px;
-      right: 110px;
+      padding: 2px;
+      font-size: 14px;
+      text-align: center;
+      .bgcolor(@overlay-background);
     }
+
     .ol-scale-line-inner {
       border: 1px solid white;
       border-top: none;
+      padding: 4px;
       font-size: 14px;
       text-align: center;
       margin: 1px;
@@ -635,7 +642,7 @@ td {
     }
 
     .ol-rotate {
-      bottom: 170px;
+      bottom: 115px;
       right: -(@command-button-size + (@command-button-padding));
       // transition: opacity 0.25s linear, visibility 0s linear;
       button {
@@ -653,12 +660,8 @@ td {
       }
     }
     .ol-rotate.ol-hidden {
-      // opacity: 0;
-      // visibility: hidden;
-      // transition: opacity 0.25s linear, visibility 0s linear 0.25s;
       button {
         color: @overlay-background;
-        border-radius: @control-corner-radius;
         height: @map-button-size;
         width: @map-button-size;
         min-width: @map-button-size;
@@ -727,57 +730,15 @@ td {
 
     .ol-attribution {
       text-align: right;
-      bottom: 0.5em;
-      right: 0.5em;
+      bottom: 16px;
       max-width: calc(100% - 1.3em);
-    }
-    .ol-attribution ul {
-      margin: 0;
-      padding: 0 0.5em;
-      font-size: 0.7rem;
-      line-height: 1.375em;
-      color: @cc-text-color;
-      text-shadow: 0 0 2px #fff;
-      :before {
-        content: "©";
+      button {
+        display: none;
       }
     }
-    .ol-attribution li {
-      display: inline;
-      list-style: none;
-      line-height: inherit;
-    }
-    .ol-attribution li:not(:last-child):after {
-      content: " ";
-    }
-    .ol-attribution img {
-      max-height: 2em;
-      max-width: inherit;
-      vertical-align: middle;
-    }
-    .ol-attribution ul,
-    .ol-attribution button {
-      display: inline-block;
-    }
-    .ol-attribution.ol-collapsed ul {
-      display: none;
-    }
-    .ol-attribution:not(.ol-collapsed) {
-      background: none;
-    }
-    .ol-attribution.ol-uncollapsible {
-      bottom: 0;
-      right: 25%;
-      border-radius: @panel-corner-radius @panel-corner-radius 0 0;
-      height: 1em;
-      line-height: 1em;
-    }
-    .ol-attribution.ol-uncollapsible img {
-      margin-top: -0.2em;
-      max-height: 1.6em;
-    }
-    .ol-attribution.ol-uncollapsible button {
-      display: none;
+    .ol-attribution ul {
+      font-size: 0.7rem;
+      color: @cc-text-color;
     }
 
     .ol-zoomslider {
@@ -1356,7 +1317,8 @@ div.closeButton {
 
 /******** CSS Accordion ********************/
 
-#botDetailsAccordionContainer {
+#botDetailsAccordionContainer,
+#hubDetailsAccordionContainer {
   overflow-y: auto;
 }
 
