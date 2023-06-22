@@ -190,15 +190,15 @@ export class SurveyPolygon {
                     let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
                     let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon))*100)/100
                     if (spArea !== undefined && spPerimeter !== undefined) {
-                        missionParams.sp_area = spArea
-                        missionParams.sp_perimeter = spPerimeter;
+                        missionParams.spArea = spArea
+                        missionParams.spPerimeter = spPerimeter;
                     }
 
-                    $('#missionStatArea').text(missionParams.sp_area);
-                    $('#missionStatPerimeter').text(missionParams.sp_perimeter);
+                    $('#missionStatArea').text(missionParams.spArea);
+                    $('#missionStatPerimeter').text(missionParams.spPerimeter);
                     $('#missionStatOrientation').text(missionParams.orientation);
-                    $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                    $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                    $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
+                    $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
 
                     commandControl.updateMissionLayer();
 
@@ -268,11 +268,11 @@ export class SurveyPolygon {
 
                 // console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-                $('#missionStatArea').text(missionParams.sp_area);
-                $('#missionStatPerimeter').text(missionParams.sp_perimeter);
+                $('#missionStatArea').text(missionParams.spArea);
+                $('#missionStatPerimeter').text(missionParams.spPerimeter);
                 $('#missionStatOrientation').text(missionParams.orientation);
-                $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
+                $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
 
                 commandControl.updateMissionLayer();
                 unByKey(this.listener);

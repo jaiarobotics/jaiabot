@@ -108,10 +108,10 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
     }
 
     // Bot rally point separation scheme
-    let rallyStartPoints = findRallySeparation(botIdList, rallyStartLocation, missionParams.orientation, missionParams.rally_spacing);
+    let rallyStartPoints = findRallySeparation(botIdList, rallyStartLocation, missionParams.orientation, missionParams.rallySpacing);
     // console.log('rallyStartPoints');
     // console.log(rallyStartPoints);
-    let rallyFinishPoints = findRallySeparation(botIdList, rallyEndLocation, missionParams.orientation, missionParams.rally_spacing);
+    let rallyFinishPoints = findRallySeparation(botIdList, rallyEndLocation, missionParams.orientation, missionParams.rallySpacing);
     // console.log('rallyFinishPoints');
     // console.log(rallyFinishPoints);
 

@@ -156,7 +156,7 @@ export class SurveyLines {
                         // console.log(turf);
                         // console.log(format);
         
-                        let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
+                        let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
                         // Check if user selects length > allowed (bots * spacing), if so make centerLine max length
@@ -200,7 +200,7 @@ export class SurveyLines {
         
         
                         let centerLine = turf.getGeom(centerLineFc as any).features[0];
-                        this.commandControl.setState({center_line_string: centerLineString})						
+                        this.commandControl.setState({centerLineString: centerLineString})						
                         let currentLineLength = turf.length(centerLine)
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
@@ -263,12 +263,12 @@ export class SurveyLines {
                             if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
                                 let fcOutput = turf.featureCollection(fcInput)
                                 let fcOutputPoly = turf.concave(fcOutput)
-                                missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
-                                missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+                                missionParams.spPerimeter = round(turf.length(fcOutputPoly), 2)
+                                missionParams.spArea = round(turf.area(fcOutputPoly)/1000, 2)
                             }
         
-                            missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
-                            missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
+                            missionParams.spRallyStartDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
+                            missionParams.spRallyFinishDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
         
                             commandControl.setState({
                                 missionPlanningLines: alongLines,
@@ -278,11 +278,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        $('#missionStatArea').text(missionParams.sp_area);
-                        $('#missionStatPerimeter').text(missionParams.sp_perimeter);
+                        $('#missionStatArea').text(missionParams.spArea);
+                        $('#missionStatPerimeter').text(missionParams.spPerimeter);
                         $('#missionStatOrientation').text(missionParams.orientation);
-                        $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                        $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                        $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
+                        $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
         
                         // console.log('** END ********* ON CHANGE *************************')
                     }
