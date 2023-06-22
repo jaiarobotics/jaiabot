@@ -458,16 +458,6 @@ export default class CommandControl extends React.Component {
 			this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
 	}
 
-	getMissionState() {
-		return this.state.missionParams
-	}
-
-	setMissionState(missionParams: any) {
-		this.setState({
-			missionParams: missionParams
-		})
-	}
-
 	componentDidMount() {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
@@ -810,9 +800,6 @@ export default class CommandControl extends React.Component {
 		else if (trackingTarget === 'pod') {
 			this.zoomToPod();
 		} 
-		else if (trackingTarget === 'all') {
-			this.zoomToAll();
-		}
 
 		this.setState({
 			lastBotCount: botCount
@@ -871,25 +858,6 @@ export default class CommandControl extends React.Component {
 			)
 		);
 		// map.render();
-	}
-
-	updateActiveMissionLayer() {
-		const bots = this.getPodStatus().bots
-		let allFeatures = []
-
-		for (let botId in bots) {
-			const bot = bots[botId]
-			const activeMissionPlan = bot.active_mission_plan
-			if (activeMissionPlan) {
-				const canEdit = false
-				const features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
-				allFeatures.push(...features)
-			}
-		}
-
-		let source = layers.activeMissionLayer.getSource()
-		source.clear()
-		source.addFeatures(allFeatures)
 	}
 
 	// POLL THE BOTS
@@ -951,6 +919,26 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.timerID);
 	}
 
+	/**
+	 * Zooms the map to a bot
+	 * 
+	 * @param id The bot's bot_id
+	 * @param firstMove 
+	 */
+	zoomToBot(id: number, firstMove = false) {
+		const extent = this.getBotExtent(id)
+		if (extent != null) {
+			this.fit(extent, { duration: 100 }, false, firstMove);
+		}
+	}
+
+	
+	/**
+	 * Zooms the map to show the entire pod of bots
+	 * @date 6/22/2023 - 8:08:17 AM
+	 *
+	 * @param {boolean} [firstMove=false]
+	 */
 	zoomToPod(firstMove = false) {
 		const podExtent = this.getPodExtent()
 		if (podExtent != null) {
@@ -958,17 +946,6 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	zoomToAll(firstMove = false) {
-		const extent = OlCreateEmptyExtent();
-		let layerCount = 0;
-		const addExtent = (layer: OlVectorLayer<OlVectorSource>) => {
-			if (layer.getSource().getFeatures().length <= 0) return;
-			OlExtendExtent(extent, layer.getSource().getExtent());
-			layerCount += 1;
-		};
-		// layers.botsLayerGroup.getLayers().forEach(addExtent);
-		if (layerCount > 0) this.fit(extent, { duration: 100 }, false, firstMove);
-	}
 
 	toggleBot(bot_id?: number) {
 		if (bot_id == null || this.isBotSelected(bot_id)) {
@@ -1049,28 +1026,16 @@ export default class CommandControl extends React.Component {
 		]
 	}
 
-	zoomToBot(id: number, firstMove = false) {
-		const extent = this.getBotExtent(id)
-		if (extent != null) {
-			this.fit(extent, { duration: 100 }, false, firstMove);
-		}
-	}
-
 	trackBot(id: number | string) {
 		const { trackingTarget } = this.state;
 		if (id === trackingTarget) return;
 		this.setState({ trackingTarget: id });
-		if (id === 'all') {
-			this.zoomToAll(true);
-			info('Following all');
-		} else if (id === 'pod') {
+		if (id === 'pod') {
 			this.zoomToPod(true);
 			info('Following pod');
 		} else if (id !== null) {
 			this.zoomToBot(id as number, true);
 			info(`Following bot ${id}`);
-		} else if (trackingTarget === 'all') {
-			info('Stopped following all');
 		} else if (trackingTarget === 'pod') {
 			info('Stopped following pod');
 		} else {
@@ -1183,10 +1148,6 @@ export default class CommandControl extends React.Component {
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
-	closeDetails() {
-		this.setState({detailsBoxItem: null})
-	}
-
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -1209,6 +1170,8 @@ export default class CommandControl extends React.Component {
 		const podStatus = this.getPodStatus()
 		const bots = podStatus?.bots
 		const hubs = podStatus?.hubs
+
+		const self = this
 
 		let goalSettingsPanel: ReactElement = null
 
@@ -1310,6 +1273,10 @@ export default class CommandControl extends React.Component {
 		let detailsBoxItem = this.state.detailsBoxItem
 		let detailsBox
 
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
 		switch (detailsBoxItem?.type) {
 			case 'hub':
 				const hubDetailsProps: HubDetailsProps = {
@@ -1319,7 +1286,7 @@ export default class CommandControl extends React.Component {
 					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
 					getFleetId: this.getFleetId.bind(this),
 					takeControl: this.takeControl.bind(this),
-					closeWindow: this.closeDetails.bind(this),
+					closeWindow: closeDetails.bind(this),
 				}
 				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
 				break;
@@ -1333,7 +1300,7 @@ export default class CommandControl extends React.Component {
 					hub: hubs?.[0], 
 					api: this.api, 
 					mission: this.getRunList(), 
-					closeWindow: this.closeDetails.bind(this),
+					closeWindow: closeDetails.bind(this),
 					takeControl: this.takeControl.bind(this),
 					isExpanded: this.state.detailsExpanded,
 					deleteSingleMission: this.deleteSingleRun.bind(this),
@@ -1352,18 +1319,18 @@ export default class CommandControl extends React.Component {
 		const closeMissionPanel = () => {
 			let missionPanel = document.getElementById('missionPanel')
 			missionPanel.style.width = "0px"
-			this.setState({missionPanelActive: false})
+			self.setState({missionPanelActive: false})
 		}
 
 		const closeEngineeringPanel = () => {
 			let engineeringPanel = document.getElementById('engineeringPanel')
 			engineeringPanel.style.width = "0px"
-			this.setState({engineeringPanelActive: false})
+			self.setState({engineeringPanelActive: false})
 		}
 
-		const closeMissionSettingsPanel = () => {
-			this.changeInteraction();
-			this.setState({
+		function closeMissionSettingsPanel() {
+			self.changeInteraction();
+			self.setState({
 				surveyPolygonActive: false,
 				mode: '',
 				surveyPolygonChanged: false,
@@ -1375,7 +1342,7 @@ export default class CommandControl extends React.Component {
 		const closeMapLayers = () => {
 			let mapLayersPanel = document.getElementById('mapLayers')
 			mapLayersPanel.style.width = '0px'
-			this.setState({mapLayerActive: false});
+			self.setState({mapLayerActive: false});
 		}
 
 		const closeOtherViewControlWindows = (openPanel: string) => {
@@ -1383,7 +1350,7 @@ export default class CommandControl extends React.Component {
 				{ name: 'missionPanel', closeFunction: closeMissionPanel },
 				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
 				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
-				{ name: 'measureTool', closeFunction: () => this.setState({ measureActive: false })},
+				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
 				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
 			]
 
@@ -2390,6 +2357,31 @@ export default class CommandControl extends React.Component {
 		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
 	}
 
+	/**
+	 * Updates the layer showing the currently running missions on the bots.
+	 * 
+	 * @date 6/22/2023 - 8:05:21 AM
+	 */
+		updateActiveMissionLayer() {
+			const bots = this.getPodStatus().bots
+			let allFeatures = []
+	
+			for (let botId in bots) {
+				let bot = bots[botId]
+	
+				const activeMissionPlan = bot.active_mission_plan
+				const canEdit = false
+				if (activeMissionPlan != null) {
+					let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
+					allFeatures.push(...features)
+				}
+			}
+	
+			let source = layers.activeMissionLayer.getSource()
+			source.clear()
+			source.addFeatures(allFeatures)
+		}
+	
 	/**
 	 * 
 	 * @returns List of botIds from podStatus
