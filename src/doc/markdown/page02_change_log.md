@@ -2,6 +2,11 @@
 
 This following sections note the changes in each release version of jaiabot.
 
+### 1.5.3
+
+* Goby Logger Config
+  * Exclude moos group because the goby log got too big for Raspberry Pi to convert to h5 file
+
 ### 1.5.2
 
 * JCC
