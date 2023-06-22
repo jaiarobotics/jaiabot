@@ -1161,6 +1161,8 @@ export default class CommandControl extends React.Component {
 		const bots = podStatus?.bots
 		const hubs = podStatus?.hubs
 
+		const self = this
+
 		let goalSettingsPanel: ReactElement = null
 
 		if (goalBeingEdited) {
@@ -1261,7 +1263,7 @@ export default class CommandControl extends React.Component {
 		let detailsBox
 
 		function closeDetails() {
-			this.setState({detailsBoxItem: null})
+			self.setState({detailsBoxItem: null})
 		}
 
 		switch (detailsBoxItem?.type) {
@@ -1306,18 +1308,18 @@ export default class CommandControl extends React.Component {
 		function closeMissionPanel() {
 			let missionPanel = document.getElementById('missionPanel')
 			missionPanel.style.width = "0px"
-			this.setState({missionPanelActive: false})
+			self.setState({missionPanelActive: false})
 		}
 
 		function closeEngineeringPanel() {
 			let engineeringPanel = document.getElementById('engineeringPanel')
 			engineeringPanel.style.width = "0px"
-			this.setState({engineeringPanelActive: false})
+			self.setState({engineeringPanelActive: false})
 		}
 
 		function closeMissionSettingsPanel() {
-			this.changeInteraction();
-			this.setState({
+			self.changeInteraction();
+			self.setState({
 				surveyPolygonActive: false,
 				mode: '',
 				surveyPolygonChanged: false,
@@ -1329,7 +1331,7 @@ export default class CommandControl extends React.Component {
 		function closeMapLayers() {
 			let mapLayersPanel = document.getElementById('mapLayers')
 			mapLayersPanel.style.width = '0px'
-			this.setState({mapLayerActive: false});
+			self.setState({mapLayerActive: false});
 		}
 
 		function closeOtherViewControlWindows(openPanel: string) {
@@ -1337,7 +1339,7 @@ export default class CommandControl extends React.Component {
 				{ name: 'missionPanel', closeFunction: closeMissionPanel },
 				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
 				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
-				{ name: 'measureTool', closeFunction: () => this.setState({ measureActive: false })},
+				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
 				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
 			]
 
