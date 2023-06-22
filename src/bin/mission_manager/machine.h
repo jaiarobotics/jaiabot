@@ -85,6 +85,7 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
+STATECHART_EVENT(EvPrePoweredDescentComplete)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvPowerDescentSafety)
@@ -204,6 +205,7 @@ struct ConstantHeading;
 struct Dive;
 namespace dive
 {
+struct PrePoweredDescent;
 struct PoweredDescent;
 struct Hold;
 struct UnpoweredAscent;
@@ -1381,9 +1383,9 @@ struct ConstantHeading
     goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
-struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
+struct Dive : boost::statechart::state<Dive, Task, dive::PrePoweredDescent>, AppMethodsAccess<Dive>
 {
-    using StateBase = boost::statechart::state<Dive, Task, dive::PoweredDescent>;
+    using StateBase = boost::statechart::state<Dive, Task, dive::PrePoweredDescent>;
 
     Dive(typename StateBase::my_context c);
     ~Dive();
@@ -1430,6 +1432,28 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
 };
 namespace dive
 {
+struct PrePoweredDescent
+    : boost::statechart::state<PrePoweredDescent, Dive>,
+      Notify<PrePoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<PrePoweredDescent, Dive>;
+    PrePoweredDescent(typename StateBase::my_context c);
+    ~PrePoweredDescent();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, PrePoweredDescent, &PrePoweredDescent::loop>,
+        boost::statechart::transition<EvPrePoweredDescentComplete, PoweredDescent>>;
+
+  private:
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime duration_{0 * boost::units::si::seconds};
+    // determines when to transition into powered descent
+    goby::time::SteadyClock::time_point pre_powered_descent_timeout_;
+};
+
 struct PoweredDescent
     : boost::statechart::state<PoweredDescent, Dive>,
       Notify<PoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT,
