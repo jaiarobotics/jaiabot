@@ -1183,6 +1183,10 @@ export default class CommandControl extends React.Component {
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
+	closeDetails() {
+		this.setState({detailsBoxItem: null})
+	}
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -1252,7 +1256,7 @@ export default class CommandControl extends React.Component {
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 							
 							const runList = this.pushRunListToUndoStack().getRunList()
-							this.deleteAllRunsInMission(runList, true);
+							this.deleteAllRunsInMission(runList);
 
 							for(let id in this.missionPlans)
 							{
@@ -1306,10 +1310,6 @@ export default class CommandControl extends React.Component {
 		let detailsBoxItem = this.state.detailsBoxItem
 		let detailsBox
 
-		const closeDetails = () => {
-			this.setState({detailsBoxItem: null})
-		}
-
 		switch (detailsBoxItem?.type) {
 			case 'hub':
 				const hubDetailsProps: HubDetailsProps = {
@@ -1319,7 +1319,7 @@ export default class CommandControl extends React.Component {
 					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
 					getFleetId: this.getFleetId.bind(this),
 					takeControl: this.takeControl.bind(this),
-					closeWindow: closeDetails.bind(this),
+					closeWindow: this.closeDetails.bind(this),
 				}
 				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
 				break;
@@ -1333,7 +1333,7 @@ export default class CommandControl extends React.Component {
 					hub: hubs?.[0], 
 					api: this.api, 
 					mission: this.getRunList(), 
-					closeWindow: closeDetails.bind(this),
+					closeWindow: this.closeDetails.bind(this),
 					takeControl: this.takeControl.bind(this),
 					isExpanded: this.state.detailsExpanded,
 					deleteSingleMission: this.deleteSingleRun.bind(this),
@@ -1390,6 +1390,7 @@ export default class CommandControl extends React.Component {
 			panels.forEach(panel => {
 				if (openPanel !== panel.name) {
 					panel.closeFunction()
+					panel
 				}
 			})
 		}
@@ -1882,27 +1883,44 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-	deleteAllRunsInMission(mission: MissionInterface, postCommand: boolean = false) {
-		const runs = this.state.runList.runs
-		// Needed if the operator deletes all runs and plans to add runs manually rather than enter a new run immediately (e.g. go to start rally)
-		// If not the bot state will remain in transit and the operator will not be able to edit the new run
-		if (postCommand) {
-			for (const run of Object.values(runs)) {
-				if (run.assigned > 0) {
-					this.postStopCommand(run.assigned)
+	deleteAllRunsInMission(mission: MissionInterface) {
+		const runs = mission.runs
+		const missionActiveRuns: number[] = []
+		for (const run of Object.values(runs)) {
+			// Deletes unassinged runs
+			// Chose !x > 0 in case the id for unassigned runs changes from -1
+			if (!(run.assigned > 0)) {
+				delete mission.runs[run.id]
+				delete mission.botsAssignedToRuns[run.assigned]
+
+			} else {
+				// Check the mission state of runs with bot assingments
+				const missionState = this.getPodStatus().bots[run.assigned].mission_state
+				if (missionState) {
+					const enabledStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT'] 
+					let canDelete = false
+					for (const enabledState of enabledStates) {
+						if (missionState.includes(enabledState)) {
+							canDelete = true
+						}
+					}
+					if (canDelete) {
+						delete mission.runs[run.id]
+						delete mission.botsAssignedToRuns[run.assigned]
+					} else {
+						const runNumber = Number(run.id.substring(4)) // run.id => run-x
+						missionActiveRuns.push(runNumber)
+					}
 				}
-			}	
+			}
 		}
-
-		for (const run in mission.runs) {
-			delete mission.runs[run]
-		}
-
-		for (const botId in mission.botsAssignedToRuns) {
-			delete mission.botsAssignedToRuns[botId]
-		}
-
 		mission.runIdIncrement = 0
+		if (missionActiveRuns.length > 0) {
+			let missionActiveRunStr = ''
+			let runStr = missionActiveRuns.length > 1 ? 'Runs' : 'Run'
+			missionActiveRuns.forEach(runNum => { missionActiveRunStr += ` ${runNum}` })
+			info(`${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission`)
+		}
 	}
 
 	deleteSingleRun() {
