@@ -148,7 +148,7 @@ export class SurveyLines {
                         missionParams.orientation = rotationAngle;
                         // document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
         
-                        let bot_list = Object.keys(commandControl.state.podStatus.bots);
+                        let botList = Object.keys(commandControl.state.podStatus.bots);
         
                         // console.log('TESTING')
                         // console.log(this);
@@ -205,11 +205,11 @@ export class SurveyLines {
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
                             let offsetLines: any[] = [];
-                            let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((bot_list.length/2)*0.75))
+                            let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((botList.length/2)*0.75))
                             let nextLineOffset = 0;
                             let currentLineOffset = 0;
         
-                            bot_list.forEach(bot => {
+                            botList.forEach(bot => {
                                 let ol = deepcopy(centerLine);
                                 currentLineOffset = lineOffsetStart + nextLineOffset
         

@@ -26,7 +26,7 @@ export class HubLayers {
             return layer
         }
         else {
-            const new_layer = new VectorLayer({
+            const newLayer = new VectorLayer({
                 properties: {
                     name: hub_id,
                     title: hub_id,
@@ -39,10 +39,10 @@ export class HubLayers {
                 })
             })
 
-            this.layers[hub_id] = new_layer
-            this.map.addLayer(new_layer)
+            this.layers[hub_id] = newLayer
+            this.map.addLayer(newLayer)
 
-            return new_layer
+            return newLayer
         }
     }
 
@@ -59,17 +59,17 @@ export class HubLayers {
                 return feature
             }
 
-            const new_feature = new Feature({
+            const newFeature = new Feature({
                 name: hub.hub_id,
                 geometry: new Point(getMapCoordinate(hub.location, map))
             })
-            new_feature.setId(hub.hub_id)
-            new_feature.setStyle(Styles.hubMarker)
-            new_feature.set('hub', hub)
+            newFeature.setId(hub.hub_id)
+            newFeature.setStyle(Styles.hubMarker)
+            newFeature.set('hub', hub)
 
-            source.addFeature(new_feature)
+            source.addFeature(newFeature)
         
-            return new_feature
+            return newFeature
         }
 
         for (let hubId in hubs) {

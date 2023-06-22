@@ -134,9 +134,9 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
 
-                    const warning_string = "Are you sure you want to delete " + this.props.run.name + "?";
+                    const warningString = "Are you sure you want to delete " + this.props.run.name + "?";
 
-		            if (confirm(warning_string)) {
+		            if (confirm(warningString)) {
 
                         //Deep copy
                         let mission = this.props.mission;

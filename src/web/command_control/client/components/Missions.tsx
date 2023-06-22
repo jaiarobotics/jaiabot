@@ -8,7 +8,7 @@ import { deepcopy } from './Utilities';
 
 const MAX_RUNS: number = 99
 
-const hardcoded_goals: Goal[][] = [
+const hardcodedGoals: Goal[][] = [
     [
         {location: {lat: 41.66260,  lon: -71.27310 }},
         {location: {lat: 41.662350, lon: -71.273283}}
@@ -65,14 +65,14 @@ export class Missions {
             }
 		}
 
-        for (let [index, goals] of hardcoded_goals.entries()) {
+        for (let [index, goals] of hardcodedGoals.entries()) {
             this.addRunWithGoals(-1, goals, mission['Mission-1']);
         }
 
         return mission
     }
 
-    static RCMode(botId: number, datum_location: GeographicCoordinate) {
+    static RCMode(botId: number, datumLocation: GeographicCoordinate) {
         let millisecondsSinceEpoch = new Date().getTime();
         let command: Command
         command = {
@@ -84,7 +84,7 @@ export class Missions {
                 movement: MovementType.REMOTE_CONTROL,
                 recovery: {
                     recover_at_final_goal: false,
-                    location: datum_location
+                    location: datumLocation
                 }
             }
         }

@@ -23,8 +23,8 @@ export class BotLayers {
             // console.log(`Created layer for bot ${bot_id}`)
 			this.layers[bot_id] = new VectorLayer({
 				properties: {
-					name: "Bots",
-					title: "Bots",
+					name: `Bot ${bot_id}`,
+					title: `Bot ${bot_id}`,
 				},
 				source: new VectorSource({
 					wrapX: false,
@@ -91,9 +91,9 @@ export class BotLayers {
 		} // end foreach bot
 
 		// Remove bot layers for bot_ids that have disappeared
-		const defunct_bot_ids = Object.keys(this.layers).filter((bot_id) => {return !(String(bot_id) in bots)})
+		const defunctBotIds = Object.keys(this.layers).filter((bot_id) => {return !(String(bot_id) in bots)})
 
-		defunct_bot_ids.forEach((bot_id_string) => {
+		defunctBotIds.forEach((bot_id_string) => {
 			this.deleteBotLayer(Number(bot_id_string))
 		})
 	}

@@ -1347,7 +1347,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div id="axui_container" className={containerClasses}>
+			<div id="jcc_container" className={containerClasses}>
 
 				<EngineeringPanel 
 					api={this.api} 
@@ -2194,7 +2194,7 @@ export default class CommandControl extends React.Component {
 			datumLocation = {lat: 0, lon: 0}
 		}
 
-		//this.runMissions(Missions.RCMode(botId, datum_location), null)
+		//this.runMissions(Missions.RCMode(botId, datumLocation), null)
 	}
 
 	sendFlag(evt: UIEvent) {

@@ -101,16 +101,16 @@ export class SurveyPolygon {
                                 });
 
                                 let optionsMissionLines = {units: 'meters' as turf.helpers.Units};
-                                let bot_dict_length = Object.keys(podStatus.bots).length
-                                let bot_list = Array.from(Array(bot_dict_length).keys());
-                                let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, missionParams.spacing * bot_dict_length, missionParams.orientation, optionsMissionLines);
+                                let botDictLength = Object.keys(podStatus.bots).length
+                                let botList = Array.from(Array(botDictLength).keys());
+                                let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, missionParams.spacing * botDictLength, missionParams.orientation, optionsMissionLines);
 
                                 let centerLine = turf.lineString([missionPlanningGridTurfCentroid.geometry.coordinates, missionRhumbDestPoint.geometry.coordinates]);
 
                                 let lineSegments: any[] = [];
                                 let firstDistance = 0;
                                 let nextDistance = missionParams.spacing;
-                                bot_list.forEach(bot => {
+                                botList.forEach(bot => {
                                     let ls = turf.lineSliceAlong(centerLine, firstDistance, nextDistance, {units: 'meters'});
                                     lineSegments.push(ls);
                                     firstDistance = nextDistance;
@@ -135,7 +135,7 @@ export class SurveyPolygon {
 
                                 let ol = turf.lineOffset(centerLine, 0, {units: 'meters'});
                                 offsetLines.push(ol);
-                                bot_list.forEach(bot => {
+                                botList.forEach(bot => {
                                     ol = turf.lineOffset(ol, missionParams.spacing, {units: 'meters'});
                                     offsetLines.push(ol);
                                 })
@@ -203,15 +203,15 @@ export class SurveyPolygon {
                     commandControl.updateMissionLayer();
 
                     // if (turfPolygon.geometry.coordinates[0].length > 5) {
-                    // 	let geo_geom = geom1.getGeometry();
-                    // 	geo_geom.transform("EPSG:3857", "EPSG:4326")
-                    // 	let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+                    // 	let geoGeom = geom1.getGeometry();
+                    // 	geoGeom.transform("EPSG:3857", "EPSG:4326")
+                    // 	let surveyPolygonGeoCoords = geoGeom.getCoordinates()
                     //
                     // 	this.setState({
                     // 		// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
                     // 		// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
                     // 		surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-                    // 		surveyPolygonCoords: geo_geom,
+                    // 		surveyPolygonCoords: geoGeom,
                     // 		surveyPolygonChanged: true
                     // 	});
                     // 	this.updateMissionLayer();
@@ -254,14 +254,14 @@ export class SurveyPolygon {
                 // 	this.state.missionParams.sp_perimeter = spPerimeter;
                 // }
 
-                let geo_geom = (evt.feature as Feature<LineString>).getGeometry();
-                geo_geom.transform("EPSG:3857", "EPSG:4326")
-                let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+                let geoGeom = (evt.feature as Feature<LineString>).getGeometry();
+                geoGeom.transform("EPSG:3857", "EPSG:4326")
+                let surveyPolygonGeoCoords = geoGeom.getCoordinates()
 
                 commandControl.setState({
                     surveyPolygonFeature: evt.feature,
                     surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-                    surveyPolygonCoords: geo_geom,
+                    surveyPolygonCoords: geoGeom,
                     surveyPolygonChanged: true,
                     missionPlanningFeature: geom1
                 })

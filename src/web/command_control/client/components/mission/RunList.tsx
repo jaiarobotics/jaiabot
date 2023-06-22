@@ -61,9 +61,9 @@ export default class RunList extends React.Component {
                 <Button 
                     className="button-jcc" 
                     onClick={() => { 
-                        const warning_string = "Are you sure you want to delete all of the runs?";
+                        const warningString = "Are you sure you want to delete all of the runs?";
 
-                        if (confirm(warning_string)) {
+                        if (confirm(warningString)) {
                             this.props.deleteAllRunsInMission(this.props.mission) 
                         }
                     }}
