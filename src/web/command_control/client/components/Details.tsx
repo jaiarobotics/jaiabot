@@ -322,7 +322,7 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
  * @returns boolean
  */
 function disableClearRunButton(bot: PortalBotStatus) {
-    const enabledStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT']
+    const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     const missionState = bot?.mission_state
     let disable = true
 

@@ -22,7 +22,7 @@ import { amber } from '@mui/material/colors';
 import { deepcopy } from '../Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 import { CommandType } from '../shared/JAIAProtobuf';
-import { error } from '../../libs/notifications';
+import { error, info } from '../../libs/notifications';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -40,7 +40,7 @@ export default class RunItem extends React.Component {
     state: State
     botId: number | null
     botsNotAssigned: number[]
-    enabledMissionStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT']
+    enabledMissionStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     api = jaiaAPI
 
     constructor(props: Props) {
@@ -201,31 +201,15 @@ export default class RunItem extends React.Component {
         // Create Delete Button
         runDeleteButton = (
             <Button 
-                className={'button-jcc missionAccordian'}
+                className={`button-jcc missionAccordian ${this.isEditModeToggleDisabled() ? 'inactive' : ''}`}
                 onClick={(event) => {
-                    event.stopPropagation();
-
-                    const warning_string = "Are you sure you want to delete " + this.props.run.name + "?";
-
-		            if (confirm(warning_string)) {
+                    event.stopPropagation()
+                    const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
+		            if (confirm(warningString)) {
                         //Deep copy
-                        const mission = this.props.mission;
-                        const run = this.props.run
-                        delete mission?.runs[this.props.run.id];
+                        const mission = this.props.mission
+                        delete mission?.runs[this.props.run.id]
                         delete mission?.botsAssignedToRuns[this.props.run.assigned]
-                        
-                        // Stop the bot after deleting the run
-                        if (run.assigned > 0) {
-                            const command = {
-                                bot_id: run.assigned,
-                                type: "STOP" as CommandType
-                            }
-                            this.api.postCommand(command).then(response => {
-                                if (response.message) {
-                                    error(response.message)
-                                }
-                            })
-                        }
                     }
                 }}
             >

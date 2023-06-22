@@ -1148,6 +1148,27 @@ export default class CommandControl extends React.Component {
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
+	checkSurveyToolPermissions() {
+		// Check that all bots are stopped or recovered
+		const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+		const bots = this.getPodStatus().bots
+		for (let bot of Object.values(bots)) {
+			const botMissionState = bot?.mission_state
+			if (!botMissionState) { continue }
+
+			let readyState = false
+			enabledStates.forEach((enabledState) => {
+				if (botMissionState.includes(enabledState)) {
+					readyState = true
+				}
+			})
+			if (!readyState) { return false }
+		}
+		// Check that rally points are set
+		if (!(this.state.rallyEndLocation && this.state.rallyStartLocation)) { return false }
+		return true
+	}
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 
@@ -1488,8 +1509,7 @@ export default class CommandControl extends React.Component {
 						<Button
 							className="button-jcc"
 							onClick={() => {
-								if (this.state.rallyEndLocation
-										&& this.state.rallyStartLocation) {
+								if (this.checkSurveyToolPermissions()) {
 									closeOtherViewControlWindows('missionSettingsPanel');
 									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
 									if (this.state.missionParams.mission_type === 'polygon-grid')
@@ -1504,10 +1524,8 @@ export default class CommandControl extends React.Component {
 									this.setState({center_line_string: null}) // Forgive me
 
 									info('Touch map to set first polygon point');
-								} 
-								else
-								{
-									info('Please place a green and red rally point before using this tool');
+								} else {
+									info('Please place a start and end rally point and stop all runs before using this tool');
 								}
 							}}
 						>
@@ -1864,7 +1882,7 @@ export default class CommandControl extends React.Component {
 				// Check the mission state of runs with bot assingments
 				const missionState = this.getPodStatus().bots[run.assigned].mission_state
 				if (missionState) {
-					const enabledStates = ['PRE_DEPLOYMENT', 'STOPPED', 'STATION_KEEP', 'POST_DEPLOYMENT'] 
+					const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT'] 
 					let canDelete = false
 					for (const enabledState of enabledStates) {
 						if (missionState.includes(enabledState)) {
@@ -1881,13 +1899,10 @@ export default class CommandControl extends React.Component {
 				}
 			}
 		}
-		mission.runIdIncrement = 0
-		if (missionActiveRuns.length > 0) {
-			let missionActiveRunStr = ''
-			let runStr = missionActiveRuns.length > 1 ? 'Runs' : 'Run'
-			missionActiveRuns.forEach(runNum => { missionActiveRunStr += ` ${runNum}` })
-			info(`${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission`)
+		if (missionActiveRuns.length === 0) {
+			mission.runIdIncrement = 0
 		}
+		this.deleteAllRunsInMissionAlert(missionActiveRuns)
 	}
 
 	deleteSingleRun() {
@@ -1904,24 +1919,24 @@ export default class CommandControl extends React.Component {
 			}
 
 			const run = runList.runs[runId]
-			const botId = run.assigned
-			this.postStopCommand(botId)
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
 		}
 	}
 
-	postStopCommand(botId: number) {
-		let command = {
-			bot_id: botId,
-			type: "STOP" as CommandType
-		}
-
-		this.api.postCommand(command).then(response => {
-			if (response.message) {
-				error(response.message)
+	deleteAllRunsInMissionAlert(missionActiveRuns: number[]) {
+		if (missionActiveRuns.length > 0) {
+			let missionActiveRunStr = ''
+			let runStr = missionActiveRuns.length > 1 ? 'Runs' : 'Run'
+			for (let i = 0; i < missionActiveRuns.length; i++) {
+				if (i === missionActiveRuns.length - 1) {
+					missionActiveRunStr += missionActiveRuns[i]
+				} else {
+					missionActiveRunStr += missionActiveRuns[i] + ", "
+				}
 			}
-		})
+			info(`${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission`)
+		}
 	}
 
 	// Currently selected botId
