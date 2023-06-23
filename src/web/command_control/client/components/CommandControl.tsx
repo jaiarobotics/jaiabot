@@ -1869,40 +1869,22 @@ export default class CommandControl extends React.Component {
 	}
 
 	deleteAllRunsInMission(mission: MissionInterface) {
+		const activeRunNumbers = this.getActiveRunNumbers(mission)
+		const warningString = this.generateDeleteAllRunsWarnStr(activeRunNumbers)
+		if (!confirm(warningString)) {
+			return
+		}
 		const runs = mission.runs
-		const missionActiveRuns: number[] = []
 		for (const run of Object.values(runs)) {
-			// Deletes unassinged runs
-			// Chose !x > 0 in case the id for unassigned runs changes from -1
-			if (!(run.assigned > 0)) {
+			const runNumber = Number(run.id.substring(4)) // run.id => run-x
+			if (!activeRunNumbers.includes(runNumber)) {
 				delete mission.runs[run.id]
 				delete mission.botsAssignedToRuns[run.assigned]
-
-			} else {
-				// Check the mission state of runs with bot assingments
-				const missionState = this.getPodStatus().bots[run.assigned].mission_state
-				if (missionState) {
-					const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT'] 
-					let canDelete = false
-					for (const enabledState of enabledStates) {
-						if (missionState.includes(enabledState)) {
-							canDelete = true
-						}
-					}
-					if (canDelete) {
-						delete mission.runs[run.id]
-						delete mission.botsAssignedToRuns[run.assigned]
-					} else {
-						const runNumber = Number(run.id.substring(4)) // run.id => run-x
-						missionActiveRuns.push(runNumber)
-					}
-				}
 			}
 		}
-		if (missionActiveRuns.length === 0) {
+		if (activeRunNumbers.length === 0) {
 			mission.runIdIncrement = 0
 		}
-		this.deleteAllRunsInMissionAlert(missionActiveRuns)
 	}
 
 	deleteSingleRun() {
@@ -1924,8 +1906,9 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	deleteAllRunsInMissionAlert(missionActiveRuns: number[]) {
+	generateDeleteAllRunsWarnStr(missionActiveRuns: number[]) {
 		if (missionActiveRuns.length > 0) {
+			let warningString = ''
 			let missionActiveRunStr = ''
 			let runStr = missionActiveRuns.length > 1 ? 'Runs' : 'Run'
 			for (let i = 0; i < missionActiveRuns.length; i++) {
@@ -1935,8 +1918,32 @@ export default class CommandControl extends React.Component {
 					missionActiveRunStr += missionActiveRuns[i] + ", "
 				}
 			}
-			info(`${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission`)
+			
+			return `Are you sure you want to delete all runs in this mission? Note: ${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission.`
 		}
+		return 'Are you sure you want to delete all runs in this mission?'
+	}
+
+	getActiveRunNumbers(mission: MissionInterface) {
+		const missionActiveRuns: number[] = []
+		const runs = mission.runs
+		for (const run of Object.values(runs)) {
+			const missionState = this.getPodStatus().bots[run.assigned].mission_state
+			if (missionState) {
+				const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT'] 
+				let canDelete = false
+				for (const enabledState of enabledStates) {
+					if (missionState.includes(enabledState)) {
+						canDelete = true
+					}
+				}
+				if (!canDelete) {
+					const runNumber = Number(run.id.substring(4)) // run.id => run-x
+					missionActiveRuns.push(runNumber)
+				}
+			}
+		}
+		return missionActiveRuns
 	}
 
 	// Currently selected botId

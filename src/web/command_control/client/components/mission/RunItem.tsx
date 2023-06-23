@@ -113,7 +113,7 @@ export default class RunItem extends React.Component {
         let assignedOption = null;
 
         this.handleMissionStateChange()
-        
+
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
         // Have not been assigned yet
@@ -202,6 +202,7 @@ export default class RunItem extends React.Component {
         runDeleteButton = (
             <Button 
                 className={`button-jcc missionAccordian ${this.isEditModeToggleDisabled() ? 'inactive' : ''}`}
+                disabled={this.isEditModeToggleDisabled()}
                 onClick={(event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
