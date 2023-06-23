@@ -93,8 +93,8 @@ export class BotLayers {
 		// Remove bot layers for bot_ids that have disappeared
 		const defunctBotIds = Object.keys(this.layers).filter((bot_id) => {return !(String(bot_id) in bots)})
 
-		defunctBotIds.forEach((bot_id_string) => {
-			this.deleteBotLayer(Number(bot_id_string))
+		defunctBotIds.forEach((botIdString) => {
+			this.deleteBotLayer(Number(botIdString))
 		})
 	}
 

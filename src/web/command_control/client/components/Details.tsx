@@ -204,21 +204,21 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: Command
     }
 }
 
-function issueRunCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+function issueRunCommand(api: JaiaAPI, command: Command, bot_id: number) {
 
     if (!takeControlFunction()) return;
 
-    if (bot_mission) {
+    if (command) {
         if (confirm("Are you sure you'd like to play this run for bot: " + bot_id + "?")) {
             // Set the speed values
-            bot_mission.plan.speeds = GlobalSettings.missionPlanSpeeds
+            command.plan.speeds = GlobalSettings.missionPlanSpeeds
            
             console.debug('playing run:')
-            console.debug(bot_mission)
+            console.debug(command)
 
             info('Submitted for bot: ' + bot_id);
 
-            api.postCommand(bot_mission).then(response => {
+            api.postCommand(command).then(response => {
                 if (response.message) {
                     error(response.message)
                 }

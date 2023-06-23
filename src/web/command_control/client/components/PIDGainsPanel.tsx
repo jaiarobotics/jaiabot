@@ -103,18 +103,19 @@ export class PIDGainsPanel extends React.Component {
                     </thead>
                     <tbody>
                     {
-                        pidTypes.map(function(pid_type) {
+                        pidTypes.map(function(pidType) {
                             return (
-                                <tr key={pid_type}>
-                                    <td key="pid_type_name">{pid_type}</td>
+                                <tr key={pidType}>
+                                    <td key="pid_type_name">{pidType}</td>
                                     {
-                                        pidGains.map(function(pid_gain) {
-                                            let pidTypeGain = pid_type + "_" + pid_gain
+                                        pidGains.map(function(pidGain) {
+                                            let pidTypeGain = pidType + "_" + pidGain
                                             let botIdPidTypeGain = self.botId + "_" + pidTypeGain
-                                            let pid_control = engineering.pid_control as any
+                                            let pid_control = engineering.pid_control
+                                            let pidSettings = pid_control?.[pidType] as PIDSettings
 
                                             return (
-                                                <td key={botIdPidTypeGain}><input style={{maxWidth: "80px"}} type="text" id={pidTypeGain} name={pidTypeGain} defaultValue={pid_control?.[pid_type]?.[pid_gain] ?? "-"} /></td>
+                                                <td key={botIdPidTypeGain}><input style={{maxWidth: "80px"}} type="text" id={pidTypeGain} name={pidTypeGain} defaultValue={pidSettings?.[pidGain] ?? "-"} /></td>
                                             )
                                         })
                                     }
