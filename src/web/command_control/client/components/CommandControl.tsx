@@ -2021,23 +2021,29 @@ export default class CommandControl extends React.Component {
 
 	}
 
-	// Command Drawer
+	
+	/**
+	 * 
+	 * @date 6/23/2023 - 7:40:59 PM
+	 *
+	 * @returns {*} The command drawer element, with rally point buttons, stop button, flag button
+	 */
 	commandDrawer() {
 		let element = (
 			<div id="commandsDrawer">
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
-				<Button className="button-jcc" id="setRallyPointGreen" onClick={this.setRallyPointGreenClicked.bind(this)}>
+				<Button id="setRallyPointGreen" className="button-jcc" onClick={this.setRallyPointGreenClicked.bind(this)}>
 					<img src={rallyPointGreenIcon} title="Set Start Rally" />
 				</Button>
-				<Button className="button-jcc" id="goToRallyGreen" onClick={this.goToRallyGreen.bind(this)}>
+				<Button id="goToRallyGreen" className="button-jcc" onClick={this.goToRallyGreen.bind(this)}>
 					<img src={goToRallyGreen} title="Go To Start Rally" />
 				</Button>
-				<Button className="button-jcc" id="setRallyPointRed" onClick={this.setRallyPointRedClicked.bind(this)}>
+				<Button id="setRallyPointRed" className="button-jcc" onClick={this.setRallyPointRedClicked.bind(this)}>
 					<img src={rallyPointRedIcon} title="Set Finish Rally" />
 				</Button>
-				<Button className="button-jcc" id="goToRallyRed" onClick={this.goToRallyRed.bind(this)}>
+				<Button id="goToRallyRed" className="button-jcc" onClick={this.goToRallyRed.bind(this)}>
 					<img src={goToRallyRed} title="Go To Finish Rally" />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStop.bind(this)}>
@@ -2052,7 +2058,9 @@ export default class CommandControl extends React.Component {
 				{/*<Button id= "all-next-task" className="button-jcc" onClick={this.nextTaskAllClicked.bind(this)}>
 					<Icon path={mdiSkipNext} title="All Next Task"/>
 				</Button>*/}
-				{ this.undoButton() }					
+				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
+					<Icon path={mdiArrowULeftTop} title="Undo"/>
+				</Button>
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
@@ -2081,10 +2089,6 @@ export default class CommandControl extends React.Component {
 		}}></SaveMissionPanel>
 
 		this.setState({saveMissionPanel: panel, loadMissionPanel: null})
-	}
-
-	undoButton() {
-		return (<Button className={"globalCommand" + " button-jcc"} onClick={this.restoreUndo.bind(this)}><Icon path={mdiArrowULeftTop} title="Undo"/></Button>)
 	}
 
 	setRallyPointRedClicked(evt: Event) {
