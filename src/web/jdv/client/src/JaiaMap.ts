@@ -119,6 +119,12 @@ function arrayFrom(location: GeographicCoordinate) {
 }
 
 
+/**
+ * Converts a TaskPacket to a string containing the KML code representing that TaskPacket
+ * 
+ * @param taskPacket the TaskPacket object to get KML code for
+ * @returns A string containing the KML code for the input taskPacket
+ */
 function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     var placemarks: string[] = []
 
@@ -166,11 +172,16 @@ function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
                     <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
                 </Point>
                 <Style>
+                    <LabelStyle>
+                        <color>ff9900ff</color>
+                        <colorMode>normal</colorMode>
+                        <scale>1.0</scale>
+                    </LabelStyle>
                     <IconStyle id="mystyle">
-                    <Icon>
-                        <href>files/diveIcon.png</href>
-                        <scale>0.5</scale>
-                    </Icon>
+                        <Icon>
+                            <href>files/diveIcon.png</href>
+                            <scale>0.5</scale>
+                        </Icon>
                     </IconStyle>
                 </Style>
             </Placemark>
