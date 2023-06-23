@@ -742,10 +742,10 @@ export default class CommandControl extends React.Component {
 	//     cursor:  the name of the cursor to use for this interaction
 	changeInteraction(newInteraction: Interaction = null, cursor = '') {
 		const { currentInteraction } = this.state;
-		if (currentInteraction !== null) {
+		if (currentInteraction) {
 			map.removeInteraction(currentInteraction);
 		}
-		if (newInteraction !== null) {
+		if (newInteraction) {
 			map.addInteraction(newInteraction);
 			this.setState({ currentInteraction: newInteraction });
 		}
@@ -911,7 +911,7 @@ export default class CommandControl extends React.Component {
 	 */
 	zoomToBot(id: number, firstMove = false) {
 		const extent = this.getBotExtent(id)
-		if (extent != null) {
+		if (extent) {
 			this.fit(extent, { duration: 100 }, false, firstMove);
 		}
 	}
@@ -925,14 +925,14 @@ export default class CommandControl extends React.Component {
 	 */
 	zoomToPod(firstMove = false) {
 		const podExtent = this.getPodExtent()
-		if (podExtent != null) {
+		if (podExtent) {
 			this.fit(podExtent, { duration: 100 }, false, firstMove)
 		}
 	}
 
 
 	toggleBot(bot_id?: number) {
-		if (bot_id == null || this.isBotSelected(bot_id)) {
+		if (!bot_id || this.isBotSelected(bot_id)) {
 			this.unselectHubOrBot()
 		} else {
 			this.selectBot(bot_id)
@@ -967,19 +967,19 @@ export default class CommandControl extends React.Component {
 
 	isBotSelected(bot_id: number) {
 		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
+		return selectedHubOrBot && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
 	}
 
 	isHubSelected(hub_id: number) {
 		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
+		return selectedHubOrBot && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
 	}
 
 	getBotExtent(bot_id: number) {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
 		const bot = this.getPodStatus().bots[bot_id]
 
-		if (bot != null && bot.location != null) {
+		if (bot && bot.location) {
 			const coordinate = getMapCoordinate(bot.location, map)
 			return [
 				coordinate[0] - zoomExtentWidth,
@@ -994,8 +994,8 @@ export default class CommandControl extends React.Component {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
 		const bots = Object.values(this.getPodStatus().bots)
 
-		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon != null })
-		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat != null })
+		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon })
+		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat })
 
 		if (lons.length == 0 || lats.length == 0) return undefined
 
@@ -1015,7 +1015,7 @@ export default class CommandControl extends React.Component {
 		if (id === 'pod') {
 			this.zoomToPod(true);
 			info('Following pod');
-		} else if (id !== null) {
+		} else if (id) {
 			this.zoomToBot(id as number, true);
 			info(`Following bot ${id}`);
 		} else if (trackingTarget === 'pod') {
@@ -1104,7 +1104,7 @@ export default class CommandControl extends React.Component {
 
 	weAreInControl() {
 		const {controllingClientId} = this.getPodStatus()
-		return (controllingClientId == this.api.clientId) || controllingClientId == null
+		return (controllingClientId == this.api.clientId) || !controllingClientId
 	}
 
 	takeControl() {
@@ -1672,7 +1672,7 @@ export default class CommandControl extends React.Component {
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
 
-		if (botId == null) {
+		if (!botId) {
 			return
 		}
 
@@ -1690,7 +1690,7 @@ export default class CommandControl extends React.Component {
 		// The check for MAX_RUNS occurs in Missions.tsx
 		if (!runList) { return }
 
-		if(runs[botsAssignedToRuns[botId]]?.command == null)
+		if(!runs[botsAssignedToRuns[botId]]?.command)
 		{
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
@@ -1855,7 +1855,7 @@ export default class CommandControl extends React.Component {
 	// Currently selected botId
 	selectedBotId() {
 		const { selectedHubOrBot } = this.state
-		if (selectedHubOrBot == null || selectedHubOrBot.type != "bot") return null
+		if (!selectedHubOrBot || selectedHubOrBot.type != "bot") return null
 		else {
 			return selectedHubOrBot.id
 		}
@@ -1867,7 +1867,7 @@ export default class CommandControl extends React.Component {
 
 	selectedHubId() {
 		const { selectedHubOrBot } = this.state
-		if (selectedHubOrBot == null || selectedHubOrBot.type != "hub") return null
+		if (!selectedHubOrBot || selectedHubOrBot.type != "hub") return null
 		else {
 			return selectedHubOrBot.id
 		}
@@ -1909,7 +1909,7 @@ export default class CommandControl extends React.Component {
 			let botId = feature.get('botId')
 			let goalIndex = feature.get('goalIndex')
 
-			if (goal != null) {
+			if (goal) {
 				this.pushRunListToUndoStack()
 				this.setState({
 					goalBeingEdited: goal,
@@ -1921,7 +1921,7 @@ export default class CommandControl extends React.Component {
 
 			// Clicked on a bot
 			const botStatus = feature.get('bot') as PortalBotStatus
-			if (botStatus != null) {
+			if (botStatus) {
 				this.toggleBot(botStatus.bot_id)
 			}
 
@@ -1932,7 +1932,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on mission planning point
-			if (goal == null) {
+			if (!goal) {
 				if (this.state.mode == Mode.MISSION_PLANNING) {
 					this.state.selectedFeatures = new OlCollection([ feature ])
 				}
@@ -2145,14 +2145,14 @@ export default class CommandControl extends React.Component {
 
 	runRCMode() {
 		let botId = this.selectedBotId()
-		if (botId == null) {
+		if (!botId) {
 			warning("No bots selected")
 			return
 		}
 
 		var datum_location = this.getPodStatus()?.bots?.[botId]?.location 
 
-		if (datum_location == null) {
+		if (!datum_location) {
 			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
 			if (!confirm(warning_string)) {
@@ -2200,7 +2200,7 @@ export default class CommandControl extends React.Component {
 
 	disconnectionPanel() {
 		let msg = this.state.disconnectionMessage
-		if (msg == null) {
+		if (!msg) {
 			return null
 		}
 
@@ -2258,7 +2258,7 @@ export default class CommandControl extends React.Component {
 
 				// Add our goals
 				const plan = run.command?.plan
-				if (plan != null) {
+				if (plan) {
 					// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
 					const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
 					const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, isSelected, runNumber, zIndex)
@@ -2288,7 +2288,7 @@ export default class CommandControl extends React.Component {
 				let bot = bots[botId]
 	
 				const active_mission_plan = bot.active_mission_plan
-				if (active_mission_plan != null) {
+				if (active_mission_plan) {
 					let features = MissionFeatures.createMissionFeatures(map, Number(botId), active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
 					allFeatures.push(...features)
 				}
