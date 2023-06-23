@@ -3,7 +3,7 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -12,8 +12,8 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
-	     mdiSkipNext, mdiDownload, mdiStop, mdiPause,
-         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete } from '@mdi/js'
+	     mdiSkipNext, mdiDownload, mdiStop,
+         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete , mdiDatabaseEyeOutline} from '@mdi/js'
 const rcMode = require('../icons/controller.svg') as string
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png') as string
 const goToRallyRed = require('../icons/go-to-rally-point-red.png') as string
@@ -25,7 +25,7 @@ import { GlobalSettings } from './Settings';
 import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
 import { Command, CommandType, HubCommandType, BotStatus, HubStatus, MissionState, Engineering } from './shared/JAIAProtobuf';
-import { PortalHubStatus, PortalBotStatus } from './PortalStatus'
+import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
 import { MissionInterface } from './CommandControl';
 import RCControllerPanel from './RCControllerPanel'
 import { Missions } from './Missions'
@@ -54,6 +54,9 @@ let commands: {[key: string]: CommandInfo} = {
         description: 'go to the Next Task for',
         statesAvailable: [
             /^IN_MISSION__.+$/
+        ],
+        statesNotAvailable: [
+            /REMOTE_CONTROL/
         ]
     },
     goHome: {
@@ -93,6 +96,7 @@ let commands: {[key: string]: CommandInfo} = {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
         statesAvailable: [
+            /^PRE_DEPLOYMENT.+$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
         ]
     },
@@ -164,6 +168,7 @@ export interface DetailsExpandedState {
     imu: boolean
     sensor: boolean
     power: boolean
+    links: boolean
 }
 
 
@@ -225,37 +230,41 @@ function issueRunCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
     }
 }
 
-function issueRCCommand(api: JaiaAPI, bot_mission: Command, bot_id: number) {
+function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number, isRCModeActive: (botId: number) => boolean) {
 
-    if (!takeControlFunction()) return;
+    if (!takeControlFunction() || !botMission) return;
 
-    if (bot_mission) {
-        if (confirm("Are you sure you'd like to use remote control mode for: " + bot_id + "?")) {
+    const isRCActive = isRCModeActive(botId)
+
+    if (!isRCActive) {
+        if (confirm("Are you sure you'd like to use remote control mode for Bot: " + botId + "?")) {
 
             console.debug('Running Remote Control:')
-            console.debug(bot_mission)
+            console.debug(botMission)
 
-            info('Submitted request for RC Mode for: ' + bot_id);
+            info('Submitted request for RC Mode for: ' + botId);
 
-            api.postCommand(bot_mission).then(response => {
+            api.postCommand(botMission).then(response => {
                 if (response.message) {
                     error(response.message)
                 }
             })
         }   
+    } else {
+        issueCommand(api, botId, commands.stop)
     }
 }
 
 function runRCMode(bot: PortalBotStatus) {
-    let bot_id = bot.bot_id;
-    if (bot_id == null) {
+    const bot_id = bot.bot_id;
+    if (!bot_id) {
         warning("No bots selected")
         return null
     }
 
-    var datum_location = bot?.location 
+    let datum_location = bot?.location 
 
-    if (datum_location == null) {
+    if (!datum_location) {
         const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
         if (!confirm(warning_string)) {
@@ -283,37 +292,32 @@ function runMission(bot_id: number, mission: MissionInterface) {
 }
 
 // Check mission state for disabling button
-function disableButton(command: CommandInfo, mission_state: MissionState)
-{
-    let disable = false;
+function disableButton(command: CommandInfo, mission_state: MissionState) {
+    let disable = false
     let statesAvailable = command.statesAvailable
     let statesNotAvailable = command.statesNotAvailable
-    if (statesAvailable != null
-            && statesAvailable != undefined) {
-        disable = true;
+    
+    if (statesAvailable) {
+        disable = true
         for (let stateAvailable of statesAvailable) {
-            if (stateAvailable.test(mission_state))
-            {
-                disable = false; 
-                break;
+            if (stateAvailable.test(mission_state)) {
+                disable = false;
+                break
             }
         }
     }
 
-    if (statesNotAvailable != null
-        || statesNotAvailable != undefined) {
+    if (statesNotAvailable) {
         for (let stateNotAvailable of statesNotAvailable) {
-            if (stateNotAvailable.test(mission_state))
-            {
-                disable = true;
-                break;
+            if (stateNotAvailable.test(mission_state)) {
+                disable = true
+                break
             }
         }
     }
 
     let disableButton = {class: '', isDisabled: disable};
-    if(disable)
-    {
+    if (disable) {
         disableButton.class = "inactive";
     }
     return disableButton;
@@ -328,6 +332,13 @@ function disableClearMissionButton(bot_id: number, mission: MissionInterface) {
         disableButton.isDisabled = true      
     }
     return disableButton
+}
+
+function toggleRCModeButton(missionState: MissionState) {
+    if (missionState.includes('REMOTE_CONTROL')) {
+        return true
+    }
+    return false
 }
 
 // Get the table row for the health of the vehicle
@@ -377,22 +388,88 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, api: JaiaAPI, mission: MissionInterface,
-        closeWindow: React.MouseEventHandler<HTMLDivElement>, takeControl: () => boolean, isExpanded: DetailsExpandedState,
-        createRemoteControlInterval: () => void, clearRemoteControlInterval: () => void, remoteControlValues: Engineering,
-        weAreInControl: () => boolean, weHaveRemoteControlInterval: () => boolean, deleteSingleMission: () => void,
-        detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
-    if (bot == null) {
+export interface BotDetailsProps {
+    bot: PortalBotStatus,
+    hub: PortalHubStatus,
+    api: JaiaAPI,
+    mission: MissionInterface,
+    closeWindow: () => void,
+    takeControl: () => boolean,
+    isExpanded: DetailsExpandedState,
+    deleteSingleMission: () => void,
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    isRCModeActive: (botId: number) => boolean
+}
+
+function addDropdownListener(targetClassName: string, parentContainerId: string) {
+    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
+    dropdownContainers.forEach((dropdownElement: HTMLElement) => {
+        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId))
+    })
+}
+
+function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string) {
+    let clickedElement = event.target as HTMLElement
+    // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
+    //     reduces some of the lag
+    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
+        clickedElement = clickedElement.parentElement
+    }
+    const dropdownTimeout: number = 400 // Milliseconds
+    setTimeout(() => {
+        const dropdownContainer = clickedElement
+        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
+    }, dropdownTimeout)
+}
+
+function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+    const parentContainer = document.getElementById(parentContainerId)
+    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
+    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
+
+    if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
+        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
+        parentContainer.scrollBy({
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
+            left: 0,
+            behavior: 'smooth'
+        })
+    } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
+        parentContainer.scrollBy({
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
+            left: 0,
+            behavior: 'smooth'
+        })
+    }
+}
+
+export function BotDetailsComponent(props: BotDetailsProps) {
+    const bot = props.bot
+    const hub = props.hub
+    const api = props.api
+    const mission = props.mission
+    const closeWindow = props.closeWindow
+    const takeControl = props.takeControl
+    const isExpanded = props.isExpanded
+    const deleteSingleMission = props.deleteSingleMission
+    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const isRCModeActive = props.isRCModeActive
+
+    if (!bot) {
         return (<div></div>)
     }
 
-    let statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
+    useEffect(() => {
+        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer')
+    }, [])
 
-    let statusAgeClassName = ''
+    const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
+    let statusAgeClassName: string
+
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
-    }
-    else if (statusAge > 10) {
+    } else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
 
@@ -401,84 +478,62 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     let distToGoal = bot.distance_to_active_goal ?? "N/A"
     let goalTimeout = bot.active_goal_timeout ?? "N/A"
 
-    if(activeGoal != "N/A"
-        && distToGoal == "N/A")
-    {
+    if (activeGoal !== "N/A" && distToGoal === "N/A") {
         distToGoal = "Distance To Goal > 1000"
-    } 
-    else if(activeGoal != "N/A"
-            && distToGoal != "N/A")
-    {
+    } else if (activeGoal !== "N/A" && distToGoal !== "N/A") {
         distToGoal = distToGoal + " m"
-    }
-    else if(activeGoal == "N/A"
-            && distToGoal != "N/A")
-    {
+    } else if (activeGoal === "N/A" && distToGoal !== "N/A") {
         activeGoal = "Recovery"
         distToGoal = distToGoal + " m"
     }
 
-    if(activeGoal != "N/A")
-    {
+    if (activeGoal !== "N/A") {
         goalTimeout = goalTimeout + " s"
     }
 
     // Distance from hub
     let distToHub = "N/A"
-    if (bot?.location != null
-        && hub?.location != null)
-    {
-        let botloc = turf.point([bot.location.lon, bot.location.lat]); 
-        let hubloc = turf.point([hub.location.lon, hub.location.lat]);
-        var options = {units: 'meters' as turf.Units};
-
-        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1);
+    if (bot?.location && hub?.location) {
+        const botloc = turf.point([bot.location.lon, bot.location.lat])
+        const hubloc = turf.point([hub.location.lon, hub.location.lat])
+        const options = {units: 'meters' as turf.Units}
+        distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1)
     }
 
-    let mission_state = bot.mission_state;
-    takeControlFunction = takeControl;
+    const mission_state = bot.mission_state
+    takeControlFunction = takeControl
 
-    // Reuse data offload button icon for recover and retry data offload
-    let dataOffloadStatesAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/;
-
-    let dataOffloadButton = 
+    let dataOffloadButton = (
         <Button className={disableButton(commands.recover, mission_state).class + " button-jcc"} 
             disabled={disableButton(commands.recover, mission_state).isDisabled} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title="Data Offload"/>
         </Button>
+    )
 
-    if(!dataOffloadStatesAvailable.test(mission_state)) {
-        dataOffloadButton = 
+    if(disableButton(commands.recover, mission_state).isDisabled) {
+        dataOffloadButton = ( 
             <Button className={disableButton(commands.retryDataOffload, mission_state).class + " button-jcc"} 
                 disabled={disableButton(commands.retryDataOffload, mission_state).isDisabled} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title="Retry Data Offload"/>
             </Button>
+        )
     }
 
-    let bot_offload_percentage = "";
+    let bot_offload_percentage = ""
 
-    if(bot.data_offload_percentage != undefined) {
-        bot_offload_percentage = " " + bot.data_offload_percentage + "%";
+    if (bot.data_offload_percentage) {
+        bot_offload_percentage = " " + bot.data_offload_percentage + "%"
     }
 
     return (
         <React.Fragment>
-            <RCControllerPanel 
-                api={api} 
-                bot={bot}  
-                createInterval={createRemoteControlInterval} 
-                clearInterval={clearRemoteControlInterval} 
-                remoteControlValues={remoteControlValues}
-                weAreInControl={weAreInControl}
-                weHaveInterval={weHaveRemoteControlInterval}
-            />
             <div id='botDetailsBox'>
                 <div className="botDetailsHeading">
                     <div className='HorizontalFlexbox'>
                         <h2 className="name">{`Bot ${bot?.bot_id}`}</h2>
-                        <div onClick={closeWindow} className="closeButton">⨯</div>
+                        <div onClick={() => closeWindow()} className="closeButton">⨯</div>
                     </div>
                     <h3 className="name">Click on the map to create goals</h3>
                     <div className="botDetailsToolbar">
@@ -499,11 +554,11 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                         </Button>
                     </div>
                 </div>
-                <div className="accordionContainer">
+                <div id="botDetailsAccordionContainer" className="accordionParentContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
                         onChange={() => {detailsDefaultExpanded("quickLook")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -550,7 +605,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.commands} 
                         onChange={() => {detailsDefaultExpanded("commands")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -560,9 +615,6 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Typography>Commands</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            {/*<Button className="button-jcc inactive" disabled>
-                                <Icon path={mdiPause} title="Pause Mission"/>
-                            </Button>*/}
 
                             <Button className={disableButton(commands.active, mission_state).class + " button-jcc"} 
                                     disabled={disableButton(commands.active, mission_state).isDisabled} 
@@ -570,9 +622,9 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check"/>
                             </Button>
 
-                            {<Button className={disableButton(commands.rcMode, mission_state).class + " button-jcc"} 
+                            {<Button className={`${disableButton(commands.rcMode, mission_state).class} ${toggleRCModeButton(mission_state) ? 'rc-active' : 'rc-inactive' }  button-jcc`} 
                                     disabled={disableButton(commands.rcMode, mission_state).isDisabled}  
-                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id); }}>
+                                    onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive) }}>
                                 <img src={rcMode} alt="Activate RC Mode" title="RC Mode"></img>
                             </Button>}
 
@@ -587,7 +639,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
                                 onChange={() => {detailsDefaultExpanded("advancedCommands")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -644,7 +696,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.health} 
                         onChange={() => {detailsDefaultExpanded("health")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -665,7 +717,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                     <Accordion 
                         expanded={isExpanded.data} 
                         onChange={() => {detailsDefaultExpanded("data")}}
-                        className="accordion"
+                        className="accordionContainer"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -679,7 +731,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.gps} 
                                 onChange={() => {detailsDefaultExpanded("gps")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -722,7 +774,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.imu} 
                                 onChange={() => {detailsDefaultExpanded("imu")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -769,7 +821,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.sensor} 
                                 onChange={() => {detailsDefaultExpanded("sensor")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -800,7 +852,7 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
                             <Accordion 
                                 expanded={isExpanded.power} 
                                 onChange={() => {detailsDefaultExpanded("power")}}
-                                className="accordion nestedAccordion"
+                                className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
@@ -840,94 +892,139 @@ export function BotDetailsComponent(bot: PortalBotStatus, hub: PortalHubStatus, 
     )
 }
 
+export interface HubDetailsProps {
+    hub: PortalHubStatus,
+    api: JaiaAPI,
+    isExpanded: DetailsExpandedState,
+    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    getFleetId: () => number
+    closeWindow: () => void,
+    takeControl: () => boolean,
+}
 
-export function HubDetailsComponent(hub: PortalHubStatus, api: JaiaAPI, 
-    closeWindow: React.MouseEventHandler<HTMLDivElement>, isExpanded: DetailsExpandedState, takeControl: () => boolean,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void) {
-    if (hub == null) {
+export function HubDetailsComponent(props: HubDetailsProps) {
+    const hub = props.hub
+    const api = props.api
+    const isExpanded = props.isExpanded
+    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const getFleetId = props.getFleetId
+    const closeWindow = props.closeWindow
+    const takeControl = props.takeControl
+
+    useEffect(() => {
+        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer')
+    }, [])
+
+    if (!hub) {
         return (<div></div>)
     }
 
     let statusAge = Math.max(0.0, hub.portalStatusAge / 1e6)
-
-    var statusAgeClassName = ''
+    let statusAgeClassName: string
+    
     if (statusAge > 30) {
         statusAgeClassName = 'healthFailed'
-    }
-    else if (statusAge > 10) {
+    } else if (statusAge > 10) {
         statusAgeClassName = 'healthDegraded'
     }
 
     takeControlFunction = takeControl;
 
     return (
-        <div id='botDetailsBox'>
-            <div id="botDetailsComponent">
+        <div id='hubDetailsBox'>
+            <div id="hubDetailsAccordionContainer" className="accordionParentContainer">
                 <div className='HorizontalFlexbox'>
                     <h2 className="name">{`Hub ${hub?.hub_id}`}</h2>
-                    <div onClick={closeWindow} className="closeButton">⨯</div>
+                    <div onClick={() => closeWindow()} className="closeButton">⨯</div>
                 </div>
-
-                <Accordion 
-                    expanded={isExpanded.quickLook} 
-                    onChange={() => {detailsDefaultExpanded("quickLook")}}
-                    className="accordion"
-                >
-                    <AccordionSummary
-                        expandIcon={<ExpandMoreIcon />}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
+                <div id="hubDetailsAccordionContainer">
+                    <Accordion 
+                        expanded={isExpanded.quickLook} 
+                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        className="accordionContainer"
                     >
-                        <Typography>Quick Look</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <table>
-                            <tbody>
-                                {healthRow(hub, false)}
-                                <tr>
-                                    <td>Latitude</td>
-                                    <td>{formatLatitude(hub.location?.lat)}</td>
-                                </tr>
-                                <tr>
-                                    <td>Longitude</td>
-                                    <td>{formatLongitude(hub.location?.lon)}</td>
-                                </tr>
-                                <tr className={statusAgeClassName}>
-                                    <td>Status Age</td>
-                                    <td>{statusAge.toFixed(0)} s</td>
-                                </tr>
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Quick Look</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <table>
+                                <tbody>
+                                    {healthRow(hub, false)}
+                                    <tr>
+                                        <td>Latitude</td>
+                                        <td>{formatLatitude(hub.location?.lat)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Longitude</td>
+                                        <td>{formatLongitude(hub.location?.lon)}</td>
+                                    </tr>
+                                    <tr className={statusAgeClassName}>
+                                        <td>Status Age</td>
+                                        <td>{statusAge.toFixed(0)} s</td>
+                                    </tr>
 
-                            </tbody>
-                        </table>
-                    </AccordionDetails>
-                </Accordion>
-                <Accordion 
-                    expanded={isExpanded.commands} 
-                    onChange={() => {detailsDefaultExpanded("commands")}}
-                    className="accordion"
-                >
-                    <AccordionSummary
-                        expandIcon={<ExpandMoreIcon />}
-                        aria-controls="panel1a-content"
-                        id="panel1a-header"
+                                </tbody>
+                            </table>
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion 
+                        expanded={isExpanded.commands} 
+                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        className="accordionContainer"
                     >
-                        <Typography>Commands</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Button className={" button-jcc"} 
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
-                            <Icon path={mdiPower} title="Shutdown"/>
-                        </Button>
-                        <Button className={" button-jcc"} 
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
-                            <Icon path={mdiRestartAlert} title="Reboot"/>
-                        </Button>
-                        <Button className={" button-jcc"}  
-                                onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
-                            <Icon path={mdiRestart} title="Restart Services"/>
-                        </Button>
-                    </AccordionDetails>
-                </Accordion>
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Commands</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button className={" button-jcc"} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.shutdown) }}>
+                                <Icon path={mdiPower} title="Shutdown"/>
+                            </Button>
+                            <Button className={" button-jcc"} 
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.reboot) }}>
+                                <Icon path={mdiRestartAlert} title="Reboot"/>
+                            </Button>
+                            <Button className={" button-jcc"}  
+                                    onClick={() => { issueCommandForHub(api, hub.hub_id, commandsForHub.restartServices) }}>
+                                <Icon path={mdiRestart} title="Restart Services"/>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion 
+                        expanded={isExpanded.links} 
+                        onChange={() => {detailsDefaultExpanded("links")}}
+                        className="accordionContainer"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            aria-controls="panel1a-content"
+                            id="panel1a-header"
+                        >
+                            <Typography>Links</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Button
+                                className={"button-jcc"} 
+                                onClick={() => {							
+                                    const hubId = 10 + hub?.hub_id
+                                    const fleetId = getFleetId()
+                                    // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+                                    const url = `http://10.23.${fleetId}.${hubId}:40010`
+                                    window.open(url, '_blank')}}
+                            >
+                                <Icon path={mdiDatabaseEyeOutline} title="JDV"/>
+                            </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </div>
             </div>
         </div>
     )

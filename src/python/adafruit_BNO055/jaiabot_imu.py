@@ -125,10 +125,6 @@ class IMU:
 
         return imu_data
 
-    def reset(self):
-        log.debug("Resetting IMU")
-        self.sensor._reset
-
 
 # Setup the sensor
 imu = IMU(simulator=args.simulator)
@@ -140,9 +136,6 @@ def do_port_loop():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
-
-    imu_timeout = 5
-    previous_time = time.time()
 
     while True:
 
