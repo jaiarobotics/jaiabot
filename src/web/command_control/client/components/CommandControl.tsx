@@ -512,7 +512,7 @@ export default class CommandControl extends React.Component {
 
 		// Hotkeys
 		function KeyPress(e: KeyboardEvent) {
-			let target = e.target as any
+			let target = e.target as HTMLElement
 
 			switch (target.tagName.toLowerCase()) {
 				case "input":
@@ -540,10 +540,10 @@ export default class CommandControl extends React.Component {
 						return
 					}
 
-				// Undo
-				if (e.keyCode == 90 && e.ctrlKey) {
-					this.restoreUndo()
-				}
+					// Undo
+					if (e.keyCode == 90 && e.ctrlKey) {
+						this.restoreUndo()
+					}
 			}
 		}
 
@@ -673,22 +673,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
-		// TODO move map-based rendering here
-		// Here we can check the previous state against the current state and update the map
-		// layers to reflect changes that we can't handle in render() directly.
-		// Note that calling setState() here will cause another cycle, beware of infinite loops
-		/* Need to detect when an input field is rendered, then call this on it:
-				This will make the keyboard "go" button close the keyboard instead of doing nothing.
-		$('input').keypress(function(e) {
-				let code = (e.keyCode ? e.keyCode : e.which);
-				if ( (code==13) || (code==10))
-						{
-						jQuery(this).blur();
-						return false;
-						}
-		});
-		*/
-
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -797,8 +781,7 @@ export default class CommandControl extends React.Component {
 
 		if (botCount > lastBotCount) {
 			this.zoomToPod(true);
-		} 
-		else if (trackingTarget === 'pod') {
+		} else if (trackingTarget === 'pod') {
 			this.zoomToPod();
 		} 
 
@@ -901,8 +884,7 @@ export default class CommandControl extends React.Component {
 
 					if (messages.error) {
 						this.setState({disconnectionMessage: messages.error})
-					}
-					else {
+					} else {
 						this.setState({disconnectionMessage: null})
 					}
 				}
@@ -952,8 +934,7 @@ export default class CommandControl extends React.Component {
 	toggleBot(bot_id?: number) {
 		if (bot_id == null || this.isBotSelected(bot_id)) {
 			this.unselectHubOrBot()
-		}
-		else {
+		} else {
 			this.selectBot(bot_id)
 		}
 	}
@@ -961,8 +942,7 @@ export default class CommandControl extends React.Component {
 	toggleHub(id: number) {
 		if (this.isHubSelected(id)) {
 			this.unselectHubOrBot()
-		}
-		else {
+		} else {
 			this.selectHub(id)
 		}
 	}
@@ -1097,9 +1077,7 @@ export default class CommandControl extends React.Component {
 			// console.debug(deepcopy(this.state.undoRunListStack))
 			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
-		} 
-		else
-		{
+		} else {
 			info("There is no goal or task to undo!");
 		}
 	}
@@ -1110,8 +1088,7 @@ export default class CommandControl extends React.Component {
 		this.api.allStop().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-			else {
+			} else {
 				info("Sent STOP")
 			}
 		})
@@ -1491,9 +1468,7 @@ export default class CommandControl extends React.Component {
 									this.setState({center_line_string: null}) // Forgive me
 
 									info('Touch map to set first polygon point');
-								} 
-								else
-								{
+								} else {
 									info('Please place a green and red rally point before using this tool');
 								}
 							}}
@@ -1627,8 +1602,7 @@ export default class CommandControl extends React.Component {
 		if(detailsExpanded[accordian])
 		{
 			newDetailsExpanded[accordian] = false;
-		} else
-		{
+		} else {
 			newDetailsExpanded[accordian] = true;
 		}
 
@@ -1726,9 +1700,7 @@ export default class CommandControl extends React.Component {
 		if(runCommand.plan.goal.length < MAX_GOALS)
 		{
 			runCommand.plan.goal.push({location: location})	
-		}
-		else
-		{
+		} else {
 			warning("Adding this goal exceeds the limit of "+ MAX_GOALS +"!");
 		}
 
@@ -1788,9 +1760,7 @@ export default class CommandControl extends React.Component {
 					|| botState == "POST_DEPLOYMENT__IDLE")
 				{
 					botIdsInIdleState.push(botIndex);
-				}
-				else
-				{
+				} else {
 					botIds.push(botIndex);
 				}
 			}
@@ -1802,9 +1772,7 @@ export default class CommandControl extends React.Component {
 		if(botIdsInIdleState.length != 0)
 		{
 			warning("Please activate bots: " + botIdsInIdleState);
-		} 
-		else
-		{
+		} else {
 			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
 				if(add_runs)
 				{
@@ -1969,8 +1937,7 @@ export default class CommandControl extends React.Component {
 					this.state.selectedFeatures = new OlCollection([ feature ])
 				}
 			}
-		}
-		else {
+		} else {
 			this.addWaypointAtCoordinate(evt.coordinate)
 		}
 
@@ -2146,8 +2113,7 @@ export default class CommandControl extends React.Component {
 		this.api.allActivate().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-			else {
+			} else {
 				info("Sent Activate All")
 			}
 		})
@@ -2159,8 +2125,7 @@ export default class CommandControl extends React.Component {
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-				else {
+			} else {
 				info("Sent Next Task All")
 			}
 		})
@@ -2172,8 +2137,7 @@ export default class CommandControl extends React.Component {
 		this.api.allRecover().then(response => {
 				if (response.message) {
 						error(response.message)
-				}
-				else {
+				} else {
 						info("Sent Recover All")
 				}
 		})
@@ -2228,8 +2192,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			this.state.mode = Mode.NONE
-		}
-		else {
+		} else {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
@@ -2251,8 +2214,7 @@ export default class CommandControl extends React.Component {
 		let engineeringPanel = document.getElementById('engineeringPanel')
 		if (engineeringPanel.style.width == "400px") {
 			engineeringPanel.style.width = "0px"
-		}
-		else {
+		} else {
 			engineeringPanel.style.width = "400px"
 		}
 	}
@@ -2261,8 +2223,7 @@ export default class CommandControl extends React.Component {
 		let missionPanel = document.getElementById('missionPanel')
 		if (missionPanel.style.width == "400px") {
 			missionPanel.style.width = "0px"
-		}
-		else {
+		} else {
 			missionPanel.style.width = "400px"
 		}
 	}
