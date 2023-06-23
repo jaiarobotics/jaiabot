@@ -1808,13 +1808,12 @@ export default class CommandControl extends React.Component {
 		this.setRunList(runList)
 	}
 
-	// Check if a run is assigned to any bot
+	/**
+	 * 
+	 * @returns Whether any bots are assigned to runs in the current runList
+	 */
 	areBotsAssignedToRuns() {
-		const botsAssignedToRuns = this.getRunList().botsAssignedToRuns
-		if (Object.keys(botsAssignedToRuns).length === 0) {
-			return false
-		}
-		return true
+		return Object.keys(this.getRunList().botsAssignedToRuns).length > 0
 	}
 
 	deleteAllRunsInMission(mission: MissionInterface) {
@@ -1923,25 +1922,25 @@ export default class CommandControl extends React.Component {
 			const botStatus = feature.get('bot') as PortalBotStatus
 			if (botStatus) {
 				this.toggleBot(botStatus.bot_id)
+				return false
 			}
 
 			// Clicked on the hub
 			const hubStatus = feature.get('hub') as PortalHubStatus
 			if (hubStatus) {
 				this.toggleHub(hubStatus.hub_id)
+				return false
 			}
 
 			// Clicked on mission planning point
-			if (!goal) {
-				if (this.state.mode == Mode.MISSION_PLANNING) {
-					this.state.selectedFeatures = new OlCollection([ feature ])
-				}
+			if (this.state.mode == Mode.MISSION_PLANNING) {
+				this.state.selectedFeatures = new OlCollection([ feature ])
+				return false
 			}
 		} else {
 			this.addWaypointAtCoordinate(evt.coordinate)
+			return true
 		}
-
-		return true
 	}
 
 	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
