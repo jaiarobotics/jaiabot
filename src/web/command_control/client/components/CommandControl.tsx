@@ -108,8 +108,6 @@ import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
-import { StyleFunction } from 'ol/style/Style'
-import { EventsKey } from 'ol/events'
 import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
 
@@ -126,8 +124,7 @@ import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
-import { deepEqual } from 'assert'
-import RunList from './mission/RunList'
+import { SurveyExclusions } from './SurveyExclusions'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -212,7 +209,7 @@ interface State {
 	surveyPolygonGeoCoords?: Coordinate[],
 	surveyPolygonCoords?: LineString,
 	surveyPolygonChanged: boolean,
-	surveyExclusions?: number[][],
+	surveyExclusionCoords?: number[][],
 	selectedFeatures?: OlCollection<OlFeature>,
 	detailsBoxItem?: HubOrBot,
 	detailsExpanded: DetailsExpandedState,
@@ -252,11 +249,10 @@ export default class CommandControl extends React.Component {
 	hubLayers: HubLayers
 
 	flagNumber = 1
-	surveyExclusionsStyle?: StyleFunction = null
 
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
-	surveyExclusionsInteraction: OlDrawInteraction
+	surveyExclusions: SurveyExclusions
 
 	timerID: NodeJS.Timer
 
@@ -313,14 +309,26 @@ export default class CommandControl extends React.Component {
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
-			missionBaseGoal: {},
+			missionBaseGoal: {
+				task: {
+					type: TaskType.DIVE,
+					dive: {
+						max_depth: 10,
+						depth_interval: 10,
+						hold_time: 0
+					},
+					surface_drift: {
+						drift_time: 10
+					}
+				}
+			},
 			missionEndTask: {type: TaskType.NONE},
 			surveyPolygonFeature: null,
 			surveyPolygonActive: false,
 			surveyPolygonGeoCoords: null,
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
-			surveyExclusions: null,
+			surveyExclusionCoords: null,
 			selectedFeatures: null,
 			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
 			detailsBoxItem: null,
@@ -409,6 +417,11 @@ export default class CommandControl extends React.Component {
 			Save(mapSettings)
 		})
 
+		// Survey exclusions
+		this.surveyExclusions = new SurveyExclusions(map, (surveyExclusionCoords: number[][]) => {
+			this.setState({ surveyExclusionCoords })
+		})
+
 	}
 
 	clearMissionPlanningState() {
@@ -456,7 +469,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionParams.mission_type === 'lines')
 			this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 		if (this.state.missionParams.mission_type === 'exclusions')
-			this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
+			this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
 	}
 
 	componentDidMount() {
@@ -469,205 +482,18 @@ export default class CommandControl extends React.Component {
 		const viewport = document.getElementById(this.mapDivId);
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
 
-		const us = this;
-
-
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
 		($('.panel > h2') as any).disableSelection();
-
-		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
 
 		($('button') as any).disableSelection();
 
 		tooltips();
 
-		const mapLayersPanel = document.getElementById('mapLayers')
-		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
-		mapLayersPanel.style.width = '0px'
-
-		function handleLayerSwitcherClick(event: Event) {
-			let targetElement = event.target as HTMLElement
-
-			if (targetElement.tagName === 'LABEL' && targetElement.parentElement.classList.contains('layer-switcher-fold')) {
-				event.preventDefault()
-				const siblings = []
-				while ((targetElement = targetElement.previousElementSibling as HTMLElement)) {
-					siblings.push(targetElement)
-				}
-				siblings.forEach(sibling => {
-					if (sibling.tagName === 'BUTTON') {
-						sibling.click()
-					}
-				})
-			} else if (targetElement.classList.contains('layer-switcher-fold')) {
-				const children: HTMLElement[] = Array.prototype.slice.call(targetElement.children)
-				children.forEach(child => {
-					if (child.tagName === 'BUTTON') {
-						child.click()
-					}
-				})
-			}
-		}
+		this.setupMapLayersPanel()
 
 		// Hotkeys
-		function KeyPress(e: KeyboardEvent) {
-			let target = e.target as any
-
-			switch (target.tagName.toLowerCase()) {
-				case "input":
-				case "textarea":
-				// ...and so on for other elements you want to exclude;
-				// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
-				  break;
-				default:
-					// BotDetails number key shortcuts
-					if (e.code.startsWith('Digit')) {
-						const botId = Number(e.code[5])
-
-						if (e.shiftKey) {
-							this.api.postCommand({
-								bot_id: botId,
-								type: "STOP"
-							})
-
-							info("Stopped bot " + botId)
-
-							return
-						}
-
-						this.toggleBot(botId)
-						return
-					}
-
-				// Undo
-				if (e.keyCode == 90 && e.ctrlKey) {
-					this.restoreUndo()
-				}
-			}
-		}
-
-		document.onkeydown = KeyPress.bind(this)
-
-		this.state.missionBaseGoal.task = {
-			type: TaskType.DIVE,
-			dive: {
-				max_depth: 10,
-				depth_interval: 10,
-				hold_time: 0
-			},
-			surface_drift: {
-				drift_time: 10
-			}
-		}
-
-		map.on('dblclick', function (evt) {
-			document.getElementById('layerinfo').innerHTML = '';
-			const viewResolution = /** @type {number} */ (map.getView().getResolution());
-
-			let theSource = gebcoLayer.getSource()
-
-			const url = theSource.getFeatureInfoUrl(
-				evt.coordinate,
-				viewResolution,
-				'EPSG:4326',
-				{
-					'INFO_FORMAT': 'text/html',
-					'VERSION': '1.3.0',
-					'LAYERS': 'GEBCO_LATEST_2_sub_ice_topo'
-				}
-			);
-			if (url) {
-				fetch(url)
-					.then((response) => response.text())
-					.then((html) => {
-						document.getElementById('layerinfo').innerHTML = html;
-					});
-			}
-		});
-
-		/* ////////////////////////////////////////////////////////////////////////// */
-
-		// Survey exclusion areas
-		const surveyExclusionsStyle = function(feature: OlFeature) {
-			let lineStyle = new OlStyle({
-				fill: new OlFillStyle({
-					color: 'rgb(196,10,10)'
-				}),
-				stroke: new OlStrokeStyle({
-					color: 'rgb(196,10,10)',
-					lineDash: [10, 10],
-					width: 5
-				}),
-				image: new OlCircleStyle({
-					radius: 5,
-					stroke: new OlStrokeStyle({
-						color: 'rgb(196,10,10)'
-					}),
-					fill: new OlFillStyle({
-						color: 'rgb(196,10,10)'
-					})
-				})
-			});
-
-			return [lineStyle];
-		};
-
-		let surveyExclusionsSource = new OlVectorSource({ wrapX: false });
-		this.surveyExclusionsInteraction = new OlDrawInteraction({
-			source: surveyExclusionsSource,
-			stopClick: true,
-			minPoints: 3,
-			clickTolerance: 10,
-			type: 'Polygon',
-			style: surveyExclusionsStyle
-		})
-
-		let surveyExclusionslistener: EventsKey
-		this.surveyExclusionsInteraction.on(
-			'drawstart',
-			(evt: DrawEvent) => {
-				this.setState({
-					surveyExclusions: null
-				})
-
-				// Show the preview of the survey
-				this.surveyLines.listener = evt.feature.on('change', (evt2) => {
-					// console.log('surveyExclusions changed...')
-				})
-			}
-		);
-
-		this.surveyExclusionsInteraction.on(
-			'drawend',
-			(evt: DrawEvent) => {
-				// console.log('surveyExclusionsInteraction drawend');
-
-				let featuresExclusions = [];
-				let geometry = evt.feature.getGeometry() as MultiLineString
-
-				let surveyExclusionsFeature = new OlFeature(
-					{
-						geometry: new OlLineString(turf.coordAll(turf.polygon(geometry.getCoordinates()))),
-						name: "Exclusions"
-					}
-				)
-				surveyExclusionsFeature.setStyle(surveyExclusionsStyle);
-				featuresExclusions.push(surveyExclusionsFeature);
-
-				const vectorSource = new OlVectorSource({
-					features: featuresExclusions,
-				});
-
-				layers.exclusionsLayer.setSource(vectorSource);
-				layers.exclusionsLayer.setZIndex(5000);
-
-				this.setState({
-					surveyExclusions: turf.coordAll(turf.polygon(geometry.getCoordinates()))
-				})
-				OlUnobserveByKey(surveyExclusionslistener);
-			}
-		);
+		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!');
 	}
@@ -748,6 +574,81 @@ export default class CommandControl extends React.Component {
 
 	componentWillUnmount() {
 		clearInterval(this.timerID)
+	}
+
+	
+	setupMapLayersPanel() {
+		const mapLayersPanel = document.getElementById('mapLayers')
+		OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
+
+		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
+		mapLayersPanel.style.width = '0px'
+
+		function handleLayerSwitcherClick(event: Event) {
+			let targetElement = event.target as HTMLElement
+
+			if (targetElement.tagName === 'LABEL' && targetElement.parentElement.classList.contains('layer-switcher-fold')) {
+				event.preventDefault()
+				const siblings = []
+				while ((targetElement = targetElement.previousElementSibling as HTMLElement)) {
+					siblings.push(targetElement)
+				}
+				siblings.forEach(sibling => {
+					if (sibling.tagName === 'BUTTON') {
+						sibling.click()
+					}
+				})
+			} else if (targetElement.classList.contains('layer-switcher-fold')) {
+				const children: HTMLElement[] = Array.prototype.slice.call(targetElement.children)
+				children.forEach(child => {
+					if (child.tagName === 'BUTTON') {
+						child.click()
+					}
+				})
+			}
+		}
+	}
+
+
+	/**
+	 * Handler for when the user presses a hotkey
+	 * 
+	 * @param {KeyboardEvent} e The keyboard event
+	 */
+	keyPressed(e: KeyboardEvent) {
+		let target = e.target as any
+
+		switch (target.tagName.toLowerCase()) {
+			case "input":
+			case "textarea":
+			// ...and so on for other elements you want to exclude;
+			// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
+				break;
+			default:
+				// BotDetails number key shortcuts
+				if (e.code.startsWith('Digit')) {
+					const botId = Number(e.code[5])
+
+					if (e.shiftKey) {
+						this.api.postCommand({
+							bot_id: botId,
+							type: CommandType.STOP
+						})
+
+						info("Stopped bot " + botId)
+
+						return
+					}
+
+					this.toggleBot(botId)
+					return
+				}
+
+			// Undo
+			if (e.keyCode == 90 && e.ctrlKey) {
+				this.restoreUndo()
+			}
+		}
 	}
 
 	// changeInteraction()
@@ -1486,7 +1387,7 @@ export default class CommandControl extends React.Component {
 									if (this.state.missionParams.mission_type === 'lines')
 										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
 									if (this.state.missionParams.mission_type === 'exclusions')
-										this.changeInteraction(this.surveyExclusionsInteraction, 'crosshair');
+										this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
 
 									this.setState({center_line_string: null}) // Forgive me
 
