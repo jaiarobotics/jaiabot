@@ -85,8 +85,6 @@ import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetai
 
 import { jaiaAPI } from '../../common/JaiaAPI';
 
-import tooltips from '../libs/tooltips'
-
 import { error, success, warning, info} from '../libs/notifications';
 
 // Don't use any third party css exept reset-css!
@@ -487,8 +485,6 @@ export default class CommandControl extends React.Component {
 		($('.panel > h2') as any).disableSelection();
 
 		($('button') as any).disableSelection();
-
-		tooltips();
 
 		this.setupMapLayersPanel()
 
