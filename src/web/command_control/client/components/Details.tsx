@@ -397,7 +397,7 @@ export interface BotDetailsProps {
     takeControl: () => boolean,
     isExpanded: DetailsExpandedState,
     deleteSingleMission: () => void,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean
 }
 
@@ -453,7 +453,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     const takeControl = props.takeControl
     const isExpanded = props.isExpanded
     const deleteSingleMission = props.deleteSingleMission
-    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const setDetailsExpanded = props.setDetailsExpanded
     const isRCModeActive = props.isRCModeActive
 
     if (!bot) {
@@ -557,7 +557,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                 <div id="botDetailsAccordionContainer" className="accordionParentContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
-                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("quickLook", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -604,7 +604,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.commands} 
-                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("commands", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -638,7 +638,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
-                                onChange={() => {detailsDefaultExpanded("advancedCommands")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("advancedCommands", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -695,7 +695,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                     <Accordion 
                         expanded={isExpanded.health} 
-                        onChange={() => {detailsDefaultExpanded("health")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("health", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -716,7 +716,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                     <Accordion 
                         expanded={isExpanded.data} 
-                        onChange={() => {detailsDefaultExpanded("data")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("data", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -730,7 +730,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         <AccordionDetails>
                             <Accordion 
                                 expanded={isExpanded.gps} 
-                                onChange={() => {detailsDefaultExpanded("gps")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("gps", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -773,7 +773,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.imu} 
-                                onChange={() => {detailsDefaultExpanded("imu")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("imu", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -820,7 +820,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.sensor} 
-                                onChange={() => {detailsDefaultExpanded("sensor")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("sensor", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -851,7 +851,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.power} 
-                                onChange={() => {detailsDefaultExpanded("power")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("power", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -896,7 +896,7 @@ export interface HubDetailsProps {
     hub: PortalHubStatus,
     api: JaiaAPI,
     isExpanded: DetailsExpandedState,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     getFleetId: () => number
     closeWindow: () => void,
     takeControl: () => boolean,
@@ -906,7 +906,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const hub = props.hub
     const api = props.api
     const isExpanded = props.isExpanded
-    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const setDetailsExpanded = props.setDetailsExpanded
     const getFleetId = props.getFleetId
     const closeWindow = props.closeWindow
     const takeControl = props.takeControl
@@ -940,7 +940,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 <div id="hubDetailsAccordionContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
-                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("quickLook", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -973,7 +973,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.commands} 
-                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("commands", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -1000,7 +1000,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.links} 
-                        onChange={() => {detailsDefaultExpanded("links")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("links", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary

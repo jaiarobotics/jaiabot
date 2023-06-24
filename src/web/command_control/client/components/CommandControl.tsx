@@ -1169,7 +1169,7 @@ export default class CommandControl extends React.Component {
 					hub: hubs?.[this.selectedHubId()],
 					api: this.api,
 					isExpanded: this.state.detailsExpanded,
-					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
+					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					getFleetId: this.getFleetId.bind(this),
 					takeControl: this.takeControl.bind(this),
 					closeWindow: closeDetails.bind(this),
@@ -1190,7 +1190,7 @@ export default class CommandControl extends React.Component {
 					takeControl: this.takeControl.bind(this),
 					isExpanded: this.state.detailsExpanded,
 					deleteSingleMission: this.deleteSingleRun.bind(this),
-					detailsDefaultExpanded: this.detailsDefaultExpanded.bind(this),
+					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					isRCModeActive: this.isRCModeActive.bind(this)
 				}
 				detailsBox = <BotDetailsComponent {...botDetailsProps} />
@@ -1516,20 +1516,16 @@ export default class CommandControl extends React.Component {
 		this.setRunList(runList)
     }
 
-    detailsDefaultExpanded(accordian: keyof DetailsExpandedState) {
-		let detailsExpanded = this.state.detailsExpanded;
-
-		const newDetailsExpanded = this.state.detailsExpanded;
-		
-		if(detailsExpanded[accordian])
-		{
-			newDetailsExpanded[accordian] = false;
-		} else
-		{
-			newDetailsExpanded[accordian] = true;
-		}
-
-		this.setState({ detailsExpanded:newDetailsExpanded });
+	/**
+	 * Delegate method from Hub and Bot Details panels, to set the expansion state of accordion sections
+	 * 
+	 * @param section Accordion section name
+	 * @param expanded True if expanded, false otherwise
+	 */
+	setDetailsExpanded(section: keyof DetailsExpandedState, expanded: boolean) {
+		const { detailsExpanded } = this.state
+		detailsExpanded[section] = expanded
+		this.setState({ detailsExpanded });
 	}
 
 	createRemoteControlInterval() {
