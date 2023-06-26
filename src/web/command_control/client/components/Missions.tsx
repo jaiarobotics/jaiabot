@@ -125,8 +125,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: Missions.commandWithWaypoints(botId, locations)
+            command: Missions.commandWithWaypoints(botId, locations),
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
@@ -151,8 +151,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: commandWithGoals(botId, deepcopy(goals))
+            command: commandWithGoals(botId, deepcopy(goals)),
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
@@ -179,8 +179,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: command
+            command: command,
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
