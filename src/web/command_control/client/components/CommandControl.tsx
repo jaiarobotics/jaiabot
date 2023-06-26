@@ -1035,450 +1035,6 @@ export default class CommandControl extends React.Component {
 		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
 	}
 
-	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	// eslint-disable-next-line class-methods-use-this
-
-	render() {
-		const {
-			trackingTarget,
-			measureActive,
-			surveyPolygonActive,
-			mapLayerActive,
-			engineeringPanelActive,
-			missionPanelActive,
-			goalBeingEdited,
-			goalBeingEditedBotId,
-			goalBeingEditedGoalIndex
-		} = this.state;
-		
-		// Are we currently in control of the bots?
-		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
-
-		const podStatus = this.getPodStatus()
-		const bots = podStatus?.bots
-		const hubs = podStatus?.hubs
-
-		const self = this
-
-		let goalSettingsPanel: ReactElement = null
-
-		if (goalBeingEdited) {
-			goalSettingsPanel = (
-				<GoalSettingsPanel 
-					map={map}
-					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
-					botId={goalBeingEditedBotId}
-					goalIndex={goalBeingEditedGoalIndex}
-					goal={goalBeingEdited} 
-					onChange={() => this.setRunList(this.getRunList())} 
-					onClose={() => this.setState({goalBeingEdited: null})} 
-				/>
-			)
-		}
-
-		// Add mission generation form to UI if the survey polygon has changed.
-		let missionSettingsPanel: ReactElement
-		if (this.state.mode === Mode.MISSION_PLANNING) {
-
-			missionSettingsPanel = (
-				<MissionSettingsPanel
-					map={map}
-					mission_params={this.state.missionParams}
-					center_line_string={this.state.center_line_string}
-					bot_list={bots}
-					missionBaseGoal={this.state.missionBaseGoal}
-					missionEndTask={this.state.missionEndTask}
-					onClose={() => {
-						this.clearMissionPlanningState()
-					}}
-					onMissionChangeEditMode={() => {
-						this.changeMissionMode()
-					}}
-					onTaskTypeChange={() => {
-						this.missionPlans = null
-						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
-					}}
-					onMissionApply={(missionSettings: MissionSettings) => {
-						this.setState({missionEndTask: missionSettings.endTask})
-
-						if (this.state.missionParams.mission_type === 'lines') {
-							const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
-							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
-
-							const runList = this.pushRunListToUndoStack().getRunList()
-							this.deleteAllRunsInMission(runList);
-
-							for(let id in this.missionPlans)
-							{
-								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
-							}
-
-							this.setRunList(runList)
-
-							// Close panel after applying
-							this.changeInteraction();
-							this.setState({
-								surveyPolygonActive: false,
-								mode: '',
-								surveyPolygonChanged: false,
-								missionPlanningGrid: null,
-								missionPlanningLines: null,
-								goalBeingEdited: null,
-								center_line_string: null
-							});
-						} else {
-							// Polygon
-							this.genMission()
-						}
-					}}
-					onMissionChangeBotList={() => {
-						this.changeMissionBotList()
-					}}
-					areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
-				/>
-			)
-		}
-
-		let rcControllerPanel: ReactElement = null
-		if (this.isRCModeActive(this.selectedBotId())) {
-			rcControllerPanel = (
-				<RCControllerPanel 
-					api={this.api} 
-					bot={bots[this.selectedBotId()]}  
-					createInterval={this.createRemoteControlInterval.bind(this)} 
-					clearInterval={this.clearRemoteControlInterval.bind(this)} 
-					remoteControlValues={this.state.remoteControlValues}
-					weAreInControl={this.weAreInControl.bind(this)}
-					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
-					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
-			/>
-			)
-		}
-
-		// Details box
-		let detailsBoxItem = this.state.detailsBoxItem
-		let detailsBox
-
-		function closeDetails() {
-			self.setState({detailsBoxItem: null})
-		}
-
-		switch (detailsBoxItem?.type) {
-			case 'hub':
-				const hubDetailsProps: HubDetailsProps = {
-					hub: hubs?.[this.selectedHubId()],
-					api: this.api,
-					isExpanded: this.state.detailsExpanded,
-					setDetailsExpanded: this.setDetailsExpanded.bind(this),
-					getFleetId: this.getFleetId.bind(this),
-					takeControl: this.takeControl.bind(this),
-					closeWindow: closeDetails.bind(this),
-				}
-				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
-				break;
-			case 'bot':
-				//**********************
-				// TO DO  
-				// The following lines assume fleets only use hub0
-				//**********************
-				const botDetailsProps: BotDetailsProps = {
-					bot: bots?.[this.selectedBotId()], 
-					hub: hubs?.[0], 
-					api: this.api, 
-					mission: this.getRunList(), 
-					closeWindow: closeDetails.bind(this),
-					takeControl: this.takeControl.bind(this),
-					isExpanded: this.state.detailsExpanded,
-					deleteSingleMission: this.deleteSingleRun.bind(this),
-					setDetailsExpanded: this.setDetailsExpanded.bind(this),
-					isRCModeActive: this.isRCModeActive.bind(this)
-				}
-				detailsBox = <BotDetailsComponent {...botDetailsProps} />
-				break;
-			default:
-				detailsBox = null;
-				// Clear remote control interval if there is one
-				this.clearRemoteControlInterval();
-				break;
-		}
-
-		function closeMissionPanel() {
-			let missionPanel = document.getElementById('missionPanel')
-			missionPanel.style.width = "0px"
-			self.setState({missionPanelActive: false})
-		}
-
-		function closeEngineeringPanel() {
-			let engineeringPanel = document.getElementById('engineeringPanel')
-			engineeringPanel.style.width = "0px"
-			self.setState({engineeringPanelActive: false})
-		}
-
-		function closeMissionSettingsPanel() {
-			self.changeInteraction();
-			self.setState({
-				surveyPolygonActive: false,
-				mode: '',
-				surveyPolygonChanged: false,
-				missionPlanningGrid: null,
-				missionPlanningLines: null
-			});
-		}
-
-		function closeMapLayers() {
-			let mapLayersPanel = document.getElementById('mapLayers')
-			mapLayersPanel.style.width = '0px'
-			self.setState({mapLayerActive: false});
-		}
-
-		function closeOtherViewControlWindows(openPanel: string) {
-			const panels = [
-				{ name: 'missionPanel', closeFunction: closeMissionPanel },
-				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
-				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
-				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
-				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
-			]
-
-			panels.forEach(panel => {
-				if (openPanel !== panel.name) {
-					panel.closeFunction()
-				}
-			})
-		}
-
-		return (
-			<div id="axui_container" className={containerClasses}>
-
-				<EngineeringPanel 
-					api={this.api} 
-					bots={bots} 
-					hubs={hubs} 
-					getSelectedBotId={this.selectedBotId.bind(this)}
-					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} 
-				/>
-
-				<MissionControllerPanel 
-					api={this.api} 
-					bots={bots} 
-					mission={this.getRunList()} 
-					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
-					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
-					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
-					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
-				/>
-				
-				<div id={this.mapDivId} className="map-control" />
-
-				<div id="mapLayers" />
-
-				<div id="layerinfo">&nbsp;</div>
-
-				<div id="viewControls">
-
-					{mapLayerActive ? (
-						<Button className="button-jcc active"
-							onClick={() => {
-								this.setState({mapLayerActive: false}); 
-								const mapLayers = document.getElementById('mapLayers')
-								mapLayers.style.width = '0px'
-								const mapLayersBtn = document.getElementById('mapLayersButton')
-							}}
-						>
-							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-						</Button>
-
-					) : (
-						<Button className="button-jcc"
-							onClick={() => {
-								closeOtherViewControlWindows('mapLayersPanel');
-								this.setState({mapLayerActive: true}); 
-								const mapLayers = document.getElementById('mapLayers')
-								mapLayers.style.width = '400px'
-								const mapLayersBtn = document.getElementById('mapLayersButton')
-							}}
-						>
-							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-						</Button>
-					)}
-
-					{measureActive ? (
-						<div>
-							<div id="measureResult" />
-							<Button
-								className="button-jcc active"
-								onClick={() => {
-									// this.measureInteraction.finishDrawing();
-									this.changeInteraction();
-									this.setState({ measureActive: false });
-								}}
-							>
-								<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
-							</Button>
-						</div>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								closeOtherViewControlWindows('measureTool')
-								this.setState({ measureActive: true });
-								this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
-								info('Touch map to set first measure point');
-							}}
-						>
-							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
-						</Button>
-					)}
-					{trackingTarget === 'pod' ? (
-						<Button 							
-							onClick={() => {
-								this.zoomToPod(false);
-								this.trackBot(null);
-							}} 
-							className="button-jcc active"
-						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
-						</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								this.zoomToPod(true);
-								this.trackBot('pod');
-							}}
-						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
-						</Button>
-					)}
-
-					{surveyPolygonActive ? (
-							<Button
-								className="button-jcc active"
-								onClick={() => {
-									this.changeInteraction();
-									this.setState({
-										surveyPolygonActive: false,
-										mode: '',
-										surveyPolygonChanged: false,
-										missionPlanningGrid: null,
-										missionPlanningLines: null
-									});
-								}}
-							>
-								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
-							</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								if (this.state.rallyEndLocation
-										&& this.state.rallyStartLocation) {
-									closeOtherViewControlWindows('missionSettingsPanel');
-									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
-									if (this.state.missionParams.mission_type === 'polygon-grid')
-										this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
-									if (this.state.missionParams.mission_type === 'editing')
-										this.changeInteraction(this.interactions.selectInteraction, 'grab');
-									if (this.state.missionParams.mission_type === 'lines')
-										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
-									if (this.state.missionParams.mission_type === 'exclusions')
-										this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
-
-									this.setState({center_line_string: null}) // Forgive me
-
-									info('Touch map to set first polygon point');
-								} 
-								else
-								{
-									info('Please place a green and red rally point before using this tool');
-								}
-							}}
-						>
-							<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
-						</Button>
-					)}
-					
-					{engineeringPanelActive ? (
-						<Button className="button-jcc active" onClick={() => {
-								this.setState({engineeringPanelActive: false}); 
-								this.toggleEngineeringPanel();
-							}} 
-						>
-							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-						</Button>
-
-					) : (
-						<Button className="button-jcc" onClick={() => {
-							closeOtherViewControlWindows('engineeringPanel');
-							this.setState({engineeringPanelActive: true});
-							this.toggleEngineeringPanel();
-						}} 
-						>
-							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-						</Button>
-					)}
-
-					{missionPanelActive ? (
-						<Button className="button-jcc active" onClick={() => {
-								this.setState({missionPanelActive: false}); 
-								this.toggleMissionPanel();
-							}} 
-						>
-							<Icon path={mdiViewList} title="Mission Panel"/>
-						</Button>
-
-					) : (
-						<Button className="button-jcc" onClick={() => {
-							closeOtherViewControlWindows('missionPanel');
-							this.setState({missionPanelActive: true}); 
-							this.toggleMissionPanel();
-						}} 
-						>
-							<Icon path={mdiViewList} title="Mission Panel"/>
-						</Button>
-					)}
-
-					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
-						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
-							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
-						}}>	
-					</img>
-
-				</div>
-
-				<div id="botsDrawer">
-					<BotListPanel podStatus={this.getPodStatus()} 
-						selectedBotId={this.selectedBotId()}
-						selectedHubId={this.selectedHubId()}
-						trackedBotId={this.state.trackingTarget}
-						didClickBot={this.didClickBot.bind(this)}
-						didClickHub={this.didClickHub.bind(this)} />
-					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
-				</div>
-
-				{detailsBox}
-
-				{goalSettingsPanel}
-
-				{missionSettingsPanel}
-
-				{rcControllerPanel}
-
-				{this.takeControlPanel()}
-
-				{this.commandDrawer()}
-
-				{this.state.loadMissionPanel}
-
-				{this.state.saveMissionPanel}
-
-				{this.disconnectionPanel()}
-				
-			</div>
-		);
-	}
-
     autoAssignBotsToRuns() {
         let podStatusBotIds = Object.keys(this.getPodStatus()?.bots);
         let botsAssignedToRunsIds = Object.keys(this.getRunList().botsAssignedToRuns);
@@ -2137,10 +1693,10 @@ export default class CommandControl extends React.Component {
 			return null
 		}
 
-		return <div className="disconnection shadowed rounded">
+		return (<div className="disconnection shadowed rounded">
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
-		</div>
+		</div>)
 	}
 
 	toggleEngineeringPanel() {
@@ -2430,6 +1986,450 @@ export default class CommandControl extends React.Component {
 		const missionPlanningSource = layers.missionPlanningLayer.getSource()
 		missionPlanningSource.clear()
 		missionPlanningSource.addFeatures(missionPlanningFeaturesList)
+	}
+
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	// eslint-disable-next-line class-methods-use-this
+
+	render() {
+		const {
+			trackingTarget,
+			measureActive,
+			surveyPolygonActive,
+			mapLayerActive,
+			engineeringPanelActive,
+			missionPanelActive,
+			goalBeingEdited,
+			goalBeingEditedBotId,
+			goalBeingEditedGoalIndex
+		} = this.state;
+		
+		// Are we currently in control of the bots?
+		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
+
+		const podStatus = this.getPodStatus()
+		const bots = podStatus?.bots
+		const hubs = podStatus?.hubs
+
+		const self = this
+
+		let goalSettingsPanel: ReactElement = null
+
+		if (goalBeingEdited) {
+			goalSettingsPanel = (
+				<GoalSettingsPanel 
+					map={map}
+					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
+					botId={goalBeingEditedBotId}
+					goalIndex={goalBeingEditedGoalIndex}
+					goal={goalBeingEdited} 
+					onChange={() => this.setRunList(this.getRunList())} 
+					onClose={() => this.setState({goalBeingEdited: null})} 
+				/>
+			)
+		}
+
+		// Add mission generation form to UI if the survey polygon has changed.
+		let missionSettingsPanel: ReactElement
+		if (this.state.mode === Mode.MISSION_PLANNING) {
+
+			missionSettingsPanel = (
+				<MissionSettingsPanel
+					map={map}
+					mission_params={this.state.missionParams}
+					center_line_string={this.state.center_line_string}
+					bot_list={bots}
+					missionBaseGoal={this.state.missionBaseGoal}
+					missionEndTask={this.state.missionEndTask}
+					onClose={() => {
+						this.clearMissionPlanningState()
+					}}
+					onMissionChangeEditMode={() => {
+						this.changeMissionMode()
+					}}
+					onTaskTypeChange={() => {
+						this.missionPlans = null
+						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
+					}}
+					onMissionApply={(missionSettings: MissionSettings) => {
+						this.setState({missionEndTask: missionSettings.endTask})
+
+						if (this.state.missionParams.mission_type === 'lines') {
+							const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
+
+							const runList = this.pushRunListToUndoStack().getRunList()
+							this.deleteAllRunsInMission(runList);
+
+							for(let id in this.missionPlans)
+							{
+								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
+							}
+
+							this.setRunList(runList)
+
+							// Close panel after applying
+							this.changeInteraction();
+							this.setState({
+								surveyPolygonActive: false,
+								mode: '',
+								surveyPolygonChanged: false,
+								missionPlanningGrid: null,
+								missionPlanningLines: null,
+								goalBeingEdited: null,
+								center_line_string: null
+							});
+						} else {
+							// Polygon
+							this.genMission()
+						}
+					}}
+					onMissionChangeBotList={() => {
+						this.changeMissionBotList()
+					}}
+					areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
+				/>
+			)
+		}
+
+		let rcControllerPanel: ReactElement = null
+		if (this.isRCModeActive(this.selectedBotId())) {
+			rcControllerPanel = (
+				<RCControllerPanel 
+					api={this.api} 
+					bot={bots[this.selectedBotId()]}  
+					createInterval={this.createRemoteControlInterval.bind(this)} 
+					clearInterval={this.clearRemoteControlInterval.bind(this)} 
+					remoteControlValues={this.state.remoteControlValues}
+					weAreInControl={this.weAreInControl.bind(this)}
+					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
+					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
+			/>
+			)
+		}
+
+		// Details box
+		let detailsBoxItem = this.state.detailsBoxItem
+		let detailsBox
+
+		function closeDetails() {
+			self.setState({detailsBoxItem: null})
+		}
+
+		switch (detailsBoxItem?.type) {
+			case 'hub':
+				const hubDetailsProps: HubDetailsProps = {
+					hub: hubs?.[this.selectedHubId()],
+					api: this.api,
+					isExpanded: this.state.detailsExpanded,
+					setDetailsExpanded: this.setDetailsExpanded.bind(this),
+					getFleetId: this.getFleetId.bind(this),
+					takeControl: this.takeControl.bind(this),
+					closeWindow: closeDetails.bind(this),
+				}
+				detailsBox = <HubDetailsComponent {...hubDetailsProps} />				
+				break;
+			case 'bot':
+				//**********************
+				// TO DO  
+				// The following lines assume fleets only use hub0
+				//**********************
+				const botDetailsProps: BotDetailsProps = {
+					bot: bots?.[this.selectedBotId()], 
+					hub: hubs?.[0], 
+					api: this.api, 
+					mission: this.getRunList(), 
+					closeWindow: closeDetails.bind(this),
+					takeControl: this.takeControl.bind(this),
+					isExpanded: this.state.detailsExpanded,
+					deleteSingleMission: this.deleteSingleRun.bind(this),
+					setDetailsExpanded: this.setDetailsExpanded.bind(this),
+					isRCModeActive: this.isRCModeActive.bind(this)
+				}
+				detailsBox = <BotDetailsComponent {...botDetailsProps} />
+				break;
+			default:
+				detailsBox = null;
+				// Clear remote control interval if there is one
+				this.clearRemoteControlInterval();
+				break;
+		}
+
+		function closeMissionPanel() {
+			let missionPanel = document.getElementById('missionPanel')
+			missionPanel.style.width = "0px"
+			self.setState({missionPanelActive: false})
+		}
+
+		function closeEngineeringPanel() {
+			let engineeringPanel = document.getElementById('engineeringPanel')
+			engineeringPanel.style.width = "0px"
+			self.setState({engineeringPanelActive: false})
+		}
+
+		function closeMissionSettingsPanel() {
+			self.changeInteraction();
+			self.setState({
+				surveyPolygonActive: false,
+				mode: '',
+				surveyPolygonChanged: false,
+				missionPlanningGrid: null,
+				missionPlanningLines: null
+			});
+		}
+
+		function closeMapLayers() {
+			let mapLayersPanel = document.getElementById('mapLayers')
+			mapLayersPanel.style.width = '0px'
+			self.setState({mapLayerActive: false});
+		}
+
+		function closeOtherViewControlWindows(openPanel: string) {
+			const panels = [
+				{ name: 'missionPanel', closeFunction: closeMissionPanel },
+				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
+				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
+				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
+				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
+			]
+
+			panels.forEach(panel => {
+				if (openPanel !== panel.name) {
+					panel.closeFunction()
+				}
+			})
+		}
+
+		return (
+			<div id="jaia_container" className={containerClasses}>
+
+				<EngineeringPanel 
+					api={this.api} 
+					bots={bots} 
+					hubs={hubs} 
+					getSelectedBotId={this.selectedBotId.bind(this)}
+					getFleetId={this.getFleetId.bind(this)}
+					control={this.takeControl.bind(this)} 
+				/>
+
+				<MissionControllerPanel 
+					api={this.api} 
+					bots={bots} 
+					mission={this.getRunList()} 
+					loadMissionClick={this.loadMissionButtonClicked.bind(this)}
+					saveMissionClick={this.saveMissionButtonClicked.bind(this)}
+					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
+					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
+				/>
+				
+				<div id={this.mapDivId} className="map-control" />
+
+				<div id="mapLayers" />
+
+				<div id="layerinfo">&nbsp;</div>
+
+				<div id="viewControls">
+
+					{mapLayerActive ? (
+						<Button className="button-jcc active"
+							onClick={() => {
+								this.setState({mapLayerActive: false}); 
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '0px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+						</Button>
+
+					) : (
+						<Button className="button-jcc"
+							onClick={() => {
+								closeOtherViewControlWindows('mapLayersPanel');
+								this.setState({mapLayerActive: true}); 
+								const mapLayers = document.getElementById('mapLayers')
+								mapLayers.style.width = '400px'
+								const mapLayersBtn = document.getElementById('mapLayersButton')
+							}}
+						>
+							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+						</Button>
+					)}
+
+					{measureActive ? (
+						<div>
+							<div id="measureResult" />
+							<Button
+								className="button-jcc active"
+								onClick={() => {
+									// this.measureInteraction.finishDrawing();
+									this.changeInteraction();
+									this.setState({ measureActive: false });
+								}}
+							>
+								<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
+							</Button>
+						</div>
+					) : (
+						<Button
+							className="button-jcc"
+							onClick={() => {
+								closeOtherViewControlWindows('measureTool')
+								this.setState({ measureActive: true });
+								this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+								info('Touch map to set first measure point');
+							}}
+						>
+							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
+						</Button>
+					)}
+					{trackingTarget === 'pod' ? (
+						<Button 							
+							onClick={() => {
+								this.zoomToPod(false);
+								this.trackBot(null);
+							}} 
+							className="button-jcc active"
+						>
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
+						</Button>
+					) : (
+						<Button
+							className="button-jcc"
+							onClick={() => {
+								this.zoomToPod(true);
+								this.trackBot('pod');
+							}}
+						>
+							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
+						</Button>
+					)}
+
+					{surveyPolygonActive ? (
+							<Button
+								className="button-jcc active"
+								onClick={() => {
+									this.changeInteraction();
+									this.setState({
+										surveyPolygonActive: false,
+										mode: '',
+										surveyPolygonChanged: false,
+										missionPlanningGrid: null,
+										missionPlanningLines: null
+									});
+								}}
+							>
+								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
+							</Button>
+					) : (
+						<Button
+							className="button-jcc"
+							onClick={() => {
+								if (this.state.rallyEndLocation
+										&& this.state.rallyStartLocation) {
+									closeOtherViewControlWindows('missionSettingsPanel');
+									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
+									if (this.state.missionParams.mission_type === 'polygon-grid')
+										this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
+									if (this.state.missionParams.mission_type === 'editing')
+										this.changeInteraction(this.interactions.selectInteraction, 'grab');
+									if (this.state.missionParams.mission_type === 'lines')
+										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
+									if (this.state.missionParams.mission_type === 'exclusions')
+										this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
+
+									this.setState({center_line_string: null}) // Forgive me
+
+									info('Touch map to set first polygon point');
+								} 
+								else
+								{
+									info('Please place a green and red rally point before using this tool');
+								}
+							}}
+						>
+							<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
+						</Button>
+					)}
+					
+					{engineeringPanelActive ? (
+						<Button className="button-jcc active" onClick={() => {
+								this.setState({engineeringPanelActive: false}); 
+								this.toggleEngineeringPanel();
+							}} 
+						>
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+						</Button>
+
+					) : (
+						<Button className="button-jcc" onClick={() => {
+							closeOtherViewControlWindows('engineeringPanel');
+							this.setState({engineeringPanelActive: true});
+							this.toggleEngineeringPanel();
+						}} 
+						>
+							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+						</Button>
+					)}
+
+					{missionPanelActive ? (
+						<Button className="button-jcc active" onClick={() => {
+								this.setState({missionPanelActive: false}); 
+								this.toggleMissionPanel();
+							}} 
+						>
+							<Icon path={mdiViewList} title="Mission Panel"/>
+						</Button>
+
+					) : (
+						<Button className="button-jcc" onClick={() => {
+							closeOtherViewControlWindows('missionPanel');
+							this.setState({missionPanelActive: true}); 
+							this.toggleMissionPanel();
+						}} 
+						>
+							<Icon path={mdiViewList} title="Mission Panel"/>
+						</Button>
+					)}
+
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
+						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
+							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
+						}}>	
+					</img>
+
+				</div>
+
+				<div id="botsDrawer">
+					<BotListPanel podStatus={this.getPodStatus()} 
+						selectedBotId={this.selectedBotId()}
+						selectedHubId={this.selectedHubId()}
+						trackedBotId={this.state.trackingTarget}
+						didClickBot={this.didClickBot.bind(this)}
+						didClickHub={this.didClickHub.bind(this)} />
+					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
+				</div>
+
+				{detailsBox}
+
+				{goalSettingsPanel}
+
+				{missionSettingsPanel}
+
+				{rcControllerPanel}
+
+				{this.takeControlPanel()}
+
+				{this.commandDrawer()}
+
+				{this.state.loadMissionPanel}
+
+				{this.state.saveMissionPanel}
+
+				{this.disconnectionPanel()}
+				
+			</div>
+		);
 	}
 
 }

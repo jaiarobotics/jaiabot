@@ -75,7 +75,7 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
      * @param centerCoordinate Center coordinate of rally points 
      * @param rotationAngle Angle along which to space rally points for each bot
      * @param rallySpacing Spacing between rally points (meters)
-     * @returns 
+     * @returns Mapping from bot_id to rally point coordinates
      */
     function findRallySeparation(botIdList: number[], centerCoordinate: GeographicCoordinate, rotationAngle: number, rallySpacing: number) {
         botIdList = deepcopy(botIdList)
