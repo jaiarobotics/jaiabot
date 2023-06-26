@@ -68,15 +68,15 @@ export default class ScanForBotPanel extends React.Component {
         console.log(hub?.hub_id);
 
         if (hub?.hub_id != null) {
-            let command_for_hub: CommandForHub = {
+            let commandForHub: CommandForHub = {
                 hub_id: hub?.hub_id,
                 type: HubCommandType.SCAN_FOR_BOTS,
                 scan_for_bot_id: botId
             }
     
-            debug(JSON.stringify(command_for_hub))
+            debug(JSON.stringify(commandForHub))
     
-            this.props.api.postCommandForHub(command_for_hub);
+            this.props.api.postCommandForHub(commandForHub);
         }
     }
 
@@ -94,15 +94,15 @@ export default class ScanForBotPanel extends React.Component {
         if (hub?.hub_id != null) {
             for (let botId in hub?.bot_ids_in_radio_file)
             {
-                let command_for_hub: CommandForHub = {
+                let commandForHub: CommandForHub = {
                     hub_id: hub?.hub_id,
                     type: HubCommandType.SCAN_FOR_BOTS,
                     scan_for_bot_id: hub?.bot_ids_in_radio_file[botId]
                 }
         
-                debug(JSON.stringify(command_for_hub))
+                debug(JSON.stringify(commandForHub))
         
-                this.props.api.postCommandForHub(command_for_hub);
+                this.props.api.postCommandForHub(commandForHub);
             }
         }
     }

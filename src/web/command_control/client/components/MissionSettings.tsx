@@ -18,27 +18,27 @@ export interface MissionSettings {
 }
 
 export interface MissionParams {
-	mission_type: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
-	num_bots: number,
-	num_goals: number,
+	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
+	numBots: number,
+	numGoals: number,
 	spacing: number,
 	orientation: number,
-	rally_spacing: number,
-	sp_area: number,
-	sp_perimeter: number,
-	sp_rally_start_dist: number,
-	sp_rally_finish_dist: number,
-	selected_bots: number[],
-	use_max_length: boolean
+	rallySpacing: number,
+	spArea: number,
+	spPerimeter: number,
+	spRallyStartDist: number,
+	spRallyFinishDist: number,
+	selectedBots: number[],
+	useMaxLength: boolean
 }
 
 interface Props {
     map: Map
     missionBaseGoal: Goal
     missionEndTask: MissionTask
-    mission_params: MissionParams
-    bot_list?: {[key: string]: BotStatus}
-    center_line_string: turf.helpers.Feature<turf.helpers.LineString>
+    missionParams: MissionParams
+    botList?: {[key: string]: BotStatus}
+    centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
     onClose: () => void
     onChange?: () => void
@@ -52,8 +52,8 @@ interface Props {
 interface State {
     missionBaseGoal: Goal
     missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
-    mission_params: MissionParams
-    bot_list?: {[key: string]: BotStatus}
+    missionParams: MissionParams
+    botList?: {[key: string]: BotStatus}
 }
 
 
@@ -74,8 +74,8 @@ export class MissionSettingsPanel extends React.Component {
         this.state = {
             missionBaseGoal: props.missionBaseGoal,
             missionEndTask: props.missionEndTask,
-            mission_params: props.mission_params,
-            bot_list: props.bot_list
+            missionParams: props.missionParams,
+            botList: props.botList
         }
 
         this.onClose = props.onClose
@@ -90,20 +90,20 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
-        const { map, center_line_string } = this.props
+        const { map, centerLineString } = this.props
         let self = this
 
-        let missionType = this.state.mission_params?.mission_type
+        let missionType = this.state.missionParams?.missionType
 
         const {missionBaseGoal, missionEndTask} = this.state
 
         // Get the final location, if available
-        var final_location: GeographicCoordinate
+        var finalLocation: GeographicCoordinate
 
-        if (center_line_string != null) {
-            const coordinates = center_line_string.geometry.coordinates
+        if (centerLineString != null) {
+            const coordinates = centerLineString.geometry.coordinates
             if (coordinates.length >= 2) {
-                final_location = getGeographicCoordinate(coordinates[1], map)
+                finalLocation = getGeographicCoordinate(coordinates[1], map)
             }
         }
 
@@ -138,23 +138,23 @@ export class MissionSettingsPanel extends React.Component {
                             </tr>
                             <tr hidden>
                                 <td>Bot Count</td>
-                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.mission_params.num_bots} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.missionParams.numBots} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
                                 <td>Mission Spacing</td>
-                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
+                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Rally Point Spacing</td>
-                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.mission_params.rally_spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
+                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
+                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
                             </tr>
                             <tr hidden>
                                 <td>Use Max Line Length</td>
-                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.mission_params.use_max_length} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.missionParams.useMaxLength} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             </tbody>
                         </table>
@@ -172,7 +172,7 @@ export class MissionSettingsPanel extends React.Component {
                     <TaskSettingsPanel 
                         title="End Task" 
                         map={map} 
-                        location={final_location}
+                        location={finalLocation}
                         task={missionEndTask} onChange={(missionEndTask) => {
                             self.setState({missionEndTask})
                         }} 
@@ -218,15 +218,15 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionParameter(evt: Event) {
-        var {mission_params} = this.state
+        var {missionParams} = this.state
 
         const target = evt.target as any
         const key = target.name
         const value = target.value as any
 
-        (mission_params as any)[key] = value
+        (missionParams as any)[key] = value
 
-        this.setState({mission_params})
+        this.setState({missionParams})
     }
 
     closeClicked() {
@@ -250,39 +250,39 @@ export class MissionSettingsPanel extends React.Component {
         const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value));
         // let missionBots = document.getElementById('mission-bot-selection').val();
         // console.log(missionBots);
-        let {mission_params} = this.state;
-        mission_params.selected_bots = missionBots;
-        this.setState({mission_params});
+        let {missionParams} = this.state;
+        missionParams.selectedBots = missionBots;
+        this.setState({missionParams});
         this.onMissionChangeBotList?.()
     }
 
     changeMissionEditMode(missionEditMode: string) {
         // console.log(missionEditMode);
-        let {mission_params} = this.state;
+        let {missionParams} = this.state;
 
-        if (missionEditMode === mission_params?.mission_type) {
+        if (missionEditMode === missionParams?.missionType) {
             return
         }
 
         switch(missionEditMode) {
             case 'polygon-grid':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'lines':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'editing':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'exclusions':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             default:
-                mission_params.mission_type = 'editing'
+                missionParams.missionType = 'editing'
                 break;
         }
 
-        this.setState({mission_params});
+        this.setState({missionParams});
 
         this.onMissionChangeEditMode?.()
 

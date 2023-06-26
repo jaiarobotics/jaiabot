@@ -21,13 +21,10 @@ import { geoJSONToDepthContourFeatures } from "./shared/Contours"
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { Map } from "ol"
 import { Units } from "@turf/turf"
+import { getMapCoordinate } from "./Utilities";
 
 const POLL_INTERVAL = 5000
 
-const mercator = 'EPSG:3857'
-const equirectangular = 'EPSG:4326'
-const equirectangular_to_mercator = getTransform(equirectangular, mercator);
-const mercator_to_equirectangular = getTransform(mercator, equirectangular);
 
 export class TaskData {
 
@@ -189,10 +186,10 @@ export class TaskData {
                     })
                 });
 
-                let task_calcs = this.calculateDiveDrift(taskPacket);
-                let dive_lon = task_calcs.dive_location.lon;
-                let dive_lat = task_calcs.dive_location.lat;
-                let pt = equirectangular_to_mercator([dive_lon, dive_lat], undefined, undefined)
+                let taskCalcs = this.calculateDiveDrift(taskPacket);
+                let diveLon = taskCalcs.diveLocation.lon;
+                let diveLat = taskCalcs.diveLocation.lat;
+                let pt = getMapCoordinate(taskCalcs.diveLocation, this.map)
 
                 let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
                 let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
@@ -252,9 +249,9 @@ export class TaskData {
                     && driftPacket.drift_duration > 0)
                 {
 
-                    let task_calcs = this.calculateDiveDrift(taskPacket);
+                    let taskCalcs = this.calculateDiveDrift(taskPacket);
 
-                    let rotation = (task_calcs.driftDirection ?? 180) * (Math.PI / 180.0)
+                    let rotation = (taskCalcs.driftDirection ?? 180) * (Math.PI / 180.0)
 
                     let iconStyle = new OlStyle({
                         image: new OlIcon({
@@ -272,8 +269,8 @@ export class TaskData {
                         text : new OlText({
                             font : `15px Calibri,sans-serif`,
                             text : `Duration (s): ` + driftPacket.drift_duration 
-                                + '\nDirection (deg): ' + task_calcs.driftDirection.toFixed(2) 
-                                + '\nSpeed (m/s): ' + task_calcs.driftSpeed.toFixed(2),
+                                + '\nDirection (deg): ' + taskCalcs.driftDirection.toFixed(2) 
+                                + '\nSpeed (m/s): ' + taskCalcs.driftSpeed.toFixed(2),
                             scale: 1,
                             fill: new OlFillStyle({color: 'white'}),
                             backgroundFill: new OlFillStyle({color: 'black'}),
@@ -286,7 +283,7 @@ export class TaskData {
                         })
                     });
 
-                    let pt = equirectangular_to_mercator([driftPacket.end_location.lon, driftPacket.end_location.lat], undefined, undefined)
+                    let pt = getMapCoordinate(driftPacket.end_location, this.map)
                     let driftFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     let driftInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
                     driftFeature.setStyle(iconStyle)   
@@ -314,17 +311,17 @@ export class TaskData {
 
         let driftPacket;
         let divePacket;
-        let task_calcs;
+        let taskCalcs;
         let options = {units: 'meters' as Units };
 
         if(taskPacket.type == "DIVE")
         {
             divePacket = taskPacket.dive;
-            task_calcs = {dive_location: divePacket.start_location, driftSpeed: 0, driftDirection: 0};
+            taskCalcs = {diveLocation: divePacket.start_location, driftSpeed: 0, driftDirection: 0};
         } 
         else
         {
-            task_calcs = {driftSpeed: 0, driftDirection: 0};
+            taskCalcs = {driftSpeed: 0, driftDirection: 0};
         }
         
         if(taskPacket?.drift != null 
@@ -333,10 +330,10 @@ export class TaskData {
         {
             driftPacket = taskPacket.drift;
 
-            let drift_start = [driftPacket.start_location.lon, driftPacket.start_location.lat];
-            let drift_end = [driftPacket.end_location.lon, driftPacket.end_location.lat];
+            let driftStart = [driftPacket.start_location.lon, driftPacket.start_location.lat];
+            let driftEnd = [driftPacket.end_location.lon, driftPacket.end_location.lat];
 
-            let drift_to_dive_ascent_bearing = turf.bearing(drift_end, drift_start);
+            let driftToDiveAscentBearing = turf.bearing(driftEnd, driftStart);
 
             if(taskPacket.type == "DIVE"
                 && taskPacket?.dive != null
@@ -344,70 +341,70 @@ export class TaskData {
                 && taskPacket?.dive.dive_rate > 0)
             {
                 // Calculate the distance we traveled while acquiring gps
-                let distance_between_breach_point_and_acquire_gps 
+                let distanceBetweenBreachPointAndAcquireGPS 
                     = divePacket.duration_to_acquire_gps * driftPacket.estimated_drift.speed;
 
                 // Calculate the breach point
-                let breach_point = turf.destination(drift_start, 
-                                                    distance_between_breach_point_and_acquire_gps, 
-                                                    drift_to_dive_ascent_bearing, options);
+                let breachPoint = turf.destination(driftStart, 
+                                                    distanceBetweenBreachPointAndAcquireGPS, 
+                                                    driftToDiveAscentBearing, options);
 
-                let dive_start = [divePacket.start_location.lon, divePacket.start_location.lat];
+                let diveStart = [divePacket.start_location.lon, divePacket.start_location.lat];
 
 
                 // Calculate the total time the bot took to reach the required depth
-                let dive_total_descent_seconds = divePacket.dive_rate * divePacket.depth_achieved;
+                let diveTotalDescentSeconds = divePacket.dive_rate * divePacket.depth_achieved;
 
                 // Caclulate the total time the bot took to reach the surface
                 // This is assuming we are in either unpowered ascent or powered ascent
-                let dive_total_ascent_seconds = 0;
+                let diveTotalAscentSeconds = 0;
                 if(divePacket?.unpowered_rise_rate)
                 {
-                    dive_total_ascent_seconds = divePacket.unpowered_rise_rate * divePacket.depth_achieved;
+                    diveTotalAscentSeconds = divePacket.unpowered_rise_rate * divePacket.depth_achieved;
                 }
                 else if(divePacket?.powered_rise_rate)
                 {
-                    dive_total_ascent_seconds = divePacket.powered_rise_rate * divePacket.depth_achieved;
+                    diveTotalAscentSeconds = divePacket.powered_rise_rate * divePacket.depth_achieved;
                 }
 
                 // Calculate the total time it took to dive to required depth 
                 // and ascent to the surface
-                let total_dive_to_ascent_seconds = dive_total_descent_seconds + dive_total_ascent_seconds;
+                let totalDiveToAscentSeconds = diveTotalDescentSeconds + diveTotalAscentSeconds;
 
                 // Calculate the distance between the dive start and breach point
-                let distance_between_dive_and_breach = turf.distance(dive_start, breach_point, options);
+                let distanceBetweenDiveAndBreach = turf.distance(diveStart, breachPoint, options);
 
                 // Calculate the percentage the dive took when compared to breach point time
-                let dive_percent_in_total_dive_seconds = dive_total_descent_seconds / total_dive_to_ascent_seconds;
+                let divePercentInTotalDiveSeconds = diveTotalDescentSeconds / totalDiveToAscentSeconds;
 
                 // Calculate the distance to the achieved depth starting from the dive start
-                let dive_distance_to_depth_achieved = distance_between_dive_and_breach * dive_percent_in_total_dive_seconds;
+                let diveDistanceToDepthAchieved = distanceBetweenDiveAndBreach * divePercentInTotalDiveSeconds;
 
                 // Calculate the bearing from the dive start and the breach point
-                let dive_start_to_breach_point_bearing = turf.bearing(dive_start, breach_point);
+                let diveStart_to_breachPoint_bearing = turf.bearing(diveStart, breachPoint);
                 
                 // Calculate the achieved depth location
-                let dive_location = turf.destination(dive_start, 
-                                                     dive_distance_to_depth_achieved, 
-                                                     dive_start_to_breach_point_bearing,
+                let diveLocation = turf.destination(diveStart, 
+                                                     diveDistanceToDepthAchieved, 
+                                                     diveStart_to_breachPoint_bearing,
                                                      options);
 
-                let dive_lon = dive_location.geometry.coordinates[0];
-                let dive_lat = dive_location.geometry.coordinates[1];
-                task_calcs.dive_location = {lat: dive_lat, lon: dive_lon};
+                let diveLon = diveLocation.geometry.coordinates[0];
+                let diveLat = diveLocation.geometry.coordinates[1];
+                taskCalcs.diveLocation = {lat: diveLat, lon: diveLon};
             }
 
-            task_calcs.driftSpeed = driftPacket.estimated_drift.speed;
-            task_calcs.driftDirection = driftPacket.estimated_drift.heading;
+            taskCalcs.driftSpeed = driftPacket.estimated_drift.speed;
+            taskCalcs.driftDirection = driftPacket.estimated_drift.heading;
         }
-        return task_calcs;
+        return taskCalcs;
     }
 
     _updateContourPlot() {
         jaiaAPI.getDepthContours().catch((error) => {
             console.error(error)
         }).then((geojson) => {
-                const features = geoJSONToDepthContourFeatures(mercator, geojson)
+                const features = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), geojson)
 
                 const vectorSource = new VectorSource({
                     features: features

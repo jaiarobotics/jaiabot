@@ -24,16 +24,16 @@ function faultLevel(health_state: HealthState) {
 export function BotListPanel(props: Props) {
     if (props.podStatus == null) return null
 
-    function compare_by_hubId(hub1: HubStatus, hub2: HubStatus) {
+    function compareByHubId(hub1: HubStatus, hub2: HubStatus) {
         return hub1.hub_id - hub2.hub_id
     }
 
-    function compare_by_botId(bot1: BotStatus, bot2: BotStatus) {
+    function compareByBotId(bot1: BotStatus, bot2: BotStatus) {
         return bot1.bot_id - bot2.bot_id
     }
 
-    let bots = Object.values(props.podStatus?.bots ?? {}).sort(compare_by_botId)
-    let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compare_by_hubId)
+    let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotId)
+    let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
     function BotDiv(bot: BotStatus) {
         var key = 'bot-' + bot.bot_id
