@@ -85,8 +85,6 @@ import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetai
 
 import { jaiaAPI } from '../../common/JaiaAPI';
 
-import tooltips from '../libs/tooltips'
-
 import { error, success, warning, info} from '../libs/notifications';
 
 // Don't use any third party css exept reset-css!
@@ -479,8 +477,6 @@ export default class CommandControl extends React.Component {
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
 
 		($('button') as any).disableSelection();
-
-		tooltips();
 
 		const mapLayersPanel = document.getElementById('mapLayers')
 		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)

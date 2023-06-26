@@ -278,11 +278,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        $('#missionStatArea').text(missionParams.sp_area);
-                        $('#missionStatPerimeter').text(missionParams.sp_perimeter);
-                        $('#missionStatOrientation').text(missionParams.orientation);
-                        $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                        $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                        document.getElementById('missionStatArea').innerText = missionParams.sp_area.toFixed(2);
+                        document.getElementById('missionStatPerimeter').innerText = missionParams.sp_perimeter.toFixed(2);
+                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.sp_rally_start_dist.toFixed(2);
+                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.sp_rally_finish_dist.toFixed(2);
         
                         // console.log('** END ********* ON CHANGE *************************')
                     }
