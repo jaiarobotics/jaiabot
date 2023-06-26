@@ -683,8 +683,10 @@ export default class JaiaMap {
             })?.value
 
             const active_goal_index = active_goal?.active_goal
+            const isSelected = false
+            const isActiveRun = false
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, active_goal_index, false)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, active_goal_index, isSelected, isActiveRun)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     
