@@ -263,7 +263,6 @@ td {
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    border-radius: 8pt;
     max-height: calc(100vh - @rc-panel-height-px);
     max-width: 25vw;
 
@@ -1380,7 +1379,16 @@ div.closeButton {
 
 .runItemInfo {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+}
+
+.MuiInputBase-root {
+  margin-right: 8px;
+}
+
+.MuiFormGroup-root {
+  margin-left: 8px;
 }
 
 #runRepeats {

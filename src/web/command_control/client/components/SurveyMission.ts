@@ -35,13 +35,13 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
             {
                 geometry: new OlMultiPoint(mpg[key]),
                 style: new OlStyle({
-                    image: Styles.goalIcon(missionBaseGoal.task.type, false, false)
+                    image: Styles.goalIcon(missionBaseGoal.task.type, false, false, false)
                 })
             }
         )
         mpGridFeature.setProperties({'botId': key});
         mpGridFeature.setStyle(new OlStyle({
-            image: Styles.goalIcon(missionBaseGoal.task.type, false, false)
+            image: Styles.goalIcon(missionBaseGoal.task.type, false, false, false)
         }))
 
         features.push(mpGridFeature);
