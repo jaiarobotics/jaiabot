@@ -75,6 +75,14 @@ The XBee driver takes the following configuration (within `gobyd`'s configuratio
         xbee_encryption_password: "" # This is used for the encryption password. 
                                      # Password is a 128 bit value (16 bytes)
                                      # (optional) (default = "") 
+        rf_datarate: 0 # This command applies to the XBee/XBee-PRO SX RF Module.
+                       # Sets and reads the device's RF data rate (the rate at which the device transmits and receives RF data
+                       # over-the-air).
+                       # Synchronous sleep is not supported when BR = 0. All devices on the network must have the same BR
+                       # value set in order to communicate. BR directly affects the range of the device. The higher the RF data
+                       # rate, the lower the receive sensitivity.
+                       # BR also affects the number of hopping patterns (HP) and the number of channels based on region
+                       # (0 - 2, default is 2)
       }
     }
 ```

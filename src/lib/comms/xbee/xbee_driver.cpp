@@ -107,10 +107,11 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
     auto xbee_info_location = config_extension().xbee_info_location();
     bool use_encryption = config_extension().use_xbee_encryption();
     std::string encryption_password = config_extension().xbee_encryption_password();
+    uint16_t rf_datarate = config_extension().rf_datarate();
 
     device_.startup(driver_cfg_.serial_port(), driver_cfg_.serial_baud(),
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
-                    use_encryption, encryption_password);
+                    use_encryption, encryption_password, rf_datarate);
 
     for (auto peer : config_extension().peers())
     {

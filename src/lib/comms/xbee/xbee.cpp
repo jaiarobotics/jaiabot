@@ -80,7 +80,7 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
                                          const std::string& xbee_info_location,
                                          const bool& use_encryption,
                                          const std::string& encryption_password,
-                                         const uint8_t rf_datarate)
+                                         const uint16_t rf_datarate)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -210,7 +210,7 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group) << "Set RF Datarate: " << rf_datarate
                                   << endl;
-        cmd << "ATBR=" + std::to_string(rf_datarate) << '\r';
+        cmd << "ATBR=" << rf_datarate << '\r';
         write(cmd.str());
         assert_ok();
     }
