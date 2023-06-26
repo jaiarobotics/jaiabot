@@ -18,7 +18,7 @@ import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import RCControllerPanel from './RCControllerPanel'
 import { taskData } from './TaskPackets'
-import { getSurveyMissionPlans, featuresFromMissionPlanningGrid } from './SurveyMission'
+import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 
 // Material Design Icons
 import Icon from '@mdi/react'
@@ -37,21 +37,13 @@ import OlMap from 'ol/Map';
 import {
 	Interaction,
 } from 'ol/interaction';
-import OlIcon from 'ol/style/Icon'
-import OlText from 'ol/style/Text'
-import { Vector as OlVectorSource } from 'ol/source';
-import { Vector as OlVectorLayer } from 'ol/layer';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
-import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
-import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
-import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
 import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
-import OlDrawInteraction, { DrawEvent } from 'ol/interaction/Draw';
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
@@ -93,7 +85,6 @@ import '../style/CommandControl.less';
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
-const missionOrientationIcon = require('../icons/compass.svg')
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
 const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 
@@ -1672,13 +1663,7 @@ export default class CommandControl extends React.Component {
 
 	toggleMode(modeName: Mode) {
 		if (this.state.mode == modeName) {
-			if (this.state.mode) {
-				let selectedButton = $('#' + this.state.mode)
-				if (selectedButton) {
-					selectedButton.removeClass('selected')
-				}
-			}
-
+			let selectedButton = $('#' + this.state.mode)?.removeClass('selected')
 			this.state.mode = Mode.NONE
 		}
 		else {
@@ -1904,77 +1889,6 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (this.state.missionPlanningFeature) {
-
-			function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
-				// console.log('WHAT IS GOING ON!!!!');
-				// console.log(feature);
-				// console.log(self.state);
-				// console.log(self.homeLocation);
-	
-				let iStyle = Styles.goalIcon(taskType, false, false)
-	
-				let lineStyle = new OlStyle({
-					fill: new OlFillStyle({
-						color: 'rgba(255, 255, 255, 0.2)'
-					}),
-					stroke: new OlStrokeStyle({
-						color: 'rgb(5,29,97)',
-						lineDash: [10, 10],
-						width: 2
-					}),
-					image: iStyle
-				});
-	
-				let iconStyle = new OlStyle({
-					image: new OlIcon({
-						src: missionOrientationIcon,
-						scale: [0.5, 0.5]
-					}),
-					text: new OlText({
-						font: '15px Calibri,sans-serif',
-						fill: new OlFillStyle({ color: '#000000' }),
-						stroke: new OlStrokeStyle({
-							color: '#ffffff', width: .1
-						}),
-						placement: 'point',
-						textAlign: 'start',
-						justify: 'left',
-						textBaseline: 'bottom',
-						offsetY: -100,
-						offsetX: 100
-					})
-				});
-				// console.log('surveyLineStyle');
-				// console.log(feature);
-				let rotationAngle = 0;
-				let rhumbDist = 0;
-				let rhumbHomeDist = 0;
-				let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
-				// console.log('stringCoords');
-				// console.log(stringCoords);
-				let coords = stringCoords.slice(0, 2);
-	
-				// console.log('iconStyle');
-				// console.log(iconStyle);
-				iconStyle.setGeometry(new OlPoint(stringCoords[0]));
-				iconStyle
-					.getImage()
-					.setRotation(
-						Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
-					);
-				let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-	
-				rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
-				if (rotationAngle < 0) {
-					rotationAngle = rotationAngle + 360;
-				}
-				// console.log('coords');
-				// console.log(coords);
-				// console.log(coords.length);
-	
-				return [lineStyle, iconStyle];
-			};
-
 			if (this.state.missionParams.mission_type === 'lines' && this.state.mode === Mode.MISSION_PLANNING) {
 				// Add the mission planning feature
 				let mpFeature = this.state.missionPlanningFeature;
@@ -2200,6 +2114,170 @@ export default class CommandControl extends React.Component {
 			})
 		}
 
+		const mapLayersButton = mapLayerActive ? (
+			<Button className="button-jcc active"
+				onClick={() => {
+					this.setState({mapLayerActive: false}); 
+					const mapLayers = document.getElementById('mapLayers')
+					mapLayers.style.width = '0px'
+					const mapLayersBtn = document.getElementById('mapLayersButton')
+				}}
+			>
+				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+			</Button>
+
+		) : (
+			<Button className="button-jcc"
+				onClick={() => {
+					closeOtherViewControlWindows('mapLayersPanel');
+					this.setState({mapLayerActive: true}); 
+					const mapLayers = document.getElementById('mapLayers')
+					mapLayers.style.width = '400px'
+					const mapLayersBtn = document.getElementById('mapLayersButton')
+				}}
+			>
+				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
+			</Button>
+		)
+
+		const measureButton = measureActive ? (
+			<div>
+				<div id="measureResult" />
+				<Button
+					className="button-jcc active"
+					onClick={() => {
+						// this.measureInteraction.finishDrawing();
+						this.changeInteraction();
+						this.setState({ measureActive: false });
+					}}
+				>
+					<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
+				</Button>
+			</div>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					closeOtherViewControlWindows('measureTool')
+					this.setState({ measureActive: true });
+					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
+					info('Touch map to set first measure point');
+				}}
+			>
+				<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
+			</Button>
+		)
+
+		const trackPodButton = (trackingTarget === 'pod' ? (
+			<Button 							
+				className="button-jcc active"
+				onClick={() => {
+					this.zoomToPod(false);
+					this.trackBot(null);
+				}} 
+			>
+				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
+			</Button>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					this.zoomToPod(true);
+					this.trackBot('pod');
+				}}
+			>
+				<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
+			</Button>
+		))
+
+		const surveyMissionSettingsButton = (surveyPolygonActive ? (
+			<Button
+				className="button-jcc active"
+				onClick={() => {
+					this.changeInteraction();
+					this.setState({
+						surveyPolygonActive: false,
+						mode: '',
+						surveyPolygonChanged: false,
+						missionPlanningGrid: null,
+						missionPlanningLines: null
+					});
+				}}
+			>
+				<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
+			</Button>
+		) : (
+			<Button
+				className="button-jcc"
+				onClick={() => {
+					if (this.state.rallyEndLocation
+							&& this.state.rallyStartLocation) {
+						closeOtherViewControlWindows('missionSettingsPanel');
+						this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
+						if (this.state.missionParams.mission_type === 'polygon-grid')
+							this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
+						if (this.state.missionParams.mission_type === 'editing')
+							this.changeInteraction(this.interactions.selectInteraction, 'grab');
+						if (this.state.missionParams.mission_type === 'lines')
+							this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
+						if (this.state.missionParams.mission_type === 'exclusions')
+							this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
+
+						this.setState({center_line_string: null}) // Forgive me
+
+						info('Touch map to set first polygon point');
+					} 
+					else
+					{
+						info('Please place a green and red rally point before using this tool');
+					}
+				}}
+			>
+				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
+			</Button>
+		))
+
+		const engineeringButton = (engineeringPanelActive ? (
+			<Button className="button-jcc active" onClick={() => {
+					this.setState({engineeringPanelActive: false}); 
+					this.toggleEngineeringPanel();
+				}} 
+			>
+				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+			</Button>
+
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				closeOtherViewControlWindows('engineeringPanel');
+				this.setState({engineeringPanelActive: true});
+				this.toggleEngineeringPanel();
+			}} 
+			>
+				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+			</Button>
+		))
+
+		const missionPanelButton = (missionPanelActive ? (
+			<Button className="button-jcc active" onClick={() => {
+					this.setState({missionPanelActive: false}); 
+					this.toggleMissionPanel();
+				}} 
+			>
+				<Icon path={mdiViewList} title="Mission Panel"/>
+			</Button>
+
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				closeOtherViewControlWindows('missionPanel');
+				this.setState({missionPanelActive: true}); 
+				this.toggleMissionPanel();
+			}} 
+			>
+				<Icon path={mdiViewList} title="Mission Panel"/>
+			</Button>
+		))
+
+
 		return (
 			<div id="jaia_container" className={containerClasses}>
 
@@ -2226,177 +2304,25 @@ export default class CommandControl extends React.Component {
 
 				<div id="mapLayers" />
 
-				<div id="layerinfo">&nbsp;</div>
-
 				<div id="viewControls">
-
-					{mapLayerActive ? (
-						<Button className="button-jcc active"
-							onClick={() => {
-								this.setState({mapLayerActive: false}); 
-								const mapLayers = document.getElementById('mapLayers')
-								mapLayers.style.width = '0px'
-								const mapLayersBtn = document.getElementById('mapLayersButton')
-							}}
-						>
-							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-						</Button>
-
-					) : (
-						<Button className="button-jcc"
-							onClick={() => {
-								closeOtherViewControlWindows('mapLayersPanel');
-								this.setState({mapLayerActive: true}); 
-								const mapLayers = document.getElementById('mapLayers')
-								mapLayers.style.width = '400px'
-								const mapLayersBtn = document.getElementById('mapLayersButton')
-							}}
-						>
-							<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
-						</Button>
-					)}
-
-					{measureActive ? (
-						<div>
-							<div id="measureResult" />
-							<Button
-								className="button-jcc active"
-								onClick={() => {
-									// this.measureInteraction.finishDrawing();
-									this.changeInteraction();
-									this.setState({ measureActive: false });
-								}}
-							>
-								<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
-							</Button>
-						</div>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								closeOtherViewControlWindows('measureTool')
-								this.setState({ measureActive: true });
-								this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
-								info('Touch map to set first measure point');
-							}}
-						>
-							<FontAwesomeIcon icon={faRuler as any} title="Measure Distance"/>
-						</Button>
-					)}
-					{trackingTarget === 'pod' ? (
-						<Button 							
-							onClick={() => {
-								this.zoomToPod(false);
-								this.trackBot(null);
-							}} 
-							className="button-jcc active"
-						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Unfollow Bots" />
-						</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								this.zoomToPod(true);
-								this.trackBot('pod');
-							}}
-						>
-							<FontAwesomeIcon icon={faMapMarkerAlt as any} title="Follow Bots" />
-						</Button>
-					)}
-
-					{surveyPolygonActive ? (
-							<Button
-								className="button-jcc active"
-								onClick={() => {
-									this.changeInteraction();
-									this.setState({
-										surveyPolygonActive: false,
-										mode: '',
-										surveyPolygonChanged: false,
-										missionPlanningGrid: null,
-										missionPlanningLines: null
-									});
-								}}
-							>
-								<FontAwesomeIcon icon={faEdit as any} title="Stop Editing Optimized Mission Survey" />
-							</Button>
-					) : (
-						<Button
-							className="button-jcc"
-							onClick={() => {
-								if (this.state.rallyEndLocation
-										&& this.state.rallyStartLocation) {
-									closeOtherViewControlWindows('missionSettingsPanel');
-									this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
-									if (this.state.missionParams.mission_type === 'polygon-grid')
-										this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
-									if (this.state.missionParams.mission_type === 'editing')
-										this.changeInteraction(this.interactions.selectInteraction, 'grab');
-									if (this.state.missionParams.mission_type === 'lines')
-										this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
-									if (this.state.missionParams.mission_type === 'exclusions')
-										this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
-
-									this.setState({center_line_string: null}) // Forgive me
-
-									info('Touch map to set first polygon point');
-								} 
-								else
-								{
-									info('Please place a green and red rally point before using this tool');
-								}
-							}}
-						>
-							<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
-						</Button>
-					)}
-					
-					{engineeringPanelActive ? (
-						<Button className="button-jcc active" onClick={() => {
-								this.setState({engineeringPanelActive: false}); 
-								this.toggleEngineeringPanel();
-							}} 
-						>
-							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-						</Button>
-
-					) : (
-						<Button className="button-jcc" onClick={() => {
-							closeOtherViewControlWindows('engineeringPanel');
-							this.setState({engineeringPanelActive: true});
-							this.toggleEngineeringPanel();
-						}} 
-						>
-							<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
-						</Button>
-					)}
-
-					{missionPanelActive ? (
-						<Button className="button-jcc active" onClick={() => {
-								this.setState({missionPanelActive: false}); 
-								this.toggleMissionPanel();
-							}} 
-						>
-							<Icon path={mdiViewList} title="Mission Panel"/>
-						</Button>
-
-					) : (
-						<Button className="button-jcc" onClick={() => {
-							closeOtherViewControlWindows('missionPanel');
-							this.setState({missionPanelActive: true}); 
-							this.toggleMissionPanel();
-						}} 
-						>
-							<Icon path={mdiViewList} title="Mission Panel"/>
-						</Button>
-					)}
 
 					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
 						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
 							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
 						}}>	
 					</img>
+
+					{missionPanelButton}
+
+					{engineeringButton}
+
+					{surveyMissionSettingsButton}
+					
+					{trackPodButton}
+
+					{measureButton}
+
+					{mapLayersButton}
 
 				</div>
 
@@ -2407,7 +2333,6 @@ export default class CommandControl extends React.Component {
 						trackedBotId={this.state.trackingTarget}
 						didClickBot={this.didClickBot.bind(this)}
 						didClickHub={this.didClickHub.bind(this)} />
-					<div id="jaiabot3d" style={{"zIndex":"10", "width":"50px", "height":"50px", "display":"none"}}></div>
 				</div>
 
 				{detailsBox}

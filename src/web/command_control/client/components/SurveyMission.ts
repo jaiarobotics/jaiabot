@@ -15,7 +15,14 @@ import { Command } from "./shared/JAIAProtobuf";
 import { MovementType } from "./shared/JAIAProtobuf";
 import { CommandType } from "./shared/JAIAProtobuf";
 import { MissionStart } from "./shared/JAIAProtobuf";
+import { Fill as OlFillStyle } from "ol/style";
+import { Stroke as OlStrokeStyle } from "ol/style";
+import { Icon as OlIcon } from "ol/style";
+import { Point as OlPoint } from "ol/geom";
+import { Text as OlText } from "ol/style";
+import { LineString } from "ol/geom";
 
+const missionOrientationIcon = require('../icons/compass.svg')
 
 /**
  * Returns a set of features illustrating the missionPlanningGrid
@@ -184,3 +191,51 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
 
     return missionPlans
 }
+
+
+export function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
+    let iStyle = Styles.goalIcon(taskType, false, false)
+
+    let lineStyle = new OlStyle({
+        fill: new OlFillStyle({
+            color: 'rgba(255, 255, 255, 0.2)'
+        }),
+        stroke: new OlStrokeStyle({
+            color: 'rgb(5,29,97)',
+            lineDash: [10, 10],
+            width: 2
+        }),
+        image: iStyle
+    });
+
+    let iconStyle = new OlStyle({
+        image: new OlIcon({
+            src: missionOrientationIcon,
+            scale: [0.5, 0.5]
+        }),
+        text: new OlText({
+            font: '15px Calibri,sans-serif',
+            fill: new OlFillStyle({ color: '#000000' }),
+            stroke: new OlStrokeStyle({
+                color: '#ffffff', width: .1
+            }),
+            placement: 'point',
+            textAlign: 'start',
+            justify: 'left',
+            textBaseline: 'bottom',
+            offsetY: -100,
+            offsetX: 100
+        })
+    });
+    let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
+    let coords = stringCoords.slice(0, 2);
+
+    iconStyle.setGeometry(new OlPoint(stringCoords[0]));
+    iconStyle
+        .getImage()
+        .setRotation(
+            Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1])
+        );
+
+    return [lineStyle, iconStyle];
+};
