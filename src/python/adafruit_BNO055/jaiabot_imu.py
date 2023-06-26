@@ -9,10 +9,11 @@ import logging
 import time
 from math import *
 from dataclasses import dataclass
+from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
-parser.add_argument('-l', dest='logging_level', default='DEBUG', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('--simulator', action='store_true')
 parser.add_argument('--interactive', action='store_true')
 args = parser.parse_args()
@@ -59,14 +60,27 @@ def quaternion_to_euler_angles(q: tuple):
     return Orientation(yaw / DEG, pitch / DEG, roll / DEG)
 
 
+class AdafruitSimulator:
+    is_data_good = True,
+    euler = (0.0, 0.0, 0.0)
+    linear_acceleration = (0, 0, 0)
+    gravity = (0, 0, -9.8)
+    calibration_status = (3, 3, 3, 3)
+    quaternion = (1, 0, 0, 0)
+
+
 class IMU:
 
     # Vars used to reset IMU if we are receiving no data
     reset_count = 0
     max_reset_count = 15
 
-    def __init__(self):
-        self.is_setup = False
+    def __init__(self, simulator=False):
+        if simulator:
+            self.sensor = AdafruitSimulator()
+            self.is_setup = True
+        else:
+            self.is_setup = False
 
     def setup(self):
         if not self.is_setup:
@@ -83,73 +97,37 @@ class IMU:
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
     def getData(self):
-        if not self.is_setup:
-            self.setup()
+        imu_data = IMUData()
 
-        try:
-            quaternion = self.sensor.quaternion
-            euler = self.sensor.euler
-            accel = self.sensor.linear_acceleration
-            gravity = self.sensor.gravity
-            cal = self.sensor.calibration_status
+        euler = quaternion_to_euler_angles(self.sensor.quaternion)
+        # There is a 90 degree offset, even after reading and implementing the docs as well as we could, sorry! -- Ed & Jason
+        imu_data.euler_angles.heading = euler.heading + 90.0
+        imu_data.euler_angles.pitch = euler.pitch
+        imu_data.euler_angles.roll = euler.roll
 
-            if quaternion[0] is None or euler[0] is None or accel[0] is None or gravity[0] is None or cal[0] is None:
-                self.reset_count += 1
-                if self.reset_count >= self.max_reset_count:
-                    log.error('Reset IMU')
-                    self.reset()
-                    self.reset_count = 0
-                
-                return {
-                    "is_data_good": False
-                }
-            else:
-                # If the data is valid, reset the reset count and process the data
-                self.reset_count = 0
+        linear_acceleration = self.sensor.linear_acceleration
+        imu_data.linear_acceleration.x = linear_acceleration[0]
+        imu_data.linear_acceleration.y = linear_acceleration[1]
+        imu_data.linear_acceleration.z = linear_acceleration[2]
 
-                return {
-                    "is_data_good": True,
-                    "euler": euler,
-                    "linear_acceleration": accel,
-                    "gravity": gravity,
-                    "calibration_status": cal,
-                    "quaternion": quaternion,
-                    "calculated_euler": quaternion_to_euler_angles(quaternion),
-                }
-        except OSError as e:
-            self.is_setup = False
-            raise e
+        gravity = self.sensor.gravity
+        imu_data.gravity.x = gravity[0]
+        imu_data.gravity.y = gravity[1]
+        imu_data.gravity.z = gravity[2]
 
-    def reset(self):
-        log.debug("Resetting IMU")
-        self.sensor._reset
+        calibration_status = self.sensor.calibration_status
+        imu_data.calibration_status.sys = calibration_status[0]
+        imu_data.calibration_status.gyro = calibration_status[1]
+        imu_data.calibration_status.accel = calibration_status[2]
+        imu_data.calibration_status.mag = calibration_status[3]
 
+        imu_data.bot_rolled_over = int(abs(euler.roll) > 90)
 
-class IMUSimulator:
-    def __init__(self):
-        pass
-
-    def setup(self):
-        pass
-
-    def getData(self):
-        quaternion = (1, 0, 0, 0)
-
-        return {
-            "euler": (0.0, 0.0, 0.0),
-            "linear_acceleration": (0.0, 0.0, 0.0),
-            "gravity": (0.0, 0.0, 9.8),
-            "calibration_status": (3, 3, 3, 3),
-            "quaternion": quaternion,
-            "calculated_euler": quaternion_to_euler_angles(quaternion)
-        }
+        return imu_data
 
 
 # Setup the sensor
-if args.simulator:
-    imu = IMUSimulator()
-else:
-    imu = IMU()
+imu = IMU(simulator=args.simulator)
 
 
 def do_port_loop():
@@ -159,57 +137,24 @@ def do_port_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
 
-    imu_timeout = 5
-    previous_time = time.time()
-
     while True:
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
-        current_time = time.time()
-
-        # Band aid to reset the IMU every so often due to heading lock errors
-        # if (previous_time + imu_timeout) <= current_time:
-        #     previous_time = current_time
-        #     print("reset imu")
-        #     imu.reset()
-
-        # Respond to anyone who sends us a packet
         try:
-            data = imu.getData()
-            log.debug(data)
+            # Deserialize the message
+            command = IMUCommand()
+            command.ParseFromString(data)
+            log.debug(f'Received command:\n{command}')
+
+            # Execute the command
+            if command.type == IMUCommand.TAKE_READING:
+                imu_data = imu.getData()
+                log.debug(imu_data)
+                sock.sendto(imu_data.SerializeToString(), addr)
+
         except Exception as e:
-            log.error(e)
-            continue
-        
-        now = datetime.utcnow()
-       
-        if data['is_data_good'] == True:
-
-            # Use caluclated Euler angles from the quaternion
-            euler: Orientation = data['calculated_euler']
-            linear_acceleration = data['linear_acceleration']
-            gravity = data['gravity']
-            # 1 is calibrated, 0 is not
-            calibration_status = data['calibration_status']
-            # Did we roll over?
-            bot_rolled = int(abs(euler.roll) > 90)
-            # correct orientation since we have a 90 degree offset
-            corrected_orientation = euler.heading + 90
-
-            try:
-                line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n' % \
-                    (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-                    corrected_orientation, euler.pitch, euler.roll,
-                    linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
-                    gravity[0], gravity[2], gravity[1],
-                    calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3],
-                    bot_rolled)
-                log.debug('Sent: ' + line)
-
-                sock.sendto(line.encode('utf8'), addr)
-            except TypeError as e:
-                log.error(e)
+            log.warning(e)
 
 
 def do_interactive_loop():

@@ -26,9 +26,10 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <dccl/codec.h>
+#include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/util/constants.h>
 #include <goby/zeromq/application/multi_thread.h>
-#include <goby/middleware/io/udp_point_to_point.h>
+#include <iostream>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -81,23 +82,6 @@ int main(int argc, char* argv[])
 
 double loop_freq = 10;
 
-// for string delimiter
-std::vector<std::string> split (std::string s, std::string delimiter) {
-    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
-    std::string token;
-    std::vector<std::string> res;
-
-    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
-        token = s.substr (pos_start, pos_end - pos_start);
-        pos_start = pos_end + delim_len;
-        res.push_back (token);
-    }
-
-    res.push_back (s.substr (pos_start));
-    return res;
-}
-
-
 jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
     : zeromq::MultiThreadApplication<config::AdaFruitBNO055Publisher>(loop_freq * si::hertz)
 {
@@ -106,45 +90,19 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
     using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<imu_udp_in, imu_udp_out>;
     launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interprocess().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-      auto s = std::string(data.data());
-      auto fields = split(s, ",");
-      if (fields.size() < 14)
-      {
-          glog.is_warn() && glog << group("main") << "Did not receive enough fields: " << s
-                                 << std::endl;
-          return;
-      }
+    interthread().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
+        // Deserialize from the UDP packet
+        jaiabot::protobuf::IMUData imu_data;
+        if (!imu_data.ParseFromString(data.data()))
+        {
+            glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet" << endl;
+            return;
+        }
 
-      int index = 0;
-      
-      auto date_string = fields[index++];
+        glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString() << endl;
 
-      jaiabot::protobuf::IMUData output;
-
-      output.mutable_euler_angles()->set_heading(std::stod(fields[index++]));
-      output.mutable_euler_angles()->set_pitch(std::stod(fields[index++]));
-      output.mutable_euler_angles()->set_roll(std::stod(fields[index++]));
-
-      output.mutable_linear_acceleration()->set_x(std::stod(fields[index++]));
-      output.mutable_linear_acceleration()->set_y(std::stod(fields[index++]));
-      output.mutable_linear_acceleration()->set_z(std::stod(fields[index++]));
-
-      output.mutable_gravity()->set_x(std::stod(fields[index++]));
-      output.mutable_gravity()->set_y(std::stod(fields[index++]));
-      output.mutable_gravity()->set_z(std::stod(fields[index++]));
-
-      output.mutable_calibration_status()->set_sys(std::stod(fields[index++]));
-      output.mutable_calibration_status()->set_gyro(std::stod(fields[index++]));
-      output.mutable_calibration_status()->set_accel(std::stod(fields[index++]));
-      output.mutable_calibration_status()->set_mag(std::stod(fields[index++]));
-
-      output.set_bot_rolled_over(std::stod(fields[index++]));
-
-      glog.is_debug1() && glog << "Publishing IMU data: " << output.ShortDebugString() << endl;
-
-      interprocess().publish<groups::imu>(output);
-      last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
+        interprocess().publish<groups::imu>(imu_data);
+        last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
     });
 
     interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
@@ -166,8 +124,13 @@ void jaiabot::apps::AdaFruitBNO055Publisher::loop()
 {
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    io_data->set_data("hello\n");
+    auto command = jaiabot::protobuf::IMUCommand();
+    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
+
+    io_data->set_data(command.SerializeAsString());
     interthread().publish<imu_udp_out>(io_data);
+
+    glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
 }
 
 void jaiabot::apps::AdaFruitBNO055Publisher::health(

@@ -301,7 +301,17 @@ void jaiabot::comms::XBeeDriver::start_send(const goby::acomms::protobuf::ModemT
 {
     // send the message
     std::string bytes;
-    serialize_modem_message(&bytes, msg);
+
+    try
+    {
+        serialize_modem_message(&bytes, msg);
+    }
+    catch (const std::exception& e)
+    {
+        glog.is_warn() && glog << group(glog_out_group())
+                               << "Cannot serialize message: " << e.what() << std::endl;
+        return;
+    }
 
     glog.is_debug1() && glog << group(glog_out_group()) << "Sending hex (" << bytes.size()
                              << "B): " << goby::util::hex_encode(bytes) << std::endl;
@@ -361,12 +371,12 @@ std::string _create_header_bytes()
 bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
                                                      goby::acomms::protobuf::ModemTransmission* out)
 {
-    static const std::string header_id_bytes = _create_header_bytes();
-    std::string bytes = header_id_bytes + in;
-    std::string::iterator actual_end;
-
     try
     {
+        static const std::string header_id_bytes = _create_header_bytes();
+        std::string bytes = header_id_bytes + in;
+        std::string::iterator actual_end;
+
         std::shared_ptr<xbee::protobuf::XBeePacket> packet =
             goby::middleware::SerializerParserHelper<
                 xbee::protobuf::XBeePacket,
@@ -394,6 +404,8 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
     }
     catch (const std::exception& e)
     {
+        glog.is_warn() && glog << group(glog_out_group())
+                               << "Cannot parse modem message: " << e.what() << std::endl;
         return false;
     }
 }

@@ -37,14 +37,16 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* StationKeep: Bot is actively maintaining a position on the surface.
 			* SurfaceDrift: Bot is drifting (propulsor off).
-			* Dive: Bot performs a dive maneuver. 
+			* Dive: Bot performs a dive maneuver.
+				- PrePoweredDescent: Bot is stopping at dive location.
 				- PoweredDescent: Bot is diving by powered reverse thrust.
 				- Hold: Bot is maintaining a specific depth.
 				- UnpoweredAscent: Bot thruster is off, waiting for bot to ascend.
 				- PoweredAscent: Bot is performing a powered ascent to the surface.
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 				- SurfaceDrift: Bot is drifting to estimate currents.
-			* ConstantHeading: Bot is driving on a constant heading for a certain time
+				- ConstantHeading: Bot is driving on a constant heading for a certain time.
+			* ConstantHeading: Bot is driving on a constant heading for a certain time.
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
@@ -106,7 +108,9 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvGPSFix: Triggered whe the GPS Fix meets our requirements. 
 - EvGPSNoFix: Triggered whe the GPS Fix does not meet our requirements.
 - EvIMURestart: Triggered when we detect an IMU Issue.
-- EvIMURestartCompleted: Triggered when the IMU Restart is completed
+- EvIMURestartCompleted: Triggered when the IMU Restart is completed.
+- EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
+- EvPrePoweredDescentComplete: Triggered when the the timeout is reached in the PrePoweredDescent State. 
 
 #### Internal events
 

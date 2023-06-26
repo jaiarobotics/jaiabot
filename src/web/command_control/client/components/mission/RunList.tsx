@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import RunItem from './RunItem';
 import { MissionInterface } from '../CommandControl';
 import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave, mdiAutoFix } from '@mdi/js';
@@ -14,6 +14,7 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
 interface State {
@@ -44,6 +45,7 @@ export default class RunList extends React.Component {
                                     bots={self.props.bots} 
                                     run={value} 
                                     mission={self.props.mission}
+                                    setEditRunMode={self.props.setEditRunMode}
                                 />
                             </React.Fragment>
                         )
@@ -60,13 +62,7 @@ export default class RunList extends React.Component {
                 </Button>
                 <Button 
                     className="button-jcc" 
-                    onClick={() => { 
-                        const warning_string = "Are you sure you want to delete all of the runs?";
-
-                        if (confirm(warning_string)) {
-                            this.props.deleteAllRunsInMission(this.props.mission) 
-                        }
-                    }}
+                    onClick={() => {this.props.deleteAllRunsInMission(this.props.mission)}}
                 >
 					<Icon path={mdiDelete} title="Clear Mission"/>
 				</Button>

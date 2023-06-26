@@ -2,7 +2,7 @@
 
 ## HUB:
 ```
--- JAIABOT Command and Control (Sends Command on user trigger)
+-- Jaia Command and Control (Sends Command on user trigger)
     -> jaiabot_web_portal 
        subscribes to: io_data (Process Command)
        publishes to: hub_command (intervehicle Command, bot id input) 
@@ -62,5 +62,5 @@
     <-- jaiabot_web_portal (Receives bot status triggered by hub_manager publish)
         subscribes to: bot_status (intervehicle 1hz (Configurable))
         publishes to: web_portal_udp_out (intervehicle 1hz (Configurable))
--- JAIABOT Command and Control (Polls bot status at 2hz)
+-- Jaia Command and Control (Polls bot status at 2hz)
 ```

@@ -1,6 +1,6 @@
 import React from 'react'
 import {JaiaAPI} from '../../../common/JaiaAPI'
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import { MissionInterface } from '../CommandControl';
 import RunPanel from './RunPanel';
 
@@ -12,24 +12,17 @@ interface Props {
 	loadMissionClick: any,
 	saveMissionClick: any,
 	deleteAllRunsInMission: any,
-    autoAssignBotsToRuns: any
-}
-
-interface State {
+    autoAssignBotsToRuns: any,
+	setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
 export default class MissionControllerPanel extends React.Component {
 	api: JaiaAPI
-
 	props: Props
-	state: State
 
     constructor(props: Props) {
         super(props)
         this.api = props.api
-
-        this.state = {
-        }
     }
 
     static getDerivedStateFromProps(props: Props) {
@@ -49,6 +42,7 @@ export default class MissionControllerPanel extends React.Component {
 				saveMissionClick={self.props.saveMissionClick}
 				deleteAllRunsInMission={self.props.deleteAllRunsInMission}
 				autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
+				setEditRunMode={self.props.setEditRunMode}
 			/>
 
 		return (

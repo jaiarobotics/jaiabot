@@ -1,5 +1,5 @@
 import React from 'react';
-import { PortalBotStatus } from '../PortalStatus';
+import { PortalBotStatus } from '../shared/PortalStatus';
 import RunList from './RunList';
 import { MissionInterface } from '../CommandControl';
 
@@ -9,7 +9,8 @@ interface Props {
     loadMissionClick: any,
     saveMissionClick: any,
     deleteAllRunsInMission: any,
-    autoAssignBotsToRuns: any
+    autoAssignBotsToRuns: any,
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
 
@@ -40,6 +41,7 @@ export default class RunPanel extends React.Component {
 				    saveMissionClick={self.props.saveMissionClick}
                     deleteAllRunsInMission={self.props.deleteAllRunsInMission}
                     autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
+                    setEditRunMode={self.props.setEditRunMode}
                 />}
             </React.Fragment>
         );
