@@ -108,3 +108,15 @@ export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
     if (coordinate == null) return null
     return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())
 }
+
+/**
+ * Gets the element with a certain id
+ * 
+ * @param id id of the element to get
+ * @returns The element, if it exists
+ */
+export function getElementById<T>(id: string) {
+    // In case they passed a jQuery id selector in
+    id = id.replaceAll('#', '')
+    return document.getElementById(id) as T
+}

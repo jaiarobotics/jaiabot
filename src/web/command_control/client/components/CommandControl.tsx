@@ -1117,6 +1117,12 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Returns a human-readable string representing the length of the input geometry
+	 * 
+	 * @param line The line geometry to measure
+	 * @returns Human-readable string representing the length of the geometry, e.g. "26 m" or "1.4 km"
+	 */
 	static formatLength(line: Geometry) {
 		const length = OlGetLength(line, { projection: map.getView().getProjection() });
 		if (length > 100) {

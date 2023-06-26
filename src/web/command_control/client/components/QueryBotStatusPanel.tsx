@@ -11,6 +11,7 @@ import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
 import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
+import { getElementById } from './Utilities';
 
 interface Props {
     api: JaiaAPI
@@ -57,7 +58,7 @@ export default class QueryBotStatusPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = Number($("#query_bot_status_input").val())
+        let botId = Number(getElementById<HTMLInputElement>("query_bot_status_input").value)
         info("Query Bot Status for botId: " + botId)
 
         let engineering_command: Engineering = {
