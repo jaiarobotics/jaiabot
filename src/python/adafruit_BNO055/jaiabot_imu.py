@@ -9,7 +9,7 @@ import logging
 import time
 from math import *
 from dataclasses import dataclass
-from jaiabot.messages.imu_pb2 import IMUData
+from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
@@ -96,44 +96,6 @@ class IMU:
             # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
-    def getDataDict(self):
-        if not self.is_setup:
-            self.setup()
-
-        try:
-            quaternion = self.sensor.quaternion
-            euler = self.sensor.euler
-            accel = self.sensor.linear_acceleration
-            gravity = self.sensor.gravity
-            cal = self.sensor.calibration_status
-
-            if quaternion[0] is None or euler[0] is None or accel[0] is None or gravity[0] is None or cal[0] is None:
-                self.reset_count += 1
-                if self.reset_count >= self.max_reset_count:
-                    log.error('Reset IMU')
-                    self.reset()
-                    self.reset_count = 0
-                
-                return {
-                    "is_data_good": False
-                }
-            else:
-                # If the data is valid, reset the reset count and process the data
-                self.reset_count = 0
-
-                return {
-                    "is_data_good": True,
-                    "euler": euler,
-                    "linear_acceleration": accel,
-                    "gravity": gravity,
-                    "calibration_status": cal,
-                    "quaternion": quaternion,
-                    "calculated_euler": quaternion_to_euler_angles(quaternion),
-                }
-        except OSError as e:
-            self.is_setup = False
-            raise e
-
     def getData(self):
         imu_data = IMUData()
 
@@ -163,10 +125,6 @@ class IMU:
 
         return imu_data
 
-    def reset(self):
-        log.debug("Resetting IMU")
-        self.sensor._reset
-
 
 # Setup the sensor
 imu = IMU(simulator=args.simulator)
@@ -179,30 +137,24 @@ def do_port_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
 
-    imu_timeout = 5
-    previous_time = time.time()
-
     while True:
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
-        current_time = time.time()
-
-        # Band aid to reset the IMU every so often due to heading lock errors
-        # if (previous_time + imu_timeout) <= current_time:
-        #     previous_time = current_time
-        #     print("reset imu")
-        #     imu.reset()
-
-        # Respond to anyone who sends us a packet
         try:
-            imu_data = imu.getData()
-            log.debug(imu_data)
+            # Deserialize the message
+            command = IMUCommand()
+            command.ParseFromString(data)
+            log.debug(f'Received command:\n{command}')
+
+            # Execute the command
+            if command.type == IMUCommand.TAKE_READING:
+                imu_data = imu.getData()
+                log.debug(imu_data)
+                sock.sendto(imu_data.SerializeToString(), addr)
+
         except Exception as e:
-            log.error(e)
-            continue
-        
-        sock.sendto(imu_data.SerializeToString(), addr)
+            log.warning(e)
 
 
 def do_interactive_loop():

@@ -35,6 +35,7 @@ const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
+const editColor = 'gold'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -71,16 +72,16 @@ export function botMarker(feature: Feature): Style[] {
 
     const textOffsetRadius = 11
 
-    var color = defaultColor
+    let color: string
 
     if (botStatus.isDisconnected ?? false) {
         color = disconnectedColor
-    }
-    else if (isRemoteControlled(botStatus.mission_state)) {
+    } else if (isRemoteControlled(botStatus.mission_state)) {
         color = remoteControlledColor
-    }
-    else if (feature.get('selected')) {
+    } else if (feature.get('selected')) {
         color = selectedColor
+    } else {
+        color = defaultColor
     }
 
     const text = String(botStatus.bot_id ?? "")
@@ -208,32 +209,39 @@ export function goalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     const src = goalSrc(taskType)
+    let nonActiveGoalColor: string
+
+    if (canEdit) {
+        nonActiveGoalColor = isSelected ? editColor : defaultColor
+    } else {
+        nonActiveGoalColor = isSelected ? selectedColor : defaultColor
+    }
 
     return new Icon({
         src: src,
-        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
+        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
         anchor: [0.5, 1],
     })
 }
 
 
-export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number) {
+export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const src = runFlag
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
         src: src,
-        color: isSelected ? selectedColor : defaultColor,
+        color: isSelected ? (canEdit ? editColor : selectedColor) : defaultColor,
         // Need a bigger flag for a 3-digit run number...this also causes new anchor values
         anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
         scale: runNumber > 99 ? 1.075 : 1.0
     })
 }
 
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected)
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+    let icon = goalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
     return new Style({
         image: icon,
@@ -249,8 +257,8 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
     })
 }
 
-export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number) {
-    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber))
+export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
+    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
 
     return new Style({
@@ -352,9 +360,17 @@ export function driftTask(drift: DriftTask) {
 
 // The mission path linestring
 export function missionPath(feature: Feature) {
-    const isSelected: boolean = feature.get('isSelected') ?? false
+    const isSelected = feature.get('isSelected') ?? false
     const zIndex = isSelected ? 101 : 1
-    const pathColor = isSelected ? selectedColor : defaultPathColor
+    const canEdit = feature.get('canEdit')
+    let pathColor = ''
+
+    if (canEdit) {
+        pathColor = isSelected ? editColor : defaultPathColor
+    } else {
+        pathColor = isSelected ? selectedColor : defaultPathColor
+    }
+
     const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
