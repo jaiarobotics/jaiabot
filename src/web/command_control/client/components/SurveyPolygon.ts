@@ -14,6 +14,8 @@ import * as turf from "@turf/turf"
 // Jaia imports
 import CommandControl, { Mode } from "./CommandControl"
 
+const getElementById = document.getElementById
+
 
 export class SurveyPolygon {
 
@@ -184,7 +186,7 @@ export class SurveyPolygon {
                         }
 
                         // tooltipCoord = geom.getLastCoordinate();
-                        // $('#surveyPolygonResult').text(CommandControl.formatLength(geom));
+                        // getElementById('surveyPolygonResult').innerText = CommandControl.formatLength(geom);
                     }
 
                     let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
@@ -194,11 +196,11 @@ export class SurveyPolygon {
                         missionParams.sp_perimeter = spPerimeter;
                     }
 
-                    $('#missionStatArea').text(missionParams.sp_area);
-                    $('#missionStatPerimeter').text(missionParams.sp_perimeter);
-                    $('#missionStatOrientation').text(missionParams.orientation);
-                    $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                    $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                    getElementById('missionStatArea').innerText = missionParams.sp_area.toFixed(2);
+                    getElementById('missionStatPerimeter').innerText = missionParams.sp_perimeter.toFixed(2);
+                    getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                    getElementById('missionStatRallyStartDistance').innerText = missionParams.sp_rally_start_dist.toFixed(2);
+                    getElementById('missionStatRallyFinishDistance').innerText = missionParams.sp_rally_finish_dist.toFixed(2);
 
                     commandControl.updateMissionLayer();
 
@@ -268,11 +270,11 @@ export class SurveyPolygon {
 
                 // console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-                $('#missionStatArea').text(missionParams.sp_area);
-                $('#missionStatPerimeter').text(missionParams.sp_perimeter);
-                $('#missionStatOrientation').text(missionParams.orientation);
-                $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                getElementById('missionStatArea').innerText = missionParams.sp_area.toFixed(2);
+                getElementById('missionStatPerimeter').innerText = missionParams.sp_perimeter.toFixed(2);
+                getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                getElementById('missionStatRallyStartDistance').innerText = missionParams.sp_rally_start_dist.toFixed(2);
+                getElementById('missionStatRallyFinishDistance').innerText = missionParams.sp_rally_finish_dist.toFixed(2);
 
                 commandControl.updateMissionLayer();
                 unByKey(this.listener);
