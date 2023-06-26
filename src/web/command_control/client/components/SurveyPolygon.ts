@@ -101,16 +101,16 @@ export class SurveyPolygon {
                                 });
 
                                 let optionsMissionLines = {units: 'meters' as turf.helpers.Units};
-                                let bot_dict_length = Object.keys(podStatus.bots).length
-                                let bot_list = Array.from(Array(bot_dict_length).keys());
-                                let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, missionParams.spacing * bot_dict_length, missionParams.orientation, optionsMissionLines);
+                                let botDictLength = Object.keys(podStatus.bots).length
+                                let botList = Array.from(Array(botDictLength).keys());
+                                let missionRhumbDestPoint = turf.rhumbDestination(missionPlanningGridTurfCentroid, missionParams.spacing * botDictLength, missionParams.orientation, optionsMissionLines);
 
                                 let centerLine = turf.lineString([missionPlanningGridTurfCentroid.geometry.coordinates, missionRhumbDestPoint.geometry.coordinates]);
 
                                 let lineSegments: any[] = [];
                                 let firstDistance = 0;
                                 let nextDistance = missionParams.spacing;
-                                bot_list.forEach(bot => {
+                                botList.forEach(bot => {
                                     let ls = turf.lineSliceAlong(centerLine, firstDistance, nextDistance, {units: 'meters'});
                                     lineSegments.push(ls);
                                     firstDistance = nextDistance;
@@ -135,7 +135,7 @@ export class SurveyPolygon {
 
                                 let ol = turf.lineOffset(centerLine, 0, {units: 'meters'});
                                 offsetLines.push(ol);
-                                bot_list.forEach(bot => {
+                                botList.forEach(bot => {
                                     ol = turf.lineOffset(ol, missionParams.spacing, {units: 'meters'});
                                     offsetLines.push(ol);
                                 })
@@ -190,28 +190,28 @@ export class SurveyPolygon {
                     let spArea = Math.trunc(turf.area(turf.toWgs84(turfPolygon))/1000000*100)/100;
                     let spPerimeter = Math.trunc(turf.length(turf.toWgs84(turfPolygon))*100)/100
                     if (spArea !== undefined && spPerimeter !== undefined) {
-                        missionParams.sp_area = spArea
-                        missionParams.sp_perimeter = spPerimeter;
+                        missionParams.spArea = spArea
+                        missionParams.spPerimeter = spPerimeter;
                     }
 
-                    $('#missionStatArea').text(missionParams.sp_area);
-                    $('#missionStatPerimeter').text(missionParams.sp_perimeter);
+                    $('#missionStatArea').text(missionParams.spArea);
+                    $('#missionStatPerimeter').text(missionParams.spPerimeter);
                     $('#missionStatOrientation').text(missionParams.orientation);
-                    $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                    $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                    $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
+                    $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
 
                     commandControl.updateMissionLayer();
 
                     // if (turfPolygon.geometry.coordinates[0].length > 5) {
-                    // 	let geo_geom = geom1.getGeometry();
-                    // 	geo_geom.transform("EPSG:3857", "EPSG:4326")
-                    // 	let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+                    // 	let geoGeom = geom1.getGeometry();
+                    // 	geoGeom.transform("EPSG:3857", "EPSG:4326")
+                    // 	let surveyPolygonGeoCoords = geoGeom.getCoordinates()
                     //
                     // 	this.setState({
                     // 		// missionPlanningGrid: missionPlanningGridOl.getGeometry(),
                     // 		// missionPlanningLines: missionPlanningLinesOl.getGeometry(),
                     // 		surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-                    // 		surveyPolygonCoords: geo_geom,
+                    // 		surveyPolygonCoords: geoGeom,
                     // 		surveyPolygonChanged: true
                     // 	});
                     // 	this.updateMissionLayer();
@@ -254,25 +254,25 @@ export class SurveyPolygon {
                 // 	this.state.missionParams.sp_perimeter = spPerimeter;
                 // }
 
-                let geo_geom = (evt.feature as Feature<LineString>).getGeometry();
-                geo_geom.transform("EPSG:3857", "EPSG:4326")
-                let surveyPolygonGeoCoords = geo_geom.getCoordinates()
+                let geoGeom = (evt.feature as Feature<LineString>).getGeometry();
+                geoGeom.transform("EPSG:3857", "EPSG:4326")
+                let surveyPolygonGeoCoords = geoGeom.getCoordinates()
 
                 commandControl.setState({
                     surveyPolygonFeature: evt.feature,
                     surveyPolygonGeoCoords: surveyPolygonGeoCoords,
-                    surveyPolygonCoords: geo_geom,
+                    surveyPolygonCoords: geoGeom,
                     surveyPolygonChanged: true,
                     missionPlanningFeature: geom1
                 })
 
                 // console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-                $('#missionStatArea').text(missionParams.sp_area);
-                $('#missionStatPerimeter').text(missionParams.sp_perimeter);
+                $('#missionStatArea').text(missionParams.spArea);
+                $('#missionStatPerimeter').text(missionParams.spPerimeter);
                 $('#missionStatOrientation').text(missionParams.orientation);
-                $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
+                $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
 
                 commandControl.updateMissionLayer();
                 unByKey(this.listener);
