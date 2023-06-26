@@ -124,7 +124,10 @@ void jaiabot::apps::AdaFruitBNO055Publisher::loop()
 {
     // Just send an empty packet
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    io_data->set_data("hello\n");
+    auto command = jaiabot::protobuf::IMUCommand();
+    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
+
+    io_data->set_data(command.SerializeAsString());
     interthread().publish<imu_udp_out>(io_data);
 
     glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
