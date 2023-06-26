@@ -487,22 +487,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
-		// TODO move map-based rendering here
-		// Here we can check the previous state against the current state and update the map
-		// layers to reflect changes that we can't handle in render() directly.
-		// Note that calling setState() here will cause another cycle, beware of infinite loops
-		/* Need to detect when an input field is rendered, then call this on it:
-				This will make the keyboard "go" button close the keyboard instead of doing nothing.
-		$('input').keypress(function(e) {
-				let code = (e.keyCode ? e.keyCode : e.which);
-				if ( (code==13) || (code==10))
-						{
-						jQuery(this).blur();
-						return false;
-						}
-		});
-		*/
-
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -647,10 +631,10 @@ export default class CommandControl extends React.Component {
 	//     cursor:  the name of the cursor to use for this interaction
 	changeInteraction(newInteraction: Interaction = null, cursor = '') {
 		const { currentInteraction } = this.state;
-		if (currentInteraction !== null) {
+		if (currentInteraction) {
 			map.removeInteraction(currentInteraction);
 		}
-		if (newInteraction !== null) {
+		if (newInteraction) {
 			map.addInteraction(newInteraction);
 			this.setState({ currentInteraction: newInteraction });
 		}
@@ -686,8 +670,7 @@ export default class CommandControl extends React.Component {
 
 		if (botCount > lastBotCount) {
 			this.zoomToPod(true);
-		} 
-		else if (trackingTarget === 'pod') {
+		} else if (trackingTarget === 'pod') {
 			this.zoomToPod();
 		} 
 
@@ -789,8 +772,7 @@ export default class CommandControl extends React.Component {
 
 					if (messages.error) {
 						this.setState({disconnectionMessage: messages.error})
-					}
-					else {
+					} else {
 						this.setState({disconnectionMessage: null})
 					}
 				}
@@ -817,7 +799,7 @@ export default class CommandControl extends React.Component {
 	 */
 	zoomToBot(id: number, firstMove = false) {
 		const extent = this.getBotExtent(id)
-		if (extent != null) {
+		if (extent) {
 			this.fit(extent, { duration: 100 }, false, firstMove);
 		}
 	}
@@ -831,17 +813,16 @@ export default class CommandControl extends React.Component {
 	 */
 	zoomToPod(firstMove = false) {
 		const podExtent = this.getPodExtent()
-		if (podExtent != null) {
+		if (podExtent) {
 			this.fit(podExtent, { duration: 100 }, false, firstMove)
 		}
 	}
 
 
 	toggleBot(bot_id?: number) {
-		if (bot_id == null || this.isBotSelected(bot_id)) {
+		if (!bot_id || this.isBotSelected(bot_id)) {
 			this.unselectHubOrBot()
-		}
-		else {
+		} else {
 			this.selectBot(bot_id)
 		}
 	}
@@ -849,8 +830,7 @@ export default class CommandControl extends React.Component {
 	toggleHub(id: number) {
 		if (this.isHubSelected(id)) {
 			this.unselectHubOrBot()
-		}
-		else {
+		} else {
 			this.selectHub(id)
 		}
 	}
@@ -875,19 +855,19 @@ export default class CommandControl extends React.Component {
 
 	isBotSelected(bot_id: number) {
 		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot != null && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
+		return selectedHubOrBot && selectedHubOrBot.type == "bot" && selectedHubOrBot.id == bot_id
 	}
 
 	isHubSelected(hub_id: number) {
 		const { selectedHubOrBot } = this.state
-		return selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
+		return selectedHubOrBot && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
 	}
 
 	getBotExtent(bot_id: number) {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
 		const bot = this.getPodStatus().bots[bot_id]
 
-		if (bot != null && bot.location != null) {
+		if (bot && bot.location) {
 			const coordinate = getMapCoordinate(bot.location, map)
 			return [
 				coordinate[0] - zoomExtentWidth,
@@ -902,8 +882,8 @@ export default class CommandControl extends React.Component {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
 		const bots = Object.values(this.getPodStatus().bots)
 
-		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon != null })
-		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat != null })
+		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon })
+		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat })
 
 		if (lons.length == 0 || lats.length == 0) return undefined
 
@@ -923,7 +903,7 @@ export default class CommandControl extends React.Component {
 		if (id === 'pod') {
 			this.zoomToPod(true);
 			info('Following pod');
-		} else if (id !== null) {
+		} else if (id) {
 			this.zoomToBot(id as number, true);
 			info(`Following bot ${id}`);
 		} else if (trackingTarget === 'pod') {
@@ -997,9 +977,7 @@ export default class CommandControl extends React.Component {
 			// console.debug(deepcopy(this.state.undoRunListStack))
 			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
-		} 
-		else
-		{
+		} else {
 			info("There is no goal or task to undo!");
 		}
 	}
@@ -1010,8 +988,7 @@ export default class CommandControl extends React.Component {
 		this.api.allStop().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-			else {
+			} else {
 				info("Sent STOP")
 			}
 		})
@@ -1027,7 +1004,7 @@ export default class CommandControl extends React.Component {
 
 	weAreInControl() {
 		const {controllingClientId} = this.getPodStatus()
-		return (controllingClientId == this.api.clientId) || controllingClientId == null
+		return (controllingClientId == this.api.clientId) || !controllingClientId
 	}
 
 	takeControl() {
@@ -1364,7 +1341,7 @@ export default class CommandControl extends React.Component {
 	// Currently selected botId
 	selectedBotId() {
 		const { selectedHubOrBot } = this.state
-		if (selectedHubOrBot == null || selectedHubOrBot.type != "bot") return null
+		if (!selectedHubOrBot || selectedHubOrBot.type != "bot") return null
 		else {
 			return selectedHubOrBot.id
 		}
@@ -1376,7 +1353,7 @@ export default class CommandControl extends React.Component {
 
 	selectedHubId() {
 		const { selectedHubOrBot } = this.state
-		if (selectedHubOrBot == null || selectedHubOrBot.type != "hub") return null
+		if (!selectedHubOrBot || selectedHubOrBot.type != "hub") return null
 		else {
 			return selectedHubOrBot.id
 		}
@@ -1425,9 +1402,11 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
-			const goal = feature.get('goal')
-			const goalIndex = feature.get('goalIndex')
-			if (goal != null) {
+			// Clicked on a goal / waypoint
+			let goal = feature.get('goal')
+			let goalIndex = feature.get('goalIndex')
+
+			if (goal) {
 				this.pushRunListToUndoStack()
 				this.setState({
 					goalBeingEdited: goal,
@@ -1439,7 +1418,7 @@ export default class CommandControl extends React.Component {
 
 			// Clicked on a bot
 			const botStatus = feature.get('bot') as PortalBotStatus
-			if (botStatus != null) {
+			if (botStatus) {
 				this.toggleBot(botStatus.bot_id)
 				return false
 			}
@@ -1456,8 +1435,7 @@ export default class CommandControl extends React.Component {
 				this.state.selectedFeatures = new OlCollection([ feature ])
 				return false
 			}
-		}
-		else {
+		} else {
 			this.addWaypointAtCoordinate(evt.coordinate)
 			return true
 		}
@@ -1630,8 +1608,7 @@ export default class CommandControl extends React.Component {
 		this.api.allActivate().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-			else {
+			} else {
 				info("Sent Activate All")
 			}
 		})
@@ -1643,8 +1620,7 @@ export default class CommandControl extends React.Component {
 		this.api.nextTaskAll().then(response => {
 			if (response.message) {
 				error(response.message)
-			}
-				else {
+			} else {
 				info("Sent Next Task All")
 			}
 		})
@@ -1656,8 +1632,7 @@ export default class CommandControl extends React.Component {
 		this.api.allRecover().then(response => {
 				if (response.message) {
 						error(response.message)
-				}
-				else {
+				} else {
 						info("Sent Recover All")
 				}
 		})
@@ -1665,14 +1640,14 @@ export default class CommandControl extends React.Component {
 
 	runRCMode() {
 		let botId = this.selectedBotId()
-		if (botId == null) {
+		if (!botId) {
 			warning("No bots selected")
 			return
 		}
 
 		var datum_location = this.getPodStatus()?.bots?.[botId]?.location 
 
-		if (datum_location == null) {
+		if (!datum_location) {
 			const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
 			if (!confirm(warning_string)) {
@@ -1706,8 +1681,7 @@ export default class CommandControl extends React.Component {
 		if (this.state.mode == modeName) {
 			let selectedButton = $('#' + this.state.mode)?.removeClass('selected')
 			this.state.mode = Mode.NONE
-		}
-		else {
+		} else {
 			let button = $('#' + modeName)?.addClass('selected')
 			this.state.mode = modeName
 		}
@@ -1715,7 +1689,7 @@ export default class CommandControl extends React.Component {
 
 	disconnectionPanel() {
 		let msg = this.state.disconnectionMessage
-		if (msg == null) {
+		if (!msg) {
 			return null
 		}
 
@@ -1729,8 +1703,7 @@ export default class CommandControl extends React.Component {
 		let engineeringPanel = document.getElementById('engineeringPanel')
 		if (engineeringPanel.style.width == "400px") {
 			engineeringPanel.style.width = "0px"
-		}
-		else {
+		} else {
 			engineeringPanel.style.width = "400px"
 		}
 	}
