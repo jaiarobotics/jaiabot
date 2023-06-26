@@ -8,8 +8,7 @@ import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 
-
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, canEdit: boolean, runNumber?: string, zIndex?: number) {
     var features = []
     const projection = map.getView().getProjection()
 
@@ -26,27 +25,25 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         const location = goal.location
 
         // Increment by one to account for 0 index
-        const goal_index_start_at_one = goal_index + 1;
+        const goalIndexStartAtOne = goal_index + 1;
 
-        if (location == null) {
+        if (!location) {
             continue
         }
 
-        {
-            // OpenLayers
-            const activeRun = plan.hasOwnProperty('speeds') ? true : false
-            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
-                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
-            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
-            features.push(markerFeature)
+        // OpenLayers
+        const isActiveGoal = !canEdit ? goalIndexStartAtOne == activeGoalIndex : false
+        const markerFeature = createMarker(map, {title: 'Goal ' + goalIndexStartAtOne, lon: location.lon, lat: location.lat,
+            style: Styles.goal(goalIndexStartAtOne, goal, isActiveGoal, isSelected, canEdit)})
+        markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goalIndexStartAtOne})
+        features.push(markerFeature)
 
-            if (goal_index_start_at_one === 1) {
-                if (!runNumber) {
-                    runNumber = ''
-                }
-                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex)})
-                features.push(flagFeature)
+        if (goalIndexStartAtOne === 1) {
+            if (!runNumber) {
+                runNumber = ''
             }
+            const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)})
+            features.push(flagFeature)
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
@@ -92,7 +89,8 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
             ]
 
             const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
-            missionPathFeature.set("isSelected", isSelected)
+            missionPathFeature.set('isSelected', isSelected)
+            missionPathFeature.set('canEdit', canEdit)
             missionPathFeature.setStyle(Styles.missionPath)
             features.push(missionPathFeature)
         }
