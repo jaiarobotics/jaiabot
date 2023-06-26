@@ -10,8 +10,6 @@ import { unByKey as OlUnobserveByKey } from "ol/Observable";
 
 import * as turf from "@turf/turf"
 
-import $ from 'jquery';
-
 // Jaia imports
 import { deepcopy } from "./Utilities";
 import CommandControl from "./CommandControl";

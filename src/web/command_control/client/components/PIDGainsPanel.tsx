@@ -3,7 +3,6 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';

@@ -2,7 +2,6 @@
 
 import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
-import $ from 'jquery'
 
 
 export function Load<T>(key: string, defaultValue: T) {

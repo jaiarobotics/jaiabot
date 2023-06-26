@@ -61,15 +61,6 @@ import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
-import $ from 'jquery';
-import 'jquery-ui/ui/widgets/resizable';
-import 'jquery-ui/ui/widgets/slider';
-import 'jquery-ui/ui/widgets/sortable';
-import 'jquery-ui/ui/widgets/button';
-import 'jquery-ui/ui/effects/effect-blind';
-// jQuery UI touch punch
-import punchJQuery from '../libs/jquery.ui.touch-punch'
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
 	faMapMarkerAlt,
@@ -133,9 +124,6 @@ import RunList from './mission/RunList'
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
 
 const COLOR_SELECTED = lessVars.selectedColor;
-
-punchJQuery($);
-// jqueryDrawer($);
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
@@ -472,11 +460,7 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		($('.panel > h2') as any).disableSelection();
-
 		OlLayerSwitcher.renderPanel(map, document.getElementById('mapLayers'), {});
-
-		($('button') as any).disableSelection();
 
 		const mapLayersPanel = document.getElementById('mapLayers')
 		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
@@ -669,22 +653,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
-		// TODO move map-based rendering here
-		// Here we can check the previous state against the current state and update the map
-		// layers to reflect changes that we can't handle in render() directly.
-		// Note that calling setState() here will cause another cycle, beware of infinite loops
-		/* Need to detect when an input field is rendered, then call this on it:
-				This will make the keyboard "go" button close the keyboard instead of doing nothing.
-		$('input').keypress(function(e) {
-				let code = (e.keyCode ? e.keyCode : e.which);
-				if ( (code==13) || (code==10))
-						{
-						jQuery(this).blur();
-						return false;
-						}
-		});
-		*/
-
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -2222,17 +2190,11 @@ export default class CommandControl extends React.Component {
 
 	toggleMode(modeName: Mode) {
 		if (this.state.mode == modeName) {
-			if (this.state.mode) {
-				let selectedButton = $('#' + this.state.mode)
-				if (selectedButton) {
-					selectedButton.removeClass('selected')
-				}
-			}
-
+			document.getElementById(this.state.mode)?.classList?.remove('selected')
 			this.state.mode = Mode.NONE
 		}
 		else {
-			let button = $('#' + modeName)?.addClass('selected')
+			document.getElementById(modeName)?.classList?.add('selected')
 			this.state.mode = modeName
 		}
 	}
