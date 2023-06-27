@@ -1929,15 +1929,6 @@ export default class CommandControl extends React.Component {
 		return true
 	}
 
-
-
-
-
-
-
-
-
-
 	
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
