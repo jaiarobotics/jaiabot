@@ -873,26 +873,6 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-<<<<<<< HEAD
-	updateActiveMissionLayer() {
-		const bots = this.getPodStatus().bots
-		let allFeatures = []
-
-		for (let botId in bots) {
-			let bot = bots[botId]
-
-			const active_mission_plan = bot.active_mission_plan
-			if (active_mission_plan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, Number(botId), active_mission_plan, bot.active_goal, this.isBotSelected(Number(botId)))
-				allFeatures.push(...features)
-			}
-		}
-
-		let source = layers.activeMissionLayer.getSource()
-		source.clear()
-		source.addFeatures(allFeatures)
-	}
-
 	/**
 	 * Gets the current metadata
 	 */
@@ -911,9 +891,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	// POLL THE BOTS/HUBS
-=======
-	// POLL THE BOTS
->>>>>>> 1.y
 	pollPodStatus() {
 		clearInterval(this.timerID);
 		const us = this
