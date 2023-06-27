@@ -53,15 +53,6 @@ import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
-import $ from 'jquery';
-import 'jquery-ui/ui/widgets/resizable';
-import 'jquery-ui/ui/widgets/slider';
-import 'jquery-ui/ui/widgets/sortable';
-import 'jquery-ui/ui/widgets/button';
-import 'jquery-ui/ui/effects/effect-blind';
-// jQuery UI touch punch
-import punchJQuery from '../libs/jquery.ui.touch-punch'
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
 	faMapMarkerAlt,
@@ -118,9 +109,6 @@ import RunList from './mission/RunList'
 // output) as input instead of the less.
 // eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
-
-punchJQuery($);
-// jqueryDrawer($);
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
@@ -470,9 +458,9 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		($('.panel > h2') as any).disableSelection();
+		// ($('.panel > h2') as any).disableSelection();
 
-		($('button') as any).disableSelection();
+		// ($('button') as any).disableSelection();
 
 		this.setupMapLayersPanel()
 
@@ -990,6 +978,12 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	/**
+	 * Returns a human-readable string representing the length of the input geometry
+	 * 
+	 * @param line The line geometry to measure
+	 * @returns Human-readable string representing the length of the geometry, e.g. "26 m" or "1.4 km"
+	 */
 	static formatLength(line: Geometry) {
 		const length = OlGetLength(line, { projection: map.getView().getProjection() });
 		if (length > 100) {
@@ -1675,10 +1669,11 @@ export default class CommandControl extends React.Component {
 
 	toggleMode(modeName: Mode) {
 		if (this.state.mode == modeName) {
-			let selectedButton = $('#' + this.state.mode)?.removeClass('selected')
+			document.getElementById(this.state.mode)?.classList?.remove('selected')
 			this.state.mode = Mode.NONE
-		} else {
-			let button = $('#' + modeName)?.addClass('selected')
+		}
+		else {
+			document.getElementById(modeName)?.classList?.add('selected')
 			this.state.mode = modeName
 		}
 	}

@@ -10,8 +10,6 @@ import { unByKey as OlUnobserveByKey } from "ol/Observable";
 
 import * as turf from "@turf/turf"
 
-import $ from 'jquery';
-
 // Jaia imports
 import { deepcopy } from "./Utilities";
 import CommandControl from "./CommandControl";
@@ -278,11 +276,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        $('#missionStatArea').text(missionParams.spArea);
-                        $('#missionStatPerimeter').text(missionParams.spPerimeter);
-                        $('#missionStatOrientation').text(missionParams.orientation);
-                        $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
-                        $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
+                        document.getElementById('missionStatArea').innerText = missionParams.spArea.toFixed(2);
+                        document.getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2);
+                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.spRallyStartDist.toFixed(2);
+                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.spRallyFinishDist.toFixed(2);
         
                         // console.log('** END ********* ON CHANGE *************************')
                     }
