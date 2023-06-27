@@ -270,11 +270,6 @@ export class SurveyPolygon {
 
                 // console.log(Math.trunc(turf.convertArea(turf.area(turf.toWgs84(turfPolygon))*100, 'meters', 'kilometers'))/100);
 
-                $('#missionStatArea').text(missionParams.spArea);
-                $('#missionStatPerimeter').text(missionParams.spPerimeter);
-                $('#missionStatOrientation').text(missionParams.orientation);
-                $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
-                $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
                 getElementById('missionStatArea').innerText = missionParams.spArea.toFixed(2);
                 getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2);
                 getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
