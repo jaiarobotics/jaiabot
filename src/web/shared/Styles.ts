@@ -301,7 +301,7 @@ export function divePacket(dive: DivePacket) {
             text: String(text),
             font: '12pt sans-serif',
             fill: new Fill({
-                color: 'black'
+                color: 'orange'
             }),
             offsetY: 20
         })
