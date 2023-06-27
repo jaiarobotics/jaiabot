@@ -29,8 +29,8 @@ function getKMLImage(href: string) {
 // Define a KMZ format class by subclassing ol/format/KML
 
 export class KMZ extends KML {
-    constructor(opt_options: any) {
-        const options = opt_options || {};
+    constructor(inputOptions: any) {
+        const options = inputOptions || {};
         options.iconUrlFunction = getKMLImage;
         super(options);
     }

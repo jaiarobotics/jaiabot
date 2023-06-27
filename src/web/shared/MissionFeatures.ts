@@ -18,7 +18,7 @@ function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     return geographicCoordinate
 }
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number, updateMissionLayer?: () => void) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, canEdit: boolean, runNumber?: string, zIndex?: number, updateMissionLayer?: () => void) {
     const features = []
     const projection = map.getView().getProjection()
 
@@ -43,7 +43,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                 title: 'Goal ' + goalIndexStartAtOne, 
                 lon: location.lon, 
                 lat: location.lat,
-                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected)
+                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
             }
         )
 
@@ -74,7 +74,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                 {
                     lon: location.lon, 
                     lat: location.lat, 
-                    style: Styles.flag(goal, isSelected, runNumber, zIndex)
+                    style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
             flagFeature.set('flagNumber', runNumber)            

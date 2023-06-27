@@ -60,13 +60,13 @@ export default class QueryBotStatusPanel extends React.Component {
         let botId = Number($("#query_bot_status_input").val())
         info("Query Bot Status for botId: " + botId)
 
-        let engineering_command: Engineering = {
+        let engineeringCommand: Engineering = {
             bot_id: botId,
             query_bot_status: true
         }
 
-        debug(JSON.stringify(engineering_command))
+        debug(JSON.stringify(engineeringCommand))
 
-        this.props.api.postEngineeringPanel(engineering_command);
+        this.props.api.postEngineeringPanel(engineeringCommand);
     }
 }
