@@ -34,22 +34,20 @@ import * as turf from '@turf/turf';
 
 // Openlayers
 import OlMap from 'ol/Map';
-import {
-	Interaction,
-} from 'ol/interaction';
+import { Interaction } from 'ol/interaction';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { getLength as OlGetLength } from 'ol/sphere';
-import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
-import {
-	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
-} from 'ol/style';
+import { Geometry, LineString, LineString as OlLineString } from 'ol/geom';
+import { Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
 import { HubOrBot } from './HubOrBot'
+
+import '../style/CommandControl.less'
 
 import * as MissionFeatures from './shared/MissionFeatures'
 
@@ -68,10 +66,6 @@ import { jaiaAPI } from '../../common/JaiaAPI';
 
 import { error, success, warning, info} from '../libs/notifications';
 
-// Don't use any third party css exept reset-css!
-import 'reset-css';
-import '../style/CommandControl.less';
-
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
@@ -80,14 +74,11 @@ const goToRallyRed = require('../icons/go-to-rally-point-red.png')
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 
-import { gebcoLayer } from './ChartLayers';
-
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
-import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
-import * as Styles from './shared/Styles'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { MapBrowserEvent } from 'ol'
+import { PodStatus, PortalBotStatus, PortalHubStatus } from './shared/PortalStatus'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
@@ -103,12 +94,6 @@ import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
 import { SurveyExclusions } from './SurveyExclusions'
-import RunList from './mission/RunList'
-
-// Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
-// output) as input instead of the less.
-// eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
@@ -118,16 +103,7 @@ const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500;
 
-const MAX_RUNS: number = 99;
 const MAX_GOALS = 15;
-
-String.prototype.endsWith = function(suffix) {
-	return this.slice(this.length - suffix.length, this.length) == suffix
-}
-
-// ===========================================================================================================================
-
-// ===========================================================================================================================
 
 var mapSettings = GlobalSettings.mapSettings
 
@@ -458,10 +434,6 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		// ($('.panel > h2') as any).disableSelection();
-
-		// ($('button') as any).disableSelection();
-
 		this.setupMapLayersPanel()
 
 		// Hotkeys
@@ -607,12 +579,12 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	// changeInteraction()
-	//   Removes the currecntInteraction, and replaces it with newInteraction, changing the cursor to cursor
-	//
-	//   Inputs
-	//     newInteraction:  the new interaction to use (for example the survey line selection interaction)
-	//     cursor:  the name of the cursor to use for this interaction
+	/**
+	 * Removes the currentInteraction, and replaces it with newInteraction, changing the cursor to cursor
+	 * 
+	 * @param newInteraction the new interaction to use (for example the survey line selection interaction)
+	 * @param cursor the name of the cursor to use for this interaction
+	 */
 	changeInteraction(newInteraction: Interaction = null, cursor = '') {
 		const { currentInteraction } = this.state;
 		if (currentInteraction) {
@@ -678,13 +650,10 @@ export default class CommandControl extends React.Component {
 		const viewportCenterX = (size[0] - viewportPadding[1] - viewportPadding[3]) / 2 + viewportPadding[3];
 		const viewportCenterY = (size[1] - viewportPadding[0] - viewportPadding[2]) / 2 + viewportPadding[0];
 		const viewportCenter = [viewportCenterX, viewportCenterY];
-		// console.info('Viewport center:');
-		// console.info(viewportCenter);
 		map.getView().centerOn(floatCoords, size, viewportCenter);
 		if (firstMove && map.getView().getZoom() < 16) {
 			map.getView().setZoom(16);
 		}
-		// map.render();
 	}
 
 	fit(geom: number[], opts: any, stopTracking = false, firstMove = false) {
@@ -714,10 +683,11 @@ export default class CommandControl extends React.Component {
 				optsOverride
 			)
 		);
-		// map.render();
 	}
 
-	// POLL THE BOTS
+	/**
+	 * Use the Jaia API to poll the pod status.  This method is run at a fixed interval on a timer.
+	 */
 	pollPodStatus() {
 		clearInterval(this.timerID);
 		const us = this
@@ -768,11 +738,6 @@ export default class CommandControl extends React.Component {
 				hubConnectionError(err.message)
 			}
 		)
-	}
-
-	disconnectPod() {
-		// This should always work because we're single threaded, right?
-		clearInterval(this.timerID);
 	}
 
 	/**
@@ -929,9 +894,6 @@ export default class CommandControl extends React.Component {
 		undoRunListStack.push(deepcopy(runList))
 		this.setState({undoRunListStack})
 
-		// console.debug('Pushed to undoRunListStack')
-		// console.debug(deepcopy(undoRunListStack))
-
 		return this
 	}
 
@@ -957,8 +919,6 @@ export default class CommandControl extends React.Component {
 
 		if (this.state.undoRunListStack.length >= 1) {
 			const runList = this.state.undoRunListStack.pop()
-			// console.debug('Popped from undoRunListStack')
-			// console.debug(deepcopy(this.state.undoRunListStack))
 			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
 		} else {
@@ -1761,25 +1721,25 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @date 6/22/2023 - 8:05:21 AM
 	 */
-		updateActiveMissionLayer() {
-			const bots = this.getPodStatus().bots
-			let allFeatures = []
-	
-			for (let botId in bots) {
-				let bot = bots[botId]
-	
-				const activeMissionPlan = bot.active_mission_plan
-				const canEdit = false
-				if (activeMissionPlan != null) {
-					let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
-					allFeatures.push(...features)
-				}
+	updateActiveMissionLayer() {
+		const bots = this.getPodStatus().bots
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const activeMissionPlan = bot.active_mission_plan
+			const canEdit = false
+			if (activeMissionPlan != null) {
+				let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
+				allFeatures.push(...features)
 			}
-	
-			let source = layers.activeMissionLayer.getSource()
-			source.clear()
-			source.addFeatures(allFeatures)
 		}
+
+		let source = layers.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
 	
 	/**
 	 * 
@@ -1811,24 +1771,10 @@ export default class CommandControl extends React.Component {
 	 * this.isBotSelected()
 	 */
 	updateMissionPlanningLayer() {
-		// console.debug('updateMissionPlanningLayer start')
-
 		// Update the mission layer
 		let selectedColor = '#34d2eb'
 		let unselectedColor = 'white'
 		let surveyPolygonColor = '#051d61'
-
-		// let missionOrientationPointStyle = new OlStyle({
-		// 	image: new OlIcon({
-		// 		src: missionOrientationIcon,
-		// 		scale: [0.5, 0.5]
-		// 	})
-		// })
-
-		// let gridStyle = new OlStyle({
-		// 	image: this.setGridStyle(this.state.missionBaseGoal.task.type)
-		// 	// image: new OlIcon({ src: waypointIcon })
-		// })
 
 		let selectedLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: selectedColor}),
@@ -1879,9 +1825,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionPlanningLines) {
 			let mpl = this.state.missionPlanningLines;
 			let mplKeys = Object.keys(mpl);
-			// console.log('this.state.missionPlanningLines');
-			// console.log(mplKeys);
-			// console.log(mpl);
 			mplKeys.forEach(key => {
 				let mpLineFeatures = new OlFeature(
 					{
@@ -2389,4 +2332,3 @@ export default class CommandControl extends React.Component {
 }
 
 // =================================================================================================
-
