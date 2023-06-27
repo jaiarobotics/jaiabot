@@ -46,7 +46,7 @@ namespace apps
 class Metadata : public ApplicationBase
 {
   public:
-    Metadata() : ApplicationBase(1.0 / 600.0 * si::hertz) {}
+    Metadata() : ApplicationBase(1.0 / 60.0 * si::hertz) {}
 
   private:
     void loop() override;

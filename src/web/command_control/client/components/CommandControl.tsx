@@ -111,7 +111,7 @@ import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan
 import { MapBrowserEvent, MapEvent } from 'ol'
 import { StyleFunction } from 'ol/style/Style'
 import { EventsKey } from 'ol/events'
-import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
+import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled, Metadata } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
 
 // Jaia imports
@@ -147,6 +147,7 @@ const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500;
+const POLLING_META_DATA_INTERVAL_MS = 10000;
 
 const MAX_RUNS: number = 99;
 const MAX_GOALS = 15;
@@ -239,6 +240,7 @@ interface State {
 	 * Incremented when podStatus is changed and needs a re-render
 	 */
 	podStatusVersion: number
+	metadata: Metadata
 }
 
 export default class CommandControl extends React.Component {
@@ -260,6 +262,7 @@ export default class CommandControl extends React.Component {
 	surveyExclusionsInteraction: OlDrawInteraction
 
 	timerID: NodeJS.Timer
+	metadataTimerID: NodeJS.Timer
 
 	oldPodStatus?: PodStatus
 
@@ -273,6 +276,7 @@ export default class CommandControl extends React.Component {
 		this.state = {
 			// User interaction modes
 			mode: Mode.NONE,
+			metadata: {},
 			podStatus: {
 				bots: {},
 				hubs: {},
@@ -441,6 +445,15 @@ export default class CommandControl extends React.Component {
 		this.setState({podStatus, podStatusVersion: this.state.podStatusVersion + 1})
 	}
 
+	/**
+	 * Gets the current metadata
+	 * 
+	 * @returns Current metadata
+	 */
+	getMetadata() {
+		return this.state.metadata
+	}
+
 	genMission() {
 		this.generateMissions();
 	}
@@ -485,6 +498,7 @@ export default class CommandControl extends React.Component {
 
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
+		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0);
 
 		($('.panel > h2') as any).disableSelection();
 
@@ -760,6 +774,7 @@ export default class CommandControl extends React.Component {
 
 	componentWillUnmount() {
 		clearInterval(this.timerID)
+		clearInterval(this.metadataTimerID)
 	}
 
 	// changeInteraction()
@@ -895,7 +910,24 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	// POLL THE BOTS
+	/**
+	 * Gets the current metadata
+	 */
+	pollMetadata() {
+		clearInterval(this.metadataTimerID)
+
+		this.api.getMetadata().then(
+			(result) => {
+				this.setState({metadata: result})
+				this.metadataTimerID = setInterval(() => this.pollMetadata(), POLLING_META_DATA_INTERVAL_MS);
+			},
+			(err) => {
+				console.log("meta data error response")
+			}
+		)
+	}
+
+	// POLL THE BOTS/HUBS
 	pollPodStatus() {
 		clearInterval(this.timerID);
 		const us = this
@@ -1199,6 +1231,8 @@ export default class CommandControl extends React.Component {
 		let bots = podStatus?.bots
 		let hubs = podStatus?.hubs
 
+		const metadata = this.getMetadata();
+
 		let goalSettingsPanel: ReactElement = null
 
 		if (goalBeingEdited != null) {
@@ -1381,7 +1415,7 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="axui_container" className={containerClasses}>
 
-				<JaiaAbout />
+				<JaiaAbout metadata={metadata}/>
 
 				<EngineeringPanel 
 					api={this.api} 

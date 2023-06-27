@@ -47,7 +47,6 @@ def getRoot():
 def JSONResponse(obj):
     return Response(json.dumps(obj), mimetype='application/json')
 
-
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
@@ -56,6 +55,9 @@ def getStatus():
 def getPackets():
     return JSONResponse(jaia_interface.get_task_packets())
 
+@app.route('/jaia/metadata', methods=['GET'])
+def getMetadata():
+    return JSONResponse(jaia_interface.get_Metadata())
 
 ####### Commands
 

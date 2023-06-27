@@ -2,8 +2,19 @@ import React from 'react'
 import Icon from '@mdi/react';
 import { mdiClose } from '@mdi/js';
 import '../style/jaia-about.css';
+import { Metadata } from './shared/PortalStatus'
+
+interface Props {
+	metadata: Metadata
+}
 
 export default class JaiaAbot extends React.Component {
+    props: Props
+
+    constructor(props: Props) {
+        super(props)
+    }
+
     componentDidMount() {
         this.closeAboutCard()
     }
@@ -14,6 +25,16 @@ export default class JaiaAbot extends React.Component {
     }
 
     render() {
+        let jcc_version = ""
+
+        if (this.props?.metadata?.jaiabot_version?.major
+            && this.props?.metadata?.jaiabot_version?.minor
+            && this.props?.metadata?.jaiabot_version?.patch) {
+            jcc_version = this.props.metadata.jaiabot_version.major + "." 
+                            + this.props.metadata.jaiabot_version.minor + "."
+                            + this.props.metadata.jaiabot_version.patch
+        }
+        
         return (
             <div id='jaiaAboutContainer'>
                 <div className='jaiaAboutCloseBtnContainer' onClick={() => this.closeAboutCard()}>
@@ -34,7 +55,7 @@ export default class JaiaAbot extends React.Component {
                 </div>
                 <div className='jaiaAboutContactContainer'>
                     <div className='jaiaAboutLabel'>JCC Version:</div>
-                    <div className='jaiaAboutInput'>1.5.2</div>
+                    <div className='jaiaAboutInput'>{jcc_version}</div>
                 </div>
                 <div className='jaiaAboutContactContainer lastJaiaInfoContainer'>
                     <div className='jaiaAboutLabel'>Documentation:</div>
