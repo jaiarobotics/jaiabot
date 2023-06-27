@@ -7,11 +7,11 @@ import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
-import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions } from './shared/JAIAProtobuf';
+import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions, PIDSettings } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 
-let pid_types = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
-let pid_gains = ['Kp', 'Ki', 'Kd']
+let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
+let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']
 
 
 interface APIBotStatus extends BotStatus {
@@ -82,14 +82,14 @@ export class PIDGainsPanel extends React.Component {
         //console.log(engineering);
 
         let bot_status_rate = engineering?.bot_status_rate ?? 'BotStatusRate_1_Hz';
-        let show_rate = "N/A";
+        let showRate = "N/A";
   
         if (engineering) {
             if(bot_status_rate != null
                 || bot_status_rate != undefined)
             {
-                let split_rate = bot_status_rate.split("_");
-                show_rate = split_rate[1] + "_" + split_rate[2];
+                let splitRate = bot_status_rate.split("_");
+                showRate = splitRate[1] + "_" + splitRate[2];
             }
         }
 
@@ -103,18 +103,19 @@ export class PIDGainsPanel extends React.Component {
                     </thead>
                     <tbody>
                     {
-                        pid_types.map(function(pid_type) {
+                        pidTypes.map(function(pidType) {
                             return (
-                                <tr key={pid_type}>
-                                    <td key="pid_type_name">{pid_type}</td>
+                                <tr key={pidType}>
+                                    <td key="pid_type_name">{pidType}</td>
                                     {
-                                        pid_gains.map(function(pid_gain) {
-                                            let pid_type_gain = pid_type + "_" + pid_gain
-                                            let botId_pid_type_gain = self.botId + "_" + pid_type_gain
-                                            let pid_control = engineering.pid_control as any
+                                        pidGains.map(function(pidGain) {
+                                            let pidTypeGain = pidType + "_" + pidGain
+                                            let botIdPidTypeGain = self.botId + "_" + pidTypeGain
+                                            let pid_control = engineering.pid_control
+                                            let pidSettings = pid_control?.[pidType] as PIDSettings
 
                                             return (
-                                                <td key={botId_pid_type_gain}><input style={{maxWidth: "80px"}} type="text" id={pid_type_gain} name={pid_type_gain} defaultValue={pid_control?.[pid_type]?.[pid_gain] ?? "-"} /></td>
+                                                <td key={botIdPidTypeGain}><input style={{maxWidth: "80px"}} type="text" id={pidTypeGain} name={pidTypeGain} defaultValue={pidSettings?.[pidGain] ?? "-"} /></td>
                                             )
                                         })
                                     }
@@ -139,7 +140,7 @@ export class PIDGainsPanel extends React.Component {
                                 <tr>
                                     <td key="current_status_rate_label">Current Status Rate</td>
                                     <td key="current_status_rate">
-                                        {show_rate}
+                                        {showRate}
                                     </td>
                                 </tr>
                                 <tr>
@@ -201,9 +202,9 @@ export class PIDGainsPanel extends React.Component {
 
                                             {
                                                 botStatusRate.map((rate, index) => {
-                                                    let split_rate = rate.split("_");
-                                                    let show_rate = split_rate[1] +"_"+ split_rate[2];
-                                                    return <option value={index} key={index}>{show_rate}</option>
+                                                    let splitRate = rate.split("_");
+                                                    let showRate = splitRate[1] +"_"+ splitRate[2];
+                                                    return <option value={index} key={index}>{showRate}</option>
                                                 })            
                                             }
 
@@ -462,14 +463,14 @@ export class PIDGainsPanel extends React.Component {
         let botId = $("#pid_gains_bot_selector").val()
         info("Query Engineering Status for botId: " + botId)
 
-        let engineering_command = {
+        let engineeringCommand = {
             botId: botId,
             query_engineering_status: true
         }
 
-        debug(JSON.stringify(engineering_command))
+        debug(JSON.stringify(engineeringCommand))
 
-        this.props.api.postEngineeringPanel(engineering_command);
+        this.props.api.postEngineeringPanel(engineeringCommand);
     }
 
     queryAllEngineeringStatus() 
@@ -481,14 +482,14 @@ export class PIDGainsPanel extends React.Component {
 
         for(let bot in this.state.bots)
         {
-            let engineering_command = {
+            let engineeringCommand = {
                 botId: bot,
                 query_engineering_status: true
             }
 
-            debug(JSON.stringify(engineering_command))
+            debug(JSON.stringify(engineeringCommand))
 
-            this.props.api.postEngineeringPanel(engineering_command);
+            this.props.api.postEngineeringPanel(engineeringCommand);
         }
     }
 
@@ -498,22 +499,23 @@ export class PIDGainsPanel extends React.Component {
         let botId = Number($("#pid_gains_bot_selector").val())
         info("Submit gains for botId: " + botId)
 
-        var pid_control: any = {}
-        for (let pid_type of pid_types) {
-            pid_control[pid_type] = {}
-            for (let pid_gain of pid_gains) {
-                pid_control[pid_type][pid_gain] = Number($("#" + pid_type + "_" + pid_gain).val())
+        var pid_control: PIDControl = {}
+        for (let pidType of pidTypes) {
+            let pidSettings: PIDSettings = {}
+            for (let pidGain of pidGains) {
+                pidSettings[pidGain] = Number($("#" + pidType + "_" + pidGain).val())
             }
+            (pid_control[pidType] as PIDSettings) = pidSettings
         }
 
-        let engineering_command: Engineering = {
+        let engineeringCommand: Engineering = {
             bot_id: botId,
-            pid_control: pid_control as PIDControl
+            pid_control: pid_control
         }
 
-        debug(JSON.stringify(engineering_command))
+        debug(JSON.stringify(engineeringCommand))
 
-        this.props.api.postEngineeringPanel(engineering_command);
+        this.props.api.postEngineeringPanel(engineeringCommand);
     }
 
     submitBotRequirements()
@@ -530,7 +532,7 @@ export class PIDGainsPanel extends React.Component {
             bot_status_rate_change = $("#status_rate_input").val() as BotStatusRate;
         }
 
-        let engineering_command: Engineering = {
+        let engineeringCommand: Engineering = {
             bot_id: botId,
             bot_status_rate: bot_status_rate_change,
             gps_requirements: {
@@ -553,9 +555,9 @@ export class PIDGainsPanel extends React.Component {
             }
         }
 
-        debug(JSON.stringify(engineering_command))
+        debug(JSON.stringify(engineeringCommand))
 
-        this.props.api.postEngineeringPanel(engineering_command);
+        this.props.api.postEngineeringPanel(engineeringCommand);
     }
 
     submitAllBotRequirements()
@@ -574,7 +576,7 @@ export class PIDGainsPanel extends React.Component {
 
         for(let bot in this.state.bots)
         {
-            let engineering_command: Engineering = {
+            let engineeringCommand: Engineering = {
                 bot_id: Number(bot),
                 bot_status_rate: bot_status_rate_change,
                 gps_requirements: {
@@ -597,9 +599,9 @@ export class PIDGainsPanel extends React.Component {
                 }
             }
     
-            debug(JSON.stringify(engineering_command))
+            debug(JSON.stringify(engineeringCommand))
 
-            this.props.api.postEngineeringPanel(engineering_command);
+            this.props.api.postEngineeringPanel(engineeringCommand);
         }
     }
 

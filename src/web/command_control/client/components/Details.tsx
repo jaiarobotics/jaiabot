@@ -180,15 +180,15 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo) {
     return false
 }
 
-function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: CommandInfo) {
+function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: CommandInfo) {
     console.log("Hub Command");
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command_for_hub.description + "?")) {
+    if (confirm("Are you sure you'd like to " + commandForHub.description + "?")) {
         let c = {
             hub_id: hub_id,
-            type: command_for_hub.commandType as HubCommandType
+            type: commandForHub.commandType as HubCommandType
         }
 
         console.log(c)
@@ -253,19 +253,19 @@ function runRCMode(bot: PortalBotStatus) {
         return null
     }
 
-    let datum_location = bot?.location 
+    let datumLocation = bot?.location 
 
-    if (!datum_location) {
-        const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+    if (!datumLocation) {
+        const warningString = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
-        if (!confirm(warning_string)) {
+        if (!confirm(warningString)) {
             return null
         }
 
-        datum_location = {lat: 0, lon: 0}
+        datumLocation = {lat: 0, lon: 0}
     }
 
-    return Missions.RCMode(bot_id, datum_location);
+    return Missions.RCMode(bot_id, datumLocation);
 }
 
 // Check if there is a mission to run
@@ -528,10 +528,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         )
     }
 
-    let bot_offload_percentage = ""
+    let botOffloadPercentage = ""
 
     if (bot.data_offload_percentage) {
-        bot_offload_percentage = " " + bot.data_offload_percentage + "%"
+        botOffloadPercentage = " " + bot.data_offload_percentage + "%"
     }
 
     return (
@@ -583,7 +583,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </tr>
                                     <tr>
                                         <td>Mission State</td>
-                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + bot_offload_percentage}</td>
+                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + botOffloadPercentage}</td>
                                     </tr>
                                     <tr>
                                         <td>Battery Percentage</td>
