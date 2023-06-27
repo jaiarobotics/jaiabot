@@ -164,10 +164,6 @@ export class Layers {
             this.dragAndDropVectorLayer,
         ]
     }
-
-    constructor() {
-    }
-
 }
 
 export const layers = new Layers()

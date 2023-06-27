@@ -1,13 +1,3 @@
-/* eslint-disable react/jsx-no-bind */
-/* eslint-disable react/self-closing-comp */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable react/sort-comp */
-/* eslint-disable react/no-danger */
-/* eslint-disable max-len */
-/* eslint-disable react/no-unused-state */
-/* eslint-disable react/no-multi-comp */
-
 import React, { MouseEvent, ReactElement } from 'react'
 import { Save, GlobalSettings } from './Settings'
 import { Missions } from './Missions'
@@ -55,6 +45,7 @@ import OlDrawInteraction, { DrawEvent } from 'ol/interaction/Draw';
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
+import { Modify } from 'ol/interaction';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
 import { HubOrBot } from './HubOrBot'
@@ -673,22 +664,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
-		// TODO move map-based rendering here
-		// Here we can check the previous state against the current state and update the map
-		// layers to reflect changes that we can't handle in render() directly.
-		// Note that calling setState() here will cause another cycle, beware of infinite loops
-		/* Need to detect when an input field is rendered, then call this on it:
-				This will make the keyboard "go" button close the keyboard instead of doing nothing.
-		$('input').keypress(function(e) {
-				let code = (e.keyCode ? e.keyCode : e.which);
-				if ( (code==13) || (code==10))
-						{
-						jQuery(this).blur();
-						return false;
-						}
-		});
-		*/
-
 		/**
 		 * Checks to see if a set of state variables has changed or not
 		 * 
@@ -2280,38 +2255,41 @@ export default class CommandControl extends React.Component {
 	 * Output:
 	 * layers.missionLayer features
 	 */
-	updateMissionLayer() {
-//		console.debug('updateMissionLayer')
 
-		function getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
-			const features: OlFeature[] = []
-			let zIndex = 2
+	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number, updateSelectedOnly?: boolean) {
+		const features: OlFeature[] = []
+		let zIndex = 2
 
-			for (let key in missions?.runs) {
-				// Different style for the waypoint marker, depending on if the associated bot is selected or not
-				let lineStyle
-				let run = missions?.runs[key];
-				let assignedBot = run.assigned
-				const isSelected = (assignedBot === selectedBotId)
-				let active_goal_index = podStatus?.bots?.[assignedBot]?.active_goal;
+		for (let key in missions?.runs) {
+			// Different style for the waypoint marker, depending on if the associated bot is selected or not
+			const run = missions?.runs[key];
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId)
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
 
-				// Add our goals
-				const plan = run.command?.plan
-				if (plan != null) {
-					// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
-					const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
-					const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, active_goal_index, isSelected, runNumber, zIndex)
-					features.push(...missionFeatures)
-					zIndex += 1
-				}
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan != null) {
+				// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
+				const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, runNumber, zIndex, this.updateMissionLayer.bind(this))
+				features.push(...missionFeatures)
+				zIndex += 1
 			}
-
-			return features
 		}
 
+		return features
+	}
+
+	updateMissionLayer() {
 		const missionSource = layers.missionLayer.getSource()
+		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
-		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
+		missionSource.addFeatures(missionFeatures)
+
+		// Add modify interaction
+		const modify = new Modify({ source: missionSource })
+		map.addInteraction(modify)
 	}
 
 	/**
@@ -2436,9 +2414,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionPlanningLines) {
 			let mpl = this.state.missionPlanningLines;
 			let mplKeys = Object.keys(mpl);
-			// console.log('this.state.missionPlanningLines');
-			// console.log(mplKeys);
-			// console.log(mpl);
 			mplKeys.forEach(key => {
 				let mpLineFeatures = new OlFeature(
 					{
@@ -2454,11 +2429,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionPlanningFeature) {
 
 			function surveyStyle(feature: OlFeature<Geometry>, taskType: TaskType) {
-				// console.log('WHAT IS GOING ON!!!!');
-				// console.log(feature);
-				// console.log(self.state);
-				// console.log(self.homeLocation);
-	
 				let iStyle = Styles.goalIcon(taskType, false, false)
 	
 				let lineStyle = new OlStyle({
@@ -2492,18 +2462,11 @@ export default class CommandControl extends React.Component {
 						offsetX: 100
 					})
 				});
-				// console.log('surveyLineStyle');
-				// console.log(feature);
 				let rotationAngle = 0;
 				let rhumbDist = 0;
 				let rhumbHomeDist = 0;
 				let stringCoords = (feature.getGeometry() as LineString).getCoordinates();
-				// console.log('stringCoords');
-				// console.log(stringCoords);
 				let coords = stringCoords.slice(0, 2);
-	
-				// console.log('iconStyle');
-				// console.log(iconStyle);
 				iconStyle.setGeometry(new OlPoint(stringCoords[0]));
 				iconStyle
 					.getImage()
@@ -2516,9 +2479,6 @@ export default class CommandControl extends React.Component {
 				if (rotationAngle < 0) {
 					rotationAngle = rotationAngle + 360;
 				}
-				// console.log('coords');
-				// console.log(coords);
-				// console.log(coords.length);
 	
 				return [lineStyle, iconStyle];
 			};

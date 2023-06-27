@@ -1,52 +1,84 @@
 import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
-import { Style } from "ol/style"
-import { LineString, Geometry } from "ol/geom"
-import { fromLonLat } from "ol/proj"
+import { LineString } from "ol/geom"
+import { toLonLat, fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
 import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
+import BaseEvent from "ol/events/Event"
 
+function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
+    const lonLat = toLonLat(coordinate, map.getView().getProjection())
+    const geographicCoordinate: GeographicCoordinate = {
+        lon: lonLat[0],
+        lat: lonLat[1]
+    }
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number) {
-    var features = []
+    return geographicCoordinate
+}
+
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, runNumber?: string, zIndex?: number, updateMissionLayer?: () => void) {
+    const features = []
     const projection = map.getView().getProjection()
 
-    function GeograpicCoordinateToCoordinate(geographicCoordinate: GeographicCoordinate) {
+    function geograpicCoordinateToCoordinate(geographicCoordinate: GeographicCoordinate) {
         return fromLonLat([geographicCoordinate.lon, geographicCoordinate.lat], projection)
     }
 
-    // Add markers for each waypoint
-    var missionLineStringCoordinates: Coordinate[] = []
-
     let goals = plan.goal ?? []
 
-    for (const [goal_index, goal] of goals.entries()) {
+    for (const [goalIndex, goal] of goals.entries()) {
         const location = goal.location
-
         // Increment by one to account for 0 index
-        const goal_index_start_at_one = goal_index + 1;
+        const goalIndexStartAtOne = goalIndex + 1;
 
-        if (location == null) {
-            continue
-        }
+        if (location == null) { continue }
 
-        {
-            // OpenLayers
-            const activeRun = plan.hasOwnProperty('speeds') ? true : false
-            const markerFeature = createMarker(map, {title: 'Goal ' + goal_index_start_at_one, lon: location.lon, lat: location.lat,
-                style: Styles.goal(goal_index_start_at_one, goal, activeRun ? goal_index_start_at_one == activeGoalIndex : false, isSelected)})
-            markerFeature.setProperties({goal: goal, botId: botId, goalIndex: goal_index_start_at_one})
-            features.push(markerFeature)
-
-            if (goal_index_start_at_one === 1) {
-                if (!runNumber) {
-                    runNumber = ''
-                }
-                const flagFeature = createFlagMarker(map, {lon: location.lon, lat: location.lat, style: Styles.flag(goal, isSelected, runNumber, zIndex)})
-                features.push(flagFeature)
+        // OpenLayers
+        const activeRun = plan.hasOwnProperty('speeds')
+        const markerFeature = createMarker(
+            map, 
+            {
+                title: 'Goal ' + goalIndexStartAtOne, 
+                lon: location.lon, 
+                lat: location.lat,
+                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected)
             }
+        )
+
+        markerFeature.setProperties({
+            goal: goal, 
+            botId: botId, 
+            goalIndex: goalIndexStartAtOne,
+            location: location
+        })
+
+        markerFeature.getGeometry().on('change', (evt: BaseEvent) => {
+            const geometry = evt.target
+            const newCoordinatesRaw = geometry.flatCoordinates
+            const newCoordinatesAdjusted = getGeographicCoordinate(newCoordinatesRaw, map)
+            const goalNumber = markerFeature.get('goalIndex')
+            goals[goalNumber - 1].location = newCoordinatesAdjusted
+            updateMissionLayer()
+        })
+
+        features.push(markerFeature)
+
+        if (goalIndexStartAtOne === 1) {
+            if (!runNumber) {
+                runNumber = ''
+            }
+            const flagFeature = createFlagMarker(
+                map, 
+                {
+                    lon: location.lon, 
+                    lat: location.lat, 
+                    style: Styles.flag(goal, isSelected, runNumber, zIndex)
+                }
+            )
+            flagFeature.set('flagNumber', runNumber)            
+            features.push(flagFeature)
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
@@ -74,26 +106,32 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
         }
         else {
             // This mission leg line segment will start at this goal's location
-            startCoordinate = GeograpicCoordinateToCoordinate(location)
+            startCoordinate = geograpicCoordinateToCoordinate(location)
         }
 
         // Add a linestring for this leg of the mission path, if there is a next goal
-        if (goals.length > goal_index + 1) {
-            const next_goal = goals[goal_index + 1]
-            const next_location = next_goal.location
+        if (goals.length > goalIndex + 1) {
+            const nextGoal = goals[goalIndex + 1]
+            const nextLocation = nextGoal.location
 
-            if (next_location == null) {
+            if (nextLocation == null) {
                 continue
             }
 
             let missionLineStringCoordinates = [
                 startCoordinate,
-                GeograpicCoordinateToCoordinate(next_location)
+                geograpicCoordinateToCoordinate(nextLocation)
             ]
 
             const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
-            missionPathFeature.set("isSelected", isSelected)
+            missionPathFeature.setProperties({
+                isSelected: isSelected,
+                startPointGoalNum: goalIndex + 1,
+                endPointGoalNum: goalIndex + 2
+            })
             missionPathFeature.setStyle(Styles.missionPath)
+            console.log('missionPathStart', missionPathFeature.get('startPointGoalNum'))
+            console.log('missionPathEnd', missionPathFeature.get('endPointGoalNum'))
             features.push(missionPathFeature)
         }
     }
