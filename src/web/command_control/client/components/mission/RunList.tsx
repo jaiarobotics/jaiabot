@@ -14,6 +14,7 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void
 }
 
 interface State {
@@ -44,6 +45,7 @@ export default class RunList extends React.Component {
                                     bots={self.props.bots} 
                                     run={value} 
                                     mission={self.props.mission}
+                                    setEditRunMode={self.props.setEditRunMode}
                                 />
                             </React.Fragment>
                         )
@@ -61,9 +63,9 @@ export default class RunList extends React.Component {
                 <Button 
                     className="button-jcc" 
                     onClick={() => { 
-                        const warning_string = "Are you sure you want to delete all of the runs?";
+                        const warningString = "Are you sure you want to delete all of the runs?";
 
-                        if (confirm(warning_string)) {
+                        if (confirm(warningString)) {
                             this.props.deleteAllRunsInMission(this.props.mission) 
                         }
                     }}

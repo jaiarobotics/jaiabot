@@ -29,11 +29,11 @@ export function formatLongitude(lon: number, prec=5) {
     }
 }
 
-export function formatAttitudeAngle(angle_deg: number, prec=2) {
-    if (angle_deg == null) {
+export function formatAttitudeAngle(angleDegrees: number, prec=2) {
+    if (angleDegrees == null) {
         return "?"
     }
-    return angle_deg.toFixed(prec) + '°'
+    return angleDegrees.toFixed(prec) + '°'
 }
 
 export function deepcopy<T>(aObject: T): T {

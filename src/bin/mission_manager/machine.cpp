@@ -358,14 +358,6 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     dive_depths_.push_back(max_depth);
     dive_packet().set_depth_achieved(0);
     dive_packet().set_bottom_dive(false);
-
-    if (machine().gps_tpv().has_location())
-    {
-        const auto& pos = machine().gps_tpv().location();
-        auto& start = *dive_packet().mutable_start_location();
-        start.set_lat_with_units(pos.lat_with_units());
-        start.set_lon_with_units(pos.lon_with_units());
-    }
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -390,6 +382,54 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
                                << ". Truncating." << std::endl;
         while (dive_packet().measurement_size() > max_measurement_size)
             dive_packet().mutable_measurement()->RemoveLast();
+    }
+}
+
+// Task::Dive::PrePoweredDescent
+jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::PrePoweredDescent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int pre_powered_descent_timeout_seconds = cfg().pre_powered_descent_timeout();
+
+    goby::time::SteadyClock::duration pre_powered_descent_timeout_duration =
+        std::chrono::seconds(pre_powered_descent_timeout_seconds);
+
+    pre_powered_descent_timeout_ = start_timeout + pre_powered_descent_timeout_duration;
+
+    loop(EvLoop());
+}
+
+jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::~PrePoweredDescent()
+{
+    if (machine().gps_tpv().has_location())
+    {
+        const auto& pos = machine().gps_tpv().location();
+        auto& start = *context<Dive>().dive_packet().mutable_start_location();
+        start.set_lat_with_units(pos.lat_with_units());
+        start.set_lon_with_units(pos.lon_with_units());
+    }
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    if (current_clock >= pre_powered_descent_timeout_)
+    {
+        glog.is_debug2() && glog << "Pre Powered Descent completed" << std::endl;
+        post_event(EvPrePoweredDescentComplete());
+    }
+    else
+    {
+        glog.is_debug2() && glog << "Waiting for Pre Powered Descent to be completed" << std::endl;
     }
 }
 

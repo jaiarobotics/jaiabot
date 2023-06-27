@@ -4,7 +4,7 @@ import { SelectChangeEvent } from '@mui/material';
 import { GlobalSettings, Save } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './Utilities';
 import { Button } from '@mui/material';
-import { rhumbBearing, rhumbDistance } from '@turf/turf';
+import * as turf from '@turf/turf';
 import Map from 'ol/Map'
 import PointerInteraction from 'ol/interaction/Pointer';
 import { toLonLat, transformWithProjections } from 'ol/proj';
@@ -140,11 +140,11 @@ function TaskOptionsPanel(props: Props) {
             }
 
             // Calculate heading and time from location and speed
-            let rhumb_bearing = fmod(rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
-            constant_heading.constant_heading = Number(rhumb_bearing.toFixed(0))
+            let rhumbBearing = fmod(turf.rhumbBearing([start.lon, start.lat], [end.lon, end.lat]), 360)
+            constant_heading.constant_heading = Number(rhumbBearing.toFixed(0))
 
-            let rhumb_distance = rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
-            let t = rhumb_distance / speed
+            let rhumbDistance = turf.rhumbDistance([start.lon, start.lat], [end.lon, end.lat], {units: 'meters'})
+            let t = rhumbDistance / speed
             constant_heading.constant_heading_time = Number(t.toFixed(0))
         })
     }
