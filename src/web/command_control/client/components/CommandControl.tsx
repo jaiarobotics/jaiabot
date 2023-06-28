@@ -1484,6 +1484,8 @@ export default class CommandControl extends React.Component {
 	 * @returns {*} The command drawer element, with rally point buttons, stop button, flag button
 	 */
 	commandDrawer() {
+		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
+
 		let element = (
 			<div id="commandsDrawer">
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
@@ -1504,7 +1506,7 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
+				<Button id= "missionStartStop" className={"button-jcc stopMission" + (botsAreAssignedToRuns ? '' : ' inactive') } onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
@@ -1589,6 +1591,11 @@ export default class CommandControl extends React.Component {
 	}
 
 	playClicked(evt: UIEvent) {
+		if (!this.areBotsAssignedToRuns()) {
+			alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
+			return
+		}
+
 		this.runMissions(this.getRunList(), null);
 	}
 	
