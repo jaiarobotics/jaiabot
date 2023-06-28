@@ -261,6 +261,14 @@ void jaiabot::apps::WebPortal::loop()
                                  << device_metadata_.ShortDebugString() << endl;
         send_message_to_client(message);
     }
+    else
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "Query for metadata: " << device_metadata_.ShortDebugString()
+                                 << endl;
+        jaiabot::protobuf::QueryDeviceMetaData query_device_metadata;
+        interprocess().publish<groups::metadata>(query_device_metadata);
+    }
 }
 
 void jaiabot::apps::WebPortal::send_message_to_client(
