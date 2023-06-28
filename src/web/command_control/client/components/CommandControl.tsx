@@ -36,7 +36,7 @@ import OlPoint from 'ol/geom/Point';
 import OlMultiPoint from 'ol/geom/MultiPoint';
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
-import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent } from 'ol/extent';
+import { createEmpty as OlCreateEmptyExtent, extend as OlExtendExtent, extendCoordinate } from 'ol/extent';
 import { Coordinate } from 'ol/coordinate';
 import { unByKey as OlUnobserveByKey } from 'ol/Observable';
 import { getLength as OlGetLength } from 'ol/sphere';
@@ -46,6 +46,7 @@ import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
 import { Modify } from 'ol/interaction';
+import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
 import { HubOrBot } from './HubOrBot'
@@ -187,6 +188,7 @@ interface State {
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
 	mapLayerActive: boolean,
+	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -281,6 +283,7 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
+			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -2333,24 +2336,30 @@ export default class CommandControl extends React.Component {
 			const plan = run.command?.plan
 			if (plan) {
 				const runNumber = run.id.slice(4)
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex, this.updateMissionLayer.bind(this))
+				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex, this.updateDragFeaturePosition.bind(this))
 				features.push(...missionFeatures)
 				zIndex += 1
 			}
 		
 		}
+		this.setState({ missionFeatures: features })
 		return features
 	}
 
 	updateMissionLayer() {
 		const missionSource = layers.missionLayer.getSource()
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
+		let waypoints: OlFeature<Geometry>[] = []
+		missionFeatures.forEach((feature) => {
+			if (feature.get('id') && feature.get('id').includes('wpt') && feature.get('canEdit')) {
+				waypoints.push(feature)
+				console.log('pushed')
+			}
+		})
+		let waypointCollection = new OlCollection(waypoints)
+
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
-
-		// Add modify interaction
-		const modify = new Modify({ source: missionSource })
-		map.addInteraction(modify)
 	}
 
 	/**
@@ -2358,25 +2367,70 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @date 6/22/2023 - 8:05:21 AM
 	 */
-		updateActiveMissionLayer() {
-			const bots = this.getPodStatus().bots
-			let allFeatures = []
-	
-			for (let botId in bots) {
-				let bot = bots[botId]
-	
-				const activeMissionPlan = bot.active_mission_plan
-				const canEdit = false
-				if (activeMissionPlan != null) {
-					let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
-					allFeatures.push(...features)
-				}
+	updateActiveMissionLayer() {
+		const bots = this.getPodStatus().bots
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const activeMissionPlan = bot.active_mission_plan
+			const canEdit = false
+			if (activeMissionPlan != null) {
+				let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
+				allFeatures.push(...features)
 			}
-	
-			let source = layers.activeMissionLayer.getSource()
-			source.clear()
-			source.addFeatures(allFeatures)
 		}
+
+		let source = layers.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
+	updateDragFeaturePosition(botId: number, waypointId: string, plan: MissionPlan, newCoordinates: GeographicCoordinate) {
+		const missionFeatures = this.state.missionFeatures
+		const missionFeaturesUpdated: OlFeature<Geometry>[] = []
+		const selectedBotId = this.selectedBotId()
+		const numWaypoints = plan.goal.length
+
+		missionFeatures.forEach((feature) => {
+			const featureId = feature.get('id')
+			if (featureId === waypointId && selectedBotId === botId) {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+				feature.setGeometry(new OlPoint(coordinate))
+			} else if (waypointId === 'wpt-1' && feature.get('type') === 'flag') {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+				feature.setGeometry(new OlPoint(coordinate))
+			} else if (waypointId === 'wpt-1' && feature.get('id') === 'line-1') {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const startCoordinate = fromLonLat(lonLat, map.getView().getProjection())
+				const endCoordinate = feature.get('endCoordinate')
+				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
+			} else if (Number(waypointId.slice(4)) === numWaypoints && feature.get('id') === `line-${numWaypoints - 1}`) {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const startCoordinate = feature.get('startCoordinate')
+				const endCoordinate = fromLonLat(lonLat, map.getView().getProjection())
+				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
+			} else if (Number(waypointId.slice(4)) > 1 && Number(waypointId.slice(4)) < numWaypoints && feature.get('id') === `line-${Number(waypointId.slice(4)) - 1}`) {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const startCoordinate = feature.get('startCoordinate')
+				const endCoordinate = fromLonLat(lonLat, map.getView().getProjection())
+				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
+			} else if (Number(waypointId.slice(4)) > 1 && Number(waypointId.slice(4)) < numWaypoints && feature.get('id') === `line-${Number(waypointId.slice(4))}`) {
+				const lonLat = [newCoordinates.lon, newCoordinates.lat]
+				const startCoordinate = fromLonLat(lonLat, map.getView().getProjection())
+				const endCoordinate = feature.get('endCoordinate')
+				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
+			}
+			missionFeaturesUpdated.push(feature)
+			console.log(Number(waypointId.slice(4)) + 1)
+		})
+		const missionSource = layers.missionLayer.getSource()
+		missionSource.clear()
+		missionSource.addFeatures(missionFeaturesUpdated)
+	}
 	
 	/**
 	 * 

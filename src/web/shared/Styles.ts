@@ -253,7 +253,7 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
             }),
             offsetY: -15,
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? 10000 : 2
     })
 }
 
@@ -346,15 +346,7 @@ export function driftTask(drift: DriftTask) {
             scale: [1.0, drift.estimated_drift.speed / 0.20],
             rotateWithView: true,
             rotation: drift.estimated_drift.heading * Math.PI / 180.0,
-        }),
-        // text: new Text({
-        //     text: new String(text),
-        //     font: '12pt sans-serif',
-        //     fill: new Fill({
-        //         color: 'black'
-        //     }),
-        //     offsetY: 20
-        // })
+        })
     })
 }
 
@@ -364,7 +356,7 @@ export function missionPath(feature: Feature) {
     const zIndex = isSelected ? 101 : 1
     const canEdit = feature.get('canEdit')
     let pathColor = ''
-
+    
     if (canEdit) {
         pathColor = isSelected ? editColor : defaultPathColor
     } else {

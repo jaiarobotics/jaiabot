@@ -18,7 +18,7 @@ function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
     return geographicCoordinate
 }
 
-export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, canEdit: boolean, runNumber?: string, zIndex?: number, updateMissionLayer?: () => void) {
+export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan, activeGoalIndex: number, isSelected: boolean, canEdit: boolean, runNumber?: string, zIndex?: number, updateDragFeaturePosition?: (botId: number, waypointId: string, plan: MissionPlan, newCoordinates: GeographicCoordinate) => void) {
     const features = []
     const projection = map.getView().getProjection()
 
@@ -51,16 +51,23 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
             goal: goal, 
             botId: botId, 
             goalIndex: goalIndexStartAtOne,
-            location: location
+            location: location,
+            canEdit: canEdit,
+            id: `wpt-${goalIndexStartAtOne}`
         })
 
         markerFeature.getGeometry().on('change', (evt: BaseEvent) => {
+            if (!markerFeature.get('canEdit')) {
+                return
+            }
             const geometry = evt.target
             const newCoordinatesRaw = geometry.flatCoordinates
             const newCoordinatesAdjusted = getGeographicCoordinate(newCoordinatesRaw, map)
             const goalNumber = markerFeature.get('goalIndex')
+            const botId = markerFeature.get('botId')
+            const waypointId = markerFeature.get('id')
             goals[goalNumber - 1].location = newCoordinatesAdjusted
-            updateMissionLayer()
+            updateDragFeaturePosition(botId, waypointId, plan, newCoordinatesAdjusted)
         })
 
         features.push(markerFeature)
@@ -77,7 +84,7 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
                     style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
-            flagFeature.set('flagNumber', runNumber)            
+            flagFeature.set('type', 'flag')            
             features.push(flagFeature)
         }
 
@@ -126,12 +133,14 @@ export function createMissionFeatures(map: Map, botId: number, plan: MissionPlan
             const missionPathFeature = new Feature({geometry: new LineString(missionLineStringCoordinates)})
             missionPathFeature.setProperties({
                 isSelected: isSelected,
+                canEdit: canEdit,
                 startPointGoalNum: goalIndex + 1,
-                endPointGoalNum: goalIndex + 2
+                endPointGoalNum: goalIndex + 2,
+                startCoordinate: startCoordinate,
+                endCoordinate: geograpicCoordinateToCoordinate(nextLocation),
+                id: `line-${goalIndex + 1}`
             })
             missionPathFeature.setStyle(Styles.missionPath)
-            console.log('missionPathStart', missionPathFeature.get('startPointGoalNum'))
-            console.log('missionPathEnd', missionPathFeature.get('endPointGoalNum'))
             features.push(missionPathFeature)
         }
     }
