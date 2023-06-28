@@ -1915,6 +1915,10 @@ export default class CommandControl extends React.Component {
 		missionPlanningSource.addFeatures(missionPlanningFeaturesList)
 	}
 
+	/**
+	 * 
+	 * @returns Whether we should allow the user to open the survey tool panel
+	 */
 	checkSurveyToolPermissions() {
 		// Check that all bots are stopped or recovered
 		const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
@@ -2245,27 +2249,27 @@ export default class CommandControl extends React.Component {
 			<Button
 				className="button-jcc"
 				onClick={() => {
-					if (this.state.rallyEndLocation
-							&& this.state.rallyStartLocation) {
-						closeOtherViewControlWindows('missionSettingsPanel');
-						this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
-						if (this.state.missionParams.missionType === 'polygon-grid')
-							this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
-						if (this.state.missionParams.missionType === 'editing')
-							this.changeInteraction(this.interactions.selectInteraction, 'grab');
-						if (this.state.missionParams.missionType === 'lines')
-							this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
-						if (this.state.missionParams.missionType === 'exclusions')
-							this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
 
-						this.setState({centerLineString: null}) // Forgive me
-
-						info('Touch map to set first polygon point');
-					} 
-					else
-					{
-						info('Please place a green and red rally point before using this tool');
+					// Guard
+					if (!this.checkSurveyToolPermissions()) {
+						info('Please place a green and red rally point, and make sure the bots aren\'t currently running a mission, before using this tool');
+						return
 					}
+
+					closeOtherViewControlWindows('missionSettingsPanel');
+					this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
+					if (this.state.missionParams.missionType === 'polygon-grid')
+						this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
+					if (this.state.missionParams.missionType === 'editing')
+						this.changeInteraction(this.interactions.selectInteraction, 'grab');
+					if (this.state.missionParams.missionType === 'lines')
+						this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
+					if (this.state.missionParams.missionType === 'exclusions')
+						this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
+
+					this.setState({centerLineString: null}) // Forgive me
+
+					info('Touch map to set first polygon point');
 				}}
 			>
 				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />
