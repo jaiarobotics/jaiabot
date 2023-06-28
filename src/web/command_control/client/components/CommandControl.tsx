@@ -109,6 +109,15 @@ var mapSettings = GlobalSettings.mapSettings
 
 interface Props {}
 
+enum PanelType {
+	NONE = 'NONE',
+	MISSION = 'MISSION',
+	ENGINEERING = 'ENGINEERING',
+	MISSION_SETTINGS = 'MISSION_SETTINGS',
+	MEASURE_TOOL = 'MEASURE_TOOL',
+	MAP_LAYERS = 'MAP_LAYERS'
+}
+
 export enum Mode {
 	NONE = '',
 	MISSION_PLANNING = 'missionPlanning',
@@ -133,8 +142,7 @@ export interface MissionInterface {
 }
 
 interface State {
-	engineeringPanelActive: boolean,
-	missionPanelActive: boolean,
+	visiblePanel: PanelType,
 	mode: Mode,
 	currentInteraction: Interaction | null,
 	selectedHubOrBot?: HubOrBot,
@@ -143,11 +151,9 @@ interface State {
 	trackingTarget: number | string,
 	viewportPadding: number[],
 	measureFeature?: OlFeature,
-	measureActive: boolean,
 	homeLocation?: GeographicCoordinate,
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
-	mapLayerActive: boolean,
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -155,7 +161,6 @@ interface State {
 	missionBaseGoal: Goal,
 	missionEndTask: MissionTask,
 	surveyPolygonFeature?: OlFeature<Geometry>,
-	surveyPolygonActive: boolean,
 	surveyPolygonGeoCoords?: Coordinate[],
 	surveyPolygonCoords?: LineString,
 	surveyPolygonChanged: boolean,
@@ -218,6 +223,7 @@ export default class CommandControl extends React.Component {
 		this.state = {
 			// User interaction modes
 			mode: Mode.NONE,
+			visiblePanel: PanelType.NONE,
 			podStatus: {
 				bots: {},
 				hubs: {},
@@ -237,7 +243,6 @@ export default class CommandControl extends React.Component {
 				viewportDefaultPadding + sidebarInitialWidth
 			],
 			measureFeature: null,
-			measureActive: false,
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
@@ -274,7 +279,6 @@ export default class CommandControl extends React.Component {
 			},
 			missionEndTask: {type: TaskType.NONE},
 			surveyPolygonFeature: null,
-			surveyPolygonActive: false,
 			surveyPolygonGeoCoords: null,
 			surveyPolygonCoords: null,
 			surveyPolygonChanged: false,
@@ -294,9 +298,6 @@ export default class CommandControl extends React.Component {
 				power: false,
 				links: false
 			},
-			mapLayerActive: false, 
-			engineeringPanelActive: false,
-			missionPanelActive: false,
 			runList: null,
 			runListVersion: 0,
 			undoRunListStack: [],
@@ -434,8 +435,6 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 
-		this.setupMapLayersPanel()
-
 		// Hotkeys
 		document.onkeydown = this.keyPressed.bind(this)
 
@@ -498,6 +497,11 @@ export default class CommandControl extends React.Component {
 			prevState.rallyStartLocation !== this.state.rallyStartLocation) {
 			this.updateRallyPointFeatures()
 		}
+
+		// Update the map layers panel, if needed
+		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
+			this.setupMapLayersPanel()
+		}
 	}
 
 	componentWillUnmount() {
@@ -507,10 +511,16 @@ export default class CommandControl extends React.Component {
 	
 	setupMapLayersPanel() {
 		const mapLayersPanel = document.getElementById('mapLayers')
+
+		if (mapLayersPanel == null) {
+			// Panel may not be visible, therefore the element is not present at the moment
+			return
+		}
+
 		OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
 
 		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
-		mapLayersPanel.style.width = '0px'
+		mapLayersPanel.style.width = '400px'
 
 		function handleLayerSwitcherClick(event: Event) {
 			let targetElement = event.target as HTMLElement
@@ -1650,25 +1660,6 @@ export default class CommandControl extends React.Component {
 		</div>)
 	}
 
-	toggleEngineeringPanel() {
-		let engineeringPanel = document.getElementById('engineeringPanel')
-		if (engineeringPanel.style.width == "400px") {
-			engineeringPanel.style.width = "0px"
-		} else {
-			engineeringPanel.style.width = "400px"
-		}
-	}
-
-	toggleMissionPanel() {
-		let missionPanel = document.getElementById('missionPanel')
-		if (missionPanel.style.width == "400px") {
-			missionPanel.style.width = "0px"
-		}
-		else {
-			missionPanel.style.width = "400px"
-		}
-	}
-
 	/////////////// Mission Stuff ////////////////////
 
 	/**
@@ -1877,12 +1868,8 @@ export default class CommandControl extends React.Component {
 	// eslint-disable-next-line class-methods-use-this
 	render() {
 		const {
+			visiblePanel,
 			trackingTarget,
-			measureActive,
-			surveyPolygonActive,
-			mapLayerActive,
-			engineeringPanelActive,
-			missionPanelActive,
 			goalBeingEdited,
 			goalBeingEditedBotId,
 			goalBeingEditedGoalIndex
@@ -1955,7 +1942,7 @@ export default class CommandControl extends React.Component {
 							// Close panel after applying
 							this.changeInteraction();
 							this.setState({
-								surveyPolygonActive: false,
+								visiblePanel: PanelType.NONE,
 								mode: Mode.NONE,
 								surveyPolygonChanged: false,
 								missionPlanningGrid: null,
@@ -2041,21 +2028,14 @@ export default class CommandControl extends React.Component {
 
 
 		const closeMissionPanel = () => {
-			let missionPanel = document.getElementById('missionPanel')
-			missionPanel.style.width = "0px"
-			self.setState({missionPanelActive: false})
 		}
 
 		const closeEngineeringPanel = () => {
-			let engineeringPanel = document.getElementById('engineeringPanel')
-			engineeringPanel.style.width = "0px"
-			self.setState({engineeringPanelActive: false})
 		}
 
 		function closeMissionSettingsPanel() {
 			self.changeInteraction();
 			self.setState({
-				surveyPolygonActive: false,
 				mode: '',
 				surveyPolygonChanged: false,
 				missionPlanningGrid: null,
@@ -2064,9 +2044,6 @@ export default class CommandControl extends React.Component {
 		}
 
 		const closeMapLayers = () => {
-			let mapLayersPanel = document.getElementById('mapLayers')
-			mapLayersPanel.style.width = '0px'
-			self.setState({mapLayerActive: false});
 		}
 
 		const closeOtherViewControlWindows = (openPanel: string) => {
@@ -2074,7 +2051,7 @@ export default class CommandControl extends React.Component {
 				{ name: 'missionPanel', closeFunction: closeMissionPanel },
 				{ name: 'engineeringPanel', closeFunction: closeEngineeringPanel },
 				{ name: 'missionSettingsPanel', closeFunction: closeMissionSettingsPanel },
-				{ name: 'measureTool', closeFunction: () => self.setState({ measureActive: false })},
+				{ name: 'measureTool', closeFunction: () => {} },
 				{ name: 'mapLayersPanel', closeFunction: closeMapLayers }
 			]
 
@@ -2085,13 +2062,10 @@ export default class CommandControl extends React.Component {
 			})
 		}
 
-		const mapLayersButton = mapLayerActive ? (
+		const mapLayersButton = (visiblePanel == PanelType.MAP_LAYERS) ? (
 			<Button className="button-jcc active"
 				onClick={() => {
-					this.setState({mapLayerActive: false}); 
-					const mapLayers = document.getElementById('mapLayers')
-					mapLayers.style.width = '0px'
-					const mapLayersBtn = document.getElementById('mapLayersButton')
+					this.setState({visiblePanel: PanelType.NONE});
 				}}
 			>
 				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
@@ -2101,17 +2075,14 @@ export default class CommandControl extends React.Component {
 			<Button className="button-jcc"
 				onClick={() => {
 					closeOtherViewControlWindows('mapLayersPanel');
-					this.setState({mapLayerActive: true}); 
-					const mapLayers = document.getElementById('mapLayers')
-					mapLayers.style.width = '400px'
-					const mapLayersBtn = document.getElementById('mapLayersButton')
+					this.setState({visiblePanel: PanelType.MAP_LAYERS}); 
 				}}
 			>
 				<FontAwesomeIcon icon={faLayerGroup as any} title="Map Layers" />
 			</Button>
 		)
 
-		const measureButton = measureActive ? (
+		const measureButton = (visiblePanel == PanelType.MEASURE_TOOL) ? (
 			<div>
 				<div id="measureResult" />
 				<Button
@@ -2119,7 +2090,7 @@ export default class CommandControl extends React.Component {
 					onClick={() => {
 						// this.measureInteraction.finishDrawing();
 						this.changeInteraction();
-						this.setState({ measureActive: false });
+						this.setState({ visiblePanel: PanelType.NONE });
 					}}
 				>
 					<FontAwesomeIcon icon={faRuler as any} title="Measurement Result" />
@@ -2130,7 +2101,7 @@ export default class CommandControl extends React.Component {
 				className="button-jcc"
 				onClick={() => {
 					closeOtherViewControlWindows('measureTool')
-					this.setState({ measureActive: true });
+					this.setState({ visiblePanel: PanelType.MEASURE_TOOL });
 					this.changeInteraction(this.interactions.measureInteraction, 'crosshair');
 					info('Touch map to set first measure point');
 				}}
@@ -2161,13 +2132,13 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const surveyMissionSettingsButton = (surveyPolygonActive ? (
+		const surveyMissionSettingsButton = ((visiblePanel == PanelType.MISSION_SETTINGS) ? (
 			<Button
 				className="button-jcc active"
 				onClick={() => {
 					this.changeInteraction();
 					this.setState({
-						surveyPolygonActive: false,
+						visiblePanel: PanelType.NONE,
 						mode: '',
 						surveyPolygonChanged: false,
 						missionPlanningGrid: null,
@@ -2184,7 +2155,7 @@ export default class CommandControl extends React.Component {
 					if (this.state.rallyEndLocation
 							&& this.state.rallyStartLocation) {
 						closeOtherViewControlWindows('missionSettingsPanel');
-						this.setState({ surveyPolygonActive: true, mode: Mode.MISSION_PLANNING });
+						this.setState({ visiblePanel: PanelType.MISSION_SETTINGS, mode: Mode.MISSION_PLANNING });
 						if (this.state.missionParams.missionType === 'polygon-grid')
 							this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
 						if (this.state.missionParams.missionType === 'editing')
@@ -2208,10 +2179,9 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const engineeringButton = (engineeringPanelActive ? (
+		const engineeringButton = (visiblePanel == PanelType.ENGINEERING ? (
 			<Button className="button-jcc active" onClick={() => {
-					this.setState({engineeringPanelActive: false}); 
-					this.toggleEngineeringPanel();
+					this.setState({ visiblePanel: PanelType.NONE })
 				}} 
 			>
 				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
@@ -2220,18 +2190,16 @@ export default class CommandControl extends React.Component {
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				closeOtherViewControlWindows('engineeringPanel');
-				this.setState({engineeringPanelActive: true});
-				this.toggleEngineeringPanel();
+				this.setState({ visiblePanel: PanelType.ENGINEERING })
 			}} 
 			>
 				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
 			</Button>
 		))
 
-		const missionPanelButton = (missionPanelActive ? (
+		const missionPanelButton = (visiblePanel == PanelType.MISSION ? (
 			<Button className="button-jcc active" onClick={() => {
-					this.setState({missionPanelActive: false}); 
-					this.toggleMissionPanel();
+				this.setState({ visiblePanel: PanelType.NONE })
 				}} 
 			>
 				<Icon path={mdiViewList} title="Mission Panel"/>
@@ -2240,28 +2208,23 @@ export default class CommandControl extends React.Component {
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				closeOtherViewControlWindows('missionPanel');
-				this.setState({missionPanelActive: true}); 
-				this.toggleMissionPanel();
+				this.setState({ visiblePanel: PanelType.MISSION })
 			}} 
 			>
 				<Icon path={mdiViewList} title="Mission Panel"/>
 			</Button>
 		))
 
+		var visiblePanelElement: ReactElement
 
-		return (
-			<div id="jcc_container" className={containerClasses}>
+		switch (visiblePanel) {
+			case PanelType.NONE:
+				visiblePanelElement = null
+				break;
 
-				<EngineeringPanel 
-					api={this.api} 
-					bots={bots} 
-					hubs={hubs} 
-					getSelectedBotId={this.selectedBotId.bind(this)}
-					getFleetId={this.getFleetId.bind(this)}
-					control={this.takeControl.bind(this)} 
-				/>
-
-				<MissionControllerPanel 
+			case PanelType.MISSION:
+				visiblePanelElement = (
+					<MissionControllerPanel 
 					api={this.api} 
 					bots={bots} 
 					mission={this.getRunList()} 
@@ -2270,11 +2233,46 @@ export default class CommandControl extends React.Component {
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
 					setEditRunMode={this.setEditRunMode.bind(this)}
-				/>
-				
-				<div id={this.mapDivId} className="map-control" />
+					/>
+				)
+				break;
 
-				<div id="mapLayers" />
+			case PanelType.ENGINEERING:
+				visiblePanelElement = (
+					<EngineeringPanel 
+					api={this.api} 
+					bots={bots} 
+					hubs={hubs} 
+					getSelectedBotId={this.selectedBotId.bind(this)}
+					getFleetId={this.getFleetId.bind(this)}
+					control={this.takeControl.bind(this)} 
+					/>
+				)
+				break;
+
+			case PanelType.MISSION_SETTINGS:
+				visiblePanelElement = missionSettingsPanel
+				break;
+
+			case PanelType.MEASURE_TOOL:
+				visiblePanelElement = null
+				break;
+
+			case PanelType.MAP_LAYERS:
+				visiblePanelElement = (
+					<div id="mapLayers" />
+				)
+				break;
+
+		}
+
+
+		return (
+			<div id="jcc_container" className={containerClasses}>
+
+				{visiblePanelElement}
+
+				<div id={this.mapDivId} className="map-control" />
 
 				<div id="viewControls">
 
@@ -2310,8 +2308,6 @@ export default class CommandControl extends React.Component {
 				{detailsBox}
 
 				{goalSettingsPanel}
-
-				{missionSettingsPanel}
 
 				{rcControllerPanel}
 
