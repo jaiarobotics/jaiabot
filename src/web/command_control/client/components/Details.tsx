@@ -321,13 +321,18 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
  * @param bot 
  * @returns boolean
  */
-function disableClearRunButton(bot: PortalBotStatus) {
+function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) {
     const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     const missionState = bot?.mission_state
     let disable = true
 
     // Basic error handling
     if (!missionState) {
+        return true
+    }
+
+    // The bot doesn't have an assigned run to delete
+    if (!mission.botsAssignedToRuns[bot.bot_id]) {
         return true
     }
 
@@ -554,8 +559,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={ disableClearRunButton(bot) ? "inactive button-jcc" : "button-jcc" }
-                                disabled={ disableClearRunButton(bot) }
+                        <Button className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
+                                disabled={ disableClearRunButton(bot, mission) }
                                 onClick={() => { deleteSingleMission() }}>
                             <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
