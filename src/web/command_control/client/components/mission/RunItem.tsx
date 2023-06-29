@@ -21,8 +21,6 @@ import { alpha, styled } from '@mui/material/styles';
 import { amber } from '@mui/material/colors';
 import { deepcopy } from '../Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
-import { CommandType } from '../shared/JAIAProtobuf';
-import { error, info } from '../../libs/notifications';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -100,17 +98,32 @@ export default class RunItem extends React.Component {
         }
     }
 
+    handleBotSelectionChange(event: SelectChangeEvent) {
+        let value = Number(event.target.value)
+
+        if (isFinite(value)) {
+            // Delete bot assignment if changed from previous
+            if (value != this.props.run.assigned) {
+                delete this.props.mission.botsAssignedToRuns[this.props.run.assigned]
+            }
+            // Change run assignment for run to bot 
+            this.props.run.assigned = value
+            this.props.run.command.bot_id = value
+            this.props.mission.botsAssignedToRuns[this.props.run.assigned] = this.props.run.id
+        }
+    }
+
     render() {
-        let runAssignSelect = null;
-        let runDeleteButton = null;
-        let duplicateRunButton = null;
-        let editModeButton = null;
-        let title = this.props.run.name;
-        let podStatusBotIds = Object.keys(this.props.bots);
-        let botsAssignedToRunsIds = Object.keys(this.props.mission.botsAssignedToRuns);
-        this.botsNotAssigned = [];
-        let assignedLabel = "";
-        let assignedOption = null;
+        let runAssignSelect = null
+        let runDeleteButton = null
+        let duplicateRunButton = null
+        let editModeButton = null
+        let title = this.props.run.name
+        let podStatusBotIds = Object.keys(this.props.bots)
+        let botsAssignedToRunsIds = Object.keys(this.props.mission.botsAssignedToRuns)
+        let assignedLabel = ""
+        let assignedOption = null
+        this.botsNotAssigned = []
 
         this.handleMissionStateChange()
 
@@ -119,31 +132,29 @@ export default class RunItem extends React.Component {
         // Have not been assigned yet
         podStatusBotIds.forEach((key) => {
             if (!botsAssignedToRunsIds.includes(key)) {
-                let id = Number(key);
-                if(isFinite(id))
-                {
-                    this.botsNotAssigned.push(id);
+                let id = Number(key)
+                if(isFinite(id)) {
+                    this.botsNotAssigned.push(id)
                 }
             }
         });
 
         // Check to see if that run is assigned
-        // And the bot id is not included in the botsNotAssigned array
-        if(this.props.run.assigned != -1
-            && !this.botsNotAssigned.includes(this.props.run.assigned))
-        {
+        // And if the bot id is not included in the botsNotAssigned array
+        if (this.props.run.assigned != -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
             assignedLabel = "Bot-" + this.props.run.assigned
-            assignedOption = 
+            assignedOption = (
                 <MenuItem 
                     key={this.props.run.assigned} 
                     value={this.props.run.assigned}
                 >
                     {assignedLabel}
                 </MenuItem>
+            )
         }
 
         // Create the Select Object
-        runAssignSelect =
+        runAssignSelect = (
             <Box sx={{ minWidth: 120 }}>
                 <FormControl fullWidth>
                 <InputLabel id="bot-assigned-select-label">Id</InputLabel>
@@ -152,7 +163,7 @@ export default class RunItem extends React.Component {
                         id="bot-assigned-select"
                         value={this.props.run.assigned.toString()}
                         label="Assign"
-                        onChange={this.assignChange}
+                        onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
                         <MenuItem 
                             key={-1} 
@@ -183,6 +194,7 @@ export default class RunItem extends React.Component {
                     </Select>
                 </FormControl>
             </Box>
+        )
 
         // Create Copy of Run Button
         duplicateRunButton = (
@@ -197,12 +209,12 @@ export default class RunItem extends React.Component {
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
             </Button>
         )
-  
+
         // Create Delete Button
         runDeleteButton = (
             <Button 
-                className={`button-jcc missionAccordian ${this.isEditModeToggleDisabled() ? 'inactive' : ''}`}
-                disabled={this.isEditModeToggleDisabled()}
+                className={`button-jcc missionAccordian ${(this.isEditModeToggleDisabled() && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
+                disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
                 onClick={(event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
@@ -268,7 +280,7 @@ export default class RunItem extends React.Component {
                     onChange={(evt: Event, value: number, activeThumb: number) => {
                         if (plan != null) {
                             plan.repeats = value
-                            this.forceUpdate() // Force update, because I don't want to add repeats to the State.  I want a single source of truth.
+                            this.forceUpdate() // Force update, because I don't want to add repeats to the State. I want a single source of truth.
                         }
                     }}
                 />
@@ -297,24 +309,6 @@ export default class RunItem extends React.Component {
                     </div>
                 </AccordionDetails>
             </Accordion>
-        );
+        )
     }
-
-    assignChange = (event: SelectChangeEvent) => {
-        let value = Number(event.target.value);
-
-        if(isFinite(value))
-        {
-            // Delete bot assignment if changed from previous
-            if(value != this.props.run.assigned)
-            {
-                delete this.props.mission.botsAssignedToRuns[this.props.run.assigned];
-            }
-
-            // Change run assignment for run to bot 
-            this.props.run.assigned = value;
-            this.props.run.command.bot_id = value;
-            this.props.mission.botsAssignedToRuns[this.props.run.assigned] = this.props.run.id;
-        }
-    };
 }
