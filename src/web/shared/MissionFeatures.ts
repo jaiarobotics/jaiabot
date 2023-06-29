@@ -2,9 +2,10 @@ import * as Styles from "./Styles"
 import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { Geometry, LineString } from "ol/geom"
-import { toLonLat, fromLonLat } from "ol/proj"
+import { fromLonLat } from "ol/proj"
 import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
+import { getGeographicCoordinate } from "./Utilities"
 import { transformTranslate, point } from "@turf/turf"
 import BaseEvent from "ol/events/Event"
 import Point from 'ol/geom/Point';
@@ -215,14 +216,4 @@ function updateDragFeaturePosition(
         missionFeaturesUpdated.push(feature)
     }
     return missionFeaturesUpdated
-}
-
-function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
-    const lonLat = toLonLat(coordinate, map.getView().getProjection())
-    const geographicCoordinate: GeographicCoordinate = {
-        lon: lonLat[0],
-        lat: lonLat[1]
-    }
-
-    return geographicCoordinate
 }

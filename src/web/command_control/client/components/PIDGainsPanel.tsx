@@ -8,7 +8,7 @@ import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
 import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions, PIDSettings } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
-import { getElementById } from './Utilities';
+import { getElementById } from './shared/Utilities';
 
 let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
 let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']

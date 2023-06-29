@@ -12,7 +12,7 @@ import { Map } from "ol";
 import VectorLayer from "ol/layer/Vector";
 import { DragAndDropEvent } from "ol/interaction/DragAndDrop";
 import PointerInteraction from "ol/interaction/Pointer";
-import { getElementById } from "./Utilities";
+import { getElementById } from "./shared/Utilities";
 
 
 export class Interactions {

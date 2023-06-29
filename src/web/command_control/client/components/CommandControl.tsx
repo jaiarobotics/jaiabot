@@ -40,7 +40,7 @@ import {
 import { Select } from 'ol/interaction';
 import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
+import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities';
 import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
@@ -87,7 +87,7 @@ import { SurveyPolygon } from './SurveyPolygon'
 import { createMap } from './Map'
 import { layers } from './Layers'
 
-import { getGeographicCoordinate } from './Utilities'
+import { getGeographicCoordinate } from './shared/Utilities'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'

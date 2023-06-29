@@ -6,7 +6,7 @@
 import React from 'react'
 import Button from '@mui/material/Button';
 import { Goal, GeographicCoordinate } from './shared/JAIAProtobuf';
-import { deepcopy } from './Utilities'
+import { deepcopy } from './shared/Utilities'
 import { taskNone } from './shared/Styles';
 import { rhumbDistance, rhumbBearing } from '@turf/turf';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
