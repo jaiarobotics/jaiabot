@@ -429,7 +429,7 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': Type.BOTH,
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.RUNTIME}
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
