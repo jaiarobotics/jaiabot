@@ -3,12 +3,12 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 
-import $ from 'jquery'
 import React from 'react'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
 import { BotStatus, Engineering, BotStatusRate, PIDControl, RFDisableOptions, PIDSettings } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
+import { getElementById } from './Utilities';
 
 let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
 let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']
@@ -27,6 +27,15 @@ interface Props {
 
 interface State {
 	bots: {[key: number]: APIBotStatus}
+}
+
+
+function getValueOfInput(id: string) {
+    return Number((document.getElementById(id) as HTMLInputElement).value)
+}
+
+function getStringValueOfInput(id: string) {
+    return (document.getElementById(id) as HTMLInputElement).value
 }
 
 
@@ -460,11 +469,11 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = $("#pid_gains_bot_selector").val()
-        info("Query Engineering Status for botId: " + botId)
+        let bot_id = getValueOfInput("pid_gains_bot_selector")
+        info("Query Engineering Status for botId: " + bot_id)
 
         let engineeringCommand = {
-            botId: botId,
+            bot_id: bot_id,
             query_engineering_status: true
         }
 
@@ -477,13 +486,12 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = $("#pid_gains_bot_selector").val()
         info("Query Engineering Status for All Bots")
 
-        for(let bot in this.state.bots)
+        for(let bot_id in this.state.bots)
         {
             let engineeringCommand = {
-                botId: bot,
+                bot_id: Number(bot_id),
                 query_engineering_status: true
             }
 
@@ -496,14 +504,14 @@ export class PIDGainsPanel extends React.Component {
     submitGains() {
         if (!this.props.control()) return;
 
-        let botId = Number($("#pid_gains_bot_selector").val())
+        let botId = getValueOfInput("pid_gains_bot_selector")
         info("Submit gains for botId: " + botId)
 
         var pid_control: PIDControl = {}
         for (let pidType of pidTypes) {
             let pidSettings: PIDSettings = {}
             for (let pidGain of pidGains) {
-                pidSettings[pidGain] = Number($("#" + pidType + "_" + pidGain).val())
+                pidSettings[pidGain] = getValueOfInput(pidType + "_" + pidGain)
             }
             (pid_control[pidType] as PIDSettings) = pidSettings
         }
@@ -522,36 +530,36 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = Number($("#pid_gains_bot_selector").val())
+        let botId = getValueOfInput("pid_gains_bot_selector")
         info("Submit BotStatusRate for botId: " + botId)
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
         
-        if($("#status_rate_input").val() != -1)
+        if(getValueOfInput("status_rate_input") != -1)
         {
-            bot_status_rate_change = $("#status_rate_input").val() as BotStatusRate;
+            bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
         }
 
         let engineeringCommand: Engineering = {
             bot_id: botId,
             bot_status_rate: bot_status_rate_change,
             gps_requirements: {
-                transit_hdop_req: Number($("#transit_hdop_req_input").val()),
-                transit_pdop_req: Number($("#transit_pdop_req_input").val()),
-                after_dive_hdop_req: Number($("#after_dive_hdop_req_input").val()),
-                after_dive_pdop_req: Number($("#after_dive_pdop_req_input").val()),
-                transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
-                transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
-                after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
+                transit_hdop_req: getValueOfInput("transit_hdop_req_input"),
+                transit_pdop_req: getValueOfInput("transit_pdop_req_input"),
+                after_dive_hdop_req: getValueOfInput("after_dive_hdop_req_input"),
+                after_dive_pdop_req: getValueOfInput("after_dive_pdop_req_input"),
+                transit_gps_fix_checks: getValueOfInput("transit_gps_checks_input"),
+                transit_gps_degraded_fix_checks: getValueOfInput("transit_gps_degraded_checks_input"),
+                after_dive_gps_fix_checks: getValueOfInput("after_dive_gps_checks_input"), 
             },
             rf_disable_options: {
-                rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
+                rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
             },
             bottom_depth_safety_params: {
-                constant_heading: Number($("#bottom_depth_safety_heading_input").val()),
-                constant_heading_speed: Number($("#bottom_depth_safety_speed_input").val()),
-                constant_heading_time: Number($("#bottom_depth_safety_time_input").val()),
-                safety_depth: Number($("#safety_depth_input").val())
+                constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
+                constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
+                constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
+                safety_depth: getValueOfInput("safety_depth_input")
             }
         }
 
@@ -564,14 +572,14 @@ export class PIDGainsPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = Number($("#pid_gains_bot_selector").val())
+        let botId = getValueOfInput("pid_gains_bot_selector")
         info("Submit BotStatusRate for All Bots: ")
 
         let bot_status_rate_change = this.state.bots[botId]?.engineering.bot_status_rate;
         
-        if($("#status_rate_input").val() != -1)
+        if(getValueOfInput("status_rate_input") != -1)
         {
-            bot_status_rate_change = $("#status_rate_input").val() as BotStatusRate;
+            bot_status_rate_change = getStringValueOfInput("status_rate_input") as BotStatusRate;
         }
 
         for(let bot in this.state.bots)
@@ -580,22 +588,22 @@ export class PIDGainsPanel extends React.Component {
                 bot_id: Number(bot),
                 bot_status_rate: bot_status_rate_change,
                 gps_requirements: {
-                    transit_hdop_req: Number($("#transit_hdop_req_input").val()),
-                    transit_pdop_req: Number($("#transit_pdop_req_input").val()),
-                    after_dive_hdop_req: Number($("#after_dive_hdop_req_input").val()),
-                    after_dive_pdop_req: Number($("#after_dive_pdop_req_input").val()),
-                    transit_gps_fix_checks: Number($("#transit_gps_checks_input").val()),
-                    transit_gps_degraded_fix_checks: Number($("#transit_gps_degraded_checks_input").val()),
-                    after_dive_gps_fix_checks: Number($("#after_dive_gps_checks_input").val()), 
+                    transit_hdop_req: getValueOfInput("transit_hdop_req_input"),
+                    transit_pdop_req: getValueOfInput("transit_pdop_req_input"),
+                    after_dive_hdop_req: getValueOfInput("after_dive_hdop_req_input"),
+                    after_dive_pdop_req: getValueOfInput("after_dive_pdop_req_input"),
+                    transit_gps_fix_checks: getValueOfInput("transit_gps_checks_input"),
+                    transit_gps_degraded_fix_checks: getValueOfInput("transit_gps_degraded_checks_input"),
+                    after_dive_gps_fix_checks: getValueOfInput("after_dive_gps_checks_input"), 
                 },
                 rf_disable_options: {
-                    rf_disable_timeout_mins: Number($("#rf_disable_timeout_mins_input").val()),
+                    rf_disable_timeout_mins: getValueOfInput("rf_disable_timeout_mins_input"),
                 },
                 bottom_depth_safety_params: {
-                    constant_heading: Number($("#bottom_depth_safety_heading_input").val()),
-                    constant_heading_speed: Number($("#bottom_depth_safety_speed_input").val()),
-                    constant_heading_time: Number($("#bottom_depth_safety_time_input").val()),
-                    safety_depth: Number($("#safety_depth_input").val())
+                    constant_heading: getValueOfInput("bottom_depth_safety_heading_input"),
+                    constant_heading_speed: getValueOfInput("bottom_depth_safety_speed_input"),
+                    constant_heading_time: getValueOfInput("bottom_depth_safety_time_input"),
+                    safety_depth: getValueOfInput("safety_depth_input")
                 }
             }
     

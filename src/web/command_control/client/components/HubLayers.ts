@@ -29,7 +29,6 @@ export class HubLayers {
             const newLayer = new VectorLayer({
                 properties: {
                     name: hub_id,
-                    title: hub_id,
                     hub_id: hub_id,
                 },
                 zIndex: 100,

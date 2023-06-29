@@ -303,9 +303,13 @@ export function divePacket(dive: DivePacket) {
         }),
         text: new Text({
             text: String(text),
-            font: '12pt sans-serif',
+            font: '14pt sans-serif',
             fill: new Fill({
-                color: 'black'
+                color: 'white'
+            }),
+            stroke: new Stroke({
+                color: 'black', // Outline color
+                width: 3 // Outline width
             }),
             offsetY: 20
         })
