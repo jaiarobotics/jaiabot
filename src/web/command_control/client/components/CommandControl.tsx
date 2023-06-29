@@ -1712,19 +1712,7 @@ export default class CommandControl extends React.Component {
 
 	/////////////// Mission Stuff ////////////////////
 
-	/**
-	 * Updates the mission layer
-	 * 
-	 * Dependencies:
-	 * this.state.runList,
-	 * this.state.podStatus,
-	 * this.state.selectedHubOrBot
-	 * 
-	 * Output:
-	 * layers.missionLayer features
-	 */
-
-	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number, updateSelectedOnly?: boolean) {
+	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
 		const features: OlFeature[] = []
 		let zIndex = 2
 
@@ -1740,16 +1728,36 @@ export default class CommandControl extends React.Component {
 			const plan = run.command?.plan
 			if (plan) {
 				const runNumber = run.id.slice(4)
-				const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex, this.updateDragFeaturePosition.bind(this))
+				const missionFeatures = MissionFeatures.createMissionFeatures(
+					map, 
+					assignedBot,
+					plan,
+					activeGoalIndex,
+					isSelected,
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this),
+					runNumber,
+					zIndex)
 				features.push(...missionFeatures)
 				zIndex += 1
 			}
-		
 		}
 		this.setState({ missionFeatures: features })
 		return features
 	}
 
+	/**
+	 * Updates the mission layer
+	 * 
+	 * Dependencies:
+	 * this.state.runList,
+	 * this.state.podStatus,
+	 * this.state.selectedHubOrBot
+	 * 
+	 * Output:
+	 * layers.missionLayer features
+	 */
 	updateMissionLayer() {
 		const missionSource = layers.missionLayer.getSource()
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
@@ -1772,7 +1780,16 @@ export default class CommandControl extends React.Component {
 			const activeMissionPlan = bot.active_mission_plan
 			const canEdit = false
 			if (activeMissionPlan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
+				let features = MissionFeatures.createMissionFeatures(
+					map, 
+					Number(botId),
+					activeMissionPlan,
+					bot.active_goal,
+					this.isBotSelected(Number(botId)),
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this)
+				)
 				allFeatures.push(...features)
 			}
 		}
@@ -1782,46 +1799,13 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	updateDragFeaturePosition(botId: number, waypointId: string, plan: MissionPlan, newCoordinates: GeographicCoordinate) {
-		const missionFeatures = this.state.missionFeatures
-		const missionFeaturesUpdated: OlFeature<Geometry>[] = []
-		const selectedBotId = this.selectedBotId()
-		const numWaypoints = plan.goal.length
-
-		missionFeatures.forEach((feature) => {
-			const featureId = feature.get('id')
-			if (featureId === waypointId && selectedBotId === botId) {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-				feature.setGeometry(new OlPoint(coordinate))
-			} else if (waypointId === 'wpt-1' && feature.get('type') === 'flag') {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-				feature.setGeometry(new OlPoint(coordinate))
-			} else if (waypointId === 'wpt-1' && feature.get('id') === 'line-1') {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const startCoordinate = fromLonLat(lonLat, map.getView().getProjection())
-				const endCoordinate = feature.get('endCoordinate')
-				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
-			} else if (Number(waypointId.slice(4)) === numWaypoints && feature.get('id') === `line-${numWaypoints - 1}`) {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const startCoordinate = feature.get('startCoordinate')
-				const endCoordinate = fromLonLat(lonLat, map.getView().getProjection())
-				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
-			} else if (Number(waypointId.slice(4)) > 1 && Number(waypointId.slice(4)) < numWaypoints && feature.get('id') === `line-${Number(waypointId.slice(4)) - 1}`) {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const startCoordinate = feature.get('startCoordinate')
-				const endCoordinate = fromLonLat(lonLat, map.getView().getProjection())
-				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
-			} else if (Number(waypointId.slice(4)) > 1 && Number(waypointId.slice(4)) < numWaypoints && feature.get('id') === `line-${Number(waypointId.slice(4))}`) {
-				const lonLat = [newCoordinates.lon, newCoordinates.lat]
-				const startCoordinate = fromLonLat(lonLat, map.getView().getProjection())
-				const endCoordinate = feature.get('endCoordinate')
-				feature.setGeometry(new OlLineString([startCoordinate, endCoordinate]))
-			}
-			missionFeaturesUpdated.push(feature)
-			console.log(Number(waypointId.slice(4)) + 1)
-		})
+	/**
+	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
+	 * Only the features that are impacted by dragging a waypoint are re-created 
+	 * 
+	 * @param missionFeaturesUpdated 
+	 */
+	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
 		const missionSource = layers.missionLayer.getSource()
 		missionSource.clear()
 		missionSource.addFeatures(missionFeaturesUpdated)
