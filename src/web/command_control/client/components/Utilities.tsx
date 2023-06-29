@@ -29,11 +29,11 @@ export function formatLongitude(lon: number, prec=5) {
     }
 }
 
-export function formatAttitudeAngle(angle_deg: number, prec=2) {
-    if (angle_deg == null) {
+export function formatAttitudeAngle(angleDegrees: number, prec=2) {
+    if (angleDegrees == null) {
         return "?"
     }
-    return angle_deg.toFixed(prec) + '°'
+    return angleDegrees.toFixed(prec) + '°'
 }
 
 export function deepcopy<T>(aObject: T): T {
@@ -107,4 +107,16 @@ export function getGeographicCoordinate(coordinate: Coordinate, map: Map) {
 export function getMapCoordinate(coordinate: GeographicCoordinate, map: Map) {
     if (coordinate == null) return null
     return fromLonLat([coordinate.lon, coordinate.lat], map.getView().getProjection())
+}
+
+/**
+ * Gets the element with a certain id
+ * 
+ * @param id id of the element to get
+ * @returns The element, if it exists
+ */
+export function getElementById<T>(id: string) {
+    // In case they passed a jQuery id selector in
+    id = id.replaceAll('#', '')
+    return document.getElementById(id) as T
 }

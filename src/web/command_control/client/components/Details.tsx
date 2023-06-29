@@ -180,15 +180,15 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo) {
     return false
 }
 
-function issueCommandForHub(api: JaiaAPI, hub_id: number, command_for_hub: CommandInfo) {
+function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: CommandInfo) {
     console.log("Hub Command");
 
     if (!takeControlFunction()) return;
 
-    if (confirm("Are you sure you'd like to " + command_for_hub.description + "?")) {
+    if (confirm("Are you sure you'd like to " + commandForHub.description + "?")) {
         let c = {
             hub_id: hub_id,
-            type: command_for_hub.commandType as HubCommandType
+            type: commandForHub.commandType as HubCommandType
         }
 
         console.log(c)
@@ -253,19 +253,19 @@ function runRCMode(bot: PortalBotStatus) {
         return null
     }
 
-    let datum_location = bot?.location 
+    let datumLocation = bot?.location 
 
-    if (!datum_location) {
-        const warning_string = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
+    if (!datumLocation) {
+        const warningString = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
-        if (!confirm(warning_string)) {
+        if (!confirm(warningString)) {
             return null
         }
 
-        datum_location = {lat: 0, lon: 0}
+        datumLocation = {lat: 0, lon: 0}
     }
 
-    return Missions.RCMode(bot_id, datum_location);
+    return Missions.RCMode(bot_id, datumLocation);
 }
 
 // Check if there is a mission to run
@@ -321,13 +321,18 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
  * @param bot 
  * @returns boolean
  */
-function disableClearRunButton(bot: PortalBotStatus) {
+function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) {
     const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     const missionState = bot?.mission_state
     let disable = true
 
     // Basic error handling
     if (!missionState) {
+        return true
+    }
+
+    // The bot doesn't have an assigned run to delete
+    if (!mission.botsAssignedToRuns[bot.bot_id]) {
         return true
     }
 
@@ -404,7 +409,7 @@ export interface BotDetailsProps {
     closeWindow: () => void,
     takeControl: () => boolean,
     deleteSingleMission: () => void,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean
 }
 
@@ -460,7 +465,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     const takeControl = props.takeControl
     const isExpanded = props.isExpanded
     const deleteSingleMission = props.deleteSingleMission
-    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const setDetailsExpanded = props.setDetailsExpanded
     const isRCModeActive = props.isRCModeActive
 
     if (!bot) {
@@ -528,10 +533,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         )
     }
 
-    let bot_offload_percentage = ""
+    let botOffloadPercentage = ""
 
     if (bot.data_offload_percentage) {
-        bot_offload_percentage = " " + bot.data_offload_percentage + "%"
+        botOffloadPercentage = " " + bot.data_offload_percentage + "%"
     }
 
     return (
@@ -554,8 +559,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={ disableClearRunButton(bot) ? "inactive button-jcc" : "button-jcc" }
-                                disabled={ disableClearRunButton(bot) }
+                        <Button className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
+                                disabled={ disableClearRunButton(bot, mission) }
                                 onClick={() => { deleteSingleMission() }}>
                             <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
@@ -564,7 +569,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                 <div id="botDetailsAccordionContainer" className="accordionParentContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
-                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("quickLook", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -583,7 +588,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </tr>
                                     <tr>
                                         <td>Mission State</td>
-                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + bot_offload_percentage}</td>
+                                        <td style={{whiteSpace: "pre-line"}}>{bot.mission_state?.replaceAll('__', '\n') + botOffloadPercentage}</td>
                                     </tr>
                                     <tr>
                                         <td>Battery Percentage</td>
@@ -611,7 +616,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.commands} 
-                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("commands", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -652,7 +657,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
-                                onChange={() => {detailsDefaultExpanded("advancedCommands")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("advancedCommands", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -709,7 +714,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                     <Accordion 
                         expanded={isExpanded.health} 
-                        onChange={() => {detailsDefaultExpanded("health")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("health", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -730,7 +735,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                     <Accordion 
                         expanded={isExpanded.data} 
-                        onChange={() => {detailsDefaultExpanded("data")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("data", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -744,7 +749,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         <AccordionDetails>
                             <Accordion 
                                 expanded={isExpanded.gps} 
-                                onChange={() => {detailsDefaultExpanded("gps")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("gps", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -787,7 +792,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.imu} 
-                                onChange={() => {detailsDefaultExpanded("imu")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("imu", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -834,7 +839,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.sensor} 
-                                onChange={() => {detailsDefaultExpanded("sensor")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("sensor", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -865,7 +870,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Accordion>
                             <Accordion 
                                 expanded={isExpanded.power} 
-                                onChange={() => {detailsDefaultExpanded("power")}}
+                                onChange={(event, expanded) => {setDetailsExpanded("power", expanded)}}
                                 className="nestedAccordionContainer accordionContainer"
                             >
                                 <AccordionSummary
@@ -910,7 +915,7 @@ export interface HubDetailsProps {
     hub: PortalHubStatus,
     api: JaiaAPI,
     isExpanded: DetailsExpandedState,
-    detailsDefaultExpanded: (accordian: keyof DetailsExpandedState) => void,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     getFleetId: () => number
     closeWindow: () => void,
     takeControl: () => boolean,
@@ -920,7 +925,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const hub = props.hub
     const api = props.api
     const isExpanded = props.isExpanded
-    const detailsDefaultExpanded = props.detailsDefaultExpanded
+    const setDetailsExpanded = props.setDetailsExpanded
     const getFleetId = props.getFleetId
     const closeWindow = props.closeWindow
     const takeControl = props.takeControl
@@ -954,7 +959,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                 <div id="hubDetailsAccordionContainer">
                     <Accordion 
                         expanded={isExpanded.quickLook} 
-                        onChange={() => {detailsDefaultExpanded("quickLook")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("quickLook", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -987,7 +992,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.commands} 
-                        onChange={() => {detailsDefaultExpanded("commands")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("commands", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
@@ -1014,7 +1019,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                     </Accordion>
                     <Accordion 
                         expanded={isExpanded.links} 
-                        onChange={() => {detailsDefaultExpanded("links")}}
+                        onChange={(event, expanded) => {setDetailsExpanded("links", expanded)}}
                         className="accordionContainer"
                     >
                         <AccordionSummary
