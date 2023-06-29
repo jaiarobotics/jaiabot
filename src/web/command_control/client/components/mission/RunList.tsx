@@ -30,10 +30,13 @@ export default class RunList extends React.Component {
 
         this.state = {
         }
+
+        this.props = props
     }
 
     render() { 
         let self = this;
+        const emptyMission = Object.keys(this.props.mission.runs).length == 0
         
         return (
             <React.Fragment>
@@ -61,13 +64,10 @@ export default class RunList extends React.Component {
                     <Icon path={mdiPlus} title="Add Run"/>
                 </Button>
                 <Button 
-                    className="button-jcc" 
-                    onClick={() => { 
-                        const warningString = "Are you sure you want to delete all of the runs?";
-
-                        if (confirm(warningString)) {
-                            this.props.deleteAllRunsInMission(this.props.mission) 
-                        }
+                    className={"button-jcc" + (emptyMission ? ' inactive' : '')}
+                    onClick={() => {
+                        if (emptyMission) return
+                        this.props.deleteAllRunsInMission(this.props.mission) 
                     }}
                 >
 					<Icon path={mdiDelete} title="Clear Mission"/>

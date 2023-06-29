@@ -10,8 +10,6 @@ import { unByKey as OlUnobserveByKey } from "ol/Observable";
 
 import * as turf from "@turf/turf"
 
-import $ from 'jquery';
-
 // Jaia imports
 import { deepcopy } from "./Utilities";
 import CommandControl from "./CommandControl";
@@ -133,7 +131,7 @@ export class SurveyLines {
         
                     const format = new GeoJSON();
         
-                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusions } = commandControl.state;
+                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusionCoords } = commandControl.state;
         
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
@@ -227,12 +225,12 @@ export class SurveyLines {
                                     let botId = featureProperties.botId as number;
                                     alongLines[botId] = turf.toMercator(currentGeometry).coordinates
                                 });
-                                if (commandControl.state.surveyExclusions) {
+                                if (surveyExclusionCoords) {
                                     let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
                                     let alongPointsAfterExclusion: number[][] = []
                                     alongPointsBeforeExclusion.forEach(point => {
                                         // console.log('this.state.surveyExclusions');
-                                        let se = turf.coordAll(turf.toWgs84(turf.multiPoint(surveyExclusions)));
+                                        let se = turf.coordAll(turf.toWgs84(turf.multiPoint(surveyExclusionCoords)));
                                         // console.log(se);
                                         // console.log(point);
                                         let options = {'ignoreBoundary': true}
@@ -278,11 +276,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        $('#missionStatArea').text(missionParams.spArea);
-                        $('#missionStatPerimeter').text(missionParams.spPerimeter);
-                        $('#missionStatOrientation').text(missionParams.orientation);
-                        $('#missionStatRallyStartDistance').text(missionParams.spRallyStartDist);
-                        $('#missionStatRallyFinishDistance').text(missionParams.spRallyFinishDist);
+                        document.getElementById('missionStatArea').innerText = missionParams.spArea.toFixed(2);
+                        document.getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2);
+                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.spRallyStartDist.toFixed(2);
+                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.spRallyFinishDist.toFixed(2);
         
                         // console.log('** END ********* ON CHANGE *************************')
                     }

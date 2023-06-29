@@ -24,7 +24,6 @@ export class BotLayers {
 			this.layers[bot_id] = new VectorLayer({
 				properties: {
 					name: `Bot ${bot_id}`,
-					title: `Bot ${bot_id}`,
 				},
 				source: new VectorSource({
 					wrapX: false,
