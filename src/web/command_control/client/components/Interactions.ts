@@ -11,8 +11,8 @@ import { KMZ } from "./KMZ";
 import { Map } from "ol";
 import VectorLayer from "ol/layer/Vector";
 import { DragAndDropEvent } from "ol/interaction/DragAndDrop";
-import $ from "jquery";
 import PointerInteraction from "ol/interaction/Pointer";
+import { getElementById } from "./Utilities";
 
 
 export class Interactions {
@@ -63,7 +63,7 @@ export class Interactions {
                 this.measureListener = evt.feature.getGeometry().on('change', (evt2) => {
                     const geom = evt2.target;
                     // tooltipCoord = geom.getLastCoordinate();
-                    $('#measureResult').text(CommandControl.formatLength(geom));
+                    getElementById<HTMLElement>('measureResult').innerText = CommandControl.formatLength(geom)
                 });
             }
         )
