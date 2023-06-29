@@ -163,6 +163,7 @@ export default class RunItem extends React.Component {
                         id="bot-assigned-select"
                         value={this.props.run.assigned.toString()}
                         label="Assign"
+                        disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
                         <MenuItem 
