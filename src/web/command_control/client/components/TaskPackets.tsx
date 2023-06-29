@@ -21,9 +21,9 @@ import { geoJSONToDepthContourFeatures } from "./shared/Contours"
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { Map } from "ol"
 import { Units } from "@turf/turf"
+import { getMapCoordinate } from "./Utilities";
 
 const POLL_INTERVAL = 5000
-
 const mercator = 'EPSG:3857'
 const equirectangular = 'EPSG:4326'
 const equirectangular_to_mercator = getTransform(equirectangular, mercator);
@@ -454,7 +454,7 @@ export class TaskData {
         jaiaAPI.getDepthContours().catch((error) => {
             console.error(error)
         }).then((geojson) => {
-                const features = geoJSONToDepthContourFeatures(mercator, geojson)
+                const features = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), geojson)
 
                 const vectorSource = new VectorSource({
                     features: features

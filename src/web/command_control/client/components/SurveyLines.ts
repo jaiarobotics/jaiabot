@@ -10,8 +10,6 @@ import { unByKey as OlUnobserveByKey } from "ol/Observable";
 
 import * as turf from "@turf/turf"
 
-import $ from 'jquery';
-
 // Jaia imports
 import { deepcopy } from "./Utilities";
 import CommandControl from "./CommandControl";
@@ -133,7 +131,7 @@ export class SurveyLines {
         
                     const format = new GeoJSON();
         
-                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusions } = commandControl.state;
+                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusionCoords } = commandControl.state;
         
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
@@ -148,7 +146,7 @@ export class SurveyLines {
                         missionParams.orientation = rotationAngle;
                         // document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
         
-                        let bot_list = Object.keys(commandControl.state.podStatus.bots);
+                        let botList = Object.keys(commandControl.state.podStatus.bots);
         
                         // console.log('TESTING')
                         // console.log(this);
@@ -156,7 +154,7 @@ export class SurveyLines {
                         // console.log(turf);
                         // console.log(format);
         
-                        let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.num_goals)) / 1000;
+                        let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
                         // Check if user selects length > allowed (bots * spacing), if so make centerLine max length
@@ -200,16 +198,16 @@ export class SurveyLines {
         
         
                         let centerLine = turf.getGeom(centerLineFc as any).features[0];
-                        this.commandControl.setState({center_line_string: centerLineString})						
+                        this.commandControl.setState({centerLineString: centerLineString})						
                         let currentLineLength = turf.length(centerLine)
         
                         if (currentLineLength <= maxLineLength-(Number(missionParams.spacing)/1000)) {
                             let offsetLines: any[] = [];
-                            let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((bot_list.length/2)*0.75))
+                            let lineOffsetStart = -1 * (Number(missionParams.spacing) * ((botList.length/2)*0.75))
                             let nextLineOffset = 0;
                             let currentLineOffset = 0;
         
-                            bot_list.forEach(bot => {
+                            botList.forEach(bot => {
                                 let ol = deepcopy(centerLine);
                                 currentLineOffset = lineOffsetStart + nextLineOffset
         
@@ -227,12 +225,12 @@ export class SurveyLines {
                                     let botId = featureProperties.botId as number;
                                     alongLines[botId] = turf.toMercator(currentGeometry).coordinates
                                 });
-                                if (commandControl.state.surveyExclusions) {
+                                if (surveyExclusionCoords) {
                                     let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
                                     let alongPointsAfterExclusion: number[][] = []
                                     alongPointsBeforeExclusion.forEach(point => {
                                         // console.log('this.state.surveyExclusions');
-                                        let se = turf.coordAll(turf.toWgs84(turf.multiPoint(surveyExclusions)));
+                                        let se = turf.coordAll(turf.toWgs84(turf.multiPoint(surveyExclusionCoords)));
                                         // console.log(se);
                                         // console.log(point);
                                         let options = {'ignoreBoundary': true}
@@ -263,12 +261,12 @@ export class SurveyLines {
                             if (fcInput.length >= 3 && Object.keys(alongPoints).length > 1) {
                                 let fcOutput = turf.featureCollection(fcInput)
                                 let fcOutputPoly = turf.concave(fcOutput)
-                                missionParams.sp_perimeter = round(turf.length(fcOutputPoly), 2)
-                                missionParams.sp_area = round(turf.area(fcOutputPoly)/1000, 2)
+                                missionParams.spPerimeter = round(turf.length(fcOutputPoly), 2)
+                                missionParams.spArea = round(turf.area(fcOutputPoly)/1000, 2)
                             }
         
-                            missionParams.sp_rally_start_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
-                            missionParams.sp_rally_finish_dist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
+                            missionParams.spRallyStartDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
+                            missionParams.spRallyFinishDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
         
                             commandControl.setState({
                                 missionPlanningLines: alongLines,
@@ -278,11 +276,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        $('#missionStatArea').text(missionParams.sp_area);
-                        $('#missionStatPerimeter').text(missionParams.sp_perimeter);
-                        $('#missionStatOrientation').text(missionParams.orientation);
-                        $('#missionStatRallyStartDistance').text(missionParams.sp_rally_start_dist);
-                        $('#missionStatRallyFinishDistance').text(missionParams.sp_rally_finish_dist);
+                        document.getElementById('missionStatArea').innerText = missionParams.spArea.toFixed(2);
+                        document.getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2);
+                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
+                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.spRallyStartDist.toFixed(2);
+                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.spRallyFinishDist.toFixed(2);
         
                         // console.log('** END ********* ON CHANGE *************************')
                     }
