@@ -245,15 +245,19 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
 
     return new Style({
         image: icon,
+        stroke: new Stroke({
+            color: 'rgba(0, 0, 0, 0)',
+            width: 50
+        }),
         text: new Text({
             text: String(goalIndex),
             font: '12pt sans-serif',
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: -15,
+            offsetY: -15
         }),
-        zIndex: isSelected ? 10000 : 2
+        zIndex: isSelected ? 102 : 2
     })
 }
 

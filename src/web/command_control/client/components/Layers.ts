@@ -22,7 +22,7 @@ export class Layers {
             title: 'Missions',
         },
         source: new VectorSource(),
-        zIndex: 1001
+        zIndex: 2001
     })
 
     

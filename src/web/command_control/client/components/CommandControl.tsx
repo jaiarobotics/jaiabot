@@ -45,7 +45,7 @@ import OlDrawInteraction, { DrawEvent } from 'ol/interaction/Draw';
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
-import { Modify } from 'ol/interaction';
+import { Select } from 'ol/interaction';
 import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
@@ -2349,15 +2349,6 @@ export default class CommandControl extends React.Component {
 	updateMissionLayer() {
 		const missionSource = layers.missionLayer.getSource()
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
-		let waypoints: OlFeature<Geometry>[] = []
-		missionFeatures.forEach((feature) => {
-			if (feature.get('id') && feature.get('id').includes('wpt') && feature.get('canEdit')) {
-				waypoints.push(feature)
-				console.log('pushed')
-			}
-		})
-		let waypointCollection = new OlCollection(waypoints)
-
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
 	}
