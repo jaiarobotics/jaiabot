@@ -56,7 +56,9 @@ export function createMissionFeatures(
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,
-            id: `wpt-${goalIndexStartAtOne}`
+            id: `wpt-${goalIndexStartAtOne}`,
+            type: 'wpt',
+            isSelected: isSelected
         })
 
         markerFeature.getGeometry().on('change', (evt: BaseEvent) => handleWaypointPositionChange(evt, markerFeature, map, plan, existingMissionFeatures, dragProcessor))
@@ -71,11 +73,14 @@ export function createMissionFeatures(
                 map, 
                 {
                     lon: location.lon, 
-                    lat: location.lat, 
+                    lat: location.lat,
                     style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
-            flagFeature.set('type', 'flag')            
+            flagFeature.setProperties({
+                type: 'flag',
+                isSelected: isSelected
+            })            
             features.push(flagFeature)
         }
 
@@ -129,7 +134,8 @@ export function createMissionFeatures(
                 endPointGoalNum: goalIndex + 2,
                 startCoordinate: startCoordinate,
                 endCoordinate: geograpicCoordinateToCoordinate(nextLocation),
-                id: `line-${goalIndex + 1}`
+                id: `line-${goalIndex + 1}`,
+                type: 'line'
             })
             missionPathFeature.setStyle(Styles.missionPath)
             features.push(missionPathFeature)
@@ -146,7 +152,7 @@ function handleWaypointPositionChange(
     existingMissionFeatures: Feature<Geometry>[],
     dragProcessor: (updatedMissionFeatures: Feature<Geometry>[]) => void
 ) {
-    if (!markerFeature.get('canEdit')) {
+    if (!markerFeature.get('canEdit') || !markerFeature.get('isSelected')) {
         return
     }
     const geometry = evt.target
@@ -165,7 +171,7 @@ function handleWaypointPositionChange(
 function updateDragFeaturePosition(
     map: Map,
     plan: MissionPlan,
-    missionFeatures: Feature<Geometry>[], 
+    missionFeatures: Feature<Geometry>[],
     waypointId: string,
     newCoordinates: GeographicCoordinate
 ) {
@@ -178,8 +184,10 @@ function updateDragFeaturePosition(
         const lonLat = [newCoordinates.lon, newCoordinates.lat]
         const coordinate = fromLonLat(lonLat, map.getView().getProjection())
 
+        // Make no changes
+        if (!feature.get('isSelected')) {}
         // The iterated feature is the waypoint
-        if (featureId === waypointId) {
+        else if (featureId === waypointId) {
             feature.setGeometry(new Point(coordinate))
         } 
         // Move the flag if the first waypoint is being moved 
