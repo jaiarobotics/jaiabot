@@ -1809,6 +1809,7 @@ export default class CommandControl extends React.Component {
 		const missionSource = layers.missionLayer.getSource()
 		missionSource.clear()
 		missionSource.addFeatures(missionFeaturesUpdated)
+		this.setState({ missionFeatures: missionFeaturesUpdated })
 	}
 	
 	/**
