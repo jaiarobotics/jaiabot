@@ -59,20 +59,6 @@ export class Layers {
 
     
     /**
-     * Layer for exclusion zones for survey missions
-     * @date 6/14/2023 - 5:17:04 PM
-     *
-     * @type {*}
-     */
-    exclusionsLayer = new VectorLayer({
-        properties: { 
-            name: 'exclusionsLayer',
-            title: 'Mission Exclusion Areas'
-        }
-    });
-
-    
-    /**
      * Layer for rally point icons
      * @date 6/14/2023 - 5:17:23 PM
      *

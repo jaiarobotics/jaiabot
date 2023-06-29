@@ -896,13 +896,15 @@ function updateStatus(status) {
   warningStatus.innerHTML = warningStatusInner;
 }
 
-function getSelectedBotId() { return $("#botSelect")[0].value || "0" }
+function getSelectedBotId() {
+  return document.getElementById("botSelect")?.value || "0"
+}
 
 function updateBotSelectDropdown(bots) {
-  let selectElement = $("#botSelect")[0];
-  let existingBotIds = $("select#botSelect")
-                           .find('option')
-                           .toArray()
+  let selectElement = document.getElementById("botSelect");
+  let existingBotIds = Array
+                           .from(document.getElementById("botSelect")
+                                     .getElementsByTagName('option'))
                            .map(element => element.value)
   let newBotIds = Object.keys(bots)
 
