@@ -22,7 +22,7 @@ export class Layers {
             title: 'Missions',
         },
         source: new VectorSource(),
-        zIndex: 1001
+        zIndex: 2001
     })
 
     
@@ -150,10 +150,6 @@ export class Layers {
             this.dragAndDropVectorLayer,
         ]
     }
-
-    constructor() {
-    }
-
 }
 
 export const layers = new Layers()

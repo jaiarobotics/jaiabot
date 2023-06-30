@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
 import { SelectChangeEvent } from '@mui/material';
 import { GlobalSettings, Save } from './Settings';
-import { deepcopy, getGeographicCoordinate } from './Utilities';
+import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { Button } from '@mui/material';
 import * as turf from '@turf/turf';
 import Map from 'ol/Map'

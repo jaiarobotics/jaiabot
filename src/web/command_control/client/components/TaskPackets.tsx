@@ -21,7 +21,7 @@ import { geoJSONToDepthContourFeatures } from "./shared/Contours"
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { Map } from "ol"
 import { Units } from "@turf/turf"
-import { getMapCoordinate } from "./Utilities";
+import { getMapCoordinate } from "./shared/Utilities";
 
 const POLL_INTERVAL = 5000
 const mercator = 'EPSG:3857'
