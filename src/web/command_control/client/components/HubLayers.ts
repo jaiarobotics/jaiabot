@@ -64,7 +64,7 @@ export class HubLayers {
 
             if (hub?.location !== undefined)
             {
-                newFeature.setGeometry(new Point(getMapCoordinate(hub.location, this.map)))
+                newFeature.setGeometry(new Point(getMapCoordinate(hub.location, map)))
             }
 
             newFeature.setId(hub.hub_id)

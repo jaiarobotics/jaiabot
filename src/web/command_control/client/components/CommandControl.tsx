@@ -1,13 +1,3 @@
-/* eslint-disable react/jsx-no-bind */
-/* eslint-disable react/self-closing-comp */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable react/sort-comp */
-/* eslint-disable react/no-danger */
-/* eslint-disable max-len */
-/* eslint-disable react/no-unused-state */
-/* eslint-disable react/no-multi-comp */
-
 import React, { MouseEvent, ReactElement } from 'react'
 import { Save, GlobalSettings } from './Settings'
 import { Missions } from './Missions'
@@ -18,6 +8,7 @@ import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import RCControllerPanel from './RCControllerPanel'
 import { taskData } from './TaskPackets'
+import JaiaAbout from './JaiaAbout'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 
 // Material Design Icons
@@ -41,10 +32,14 @@ import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { getLength as OlGetLength } from 'ol/sphere';
-import { Geometry, LineString, LineString as OlLineString } from 'ol/geom';
-import { Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style';
+import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
+import {
+	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
+} from 'ol/style';
+import { Select } from 'ol/interaction';
+import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
+import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities';
 import { HubOrBot } from './HubOrBot'
 
 import '../style/CommandControl.less'
@@ -66,6 +61,11 @@ import { jaiaAPI } from '../../common/JaiaAPI';
 
 import { error, success, warning, info} from '../libs/notifications';
 
+// Don't use any third party css exept reset-css!
+import 'reset-css';
+import '../style/CommandControl.less';
+import '../style/jaia-about.css'
+
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
 const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
@@ -76,9 +76,10 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent } from 'ol'
-import { PodStatus, PortalBotStatus, PortalHubStatus } from './shared/PortalStatus'
+import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { MapBrowserEvent, MapEvent } from 'ol'
+import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled, Metadata } from './shared/PortalStatus'
+import * as Styles from './shared/Styles'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
@@ -86,7 +87,7 @@ import { SurveyPolygon } from './SurveyPolygon'
 import { createMap } from './Map'
 import { layers } from './Layers'
 
-import { getGeographicCoordinate } from './Utilities'
+import { getGeographicCoordinate } from './shared/Utilities'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'
@@ -95,6 +96,11 @@ import { HubLayers } from './HubLayers'
 import * as JCCStyles from './Styles'
 import { SurveyExclusions } from './SurveyExclusions'
 
+// Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
+// output) as input instead of the less.
+// eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
+
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
 
@@ -102,6 +108,7 @@ const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500;
+const POLLING_META_DATA_INTERVAL_MS = 10000;
 
 const MAX_GOALS = 15;
 
@@ -154,6 +161,7 @@ interface State {
 	homeLocation?: GeographicCoordinate,
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
+	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -190,6 +198,7 @@ interface State {
 	 * Incremented when podStatus is changed and needs a re-render
 	 */
 	podStatusVersion: number
+	metadata: Metadata
 }
 
 export default class CommandControl extends React.Component {
@@ -210,6 +219,7 @@ export default class CommandControl extends React.Component {
 	surveyExclusions: SurveyExclusions
 
 	timerID: NodeJS.Timer
+	metadataTimerID: NodeJS.Timer
 
 	oldPodStatus?: PodStatus
 
@@ -224,6 +234,7 @@ export default class CommandControl extends React.Component {
 			// User interaction modes
 			mode: Mode.NONE,
 			visiblePanel: PanelType.NONE,
+			metadata: {},
 			podStatus: {
 				bots: {},
 				hubs: {},
@@ -246,6 +257,7 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
+			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -404,6 +416,15 @@ export default class CommandControl extends React.Component {
 		this.setState({podStatus, podStatusVersion: this.state.podStatusVersion + 1})
 	}
 
+	/**
+	 * Gets the current metadata
+	 * 
+	 * @returns Current metadata
+	 */
+	getMetadata() {
+		return this.state.metadata
+	}
+
 	genMission() {
 		this.generateMissions();
 	}
@@ -427,6 +448,7 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
+		debugger;
 
 		map.setTarget(this.mapDivId);
 
@@ -434,6 +456,13 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
+		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0);
+
+		// ($('.panel > h2') as any).disableSelection();
+
+		// ($('button') as any).disableSelection();
+
+		this.setupMapLayersPanel()
 
 		// Hotkeys
 		document.onkeydown = this.keyPressed.bind(this)
@@ -506,6 +535,49 @@ export default class CommandControl extends React.Component {
 
 	componentWillUnmount() {
 		clearInterval(this.timerID)
+		clearInterval(this.metadataTimerID)
+	}
+
+	
+	/**
+	 * Handler for when the user presses a hotkey
+	 * 
+	 * @param {KeyboardEvent} e The keyboard event
+	 */
+	keyPressed(e: KeyboardEvent) {
+		let target = e.target as any
+
+		switch (target.tagName.toLowerCase()) {
+			case "input":
+			case "textarea":
+			// ...and so on for other elements you want to exclude;
+			// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
+				break;
+			default:
+				// BotDetails number key shortcuts
+				if (e.code.startsWith('Digit')) {
+					const botId = Number(e.code[5])
+
+					if (e.shiftKey) {
+						this.api.postCommand({
+							bot_id: botId,
+							type: CommandType.STOP
+						})
+
+						info("Stopped bot " + botId)
+
+						return
+					}
+
+					this.toggleBot(botId)
+					return
+				}
+
+			// Undo
+			if (e.keyCode == 90 && e.ctrlKey) {
+				this.restoreUndo()
+			}
+		}
 	}
 
 	
@@ -547,47 +619,6 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-
-	/**
-	 * Handler for when the user presses a hotkey
-	 * 
-	 * @param {KeyboardEvent} e The keyboard event
-	 */
-	keyPressed(e: KeyboardEvent) {
-		let target = e.target as any
-
-		switch (target.tagName.toLowerCase()) {
-			case "input":
-			case "textarea":
-			// ...and so on for other elements you want to exclude;
-			// list of current elements here: http://www.w3.org/TR/html5/index.html#elements-1
-				break;
-			default:
-				// BotDetails number key shortcuts
-				if (e.code.startsWith('Digit')) {
-					const botId = Number(e.code[5])
-
-					if (e.shiftKey) {
-						this.api.postCommand({
-							bot_id: botId,
-							type: CommandType.STOP
-						})
-
-						info("Stopped bot " + botId)
-
-						return
-					}
-
-					this.toggleBot(botId)
-					return
-				}
-
-			// Undo
-			if (e.keyCode == 90 && e.ctrlKey) {
-				this.restoreUndo()
-			}
-		}
-	}
 
 	/**
 	 * Removes the currentInteraction, and replaces it with newInteraction, changing the cursor to cursor
@@ -693,6 +724,23 @@ export default class CommandControl extends React.Component {
 				optsOverride
 			)
 		);
+	}
+
+	/**
+	 * Gets the current metadata
+	 */
+	pollMetadata() {
+		clearInterval(this.metadataTimerID)
+
+		this.api.getMetadata().then(
+			(result) => {
+				this.setState({metadata: result})
+				this.metadataTimerID = setInterval(() => this.pollMetadata(), POLLING_META_DATA_INTERVAL_MS);
+			},
+			(err) => {
+				console.log("meta data error response")
+			}
+		)
 	}
 
 	/**
@@ -1204,8 +1252,7 @@ export default class CommandControl extends React.Component {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		this.deleteAllRunsInMission(runList);
-		for(let run in mission.runs)
-		{
+		for (let run in mission.runs) {
 			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
 
@@ -1454,6 +1501,8 @@ export default class CommandControl extends React.Component {
 	 * @returns {*} The command drawer element, with rally point buttons, stop button, flag button
 	 */
 	commandDrawer() {
+		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
+
 		let element = (
 			<div id="commandsDrawer">
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
@@ -1474,7 +1523,7 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				<Button id= "missionStartStop" className="button-jcc stopMission" onClick={this.playClicked.bind(this)}>
+				<Button id= "missionStartStop" className={"button-jcc stopMission" + (botsAreAssignedToRuns ? '' : ' inactive') } onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
@@ -1559,6 +1608,11 @@ export default class CommandControl extends React.Component {
 	}
 
 	playClicked(evt: UIEvent) {
+		if (!this.areBotsAssignedToRuns()) {
+			alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
+			return
+		}
+
 		this.runMissions(this.getRunList(), null);
 	}
 	
@@ -1660,7 +1714,61 @@ export default class CommandControl extends React.Component {
 		</div>)
 	}
 
+	toggleEngineeringPanel() {
+		let engineeringPanel = document.getElementById('engineeringPanel')
+		if (engineeringPanel.style.width == "400px") {
+			engineeringPanel.style.width = "0px"
+		} else {
+			engineeringPanel.style.width = "400px"
+		}
+	}
+
+	toggleMissionPanel() {
+		let missionPanel = document.getElementById('missionPanel')
+		if (missionPanel.style.width == "400px") {
+			missionPanel.style.width = "0px"
+		}
+		else {
+			missionPanel.style.width = "400px"
+		}
+	}
+
 	/////////////// Mission Stuff ////////////////////
+
+	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
+		const features: OlFeature[] = []
+		let zIndex = 2
+
+		for (let key in missions?.runs) {
+			// Different style for the waypoint marker, depending on if the associated bot is selected or not
+			const run = missions?.runs[key]
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId)
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
+			const canEdit = run.canEdit
+
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan) {
+				const runNumber = run.id.slice(4)
+				const missionFeatures = MissionFeatures.createMissionFeatures(
+					map, 
+					assignedBot,
+					plan,
+					activeGoalIndex,
+					isSelected,
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this),
+					runNumber,
+					zIndex)
+				features.push(...missionFeatures)
+				zIndex += 1
+			}
+		}
+		this.setState({ missionFeatures: features })
+		return features
+	}
 
 	/**
 	 * Updates the mission layer
@@ -1674,37 +1782,10 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
-//		console.debug('updateMissionLayer')
-
-		function getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
-			const features: OlFeature[] = []
-			let zIndex = 2
-
-			for (let key in missions?.runs) {
-				// Different style for the waypoint marker, depending on if the associated bot is selected or not
-				const run = missions?.runs[key]
-				const assignedBot = run.assigned
-				const isSelected = (assignedBot === selectedBotId)
-				const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
-				const canEdit = run.canEdit
-
-				// Add our goals
-				const plan = run.command?.plan
-				if (plan) {
-					// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
-					const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
-					const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex)
-					features.push(...missionFeatures)
-					zIndex += 1
-				}
-			}
-
-			return features
-		}
-
 		const missionSource = layers.missionLayer.getSource()
+		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
-		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
+		missionSource.addFeatures(missionFeatures)
 	}
 
 	/**
@@ -1722,7 +1803,16 @@ export default class CommandControl extends React.Component {
 			const activeMissionPlan = bot.active_mission_plan
 			const canEdit = false
 			if (activeMissionPlan != null) {
-				let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
+				let features = MissionFeatures.createMissionFeatures(
+					map, 
+					Number(botId),
+					activeMissionPlan,
+					bot.active_goal,
+					this.isBotSelected(Number(botId)),
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this)
+				)
 				allFeatures.push(...features)
 			}
 		}
@@ -1730,6 +1820,19 @@ export default class CommandControl extends React.Component {
 		let source = layers.activeMissionLayer.getSource()
 		source.clear()
 		source.addFeatures(allFeatures)
+	}
+
+	/**
+	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
+	 * Only the features that are impacted by dragging a waypoint are re-created 
+	 * 
+	 * @param missionFeaturesUpdated 
+	 */
+	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
+		const missionSource = layers.missionLayer.getSource()
+		missionSource.clear()
+		missionSource.addFeatures(missionFeaturesUpdated)
+		this.setState({ missionFeatures: missionFeaturesUpdated })
 	}
 	
 	/**
@@ -1842,6 +1945,10 @@ export default class CommandControl extends React.Component {
 		missionPlanningSource.addFeatures(missionPlanningFeaturesList)
 	}
 
+	/**
+	 * 
+	 * @returns Whether we should allow the user to open the survey tool panel
+	 */
 	checkSurveyToolPermissions() {
 		// Check that all bots are stopped or recovered
 		const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
@@ -1893,7 +2000,7 @@ export default class CommandControl extends React.Component {
 		this.setState({ visiblePanel: panelType })
 	}
 
-	
+
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// eslint-disable-next-line class-methods-use-this
 	render() {
@@ -1911,6 +2018,7 @@ export default class CommandControl extends React.Component {
 		const podStatus = this.getPodStatus()
 		const bots = podStatus?.bots
 		const hubs = podStatus?.hubs
+		const metadata = this.getMetadata();
 
 		const self = this
 
@@ -1929,6 +2037,7 @@ export default class CommandControl extends React.Component {
 				/>
 			)
 		}
+
 
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel: ReactElement
@@ -2242,16 +2351,18 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="jcc_container" className={containerClasses}>
 
+				<JaiaAbout metadata={metadata}/>
+
 				{visiblePanelElement}
 
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="viewControls">
 
-					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
-						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
-							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
-						}}>	
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => {
+						const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
+				 		jaiaInfoContainer.style.display = "grid"
+					}}>
 					</img>
 
 					{missionPanelButton}
@@ -2300,3 +2411,4 @@ export default class CommandControl extends React.Component {
 }
 
 // =================================================================================================
+
