@@ -7,7 +7,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/h5size DESTINATION ${project_SHARE_DIR}/ja
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/led_button DESTINATION ${project_SHARE_DIR}/jaiabot/python/led_button)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pressure_sensor DESTINATION ${project_SHARE_DIR}/jaiabot/python/pressure_sensor)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/xbee DESTINATION ${project_SHARE_DIR}/jaiabot/python/xbee)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/requirements.txt)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
 set(adafruit_BNO055_outdir ${project_SHARE_DIR}/jaiabot/python/adafruit_BNO055)
 add_custom_command(OUTPUT ${adafruit_BNO055_outdir}/dccl/option_extensions_pb2.py
