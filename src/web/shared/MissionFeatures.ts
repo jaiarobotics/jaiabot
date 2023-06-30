@@ -160,9 +160,8 @@ function handleWaypointPositionChange(
     const newCoordinatesAdjusted = getGeographicCoordinate(newCoordinatesRaw, map)
     const goalNumber = markerFeature.get('goalIndex')
     const waypointId = markerFeature.get('id')
-    const goals = plan.goal
     // Update the location saved in the goals array so when updateMissionLayer() is called in CommandControl it does not reset the changes
-    goals[goalNumber - 1].location = newCoordinatesAdjusted
+    plan.goal[goalNumber - 1].location = newCoordinatesAdjusted
     const updatedMissionFeatures = updateDragFeaturePosition(map, plan, existingMissionFeatures, waypointId, newCoordinatesAdjusted)
     // Triggers a layer update in CommandControl for the features impacted by dragging a waypoint
     dragProcessor(updatedMissionFeatures)
@@ -199,12 +198,14 @@ function updateDragFeaturePosition(
             const startCoordinate = coordinate
             const endCoordinate = feature.get('endCoordinate')
             feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
+            feature.set('startCoordinate', coordinate)
         } 
         // If the last waypoint is being moved, adjust the end point of the line and hold the start point constant
         else if (waypointNum === numOfWaypoints && feature.get('id') === `line-${numOfWaypoints - 1}`) {
             const startCoordinate = feature.get('startCoordinate')
             const endCoordinate = coordinate
             feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
+            feature.set('endCoordinate', coordinate)
         } 
         // Perform the necessary line movements for dragging 'middle' waypoints
         else if (waypointNum > 1 && waypointNum < numOfWaypoints) {
@@ -213,12 +214,14 @@ function updateDragFeaturePosition(
                 const startCoordinate = feature.get('startCoordinate')
                 const endCoordinate = coordinate
                 feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
+                feature.set('endCoordinate', coordinate)
             } 
             // Adjust the line that comes after the waypoint
             else if (feature.get('id') === `line-${Number(waypointId.slice(4))}`) {
                 const startCoordinate = coordinate
                 const endCoordinate = feature.get('endCoordinate')
                 feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
+                feature.set('startCoordinate', coordinate)
             }
         }
         missionFeaturesUpdated.push(feature)
