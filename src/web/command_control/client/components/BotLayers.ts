@@ -66,8 +66,12 @@ export class BotLayers {
 				botFeature.setId(bot_id)
 				botSource.addFeature(botFeature)
 			}
-
-			botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
+			
+			if (bot?.location !== undefined)
+			{
+				botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
+			}
+			
 			botFeature.set('bot', bot)
 			botFeature.setStyle(Styles.botMarker)
 

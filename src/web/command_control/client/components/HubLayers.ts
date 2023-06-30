@@ -60,8 +60,13 @@ export class HubLayers {
 
             const newFeature = new Feature({
                 name: hub.hub_id,
-                geometry: new Point(getMapCoordinate(hub.location, map))
             })
+
+            if (hub?.location !== undefined)
+            {
+                newFeature.setGeometry(new Point(getMapCoordinate(hub.location, this.map)))
+            }
+
             newFeature.setId(hub.hub_id)
             newFeature.setStyle(Styles.hubMarker)
             newFeature.set('hub', hub)
