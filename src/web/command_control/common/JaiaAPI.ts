@@ -3,7 +3,7 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
-import { randomBase57 } from '../client/components/Utilities';
+import { randomBase57 } from '../client/components/shared/Utilities';
 
 export class JaiaAPI {
   clientId: string
@@ -76,6 +76,8 @@ export class JaiaAPI {
   getStatus() { return this.get('jaia/status') }
 
   getTaskPackets() { return this.get('jaia/task-packets') }
+
+  getMetadata() { return this.get('jaia/metadata') }
 
   getDepthContours() { return this.get('jaia/depth-contours') }
 

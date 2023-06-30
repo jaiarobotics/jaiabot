@@ -8,7 +8,7 @@ import { GeographicCoordinate } from "./shared/JAIAProtobuf";
 import { MissionParams } from "./MissionSettings";
 import { MissionTask } from "./shared/JAIAProtobuf";
 import { CommandList } from "./Missions";
-import { deepcopy } from "./Utilities";
+import { deepcopy } from "./shared/Utilities";
 import * as turf from "@turf/turf"
 import { TaskType } from "./shared/JAIAProtobuf";
 import { Command } from "./shared/JAIAProtobuf";

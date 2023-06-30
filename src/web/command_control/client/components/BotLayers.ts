@@ -6,7 +6,7 @@ import { PortalBotStatus } from "./shared/PortalStatus"
 import { HubOrBot } from "./HubOrBot"
 import Feature from "ol/Feature"
 import { Point } from "ol/geom"
-import { getMapCoordinate } from "./Utilities"
+import { getMapCoordinate } from "./shared/Utilities"
 import * as Styles from "./shared/Styles"
 import { isRemoteControlled } from "./shared/PortalStatus"
 
