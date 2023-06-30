@@ -1,3 +1,4 @@
+// OpenLayers imports
 import { Map, View } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
@@ -8,13 +9,15 @@ import VectorSource from 'ol/source/Vector';
 import { fromLonLat, Projection } from 'ol/proj';
 import Feature from 'ol/Feature';
 import { LineString, Point } from 'ol/geom';
-import { isEmpty } from 'ol/extent';
+import { createEmpty, extend, isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
+import KML from 'ol/format/KML.js';
+
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
 import { geoJSONToDepthContourFeatures } from './shared/Contours'
-import { TaskPacket, Command, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './shared/BotFeature'
@@ -24,24 +27,12 @@ import { bisect } from './bisect'
 
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
+import { LogTaskPacket, LogCommand } from './Log';
+import { KMLDocument } from './KMZExport';
+import OpenFileDialog from './OpenFileDialog';
+
+import { Buffer } from 'buffer';
 import JSZip from 'jszip';
-
-
-console.log(Styles.arrowHeadPng)
-console.log(typeof Styles.arrowHeadPng)
-
-
-
-// Logs have an added _utime_ field on Commands
-interface LogCommand extends Command {
-    _utime_: number
-    _scheme_: number
-}
-
-interface LogTaskPacket extends TaskPacket {
-    _utime_: number
-    _scheme_: number
-}
 
 
 
@@ -116,159 +107,6 @@ interface ActiveGoal {
 
 function arrayFrom(location: GeographicCoordinate) {
     return [location.lon, location.lat]
-}
-
-
-function TaskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
-    var placemarks: string[] = []
-
-    if (taskPacket._scheme_ != 1) {
-        return []
-    }
-
-    const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
-    const date = new Date(taskPacket._utime_ / 1e3)
-    const dateString = formatter.format(date)
-    const bot_id = taskPacket.bot_id
-
-    const dive = taskPacket.dive
-    if (dive != null && dive.depth_achieved != 0) {
-        const depthString = `${dive.depth_achieved.toFixed(2)} m`
-        let depthMeasurementString = ``; 
-
-        for (let i = 0; i < dive.measurement?.length; i++)
-        {
-            depthMeasurementString += 
-                `
-                    Index: ${i+1} <br />
-                    Mean-Depth: ${dive.measurement?.at(i)?.mean_depth?.toFixed(2)} m <br />
-                    Mean-Temperature: ${dive.measurement?.at(i)?.mean_temperature?.toFixed(2)} Celcius <br />
-                    Mean-Salinity: ${dive.measurement?.at(i)?.mean_salinity?.toFixed(2)} PSS <br />
-                `
-        }
-
-        placemarks.push(`
-            <Placemark>
-                <name>${depthString}</name>
-                <description>
-                    <h2>Dive</h2>
-                    Bot-ID: ${bot_id}<br />
-                    Time: ${dateString}<br />
-                    Depth: ${depthString}<br />
-                    Bottom-Dive: ${dive.bottom_dive ? "Yes" : "No"}<br />
-                    Duration-to-GPS: ${dive.duration_to_acquire_gps?.toFixed(2)} s<br />
-                    Unpowered-Rise-Rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
-                    Powered-Rise-Rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
-                    Bottom-Type: ${dive.bottom_type} <br />
-                    ${depthMeasurementString}
-                </description>
-                <Point>
-                    <coordinates>${dive.start_location.lon},${dive.start_location.lat}</coordinates>
-                </Point>
-                <Style>
-                    <IconStyle id="mystyle">
-                    <Icon>
-                        <href>files/diveIcon.png</href>
-                        <scale>0.5</scale>
-                    </Icon>
-                    </IconStyle>
-                </Style>
-            </Placemark>
-        `)
-    }
-
-    const drift = taskPacket.drift
-    if (drift != null && drift.drift_duration != 0) {
-
-        const DEG = Math.PI / 180.0
-        const speedString = `${drift.estimated_drift.speed?.toFixed(2)} m/s`
-        const heading = Math.atan2(drift.end_location.lon - drift.start_location.lon, drift.end_location.lat - drift.start_location.lat) / DEG - 90.0
-
-        const driftDescription = `
-            <h2>Drift</h2>
-            Bot-ID: ${bot_id}<br />
-            Start: ${dateString}<br />
-            Duration: ${drift.drift_duration} s<br />
-            Speed: ${speedString}<br />
-            Heading: ${drift.estimated_drift.heading?.toFixed(2)} deg<br />
-            Significant-Wave-Height ${drift.significant_wave_height?.toFixed(2)} m<br />
-            Wave-Height ${drift.wave_height?.toFixed(2)} m<br />
-            Wave-Period ${drift.wave_period?.toFixed(2)} s<br />
-        `
-
-        placemarks.push(`
-        <Placemark>
-            <name>Drift</name>
-            <description>
-                ${driftDescription}
-            </description>
-            <LineString>
-                <coordinates>${drift.start_location.lon},${drift.start_location.lat} ${drift.end_location.lon},${drift.end_location.lat}</coordinates>
-            </LineString>
-            <Style>
-                <LineStyle>
-                    <color>ff008cff</color>            <!-- kml:color -->
-                    <colorMode>normal</colorMode>      <!-- colorModeEnum: normal or random -->
-                    <width>4</width>                            <!-- float -->
-                    <gx:labelVisibility>0</gx:labelVisibility>  <!-- boolean -->
-                </LineStyle>
-            </Style>
-        </Placemark>
-
-        <Placemark>
-            <name>${speedString}</name>
-            <description>
-                ${driftDescription}
-            </description>
-            <Point>
-                <coordinates>${drift.end_location.lon},${drift.end_location.lat}</coordinates>
-            </Point>
-            <Style id="driftArrowHead">
-                <IconStyle>
-                    <color>ff008cff</color>            <!-- kml:color -->
-                    <colorMode>normal</colorMode>      <!-- kml:colorModeEnum:normal or random -->
-                    <scale>1.0</scale>                   <!-- float -->
-                    <heading>${heading}</heading>               <!-- float -->
-                    <Icon>
-                        <href>files/driftArrowHead.png</href>
-                    </Icon>
-                    <hotSpot x="0.5"  y="0.5"
-                        xunits="fraction" yunits="fraction"/>    <!-- kml:vec2 -->
-                </IconStyle>
-            </Style>
-        </Placemark>
-        `)
-    }
-
-    return placemarks
-}
-
-
-function KMLDocumentWithContents(contents: string[]) {
-    return `
-    <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/kml/2.2 https://developers.google.com/kml/schema/kml22gx.xsd">
-        <Document>
-            ${contents.join()}
-        </Document>
-    </kml>
-    `
-}
-
-
-async function KMZDocumentWithContents(contents: string[]) {
-    const kmlFileString = KMLDocumentWithContents(contents)
-
-    var zip = new JSZip()
-    zip.file("doc.kml", KMLDocumentWithContents(contents))
-    var img = zip.folder("files")
-
-    const diveIconBlob = await fetch(Styles.bottomStrikePng).then(r => r.blob())
-    img.file('diveIcon.png', diveIconBlob)
-
-    const driftArrowBlob = await fetch(Styles.arrowHeadPng).then(r => r.blob())
-    img.file('driftArrowHead.png', driftArrowBlob)
-
-    return await zip.generateAsync({type:"blob"}).then(content => content)
 }
 
 
@@ -711,7 +549,10 @@ export default class JaiaMap {
 
 
         exportKml() {
-            KMZDocumentWithContents(this.task_packets.flatMap(TaskPacketToKMLPlacemarks)).then((kml) => {
+            const kmz = new KMLDocument()
+            kmz.task_packets = this.task_packets
+
+            kmz.getKMZ().then((kml) => {
                 DownloadFile('map.kmz', kml)
             })
             .catch((reason) => {
@@ -719,4 +560,65 @@ export default class JaiaMap {
             })
         }
 
+
+        async importKmx() {
+            const files = await OpenFileDialog('.kmz,.kml', false)
+
+            var extent = createEmpty()
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files.item(i)
+                var newLayer: VectorLayer<VectorSource>
+
+                switch (file.type) {
+                    case 'application/vnd.google-earth.kml+xml':
+                        newLayer = await layerFromKmlString(await file.text())
+                        break;
+                    case 'application/vnd.google-earth.kmz':
+                        newLayer = await layerFromKmzString(await file.arrayBuffer())
+                        break;
+                }
+
+                // Set the layer's title for use in the layer switcher
+                newLayer.set('title', file.name)
+                this.openlayersMap.addLayer(newLayer)
+            }
+
+            // Zoom to extent
+            // this.openlayersMap.getView().fit(extent)
+
+            OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'), {})
+        }
+
     }
+
+
+async function layerFromKmlString(kml: string) {
+    // Replace the png file references with http references
+    kml = kml.replaceAll('>files/diveIcon.png', '>' + Styles.bottomStrikePng)
+    kml = kml.replaceAll('>files/driftArrowHead.png', '>' + Styles.arrowHeadPng)
+
+    const blob = new Blob([kml], {type: 'text/plain; charset=utf-8'})
+
+    const buffer = Buffer.from(await blob.arrayBuffer())
+    const url = 'data:text/plain;base64,' + buffer.toString('base64')
+
+    const layer = new VectorLayer({
+        zIndex: 10,
+        source: new VectorSource({
+            url: url,
+            format: new KML({
+                extractStyles: true
+            }),
+        }),
+    })
+
+    return layer
+}
+
+async function layerFromKmzString(kmz: ArrayBuffer) {
+    const zipper = new JSZip()
+    const unzippedFiles = await zipper.loadAsync(kmz)
+    const kml = await unzippedFiles.file('doc.kml').async('string')
+    return layerFromKmlString(kml)
+}
