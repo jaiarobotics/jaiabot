@@ -19,7 +19,7 @@ import Switch from '@mui/material/Switch';
 import { Slider, FormGroup, FormControlLabel } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 import { amber } from '@mui/material/colors';
-import { deepcopy } from '../Utilities';
+import { deepcopy } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
 interface Props {

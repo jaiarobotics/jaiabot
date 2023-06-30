@@ -1,13 +1,3 @@
-/* eslint-disable react/jsx-no-bind */
-/* eslint-disable react/self-closing-comp */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable react/sort-comp */
-/* eslint-disable react/no-danger */
-/* eslint-disable max-len */
-/* eslint-disable react/no-unused-state */
-/* eslint-disable react/no-multi-comp */
-
 import React, { MouseEvent, ReactElement } from 'react'
 import { Save, GlobalSettings } from './Settings'
 import { Missions } from './Missions'
@@ -47,8 +37,10 @@ import { Geometry, LineString, MultiLineString, LineString as OlLineString, Poly
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
+import { Select } from 'ol/interaction';
+import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { deepcopy, equalValues, getMapCoordinate } from './Utilities';
+import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities';
 import { HubOrBot } from './HubOrBot'
 
 import * as MissionFeatures from './shared/MissionFeatures'
@@ -95,7 +87,7 @@ import { SurveyPolygon } from './SurveyPolygon'
 import { createMap } from './Map'
 import { layers } from './Layers'
 
-import { getGeographicCoordinate } from './Utilities'
+import { getGeographicCoordinate } from './shared/Utilities'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'
@@ -172,6 +164,7 @@ interface State {
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
 	mapLayerActive: boolean,
+	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -265,6 +258,7 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
+			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -1717,6 +1711,41 @@ export default class CommandControl extends React.Component {
 
 	/////////////// Mission Stuff ////////////////////
 
+	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
+		const features: OlFeature[] = []
+		let zIndex = 2
+
+		for (let key in missions?.runs) {
+			// Different style for the waypoint marker, depending on if the associated bot is selected or not
+			const run = missions?.runs[key]
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId)
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
+			const canEdit = run.canEdit
+
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan) {
+				const runNumber = run.id.slice(4)
+				const missionFeatures = MissionFeatures.createMissionFeatures(
+					map, 
+					assignedBot,
+					plan,
+					activeGoalIndex,
+					isSelected,
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this),
+					runNumber,
+					zIndex)
+				features.push(...missionFeatures)
+				zIndex += 1
+			}
+		}
+		this.setState({ missionFeatures: features })
+		return features
+	}
+
 	/**
 	 * Updates the mission layer
 	 * 
@@ -1729,37 +1758,10 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
-//		console.debug('updateMissionLayer')
-
-		function getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
-			const features: OlFeature[] = []
-			let zIndex = 2
-
-			for (let key in missions?.runs) {
-				// Different style for the waypoint marker, depending on if the associated bot is selected or not
-				const run = missions?.runs[key]
-				const assignedBot = run.assigned
-				const isSelected = (assignedBot === selectedBotId)
-				const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
-				const canEdit = run.canEdit
-
-				// Add our goals
-				const plan = run.command?.plan
-				if (plan) {
-					// Checks for run-x, run-xx, and run-xxx; Works for runs ranging from 1 to 999
-					const runNumber = run.id.length === 5 ? run.id.slice(-1) : (run.id.length === 7 ? run.id.slice(-3) : run.id.slice(-2))
-					const missionFeatures = MissionFeatures.createMissionFeatures(map, assignedBot, plan, activeGoalIndex, isSelected, canEdit, runNumber, zIndex)
-					features.push(...missionFeatures)
-					zIndex += 1
-				}
-			}
-
-			return features
-		}
-
 		const missionSource = layers.missionLayer.getSource()
+		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
-		missionSource.addFeatures(getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
+		missionSource.addFeatures(missionFeatures)
 	}
 
 	/**
@@ -1767,25 +1769,47 @@ export default class CommandControl extends React.Component {
 	 * 
 	 * @date 6/22/2023 - 8:05:21 AM
 	 */
-		updateActiveMissionLayer() {
-			const bots = this.getPodStatus().bots
-			let allFeatures = []
-	
-			for (let botId in bots) {
-				let bot = bots[botId]
-	
-				const activeMissionPlan = bot.active_mission_plan
-				const canEdit = false
-				if (activeMissionPlan != null) {
-					let features = MissionFeatures.createMissionFeatures(map, Number(botId), activeMissionPlan, bot.active_goal, this.isBotSelected(Number(botId)), canEdit)
-					allFeatures.push(...features)
-				}
+	updateActiveMissionLayer() {
+		const bots = this.getPodStatus().bots
+		let allFeatures = []
+
+		for (let botId in bots) {
+			let bot = bots[botId]
+
+			const activeMissionPlan = bot.active_mission_plan
+			const canEdit = false
+			if (activeMissionPlan != null) {
+				let features = MissionFeatures.createMissionFeatures(
+					map, 
+					Number(botId),
+					activeMissionPlan,
+					bot.active_goal,
+					this.isBotSelected(Number(botId)),
+					canEdit,
+					this.state.missionFeatures,
+					this.processMissionFeatureDrag.bind(this)
+				)
+				allFeatures.push(...features)
 			}
-	
-			let source = layers.activeMissionLayer.getSource()
-			source.clear()
-			source.addFeatures(allFeatures)
 		}
+
+		let source = layers.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
+	/**
+	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
+	 * Only the features that are impacted by dragging a waypoint are re-created 
+	 * 
+	 * @param missionFeaturesUpdated 
+	 */
+	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
+		const missionSource = layers.missionLayer.getSource()
+		missionSource.clear()
+		missionSource.addFeatures(missionFeaturesUpdated)
+		this.setState({ missionFeatures: missionFeaturesUpdated })
+	}
 	
 	/**
 	 * 
@@ -1885,9 +1909,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.missionPlanningLines) {
 			let mpl = this.state.missionPlanningLines;
 			let mplKeys = Object.keys(mpl);
-			// console.log('this.state.missionPlanningLines');
-			// console.log(mplKeys);
-			// console.log(mpl);
 			mplKeys.forEach(key => {
 				let mpLineFeatures = new OlFeature(
 					{
