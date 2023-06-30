@@ -1234,8 +1234,7 @@ export default class CommandControl extends React.Component {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		this.deleteAllRunsInMission(runList);
-		for(let run in mission.runs)
-		{
+		for (let run in mission.runs) {
 			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
 
@@ -1310,7 +1309,7 @@ export default class CommandControl extends React.Component {
 		const missionActiveRuns: number[] = []
 		const runs = mission.runs
 		for (const run of Object.values(runs)) {
-			const missionState = this.getPodStatus().bots[run.assigned].mission_state
+			const missionState = this.getPodStatus().bots[run.assigned]?.mission_state
 			if (missionState) {
 				const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT'] 
 				let canDelete = false
@@ -2013,8 +2012,7 @@ export default class CommandControl extends React.Component {
 							const runList = this.pushRunListToUndoStack().getRunList()
 							this.deleteAllRunsInMission(runList);
 
-							for(let id in this.missionPlans)
-							{
+							for (let id in this.missionPlans) {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
