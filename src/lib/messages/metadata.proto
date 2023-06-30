@@ -33,3 +33,8 @@ message DeviceMetadata
     optional string xbee_node_id = 6;
     optional string xbee_serial_number = 7;
 }
+
+message QueryDeviceMetaData
+{
+    optional bool query_metadata_status = 1 [default = true];
+}

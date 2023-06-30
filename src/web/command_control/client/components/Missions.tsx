@@ -4,7 +4,7 @@
 /* eslint-disable no-unused-vars */
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
-import { deepcopy } from './Utilities';
+import { deepcopy } from './shared/Utilities';
 
 const MAX_RUNS: number = 99
 
