@@ -18,6 +18,24 @@ export interface PodStatus {
 	controllingClientId: string
 }
 
+export interface Version {
+	major: string,
+	minor: string,
+	patch: string,
+	git_hash?: string,
+	git_branch?: string
+}
+
+export interface Metadata {
+	name?: string,
+	jaiabot_version?: Version,
+	goby_version?: string,
+	moos_version?: string,
+	ivp_version?: string,
+	xbee_node_id?: string,
+	xbee_serial_number?: string
+}
+
 export function isRemoteControlled(mission_state?: MissionState) {
 	return mission_state?.includes('REMOTE_CONTROL')	|| false
 }

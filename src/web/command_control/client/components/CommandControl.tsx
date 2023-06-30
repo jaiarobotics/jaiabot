@@ -8,6 +8,7 @@ import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import RCControllerPanel from './RCControllerPanel'
 import { taskData } from './TaskPackets'
+import JaiaAbout from './JaiaAbout'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 
 // Material Design Icons
@@ -63,6 +64,7 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 import '../style/CommandControl.less';
+import '../style/jaia-about.css'
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
@@ -78,7 +80,7 @@ import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { MapBrowserEvent, MapEvent } from 'ol'
-import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled } from './shared/PortalStatus'
+import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled, Metadata } from './shared/PortalStatus'
 import * as Styles from './shared/Styles'
 
 // Jaia imports
@@ -109,6 +111,7 @@ const viewportDefaultPadding = 100;
 const sidebarInitialWidth = 0;
 
 const POLLING_INTERVAL_MS = 500;
+const POLLING_META_DATA_INTERVAL_MS = 10000;
 
 const MAX_RUNS: number = 99;
 const MAX_GOALS = 15;
@@ -202,6 +205,7 @@ interface State {
 	 * Incremented when podStatus is changed and needs a re-render
 	 */
 	podStatusVersion: number
+	metadata: Metadata
 }
 
 export default class CommandControl extends React.Component {
@@ -222,6 +226,7 @@ export default class CommandControl extends React.Component {
 	surveyExclusions: SurveyExclusions
 
 	timerID: NodeJS.Timer
+	metadataTimerID: NodeJS.Timer
 
 	oldPodStatus?: PodStatus
 
@@ -235,6 +240,7 @@ export default class CommandControl extends React.Component {
 		this.state = {
 			// User interaction modes
 			mode: Mode.NONE,
+			metadata: {},
 			podStatus: {
 				bots: {},
 				hubs: {},
@@ -421,6 +427,15 @@ export default class CommandControl extends React.Component {
 		this.setState({podStatus, podStatusVersion: this.state.podStatusVersion + 1})
 	}
 
+	/**
+	 * Gets the current metadata
+	 * 
+	 * @returns Current metadata
+	 */
+	getMetadata() {
+		return this.state.metadata
+	}
+
 	genMission() {
 		this.generateMissions();
 	}
@@ -451,6 +466,7 @@ export default class CommandControl extends React.Component {
 		map.getView().setMinZoom(Math.ceil(Math.LOG2E * Math.log(viewport.clientWidth / 256)));
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
+		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0);
 
 		// ($('.panel > h2') as any).disableSelection();
 
@@ -524,6 +540,7 @@ export default class CommandControl extends React.Component {
 
 	componentWillUnmount() {
 		clearInterval(this.timerID)
+		clearInterval(this.metadataTimerID)
 	}
 
 	
@@ -711,7 +728,24 @@ export default class CommandControl extends React.Component {
 		// map.render();
 	}
 
-	// POLL THE BOTS
+	/**
+	 * Gets the current metadata
+	 */
+	pollMetadata() {
+		clearInterval(this.metadataTimerID)
+
+		this.api.getMetadata().then(
+			(result) => {
+				this.setState({metadata: result})
+				this.metadataTimerID = setInterval(() => this.pollMetadata(), POLLING_META_DATA_INTERVAL_MS);
+			},
+			(err) => {
+				console.log("meta data error response")
+			}
+		)
+	}
+
+	// POLL THE BOTS/HUBS
 	pollPodStatus() {
 		clearInterval(this.timerID);
 		const us = this
@@ -1982,6 +2016,7 @@ export default class CommandControl extends React.Component {
 		const podStatus = this.getPodStatus()
 		const bots = podStatus?.bots
 		const hubs = podStatus?.hubs
+		const metadata = this.getMetadata();
 
 		const self = this
 
@@ -2339,6 +2374,8 @@ export default class CommandControl extends React.Component {
 		return (
 			<div id="jcc_container" className={containerClasses}>
 
+				<JaiaAbout metadata={metadata}/>
+
 				<EngineeringPanel 
 					api={this.api} 
 					bots={bots} 
@@ -2365,10 +2402,11 @@ export default class CommandControl extends React.Component {
 
 				<div id="viewControls">
 
-					<img className="jaia-logo button" src="/favicon.png" onClick={() => { 
-						alert("Jaia Robotics\nAddress: 22 Burnside St\nBristol\nRI 02809\nPhone: P: +1 401 214 9232\n"
-							+ "Comnpany Website: https://www.jaia.tech/\nDocumentation: http://52.36.157.57/index.html\n") 
-						}}>	
+					<img className="jaia-logo button" src="/favicon.png" onClick={() => {
+							const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
+							jaiaInfoContainer.style.display = "grid"
+						}}
+					>
 					</img>
 
 					{missionPanelButton}
