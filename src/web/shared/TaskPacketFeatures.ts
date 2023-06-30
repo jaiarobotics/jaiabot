@@ -8,19 +8,22 @@ import { DriftPacket, DivePacket, TaskPacket } from './JAIAProtobuf';
 
 
 function DivePacketDescription(dive: DivePacket): string[] {
-    var rows: string[] = [
-        `Depth achieved: ${dive.depth_achieved.toFixed(2)} m`
-    ]
 
-    if (dive.duration_to_acquire_gps != null) {
+    var rows: string[] = []
+
+    if (dive?.depth_achieved !== undefined) {
+        rows.push(`Depth achieved: ${dive.depth_achieved.toFixed(2)} m`)
+    }
+
+    if (dive?.duration_to_acquire_gps !== undefined) {
         rows.push(`Duration to acquire GPS: ${dive.duration_to_acquire_gps.toFixed(2)} s`)
     }
 
-    if (dive.powered_rise_rate != null) {
+    if (dive?.powered_rise_rate !== undefined) {
         rows.push(`Powered rise rate: ${dive.powered_rise_rate.toFixed(2)} m/s`)
     }
 
-    if (dive.unpowered_rise_rate != null) {
+    if (dive?.unpowered_rise_rate !== undefined) {
         rows.push(`Unpowered rise rate: ${dive.unpowered_rise_rate.toFixed(2)} m/s`)
     }
 
@@ -50,23 +53,41 @@ interface FieldDescriptor {
 export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
     var features = []
 
-    // Drift markers
-    const drift = taskPacket.drift
+    if (taskPacket?.drift !== undefined) {
+        // Drift markers
+        const drift = taskPacket.drift
 
-    if (drift != null && drift.drift_duration != 0) {
-        features.push(createDriftPacketFeature(map, drift))
+        if (drift?.drift_duration !== undefined
+            && drift?.start_location !== undefined
+            && drift?.start_location?.lat !== undefined
+            && drift?.start_location?.lon !== undefined
+            && drift?.end_location !== undefined
+            && drift?.end_location?.lat !== undefined
+            && drift?.end_location?.lon !== undefined
+            && drift?.drift_duration != 0) {
+
+            features.push(createDriftPacketFeature(map, drift))
+
+        }
     }
 
-    // Dive markers
-    const dive = taskPacket.dive
+    if (taskPacket?.dive !== undefined) {
 
-    if (dive != null) {
-        const rows = DivePacketDescription(dive).join('<br>') + '<br>'
+        // Dive markers
+        const dive = taskPacket.dive
 
-        const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${rows}`
+        if (dive?.bottom_dive !== undefined
+            && dive?.start_location !== undefined
+            && dive?.start_location?.lat !== undefined
+            && dive?.start_location?.lon !== undefined) {
 
-        if (dive.depth_achieved != 0) {
-            features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive), popupHTML: d_description}))
+            const rows = DivePacketDescription(dive).join('<br>') + '<br>'
+
+            const d_description = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${rows}`
+
+            if (dive.depth_achieved != 0) {
+                features.push(createMarker(map, {title: 'Dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive), popupHTML: d_description}))
+            }
         }
     }
 
