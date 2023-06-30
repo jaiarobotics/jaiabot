@@ -1,5 +1,5 @@
 // Saving and loading settings from browser's localStorage
-import { deepcopy } from "./Utilities"
+import { deepcopy } from "./shared/Utilities"
 import { ConstantHeadingParameters, DiveParameters, DriftParameters, Speeds } from "./shared/JAIAProtobuf"
 import { Coordinate } from 'ol/coordinate'
 

@@ -7,7 +7,7 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromLonLat, Projection } from 'ol/proj';
 import Feature from 'ol/Feature';
-import { LineString, Point } from 'ol/geom';
+import { Geometry, LineString, Point } from 'ol/geom';
 import { isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
@@ -657,17 +657,17 @@ export default class JaiaMap {
                 return
             }
 
-            const botId_array = Object.keys(this.command_dict)
-            if (botId_array.length == 0) {
+            const botIdArray = Object.keys(this.command_dict)
+            if (botIdArray.length == 0) {
                 return
             }
 
             // This assumes that we have a command_dict with only one botId!
-            const botId = Number(botId_array[0])
+            const botId = Number(botIdArray[0])
 
-            const command_array = this.command_dict[botId].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
+            const commandArray = this.command_dict[botId].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
 
-            const command = bisect(command_array, (command) => {
+            const command = bisect(commandArray, (command) => {
                 return timestamp_micros - command._utime_
             })?.value
 
@@ -676,18 +676,24 @@ export default class JaiaMap {
             }
 
             // This assumes that we have an active_goal_dict with only one botId!
-            const active_goals_array = this.active_goal_dict[botId]
+            const activeGoalsArray = this.active_goal_dict[botId]
 
-            const active_goal = bisect(active_goals_array, (active_goal) => {
+            const activeGoal = bisect(activeGoalsArray, (active_goal) => {
                 return timestamp_micros - active_goal._utime_
             })?.value
 
-            const active_goal_index = active_goal?.active_goal
+            const activeGoalIndex = activeGoal?.active_goal
             const isSelected = false
-            const isActiveRun = false
+            // Needed to satisy parameters in createMissionFeatures that are needed for dragging waypoints in the JCC but do not pertain to the JDV
+            const canEdit = false
+            const existingMissionFeatures: Feature<Geometry>[] = []
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, active_goal_index, isSelected, isActiveRun)
+            const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, activeGoalIndex, isSelected, canEdit, existingMissionFeatures, this.processMissionFeatureDrag.bind(this))
             this.missionVectorSource.addFeatures(missionFeatures)
+        }
+
+        processMissionFeatureDrag(missionFeatures: Feature<Geometry>[]) {
+            // Needed to satisfy a parameter in createMissionFeatures; no functionality is needed for JDV
         }
     
         updateTaskAnnotations() {

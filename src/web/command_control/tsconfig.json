@@ -17,6 +17,6 @@
       "dom"
     ]
   },
-  "include": ["."],
+  "include": [".", "./client/components/shared"],
 }
 
