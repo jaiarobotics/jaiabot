@@ -5,7 +5,7 @@ import { Collection } from "ol"
 import LayerGroup from "ol/layer/Group"
 import { PortalHubStatus } from "./shared/PortalStatus"
 import { HubOrBot } from "./HubOrBot"
-import { getMapCoordinate } from "./Utilities"
+import { getMapCoordinate } from "./shared/Utilities"
 import { Point } from "ol/geom"
 import { Feature } from "ol"
 import * as Styles from "./shared/Styles"
@@ -60,8 +60,13 @@ export class HubLayers {
 
             const newFeature = new Feature({
                 name: hub.hub_id,
-                geometry: new Point(getMapCoordinate(hub.location, map))
             })
+
+            if (hub?.location !== undefined)
+            {
+                newFeature.setGeometry(new Point(getMapCoordinate(hub.location, this.map)))
+            }
+
             newFeature.setId(hub.hub_id)
             newFeature.setStyle(Styles.hubMarker)
             newFeature.set('hub', hub)

@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import { CommandForHub, HubCommandType } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
 import { PortalHubStatus } from './shared/PortalStatus';
-import { getElementById } from './Utilities';
+import { getElementById } from './shared/Utilities';
 
 interface Props {
     hubs: {[key: number]: PortalHubStatus}

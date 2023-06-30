@@ -424,6 +424,12 @@ jaia_firmware = [
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': Type.BOT,
      'runs_when': Mode.RUNTIME},
+     {'exe': 'jaia_firm_backup_date.sh',
+     'description': 'Backup the date to a file when we have a valid date time ntp',
+     'template': 'backup-date.service.in',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME}
 ]
 
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
