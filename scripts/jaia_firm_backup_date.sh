@@ -18,8 +18,6 @@ timekeeper_file="/etc/jaiabot/timekeeper/time.txt"
 if [ -e "${timekeeper_file}" ]; then
     echo "timekeeper file exists!"
     read -r time < $timekeeper_file && sudo date -s "$time"
-
-    echo "$time"
 else
     echo "timekeeper file does not exist."
 fi
