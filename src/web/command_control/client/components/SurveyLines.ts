@@ -11,7 +11,7 @@ import { unByKey as OlUnobserveByKey } from "ol/Observable";
 import * as turf from "@turf/turf"
 
 // Jaia imports
-import { deepcopy } from "./Utilities";
+import { deepcopy } from "./shared/Utilities";
 import CommandControl from "./CommandControl";
 
 const missionOrientationIcon = require('../icons/compass.svg')
