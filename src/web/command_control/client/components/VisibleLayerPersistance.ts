@@ -1,6 +1,5 @@
 import { GlobalSettings, Save } from "./Settings"
 import { Layer } from "ol/layer"
-import { deepcopy } from "./shared/Utilities"
 
 let mapSettings = GlobalSettings.mapSettings
 
