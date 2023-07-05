@@ -1296,19 +1296,20 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	deleteSingleRun() {
+	deleteSingleRun(runNumber?: number) {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		const selectedBotId = this.selectedBotId()
-		const runId = runList.botsAssignedToRuns[selectedBotId] ? runList.botsAssignedToRuns[selectedBotId] : -1
-		const warningString = "Are you sure you want to delete run for bot: " + selectedBotId;
+		let runId = ''
+		if (runNumber) {
+			runId = `run-${runNumber}`
+		} else if (runList.botsAssignedToRuns[selectedBotId]) {
+			runId = runList.botsAssignedToRuns[selectedBotId]
+		}
 
-		if (confirm(warningString)) {
-			// No missions assigned to selected bot, exit function to prevent runtime error
-			if (runId === -1) {
-				return 
-			}
+		const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete the run for bot: ${selectedBotId}`
 
+		if (runId !== '' && confirm(warningString)) { 
 			const run = runList.runs[runId]
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
@@ -1406,7 +1407,6 @@ export default class CommandControl extends React.Component {
 		});
 
 		if (feature) {
-			// Clicked on a waypoint
 			const botId = feature.get('botId')
 			
 			// Check to make sure the waypoint is not part of an active run
@@ -1452,6 +1452,23 @@ export default class CommandControl extends React.Component {
 				this.state.selectedFeatures = new OlCollection([ feature ])
 				return false
 			}
+
+			// Clicked on flag
+			const isFlag = feature.get('type') === 'flag'
+			if (isFlag) {
+				const runNumber = feature.get('runNumber')
+				const runId = `run-${runNumber}`
+				const runList = this.getRunList()
+				const run = runList.runs[runId]
+
+				if (this.canEditMissionState(run)) {
+					this.deleteSingleRun(runNumber)
+				} else {
+					warning('Run cannot be deleted while in progress')
+				}
+				return false
+			}
+
 		} else {
 			this.addWaypointAtCoordinate(evt.coordinate)
 			return true
@@ -1969,28 +1986,59 @@ export default class CommandControl extends React.Component {
 		missionPlanningSource.addFeatures(missionPlanningFeaturesList)
 	}
 
+	canEditMissionState(run?: RunInterface) {
+		// Check that all bots are stopped or recovered
+		const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+
+		if (run) {
+			const botNum = run.assigned
+			const bots = this.getPodStatus().bots
+			const bot = bots[botNum]
+			const missionState = bot?.mission_state
+
+			if (missionState) {
+				for (const enabledState of enabledStates) {
+					if (missionState.includes(enabledState)) {
+						return true
+					}
+				}
+				return false
+			}
+			return false
+		}
+
+		const bots = this.getPodStatus().bots
+		for (let bot of Object.values(bots)) {
+			const botMissionState = bot?.mission_state
+			if (!botMissionState) { continue }
+
+			let canEditState = false
+			enabledStates.forEach((enabledState) => {
+				if (botMissionState.includes(enabledState)) {
+					canEditState = true
+				}
+			})
+			if (canEditState) { 
+				return true 
+			}
+		}
+		return false
+	}
+
 	/**
 	 * 
 	 * @returns Whether we should allow the user to open the survey tool panel
 	 */
 	checkSurveyToolPermissions() {
 		// Check that all bots are stopped or recovered
-		const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
-		const bots = this.getPodStatus().bots
-		for (let bot of Object.values(bots)) {
-			const botMissionState = bot?.mission_state
-			if (!botMissionState) { continue }
-
-			let readyState = false
-			enabledStates.forEach((enabledState) => {
-				if (botMissionState.includes(enabledState)) {
-					readyState = true
-				}
-			})
-			if (!readyState) { return false }
+		const canEditMissionState = this.canEditMissionState()
+		if (!canEditMissionState) { 
+			return false
 		}
 		// Check that rally points are set
-		if (!(this.state.rallyEndLocation && this.state.rallyStartLocation)) { return false }
+		if (!(this.state.rallyEndLocation && this.state.rallyStartLocation)) {
+			return false
+		}
 		return true
 	}
 
