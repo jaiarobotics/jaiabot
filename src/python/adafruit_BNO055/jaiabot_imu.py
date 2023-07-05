@@ -97,6 +97,9 @@ class IMU:
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
     def getData(self):
+        if not self.is_setup:
+            self.setup()
+            
         imu_data = IMUData()
 
         euler = quaternion_to_euler_angles(self.sensor.quaternion)
