@@ -800,7 +800,7 @@ td {
     bottom: @status-bar-height;
     z-index: @column-right;
     background-color: @overlay-background;
-    width: 0;
+    width: 400px;
     right: @command-button-size + (2 * @command-button-padding);
 
     div.panel {
@@ -1307,9 +1307,12 @@ div.hoverable:hover {
   border: 1pt solid gray;
 }
 
+.jaia-logo.button:hover {
+  cursor: pointer;
+}
+
 div.closeButton {
   margin: 0;
-  .unselectable;
   font-size: larger;
   cursor: pointer;
 }

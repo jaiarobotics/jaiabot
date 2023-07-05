@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { formatLatitude, formatLongitude, formatAttitudeAngle } from './Utilities'
+import { formatLatitude, formatLongitude, formatAttitudeAngle } from './shared/Utilities'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';

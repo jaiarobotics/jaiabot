@@ -1,7 +1,7 @@
 import { Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { toLonLat, fromLonLat } from "ol/proj"
-import { GeographicCoordinate } from "./shared/JAIAProtobuf"
+import { GeographicCoordinate } from "./JAIAProtobuf"
 
 let abs = Math.abs
 

@@ -7,7 +7,7 @@ import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
 import { BotStatus, DiveParameters, DriftParameters, GeographicCoordinate, Goal, MissionTask, TaskType } from './shared/JAIAProtobuf';
 import { GlobalSettings } from './Settings';
-import { deepcopy, getGeographicCoordinate } from './Utilities';
+import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import Map from 'ol/Map'
 import turf from '@turf/turf';
