@@ -111,6 +111,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvIMURestartCompleted: Triggered when the IMU Restart is completed.
 - EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
 - EvPrePoweredDescentComplete: Triggered when the the timeout is reached in the PrePoweredDescent State. 
+- EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
 
 #### Internal events
 
