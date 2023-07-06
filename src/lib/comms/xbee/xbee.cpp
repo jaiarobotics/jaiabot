@@ -210,7 +210,8 @@ void jaiabot::comms::XBeeDevice::startup(const std::string& port_name, const int
         stringstream cmd;
         glog.is_verbose() && glog << group(glog_group) << "Set RF Datarate: " << rf_datarate
                                   << endl;
-        cmd << "ATBR=" << rf_datarate << '\r';
+        //cmd << "ATBR=" << rf_datarate << '\r';
+        cmd << "ATBR=0" << '\r';
         write(cmd.str());
         assert_ok();
     }
