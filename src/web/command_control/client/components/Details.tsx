@@ -79,7 +79,8 @@ const commands: {[key: string]: CommandInfo} = {
         description: 'RC mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
-            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
+            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
+            /^.+__FAILED$/
         ]
     },
     recover: {
