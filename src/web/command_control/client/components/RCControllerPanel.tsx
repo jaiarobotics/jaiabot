@@ -85,11 +85,11 @@ export default class RCControllerPanel extends React.Component {
 		let binNumber = 0
 		if (throttleDirection === 'FORWARD') {
 			const binBreakpointDivisor = Math.ceil(this.maxForwardThrottle / this.numberOfBins)
-			binNumber = Math.floor(speed / binBreakpointDivisor) + 1
+			binNumber = Math.round(Number((speed / binBreakpointDivisor).toFixed(1)))
 		} else if (throttleDirection === 'BACKWARD') {
 			const binBreakpointDivisor = Math.ceil((this.maxBackwardThrottle) / this.numberOfBins)
-			// Need to use Math.ceil as opposed to Math.floor becasue the output is negative. We need -2.x => -2 and Math.ceil does that
-			binNumber = (Math.ceil(speed / binBreakpointDivisor)) - 1
+			// Speed is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
+			binNumber = Math.round(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
 		}
 		return binNumber
 	}
@@ -116,11 +116,11 @@ export default class RCControllerPanel extends React.Component {
 		let binNumber = 0
 		if (speed > 0) {
 			const binBreakpointDivisor = Math.ceil(absMaxRudderSpeed / this.numberOfBins)
-			binNumber = Math.floor(speed / binBreakpointDivisor) + 1
+			binNumber = Math.round(Number((speed / binBreakpointDivisor).toFixed(1)))
 		} else {
 			const binBreakpointDivisor = Math.ceil((absMaxRudderSpeed) / this.numberOfBins)
-			// Need to use Math.ceil as opposed to Math.floor becasue the output is negative. We need -2.x => -2 and Math.ceil does that
-			binNumber = (Math.ceil(speed / binBreakpointDivisor)) - 1
+			// Speed is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
+			binNumber = Math.round(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
 		}
 		return binNumber
 	}
