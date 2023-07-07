@@ -122,6 +122,19 @@ message MissionManager
 
     optional uint32 imu_restart_seconds = 51 [default = 10];
 
+    // Bot not rising timeout in seconds without depth change greater than
+    // dive_depth_eps before assuming the bot is stuck and is not rising
+    optional double bot_not_rising_timeout = 52
+        [default = 3, (dccl.field).units = { base_dimensions: "T" }];
+
+    // If the bot is not rising then increment the motor on time
+    optional int32 motor_on_time_increment = 53
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // The max the motor should be on for powered ascent
+    optional int32 motor_on_time_max = 54
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
     // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to

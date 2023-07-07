@@ -904,6 +904,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
                 "jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
              << std::endl;
 
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
     glog.is_debug2() && glog << "if (ev.depth < cfg().dive_surface_eps_with_units()): "
                              << (ev.depth < cfg().dive_surface_eps_with_units())
                              << "\n ev.depth: " << ev.depth.value()
@@ -917,6 +919,39 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
                                  << "\npost_event(EvSurfaced());" << std::endl;
         post_event(EvSurfaced());
         dive_pascent_debug_.set_surfaced(true);
+    }
+
+    // if we've moved eps meters in depth, reset the timer for determining if we
+    // are stuck underwater
+    if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+    {
+        glog.is_debug2() && glog << "PoweredAscent::depth we are changing depth!"
+                                 << "\n"
+                                 << std::endl;
+        last_depth_change_time_ = now;
+        last_depth_ = ev.depth;
+    }
+
+    // assume we are stuck if the depth isn't changing for bot not rising timeout seconds
+    if ((now - last_depth_change_time_) >
+        static_cast<decltype(now)>(cfg().bot_not_rising_timeout_with_units()))
+    {
+        glog.is_debug2() &&
+            glog << "PoweredAscent::depth we are not changing depth! We might be stuck!"
+                 << "\n"
+                 << std::endl;
+
+        // Check to see if the duration for motor on is still under max
+        if (powered_ascent_motor_on_duration_ < std::chrono::seconds(cfg().motor_on_time_max()))
+        {
+            // Increment motor on duration by 1
+            powered_ascent_motor_on_duration_ +=
+                std::chrono::seconds(cfg().motor_on_time_increment());
+
+            // Reset so we wait to increase motor on
+            // value to check if we start rising
+            last_depth_change_time_ = now;
+        }
     }
 
     dive_pascent_debug_.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());

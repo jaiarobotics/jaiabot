@@ -1580,6 +1580,10 @@ struct PoweredAscent
         std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
     // determines wehn we are still in motor off mode
     bool in_motor_off_mode_{false};
+    // keep track of the depth changes so we can detect if we are stuck
+    boost::units::quantity<boost::units::si::length> last_depth_;
+    goby::time::MicroTime last_depth_change_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct ReacquireGPS

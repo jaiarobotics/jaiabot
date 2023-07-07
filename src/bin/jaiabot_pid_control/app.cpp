@@ -681,7 +681,7 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent()
     }
     else
     {
-        throttle = 25.0;
+        throttle = 60.0;
     }
 }
 
