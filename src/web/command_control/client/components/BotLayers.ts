@@ -6,7 +6,7 @@ import { PortalBotStatus } from "./shared/PortalStatus"
 import { HubOrBot } from "./HubOrBot"
 import Feature from "ol/Feature"
 import { Point } from "ol/geom"
-import { getMapCoordinate } from "./Utilities"
+import { getMapCoordinate } from "./shared/Utilities"
 import * as Styles from "./shared/Styles"
 import { isRemoteControlled } from "./shared/PortalStatus"
 
@@ -66,8 +66,12 @@ export class BotLayers {
 				botFeature.setId(bot_id)
 				botSource.addFeature(botFeature)
 			}
-
-			botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
+			
+			if (bot?.location !== undefined)
+			{
+				botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
+			}
+			
 			botFeature.set('bot', bot)
 			botFeature.setStyle(Styles.botMarker)
 

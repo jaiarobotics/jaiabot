@@ -1,5 +1,6 @@
 add_subdirectory(lib)
 add_subdirectory(bin)
+add_subdirectory(python)
 
 if(build_doc)
   find_package(Doxygen REQUIRED dot)
@@ -10,9 +11,6 @@ if(build_doc)
   install(DIRECTORY ${project_BUILD_DIR}/src/doc/figures DESTINATION share/doc/jaiabot)
 
 endif()
-
-file(COPY ${project_SRC_DIR}/python/ DESTINATION ${project_SHARE_DIR}/jaiabot/python)
-install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
 # library with all the config.protos
 file(GLOB_RECURSE CONFIG_PROTOS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  "bin/*/config.proto")

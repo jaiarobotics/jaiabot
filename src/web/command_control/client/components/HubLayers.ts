@@ -5,7 +5,7 @@ import { Collection } from "ol"
 import LayerGroup from "ol/layer/Group"
 import { PortalHubStatus } from "./shared/PortalStatus"
 import { HubOrBot } from "./HubOrBot"
-import { getMapCoordinate } from "./Utilities"
+import { getMapCoordinate } from "./shared/Utilities"
 import { Point } from "ol/geom"
 import { Feature } from "ol"
 import * as Styles from "./shared/Styles"
@@ -50,27 +50,31 @@ export class HubLayers {
 		delete this.layers[hub_id]
 	}
 
-	update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
-
-        function getHubFeature(hub: PortalHubStatus, map: Map, source: VectorSource) {
-            const feature = source.getFeatureById(hub.hub_id)
-            if (feature) {
-                return feature
-            }
-
-            const newFeature = new Feature({
-                name: hub.hub_id,
-                geometry: new Point(getMapCoordinate(hub.location, map))
-            })
-            newFeature.setId(hub.hub_id)
-            newFeature.setStyle(Styles.hubMarker)
-            newFeature.set('hub', hub)
-
-            source.addFeature(newFeature)
+    getHubFeature(hub: PortalHubStatus, map: Map, source: VectorSource) {
+        const feature = source.getFeatureById(hub.hub_id)
         
-            return newFeature
+        if (feature) {
+            return feature
         }
 
+        const newFeature = new Feature({
+            name: hub.hub_id,
+        })
+
+        if (hub?.location !== undefined) {
+            newFeature.setGeometry(new Point(getMapCoordinate(hub.location, this.map)))
+        }
+
+        newFeature.setId(hub.hub_id)
+        newFeature.setStyle(Styles.hubMarker)
+        newFeature.set('hub', hub)
+
+        source.addFeature(newFeature)
+    
+        return newFeature
+    }
+
+	update(hubs: {[key: string]: PortalHubStatus}, selectedHubOrBot: HubOrBot) {
         for (let hubId in hubs) {
             let hub = hubs[hubId];
     
@@ -84,7 +88,7 @@ export class HubLayers {
     
             const hubLayer = this.getHubLayer(hub_id)
             const hubSource = hubLayer.getSource()
-            const hubFeature = getHubFeature(hub, this.map, hubSource)
+            const hubFeature = this.getHubFeature(hub, this.map, hubSource)
     
             const selected = selectedHubOrBot != null && selectedHubOrBot.type == "hub" && selectedHubOrBot.id == hub_id
             hubFeature.set('selected', selected);
