@@ -35,8 +35,8 @@ message MissionManager
     optional int32 powered_ascent_motor_off_timeout = 26
         [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
-    // timeout on pre_powered descent to then transition to powered descent
-    optional int32 pre_powered_descent_timeout = 27
+    // timeout on dive prep to then transition to powered descent
+    optional int32 dive_prep_timeout = 27
         [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 
     // safety timeout on powered descent to then transition to unpowered descent
@@ -58,10 +58,9 @@ message MissionManager
     optional double bottoming_timeout = 31
         [default = 3, (dccl.field).units = { base_dimensions: "T" }];
 
-    // surfacing timeout in seconds for unpowered ascent mode
-    // if timeout is reached then we switch to powered ascent
-    optional double surfacing_timeout = 32
-        [default = 35, (dccl.field).units = { base_dimensions: "T" }];
+    // timeout to begin detecting depth changes in unpowered ascent
+    optional double unpowered_ascent_detect_depth_timeout = 32
+        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)
     optional double dive_surface_eps = 33
@@ -135,6 +134,19 @@ message MissionManager
     optional int32 motor_on_time_max = 54
         [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 
+    // The power ascent throttle
+    optional double powered_ascent_throttle = 55 [default = 25];
+
+    // The power ascent throttle increment
+    optional double powered_ascent_throttle_increment = 56 [default = 5];
+
+    // The power ascent max thottle
+    optional double powered_ascent_throttle_max = 57 [default = 60];
+
+    optional double powered_ascent_pitch_safety = 58 [default = 30];
+
+    optional int32 powered_ascent_pitch_angle_checks = 59 [default = 3];
+
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
     // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
@@ -150,6 +162,10 @@ message MissionManager
     required int32 hub_start_ip = 63 [default = 10];
 
     required string class_b_network = 64 [default = "10.23"];
+
+    // The min amount of time to trigger a EvBotNotVerticl event
+    optional double powered_ascent_pitch_angle_min_check_time = 65 
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
     enum EngineeringTestMode
     {

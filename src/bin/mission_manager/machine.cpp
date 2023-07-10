@@ -339,10 +339,6 @@ jaiabot::statechart::inmission::underway::Task::~Task()
 jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::my_context c)
     : StateBase(c)
 {
-    // This makes sure we capture the pressure before the dive begins
-    // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
     // we currently start at the surface
     quantity<si::length> depth = 0 * si::meters + current_dive().depth_interval_with_units();
     quantity<si::length> max_depth = current_dive().max_depth_with_units();
@@ -385,25 +381,25 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     }
 }
 
-// Task::Dive::PrePoweredDescent
-jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::PrePoweredDescent(
+// Task::Dive::DivePrep
+jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
     typename StateBase::my_context c)
     : StateBase(c)
 {
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
 
     // duration granularity is seconds
-    int pre_powered_descent_timeout_seconds = cfg().pre_powered_descent_timeout();
+    int dive_prep_timeout_seconds = cfg().dive_prep_timeout();
 
-    goby::time::SteadyClock::duration pre_powered_descent_timeout_duration =
-        std::chrono::seconds(pre_powered_descent_timeout_seconds);
+    goby::time::SteadyClock::duration dive_prep_duration =
+        std::chrono::seconds(dive_prep_timeout_seconds);
 
-    pre_powered_descent_timeout_ = start_timeout + pre_powered_descent_timeout_duration;
+    dive_prep_timeout_ = start_timeout + dive_prep_duration;
 
     loop(EvLoop());
 }
 
-jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::~PrePoweredDescent()
+jaiabot::statechart::inmission::underway::task::dive::DivePrep::~DivePrep()
 {
     if (machine().gps_tpv().has_location())
     {
@@ -412,9 +408,13 @@ jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::~PrePow
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
+
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 }
 
-void jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::loop(const EvLoop&)
+void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
@@ -422,14 +422,14 @@ void jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::lo
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
-    if (current_clock >= pre_powered_descent_timeout_)
+    if (current_clock >= dive_prep_timeout_)
     {
-        glog.is_debug2() && glog << "Pre Powered Descent completed" << std::endl;
-        post_event(EvPrePoweredDescentComplete());
+        glog.is_debug2() && glog << "DivePrep completed" << std::endl;
+        post_event(EvDivePrepComplete());
     }
     else
     {
-        glog.is_debug2() && glog << "Waiting for Pre Powered Descent to be completed" << std::endl;
+        glog.is_debug2() && glog << "Waiting for DivePrep to be completed" << std::endl;
     }
 }
 
@@ -739,12 +739,6 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
-
-    // duration granularity is seconds
-    int timeout_seconds = cfg().surfacing_timeout_with_units<goby::time::SITime>().value();
-    goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
-    timeout_stop_ = timeout_start + timeout_duration;
 }
 
 jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~UnpoweredAscent()
@@ -765,30 +759,6 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
-
-    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
-
-    dive_uascent_debug_.set_current_time(now.time_since_epoch().count());
-    dive_uascent_debug_.set_unpowered_ascent_timeout(timeout_stop_.time_since_epoch().count());
-
-    glog.is_debug2() && glog << "if (now >= timeout_stop_): " << (now >= timeout_stop_)
-                             << "\n now: " << now.time_since_epoch().count()
-                             << "\n timeout_stop_: " << timeout_stop_.time_since_epoch().count()
-                             << "\n"
-                             << std::endl;
-
-    if (now >= timeout_stop_)
-    {
-        glog.is_debug2() && glog << "now >= timeout_stop_ == true"
-                                 << "\npost_event(EvSurfacingTimeout());  " << std::endl;
-        post_event(EvSurfacingTimeout());
-        dive_uascent_debug_.set_unpowered_ascent_timed_out(true);
-    }
-    interprocess().publish<jaiabot::groups::mission_dive>(dive_uascent_debug_);
-    glog.is_debug1() &&
-        glog << "Exit jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop: "
-                "\n"
-             << std::endl;
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth(
@@ -798,6 +768,8 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
         glog << "Entered "
                 "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth: \n"
              << std::endl;
+
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     glog.is_debug2() && glog << "if (ev.depth < cfg().dive_surface_eps_with_units()): "
                              << (ev.depth < cfg().dive_surface_eps_with_units())
@@ -813,6 +785,35 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
                                  << "\npost_event(EvSurfaced());" << std::endl;
         post_event(EvSurfaced());
         dive_uascent_debug_.set_surfaced(true);
+    }
+
+    // make sure we have finished moving before
+    // we start detecting depth changes
+    if ((now - detect_depth_changes_init_timeout_) >
+        static_cast<decltype(now)>(cfg().unpowered_ascent_detect_depth_timeout_with_units()))
+    {
+        // if we've moved eps meters in depth, reset the timer for determining if we
+        // are stuck underwater
+        if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+        {
+            glog.is_debug2() && glog << "UnpoweredAscent::depth we are changing depth!"
+                                     << "\n"
+                                     << std::endl;
+            last_depth_change_time_ = now;
+            last_depth_ = ev.depth;
+        }
+
+        // assume we are stuck if the depth isn't changing for bot not rising timeout seconds
+        if ((now - last_depth_change_time_) >
+            static_cast<decltype(now)>(cfg().bot_not_rising_timeout_with_units()))
+        {
+            glog.is_warn() &&
+                glog << "UnpoweredAscent::depth we are not changing depth! We might be stuck!"
+                     << "\n"
+                     << std::endl;
+
+            post_event(EvSurfacingTimeout());
+        }
     }
 
     dive_uascent_debug_.set_depth_eps_with_units(cfg().dive_depth_eps_with_units());
@@ -850,7 +851,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
 {
     protobuf::DesiredSetpoints setpoint_msg;
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
-    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     // ***************************************************
     // this logic turns the motor off and on
@@ -867,15 +867,25 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
                                  << std::endl;
 
         // Check to see if the duration for motor on is still under max
-        if (!are_we_rising_ &&
-            powered_ascent_motor_on_duration_ < std::chrono::seconds(cfg().motor_on_time_max()))
+        if (!are_we_rising_)
         {
-            // Increment motor on duration by 1
-            powered_ascent_motor_on_duration_ +=
-                std::chrono::seconds(cfg().motor_on_time_increment());
+            if (powered_ascent_motor_on_duration_ < std::chrono::seconds(cfg().motor_on_time_max()))
+            {
+                // Increment motor on duration
+                powered_ascent_motor_on_duration_ +=
+                    std::chrono::seconds(cfg().motor_on_time_increment());
+            }
+
+            if (powered_ascent_throttle_ < cfg().powered_ascent_throttle_max())
+            {
+                // Increase powered ascent throttle
+                powered_ascent_throttle_ += cfg().powered_ascent_throttle_increment();
+            }
 
             glog.is_warn() && glog << "PoweredAscent::depth Duration: "
                                    << powered_ascent_motor_on_duration_.count() << "\n"
+                                   << "PoweredAscent::depth Throttle: " << powered_ascent_throttle_
+                                   << "\n"
                                    << std::endl;
         }
 
@@ -889,6 +899,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
         glog.is_debug2() && glog << "Powered Ascent: Leave motor running, we have not timed out!"
                                  << std::endl;
         setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+        setpoint_msg.set_throttle(powered_ascent_throttle_);
     }
     // we have timedout on motor off,
     // turn on motor
@@ -899,6 +910,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
         powered_ascent_motor_on_timeout_ = current_clock + powered_ascent_motor_on_duration_;
         in_motor_off_mode_ = false;
         setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+        setpoint_msg.set_throttle(powered_ascent_throttle_);
     }
     // we have not timedout on motor off
     else if (current_clock < powered_ascent_motor_off_timeout_)
@@ -946,6 +958,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
         last_depth_change_time_ = now;
         last_depth_ = ev.depth;
         are_we_rising_ = true;
+        post_event(EvDiveRising());
     }
 
     // assume we are stuck if the depth isn't changing for bot not rising timeout seconds
@@ -967,6 +980,35 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
         glog
             << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
             << std::endl;
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::pitch(
+    const EvVehiclePitch& ev)
+{
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    // If we are not still verticle then change to unpowered ascent state
+    if (std::abs(ev.pitch.value()) <= cfg().powered_ascent_pitch_safety())
+    {
+        // Check to see if we have reached the number of checks and the min check time
+        // has been reach to determine if a bot is no longer verticle
+        if ((pitch_angle_check_incr_ >= (cfg().powered_ascent_pitch_angle_checks() - 1)) &&
+            ((now - last_pitch_time_) >=
+             static_cast<decltype(now)>(
+                 cfg().powered_ascent_pitch_angle_min_check_time_with_units())))
+        {
+            glog.is_warn() && glog << "PoweredAscent::pitch Bot is no longer verticle!"
+                                   << "\npost_event(EvSurfaced());" << std::endl;
+            post_event(EvBotNotVerticle());
+        }
+        pitch_angle_check_incr_++;
+    }
+    else
+    {
+        pitch_angle_check_incr_ = 0;
+    }
+
+    last_pitch_time_ = now;
 }
 
 // Movement::SurfTransit

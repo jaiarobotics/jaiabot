@@ -19,15 +19,26 @@ command_sub_cfg {
     }
 }
 
-dive_depth_eps: 0.1  #  (optional) (default=0.1)
-surfacing_timeout: 35  #  (optional) (default=35)
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
-bottoming_timeout: 3 # (optional) (default=3)
-detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
-pre_powered_descent_timeout: 10 # (optional) (default=10)
-powered_descent_timeout: 60 # (default=60) 
-dive_surface_eps: 0.75 # (optional) (default=0.75)
+
+# Dive Configurations
+dive_prep_timeout: 10 # (optional) (default=10) Seconds
+dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
+detect_bottom_logic_init_timeout: 10 # (optional) (default=10) Seconds
+bottoming_timeout: 3 # (optional) (default=3) Seconds
+unpowered_ascent_detect_depth_timeout: 5  #  (optional) (default=5) Seconds
+powered_descent_timeout: 60 # (default=60) Seconds
+bot_not_rising_timeout: 3 # (optional) (default=3) Seconds
+motor_on_time_increment: 1 # (optional) (default=1) Seconds
+motor_on_time_max: 10 # (optional) (default=10) Seconds
+powered_ascent_throttle: 25 # (optional) (default=25) Percent
+powered_ascent_throttle_increment: 5 # (optional) (default=5) Percent
+powered_ascent_throttle_max: 60 # (optional) (default=60) Percent
+powered_ascent_pitch_safety: 30 # (optional) (default=30) Degrees
+powered_ascent_pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
+powered_ascent_pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
+dive_surface_eps: 0.75 # (optional) (default=0.75) Meters
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
