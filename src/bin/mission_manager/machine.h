@@ -1584,6 +1584,7 @@ struct PoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_;
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
+    bool are_we_rising_{true};
 };
 
 struct ReacquireGPS
