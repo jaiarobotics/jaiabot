@@ -91,7 +91,7 @@ STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvPowerDescentSafety)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvDiveRising)
-STATECHART_EVENT(EvBotNotVerticle)
+STATECHART_EVENT(EvBotNotVertical)
 STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
@@ -1575,7 +1575,7 @@ struct PoweredAscent
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, PoweredAscent, &PoweredAscent::loop>,
         boost::statechart::transition<EvDiveRising, UnpoweredAscent>,
-        boost::statechart::transition<EvBotNotVerticle, UnpoweredAscent>,
+        boost::statechart::transition<EvBotNotVertical, UnpoweredAscent>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>,
         boost::statechart::in_state_reaction<EvVehiclePitch, PoweredAscent, &PoweredAscent::pitch>>;
 

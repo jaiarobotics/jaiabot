@@ -112,7 +112,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
 - EvDviePrepComplete: Triggered when the the timeout is reached in the DivePrep State. 
 - EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
-- EvBotNotVerticle: Triggered when the bot is not verticle while in PoweredAscent. The bot will switch back into UnpoweredAscent.
+- EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 
 #### Internal events
 
