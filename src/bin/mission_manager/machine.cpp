@@ -833,6 +833,35 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << std::endl;
 }
 
+void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::pitch(
+    const EvVehiclePitch& ev)
+{
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    // If we are not still vertical then change to unpowered ascent state
+    if (std::abs(ev.pitch.value()) <= cfg().powered_ascent_pitch_safety())
+    {
+        // Check to see if we have reached the number of checks and the min check time
+        // has been reach to determine if a bot is no longer vertical
+        if ((pitch_angle_check_incr_ >= (cfg().powered_ascent_pitch_angle_checks() - 1)) &&
+            ((now - last_pitch_time_) >=
+             static_cast<decltype(now)>(
+                 cfg().powered_ascent_pitch_angle_min_check_time_with_units())))
+        {
+            glog.is_warn() && glog << "UnpoweredAscent::pitch Bot is no longer vertical!"
+                                   << "\npost_event(EvSurfaced());" << std::endl;
+            post_event(EvBotNotVertical());
+        }
+        pitch_angle_check_incr_++;
+    }
+    else
+    {
+        pitch_angle_check_incr_ = 0;
+    }
+
+    last_pitch_time_ = now;
+}
+
 // Task::Dive::PoweredAscent
 jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAscent(
     typename StateBase::my_context c)
