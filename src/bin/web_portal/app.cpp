@@ -100,6 +100,8 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& command_for_hub);
 
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
+
+    jaiabot::protobuf::DeviceMetadata device_metadata_;
 };
 
 } // namespace apps
@@ -114,7 +116,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(0.5 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(0.1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -205,6 +207,13 @@ jaiabot::apps::WebPortal::WebPortal()
 
             send_message_to_client(message);
         });
+
+    // Subscribe to MetaData
+    interprocess().subscribe<jaiabot::groups::metadata>(
+        [this](const jaiabot::protobuf::DeviceMetadata& metadata) {
+            jaiabot::protobuf::PortalToClientMessage message;
+            device_metadata_ = metadata;
+        });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
@@ -242,7 +251,25 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     }
 }
 
-void jaiabot::apps::WebPortal::loop() {}
+void jaiabot::apps::WebPortal::loop()
+{
+    if (device_metadata_.IsInitialized())
+    {
+        jaiabot::protobuf::PortalToClientMessage message;
+        *message.mutable_device_metadata() = device_metadata_;
+        glog.is_debug2() && glog << group("main") << "Sending metadata to client: "
+                                 << device_metadata_.ShortDebugString() << endl;
+        send_message_to_client(message);
+    }
+    else
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "Query for metadata: " << device_metadata_.ShortDebugString()
+                                 << endl;
+        jaiabot::protobuf::QueryDeviceMetaData query_device_metadata;
+        interprocess().publish<groups::metadata>(query_device_metadata);
+    }
+}
 
 void jaiabot::apps::WebPortal::send_message_to_client(
     const jaiabot::protobuf::PortalToClientMessage& message)

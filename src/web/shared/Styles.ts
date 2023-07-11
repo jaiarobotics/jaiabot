@@ -3,14 +3,16 @@ import { Fill, Icon, Style, Text} from 'ol/style';
 import { LineString, Point } from 'ol/geom';
 import {Feature} from 'ol'
 import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
+import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const end = require('./end.svg') as string
 const start = require('./start.svg')
-const bot = require('./bot.svg') as string
+const botIcon = require('./bot.svg') as string
 const hub = require('./hub.svg') as string
+const runFlag = require('./run-flag.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
@@ -33,6 +35,7 @@ const selectedColor = 'turquoise'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 const remoteControlledColor = 'mediumpurple'
+const editColor = 'gold'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -63,30 +66,31 @@ export function botMarker(feature: Feature): Style[] {
         return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) }
     }
 
-    const heading = feature.get('heading') * DEG
+    const botStatus = feature.get('bot') as PortalBotStatus
+    const heading = (botStatus.attitude?.heading ?? 0.0) * DEG
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
 
-    var color = defaultColor
+    let color: string
 
-    if (feature.get('isDisconnected')) {
+    if (botStatus.isDisconnected ?? false) {
         color = disconnectedColor
-    }
-    else if (feature.get('remoteControlled')) {
+    } else if (isRemoteControlled(botStatus.mission_state)) {
         color = remoteControlledColor
-    }
-    else if (feature.get('selected')) {
+    } else if (feature.get('selected')) {
         color = selectedColor
+    } else {
+        color = defaultColor
     }
 
-    const text = String(feature.get('botId'))
+    const text = String(botStatus.bot_id ?? "")
 
     var style = [ 
         // Bot body marker
         new Style({
             image: new Icon({
-                src: bot,
+                src: botIcon,
                 color: color,
                 anchor: [0.5, 0.5],
                 rotation: heading,
@@ -99,11 +103,13 @@ export function botMarker(feature: Feature): Style[] {
                     color: 'black'
                 }),
                 offsetX: -textOffsetRadius * headingDelta.x,
-                offsetY: -textOffsetRadius * headingDelta.y
+                offsetY: -textOffsetRadius * headingDelta.y,
+                rotateWithView: true
             })
         })
     ]
 
+    const isReacquiringGPS = botStatus?.mission_state?.endsWith('REACQUIRE_GPS')
     if (feature.get('isReacquiringGPS')) {
         style.push(
             new Style({
@@ -159,7 +165,8 @@ export function hubMarker(feature: Feature): Style[] {
 }
 
 export function courseOverGroundArrow(feature: Feature): Style {
-    const courseOverGround = feature.get('courseOverGround') * DEG
+    const botStatus = feature.get('bot') as PortalBotStatus
+    const courseOverGround = (botStatus?.attitude?.course_over_ground ?? 0.0) * DEG
     const color = 'green'
 
     return new Style({
@@ -202,34 +209,77 @@ export function goalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function goalIcon(taskType: TaskType | null, isActive: boolean, isSelected: boolean) {
+export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     const src = goalSrc(taskType)
+    let nonActiveGoalColor: string
+
+    if (canEdit) {
+        nonActiveGoalColor = isSelected ? editColor : defaultColor
+    } else {
+        nonActiveGoalColor = isSelected ? selectedColor : defaultColor
+    }
 
     return new Icon({
         src: src,
-        color: isActive ? activeGoalColor : (isSelected ? selectedColor : defaultColor),
+        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
         anchor: [0.5, 1],
     })
 }
 
 
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected)
+export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
+    const src = runFlag
+    const isTask = taskType && taskType !== 'NONE'
+
+    return new Icon({
+        src: src,
+        color: isSelected ? (canEdit ? editColor : selectedColor) : defaultColor,
+        // Need a bigger flag for a 3-digit run number...this also causes new anchor values
+        anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
+        scale: runNumber > 99 ? 1.075 : 1.0
+    })
+}
+
+export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+    let icon = goalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
     return new Style({
         image: icon,
+        stroke: new Stroke({
+            color: 'rgba(0, 0, 0, 0)',
+            width: 50
+        }),
         text: new Text({
             text: String(goalIndex),
             font: '12pt sans-serif',
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: -15,
+            offsetY: -15
         }),
-        zIndex: 2
+        zIndex: isSelected ? 102 : 2
     })
 }
 
+export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
+    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
+    const isTask = goal.task?.type && goal.task.type !== 'NONE'
+
+    return new Style({
+        image: icon,
+        text: new Text({
+            text: `R${runNumber}`,
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            // Text needs additional adjustments for 3-digit run numbers
+            offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
+            offsetX: Number(runNumber) > 99 ? 24 : 20
+        }),
+        zIndex: isSelected ? 102 : 2
+    })
+}
 
 // Markers for dives
 export function divePacket(dive: DivePacket) {
@@ -253,9 +303,13 @@ export function divePacket(dive: DivePacket) {
         }),
         text: new Text({
             text: String(text),
-            font: '12pt sans-serif',
+            font: '14pt sans-serif',
             fill: new Fill({
-                color: 'black'
+                color: 'white'
+            }),
+            stroke: new Stroke({
+                color: 'black', // Outline color
+                width: 3 // Outline width
             }),
             offsetY: 20
         })
@@ -300,21 +354,23 @@ export function driftTask(drift: DriftTask) {
             scale: [1.0, drift.estimated_drift.speed / 0.20],
             rotateWithView: true,
             rotation: drift.estimated_drift.heading * Math.PI / 180.0,
-        }),
-        // text: new Text({
-        //     text: new String(text),
-        //     font: '12pt sans-serif',
-        //     fill: new Fill({
-        //         color: 'black'
-        //     }),
-        //     offsetY: 20
-        // })
+        })
     })
 }
 
 // The mission path linestring
 export function missionPath(feature: Feature) {
-    const pathColor = (feature.get('isSelected') ?? false) ? selectedColor : defaultPathColor
+    const isSelected = feature.get('isSelected') ?? false
+    const zIndex = isSelected ? 101 : 1
+    const canEdit = feature.get('canEdit')
+    let pathColor = ''
+    
+    if (canEdit) {
+        pathColor = isSelected ? editColor : defaultPathColor
+    } else {
+        pathColor = isSelected ? selectedColor : defaultPathColor
+    }
+
     const lineDash = (feature.get('isConstantHeading') ?? false) ? [6, 12] : undefined
 
     const geometry = feature.getGeometry() as LineString
@@ -332,7 +388,8 @@ export function missionPath(feature: Feature) {
                 width: 2,
                 color: pathColor,
                 lineDash: lineDash
-            })
+            }),
+            zIndex: zIndex
         })
     ]
 
@@ -353,7 +410,7 @@ export function missionPath(feature: Feature) {
                     rotation: -rotation,
                     color: pathColor,
                 }),
-                zIndex: 1
+                zIndex: zIndex
             })
         );
     });

@@ -3,7 +3,7 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
-import { randomBase57 } from '../client/components/Utilities';
+import { randomBase57 } from '../client/components/shared/Utilities';
 
 export class JaiaAPI {
   clientId: string
@@ -77,25 +77,27 @@ export class JaiaAPI {
 
   getTaskPackets() { return this.get('jaia/task-packets') }
 
+  getMetadata() { return this.get('jaia/metadata') }
+
   getDepthContours() { return this.get('jaia/depth-contours') }
 
-  allStop() { return this.post('jaia/allStop') }
+  allStop() { return this.post('jaia/all-stop') }
 
-  allActivate() { return this.post('jaia/allActivate', null) }
+  allActivate() { return this.post('jaia/all-activate', null) }
 
-  nextTaskAll() { return this.post('jaia/nextTaskAll', null) }
+  nextTaskAll() { return this.post('jaia/next-task-all', null) }
 
-  allRecover() { return this.post('jaia/allRecover', null) }
+  allRecover() { return this.post('jaia/all-recover', null) }
 
   postCommand(command: Command) { return this.post('jaia/command', command) }
 
-  postCommandForHub(command: CommandForHub) { return this.post('jaia/commandForHub', command) }
+  postCommandForHub(command: CommandForHub) { return this.post('jaia/command-for-hub', command) }
 
   postEngineeringPanel(engineeringPanelCommand: Engineering) {
       return this.post('jaia/ep-command', engineeringPanelCommand)
   }
 
-  takeControl() { return this.post('jaia/takeControl', null) }
+  takeControl() { return this.post('jaia/take-control', null) }
 
   postEngineering(engineeringCommand: Engineering) {
     return this.post('jaia/pid-command', engineeringCommand)

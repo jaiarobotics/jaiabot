@@ -4,6 +4,15 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message IMUCommand
+{
+    enum IMUCommandType
+    {
+        TAKE_READING = 0;
+    }
+
+    required IMUCommandType type = 1;
+}
 
 message IMUData
 {

@@ -3,12 +3,12 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-unused-vars */
 import React from 'react'
-import $ from 'jquery'
 import { error, success, warning, info, debug} from '../libs/notifications';
 import Button from '@mui/material/Button';
 import { CommandForHub, HubCommandType } from './shared/JAIAProtobuf';
 import {JaiaAPI} from '../../common/JaiaAPI'
-import { PortalHubStatus } from './PortalStatus';
+import { PortalHubStatus } from './shared/PortalStatus';
+import { getElementById } from './shared/Utilities';
 
 interface Props {
     hubs: {[key: number]: PortalHubStatus}
@@ -57,7 +57,7 @@ export default class ScanForBotPanel extends React.Component {
     {
         if (!this.props.control()) return;
 
-        let botId = Number($("#scan_for_bot_input").val())
+        let botId = Number(getElementById<HTMLInputElement>("scan_for_bot_input").value)
         info("Scan for BOT-ID: " + botId)
 
         let hubs = this.props.hubs;
@@ -68,15 +68,15 @@ export default class ScanForBotPanel extends React.Component {
         console.log(hub?.hub_id);
 
         if (hub?.hub_id != null) {
-            let command_for_hub: CommandForHub = {
+            let commandForHub: CommandForHub = {
                 hub_id: hub?.hub_id,
                 type: HubCommandType.SCAN_FOR_BOTS,
                 scan_for_bot_id: botId
             }
     
-            debug(JSON.stringify(command_for_hub))
+            debug(JSON.stringify(commandForHub))
     
-            this.props.api.postCommandForHub(command_for_hub);
+            this.props.api.postCommandForHub(commandForHub);
         }
     }
 
@@ -94,15 +94,15 @@ export default class ScanForBotPanel extends React.Component {
         if (hub?.hub_id != null) {
             for (let botId in hub?.bot_ids_in_radio_file)
             {
-                let command_for_hub: CommandForHub = {
+                let commandForHub: CommandForHub = {
                     hub_id: hub?.hub_id,
                     type: HubCommandType.SCAN_FOR_BOTS,
                     scan_for_bot_id: hub?.bot_ids_in_radio_file[botId]
                 }
         
-                debug(JSON.stringify(command_for_hub))
+                debug(JSON.stringify(commandForHub))
         
-                this.props.api.postCommandForHub(command_for_hub);
+                this.props.api.postCommandForHub(commandForHub);
             }
         }
     }
