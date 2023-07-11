@@ -747,7 +747,15 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~Unpowere
     quantity<si::time> dt(end_time - start_time_);
     quantity<si::length> dz(context<Dive>().dive_packet().depth_achieved_with_units());
     quantity<si::velocity> vz = dz / dt;
-    context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(vz);
+    double rise_rate = vz.value();
+
+    if (context<Dive>().dive_packet().has_powered_rise_rate())
+    {
+        rise_rate = (context<Dive>().dive_packet().powered_rise_rate() + vz.value()) / 2;
+    }
+
+    context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(rise_rate *
+                                                                     boost::units::si::velocity());
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
@@ -844,7 +852,15 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAsc
     quantity<si::time> dt(end_time - start_time_);
     quantity<si::length> dz(context<Dive>().dive_packet().depth_achieved_with_units());
     quantity<si::velocity> vz = dz / dt;
-    context<Dive>().dive_packet().set_powered_rise_rate_with_units(vz);
+    double rise_rate = vz.value();
+
+    if (context<Dive>().dive_packet().has_powered_rise_rate())
+    {
+        rise_rate = (context<Dive>().dive_packet().powered_rise_rate() + vz.value()) / 2;
+    }
+
+    context<Dive>().dive_packet().set_powered_rise_rate_with_units(rise_rate *
+                                                                   boost::units::si::velocity());
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
