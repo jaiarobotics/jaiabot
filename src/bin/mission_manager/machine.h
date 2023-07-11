@@ -1542,7 +1542,6 @@ struct UnpoweredAscent
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
-        boost::statechart::transition<EvBotNotVertical, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehiclePitch, UnpoweredAscent,
                                              &UnpoweredAscent::pitch>,
@@ -1560,9 +1559,6 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_;
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    // keep check of current bot angle for pitch
-    int pitch_angle_check_incr_{0};
-    goby::time::MicroTime last_pitch_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct PoweredAscent
@@ -1610,7 +1606,8 @@ struct PoweredAscent
     double powered_ascent_throttle_{cfg().powered_ascent_throttle()};
     // keep check of current bot angle for pitch
     int pitch_angle_check_incr_{0};
-    goby::time::MicroTime last_pitch_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime last_pitch_dive_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct ReacquireGPS
