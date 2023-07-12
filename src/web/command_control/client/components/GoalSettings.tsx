@@ -1,17 +1,9 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
 import React from 'react'
-import Button from '@mui/material/Button';
-import { Goal, GeographicCoordinate } from './shared/JAIAProtobuf';
+import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
-import { taskNone } from './shared/Styles';
-import { rhumbDistance, rhumbBearing } from '@turf/turf';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
-
+import '../style/components/GoalSettingsPanel.css'
 
 interface Props {
     key: string // When this changes, React will create a new component
@@ -25,14 +17,11 @@ interface Props {
 
 
 export class GoalSettingsPanel extends React.Component {
-
     props: Props
     oldGoal: Goal
 
-    // Constructor will be called whenever props.key changes, i.e. whenever goal being edited changes
     constructor(props: Props) {
         super(props)
-
         this.oldGoal = deepcopy(props.goal)
     }
 
@@ -40,25 +29,32 @@ export class GoalSettingsPanel extends React.Component {
         const { botId, goalIndex, goal } = this.props
 
         return (
-        <div className="GoalSettingsPanel">
-            <div className='HorizontalFlexbox'>
-                <img src={taskNone} />
-                <div className="goalSettingsHeader">Goal {goalIndex}</div>
-                <div className="goalSettingsHeader">Bot {botId}</div>
-            </div>
-            <div>
-                <TaskSettingsPanel task={goal.task} map={this.props.map} location={goal.location} onChange={task => {
-                    goal.task = task
-                    this.props.onChange?.()
-                }} />
-
-                <div className='HorizontalFlexbox'>
-                    <Button className="button-jcc" onClick={this.cancelClicked.bind(this)}>Cancel</Button>
-                    <Button className="button-jcc" onClick={this.doneClicked.bind(this)}>Done</Button>
+            <div className="goal-settings-panel-outer-container">
+                <div className="goal-settings-panel-container">
+                    <div className="goal-settings-label">Goal:</div>
+                    <div className="goal-settings-input">{goalIndex}</div>
+                    <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-label">Bot:</div>
+                    <div className="goal-settings-input">{botId}</div>
+                    <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-label task-label">Task:</div>
+                    <TaskSettingsPanel 
+                        task={goal.task}
+                        map={this.props.map}
+                        location={goal.location}
+                        onChange={task => {
+                            goal.task = task
+                            this.props.onChange?.()
+                        }}
+                    />
+                    <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-button-container">
+                        <button className="goal-settings-btn" onClick={this.cancelClicked.bind(this)}>Cancel</button>
+                        <button className="goal-settings-btn" onClick={this.doneClicked.bind(this)}>Done</button>
+                    </div>
                 </div>
-
             </div>
-        </div>
+
         )
     }
 
@@ -81,5 +77,4 @@ export class GoalSettingsPanel extends React.Component {
 
         this.props.onClose?.()
     }
-
 }

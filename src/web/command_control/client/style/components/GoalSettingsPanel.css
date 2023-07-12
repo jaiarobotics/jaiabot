@@ -1,0 +1,62 @@
+.goal-settings-panel-outer-container {
+  position: absolute;
+  top: 66px;
+  right: 66px;
+  
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 6px;
+
+  z-index: 100;
+}
+
+.goal-settings-panel-container {
+    display: grid;
+    grid-template-columns: min-content min-content;
+    gap: 12px;
+    padding: 24px;
+    background-color: #FFFFFF;
+    font-size: 1.1rem;
+}
+
+.goal-settings-label {
+  grid-column: 1 / 2;
+  font-weight: 600;
+}
+
+.task-label {
+  margin-top: 6px;
+}
+
+.goal-settings-input {
+  grid-column: 2 / 3;
+}
+
+.goal-settings-button-container {
+  grid-column: 1 / 3;
+
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.goal-settings-btn {
+  all: unset;
+  background-color: #D1D5DB;
+  color: #000000;
+  padding: 9px 12px;
+  border-radius: 6px;
+}
+
+.goal-settings-btn:hover {
+  cursor: pointer;
+}
+
+.goal-settings-line-break {
+  grid-column: 1 / 3;
+  height: 1px;
+  background-color: #D1D5DB;
+}
+
+.MuiFormControl-root > .MuiInputBase-root {
+  margin: 0;
+}
