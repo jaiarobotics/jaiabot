@@ -79,6 +79,7 @@ export function createMissionFeatures(
             )
             flagFeature.setProperties({
                 type: 'flag',
+                runNumber: runNumber,
                 isSelected: isSelected
             })            
             features.push(flagFeature)
