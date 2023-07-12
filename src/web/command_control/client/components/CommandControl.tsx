@@ -7,6 +7,7 @@ import { MissionLibraryLocalStorage } from './MissionLibrary'
 import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import RCControllerPanel from './RCControllerPanel'
+import RunInfoPanel from './RunInfoPanel'
 import { taskData } from './TaskPackets'
 import JaiaAbout from './JaiaAbout'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
@@ -32,12 +33,10 @@ import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { getLength as OlGetLength } from 'ol/sphere';
-import { Geometry, LineString, MultiLineString, LineString as OlLineString, Polygon } from 'ol/geom';
+import { Geometry, LineString, LineString as OlLineString } from 'ol/geom';
 import {
 	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
 } from 'ol/style';
-import { Select } from 'ol/interaction';
-import { fromLonLat } from "ol/proj"
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities';
 import { HubOrBot } from './HubOrBot'
@@ -76,10 +75,9 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
-import { Goal, HubStatus, BotStatus, TaskType, GeographicCoordinate, MissionPlan, CommandType, MissionStart, MovementType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent, MapEvent } from 'ol'
-import { PodStatus, PortalBotStatus, PortalHubStatus, isRemoteControlled, Metadata } from './shared/PortalStatus'
-import * as Styles from './shared/Styles'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { MapBrowserEvent } from 'ol'
+import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
@@ -116,13 +114,14 @@ var mapSettings = GlobalSettings.mapSettings
 
 interface Props {}
 
-enum PanelType {
+export enum PanelType {
 	NONE = 'NONE',
 	MISSION = 'MISSION',
 	ENGINEERING = 'ENGINEERING',
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
-	MAP_LAYERS = 'MAP_LAYERS'
+	MAP_LAYERS = 'MAP_LAYERS',
+	RUN_INFO = 'RUN_INFO'
 }
 
 export enum Mode {
@@ -198,7 +197,12 @@ interface State {
 	 * Incremented when podStatus is changed and needs a re-render
 	 */
 	podStatusVersion: number
-	metadata: Metadata
+	metadata: Metadata,
+	flagClickedInfo: {
+		runNum: number,
+		botId: number,
+		canDeleteRun: boolean
+	}
 }
 
 export default class CommandControl extends React.Component {
@@ -322,7 +326,12 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
-			centerLineString: null
+			centerLineString: null,
+			flagClickedInfo: {
+				runNum: -1,
+				botId: -1,
+				canDeleteRun: false
+			}
 		};
 
 		this.state.runList = {
@@ -1446,16 +1455,20 @@ export default class CommandControl extends React.Component {
 			// Clicked on flag
 			const isFlag = feature.get('type') === 'flag'
 			if (isFlag) {
-				const runNumber = feature.get('runNumber')
-				const runId = `run-${runNumber}`
+				const runNum = feature.get('runNumber')
+				const runId = `run-${runNum}`
 				const runList = this.getRunList()
 				const run = runList.runs[runId]
-
-				if (this.canEditMissionState(run)) {
-					this.deleteSingleRun(runNumber)
-				} else {
-					warning('Run cannot be deleted while in progress')
+				const flagClickedInfo = {
+					runNum: runNum,
+					botId: run.assigned,
+					canDeleteRun: this.canEditMissionState(run)
 				}
+
+				this.setState({ flagClickedInfo }, () => {
+					this.setVisiblePanel(PanelType.RUN_INFO)	
+				})
+
 				return false
 			}
 
@@ -1979,6 +1992,8 @@ export default class CommandControl extends React.Component {
 					}
 				}
 				return false
+			} else if (run.assigned === -1) {
+				return true
 			}
 			return false
 		}
@@ -2344,12 +2359,12 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		var visiblePanelElement: ReactElement
+		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
 			case PanelType.NONE:
 				visiblePanelElement = null
-				break;
+				break
 
 			case PanelType.MISSION:
 				visiblePanelElement = (
@@ -2364,7 +2379,7 @@ export default class CommandControl extends React.Component {
 					setEditRunMode={this.setEditRunMode.bind(this)}
 					/>
 				)
-				break;
+				break
 
 			case PanelType.ENGINEERING:
 				visiblePanelElement = (
@@ -2377,22 +2392,33 @@ export default class CommandControl extends React.Component {
 					control={this.takeControl.bind(this)} 
 					/>
 				)
-				break;
+				break
 
 			case PanelType.MISSION_SETTINGS:
 				visiblePanelElement = missionSettingsPanel
-				break;
+				break
 
 			case PanelType.MEASURE_TOOL:
 				visiblePanelElement = null
-				break;
+				break
 
 			case PanelType.MAP_LAYERS:
 				visiblePanelElement = (
 					<div id="mapLayers" />
 				)
-				break;
+				break
 
+			case PanelType.RUN_INFO:
+				visiblePanelElement = (
+					<RunInfoPanel
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						runNum={this.state.flagClickedInfo.runNum}
+						botId={this.state.flagClickedInfo.botId}
+						canDeleteRun={this.state.flagClickedInfo.canDeleteRun}
+						deleteRun={this.deleteSingleRun.bind(this)}
+					/>
+				)
+				break
 		}
 
 

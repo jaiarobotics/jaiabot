@@ -54,7 +54,6 @@ export class GoalSettingsPanel extends React.Component {
                     </div>
                 </div>
             </div>
-
         )
     }
 
