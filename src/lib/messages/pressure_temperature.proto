@@ -15,6 +15,7 @@ message PressureTemperatureData
     optional double temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
+    required string version = 3;
 }
 
 message PressureAdjustedData
