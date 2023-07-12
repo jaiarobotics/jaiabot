@@ -63,7 +63,6 @@ import { error, success, warning, info} from '../libs/notifications';
 // Don't use any third party css exept reset-css!
 import 'reset-css';
 import '../style/CommandControl.less';
-import '../style/jaia-about.css'
 
 const rallyPointRedIcon = require('../icons/rally-point-red.svg')
 const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
