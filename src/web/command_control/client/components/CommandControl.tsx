@@ -899,8 +899,8 @@ export default class CommandControl extends React.Component {
 		const zoomExtentWidth = 0.001 / 2 // Degrees
 		const bots = Object.values(this.getPodStatus().bots)
 
-		const lons = bots.map((bot) => { return bot.location.lon }).filter((lon) => { return lon })
-		const lats = bots.map((bot) => { return bot.location.lat }).filter((lat) => { return lat })
+		const lons = bots.map((bot) => { return bot.location?.lon })
+		const lats = bots.map((bot) => { return bot.location?.lat })
 
 		if (lons.length == 0 || lats.length == 0) return undefined
 
