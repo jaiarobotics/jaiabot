@@ -3,6 +3,7 @@ import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
+import { PanelType } from './CommandControl';
 import '../style/components/GoalSettingsPanel.css'
 
 interface Props {
@@ -10,9 +11,9 @@ interface Props {
     botId: number
     goalIndex: number
     goal: Goal
-    onClose: () => void
-    onChange: () => void
     map: Map
+    onChange: () => void
+    setVisiblePanel: (panelType: PanelType) => void
 }
 
 
@@ -58,11 +59,11 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     doneClicked() {
-        this.props.onClose?.()
+        this.props.setVisiblePanel(PanelType.NONE)
     }
 
     cancelClicked() {
-        var { goal } = this.props
+        const { goal } = this.props
 
         // Clear this goal
         Object.keys(goal).forEach((key: keyof Goal) => {
@@ -72,8 +73,7 @@ export class GoalSettingsPanel extends React.Component {
         // Copy items from our backup copy of the goal
         Object.assign(goal, this.oldGoal)
 
-        this.props.onChange?.()
-
-        this.props.onClose?.()
+        this.props.onChange()
+        this.props.setVisiblePanel(PanelType.NONE)
     }
 }

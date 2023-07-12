@@ -121,7 +121,8 @@ export enum PanelType {
 	MISSION_SETTINGS = 'MISSION_SETTINGS',
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	MAP_LAYERS = 'MAP_LAYERS',
-	RUN_INFO = 'RUN_INFO'
+	RUN_INFO = 'RUN_INFO',
+	GOAL_SETTINGS = 'GOAL_SETTINGS'
 }
 
 export enum Mode {
@@ -1428,7 +1429,7 @@ export default class CommandControl extends React.Component {
 					goalBeingEdited: goal,
 					goalBeingEditedBotId: botId,
 					goalBeingEditedGoalIndex: goalIndex
-				})
+				}, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
 				return false
 			}
 
@@ -2085,23 +2086,6 @@ export default class CommandControl extends React.Component {
 
 		const self = this
 
-		let goalSettingsPanel: ReactElement = null
-
-		if (goalBeingEdited) {
-			goalSettingsPanel = (
-				<GoalSettingsPanel 
-					map={map}
-					key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
-					botId={goalBeingEditedBotId}
-					goalIndex={goalBeingEditedGoalIndex}
-					goal={goalBeingEdited} 
-					onChange={() => this.setRunList(this.getRunList())} 
-					onClose={() => this.setState({goalBeingEdited: null})} 
-				/>
-			)
-		}
-
-
 		// Add mission generation form to UI if the survey polygon has changed.
 		let missionSettingsPanel: ReactElement
 		if (this.state.mode === Mode.MISSION_PLANNING) {
@@ -2419,6 +2403,18 @@ export default class CommandControl extends React.Component {
 					/>
 				)
 				break
+			case PanelType.GOAL_SETTINGS:
+				visiblePanelElement = (
+					<GoalSettingsPanel
+						map={map}
+						key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
+						botId={goalBeingEditedBotId}
+						goalIndex={goalBeingEditedGoalIndex}
+						goal={goalBeingEdited} 
+						onChange={() => this.setRunList(this.getRunList())} 
+						setVisiblePanel={this.setVisiblePanel.bind(this)} 
+					/>
+				)
 		}
 
 
@@ -2463,8 +2459,6 @@ export default class CommandControl extends React.Component {
 				</div>
 
 				{detailsBox}
-
-				{goalSettingsPanel}
 
 				{rcControllerPanel}
 
