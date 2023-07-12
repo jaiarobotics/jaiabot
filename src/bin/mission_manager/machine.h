@@ -1537,14 +1537,11 @@ struct UnpoweredAscent
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
-    void pitch(const EvVehiclePitch& ev);
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
-        boost::statechart::in_state_reaction<EvVehiclePitch, UnpoweredAscent,
-                                             &UnpoweredAscent::pitch>,
         boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
                                              &UnpoweredAscent::depth>>;
 
