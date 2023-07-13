@@ -6,7 +6,7 @@ set -e
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 # Install pre-requisites
-npm install --no-audit
+./install_dependencies.sh
 
 # Build messages and start server
 pushd server

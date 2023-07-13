@@ -115,14 +115,15 @@ module.exports = (env, argv) => [
           template : './public/index.html',
           favicon : './public/favicon.png'
         }),
-        new CopyWebpackPlugin(
-            [ './public/favicon.png', './public/manifest.json' ], {}),
+        new CopyWebpackPlugin({
+          patterns : [ './public/favicon.png', './public/manifest.json' ],
+          options : {}
+        }),
         new Dotenv({path : `./${argv.mode}.env`}),
         new webpack.HotModuleReplacementPlugin()
       ],
       optimization : optimizationConfig,
       performance : {hints : false},
-      watch : true,
       stats : 'minimal'
     },
 ];
