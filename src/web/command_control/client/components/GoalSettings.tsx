@@ -99,6 +99,16 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label">Bot:</div>
                     <div className="goal-settings-input">{botId}</div>
                     <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-move-container">
+                        <div className="goal-settings-label move-label">Tap To Move</div>
+                        <Toggle 
+                            checked={() => this.isChecked()}
+                            onClick={() => this.handleToggleClick()}
+                            label=''
+                            title='Click on map to move goal'
+                        />
+                    </div>
+                    <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label task-label">Task:</div>
                     <TaskSettingsPanel 
                         task={goal.task}
@@ -109,16 +119,6 @@ export class GoalSettingsPanel extends React.Component {
                             this.props.onChange?.()
                         }}
                     />
-                    <div className="goal-settings-line-break"></div>
-                    <div className="goal-settings-move-container">
-                        <div className="goal-settings-label move-label">Tap To Move</div>
-                        <Toggle 
-                            checked={() => this.isChecked()}
-                            onClick={() => this.handleToggleClick()}
-                            label=''
-                            title='Click on map to move goal'
-                        />
-                    </div>
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-button-container">
                         <button className="goal-settings-btn" onClick={this.cancelClicked.bind(this)}>Cancel</button>
