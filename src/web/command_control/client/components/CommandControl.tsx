@@ -1456,6 +1456,7 @@ export default class CommandControl extends React.Component {
 					goalBeingEditedBotId: botId,
 					goalBeingEditedGoalIndex: goalIndex
 				}, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
+				return false
 			}
 
 			// Clicked on a bot
