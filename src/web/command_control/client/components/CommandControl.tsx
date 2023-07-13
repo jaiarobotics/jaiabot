@@ -1410,11 +1410,15 @@ export default class CommandControl extends React.Component {
 			
 			// Check to make sure the waypoint is not part of an active run
 			const runs = this.state.runList.runs
+			let run: RunInterface = null
 			for (const runIndex of Object.keys(runs)) {
-				const run = runs[runIndex]
-				if (run.assigned === botId && !run.canEdit) {
-					warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
-					return
+				const testRun = runs[runIndex]
+				if (testRun.assigned === botId) {
+					run = testRun
+					if (!testRun.canEdit) {
+						warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
+						return false
+					}
 				}
 			}
 
@@ -1429,6 +1433,7 @@ export default class CommandControl extends React.Component {
 					goalBeingEditedBotId: botId,
 					goalBeingEditedGoalIndex: goalIndex
 				}, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
+				
 				return false
 			}
 
@@ -1472,10 +1477,26 @@ export default class CommandControl extends React.Component {
 				return false
 			}
 
-		} else {
-			this.addWaypointAtCoordinate(evt.coordinate)
-			return true
 		}
+		
+		if (this.state.goalBeingEdited) {
+			const botId = this.state.goalBeingEditedBotId
+			const goalNum = this.state.goalBeingEditedGoalIndex
+			const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
+			const runs = this.getRunList().runs
+			let run: RunInterface = null
+			for (const testRun of Object.values(runs)) {
+				if (testRun.assigned === botId) {
+					run = testRun 
+				}
+			}
+
+			if (this.state.goalBeingEdited?.moveWptMode) {	
+				run.command.plan.goal[goalNum -1].location = geoCoordinate
+				return
+			}
+		}
+		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 
 	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
@@ -2016,6 +2037,17 @@ export default class CommandControl extends React.Component {
 		return false
 	}
 
+	setMoveWptMode(canMoveWpt: boolean, botId: number, goalNum: number) {
+		let run: RunInterface = null
+		for (let testRun of Object.values(this.getRunList().runs)) {
+			if (testRun.assigned === botId) {
+				run = testRun
+				break
+			}
+		}
+		run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
+	}
+
 	/**
 	 * 
 	 * @returns Whether we should allow the user to open the survey tool panel
@@ -2411,7 +2443,8 @@ export default class CommandControl extends React.Component {
 						goalIndex={goalBeingEditedGoalIndex}
 						goal={goalBeingEdited} 
 						onChange={() => this.setRunList(this.getRunList())} 
-						setVisiblePanel={this.setVisiblePanel.bind(this)} 
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+						setMoveWptMode={this.setMoveWptMode.bind(this)} 
 					/>
 				)
 		}

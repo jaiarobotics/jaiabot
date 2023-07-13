@@ -1,4 +1,5 @@
 import React from 'react'
+import Toggle from './Toggle';
 import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
@@ -14,16 +15,53 @@ interface Props {
     map: Map
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
+    setMoveWptMode: (canMoveWptMode: boolean, botId: number, goalNum: number) => void
 }
 
+interface State {
+    isChecked: boolean
+}
 
 export class GoalSettingsPanel extends React.Component {
     props: Props
+    state: State
     oldGoal: Goal
 
     constructor(props: Props) {
         super(props)
+        this.state = {
+            isChecked: false
+        }
         this.oldGoal = deepcopy(props.goal)
+    }
+
+    handleToggleClick() {
+        const updatedIsChecked = !this.state.isChecked
+        this.setState({ isChecked: updatedIsChecked })
+        this.props.setMoveWptMode(updatedIsChecked, this.props.botId, this.props.goalIndex)
+    }
+
+    isChecked() {
+        return this.state.isChecked
+    }
+
+    doneClicked() {
+        this.props.setVisiblePanel(PanelType.NONE)
+    }
+
+    cancelClicked() {
+        const { goal } = this.props
+
+        // Clear this goal
+        Object.keys(goal).forEach((key: keyof Goal) => {
+            delete goal[key]
+        })
+
+        // Copy items from our backup copy of the goal
+        Object.assign(goal, this.oldGoal)
+
+        this.props.onChange()
+        this.props.setVisiblePanel(PanelType.NONE)
     }
 
     render() {
@@ -49,6 +87,16 @@ export class GoalSettingsPanel extends React.Component {
                         }}
                     />
                     <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-move-container">
+                        <div className="goal-settings-label move-label">Tap To Move</div>
+                        <Toggle 
+                            checked={() => this.isChecked()}
+                            onClick={() => this.handleToggleClick()}
+                            label=''
+                            title='Click on map to move goal'
+                        />
+                    </div>
+                    <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-button-container">
                         <button className="goal-settings-btn" onClick={this.cancelClicked.bind(this)}>Cancel</button>
                         <button className="goal-settings-btn" onClick={this.doneClicked.bind(this)}>Done</button>
@@ -56,24 +104,5 @@ export class GoalSettingsPanel extends React.Component {
                 </div>
             </div>
         )
-    }
-
-    doneClicked() {
-        this.props.setVisiblePanel(PanelType.NONE)
-    }
-
-    cancelClicked() {
-        const { goal } = this.props
-
-        // Clear this goal
-        Object.keys(goal).forEach((key: keyof Goal) => {
-            delete goal[key]
-        })
-
-        // Copy items from our backup copy of the goal
-        Object.assign(goal, this.oldGoal)
-
-        this.props.onChange()
-        this.props.setVisiblePanel(PanelType.NONE)
     }
 }
