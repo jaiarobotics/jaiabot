@@ -4,7 +4,7 @@ import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
-import { PanelType } from './CommandControl';
+import { MissionInterface, PanelType, RunInterface } from './CommandControl';
 import '../style/components/GoalSettingsPanel.css'
 
 interface Props {
@@ -13,9 +13,11 @@ interface Props {
     goalIndex: number
     goal: Goal
     map: Map
+    runList: MissionInterface
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, botId: number, goalNum: number) => void
+    canEditRunState: (run: RunInterface) => boolean
 }
 
 interface State {
@@ -64,8 +66,27 @@ export class GoalSettingsPanel extends React.Component {
         this.props.setVisiblePanel(PanelType.NONE)
     }
 
+    updatePanelVisibility() {
+        const runs = this.props.runList.runs
+        let run = null
+
+        for (const testRun of Object.values(runs)) {
+            if (testRun.assigned === this.props.botId) {
+                run = testRun
+            }
+        }
+
+        const canEditRun = run.canEdit
+
+        if (!canEditRun) {
+            this.props.setVisiblePanel(PanelType.NONE)
+        }
+    }
+
     render() {
         const { botId, goalIndex, goal } = this.props
+
+        this.updatePanelVisibility()
 
         return (
             <div className="goal-settings-panel-outer-container">

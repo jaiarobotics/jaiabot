@@ -16,10 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Missions } from '../Missions';
-import Switch from '@mui/material/Switch';
-import { Slider, FormGroup, FormControlLabel } from '@mui/material';
-import { alpha, styled } from '@mui/material/styles';
-import { amber } from '@mui/material/colors';
+import { Slider } from '@mui/material';
 import { deepcopy } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
@@ -45,7 +42,7 @@ export default class RunItem extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-          isChecked: true
+          isChecked: this.props.run.canEdit
         }
     }
 
