@@ -576,13 +576,19 @@ export default class JaiaMap {
                 const file = files.item(i)
                 var newLayer: VectorLayer<VectorSource>
 
-                switch (file.type) {
-                    case 'application/vnd.google-earth.kml+xml':
+                const fname = file.name
+                const fileNameExtension = fname.slice((fname.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase()
+
+                switch (fileNameExtension) {
+                    case 'kml':
                         newLayer = await layerFromKmlString(await file.text())
                         break;
-                    case 'application/vnd.google-earth.kmz':
+                    case 'kmz':
                         newLayer = await layerFromKmzString(await file.arrayBuffer())
                         break;
+                    default:
+                        alert(`Unknown file extension: ${fileNameExtension}`)
+                        continue;
                 }
 
                 // Set the layer's title for use in the layer switcher
