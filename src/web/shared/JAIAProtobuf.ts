@@ -437,6 +437,7 @@ export interface Goal {
     name?: string
     location?: GeographicCoordinate
     task?: MissionTask
+    moveWptMode?: boolean
 }
 
 export interface Recovery {
