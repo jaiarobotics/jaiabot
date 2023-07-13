@@ -1178,6 +1178,26 @@ export default class CommandControl extends React.Component {
 		this.setRunList(runList)
 	}
 
+	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
+		const botId = this.state.goalBeingEditedBotId
+		const goalNum = this.state.goalBeingEditedGoalIndex
+		const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
+		const runs = this.getRunList().runs
+		let run: RunInterface = null
+
+		for (const testRun of Object.values(runs)) {
+			if (testRun.assigned === botId) {
+				run = testRun 
+			}
+		}
+
+		if (this.state.goalBeingEdited?.moveWptMode) {	
+			run.command.plan.goal[goalNum -1].location = geoCoordinate
+			return true
+		}
+		return false
+	}
+
 	updateRallyPointFeatures() {
 		const source = layers.rallyPointLayer.getSource()
 		source.clear()
@@ -1483,22 +1503,10 @@ export default class CommandControl extends React.Component {
 		}
 		
 		if (this.state.goalBeingEdited) {
-			const botId = this.state.goalBeingEditedBotId
-			const goalNum = this.state.goalBeingEditedGoalIndex
-			const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
-			const runs = this.getRunList().runs
-			let run: RunInterface = null
-			for (const testRun of Object.values(runs)) {
-				if (testRun.assigned === botId) {
-					run = testRun 
-				}
-			}
-
-			if (this.state.goalBeingEdited?.moveWptMode) {	
-				run.command.plan.goal[goalNum -1].location = geoCoordinate
-				return
-			}
+			const didWaypointMove = this.clickToMoveWaypoint(evt)
+			if (didWaypointMove) { return }
 		}
+
 		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 

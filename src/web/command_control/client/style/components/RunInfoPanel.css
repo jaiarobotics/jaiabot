@@ -1,4 +1,4 @@
-.run-info-panel-outer-container {
+.run-info-panel-base-grid {
     position: absolute;
     top: 66px;
     right: 66px;
@@ -9,7 +9,7 @@
     z-index: 100;
   }
 
-  .run-info-test-container {
+  .run-info-layout-container {
     display: grid;
     grid-template-columns: 1fr;
     justify-items: center;
@@ -18,7 +18,7 @@
     background-color: #FFFFFF;
   }
 
-  .run-info-test-container-1 {
+  .run-info-outer-container {
     display: flex;
     flex-direction: column;
     align-items: center;

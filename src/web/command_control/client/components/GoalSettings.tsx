@@ -48,6 +48,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     doneClicked() {
+        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
     }
 
@@ -63,6 +64,7 @@ export class GoalSettingsPanel extends React.Component {
         Object.assign(goal, this.oldGoal)
 
         this.props.onChange()
+        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
     }
 
@@ -79,7 +81,7 @@ export class GoalSettingsPanel extends React.Component {
         const canEditRun = run.canEdit
 
         if (!canEditRun) {
-            this.props.setVisiblePanel(PanelType.NONE)
+            this.doneClicked()
         }
     }
 
