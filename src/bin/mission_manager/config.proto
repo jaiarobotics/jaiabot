@@ -19,6 +19,7 @@ message MissionManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
+    required int32 fleet_id = 9;
     required int32 bot_id = 10;
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
 
@@ -27,12 +28,16 @@ message MissionManager
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 
     // powered ascent motor on timeout
-    optional int32 powered_ascent_motor_on_timeout = 26
+    optional int32 powered_ascent_motor_on_timeout = 25
         [default = 5, (dccl.field).units = { base_dimensions: "T" }];
 
     // powered ascent motor off timeout
-    optional int32 powered_ascent_motor_off_timeout = 27
+    optional int32 powered_ascent_motor_off_timeout = 26
         [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // timeout on pre_powered descent to then transition to powered descent
+    optional int32 pre_powered_descent_timeout = 27
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 
     // safety timeout on powered descent to then transition to unpowered descent
     optional int32 powered_descent_timeout = 28
@@ -128,6 +133,10 @@ message MissionManager
     // Set to true if we want to not send goby files to hub during offload,
     // We instead would send a taskpacket file
     optional bool data_offload_only_task_packet_file = 62 [default = false];
+
+    required int32 hub_start_ip = 63 [default = 10];
+
+    required string class_b_network = 64 [default = "10.23"];
 
     enum EngineeringTestMode
     {

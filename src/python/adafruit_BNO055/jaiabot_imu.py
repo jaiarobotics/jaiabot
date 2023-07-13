@@ -8,6 +8,8 @@ from orientation import Orientation
 from imu import *
 from waves import Analyzer
 from threading import Thread
+from dataclasses import dataclass
+from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('jaiabot_imu')
@@ -39,36 +41,20 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
-        # Respond to anyone who sends us a packet
         try:
-            data = imu.getData()
-            log.debug(data)
+            # Deserialize the message
+            command = IMUCommand()
+            command.ParseFromString(data)
+            log.debug(f'Received command:\n{command}')
+
+            # Execute the command
+            if command.type == IMUCommand.TAKE_READING:
+                imu_data = imu.getData()
+                log.debug(imu_data)
+                sock.sendto(imu_data.SerializeToString(), addr)
+
         except Exception as e:
-            log.error(e)
-            continue
-        
-        if data is not None:
-            now = datetime.datetime.utcnow()
-            
-            # Use caluclated Euler angles from the quaternion
-            euler: Orientation = data.orientation
-            calibration_status = data.calibration_status
-            bot_rolled = int(abs(euler.roll) > 90) # Did we roll over?
-
-            # Wave analysis
-            significantWaveHeight = wave_analyzer.significantWaveHeight()
-            maxAcceleration = wave_analyzer.maxAcceleration()
-
-            try:
-                line = f'{now.strftime("%Y-%m-%dT%H:%M:%SZ")},{euler.to_string()},{data.linear_acceleration.to_string()},{data.gravity.to_string()},' \
-                    f'{calibration_status[0]},{calibration_status[1]},{calibration_status[2]},{calibration_status[3]},{bot_rolled},' \
-                    f'{significantWaveHeight:0.2f},{maxAcceleration:0.2f}'
-
-                log.debug('Sent: ' + line)
-
-                sock.sendto(line.encode('utf8'), addr)
-            except TypeError as e:
-                log.error(e)
+            log.warning(e)
 
 
 def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):

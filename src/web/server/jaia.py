@@ -51,6 +51,9 @@ class Interface:
     # ClientId that is currently in control
     controllingClientId = None
 
+    # MetaData
+    metadata = {}
+
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -128,6 +131,10 @@ class Interface:
                 packet = msg.task_packet
                 self.process_task_packet(packet)
 
+            if msg.HasField('device_metadata'):
+                metadata = protobufMessageToDict(msg.device_metadata)
+                self.metadata = metadata
+                
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
                 self.messages['info'] = 'Reconnected to jaiabot_web_portal'
@@ -211,8 +218,8 @@ class Interface:
                         }
                     }]
 
-            if 'tansit_speed' in single_waypoint_mission_dict:
-                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['tansit_speed']
+            if 'transit_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['transit_speed']
 
             if 'station_keep_speed' in single_waypoint_mission_dict:
                 command_dict['plan']['speeds']['stationkeep_outer'] = single_waypoint_mission_dict['station_keep_speed']
@@ -234,7 +241,7 @@ class Interface:
             return {'status': 'ok'}
         
         else:
-            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"tansit_speed": 2.5, "station_keep_speed": 0.5}'}
+            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"transit_speed": 2.5, "station_keep_speed": 0.5}'}
 
     def post_command_for_hub(self, command_for_hub_dict, clientId):
         command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
@@ -401,4 +408,7 @@ class Interface:
         if clientId != self.controllingClientId:
             logging.warning(f'Client {clientId} has taken control')
             self.controllingClientId = clientId
+
+    def get_Metadata(self):
+        return self.metadata
 

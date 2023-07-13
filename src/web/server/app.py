@@ -47,7 +47,6 @@ def getRoot():
 def JSONResponse(obj):
     return Response(json.dumps(obj), mimetype='application/json')
 
-
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
@@ -56,6 +55,9 @@ def getStatus():
 def getPackets():
     return JSONResponse(jaia_interface.get_task_packets())
 
+@app.route('/jaia/metadata', methods=['GET'])
+def getMetadata():
+    return JSONResponse(jaia_interface.get_Metadata())
 
 ####### Commands
 
@@ -64,32 +66,32 @@ def postCommand():
     response = jaia_interface.post_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/commandForHub', methods=['POST'])
+@app.route('/jaia/command-for-hub', methods=['POST'])
 def postCommandForHub():
     response = jaia_interface.post_command_for_hub(request.json, clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/takeControl', methods=['POST'])
+@app.route('/jaia/take-control', methods=['POST'])
 def postTakeControl():
     response = jaia_interface.post_take_control(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/allStop', methods=['POST'])
+@app.route('/jaia/all-stop', methods=['POST'])
 def postAllStop():
     response = jaia_interface.post_all_stop(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/allActivate', methods=['POST'])
+@app.route('/jaia/all-activate', methods=['POST'])
 def postAllActivate():
     response = jaia_interface.post_all_activate(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/nextTaskAll', methods=['POST'])
+@app.route('/jaia/next-task-all', methods=['POST'])
 def postNextTaskAll():
     response = jaia_interface.post_next_task_all(clientId=request.headers['clientId'])
     return JSONResponse(response)
 
-@app.route('/jaia/allRecover', methods=['POST'])
+@app.route('/jaia/all-recover', methods=['POST'])
 def postAllRecover():
     response = jaia_interface.post_all_recover(clientId=request.headers['clientId'])
     return JSONResponse(response)

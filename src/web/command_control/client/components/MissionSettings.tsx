@@ -5,18 +5,44 @@
 
 import React, { ReactElement } from 'react'
 import Button from '@mui/material/Button';
-import { BotStatus, DiveParameters, DriftParameters, Goal, TaskType } from './shared/JAIAProtobuf';
+import { BotStatus, DiveParameters, DriftParameters, GeographicCoordinate, Goal, MissionTask, TaskType } from './shared/JAIAProtobuf';
+import { GlobalSettings } from './Settings';
+import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
+import { TaskSettingsPanel } from './TaskSettingsPanel';
+import Map from 'ol/Map'
+import turf from '@turf/turf';
 
+// This panel passes its settings back through onMissionApply using this interface
+export interface MissionSettings {
+    endTask: MissionTask
+}
+
+export interface MissionParams {
+	missionType: 'editing' | 'polygon-grid' | 'lines' | 'exclusions'
+	numBots: number,
+	numGoals: number,
+	spacing: number,
+	orientation: number,
+	rallySpacing: number,
+	spArea: number,
+	spPerimeter: number,
+	spRallyStartDist: number,
+	spRallyFinishDist: number,
+	selectedBots: number[],
+	useMaxLength: boolean
+}
 
 interface Props {
-    goal: Goal
-    style: any
-    mission_params: any
-    bot_list?: {[key: string]: BotStatus}
+    map: Map
+    missionBaseGoal: Goal
+    missionEndTask: MissionTask
+    missionParams: MissionParams
+    botList?: {[key: string]: BotStatus}
+    centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
     onClose: () => void
     onChange?: () => void
-    onMissionApply: () => void
+    onMissionApply: (missionSettings: MissionSettings) => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
@@ -24,10 +50,10 @@ interface Props {
 }
 
 interface State {
-    goal: Goal
-    style: any
-    mission_params: any
-    bot_list?: {[key: string]: BotStatus}
+    missionBaseGoal: Goal
+    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
+    missionParams: MissionParams
+    botList?: {[key: string]: BotStatus}
 }
 
 
@@ -38,7 +64,6 @@ export class MissionSettingsPanel extends React.Component {
 
     onClose: () => void
     onChange?: () => void
-    onMissionApply: () => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
@@ -47,15 +72,14 @@ export class MissionSettingsPanel extends React.Component {
         super(props)
 
         this.state = {
-            goal: props.goal,
-            style: props.style,
-            mission_params: props.mission_params,
-            bot_list: props.bot_list
+            missionBaseGoal: props.missionBaseGoal,
+            missionEndTask: props.missionEndTask,
+            missionParams: props.missionParams,
+            botList: props.botList
         }
 
         this.onClose = props.onClose
         this.onChange = props.onChange
-        this.onMissionApply = props.onMissionApply
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
         this.onMissionChangeBotList = props.onMissionChangeBotList
         this.onTaskTypeChange = props.onTaskTypeChange
@@ -66,25 +90,22 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     render() {
+        const { map, centerLineString } = this.props
         let self = this
 
-        let taskOptionsPanel
-        let taskType = this.state.goal.task?.type
-        let missionType = this.state.mission_params?.mission_type
+        let missionType = this.state.missionParams?.missionType
 
-        switch (taskType) {
-            case 'DIVE':
-                taskOptionsPanel = this.diveOptionsPanel()
-                break;
-            case 'SURFACE_DRIFT':
-                taskOptionsPanel = this.driftOptionsPanel()
-                break;
-            default:
-                taskOptionsPanel = <div></div>
-                break;
+        const {missionBaseGoal, missionEndTask} = this.state
+
+        // Get the final location, if available
+        var finalLocation: GeographicCoordinate
+
+        if (centerLineString != null) {
+            const coordinates = centerLineString.geometry.coordinates
+            if (coordinates.length >= 2) {
+                finalLocation = getGeographicCoordinate(coordinates[1], map)
+            }
         }
-
-        let botListPanel
 
         return (
             <div className="MissionSettingsPanel">
@@ -117,41 +138,45 @@ export class MissionSettingsPanel extends React.Component {
                             </tr>
                             <tr hidden>
                                 <td>Bot Count</td>
-                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.mission_params.num_bots} onChange={this.changeMissionParameter.bind(this)} /></td>
-                            </tr>
-                            <tr>
-                                <td>Max Points per Bot</td>
-                                <td><input type="number" className="NumberInput" name="num_goals" defaultValue={this.state.mission_params.num_goals} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.missionParams.numBots} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             <tr>
                                 <td>Mission Spacing</td>
-                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.mission_params.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
+                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Rally Point Spacing</td>
-                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.mission_params.rally_spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
+                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
                             </tr>
                             <tr>
                                 <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.mission_params.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
+                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
                             </tr>
                             <tr hidden>
                                 <td>Use Max Line Length</td>
-                                <td><input type="checkbox" className="RadioInput" name="use_max_length" defaultValue={this.state.mission_params.use_max_length} onChange={this.changeMissionParameter.bind(this)} /></td>
+                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.missionParams.useMaxLength} onChange={this.changeMissionParameter.bind(this)} /></td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
-                    <hr/>
-                    Task
-                    <select name="GoalType" id="GoalType" onChange={evt => self.changeTaskType(evt.target.value as TaskType) } defaultValue={taskType ?? "NONE"}>
-                        <option value="NONE">None</option>
-                        <option value="DIVE">Dive</option>
-                        <option value="SURFACE_DRIFT">Surface Drift</option>
-                        <option value="STATION_KEEP">Station Keep</option>
-                    </select>
 
-                    { taskOptionsPanel }
+                    <hr/>
+                    {/* Settings for the goals to be used in this mission */}
+                    <TaskSettingsPanel task={missionBaseGoal.task} onChange={(task) => {
+                        missionBaseGoal.task = task
+                        self.setState({missionBaseGoal})
+                    }} />
+
+                    <hr/>
+                    {/* Settings for the final goal to be used at the end rally point */}
+                    <TaskSettingsPanel 
+                        title="End Task" 
+                        map={map} 
+                        location={finalLocation}
+                        task={missionEndTask} onChange={(missionEndTask) => {
+                            self.setState({missionEndTask})
+                        }} 
+                    />
 
                     <hr/>
                     <div className='HorizontalFlexbox'>
@@ -193,163 +218,15 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionParameter(evt: Event) {
-        let {mission_params} = this.state
+        var {missionParams} = this.state
 
         const target = evt.target as any
         const key = target.name
-        const value = target.value
+        const value = target.value as any
 
-        mission_params[key] = value
+        (missionParams as any)[key] = value
 
-        this.setState({mission_params})
-    }
-
-    changeTaskType(taskType: TaskType) {
-        let {goal} = this.state
-        let {style} = this.state
-
-        if (taskType === goal.task?.type) {
-            return
-        }
-
-        switch(taskType) {
-            case 'DIVE':
-                style = {
-
-                }
-
-                goal.task = {
-                    type: taskType,
-                    dive: {
-                        max_depth: 10,
-                        depth_interval: 10,
-                        hold_time: 0
-                    },
-                    surface_drift: {
-                        drift_time: 10
-                    }
-                }
-                break;
-            case 'SURFACE_DRIFT':
-                style = {
-
-                }
-
-                goal.task = {
-                    type: taskType,
-                    surface_drift: {
-                        drift_time: 30
-                    }
-                }
-                break;
-            case 'STATION_KEEP':
-                style = {
-
-                }
-
-                goal.task = {
-                    type: taskType
-                }
-                break;
-            case 'NONE':
-                style = {
-
-                }
-
-                goal.task = {
-                    type: taskType
-                }
-                break;
-            default:
-                style = {
-
-                }
-
-                goal.task = null
-                break;
-        }
-
-        this.setState({goal})
-        this.setState({style})
-        this.onTaskTypeChange?.()
-    }
-
-    diveOptionsPanel() {
-        let dive = this.state.goal.task.dive
-        let surface_drift = this.state.goal.task.surface_drift
-
-        return (
-            <div>
-                <table className="DiveParametersTable">
-                    <tbody>
-                    <tr>
-                        <td>Max Depth</td>
-                        <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={this.changeDiveParameter.bind(this)} /> m</td>
-                    </tr>
-                    <tr>
-                        <td>Depth Interval</td>
-                        <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={this.changeDiveParameter.bind(this)} /> m</td>
-                    </tr>
-                    <tr>
-                        <td>Hold Time</td>
-                        <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
-                    </tr>
-                    <tr>
-                        <td>Drift Time</td>
-                        <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDiveParameter.bind(this)} /> s</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        )
-    }
-
-    changeDiveParameter(evt: Event) {
-        let {goal} = this.state
-
-        const target = evt.target as any
-        const key = target.name as (keyof DiveParameters | keyof DriftParameters)
-        const value = target.value
-
-        if(key != "drift_time")
-        {
-            goal.task.dive[key] = value;
-        }
-        else
-        {
-            goal.task.surface_drift[key] = value;
-        }
-
-        this.setState({goal})
-    }
-
-    driftOptionsPanel() {
-        let surface_drift = this.state.goal.task.surface_drift
-
-        return (
-            <div>
-                <table className="DiveParametersTable">
-                    <tbody>
-                    <tr>
-                        <td>Drift Time</td>
-                        <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={this.changeDriftParameter.bind(this)} /> s</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        )
-    }
-
-    changeDriftParameter(evt: Event) {
-        let {goal} = this.state
-
-        const target = evt.target as any
-        const key = target.name as keyof DriftParameters
-        const value = target.value
-
-        goal.task.surface_drift[key] = value
-
-        this.setState({goal})
+        this.setState({missionParams})
     }
 
     closeClicked() {
@@ -361,47 +238,51 @@ export class MissionSettingsPanel extends React.Component {
             return
         }
 
-        this.onMissionApply?.()
+        const missionSettings: MissionSettings = {
+            endTask: this.state.missionEndTask
+        }
+
+        this.props.onMissionApply?.(missionSettings)
     }
 
     changeMissionBotSelection() {
         const selected = document.querySelectorAll('#mission-bot-selection option:checked')
-        const missionBots = Array.from(selected).map(el => (el as HTMLSelectElement).value);
+        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value));
         // let missionBots = document.getElementById('mission-bot-selection').val();
         // console.log(missionBots);
-        let {mission_params} = this.state;
-        mission_params.selected_bots = missionBots;
-        this.setState({mission_params});
+        let {missionParams} = this.state;
+        missionParams.selectedBots = missionBots;
+        this.setState({missionParams});
         this.onMissionChangeBotList?.()
     }
 
     changeMissionEditMode(missionEditMode: string) {
         // console.log(missionEditMode);
-        let {mission_params} = this.state;
+        let {missionParams} = this.state;
 
-        if (missionEditMode === mission_params?.mission_type) {
+        if (missionEditMode === missionParams?.missionType) {
             return
         }
 
         switch(missionEditMode) {
             case 'polygon-grid':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'lines':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'editing':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             case 'exclusions':
-                mission_params.mission_type = missionEditMode
+                missionParams.missionType = missionEditMode
                 break;
             default:
-                mission_params.mission_type = 'editing'
+                missionParams.missionType = 'editing'
                 break;
         }
 
-        this.setState({mission_params});
+        this.setState({missionParams});
 
         this.onMissionChangeEditMode?.()
 

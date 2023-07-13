@@ -4,9 +4,11 @@
 /* eslint-disable no-unused-vars */
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
+import { deepcopy } from './shared/Utilities';
 
+const MAX_RUNS: number = 99
 
-const hardcoded_goals: Goal[][] = [
+const hardcodedGoals: Goal[][] = [
     [
         {location: {lat: 41.66260,  lon: -71.27310 }},
         {location: {lat: 41.662350, lon: -71.273283}}
@@ -30,7 +32,7 @@ const hardcoded_goals: Goal[][] = [
 function commandWithGoals(botId: number | undefined, goals: Goal[]) {
     let millisecondsSinceEpoch = new Date().getTime();
 
-    const command: Command = {
+    let command: Command = {
         bot_id: botId,
         time: millisecondsSinceEpoch,
         type: CommandType.MISSION_PLAN,
@@ -63,16 +65,16 @@ export class Missions {
             }
 		}
 
-        for (let [index, goals] of hardcoded_goals.entries()) {
+        for (let [index, goals] of hardcodedGoals.entries()) {
             this.addRunWithGoals(-1, goals, mission['Mission-1']);
         }
 
         return mission
     }
 
-    static RCMode(botId: number, datum_location: GeographicCoordinate) {
+    static RCMode(botId: number, datumLocation: GeographicCoordinate) {
         let millisecondsSinceEpoch = new Date().getTime();
-        var command: Command = {}
+        let command: Command
         command = {
             bot_id: botId,
             time: millisecondsSinceEpoch,
@@ -82,7 +84,7 @@ export class Missions {
                 movement: MovementType.REMOTE_CONTROL,
                 recovery: {
                     recover_at_final_goal: false,
-                    location: datum_location
+                    location: datumLocation
                 }
             }
         }
@@ -98,9 +100,19 @@ export class Missions {
         return commandWithGoals(botId, goals)
     }
 
+    static isValidRunNumber(mission: MissionInterface) {
+        const isRunNumberLessThanMaxRuns = Object.keys(mission.runs).length < MAX_RUNS
+        if (!isRunNumberLessThanMaxRuns) {
+            alert(`Cannot create more than ${MAX_RUNS} runs for a single mission.`)
+        }
+        return isRunNumberLessThanMaxRuns
+    }
+
     static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -113,8 +125,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: Missions.commandWithWaypoints(botId, locations)
+            command: Missions.commandWithWaypoints(botId, locations),
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
@@ -125,6 +137,8 @@ export class Missions {
     static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -137,8 +151,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: commandWithGoals(botId, goals)
+            command: commandWithGoals(botId, deepcopy(goals)),
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
@@ -149,6 +163,8 @@ export class Missions {
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
+
+        if (!Missions.isValidRunNumber(mission)) { return }
         
         if(botsAssignedToRuns[botId] != null)
         {
@@ -163,8 +179,8 @@ export class Missions {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
-            editing: false,
-            command: command
+            command: command,
+            canEdit: true
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);

@@ -8,17 +8,28 @@ if [[ -z "${log_dir}" || ! -e "${log_dir}" ]]; then
     exit 1;
 fi
 
-additional_exclude_files=""
+echo "Bot log dir: ${log_dir}"
 
-if [ -n "$2" ]; then
-  additional_exclude_files="$2"
+hub_ip="$2"
+if [ -z "${hub_ip}" ]; then
+    hub_ip="hub0"
+    echo "No hub ip was set so using hub0 host"
 fi
+
+echo "Hub ip: ${hub_ip}"
+
+additional_exclude_files=""
+if [ -n "$3" ]; then
+  additional_exclude_files="$3"
+fi
+
+echo "Extra files to exclude: ${additional_exclude_files}"
 
 hub_id=${jaia_dataoffload_hub_id:-0}
 
 set -u
 
-nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude=${additional_exclude_files} --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@hub0:/var/log/jaiabot/bot_offload
+nice -n 10 rsync -aP --info=progress2 --no-inc-recursive --timeout=15 --exclude=${additional_exclude_files} --exclude='*.txt*' --exclude="*latest.goby" ${log_dir}/ jaia@${hub_ip}:/var/log/jaiabot/bot_offload
 
 # Set the path of the directory one level up
 parent_dir="${log_dir}/.."

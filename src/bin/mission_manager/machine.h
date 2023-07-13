@@ -85,6 +85,7 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
+STATECHART_EVENT(EvPrePoweredDescentComplete)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvPowerDescentSafety)
@@ -204,6 +205,7 @@ struct ConstantHeading;
 struct Dive;
 namespace dive
 {
+struct PrePoweredDescent;
 struct PoweredDescent;
 struct Hold;
 struct UnpoweredAscent;
@@ -489,11 +491,14 @@ struct MissionManagerStateMachine
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
-    void set_data_offload_command(const std::string& data_offload_command)
+    void set_hub_id(const int32_t& hub_id) { hub_id_ = hub_id; }
+    const int32_t& hub_id() { return hub_id_; }
+
+    void set_data_offload_exclude(const std::string& data_offload_exclude)
     {
-        data_offload_command_ = data_offload_command + " 2>&1";
+        data_offload_exclude_ = data_offload_exclude;
     }
-    const std::string& data_offload_command() { return data_offload_command_; }
+    const std::string& data_offload_exclude() { return data_offload_exclude_; }
 
   private:
     apps::MissionManager& app_;
@@ -530,7 +535,8 @@ struct MissionManagerStateMachine
     bool create_task_packet_file_{true};
     std::string task_packet_file_name_{""};
     std::string data_time_string_{""};
-    std::string data_offload_command_{cfg().data_offload_command()};
+    int32_t hub_id_{0};
+    std::string data_offload_exclude_{""};
 };
 
 struct PreDeployment
@@ -548,7 +554,8 @@ struct PreDeployment
     ~PreDeployment() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
+                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
 
 namespace predeployment
@@ -618,11 +625,10 @@ struct WaitForMissionPlan
     WaitForMissionPlan(typename StateBase::my_context c) : StateBase(c) {}
     ~WaitForMissionPlan() {}
 
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvMissionFeasible, Ready>,
-        boost::statechart::transition<EvMissionInfeasible,
-                                      WaitForMissionPlan> // maybe change to in_state_reaction?
-        >;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvMissionFeasible, Ready>,
+                         // maybe change to in_state_reaction?
+                         boost::statechart::transition<EvMissionInfeasible, WaitForMissionPlan>>;
 };
 
 struct Ready : boost::statechart::state<Ready, PreDeployment>,
@@ -635,8 +641,8 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
         if (mission_feasible_event)
         {
             const auto plan = mission_feasible_event->plan;
-            this->machine().set_mission_plan(plan,
-                                             true); // reset the datum on the initial mission
+            // reset the datum on the initial mission
+            this->machine().set_mission_plan(plan, true);
             if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
@@ -1401,9 +1407,9 @@ struct ConstantHeading
     goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
-struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
+struct Dive : boost::statechart::state<Dive, Task, dive::PrePoweredDescent>, AppMethodsAccess<Dive>
 {
-    using StateBase = boost::statechart::state<Dive, Task, dive::PoweredDescent>;
+    using StateBase = boost::statechart::state<Dive, Task, dive::PrePoweredDescent>;
 
     Dive(typename StateBase::my_context c);
     ~Dive();
@@ -1450,6 +1456,28 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
 };
 namespace dive
 {
+struct PrePoweredDescent
+    : boost::statechart::state<PrePoweredDescent, Dive>,
+      Notify<PrePoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<PrePoweredDescent, Dive>;
+    PrePoweredDescent(typename StateBase::my_context c);
+    ~PrePoweredDescent();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, PrePoweredDescent, &PrePoweredDescent::loop>,
+        boost::statechart::transition<EvPrePoweredDescentComplete, PoweredDescent>>;
+
+  private:
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime duration_{0 * boost::units::si::seconds};
+    // determines when to transition into powered descent
+    goby::time::SteadyClock::time_point pre_powered_descent_timeout_;
+};
+
 struct PoweredDescent
     : boost::statechart::state<PoweredDescent, Dive>,
       Notify<PoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT,
@@ -1852,7 +1880,7 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
-    std::string offload_command_{this->machine().data_offload_command()};
+    std::string offload_command_{cfg().data_offload_command() + " 2>&1"};
     uint32_t data_offload_percentage_{0};
 };
 

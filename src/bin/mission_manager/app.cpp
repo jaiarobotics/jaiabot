@@ -402,6 +402,9 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     // set environmental variable for dataoffload
     setenv("jaia_dataoffload_hub_id", std::to_string(hub_info.hub_id()).c_str(), 1 /*overwrite*/);
 
+    // Update current hub id
+    hub_id_ = hub_info.hub_id();
+
     glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
                               << " (modem id " << hub_info.modem_id() << ")" << std::endl;
 
@@ -591,6 +594,14 @@ void jaiabot::apps::MissionManager::loop()
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
+
+    // Check if we have a new hub
+    if (hub_id_ != machine_->hub_id())
+    {
+        glog.is_debug1() && glog << "hub_id_: " << hub_id_
+                                 << ", machine_->hub_id(): " << machine_->hub_id() << std::endl;
+        machine_->set_hub_id(hub_id_);
+    }
 
     // Send engineering status for hdop and pdop current requirements
     engineering_status.set_bot_id(cfg().bot_id());
@@ -816,6 +827,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             {
                 *out_command.mutable_plan()->mutable_recovery() =
                     initial_fragment.plan().recovery();
+            }
+
+            if (initial_fragment.plan().has_repeats())
+            {
+                out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
             }
 
             // Loop through fragments and all the waypoints in each
