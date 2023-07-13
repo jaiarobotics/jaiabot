@@ -43,7 +43,11 @@ module.exports = (env, argv) => [
       },
       module : {
         rules : [
-          {test : /\.tsx?$/, exclude : [ /node_modules/], use : [ 'ts-loader' ]},
+          {
+            test : /\.tsx?$/,
+            exclude : [ /node_modules/],
+            use : [ 'ts-loader' ]
+          },
           {
             test : /\.(js|jsx)$/,
             exclude : /node_modules/,
@@ -71,8 +75,7 @@ module.exports = (env, argv) => [
             }
           },
           {test : /\.css$/, use : [ 'style-loader', 'css-loader' ]},
-          {test : /\.(png|svg|jpg|jpeg|gif)$/, type : 'asset/resource'},
-          {
+          {test : /\.(png|svg|jpg|jpeg|gif)$/, type : 'asset/resource'}, {
             test : /\.less$/,
             use : [
               'style-loader', 'css-loader', {
@@ -118,6 +121,8 @@ module.exports = (env, argv) => [
         new webpack.HotModuleReplacementPlugin()
       ],
       optimization : optimizationConfig,
-      performance : {hints : false}
+      performance : {hints : false},
+      watch : true,
+      stats : 'minimal'
     },
 ];
