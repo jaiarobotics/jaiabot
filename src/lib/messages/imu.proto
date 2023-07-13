@@ -9,6 +9,8 @@ message IMUCommand
     enum IMUCommandType
     {
         TAKE_READING = 0;
+        START_WAVE_HEIGHT_SAMPLING = 1;
+        STOP_WAVE_HEIGHT_SAMPLING = 2;
     }
 
     required IMUCommandType type = 1;

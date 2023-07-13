@@ -53,6 +53,10 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 imu_data = imu.getData()
                 log.debug(imu_data)
                 sock.sendto(imu_data.SerializeToString(), addr)
+            elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
+                wave_analyzer.start_sampling()
+            elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
+                wave_analyzer.stop_sampling()
 
         except Exception as e:
             log.warning(e)
