@@ -409,6 +409,7 @@ export default class CommandControl extends React.Component {
 			missionPlanningLines: null,
 			centerLineString: null
 		});
+		this.setVisiblePanel(PanelType.NONE)
 	}
 
 	/**
@@ -2179,7 +2180,6 @@ export default class CommandControl extends React.Component {
 					onMissionChangeBotList={() => {
 						this.changeMissionBotList()
 					}}
-					areBotsAssignedToRuns={() => this.areBotsAssignedToRuns()}
 				/>
 			)
 		}
