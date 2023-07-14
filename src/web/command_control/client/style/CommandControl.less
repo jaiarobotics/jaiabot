@@ -256,6 +256,7 @@ td {
       margin-bottom: 16px;
       padding: 2px 8px;
       background-color: @cc-accordian-color;
+      overflow-x: auto;
     }
 
     .button-jcc {
@@ -1237,19 +1238,21 @@ div.hoverable:hover {
 .disconnection {
   display: flex;
   align-items: center;
-
-  top: 10pt;
-  right: 70pt;
-  width: 240pt;
+  gap: 12px;
 
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 330px;
+  height: 110px;
 
-  padding: 4pt;
+  padding: 12px;
 
   background-color: @error-color;
   color: @cc-text-color;
 
-  z-index: 12;
+  z-index: 100;
 }
 
 .icon {
