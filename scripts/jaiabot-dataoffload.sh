@@ -93,3 +93,6 @@ fi
 echo "Removing old log files..."
 # remove all logs older than 7 days
 find "${archive_dir}" -type f -mtime +7 -name '*' -execdir rm -v -f -- {} \;   
+
+echo "Cleanup and remove sym link directory"
+rmdir "${sym_dir}"
