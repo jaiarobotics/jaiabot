@@ -5,6 +5,8 @@
 
     background-color: rgba(0, 0, 0, 0.7);
     padding: 6px;
+
+    border: 2px solid #767d7d;
   
     z-index: 100;
   }

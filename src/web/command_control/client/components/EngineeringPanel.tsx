@@ -42,14 +42,11 @@ export default class EngineeringPanel extends React.Component {
     }
 
     render() {
-		let self = this
+		const self = this
 
 		return (
-			<div id="engineeringPanel" className="column-right">
-				<div className="panelsContainerVertical">
-					<div className="panel" >
-						<b>Engineering Panels (Beta)</b><br />						
-					</div>
+			<div id="engineeringPanel">
+					<div className="panel-heading">Engineering Panels (Beta)</div>
 					<div className="panel">
 						<Button className="button-jcc engineering-panel-btn" onClick={() => window.open("/jed/")}>
 							JaiaBot Engineer & Debug
@@ -70,8 +67,6 @@ export default class EngineeringPanel extends React.Component {
 					<QueryBotStatusPanel control={this.props.control} api={this.props.api} />
 
 					<ScanForBotPanel hubs={self.state.hubs} control={this.props.control} api={this.props.api} />
-
-				</div>
 			</div>
 		)
 
