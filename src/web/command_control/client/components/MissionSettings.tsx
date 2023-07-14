@@ -1,11 +1,6 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
-
-import React, { ReactElement } from 'react'
+import React from 'react'
 import Button from '@mui/material/Button';
-import { BotStatus, DiveParameters, DriftParameters, GeographicCoordinate, Goal, MissionTask, TaskType } from './shared/JAIAProtobuf';
+import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf';
 import { GlobalSettings } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
 import { TaskSettingsPanel } from './TaskSettingsPanel';
@@ -46,7 +41,6 @@ interface Props {
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
-    areBotsAssignedToRuns: () => boolean
 }
 
 interface State {
@@ -234,7 +228,8 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     applyMissionClicked() {
-        if (this.props.areBotsAssignedToRuns() && !confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+        if (!confirm('Adding this new mision will delete the current misison. If the current mission is saved, select OK')) {
+            this.props.onClose()
             return
         }
 
