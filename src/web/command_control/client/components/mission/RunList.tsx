@@ -3,7 +3,7 @@ import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
 import { PortalBotStatus } from '../shared/PortalStatus';
 import RunItem from './RunItem';
-import { MissionInterface } from '../CommandControl';
+import { MissionInterface, RunInterface } from '../CommandControl';
 import { mdiPlus, mdiDelete, mdiFolderOpen, mdiContentSave, mdiAutoFix } from '@mdi/js';
 import { Missions } from '../Missions'
 
