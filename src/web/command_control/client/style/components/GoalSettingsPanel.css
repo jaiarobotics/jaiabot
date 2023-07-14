@@ -6,7 +6,7 @@
   background-color: rgba(0, 0, 0, 0.7);
   padding: 6px;
 
-  z-index: 100;
+  z-index: 1;
 }
 
 .goal-settings-panel-container {
@@ -18,13 +18,24 @@
     font-size: 1.1rem;
 }
 
+.goal-settings-move-container {
+  grid-column: 1 / 3;
+  display: flex;
+  gap: 12px;
+}
+
 .goal-settings-label {
   grid-column: 1 / 2;
   font-weight: 600;
 }
 
-.task-label {
+.goal-settings-label.task-label {
   margin-top: 6px;
+}
+
+.goal-settings-label.move-label {
+  margin-top: 10px;
+  width: max-content;
 }
 
 .goal-settings-input {
@@ -60,4 +71,12 @@
 
 .MuiFormControl-root > .MuiInputBase-root {
   margin: 0;
+}
+
+.MuiFormControlLabel-root {
+  margin: 0 !important;
+}
+
+.MuiFormGroup-root {
+  margin: 0 !important;
 }
