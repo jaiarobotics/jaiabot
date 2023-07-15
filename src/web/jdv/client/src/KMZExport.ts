@@ -37,8 +37,8 @@ async function taskPacketToKMLPlacemarks(taskPacket: LogTaskPacket) {
     const dateString = formatter.format(date)
     const bot_id = taskPacket.bot_id
 
-    const diveIconUrl = 'files/diveIcon.png'
-    const driftArrowHeadUrl = 'files/driftArrowHead.png'
+    const diveIconUrl = 'file://files/diveIcon.png'
+    const driftArrowHeadUrl = 'file://files/driftArrowHead.png'
 
     const dive = taskPacket.dive
     if (dive != null && dive.depth_achieved != 0) {
