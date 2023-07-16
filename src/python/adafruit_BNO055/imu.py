@@ -6,6 +6,7 @@ from quaternion import Quaternion
 import logging
 import datetime
 from math import *
+from jaiabot.messages.imu_pb2 import IMUData
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
@@ -25,7 +26,7 @@ except NotImplementedError:
 
 
 @dataclass
-class IMUData:
+class IMUReading:
     orientation: Orientation
     linear_acceleration: Vector3
     linear_acceleration_world: Vector3
@@ -34,15 +35,43 @@ class IMUData:
     quaternion: Quaternion
 
 
-class IMU(Protocol):
+class IMU:
     def setup(self):
         pass
 
-    def getData(self) -> IMUData:
-        return IMUData()
+    def takeReading(self):
+        return IMUReading()
+
+    def getIMUData(self):
+        """Returns an IMUData protobuf object, suitable for sending over UDP
+
+        Returns:
+            IMUData: the reading as an IMUData
+        """
+        reading = self.takeReading()
+
+        imu_data = IMUData()
+        imu_data.euler_angles.heading = reading.orientation.heading
+        imu_data.euler_angles.pitch = reading.orientation.pitch
+        imu_data.euler_angles.roll = reading.orientation.roll
+
+        imu_data.linear_acceleration.x = reading.linear_acceleration.x
+        imu_data.linear_acceleration.y = reading.linear_acceleration.y
+        imu_data.linear_acceleration.z = reading.linear_acceleration.z
+
+        imu_data.gravity.x = reading.gravity.x
+        imu_data.gravity.y = reading.gravity.y
+        imu_data.gravity.z = reading.gravity.z
+
+        imu_data.calibration_status.sys = reading.calibration_status[0]
+        imu_data.calibration_status.gyro = reading.calibration_status[1]
+        imu_data.calibration_status.accel = reading.calibration_status[2]
+        imu_data.calibration_status.mag = reading.calibration_status[3]
+
+        return imu_data
 
 
-class Adafruit:
+class Adafruit(IMU):
 
     def __init__(self):
         if not physical_device_available:
@@ -66,7 +95,7 @@ class Adafruit:
             # Remap the axes of the IMU to match the physical placement in the JaiaBot (P2 in section 3.4 of the datasheet)
             self.sensor.axis_remap = (0, 1, 2, 1, 1, 0)
 
-    def getData(self):
+    def takeReading(self):
         if not self.is_setup:
             self.setup()
 
@@ -87,7 +116,7 @@ class Adafruit:
                 linear_acceleration_world = quaternion.apply(linear_acceleration)
                 gravity = Vector3(*gravity)
 
-                return IMUData(orientation=orientation, 
+                return IMUReading(orientation=orientation, 
                             linear_acceleration=linear_acceleration, 
                             linear_acceleration_world=linear_acceleration_world,
                             gravity=gravity,
@@ -97,9 +126,9 @@ class Adafruit:
         except OSError as e:
             self.is_setup = False
             raise e
+    
 
-
-class Simulator:
+class Simulator(IMU):
     wave_frequency: float
     wave_height: float
 
@@ -110,7 +139,7 @@ class Simulator:
     def setup(self):
         pass
 
-    def getData(self) -> IMUData:
+    def takeReading(self) -> IMUReading:
         t = datetime.datetime.now().timestamp()
         a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
         linear_acceleration = Vector3(0, 0, a_z)
@@ -118,7 +147,7 @@ class Simulator:
         quaternion = Quaternion(1, 0, 0, 0)
         linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-        return IMUData(orientation=quaternion.to_euler_angles(), 
+        return IMUReading(orientation=quaternion.to_euler_angles(), 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=Vector3(0, 0, 9.8),

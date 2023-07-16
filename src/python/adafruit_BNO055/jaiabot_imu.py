@@ -50,13 +50,17 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
-                imu_data = imu.getData()
+                imu_data = imu.getIMUData()
+
+                if wave_analyzer._sampling_for_wave_height:
+                    imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+
                 log.debug(imu_data)
                 sock.sendto(imu_data.SerializeToString(), addr)
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
-                wave_analyzer.start_sampling()
+                wave_analyzer.startSamplingForWaveHeight()
             elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
-                wave_analyzer.stop_sampling()
+                wave_analyzer.stopSamplingForWaveHeight()
 
         except Exception as e:
             log.warning(e)
@@ -66,10 +70,38 @@ def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):
     log.warning('Interactive mode.  Press ENTER to probe the IMU and WaveAnalyzer.')
 
     while True:
-        input()
-        log.warning(f'IMU data = {imu.getData()}')
-        log.warning(f'  significantWaveHeight = {wave_analyzer.significantWaveHeight()}')
-        log.warning(f'  maxAcceleration = {wave_analyzer.maxAcceleration()}')
+        print('''
+              Menu
+              ====
+              [Enter]    Sample the IMU
+              [w]        Start/Stop sampling for wave height
+              [b]        Start/Stop sampling for bottom type characterization''')
+        choice = input().lower()
+
+        if choice == 'w':
+            if wave_analyzer._sampling_for_wave_height:
+                wave_analyzer.stopSamplingForWaveHeight()
+            else:
+                wave_analyzer.startSamplingForWaveHeight()
+            print(f'Significant wave height enabled: {wave_analyzer._sampling_for_wave_height}')
+
+        elif choice == 'b':
+            if wave_analyzer._sampling_for_bottom_characterization:
+                wave_analyzer.stopSamplingForBottomCharacterization()
+            else:
+                wave_analyzer.startSamplingForBottomCharacterization()
+            print(f'Bottom characterization enabled: {wave_analyzer._sampling_for_bottom_characterization}')
+
+        else:
+            imu_data = imu.getIMUData()
+
+            if wave_analyzer._sampling_for_wave_height:
+                imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+
+            if wave_analyzer._sampling_for_bottom_characterization:
+                imu_data.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+            print(imu_data)
 
 
 if __name__ == '__main__':
@@ -86,14 +118,9 @@ if __name__ == '__main__':
 
 
     # Setup the wave analysis thread
-    SAMPLE_TIME = 30 # seconds
-    dt = 1 / args.frequency
-    N = int(SAMPLE_TIME / dt)
     log.info(f'Wave height sampling rate: {args.frequency} Hz')
-    log.info(f'Wave height sample time: {SAMPLE_TIME} sec')
 
-    analyzer = Analyzer(imu, N, dt)
-    analyzer.start()        
+    analyzer = Analyzer(imu, args.frequency)
 
     # Main loop
     if args.interactive:

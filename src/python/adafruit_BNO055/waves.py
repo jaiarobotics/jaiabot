@@ -34,21 +34,32 @@ def plotValues(values: Iterable[float], dt: float = 1.0):
 
 class TimeSeries:
     dt: float
-    values: List[float]
+    max_value_count: float
+    _values: List[float]
 
-    def __init__(self, dt: float, values: List[float]) -> None:
+    def __init__(self, dt: float, values: List[float] = [], max_value_count=1000) -> None:
         self.dt = dt
-        self.values = values
+        self._values = deepcopy(values)
+        self.max_value_count = max_value_count
+
+    def pushValue(self, value: float):
+        self._values.append(value)
+
+        if len(self._values) > self.max_value_count:
+            self._values.pop(0)
+
+    def clear(self):
+        self._values.clear()
 
     def plot(self):
-        plotValues(self.values, self.dt)
+        plotValues(self._values, self.dt)
 
-    def get_heights_from_accelerations(self):
+    def getHeightsFromAccelerations(self):
         speed = 0
         height = 0
         heights = []
 
-        accelerations = self.values
+        accelerations = self._values
 
         for accel in accelerations:
             speed += accel * self.dt
@@ -61,82 +72,91 @@ class TimeSeries:
         integral = TimeSeries(dt=self.dt, values=heights)
         return integral
 
-    def significant_wave_height(self):
-        if len(self.values) <= 1:
+    def significantWaveHeight(self):
+        if len(self._values) <= 1:
             return 0
 
         # Significant wave height is defined as 4 times standard deviation
-        return 4 * float(std(self.values))
+        return 4 * float(std(self._values))
 
 
 class Analyzer:
-    '''
-        This class ingests a series of accelerations, and returns:
-        a) the primary wave height amplitude and frequency
-        b) the maximum acceleration (for bottom type characterization)
-    '''
-
     acceleration_z: TimeSeries
     acceleration_mag: TimeSeries
 
     imu: IMU
-    max_points = 100
-    dt: float
+    max_points = 1000
+    sample_interval: float
 
     _thread: Thread
-    _lock: Lock
+    _sampling_for_wave_height = False
+    _sampling_for_bottom_characterization = False
+    _lock = Lock()
 
-    def __init__(self, imu: IMU, max_points: int, dt: float) -> None:
+    def __init__(self, imu: IMU, sample_frequency: float):
+        self.sample_interval = 1 / sample_frequency
+        self.acceleration_z = TimeSeries(dt=self.sample_interval)
+        self.acceleration_mag = TimeSeries(dt=self.sample_interval)
         self.imu = imu
-        self.max_points = max_points
-        self.dt = dt
-        self.acceleration_z = TimeSeries(dt=dt, values=[])
-        self.acceleration_mag = TimeSeries(dt=dt, values=[])
 
-        self._lock = Lock()
+        def run():
+            self._sampleLoop()
 
-
-    def start(self):
-        def do_wave_analysis():
-            while True:
-                sleep(self.dt)
-                reading = self.imu.getData()
-                if reading is not None:
-                    self.addAcceleration(reading.linear_acceleration_world)
-
-        self._thread = Thread(target=do_wave_analysis)
+        self._thread = Thread(target=run, name='acceleration-sampler')
         self._thread.daemon = True
         self._thread.start()
 
+    def _sampleLoop(self):
+        dt = self.sample_interval
 
-    def addAcceleration(self, acceleration: Vector3):
+        while True:
+            sleep(dt)
 
+            with self._lock:
+
+                if self._sampling_for_wave_height or self._sampling_for_bottom_characterization:
+                    reading = self.imu.takeReading()
+
+                    if reading is not None:
+                        if self._sampling_for_wave_height:
+                            self.acceleration_z.pushValue(reading.linear_acceleration_world.z)
+
+                        if self._sampling_for_bottom_characterization:
+                            self.acceleration_mag.pushValue(reading.linear_acceleration_world.magnitude())
+
+    # Wave Height
+    def startSamplingForWaveHeight(self):
         with self._lock:
-            self.acceleration_z.values.append(acceleration.z)
-            self.acceleration_mag.values.append(acceleration.magnitude())
+            self.acceleration_z.clear()
+            self._sampling_for_wave_height = True
 
-            if len(self.acceleration_z.values) > self.max_points:
-                self.acceleration_z.values.pop(0)
-                self.acceleration_mag.values.pop(0)
-
-
-    def significantWaveHeight(self):
-
+    def stopSamplingForWaveHeight(self):
         with self._lock:
-            acceleration_z = deepcopy(self.acceleration_z)
+            self.acceleration_z.clear()
+            self._sampling_for_wave_height = False
 
-        return acceleration_z.get_heights_from_accelerations().significant_wave_height()
-
-
-    def maxAcceleration(self) -> float:
-        '''Return the maximum acceleration amplitude acheived in the sample window'''
-
+    def getSignificantWaveHeight(self):
         with self._lock:
-            if len(self.acceleration_mag.values) < 1:
-                return 0
+            significantWaveHeight = self.acceleration_z.getHeightsFromAccelerations().significantWaveHeight()
+        
+        return significantWaveHeight
 
-            return max(self.acceleration_mag.values)
+    # Bottom characterization
+    def startSamplingForBottomCharacterization(self):
+        with self._lock:
+            self.acceleration_mag.clear()
+            self._sampling_for_bottom_characterization = True
 
+    def stopSamplingForBottomCharacterization(self):
+        with self._lock:
+            self.acceleration_mag.clear()
+            self._sampling_for_bottom_characterization = False
+
+    def getMaximumAcceleration(self):
+        with self._lock:
+            maxAcceleration = max(self.acceleration_mag._values)
+        
+        return maxAcceleration
 
     def debug(self):
 
@@ -144,9 +164,9 @@ class Analyzer:
             acceleration_z = deepcopy(self.acceleration_z)
 
         acceleration_z.plot()
-        acceleration_z.get_heights_from_accelerations().plot()
+        acceleration_z.getHeightsFromAccelerations().plot()
 
-        print(self.significantWaveHeight())
+        print(self.getSignificantWaveHeight())
 
 
 if __name__ == '__main__':
@@ -163,7 +183,7 @@ if __name__ == '__main__':
 
     ###
 
-    x = accelerations.get_heights_from_accelerations()
+    x = accelerations.getHeightsFromAccelerations()
     x.plot()
 
-    print(x.significant_wave_height())
+    print(x.significantWaveHeight())
