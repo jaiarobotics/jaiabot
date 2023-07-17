@@ -226,6 +226,7 @@ export default class JaiaMap {
                     opacity: 0.7,
                     zIndex: 2,
                     source: noaaEncSource,
+                    visible: false
                 }),
             ]
         })
