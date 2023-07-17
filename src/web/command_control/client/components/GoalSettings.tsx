@@ -1,5 +1,5 @@
 import React from 'react'
-import Toggle from './Toggle';
+import WptToggle from './WptToggle';
 import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
@@ -101,7 +101,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-move-container">
                         <div className="goal-settings-label move-label">Tap To Move</div>
-                        <Toggle 
+                        <WptToggle 
                             checked={() => this.isChecked()}
                             onClick={() => this.handleToggleClick()}
                             label=''

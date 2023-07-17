@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react'
-import { formatLatitude, formatLongitude, formatAttitudeAngle } from './shared/Utilities'
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EditModeToggle from './EditModeToggle';
+import { formatLatitude, formatLongitude, formatAttitudeAngle } from './shared/Utilities'
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop,
@@ -12,12 +13,12 @@ import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline,
 import Button from '@mui/material/Button';
 import { error, warning, info} from '../libs/notifications';
 import { GlobalSettings } from './Settings';
-import * as turf from '@turf/turf';
 import { JaiaAPI } from '../../common/JaiaAPI';
 import { Command, CommandType, HubCommandType, BotStatus, MissionState } from './shared/JAIAProtobuf';
 import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
-import { MissionInterface } from './CommandControl';
+import { MissionInterface, RunInterface } from './CommandControl';
 import { Missions } from './Missions'
+import * as turf from '@turf/turf';
 
 const rcMode = require('../icons/controller.svg') as string
 
@@ -419,19 +420,6 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-export interface BotDetailsProps {
-    bot: PortalBotStatus,
-    hub: PortalHubStatus,
-    api: JaiaAPI,
-    mission: MissionInterface,
-    isExpanded: DetailsExpandedState,
-    closeWindow: () => void,
-    takeControl: () => boolean,
-    deleteSingleMission: () => void,
-    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
-    isRCModeActive: (botId: number) => boolean
-}
-
 function addDropdownListener(targetClassName: string, parentContainerId: string) {
     const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
     dropdownContainers.forEach((dropdownElement: HTMLElement) => {
@@ -473,6 +461,23 @@ function adjustAccordionScrollPosition(parentContainerId: string, dropdownContai
             behavior: 'smooth'
         })
     }
+}
+
+export interface BotDetailsProps {
+    bot: PortalBotStatus,
+    hub: PortalHubStatus,
+    api: JaiaAPI,
+    mission: MissionInterface,
+    run: RunInterface,
+    isExpanded: DetailsExpandedState,
+    closeWindow: () => void,
+    takeControl: () => boolean,
+    deleteSingleMission: () => void,
+    setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
+    isRCModeActive: (botId: number) => boolean,
+    updateEditModeToggle: (run: RunInterface) => boolean,
+    isEditModeToggleDisabled: (run: RunInterface) => boolean,
+    toggleEditMode: (run: RunInterface) => boolean
 }
 
 export function BotDetailsComponent(props: BotDetailsProps) {
@@ -568,21 +573,33 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </div>
                     <h3 className="name">Click on the map to create goals</h3>
                     <div className="botDetailsToolbar">
-                        <Button className={disableButton(commands.stop, mission_state) ? "inactive button-jcc" : " button-jcc stopMission"} 
-                                disabled={disableButton(commands.stop, mission_state)} 
-                                onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
+                        <Button
+                            className={disableButton(commands.stop, mission_state) ? "inactive button-jcc" : " button-jcc stopMission"} 
+                            disabled={disableButton(commands.stop, mission_state)} 
+                            onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title="Stop Mission"/>
                         </Button>
-                        <Button className={disablePlayButton(bot, mission, commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
-                                    disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
-                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
-                                <Icon path={mdiPlay} title="Run Mission"/>
+                        <Button
+                            className={disablePlayButton(bot, mission, commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
+                            disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
+                            onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
+                            <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
-                                disabled={ disableClearRunButton(bot, mission) }
-                                onClick={() => { deleteSingleMission() }}>
+                        <Button 
+                            className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
+                            disabled={ disableClearRunButton(bot, mission) }
+                            onClick={() => { deleteSingleMission() }}>
                             <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
+
+                        <EditModeToggle 
+                            checked={props.updateEditModeToggle} 
+                            disabled={props.isEditModeToggleDisabled} 
+                            onClick={props.toggleEditMode}
+                            run={props.run}
+                            label="Edit"
+                            title="ToggleEditMode"
+                        />
                     </div>
                 </div>
                 <div id="botDetailsAccordionContainer" className="accordionParentContainer">
@@ -645,7 +662,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         >
                             <Typography>Commands</Typography>
                         </AccordionSummary>
-                        <AccordionDetails>
+                        <AccordionDetails className="botDetailsCommands">
 
                             <Button className={disableButton(commands.active, mission_state) ? "inactive button-jcc" : "button-jcc"} 
                                     disabled={disableButton(commands.active, mission_state)} 
@@ -677,7 +694,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
                                 onChange={(event, expanded) => {setDetailsExpanded("advancedCommands", expanded)}}
-                                className="nestedAccordionContainer accordionContainer"
+                                className="nestedAccordionContainer accordionContainer botDetailsAdvancedCommands"
                             >
                                 <AccordionSummary
                                     expandIcon={<ExpandMoreIcon />}
