@@ -1,49 +1,4 @@
-// Sizes
-@left-sidebar-initial-width: 0px;
-@status-bar-height: 0px;
-@control-corner-radius: 12px;
-@panel-corner-radius: 8px;
-@command-button-size: 50px;
-@command-button-padding: 8px;
-@command-button-margin: 8px;
-@map-button-size: 50px;
-@layout-margin: 0.5vw;
-@layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
-@rc-panel-height-px: 282.54px;
-
-// Colors
-@cc-background-color: white;
-@cc-text-color: black;
-@cc-accordian-color: #767d7d;
-@cc-accordian-text-color: white;
-@cc-details-text-color: white;
-@cc-maplayers-text-color: white;
-@selected-color: rgba(108, 214, 237, 0.7);
-@inactive-color: #4c4c47;
-
-@controlled-color: #ff601c;
-@tracked-color: #ff601c;
-@disconnected: gray;
-
-@good-color: #06c006;
-@warning-color: #d5d506;
-@error-color: #cc0505;
-
-@rc-active-color: mediumpurple;
-
-@overlay-background: rgba(0, 0, 0, 0.7);
-
-// Z-Index
-@map: 0;
-@column-right: 10;
-@engineering-panel: 11;
-@mission-settings: 11;
-@goal-settings: 11;
-@map-layers: 11;
-
-// Fonts
-@global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
-"Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+@import "util.less";
 
 /******** CSS Jaia Command & Control ********************/
 
@@ -301,6 +256,7 @@ td {
       margin-bottom: 16px;
       padding: 2px 8px;
       background-color: @cc-accordian-color;
+      overflow-x: auto;
     }
 
     .button-jcc {
@@ -1064,33 +1020,21 @@ td {
   }
 
   button.select-on-map {
-    display: block;
-    margin: 10pt auto 10pt auto;
+    all: unset;
     background-color: lightgreen;
-
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
   }
 
   button.select-on-map.clicking-map {
     background-color: yellow;
-  }
+  }  
 
-  .GoalSettingsPanel {
-    background-color: @cc-background-color;
-    color: @cc-text-color;
-    position: absolute;
-    right: @command-button-size + (2 * @command-button-padding);
-    top: @command-button-size + (2 * @command-button-padding);;
-    padding: 8pt;
-    border-radius: 8pt;
-  
-    .ConstantHeadingParametersTable {
-      td {
-        padding: 5pt;
-      }
-    }
-    
+  button.select-on-map:hover {
+    cursor: pointer;
   }
-  
 }
 
 .opacity(@opacity) {
@@ -1141,27 +1085,6 @@ td {
   text-align: right;
 }
 
-.GoalSettingsPanel {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
-  position: absolute;
-  right: @command-button-size + (2 * @command-button-padding);
-  top: @command-button-size + (2 * @command-button-padding);;
-  padding: 8pt;
-  border-radius: 8pt;
-  z-index: @goal-settings;
-}
-
-.goalSettingsHeader {
-  margin: auto;
-}
-
-#GoalType {
-  color: @cc-text-color;
-  margin: 8pt;
-  border-radius: 4pt;
-}
-
 .NumberInput {
   color: @cc-text-color;
   text-align: right;
@@ -1178,13 +1101,59 @@ td {
   max-width: 75pt;
 }
 
-table.DiveParametersTable > tbody > tr > td {
-  padding: 2pt;
-}
-
 table.MissionParametersTable > tbody > tr > td {
   padding: 2pt;
 }
+
+.TaskParametersTable tbody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.TaskParametersTable .task-param-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.TaskParametersTable > tbody > .task-param-container:first-child {
+  margin-top: 12px;
+}
+
+.TaskParametersTable .input-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  text-align: right;
+}
+
+.TaskParametersTable .input-row.dive-time,
+.TaskParametersTable .input-row.drift-time {
+  gap: 9px;
+}
+
+.input-row.constant-heading-time {
+  gap: 24px;
+}
+
+.input-row.constant-heading-speed {
+  gap: 5px;
+}
+
+.input-row.constant-heading-distance {
+  gap: 28px;
+}
+
+.TaskParametersTable .NumberInput {
+  all: unset;
+  width: 75px;
+  border: 1px solid #D1D5DB;
+  border-radius: 3px;
+  padding: 6px;
+}
+
 
 /******** CSS SAVING/LOADING MISSIONS ********************/
 
@@ -1269,19 +1238,21 @@ div.hoverable:hover {
 .disconnection {
   display: flex;
   align-items: center;
-
-  top: 10pt;
-  right: 70pt;
-  width: 240pt;
+  gap: 12px;
 
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 330px;
+  height: 110px;
 
-  padding: 4pt;
+  padding: 12px;
 
   background-color: @error-color;
   color: @cc-text-color;
 
-  z-index: 12;
+  z-index: 100;
 }
 
 .icon {
@@ -1380,6 +1351,13 @@ div.closeButton {
 
 /******** CSS Mission Planning *****************/
 
+.mission-panel-commands-container {
+  display: flex;
+  background-color: @cc-accordian-color;
+  margin: 12pt 8pt;
+  padding: 2pt 0;
+}
+
 .runItemInfo {
   position: relative;
   display: flex;
@@ -1400,12 +1378,4 @@ div.closeButton {
 
 #runList {
   margin: 10px;
-}
-
-.task-options {
-  margin-left: 10pt;
-
-  td {
-      padding: 5pt;
-  }
 }

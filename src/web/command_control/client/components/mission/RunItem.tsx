@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
+import Toggle from '../Toggle';
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import { PortalBotStatus } from '../shared/PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
@@ -15,10 +16,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Missions } from '../Missions';
-import Switch from '@mui/material/Switch';
-import { Slider, FormGroup, FormControlLabel } from '@mui/material';
-import { alpha, styled } from '@mui/material/styles';
-import { amber } from '@mui/material/colors';
+import { Slider } from '@mui/material';
 import { deepcopy } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
@@ -44,7 +42,7 @@ export default class RunItem extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-          isChecked: true
+          isChecked: this.props.run.canEdit
         }
     }
 
@@ -232,36 +230,14 @@ export default class RunItem extends React.Component {
         )
 
         // Create Edit Mode Toggle
-        // MUI Styling: mui.com/material-ui/react-switch
-        const AmberSwitch = styled(Switch)(({ theme }) => ({
-            '& .MuiSwitch-switchBase.Mui-checked': {
-              color: amber[600],
-              '&:hover': {
-                backgroundColor: alpha(amber[600], theme.palette.action.hoverOpacity),
-              },
-            },
-            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: amber[600],
-            },
-            '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
-                color: amber[300],
-            }        
-        }));
-
         editModeButton = (
-            <FormGroup>
-                <FormControlLabel 
-                    control={
-                        <AmberSwitch 
-                            checked={this.updateEditModeToggle()} 
-                            disabled={this.isEditModeToggleDisabled()} 
-                            onClick={() => this.toggleEditMode()}
-                        />
-                    }
-                    label="Edit" 
-                    title='Toggle Edit Mode'
-                />
-            </FormGroup>
+            <Toggle 
+                checked={this.updateEditModeToggle.bind(this)} 
+                disabled={this.isEditModeToggleDisabled.bind(this)} 
+                onClick={this.toggleEditMode.bind(this)}
+                label="Edit"
+                title="ToggleEditMode"
+            />
         )
 
         let plan = this.props.run.command.plan
