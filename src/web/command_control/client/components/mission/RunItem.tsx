@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
-import Toggle from '../Toggle';
+import EditModeToggle from '../EditModeToggle';
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import { PortalBotStatus } from '../shared/PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
@@ -25,6 +25,9 @@ interface Props {
     run: RunInterface
     mission: MissionInterface,
     setEditRunMode: (botIds: number[], canEdit: boolean) => void
+    updateEditModeToggle: (run: RunInterface) => boolean,
+    isEditModeToggleDisabled: (run: RunInterface) => boolean,
+    toggleEditMode: (run: RunInterface) => boolean
 }
 
 interface State {
@@ -45,57 +48,7 @@ export default class RunItem extends React.Component {
           isChecked: this.props.run.canEdit
         }
     }
-
-    toggleEditMode() {
-        const botId = this.props.run.assigned
-        const isChecked = !this.state.isChecked
-        this.props.setEditRunMode([botId], isChecked)
-        this.setState({ isChecked: isChecked })
-    }
-
-    updateEditModeToggle() {
-        if (!this.props.run.canEdit) {
-            return false
-        } else if (this.state.isChecked) {
-            return true
-        }
-        return false
-    }
-
-    isEditModeToggleDisabled() {
-        for (const bot of Object.values(this.props.bots)) {
-            const botId = this.props.run.assigned
-            if (botId === bot.bot_id) {
-                const missionState = bot.mission_state
-                for (const enabledMissionState of this.enabledMissionStates) {
-                    if (missionState.includes(enabledMissionState)) {
-                        return false
-                    }
-                }
-            }
-        }
-        if (this.state.isChecked) {
-            this.setState({isChecked: false})
-        }
-        return true
-    }
-
-    handleMissionStateChange() {
-        for (const bot of Object.values(this.props.bots)) {
-            const botId = this.props.run.assigned
-            if (botId === bot.bot_id) {
-                const missionState = bot.mission_state
-                for (const enabledMissionState of this.enabledMissionStates) {
-                    if (missionState.includes(enabledMissionState) && this.state.isChecked) {
-                        this.props.setEditRunMode([botId], true)
-                        return
-                    }
-                }
-                this.props.setEditRunMode([botId], false)
-            }
-        }
-    }
-
+    
     handleBotSelectionChange(event: SelectChangeEvent) {
         let value = Number(event.target.value)
 
@@ -122,8 +75,6 @@ export default class RunItem extends React.Component {
         let assignedLabel = ""
         let assignedOption = null
         this.botsNotAssigned = []
-
-        this.handleMissionStateChange()
 
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
@@ -161,7 +112,7 @@ export default class RunItem extends React.Component {
                         id="bot-assigned-select"
                         value={this.props.run.assigned.toString()}
                         label="Assign"
-                        disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
+                        disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
                         <MenuItem 
@@ -212,8 +163,8 @@ export default class RunItem extends React.Component {
         // Create Delete Button
         runDeleteButton = (
             <Button 
-                className={`button-jcc missionAccordian ${(this.isEditModeToggleDisabled() && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
-                disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
+                className={`button-jcc missionAccordian ${(this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
+                disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
                 onClick={(event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
@@ -231,10 +182,11 @@ export default class RunItem extends React.Component {
 
         // Create Edit Mode Toggle
         editModeButton = (
-            <Toggle 
-                checked={this.updateEditModeToggle.bind(this)} 
-                disabled={this.isEditModeToggleDisabled.bind(this)} 
-                onClick={this.toggleEditMode.bind(this)}
+            <EditModeToggle 
+                checked={this.props.updateEditModeToggle} 
+                disabled={this.props.isEditModeToggleDisabled} 
+                onClick={this.props.toggleEditMode}
+                run={this.props.run}
                 label="Edit"
                 title="ToggleEditMode"
             />

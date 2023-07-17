@@ -2,7 +2,7 @@ import React from 'react'
 import RunPanel from './RunPanel';
 import {JaiaAPI} from '../../../common/JaiaAPI'
 import { PortalBotStatus } from '../shared/PortalStatus';
-import { MissionInterface } from '../CommandControl';
+import { MissionInterface, RunInterface } from '../CommandControl';
 
 interface Props {
 	api: JaiaAPI,
@@ -12,7 +12,11 @@ interface Props {
 	saveMissionClick: any,
 	deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any,
-	setEditRunMode: (botIds: number[], canEdit: boolean) => void
+	setEditRunMode: (botIds: number[], canEdit: boolean) => void,
+	setEditModeToggle: (runNumber: number, isOn: boolean) => void
+	updateEditModeToggle: (run: RunInterface) => boolean,
+    isEditModeToggleDisabled: (run: RunInterface) => boolean,
+    toggleEditMode: (run: RunInterface) => boolean
 }
 
 export default class MissionControllerPanel extends React.Component {
@@ -42,6 +46,10 @@ export default class MissionControllerPanel extends React.Component {
 				deleteAllRunsInMission={self.props.deleteAllRunsInMission}
 				autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
 				setEditRunMode={self.props.setEditRunMode}
+				setEditModeToggle={self.props.setEditModeToggle}
+				updateEditModeToggle={self.props.updateEditModeToggle}
+				isEditModeToggleDisabled={self.props.isEditModeToggleDisabled}
+				toggleEditMode={self.props.toggleEditMode}
 			/>
 
 		return (

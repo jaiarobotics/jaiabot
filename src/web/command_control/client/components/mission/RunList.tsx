@@ -14,7 +14,11 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
+    setEditModeToggle: (runNumber: number, isOn: boolean) => void
+    updateEditModeToggle: (run: RunInterface) => boolean,
+    isEditModeToggleDisabled: (run: RunInterface) => boolean,
+    toggleEditMode: (run: RunInterface) => boolean
 }
 
 interface State {
@@ -45,7 +49,7 @@ export default class RunList extends React.Component {
                         className="button-jcc" 
                         id="add-run" 
                         onClick={() => {
-                            Missions.addRunWithWaypoints(-1, [], this.props.mission);
+                            Missions.addRunWithWaypoints(-1, [], this.props.mission, this.props.setEditModeToggle);
                         }}
                     >
                         <Icon path={mdiPlus} title="Add Run"/>
@@ -87,6 +91,9 @@ export default class RunList extends React.Component {
                                     run={value} 
                                     mission={self.props.mission}
                                     setEditRunMode={self.props.setEditRunMode}
+                                    updateEditModeToggle={self.props.updateEditModeToggle}
+                                    isEditModeToggleDisabled={self.props.isEditModeToggleDisabled}
+                                    toggleEditMode={self.props.toggleEditMode}
                                 />
                             </React.Fragment>
                         )
