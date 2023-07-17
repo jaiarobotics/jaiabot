@@ -3,16 +3,18 @@ import Switch from '@mui/material/Switch';
 import { FormGroup, FormControlLabel } from '@mui/material';
 import { amber } from '@mui/material/colors';
 import { alpha, styled } from '@mui/material/styles';
+import { RunInterface } from "./CommandControl";
 
 interface Props {
-    checked: () => boolean,
-    onClick: () => void,
-    disabled?: () => boolean
+    checked: (run: RunInterface) => boolean,
+    onClick: (run: RunInterface) => void,
+    disabled?: (run: RunInterface) => boolean,
+    run: RunInterface
     label: string,
     title: string
 }
 
-export default function Toggle(props: Props) {
+export default function EditModeToggle(props: Props) {
     // MUI Styling: mui.com/material-ui/react-switch
     const AmberSwitch = styled(Switch)(({ theme }) => ({
         '& .MuiSwitch-switchBase.Mui-checked': {
@@ -34,9 +36,9 @@ export default function Toggle(props: Props) {
             <FormControlLabel 
                 control={
                     <AmberSwitch 
-                        checked={props.checked()} 
-                        disabled={props.disabled ? props.disabled() : false} 
-                        onClick={() => props.onClick()}
+                        checked={props.checked(props.run)} 
+                        disabled={props.disabled ? props.disabled(props.run) : false} 
+                        onClick={() => props.onClick(props.run)}
                     />
                 }
                 label={props.label} 
