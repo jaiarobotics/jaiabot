@@ -5,23 +5,23 @@ import { PortalBotStatus } from '../shared/PortalStatus';
 import { MissionInterface, RunInterface } from '../CommandControl';
 
 interface Props {
-	api: JaiaAPI,
-	bots: {[key: number]: PortalBotStatus},
-	mission: MissionInterface,
-	loadMissionClick: any,
-	saveMissionClick: any,
-	deleteAllRunsInMission: any,
+    api: JaiaAPI,
+    bots: {[key: number]: PortalBotStatus},
+    mission: MissionInterface,
+    loadMissionClick: any,
+    saveMissionClick: any,
+    deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any,
-	setEditRunMode: (botIds: number[], canEdit: boolean) => void,
-	setEditModeToggle: (runNumber: number, isOn: boolean) => void
-	updateEditModeToggle: (run: RunInterface) => boolean,
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
+    setEditModeToggle: (runNumber: number, isOn: boolean) => void
+    updateEditModeToggle: (run: RunInterface) => boolean,
     isEditModeToggleDisabled: (run: RunInterface) => boolean,
     toggleEditMode: (run: RunInterface) => boolean
 }
 
 export default class MissionControllerPanel extends React.Component {
-	api: JaiaAPI
-	props: Props
+    api: JaiaAPI
+    props: Props
 
     constructor(props: Props) {
         super(props)

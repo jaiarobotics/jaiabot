@@ -2076,18 +2076,18 @@ export default class CommandControl extends React.Component {
 		run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 	}
 
-	setEditModeToggle(runNumber: number, isOn: boolean) {
-		const editModeToggleStatus = this.state.editModeToggleStatus
-		editModeToggleStatus[runNumber] = isOn
-		this.setState({ editModeToggleStatus })
-	}
+    setEditModeToggle(runNumber: number, isOn: boolean) {
+        const editModeToggleStatus = this.state.editModeToggleStatus
+        editModeToggleStatus[runNumber] = isOn
+        this.setState({ editModeToggleStatus })
+    }
 
-	updateEditModeToggle(run: RunInterface) {
-		if (!run?.assigned) {
-			return false
-		}
+    updateEditModeToggle(run: RunInterface) {
+        if (!run?.assigned) {
+            return false
+        }
 
-		const botId = run.assigned
+        const botId = run.assigned
         if (!run.canEdit) {
             return false
         } else if (this.state.editModeToggleStatus[botId]) {
@@ -2108,15 +2108,15 @@ export default class CommandControl extends React.Component {
         return true
     }
 
-	toggleEditMode(run: RunInterface) {
-		if (!run?.assigned) {
-			return
-		}
+    toggleEditMode(run: RunInterface) {
+        if (!run?.assigned) {
+            return
+        }
 
-		const editModeToggleStatus = this.state.editModeToggleStatus
+        const editModeToggleStatus = this.state.editModeToggleStatus
         const isChecked = !editModeToggleStatus[run.assigned]
         this.setEditRunMode([run.assigned], isChecked)
-		editModeToggleStatus[run.assigned] = isChecked
+        editModeToggleStatus[run.assigned] = isChecked
         this.setState({ editModeToggleStatus })
     }
 
