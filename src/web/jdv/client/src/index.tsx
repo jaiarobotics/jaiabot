@@ -2,6 +2,7 @@ import {
   mdiClose,
   mdiContentSave,
   mdiDownload,
+  mdiUpload,
   mdiFolderOpen,
   mdiPlus,
   mdiTrashCan
@@ -128,6 +129,9 @@ class LogApp extends React.Component {
 
                     <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                       <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>KML
+                    </button>
+                    <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                      <Icon path={mdiUpload} size={1} style={{verticalAlign: "middle"}}></Icon>KML
                     </button>
                     <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
                       <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
