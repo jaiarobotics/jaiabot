@@ -573,21 +573,33 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     </div>
                     <h3 className="name">Click on the map to create goals</h3>
                     <div className="botDetailsToolbar">
-                        <Button className={disableButton(commands.stop, mission_state) ? "inactive button-jcc" : " button-jcc stopMission"} 
-                                disabled={disableButton(commands.stop, mission_state)} 
-                                onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
+                        <Button
+                            className={disableButton(commands.stop, mission_state) ? "inactive button-jcc" : " button-jcc stopMission"} 
+                            disabled={disableButton(commands.stop, mission_state)} 
+                            onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title="Stop Mission"/>
                         </Button>
-                        <Button className={disablePlayButton(bot, mission, commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
-                                    disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
-                                    onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
-                                <Icon path={mdiPlay} title="Run Mission"/>
+                        <Button
+                            className={disablePlayButton(bot, mission, commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
+                            disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
+                            onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
+                            <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
-                        <Button className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
-                                disabled={ disableClearRunButton(bot, mission) }
-                                onClick={() => { deleteSingleMission() }}>
+                        <Button 
+                            className={ disableClearRunButton(bot, mission) ? "inactive button-jcc" : "button-jcc" }
+                            disabled={ disableClearRunButton(bot, mission) }
+                            onClick={() => { deleteSingleMission() }}>
                             <Icon path={mdiDelete} title="Clear Mission"/>
                         </Button>
+
+                        <EditModeToggle 
+                            checked={props.updateEditModeToggle} 
+                            disabled={props.isEditModeToggleDisabled} 
+                            onClick={props.toggleEditMode}
+                            run={props.run}
+                            label="Edit"
+                            title="ToggleEditMode"
+                        />
                     </div>
                 </div>
                 <div id="botDetailsAccordionContainer" className="accordionParentContainer">
@@ -678,15 +690,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             </Button>
 
                             {dataOffloadButton}
-
-                            <EditModeToggle 
-                                checked={props.updateEditModeToggle} 
-                                disabled={props.isEditModeToggleDisabled} 
-                                onClick={props.toggleEditMode}
-                                run={props.run}
-                                label="Edit"
-                                title="ToggleEditMode"
-                            />
 
                             <Accordion 
                                 expanded={isExpanded.advancedCommands} 
