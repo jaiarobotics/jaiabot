@@ -28,6 +28,9 @@
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
 
+#include "jaiabot/messages/imu.pb.h"
+using jaiabot::protobuf::IMUCommand;
+
 namespace jaiabot
 {
 namespace groups
@@ -1125,6 +1128,7 @@ struct SurfaceDrift
     using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
     SurfaceDrift(typename StateBase::my_context c) : StateBase(c)
     {
+        // Stop the craft
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
         interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
@@ -1222,6 +1226,11 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+
+        // Start wave height sampling
+        auto imu_command = IMUCommand();
+        imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
+        this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
     }
 
     ~SurfaceDriftTaskCommon()
@@ -1259,6 +1268,11 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             // Set the wave height and period
             drift_packet().set_significant_wave_height(
                 this->machine().latest_significant_wave_height());
+
+            // Stop wave height sampling
+            auto imu_command = IMUCommand();
+            imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
+            this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
         }
     }
 
