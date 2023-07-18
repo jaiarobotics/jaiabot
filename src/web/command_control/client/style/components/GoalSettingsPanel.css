@@ -40,8 +40,20 @@
   width: max-content;
 }
 
+.goal-settings-label.coord-label {
+  margin-top: 7px;
+}
+
 .goal-settings-input {
   grid-column: 2 / 3;
+}
+
+.goal-settings-input.coord-input {
+  width: 102px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 3px;
+  border: 1px solid #9CA3AF;
 }
 
 .goal-settings-button-container {
