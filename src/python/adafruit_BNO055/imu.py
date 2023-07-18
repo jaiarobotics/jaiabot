@@ -74,6 +74,8 @@ class IMU:
 class Adafruit(IMU):
 
     def __init__(self):
+        log.info('Device: Adafruit')
+
         if not physical_device_available:
             log.error('No physical device available')
             exit(1)
@@ -133,6 +135,8 @@ class Simulator(IMU):
     wave_height: float
 
     def __init__(self, wave_frequency: float=1, wave_height: float=1):
+        log.info('Device: Simulator')
+
         self.wave_frequency = wave_frequency
         self.wave_height = wave_height
 

@@ -10,6 +10,8 @@ from waves import Analyzer
 from threading import Thread
 from dataclasses import dataclass
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
+from google.protobuf import text_format
+
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
@@ -50,82 +52,103 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
 
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
-                imu_data = imu.getIMUData()
+                imuData = imu.getIMUData()
 
                 if wave_analyzer._sampling_for_wave_height:
-                    imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+                    imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
 
-                log.debug(imu_data)
-                sock.sendto(imu_data.SerializeToString(), addr)
+                if wave_analyzer._sampling_for_bottom_characterization:
+                    imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+                log.debug(imuData)
+                sock.sendto(imuData.SerializeToString(), addr)
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
             elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.stopSamplingForWaveHeight()
+            elif command.type == IMUCommand.START_BOTTOM_TYPE_SAMPLING:
+                wave_analyzer.startSamplingForBottomCharacterization()
+            elif command.type == IMUCommand.STOP_BOTTOM_TYPE_SAMPLING:
+                wave_analyzer.stopSamplingForBottomCharacterization()
 
         except Exception as e:
             log.warning(e)
 
 
-def do_interactive_loop(imu: IMU, wave_analyzer: Analyzer):
-    log.warning('Interactive mode.  Press ENTER to probe the IMU and WaveAnalyzer.')
+def do_interactive_loop():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', 0)) # Port zero picks an available port
+
+    destinationAddress = ('localhost', args.port)
 
     while True:
         print('''
-              Menu
-              ====
-              [Enter]    Sample the IMU
-              [w]        Start/Stop sampling for wave height
-              [b]        Start/Stop sampling for bottom type characterization''')
-        choice = input().lower()
+    Menu
+    ====
+    [Enter]    Sample the IMU
+    [w]        Start sampling for wave height
+    [e]        Stop sampling for wave height
+    [s]        Start sampling for bottom type
+    [d]        Stop sampling for bottom type
+    
+    [x]        Exit
+    ''')
+        choice = input('Command >> ').lower()
+        print()
 
-        if choice == 'w':
-            if wave_analyzer._sampling_for_wave_height:
-                wave_analyzer.stopSamplingForWaveHeight()
-            else:
-                wave_analyzer.startSamplingForWaveHeight()
-            print(f'Significant wave height enabled: {wave_analyzer._sampling_for_wave_height}')
+        if choice == 'x':
+            exit()
 
-        elif choice == 'b':
-            if wave_analyzer._sampling_for_bottom_characterization:
-                wave_analyzer.stopSamplingForBottomCharacterization()
-            else:
-                wave_analyzer.startSamplingForBottomCharacterization()
-            print(f'Bottom characterization enabled: {wave_analyzer._sampling_for_bottom_characterization}')
+        commandTypeMap = {
+            'w': IMUCommand.START_WAVE_HEIGHT_SAMPLING,
+            'e': IMUCommand.STOP_WAVE_HEIGHT_SAMPLING,
+            's': IMUCommand.START_BOTTOM_TYPE_SAMPLING,
+            'd': IMUCommand.STOP_BOTTOM_TYPE_SAMPLING,
+            '': IMUCommand.TAKE_READING
+        }
 
-        else:
-            imu_data = imu.getIMUData()
+        imuCommand = IMUCommand()
 
-            if wave_analyzer._sampling_for_wave_height:
-                imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+        try:
+            imuCommand.type = commandTypeMap[choice]
+        except KeyError:
+            print(f'ERROR:  Unknown command "{choice}"\n')
+            continue
 
-            if wave_analyzer._sampling_for_bottom_characterization:
-                imu_data.max_acceleration = wave_analyzer.getMaximumAcceleration()
+        sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+        print(f'  SENT:\n{text_format.MessageToString(imuCommand, as_one_line=True)}')
+        print()
 
-            print(imu_data)
+        if imuCommand.type == IMUCommand.TAKE_READING:
+            # Wait for reading to come back...
+            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+            try:
+                # Deserialize the message
+                imuData = IMUData()
+                imuData.ParseFromString(data)
+                print(f'RECEIVED:\n{imuData}')
+                print()
+            except Exception as e:
+                print(e)
 
 
 if __name__ == '__main__':
-
     # Setup the sensor
-    imu: IMU
-
     if args.simulator:
-        log.info('Device: Simulator')
         imu = Simulator(wave_frequency=0.5, wave_height=1)
     else:
-        log.info('Device: Adafruit')
         imu = Adafruit()
 
-
     # Setup the wave analysis thread
-    log.info(f'Wave height sampling rate: {args.frequency} Hz')
-
     analyzer = Analyzer(imu, args.frequency)
+
+    # Start the thread that responds to IMUCommands over the port
+    portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
+    portThread.start()
 
     # Main loop
     if args.interactive:
-        loop = do_interactive_loop
+        do_interactive_loop()
     else:
-        loop = do_port_loop
-
-    loop(imu, analyzer)
+        portThread.join() # Just sit around until the port daemon thread finishes (which won't happen until process killed)

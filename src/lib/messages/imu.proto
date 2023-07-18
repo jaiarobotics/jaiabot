@@ -11,6 +11,8 @@ message IMUCommand
         TAKE_READING = 0;
         START_WAVE_HEIGHT_SAMPLING = 1;
         STOP_WAVE_HEIGHT_SAMPLING = 2;
+        START_BOTTOM_TYPE_SAMPLING = 3;
+        STOP_BOTTOM_TYPE_SAMPLING = 4;
     }
 
     required IMUCommandType type = 1;

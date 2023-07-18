@@ -11,6 +11,9 @@ from threading import Thread, Lock
 from time import sleep
 from copy import deepcopy
 from numpy.linalg import lstsq
+import logging
+
+log = logging.getLogger('jaiabot_imu')
 
 
 def filter_quadratic(values: Iterable):
@@ -94,6 +97,8 @@ class Analyzer:
     _lock = Lock()
 
     def __init__(self, imu: IMU, sample_frequency: float):
+        log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
+
         self.sample_interval = 1 / sample_frequency
         self.acceleration_z = TimeSeries(dt=self.sample_interval)
         self.acceleration_mag = TimeSeries(dt=self.sample_interval)
