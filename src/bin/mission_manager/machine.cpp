@@ -358,6 +358,11 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     dive_depths_.push_back(max_depth);
     dive_packet().set_depth_achieved(0);
     dive_packet().set_bottom_dive(false);
+
+    // Start bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -383,6 +388,11 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         while (dive_packet().measurement_size() > max_measurement_size)
             dive_packet().mutable_measurement()->RemoveLast();
     }
+
+    // Stop bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 }
 
 // Task::Dive::PrePoweredDescent
