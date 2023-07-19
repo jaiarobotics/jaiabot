@@ -44,8 +44,8 @@ interface LogAppProps {
 
 interface State {
   logs: Log[]
-  is_selecting_logs: boolean
-  chosen_logs: string[]
+  isSelectingLogs: boolean
+  chosenLogs: string[]
   plots: Plot[]
   layerSwitcherVisible: boolean
   plotNeedsRefresh: boolean
@@ -74,8 +74,8 @@ class LogApp extends React.Component {
 
     this.state = {
       logs: [],
-      is_selecting_logs: false,
-      chosen_logs : [],
+      isSelectingLogs: false,
+      chosenLogs : [],
       plots : [],
       layerSwitcherVisible: false,
       plotNeedsRefresh: false,
@@ -97,7 +97,10 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.is_selecting_logs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+
+    const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
+    const openLogsListString = chosenLogsFilenames.join(', ')
 
     return (
       <Router>
@@ -111,7 +114,7 @@ class LogApp extends React.Component {
 
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-            <div id="logList" className="padded">{this.state.chosen_logs.length} logs selected</div>
+            <div id="logList" className="padded">{openLogsListString}</div>
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -160,35 +163,35 @@ class LogApp extends React.Component {
   }
 
   selectLogButtonPressed(evt: Event) {
-    this.setState({is_selecting_logs: true})
+    this.setState({isSelectingLogs: true})
   }
 
   componentDidUpdate() {
     if (this.state.mapNeedsRefresh) {
-      if (this.state.chosen_logs.length > 0) {
+      if (this.state.chosenLogs.length > 0) {
         // Get map data
-        LogApi.get_map(this.state.chosen_logs).then((seriesArray) => {
+        LogApi.get_map(this.state.chosenLogs).then((seriesArray) => {
           this.map.setSeriesArray(seriesArray)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        LogApi.get_commands(this.state.chosen_logs).then((command_dict) => {
+        LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        LogApi.get_active_goal(this.state.chosen_logs).then((active_goal_dict) => {
+        LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        LogApi.get_task_packets(this.state.chosen_logs).then((task_packets) => {
+        LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        LogApi.get_depth_contours(this.state.chosen_logs).then((geoJSON) => {
+        LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
 
@@ -225,14 +228,14 @@ class LogApp extends React.Component {
 
   didSelectLogs(logs?: Log[]) {
     if (logs != null) {
-      this.setState({chosen_logs: logs, mapNeedsRefresh: true })
+      this.setState({chosenLogs: logs, mapNeedsRefresh: true })
     }
 
-    this.setState({is_selecting_logs: false})
+    this.setState({isSelectingLogs: false})
   }
 
   didSelectPaths(pathArray: string[]) {
-    LogApi.get_series(this.state.chosen_logs, pathArray)
+    LogApi.get_series(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
             let plots =
@@ -339,7 +342,7 @@ class LogApp extends React.Component {
 
   moosMessagesButton() {
     return (
-      <button className="padded" disabled={this.state.chosen_logs.length == 0} onClick={
+      <button className="padded" disabled={this.state.chosenLogs.length == 0} onClick={
         () => {
   
           const t_range = this.get_plot_range()
@@ -350,7 +353,7 @@ class LogApp extends React.Component {
   }
 
   open_moos_messages(time_range: number[]) {
-    LogApi.get_moos(this.state.chosen_logs, time_range)
+    LogApi.get_moos(this.state.chosenLogs, time_range)
   }
 
   // Plot Section
@@ -358,7 +361,7 @@ class LogApp extends React.Component {
     plotSection() {
       var actionBar: JSX.Element | null
 
-      if (this.state.chosen_logs.length > 0) {
+      if (this.state.chosenLogs.length > 0) {
         actionBar = <div className = "plotButtonBar"><
             button title = "Add Plot" className =
                 "plotButton" onClick = {this.addPlotClicked.bind(this)}><
@@ -397,8 +400,8 @@ class LogApp extends React.Component {
 
     var pathSelector: JSX.Element | null
     if (this.state.isPathSelectorDisplayed) {
-      pathSelector = <PathSelector logs = {this.state.chosen_logs} key =
-      {this.state.chosen_logs.join(',')} didSelectPath={ (path: string) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } />
+      pathSelector = <PathSelector logs = {this.state.chosenLogs} key =
+      {this.state.chosenLogs.join(',')} didSelectPath={ (path: string) => {this.didSelectPaths([path])} } didCancel={ () => {this.setState({isPathSelectorDisplayed: false})} } />
       } else {
         pathSelector = null
       }
