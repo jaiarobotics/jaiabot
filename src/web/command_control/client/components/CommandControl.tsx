@@ -1238,14 +1238,18 @@ export default class CommandControl extends React.Component {
 
 		const botIds: number[] = [];
 		const botIdsInIdleState: number[] = [];
+		const botIdsPoorHealth: number[] = [];
 		const runs = missions.runs;
 
 		Object.keys(runs).map(key => {
 			let botIndex = runs[key].assigned;
 			if (botIndex !== -1) {
-				let botState = this.getPodStatus().bots[botIndex]?.mission_state;
+				const botState = this.getPodStatus().bots[botIndex]?.mission_state;
+				const healthState = this.getPodStatus().bots[botIndex]?.health_state
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
+				} else if (healthState !== "HEALTH__OK") {
+					botIdsPoorHealth.push(botIndex)
 				} else {
 					botIds.push(botIndex);
 				}
@@ -1254,11 +1258,12 @@ export default class CommandControl extends React.Component {
 
 		botIds.sort()
 		botIdsInIdleState.sort();
+		botIdsPoorHealth.sort()
 
 		if (botIdsInIdleState.length !== 0) {
 			warning("Please activate bots: " + botIdsInIdleState);
 		} else {
-			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
+			if (confirm("Click the OK button to run this mission for Bots: " + botIds)) {
 				if (addRuns) {
 					this.deleteAllRunsInMission(missions);
 					Object.keys(addRuns).map(key => {
@@ -1268,13 +1273,16 @@ export default class CommandControl extends React.Component {
 
 				Object.keys(runs).map(key => {
 					const botIndex = runs[key].assigned;
-					if (botIndex !== -1) {
+					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex)) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
 						this.setEditRunMode([botIndex], false)
 					}
 				})
 				success("Submitted missions")
+				if (botIdsPoorHealth.length > 0) {
+					warning('Did not start runs for Bots: ' + botIdsPoorHealth + ' due to poor health.')
+				}
 			}
 		}
 	}
