@@ -10,12 +10,11 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void
+    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
 }
 
 
-interface State {
-}
+interface State {}
 
 export default class RunPanel extends React.Component {
 

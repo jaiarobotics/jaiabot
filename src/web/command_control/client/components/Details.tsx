@@ -148,6 +148,8 @@ let commandsForHub: {[key: string]: CommandInfo} = {
     }
 }
 
+const enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+
 export interface DetailsExpandedState {
     quickLook: boolean
     commands: boolean
@@ -288,14 +290,14 @@ function runMission(bot_id: number, mission: MissionInterface) {
  * @param bot 
  * @returns boolean
  */
-function disableButton(command: CommandInfo, mission_state: MissionState) {
+function disableButton(command: CommandInfo, missionState: MissionState) {
     let disable = true
     const statesAvailable = command.statesAvailable
     const statesNotAvailable = command.statesNotAvailable
     
     if (statesAvailable) {
         for (let stateAvailable of statesAvailable) {
-            if (stateAvailable.test(mission_state)) {
+            if (stateAvailable.test(missionState)) {
                 disable = false
                 break
             }
@@ -304,7 +306,7 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
 
     if (statesNotAvailable) {
         for (let stateNotAvailable of statesNotAvailable) {
-            if (stateNotAvailable.test(mission_state)) {
+            if (stateNotAvailable.test(missionState)) {
                 disable = true
                 break
             }
@@ -322,7 +324,6 @@ function disableButton(command: CommandInfo, mission_state: MissionState) {
  * @returns boolean
  */
 function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) {
-    const enabledStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     const missionState = bot?.mission_state
     let disable = true
 
@@ -336,7 +337,7 @@ function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) 
         return true
     }
 
-    enabledStates.forEach((enabledState) => {
+    enabledEditStates.forEach((enabledState) => {
         if (missionState.includes(enabledState)) {
             disable = false
         }
@@ -344,6 +345,24 @@ function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) 
 
     if (!disable) { return false }
     return true
+}
+
+function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, command: CommandInfo, missionState: MissionState) {
+    if (!mission.botsAssignedToRuns[bot.bot_id]) {
+        return true
+    }
+
+    if (disableButton(command, missionState)) {
+        return true
+    }
+
+    let inMission = true
+    for (const enabledState of enabledEditStates) {
+        if (missionState.includes(enabledState)) {
+            inMission = false
+        }
+    }
+    return inMission
 }
 
 function toggleRCModeButton(missionState: MissionState) {
@@ -554,8 +573,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title="Stop Mission"/>
                         </Button>
-                        <Button className={disableButton(commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
-                                    disabled={disableButton(commands.play, mission_state)} 
+                        <Button className={disablePlayButton(bot, mission, commands.play, mission_state) ? "inactive button-jcc" : "button-jcc"} 
+                                    disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
                                     onClick={() => { issueRunCommand(api, runMission(bot.bot_id, mission), bot.bot_id) }}>
                                 <Icon path={mdiPlay} title="Run Mission"/>
                         </Button>
