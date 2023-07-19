@@ -31,6 +31,8 @@ def get_file_lists():
 
 
 def create_archives(file_lists: Dict[str, str]):
+    os.makedirs(args.dest_dir, exist_ok=True)
+
     for archive_name in file_lists:
         zip_name = f'{args.dest_dir}/{archive_name}.zip'
 
