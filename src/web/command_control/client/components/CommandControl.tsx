@@ -160,7 +160,6 @@ interface State {
 	homeLocation?: GeographicCoordinate,
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
-	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -260,7 +259,6 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
-			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -1818,10 +1816,9 @@ export default class CommandControl extends React.Component {
 					activeGoalIndex,
 					isSelected,
 					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this),
 					runNumber,
-					zIndex)
+					zIndex
+				)
 				features.push(...missionFeatures)
 				zIndex += 1
 			}
@@ -1870,9 +1867,7 @@ export default class CommandControl extends React.Component {
 					activeMissionPlan,
 					bot.active_goal,
 					this.isBotSelected(Number(botId)),
-					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this)
+					canEdit
 				)
 				allFeatures.push(...features)
 			}
@@ -1883,19 +1878,6 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	/**
-	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
-	 * Only the features that are impacted by dragging a waypoint are re-created 
-	 * 
-	 * @param missionFeaturesUpdated 
-	 */
-	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
-		const missionSource = layers.missionLayer.getSource()
-		missionSource.clear()
-		missionSource.addFeatures(missionFeaturesUpdated)
-		this.setState({ missionFeatures: missionFeaturesUpdated })
-	}
-	
 	/**
 	 * 
 	 * @returns List of botIds from podStatus

@@ -37,6 +37,11 @@ export class GoalSettingsPanel extends React.Component {
         this.oldGoal = deepcopy(props.goal)
     }
 
+    componentWillUnmount() {
+        console.log('heyy')
+        this.doneClicked()
+    }
+
     handleToggleClick() {
         const updatedIsChecked = !this.state.isChecked
         this.setState({ isChecked: updatedIsChecked })
