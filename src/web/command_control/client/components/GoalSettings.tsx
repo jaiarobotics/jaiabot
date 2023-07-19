@@ -27,7 +27,8 @@ interface Props {
 
 interface State {
     isChecked: boolean,
-    pauseNumModif: boolean
+    pauseNumModif: boolean,
+    enterNegative: {[direction: string]: boolean}
 }
 
 export class GoalSettingsPanel extends React.Component {
@@ -40,6 +41,10 @@ export class GoalSettingsPanel extends React.Component {
         this.state = {
             isChecked: false,
             pauseNumModif: false,
+            enterNegative: {
+                'lat': false,
+                'lon': false
+            }
         }
         this.oldGoal = deepcopy(props.goal)
     }
@@ -93,8 +98,8 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     getCoordValue(coordType: LatLon, tempValue?: string) {
-        let max = coordType === 'lat' ? 90 : 180
-        let min = max * -1
+        const max = coordType === 'lat' ? 90 : 180
+        const min = max * -1
         let value = null
 
         if (
@@ -106,12 +111,17 @@ export class GoalSettingsPanel extends React.Component {
             return value
         }
 
+        if (this.state.enterNegative[coordType]) {
+            value = '-'
+            return value
+        }
+
         value = Math.round(this.props.goal.location[coordType] * 100000) / 100000
 
-        if (value > 90) {
-            return 90
-        } else if (value < -90) {
-            return -90
+        if (value > max) {
+            return max
+        } else if (value < min) {
+            return min
         } else {
             return value
         }
@@ -119,16 +129,25 @@ export class GoalSettingsPanel extends React.Component {
 
     handleCoordChange(e: ChangeEvent<HTMLInputElement>, coordType: LatLon) {
         const value = e.target.value
+        const max = coordType === 'lat' ? 90 : 180
+        const min = max * -1
+        const maxCharacterWidth = 10
 
         if (Number.isNaN(parseFloat(value))) {
             this.props.goal.location[coordType] = 0
             return
         }
 
-        if (value.slice(-1) === '.' || value.slice(-1) === '0') {
+        if (value.length < maxCharacterWidth && (value.slice(-1) === '.' || (value.slice(-1) === '0' && Number(value) > min && Number(value) < max))) {
             this.setState({ pauseNumModif: true }, () => this.getCoordValue(coordType, value))
+        } else if (value.slice(1, 2) === '-') {
+            const enterNegative = this.state.enterNegative
+            enterNegative[coordType] = true
+            this.setState({ enterNegative: enterNegative }, () => this.getCoordValue(coordType))
         } else {
-            this.setState({ pauseNumModif: false })
+            const enterNegative = this.state.enterNegative
+            enterNegative[coordType] = false
+            this.setState({ pauseNumModif: false, enterNegative }, () => this.getCoordValue(coordType))
             this.props.goal.location[coordType] = parseFloat(value)
         }
     }
