@@ -38,7 +38,6 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     componentWillUnmount() {
-        console.log('heyy')
         this.doneClicked()
     }
 
