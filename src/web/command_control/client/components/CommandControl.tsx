@@ -2000,6 +2000,7 @@ export default class CommandControl extends React.Component {
 	canEditAllBotsState() {
 		// Check that all bots are stopped or recovered
 		const bots = this.getPodStatus().bots
+		let canEditAll = true
 		
 		for (let bot of Object.values(bots)) {
 			const botMissionState = bot?.mission_state
@@ -2010,18 +2011,18 @@ export default class CommandControl extends React.Component {
 				if (botMissionState.includes(enabledState)) {
 					canEditState = true
 				}
-				if (this.state.editModeToggleStatus[bot.bot_id]) {
-					this.setEditRunMode([bot.bot_id], true)
-				}
 			})
 
-			if (canEditState) { 
-				return true 
+			if (!canEditState ) {
+				this.setEditRunMode([bot.bot_id], false)
+				canEditAll = false
 			}
 
-			this.setEditRunMode([bot.bot_id], false)
-			return false
+			if (this.state.editModeToggleStatus[bot.bot_id]) {
+				this.setEditRunMode([bot.bot_id], true)
+			}
 		}
+		return canEditAll
 	}
 
 	canEditRunState(run: RunInterface) {

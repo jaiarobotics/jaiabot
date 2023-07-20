@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { ChangeEvent } from 'react'
 import WptToggle from './WptToggle';
 import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
@@ -6,6 +6,11 @@ import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
 import { MissionInterface, PanelType, RunInterface } from './CommandControl';
 import '../style/components/GoalSettingsPanel.css'
+
+enum LatLon {
+    LAT = 'lat',
+    LON = 'lon'
+}
 
 interface Props {
     key: string // When this changes, React will create a new component
@@ -21,7 +26,9 @@ interface Props {
 }
 
 interface State {
-    isChecked: boolean
+    isChecked: boolean,
+    pauseNumModif: boolean,
+    enterNegative: {[direction: string]: boolean}
 }
 
 export class GoalSettingsPanel extends React.Component {
@@ -32,7 +39,12 @@ export class GoalSettingsPanel extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-            isChecked: false
+            isChecked: false,
+            pauseNumModif: false,
+            enterNegative: {
+                'lat': false,
+                'lon': false
+            }
         }
         this.oldGoal = deepcopy(props.goal)
     }
@@ -89,6 +101,61 @@ export class GoalSettingsPanel extends React.Component {
         }
     }
 
+    getCoordValue(coordType: LatLon, tempValue?: string) {
+        const max = coordType === 'lat' ? 90 : 180
+        const min = max * -1
+        let value = null
+
+        if (
+            this.state.pauseNumModif
+            && (this.props.goal.location[coordType] * 100000 / 100000) < max 
+            && (this.props.goal.location[coordType] * 100000 / 100000) > min
+        ) {
+            value = tempValue
+            return value
+        }
+
+        if (this.state.enterNegative[coordType]) {
+            value = '-'
+            return value
+        }
+
+        value = Math.round(this.props.goal.location[coordType] * 100000) / 100000
+
+        if (value > max) {
+            return max
+        } else if (value < min) {
+            return min
+        } else {
+            return value
+        }
+    }
+
+    handleCoordChange(e: ChangeEvent<HTMLInputElement>, coordType: LatLon) {
+        const value = e.target.value
+        const max = coordType === 'lat' ? 90 : 180
+        const min = max * -1
+        const maxCharacterWidth = 10
+
+        if (Number.isNaN(parseFloat(value))) {
+            this.props.goal.location[coordType] = 0
+            return
+        }
+
+        if (value.length < maxCharacterWidth && (value.slice(-1) === '.' || (value.slice(-1) === '0' && Number(value) > min && Number(value) < max))) {
+            this.setState({ pauseNumModif: true }, () => this.getCoordValue(coordType, value))
+        } else if (value.slice(1, 2) === '-') {
+            const enterNegative = this.state.enterNegative
+            enterNegative[coordType] = true
+            this.setState({ enterNegative: enterNegative }, () => this.getCoordValue(coordType))
+        } else {
+            const enterNegative = this.state.enterNegative
+            enterNegative[coordType] = false
+            this.setState({ pauseNumModif: false, enterNegative }, () => this.getCoordValue(coordType))
+            this.props.goal.location[coordType] = parseFloat(value)
+        }
+    }
+
     render() {
         const { botId, goalIndex, goal } = this.props
 
@@ -113,11 +180,16 @@ export class GoalSettingsPanel extends React.Component {
                         />
                     </div>
                     <div className="goal-settings-line-break"></div>
+                    <div className="goal-settings-label coord-label">Lat:</div>
+                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LAT)} onChange={(e) => this.handleCoordChange(e, LatLon.LAT)} />
+                    <div className="goal-settings-label coord-label">Lon:</div>
+                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LON)} onChange={(e) => this.handleCoordChange(e, LatLon.LON)} />
+                    <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label task-label">Task:</div>
                     <TaskSettingsPanel 
-                        task={goal.task}
+                        task={goal?.task}
                         map={this.props.map}
-                        location={goal.location}
+                        location={goal?.location}
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
