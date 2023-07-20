@@ -108,8 +108,8 @@ export class GoalSettingsPanel extends React.Component {
 
         if (
             this.state.pauseNumModif
-            && (this.props.goal.location[coordType] * 100000 / 100000) < max 
-            && (this.props.goal.location[coordType] * 100000 / 100000) > min
+            && (this.props.goal?.location[coordType] * 100000 / 100000) < max 
+            && (this.props.goal?.location[coordType] * 100000 / 100000) > min
         ) {
             value = tempValue
             return value
@@ -120,7 +120,7 @@ export class GoalSettingsPanel extends React.Component {
             return value
         }
 
-        value = Math.round(this.props.goal.location[coordType] * 100000) / 100000
+        value = Math.round(this.props.goal?.location[coordType] * 100000) / 100000
 
         if (value > max) {
             return max
