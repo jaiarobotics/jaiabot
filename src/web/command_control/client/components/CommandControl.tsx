@@ -160,7 +160,6 @@ interface State {
 	homeLocation?: GeographicCoordinate,
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
-	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -260,7 +259,6 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
-			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -1826,10 +1824,9 @@ export default class CommandControl extends React.Component {
 					activeGoalIndex,
 					isSelected,
 					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this),
 					runNumber,
-					zIndex)
+					zIndex
+				)
 				features.push(...missionFeatures)
 				zIndex += 1
 			}
@@ -1878,9 +1875,7 @@ export default class CommandControl extends React.Component {
 					activeMissionPlan,
 					bot.active_goal,
 					this.isBotSelected(Number(botId)),
-					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this)
+					canEdit
 				)
 				allFeatures.push(...features)
 			}
@@ -1891,19 +1886,6 @@ export default class CommandControl extends React.Component {
 		source.addFeatures(allFeatures)
 	}
 
-	/**
-	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
-	 * Only the features that are impacted by dragging a waypoint are re-created 
-	 * 
-	 * @param missionFeaturesUpdated 
-	 */
-	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
-		const missionSource = layers.missionLayer.getSource()
-		missionSource.clear()
-		missionSource.addFeatures(missionFeaturesUpdated)
-		this.setState({ missionFeatures: missionFeaturesUpdated })
-	}
-	
 	/**
 	 * 
 	 * @returns List of botIds from podStatus
@@ -2026,6 +2008,7 @@ export default class CommandControl extends React.Component {
 	canEditAllBotsState() {
 		// Check that all bots are stopped or recovered
 		const bots = this.getPodStatus().bots
+		let canEditAll = true
 		
 		for (let bot of Object.values(bots)) {
 			const botMissionState = bot?.mission_state
@@ -2036,18 +2019,18 @@ export default class CommandControl extends React.Component {
 				if (botMissionState.includes(enabledState)) {
 					canEditState = true
 				}
-				if (this.state.editModeToggleStatus[bot.bot_id]) {
-					this.setEditRunMode([bot.bot_id], true)
-				}
 			})
 
-			if (canEditState) { 
-				return true 
+			if (!canEditState ) {
+				this.setEditRunMode([bot.bot_id], false)
+				canEditAll = false
 			}
 
-			this.setEditRunMode([bot.bot_id], false)
-			return false
+			if (this.state.editModeToggleStatus[bot.bot_id]) {
+				this.setEditRunMode([bot.bot_id], true)
+			}
 		}
+		return canEditAll
 	}
 
 	canEditRunState(run: RunInterface) {
