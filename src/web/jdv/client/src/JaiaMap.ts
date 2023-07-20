@@ -525,9 +525,8 @@ export default class JaiaMap {
         const isSelected = false
         // Needed to satisy parameters in createMissionFeatures that are needed for dragging waypoints in the JCC but do not pertain to the JDV
         const canEdit = false
-        const existingMissionFeatures: Feature<Geometry>[] = []
 
-        const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, activeGoalIndex, isSelected, canEdit, existingMissionFeatures, this.processMissionFeatureDrag.bind(this))
+        const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, activeGoalIndex, isSelected, canEdit)
         this.missionVectorSource.addFeatures(missionFeatures)
     }
 

@@ -1,14 +1,11 @@
 import * as Styles from "./Styles"
 import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
-import { Geometry, LineString } from "ol/geom"
+import { LineString } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
-import { getGeographicCoordinate } from "./Utilities"
 import { transformTranslate, point } from "@turf/turf"
-import BaseEvent from "ol/events/Event"
-import Point from 'ol/geom/Point';
 
 export function createMissionFeatures(
     map: Map,
@@ -17,8 +14,6 @@ export function createMissionFeatures(
     activeGoalIndex: number,
     isSelected: boolean,
     canEdit: boolean,
-    existingMissionFeatures: Feature<Geometry>[],
-    dragProcessor: (updatedMissionFeatures: Feature<Geometry>[]) => void,
     runNumber?: string,
     zIndex?: number
 ) {
@@ -60,8 +55,6 @@ export function createMissionFeatures(
             type: 'wpt',
             isSelected: isSelected
         })
-
-        markerFeature.getGeometry().on('change', (evt: BaseEvent) => handleWaypointPositionChange(evt, markerFeature, map, plan, existingMissionFeatures, dragProcessor))
 
         features.push(markerFeature)
 
@@ -143,89 +136,4 @@ export function createMissionFeatures(
         }
     }
     return features
-}
-
-function handleWaypointPositionChange(
-    evt: BaseEvent,
-    markerFeature: Feature<Point>,
-    map: Map,
-    plan: MissionPlan,
-    existingMissionFeatures: Feature<Geometry>[],
-    dragProcessor: (updatedMissionFeatures: Feature<Geometry>[]) => void
-) {
-    if (!markerFeature.get('canEdit') || !markerFeature.get('isSelected')) {
-        return
-    }
-    const geometry = evt.target
-    const newCoordinatesRaw = geometry.flatCoordinates
-    const newCoordinatesAdjusted = getGeographicCoordinate(newCoordinatesRaw, map)
-    const goalNumber = markerFeature.get('goalIndex')
-    const waypointId = markerFeature.get('id')
-    // Update the location saved in the goals array so when updateMissionLayer() is called in CommandControl it does not reset the changes
-    plan.goal[goalNumber - 1].location = newCoordinatesAdjusted
-    const updatedMissionFeatures = updateDragFeaturePosition(map, plan, existingMissionFeatures, waypointId, newCoordinatesAdjusted)
-    // Triggers a layer update in CommandControl for the features impacted by dragging a waypoint
-    dragProcessor(updatedMissionFeatures)
-}
-
-function updateDragFeaturePosition(
-    map: Map,
-    plan: MissionPlan,
-    missionFeatures: Feature<Geometry>[],
-    waypointId: string,
-    newCoordinates: GeographicCoordinate
-) {
-    const missionFeaturesUpdated: Feature<Geometry>[] = []
-    const numOfWaypoints = plan.goal.length
-
-    for (let feature of missionFeatures) {
-        const featureId = feature.get('id')
-        const waypointNum = Number(waypointId.slice(4))
-        const lonLat = [newCoordinates.lon, newCoordinates.lat]
-        const coordinate = fromLonLat(lonLat, map.getView().getProjection())
-
-        // Make no changes
-        if (!feature.get('isSelected')) {}
-        // The iterated feature is the waypoint
-        else if (featureId === waypointId) {
-            feature.setGeometry(new Point(coordinate))
-        } 
-        // Move the flag if the first waypoint is being moved 
-        else if (waypointNum === 1 && feature.get('type') === 'flag') {
-            feature.setGeometry(new Point(coordinate))
-        } 
-        // If the first waypoint is being moved, adjust the start point of the line and hold the end point constant
-        else if (waypointNum === 1 && feature.get('id') === 'line-1') {
-            const startCoordinate = coordinate
-            const endCoordinate = feature.get('endCoordinate')
-            feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
-            feature.set('startCoordinate', coordinate)
-        } 
-        // If the last waypoint is being moved, adjust the end point of the line and hold the start point constant
-        else if (waypointNum === numOfWaypoints && feature.get('id') === `line-${numOfWaypoints - 1}`) {
-            const startCoordinate = feature.get('startCoordinate')
-            const endCoordinate = coordinate
-            feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
-            feature.set('endCoordinate', coordinate)
-        } 
-        // Perform the necessary line movements for dragging 'middle' waypoints
-        else if (waypointNum > 1 && waypointNum < numOfWaypoints) {
-            // Adjust the line that comes before the waypoint
-            if (feature.get('id') === `line-${Number(waypointId.slice(4)) - 1}`) {
-                const startCoordinate = feature.get('startCoordinate')
-                const endCoordinate = coordinate
-                feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
-                feature.set('endCoordinate', coordinate)
-            } 
-            // Adjust the line that comes after the waypoint
-            else if (feature.get('id') === `line-${Number(waypointId.slice(4))}`) {
-                const startCoordinate = coordinate
-                const endCoordinate = feature.get('endCoordinate')
-                feature.setGeometry(new LineString([startCoordinate, endCoordinate]))
-                feature.set('startCoordinate', coordinate)
-            }
-        }
-        missionFeaturesUpdated.push(feature)
-    }
-    return missionFeaturesUpdated
 }
