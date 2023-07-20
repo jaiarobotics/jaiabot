@@ -160,7 +160,6 @@ interface State {
 	homeLocation?: GeographicCoordinate,
 	rallyStartLocation?: GeographicCoordinate,
 	rallyEndLocation?: GeographicCoordinate,
-	missionFeatures: OlFeature<Geometry>[]
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -182,20 +181,17 @@ interface State {
 	saveMissionPanel?: ReactElement,
 	disconnectionMessage?: string,
 	runList: MissionInterface,
-	/**
-	 * Incremented when runList has changed and mission needs a re-render
-	 */
+	// Incremented when runList has changed and mission needs a re-render
 	runListVersion: number
 	undoRunListStack: MissionInterface[],
+	editModeToggleStatus: {[botId: number]: boolean},
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 	remoteControlValues: Engineering
 
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
 	podStatus: PodStatus
-	/**
-	 * Incremented when podStatus is changed and needs a re-render
-	 */
+	// Incremented when podStatus is changed and needs a re-render
 	podStatusVersion: number
 	metadata: Metadata,
 	flagClickedInfo: {
@@ -263,7 +259,6 @@ export default class CommandControl extends React.Component {
 			homeLocation: null,
 			rallyStartLocation: null,
 			rallyEndLocation: null,
-			missionFeatures: [],
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -319,6 +314,7 @@ export default class CommandControl extends React.Component {
 			runList: null,
 			runListVersion: 0,
 			undoRunListStack: [],
+			editModeToggleStatus: {},
 			remoteControlInterval: null,
 			remoteControlValues: {
 				bot_id: -1,
@@ -1152,7 +1148,7 @@ export default class CommandControl extends React.Component {
 		const botsAssignedToRuns = runList?.botsAssignedToRuns
 
 		if (!(botId in botsAssignedToRuns)) {
-			runList = Missions.addRunWithWaypoints(botId, [], runList);
+			runList = Missions.addRunWithWaypoints(botId, [], runList, this.setEditModeToggle.bind(this));
 		}
 
 		// Attempted to create a run greater than MAX_RUNS
@@ -1240,14 +1236,18 @@ export default class CommandControl extends React.Component {
 
 		const botIds: number[] = [];
 		const botIdsInIdleState: number[] = [];
+		const botIdsPoorHealth: number[] = [];
 		const runs = missions.runs;
 
 		Object.keys(runs).map(key => {
 			let botIndex = runs[key].assigned;
 			if (botIndex !== -1) {
-				let botState = this.getPodStatus().bots[botIndex]?.mission_state;
+				const botState = this.getPodStatus().bots[botIndex]?.mission_state;
+				const healthState = this.getPodStatus().bots[botIndex]?.health_state
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
+				} else if (healthState !== "HEALTH__OK") {
+					botIdsPoorHealth.push(botIndex)
 				} else {
 					botIds.push(botIndex);
 				}
@@ -1256,12 +1256,13 @@ export default class CommandControl extends React.Component {
 
 		botIds.sort()
 		botIdsInIdleState.sort();
+		botIdsPoorHealth.sort()
 
 		if (botIdsInIdleState.length !== 0) {
 			warning("Please activate bots: " + botIdsInIdleState);
 		} else {
-			if (confirm("Click the OK button to run this mission for bots: " + botIds)) {
-				if(addRuns) {
+			if (confirm("Click the OK button to run this mission for Bots: " + botIds)) {
+				if (addRuns) {
 					this.deleteAllRunsInMission(missions, true);
 					Object.keys(addRuns).map(key => {
 						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
@@ -1270,13 +1271,16 @@ export default class CommandControl extends React.Component {
 
 				Object.keys(runs).map(key => {
 					const botIndex = runs[key].assigned;
-					if (botIndex !== -1) {
+					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex)) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
 						this.setEditRunMode([botIndex], false)
 					}
 				})
 				success("Submitted missions")
+				if (botIdsPoorHealth.length > 0) {
+					warning('Did not start runs for Bots: ' + botIdsPoorHealth + ' due to poor health.')
+				}
 			}
 		}
 	}
@@ -1820,10 +1824,9 @@ export default class CommandControl extends React.Component {
 					activeGoalIndex,
 					isSelected,
 					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this),
 					runNumber,
-					zIndex)
+					zIndex
+				)
 				features.push(...missionFeatures)
 				zIndex += 1
 			}
@@ -1872,9 +1875,7 @@ export default class CommandControl extends React.Component {
 					activeMissionPlan,
 					bot.active_goal,
 					this.isBotSelected(Number(botId)),
-					canEdit,
-					this.state.missionFeatures,
-					this.processMissionFeatureDrag.bind(this)
+					canEdit
 				)
 				allFeatures.push(...features)
 			}
@@ -1886,24 +1887,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * Called by the the on 'change' event handler for waypoints in MissionFeatures.ts
-	 * Only the features that are impacted by dragging a waypoint are re-created 
-	 * 
-	 * @param missionFeaturesUpdated 
-	 */
-	processMissionFeatureDrag(missionFeaturesUpdated: OlFeature<Geometry>[]) {
-		const missionSource = layers.missionLayer.getSource()
-		missionSource.clear()
-		missionSource.addFeatures(missionFeaturesUpdated)
-		this.setState({ missionFeatures: missionFeaturesUpdated })
-	}
-	
-	/**
 	 * 
 	 * @returns List of botIds from podStatus
 	 */
 	getBotIdList() {
 		return Object.keys(this.getPodStatus().bots).map((value: string) => { return Number(value) })
+	}
+
+	getRun(botId: number) {
+		for (const run of Object.values(this.getRunList().runs)) {
+			if (run.assigned === botId) {
+				return run
+			}
+		}
+		return null
 	}
 
 	/**
@@ -2011,6 +2008,7 @@ export default class CommandControl extends React.Component {
 	canEditAllBotsState() {
 		// Check that all bots are stopped or recovered
 		const bots = this.getPodStatus().bots
+		let canEditAll = true
 		
 		for (let bot of Object.values(bots)) {
 			const botMissionState = bot?.mission_state
@@ -2023,16 +2021,23 @@ export default class CommandControl extends React.Component {
 				}
 			})
 
-			if (canEditState) { 
-				return true 
+			if (!canEditState ) {
+				this.setEditRunMode([bot.bot_id], false)
+				canEditAll = false
 			}
 
-			this.setEditRunMode([bot.bot_id], false)
-			return false
+			if (this.state.editModeToggleStatus[bot.bot_id]) {
+				this.setEditRunMode([bot.bot_id], true)
+			}
 		}
+		return canEditAll
 	}
 
 	canEditRunState(run: RunInterface) {
+		if (!run?.assigned) {
+			return
+		}
+
 		const botNum = run.assigned
 		const bots = this.getPodStatus().bots
 		const bot = bots[botNum]
@@ -2061,6 +2066,50 @@ export default class CommandControl extends React.Component {
 		}
 		run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 	}
+
+    setEditModeToggle(runNumber: number, isOn: boolean) {
+        const editModeToggleStatus = this.state.editModeToggleStatus
+        editModeToggleStatus[runNumber] = isOn
+        this.setState({ editModeToggleStatus })
+    }
+
+    updateEditModeToggle(run: RunInterface) {
+        if (!run?.assigned) {
+            return false
+        }
+
+        const botId = run.assigned
+        if (!run.canEdit) {
+            return false
+        } else if (this.state.editModeToggleStatus[botId]) {
+            return true
+        }
+        return false
+    }
+
+    isEditModeToggleDisabled(run: RunInterface) {
+		if (!run?.assigned) {
+			return true
+		}
+		if (this.canEditRunState(run)) {
+			return false
+		}
+		const editModeToggleStatus = this.state.editModeToggleStatus
+		editModeToggleStatus[run.assigned] = false
+        return true
+    }
+
+    toggleEditMode(run: RunInterface) {
+        if (!run?.assigned) {
+            return
+        }
+
+        const editModeToggleStatus = this.state.editModeToggleStatus
+        const isChecked = !editModeToggleStatus[run.assigned]
+        this.setEditRunMode([run.assigned], isChecked)
+        editModeToggleStatus[run.assigned] = isChecked
+        this.setState({ editModeToggleStatus })
+    }
 
 	/**
 	 * 
@@ -2230,13 +2279,17 @@ export default class CommandControl extends React.Component {
 					bot: bots?.[this.selectedBotId()], 
 					hub: hubs?.[0], 
 					api: this.api, 
-					mission: this.getRunList(), 
+					mission: this.getRunList(),
+					run: this.getRun(this.selectedBotId()), 
 					closeWindow: closeDetails.bind(this),
 					takeControl: this.takeControl.bind(this),
 					isExpanded: this.state.detailsExpanded,
 					deleteSingleMission: this.deleteSingleRun.bind(this),
 					setDetailsExpanded: this.setDetailsExpanded.bind(this),
-					isRCModeActive: this.isRCModeActive.bind(this)
+					isRCModeActive: this.isRCModeActive.bind(this),
+					updateEditModeToggle: this.updateEditModeToggle.bind(this),
+					isEditModeToggleDisabled: this.isEditModeToggleDisabled.bind(this),
+					toggleEditMode: this.toggleEditMode.bind(this)
 				}
 				detailsBox = <BotDetailsComponent {...botDetailsProps} />
 				break;
@@ -2405,6 +2458,10 @@ export default class CommandControl extends React.Component {
 					deleteAllRunsInMission={this.deleteAllRunsInMission.bind(this)}
 					autoAssignBotsToRuns={this.autoAssignBotsToRuns.bind(this)}
 					setEditRunMode={this.setEditRunMode.bind(this)}
+					setEditModeToggle={this.setEditModeToggle.bind(this)}
+					updateEditModeToggle={this.updateEditModeToggle.bind(this)}
+					isEditModeToggleDisabled={this.isEditModeToggleDisabled.bind(this)}
+					toggleEditMode={this.toggleEditMode.bind(this)}
 					/>
 				)
 				break
