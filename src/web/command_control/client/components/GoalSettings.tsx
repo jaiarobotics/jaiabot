@@ -183,9 +183,9 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label task-label">Task:</div>
                     <TaskSettingsPanel 
-                        task={goal.task}
+                        task={goal?.task}
                         map={this.props.map}
-                        location={goal.location}
+                        location={goal?.location}
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
