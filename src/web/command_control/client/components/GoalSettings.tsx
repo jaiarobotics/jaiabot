@@ -5,6 +5,8 @@ import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
 import { MissionInterface, PanelType, RunInterface } from './CommandControl';
+import { Icon } from '@mdi/react'
+import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
 
 enum LatLon {
@@ -156,6 +158,23 @@ export class GoalSettingsPanel extends React.Component {
         }
     }
 
+    deleteWaypoint() {
+        const runs = this.props.runList.runs
+        const wptNum = this.props.goalIndex
+
+        if (!confirm(`Are you sure you want to delete Waypoint ${wptNum}?`)) {
+            return
+        }
+
+        for (const run of Object.values(runs)) {
+            if (run.assigned === this.props.botId) {
+                const wpts = run.command.plan.goal
+                this.doneClicked()
+                wpts.splice(wptNum - 1, 1)
+            }
+        }
+    }
+
     render() {
         const { botId, goalIndex, goal } = this.props
 
@@ -164,8 +183,13 @@ export class GoalSettingsPanel extends React.Component {
         return (
             <div className="goal-settings-panel-outer-container">
                 <div className="goal-settings-panel-container">
-                    <div className="goal-settings-label">Goal:</div>
-                    <div className="goal-settings-input">{goalIndex}</div>
+                    <div className="goal-settings-label wpt-label">Wpt:</div>
+                    <div className="goal-settings-wpt-input-container">
+                        <div className="goal-settings-input wpt-input">{goalIndex}</div>
+                        <div className="goal-settings-delete-wpt-container" onClick={() => this.deleteWaypoint()}>
+                            <Icon path={mdiDelete} title='Delete Waypoint'/>
+                        </div>
+                    </div>
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label">Bot:</div>
                     <div className="goal-settings-input">{botId}</div>
@@ -196,10 +220,10 @@ export class GoalSettingsPanel extends React.Component {
                         }}
                     />
                     <div className="goal-settings-line-break"></div>
-                    <div className="goal-settings-button-container">
+                </div>
+                <div className="goal-settings-button-container">
                         <button className="goal-settings-btn" onClick={this.cancelClicked.bind(this)}>Cancel</button>
                         <button className="goal-settings-btn" onClick={this.doneClicked.bind(this)}>Done</button>
-                    </div>
                 </div>
             </div>
         )
