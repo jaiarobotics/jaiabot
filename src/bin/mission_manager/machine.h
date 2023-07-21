@@ -1227,6 +1227,10 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lon_with_units(pos.lon_with_units());
         }
 
+        goby::glog.is_debug1() &&
+            goby::glog << group("task") << "SurfaceDriftTaskCommon Starting Wave Height Sampling"
+                       << std::endl;
+
         // Start wave height sampling
         auto imu_command = IMUCommand();
         imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
@@ -1268,6 +1272,10 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             // Set the wave height and period
             drift_packet().set_significant_wave_height(
                 this->machine().latest_significant_wave_height());
+
+            goby::glog.is_debug1() &&
+                goby::glog << group("task")
+                           << "~SurfaceDriftTaskCommon Stopping Wave Height Sampling" << std::endl;
 
             // Stop wave height sampling
             auto imu_command = IMUCommand();

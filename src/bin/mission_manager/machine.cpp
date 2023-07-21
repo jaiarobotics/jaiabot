@@ -359,6 +359,9 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     dive_packet().set_depth_achieved(0);
     dive_packet().set_bottom_dive(false);
 
+    glog.is_debug1() && glog << group("task") << "Dive::Dive Starting Bottom Type Sampling"
+                             << std::endl;
+
     // Start bottom type sampling
     auto imu_command = IMUCommand();
     imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
@@ -388,6 +391,9 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         while (dive_packet().measurement_size() > max_measurement_size)
             dive_packet().mutable_measurement()->RemoveLast();
     }
+
+    glog.is_debug1() && glog << group("task") << "Dive::~Dive() Stopping Bottom Type Sampling"
+                             << std::endl;
 
     // Stop bottom type sampling
     auto imu_command = IMUCommand();
