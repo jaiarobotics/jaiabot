@@ -929,15 +929,28 @@ td {
     .MuiSvgIcon-root {
       color: white
     }
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
   }
 
   .controller {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 35px;
   }
 
   .hide-controller {
     visibility: hidden;
+  }
+
+  .controller-title {
+    color: #FFFFFF;
+    font-size: 1.25rem;
+    font-weight: 600;
   }
 
   /******** CSS System Health Information ********************/
