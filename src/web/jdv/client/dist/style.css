@@ -127,7 +127,7 @@ button {
 .list {
     background-color: white;
     border-color: lightgray;
-    height: 270pt;
+    height: 200pt;
     overflow-y: auto;
 }
 

@@ -1,0 +1,96 @@
+.goal-settings-panel-outer-container {
+  position: absolute;
+  top: 66px;
+  right: 66px;
+  
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 6px;
+
+  border: 2px solid #767d7d;
+
+  z-index: 1;
+}
+
+.goal-settings-panel-container {
+    display: grid;
+    grid-template-columns: min-content min-content;
+    gap: 12px;
+    padding: 24px;
+    background-color: #FFFFFF;
+    font-size: 1.1rem;
+}
+
+.goal-settings-move-container {
+  grid-column: 1 / 3;
+  display: flex;
+  gap: 12px;
+}
+
+.goal-settings-label {
+  grid-column: 1 / 2;
+  font-weight: 600;
+}
+
+.goal-settings-label.task-label {
+  margin-top: 6px;
+}
+
+.goal-settings-label.move-label {
+  margin-top: 10px;
+  width: max-content;
+}
+
+.goal-settings-label.coord-label {
+  margin-top: 7px;
+}
+
+.goal-settings-input {
+  grid-column: 2 / 3;
+}
+
+.goal-settings-input.coord-input {
+  width: 102px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 3px;
+  border: 1px solid #9CA3AF;
+}
+
+.goal-settings-button-container {
+  grid-column: 1 / 3;
+
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.goal-settings-btn {
+  all: unset;
+  background-color: #D1D5DB;
+  color: #000000;
+  padding: 9px 12px;
+  border-radius: 6px;
+  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+}
+
+.goal-settings-btn:hover {
+  cursor: pointer;
+}
+
+.goal-settings-line-break {
+  grid-column: 1 / 3;
+  height: 1px;
+  background-color: #D1D5DB;
+}
+
+.MuiFormControl-root > .MuiInputBase-root {
+  margin: 0;
+}
+
+.MuiFormControlLabel-root {
+  margin: 0 !important;
+}
+
+.MuiFormGroup-root {
+  margin: 0 !important;
+}
