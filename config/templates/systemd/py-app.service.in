@@ -17,4 +17,4 @@ ExecStopPost=$jaiabot_bin_dir/jaiabot_failure_reporter -C '$gen jaiabot_failure_
 $extra_service
 
 [Install]
-WantedBy=jaiabot_health.service
+WantedBy=$wanted_by

@@ -28,6 +28,7 @@ detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
 pre_powered_descent_timeout: 10 # (optional) (default=10)
 powered_descent_timeout: 60 # (default=60) 
 dive_surface_eps: 0.75 # (optional) (default=0.75)
+hard_bottom_type_acceleration: 100 # (optional) (default=100)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)

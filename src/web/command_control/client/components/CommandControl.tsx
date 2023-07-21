@@ -1263,7 +1263,7 @@ export default class CommandControl extends React.Component {
 		} else {
 			if (confirm("Click the OK button to run this mission for Bots: " + botIds)) {
 				if (addRuns) {
-					this.deleteAllRunsInMission(missions);
+					this.deleteAllRunsInMission(missions, true);
 					Object.keys(addRuns).map(key => {
 						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
 					});
@@ -1289,7 +1289,7 @@ export default class CommandControl extends React.Component {
 	loadMissions(mission: MissionInterface) {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
-		this.deleteAllRunsInMission(runList);
+		this.deleteAllRunsInMission(runList, true);
 		for (let run in mission.runs) {
 			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
@@ -1305,10 +1305,10 @@ export default class CommandControl extends React.Component {
 		return Object.keys(this.getRunList().botsAssignedToRuns).length > 0
 	}
 
-	deleteAllRunsInMission(mission: MissionInterface) {
+	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean) {
 		const activeRunNumbers = this.getActiveRunNumbers(mission)
 		const warningString = this.generateDeleteAllRunsWarnStr(activeRunNumbers)
-		if (!confirm(warningString)) {
+		if (needConfirmation && !confirm(warningString)) {
 			return
 		}
 		const runs = mission.runs
@@ -2212,7 +2212,7 @@ export default class CommandControl extends React.Component {
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
 							const runList = this.pushRunListToUndoStack().getRunList()
-							this.deleteAllRunsInMission(runList);
+							this.deleteAllRunsInMission(runList, false);
 
 							for(let id in this.missionPlans)
 							{

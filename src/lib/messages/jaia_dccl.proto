@@ -320,22 +320,6 @@ message DriftPacket
         units: { derived_dimensions: "length" }
     }];
 
-    optional double wave_height = 14 [(dccl.field) = {
-        min: 0
-        max: 50
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
-
-    optional int32 wave_period = 15 [
-        default = 0,
-        (dccl.field) = {
-            min: 0
-            max: 3600
-            precision: -1
-            units { base_dimensions: "T" }
-        }
-    ];
 }
 
 message DivePacket
@@ -418,6 +402,14 @@ message DivePacket
     }
 
     optional BottomType bottom_type = 19;
+    
+    // For bottom characterization
+    optional double max_acceleration = 20 [(dccl.field) = {
+        min: 0
+        max: 100
+        precision: 1
+        units { derived_dimensions: "acceleration" }
+    }];
 }
 
 message TaskPacket
