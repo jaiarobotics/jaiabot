@@ -92,6 +92,7 @@ import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
 import { SurveyExclusions } from './SurveyExclusions'
+import { ColorizeSharp } from '@mui/icons-material'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
@@ -1392,8 +1393,12 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * 
+	 * @returns fleet id of selected  (Bot does not have fleet_id in status)
+	 */
 	getFleetId() {
-		return this.state.podStatus.hubs[0].fleet_id
+		return this.state.podStatus?.hubs[this.state?.selectedHubOrBot.id]?.fleet_id
 	}
 
 	selectedHubId() {
