@@ -153,4 +153,7 @@ message MissionManager
     optional bool is_sim = 82 [default = false];
 
     optional jaiabot.protobuf.HubInfo subscribe_to_hub_on_start = 83;
+
+    // Determines if the acceleration is hard or soft 
+    optional double hard_bottom_type_acceleration = 84 [default = 100];
 }
