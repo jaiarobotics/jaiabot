@@ -92,7 +92,6 @@ import { HubLayers } from './HubLayers'
 
 import * as JCCStyles from './Styles'
 import { SurveyExclusions } from './SurveyExclusions'
-import { ColorizeSharp } from '@mui/icons-material'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
 // output) as input instead of the less.
