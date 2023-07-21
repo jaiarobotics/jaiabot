@@ -52,7 +52,7 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     componentWillUnmount() {
-        this.doneClicked()
+        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
     }
 
     handleToggleClick() {
