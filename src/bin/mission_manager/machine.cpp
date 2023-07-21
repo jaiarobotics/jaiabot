@@ -607,11 +607,18 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
                 this->machine().latest_max_acceleration());
 
             // Determine Hard/Soft
-            if (this->machine().latest_max_acceleration().value() > 100)
+            if (this->machine().latest_max_acceleration().value() >=
+                cfg().hard_bottom_type_acceleration())
             {
-                // Set the bottom_type
+                // Set the bottom_type Hard
                 context<Dive>().dive_packet().set_bottom_type(
                     protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            }
+            else
+            {
+                // Set the bottom_type Soft
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
             }
 
             // used to correct dive rate calculation
