@@ -282,6 +282,15 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+    // Subscribe to IMU data for max_acceleration, for bottom characterization
+    interprocess().subscribe<jaiabot::groups::imu>([this](
+                                                       const jaiabot::protobuf::IMUData& imu_data) {
+        glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString() << std::endl;
+
+        machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+        machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+    });
+
     // subscribe for engineering commands
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const jaiabot::protobuf::Engineering& command) {
