@@ -200,7 +200,7 @@ export function desiredHeadingArrow(feature: Feature): Style {
 
 // Markers for the mission goals
 export function goalSrc(taskType: TaskType | null) {
-    const srcMap: {[key: TaskType]: string} = {
+    const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
         'SURFACE_DRIFT': taskDrift,
