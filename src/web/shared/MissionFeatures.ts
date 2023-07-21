@@ -79,7 +79,7 @@ export function createMissionFeatures(
             features.push(flagFeature)
         }
 
-        if (bot?.mission_state.includes('REACQUIRE_GPS')) {
+        if (bot?.mission_state.includes('REACQUIRE_GPS') && goalIndexStartAtOne === activeGoalIndex) {
             const gpsFeature = createGPSMarker(
                 map,
                 {
