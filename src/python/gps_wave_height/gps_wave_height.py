@@ -1,11 +1,19 @@
+#!/usr/bin/env python3
+
 from gpsdclient import GPSDClient
 from gpsdsimulator import GPSDSimulator, WaveComponent
+from analyzer import Analyzer, GPSSample
 from time import sleep
 
-# or as python dicts (optionally convert time information to `datetime` objects)
-with GPSDSimulator(wave_components=[WaveComponent(frequency=2, amplitude=1)]) as client:
-    for result in client.dict_stream(convert_datetime=True, filter=["TPV"]):
-        print("Latitude: %s" % result.get("lat", "n/a"))
-        print("Longitude: %s" % result.get("lon", "n/a"))
-        print(f'Altitude: {result.get("altHAE", "n/a")}')
-        sleep(1)
+
+analyzer = Analyzer()
+gpsdClient = GPSDSimulator(wave_components=[WaveComponent(frequency=1.3, amplitude=7)])
+
+
+for result in gpsdClient.dict_stream(convert_datetime=True, filter=["TPV"]):
+    sample = GPSSample.fromTPVDict(result)
+    analyzer.addSample(sample)
+    print(analyzer.significantWaveHeight())
+    sleep(1)
+
+    

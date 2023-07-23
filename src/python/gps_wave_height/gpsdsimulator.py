@@ -27,6 +27,8 @@ class GPSDSimulator:
             altitude = sum([component.amplitude * cos(t * 2 * pi / component.frequency) for component in self.wave_components])
 
             yield {
+                'status': 1,
+                'time': datetime.datetime.utcnow(),
                 'lat': 43.0,
                 'lon': -72.0,
                 'altHAE': altitude
