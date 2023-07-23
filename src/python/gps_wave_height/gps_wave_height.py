@@ -3,15 +3,19 @@
 from gpsdclient import GPSDClient
 from gpsdsimulator import GPSDSimulator, WaveComponent
 from analyzer import Analyzer, GPSSample
+from udp_listener import UDPListener
 from time import sleep
 import argparse
 import logging
+from jaiabot.messages.wave_pb2 import WaveCommand, WaveData
+import socket
 
 # Parse arguments
 parser = argparse.ArgumentParser(prog=__file__, description='Calculates wave statistics from gpsd TPV data')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Use a simulated gpsd')
 parser.add_argument('-g', dest='gpsd_host', help='Hostname and port as `hostname:port`')      # option that takes a value
 parser.add_argument('-l', dest='log_level', default='INFO', help='Log level')
+parser.add_argument('-p', dest='listen_port', default=53293, help='Port to listen for requests')
 args = parser.parse_args()
 
 
@@ -29,7 +33,7 @@ else:
     components = args.gpsd_host.split(':')
 
     hostname = components[0]
-    port = components[1]
+    port = int(components[1])
 
     gpsdClient = GPSDClient(hostname, port)
 
@@ -37,7 +41,24 @@ else:
 # Get the analyzer and start the thread
 analyzer = Analyzer(gpsdClient)
 
+# Listen on the port
+udpListener = UDPListener(analyzer=analyzer, listen_port=args.listen_port)
+
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(('127.0.0.1', 0))
+
 while True:
     input()
-    logging.info(f'Significant wave height: {analyzer.significantWaveHeight()}')
+
+    command = WaveCommand()
+    command.type = WaveCommand.TAKE_READING
+
+    sock.sendto(command.SerializeToString(), ('localhost', args.listen_port))
+
+    data = sock.recv(1024)
+    waveData = WaveData()
+    waveData.ParseFromString(data)
+
+    logging.info(f'Significant wave height: {waveData.significant_wave_height}')
 

@@ -1,0 +1,26 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message WaveCommand
+{
+    enum WaveCommandType
+    {
+        TAKE_READING = 0;
+    }
+
+    required WaveCommandType type = 1;
+}
+
+message WaveData
+{
+    optional double significant_wave_height = 1 [(dccl.field) = {
+        min: 0
+        max: 20
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+}
+
