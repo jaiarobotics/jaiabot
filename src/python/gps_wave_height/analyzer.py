@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 from statistics import stdev
+from typing import List
+
 
 @dataclass
 class GPSSample:
@@ -25,7 +27,7 @@ class GPSSample:
 MAX_SAMPLES = 1000
 
 class Analyzer:
-    samples: list[GPSSample] = []
+    samples: List[GPSSample] = []
 
     def addSample(self, sample: GPSSample):
         if sample is None:
@@ -44,6 +46,5 @@ class Analyzer:
             return None
 
         alts = [sample.alt for sample in self.samples]
-        print(alts)
         return 4 * stdev([sample.alt for sample in self.samples])
     
