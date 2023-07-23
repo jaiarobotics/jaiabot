@@ -2,6 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from statistics import stdev
 from typing import List
+from gpsdclient import GPSDClient
+from gpsdsimulator import GPSDSimulator
+from threading import Thread, Lock
+from time import sleep
+
 
 
 @dataclass
@@ -28,23 +33,44 @@ MAX_SAMPLES = 1000
 
 class Analyzer:
     samples: List[GPSSample] = []
+    client: GPSDClient
+    sampleFrequency: float
+
+    _thread: Thread
+    _lock: Lock
+
+    def __init__(self, client: GPSDClient, sampleFrequency: float = 2.5) -> None:
+        self.client = client
+        self.sampleFrequency = sampleFrequency
+        self._lock = Lock()
+        self._thread = Thread(target=lambda: self.loop(), daemon=True)
+        self._thread.start()
+
+    def loop(self):
+        for result in self.client.dict_stream(filter=['TPV']):
+            sample = GPSSample.fromTPVDict(result)
+            self.addSample(sample)
+            sleep(1 / self.sampleFrequency)
 
     def addSample(self, sample: GPSSample):
         if sample is None:
             return
 
-        self.samples.append(sample)
+        with self._lock:
+            self.samples.append(sample)
 
-        if len(self.samples) > MAX_SAMPLES:
-            self.samples.pop(0)
+            if len(self.samples) > MAX_SAMPLES:
+                self.samples.pop(0)
 
     def clearSamples(self):
-        self.samples = []
+        with self._lock:
+            self.samples = []
 
     def significantWaveHeight(self):
-        if len(self.samples) < 2:
-            return None
+        with self._lock:
+            if len(self.samples) < 2:
+                return None
 
-        alts = [sample.alt for sample in self.samples]
-        return 4 * stdev([sample.alt for sample in self.samples])
+            alts = [sample.alt for sample in self.samples]
+            return 4 * stdev([sample.alt for sample in self.samples])
     

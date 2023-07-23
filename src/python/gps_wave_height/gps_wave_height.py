@@ -17,8 +17,7 @@ args = parser.parse_args()
 
 logging.basicConfig(level=logging.getLevelName(args.log_level))
 
-analyzer = Analyzer()
-
+# Get the appropriate gsdClient object
 if args.simulator:
     logging.info('Using simulated gpsd')
     gpsdClient = GPSDSimulator(wave_components=[WaveComponent(frequency=1.3, amplitude=7)])
@@ -35,9 +34,10 @@ else:
     gpsdClient = GPSDClient(hostname, port)
 
 
-for result in gpsdClient.dict_stream(convert_datetime=True, filter=["TPV"]):
-    sample = GPSSample.fromTPVDict(result)
-    analyzer.addSample(sample)
+# Get the analyzer and start the thread
+analyzer = Analyzer(gpsdClient)
+
+while True:
+    input()
     logging.info(f'Significant wave height: {analyzer.significantWaveHeight()}')
-    sleep(1)
 
