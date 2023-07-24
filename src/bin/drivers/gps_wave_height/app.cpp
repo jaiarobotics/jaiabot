@@ -37,6 +37,7 @@
 
 using goby::glog;
 using namespace std;
+using jaiabot::protobuf::WaveCommand;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
@@ -54,11 +55,6 @@ class GPSWaveHeightDriver : public zeromq::MultiThreadApplication<config::GPSWav
 {
   public:
     GPSWaveHeightDriver();
-
-  private:
-    void loop() override;
-
-  private:
 };
 
 } // namespace apps
@@ -72,7 +68,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1;
+double loop_freq = 0;
 
 jaiabot::apps::GPSWaveHeightDriver::GPSWaveHeightDriver()
     : zeromq::MultiThreadApplication<config::GPSWaveHeightDriver>(loop_freq * si::hertz)
@@ -99,17 +95,10 @@ jaiabot::apps::GPSWaveHeightDriver::GPSWaveHeightDriver()
 
             interprocess().publish<groups::gps_wave>(wave_data);
         });
-}
 
-void jaiabot::apps::GPSWaveHeightDriver::loop()
-{
-    // Just send an empty packet
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    auto command = jaiabot::protobuf::WaveCommand();
-    command.set_type(jaiabot::protobuf::WaveCommand::TAKE_READING);
-
-    io_data->set_data(command.SerializeAsString());
-    interthread().publish<gps_wave_height_udp_out>(io_data);
-
-    glog.is_debug2() && glog << "Requesting WaveData from python driver" << endl;
+    interprocess().subscribe<groups::gps_wave>([this](const WaveCommand& waveCommand) {
+        auto data = goby::middleware::protobuf::IOData();
+        data.set_data(waveCommand.SerializeAsString());
+        interthread().publish<gps_wave_height_udp_out>(data);
+    });
 }
