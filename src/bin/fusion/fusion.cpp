@@ -76,6 +76,7 @@ class Fusion : public ApplicationBase
     corrected_heading(const boost::units::quantity<boost::units::degree::plane_angle>& heading);
     void detect_imu_issue();
     double degrees_difference(const double& deg1, const double& deg2);
+    void detect_bot_horizontal(const double& pitch);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -92,10 +93,14 @@ class Fusion : public ApplicationBase
     // IMU Detection vars
     bool imu_issue_{false};
     int imu_issue_crs_hdg_incr_{0};
-    double bot_commanded_speed{0};
+    double bot_desired_speed_{0};
+    double bot_desired_heading_{0};
     goby::time::SteadyClock::time_point last_imu_detect_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> include_imu_detection_states_;
     goby::time::SteadyClock::time_point last_imu_issue_report_time_{std::chrono::seconds(0)};
+    int pitch_angle_check_incr_{0};
+    goby::time::MicroTime last_pitch_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    bool is_bot_horizontal_{false};
 
     // Milliseconds
     int bot_status_period_ms_{1000};
@@ -105,9 +110,6 @@ class Fusion : public ApplicationBase
 
     // Battery Percentage Health
     bool watch_battery_percentage_{false};
-
-    // GPS Good Reading
-    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_meets_gps_req_;
 
     enum class DataType
     {
@@ -275,6 +277,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             latest_node_status_.mutable_pose()->set_pitch_with_units(pitch);
             latest_bot_status_.mutable_attitude()->set_pitch_with_units(pitch);
 
+            // Used to determine if the bot is horizontal
+            detect_bot_horizontal(pitch.value());
+
             last_data_time_[DataType::PITCH] = now;
         }
 
@@ -384,7 +389,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             // or the commanded speed is equal to 0
             // then ignore course over ground missing warnings
             if (!include_course_error_detection_states_.count(latest_bot_status_.mission_state()) ||
-                bot_commanded_speed == 0)
+                bot_desired_speed_ == 0)
             {
                 // Update course timestamp
                 last_data_time_[DataType::COURSE] = now;
@@ -570,14 +575,6 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::mission_tpv_meets_gps_req>(
-        [this](const jaiabot::protobuf::MissionTpvMeetsGpsReq& tpv_meets_gps_req) {
-            if (tpv_meets_gps_req.has_tpv())
-            {
-                tpv_meets_gps_req_ = tpv_meets_gps_req.tpv();
-            }
-        });
-
     // check for hub ID change and publish request for all intervehicle subscribers to (re)subscribe
     // as the new hub may not have our subscriptions
     interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
@@ -603,11 +600,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             [this](const jaiabot::protobuf::DesiredSetpoints& command) {
                 switch (command.type())
                 {
-                    case jaiabot::protobuf::SETPOINT_STOP: bot_commanded_speed = 0; break;
+                    case jaiabot::protobuf::SETPOINT_STOP: bot_desired_speed_ = 0; break;
                     case jaiabot::protobuf::SETPOINT_IVP_HELM:
                         if (command.helm_course().has_speed())
                         {
-                            bot_commanded_speed = command.helm_course().speed();
+                            bot_desired_speed_ = command.helm_course().speed();
+                            bot_desired_heading_ = command.helm_course().heading();
                         }
                         break;
                     case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL: break;
@@ -648,12 +646,8 @@ void jaiabot::apps::Fusion::loop()
         // If the imu issue is currently not detected and we are not running a sim
         if (!imu_issue_ && !cfg().is_sim())
         {
-            // Detect an imu issue on a certain period interval,
-            // the current bot mission state is included in include_imu_detection_modes_,
-            // and the commanded speed of the bot does not equal zero
-            if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now &&
-                include_imu_detection_states_.count(latest_bot_status_.mission_state()) &&
-                bot_commanded_speed != 0)
+            // Detect an imu issue on a certain period interval
+            if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now)
             {
                 //Let's detect imu issue
                 detect_imu_issue();
@@ -875,70 +869,105 @@ void jaiabot::apps::Fusion::detect_imu_issue()
 
     auto now = goby::time::SteadyClock::now();
 
-    glog.is_debug1() && glog << "detect_imu_issue" << endl;
+    glog.is_debug1() && glog << "Entering detect_imu_issue function" << endl;
 
-    //Let's try to detect IMU issu
-    //Check to see if we have heading and course info
-    if (latest_bot_status_.has_attitude() && latest_bot_status_.attitude().has_heading() &&
-        latest_bot_status_.attitude().has_course_over_ground())
+    // Exit if bot is not in a state to detect an imu issue
+    if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
     {
-        double heading = latest_bot_status_.attitude().heading();
-        double course = latest_bot_status_.attitude().course_over_ground();
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
+        return;
+    }
 
-        glog.is_debug1() &&
-            glog << "Bot has heading and course over ground data"
-                 << ", course last updated: "
-                 << last_data_time_[DataType::COURSE].time_since_epoch().count()
-                 << ", timout: " << std::chrono::seconds(cfg().course_over_ground_timeout()).count()
-                 << ", current time: " << now.time_since_epoch().count() << endl;
-        // Make sure Course is updating
-        if (last_data_time_[DataType::COURSE] +
-                std::chrono::seconds(cfg().course_over_ground_timeout()) >=
-            now)
+    // Exit if bot is not horizontal
+    if (!is_bot_horizontal_)
+    {
+        return;
+    }
+
+    // Exit if bot has a desired speed of zero
+    if (bot_desired_speed_ == 0)
+    {
+        return;
+    }
+
+    // Exit if bot does not have attitude data
+    if (!latest_bot_status_.has_attitude() && !latest_bot_status_.attitude().has_heading() &&
+        !latest_bot_status_.attitude().has_course_over_ground() &&
+        !latest_bot_status_.attitude().pitch())
+    {
+        return;
+    }
+
+    double heading = latest_bot_status_.attitude().heading();
+    double course = latest_bot_status_.attitude().course_over_ground();
+
+    // Exit if bots desired heading and current heading diff is above the max.
+    // This means the bot turning.
+    if (degrees_difference(bot_desired_heading_, heading) >
+        cfg().imu_detect_desired_heading_vs_current_max_diff())
+    {
+        return;
+    }
+
+    glog.is_debug1() &&
+        glog << "Bot has heading and course over ground data"
+             << ", course last updated: "
+             << last_data_time_[DataType::COURSE].time_since_epoch().count()
+             << ", timout: " << std::chrono::seconds(cfg().course_over_ground_timeout()).count()
+             << ", current time: " << now.time_since_epoch().count() << endl;
+
+    // Exit if Course is not updating
+    if (last_data_time_[DataType::COURSE] +
+            std::chrono::seconds(cfg().course_over_ground_timeout()) <
+        now)
+    {
+        return;
+    }
+
+    glog.is_debug1() && glog << "The course over ground value is updating"
+                             << ", Previous Course: " << previous_course_over_ground_
+                             << ", Current Course: " << course << endl;
+
+    // Exit if previous course over ground
+    // is the same as the current course
+    if (previous_course_over_ground_ == course)
+    {
+        return;
+    }
+
+    // Set previous course
+    previous_course_over_ground_ = course;
+
+    double prev_course_vs_current_diff = degrees_difference(heading, course);
+
+    glog.is_debug1() &&
+        glog << "The previous course is different than the current course"
+             << ", Difference between course and heading: " << prev_course_vs_current_diff
+             << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
+
+    // Make sure the diff is greater than the config max
+    if (prev_course_vs_current_diff >= cfg().imu_heading_course_max_diff())
+    {
+        if (imu_issue_crs_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
         {
-            glog.is_debug1() && glog << "The course over ground value is updating"
-                                     << ", Previous Course: " << previous_course_over_ground_
-                                     << ", Current Course: " << course << endl;
-
-            // Make sure course is updating with new value
-            if (previous_course_over_ground_ != course)
-            {
-                // Set previous course
-                previous_course_over_ground_ = course;
-
-                double diff = degrees_difference(heading, course);
-
-                glog.is_debug1() &&
-                    glog << "The previous course is different than the current course"
-                         << ", Difference between course and heading: " << diff
-                         << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
-
-                // Make sure the diff is greater than the config max
-                if (diff >= cfg().imu_heading_course_max_diff())
-                {
-                    if (imu_issue_crs_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
-                    {
-                        glog.is_debug1() && glog << "Have not reached threshold for total checks "
-                                                 << imu_issue_crs_hdg_incr_ << " < "
-                                                 << (cfg().total_imu_issue_checks() - 1)
-                                                 << std::endl;
-                        // Increment until we reach total_imu_issue_checks
-                        imu_issue_crs_hdg_incr_++;
-                    }
-                    else
-                    {
-                        interprocess().publish<jaiabot::groups::imu>(imu_issue);
-                        imu_issue_ = true;
-                        glog.is_debug1() && glog << "Post IMU Warning" << endl;
-                    }
-                }
-                else
-                {
-                    // Reset increment
-                    imu_issue_crs_hdg_incr_ = 0;
-                }
-            }
+            glog.is_debug1() && glog << "Have not reached threshold for total checks "
+                                     << imu_issue_crs_hdg_incr_ << " < "
+                                     << (cfg().total_imu_issue_checks() - 1) << std::endl;
+            // Increment until we reach total_imu_issue_checks
+            imu_issue_crs_hdg_incr_++;
         }
+        else
+        {
+            interprocess().publish<jaiabot::groups::imu>(imu_issue);
+            imu_issue_ = true;
+            glog.is_debug1() && glog << "Post IMU Warning" << endl;
+        }
+    }
+    else
+    {
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
     }
 
     if ((last_data_time_[DataType::HEADING] +
@@ -976,5 +1005,39 @@ double jaiabot::apps::Fusion::degrees_difference(const double& deg1, const doubl
     else
     {
         return 360 - absDiff;
+    }
+}
+
+/**
+ * @brief Used to detect if the bot is horizontal
+ * 
+ * @param pitch 
+ */
+void jaiabot::apps::Fusion::detect_bot_horizontal(const double& pitch)
+{
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    // Make sure that we are horizontal (Transit Position)
+    if (std::abs(pitch) <= cfg().imu_detect_horizontal_pitch())
+    {
+        // Check to see if we have reached the number of checks and the min check time
+        // has been reach to determine if a bot is no longer vertical
+        if ((pitch_angle_check_incr_ >= (cfg().imu_issue_detect_horizontal_pitch_checks() - 1)) &&
+            ((now - last_pitch_time_) >=
+             static_cast<decltype(now)>(
+                 cfg().imu_issue_detect_horizontal_pitch_min_time_with_units())))
+        {
+            glog.is_warn() && glog << "Bot is no longer vertical! Start checking for imu issue."
+                                   << "\nreturn true" << std::endl;
+            is_bot_horizontal_ = true;
+        }
+        pitch_angle_check_incr_++;
+        is_bot_horizontal_ = false;
+    }
+    else
+    {
+        last_pitch_time_ = now;
+        pitch_angle_check_incr_ = 0;
+        is_bot_horizontal_ = false;
     }
 }

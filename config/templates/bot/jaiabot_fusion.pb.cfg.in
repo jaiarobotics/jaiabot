@@ -18,10 +18,14 @@ discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 # IMU Detection
 imu_heading_course_max_diff: 45 # In Degrees
 course_over_ground_timeout: 3 # timeout in seconds
-total_imu_issue_checks: 4 # default (4 checks) checks * imu_detect_period (1 seconds) = time to detect
+total_imu_issue_checks: 3 # (default=2 checks) checks * imu_detect_period (1 seconds) = time to detect
 
 # When to start detecting imu issues again after detecting one
-imu_detect_timeout: 13 # default (13 seconds)
+imu_detect_timeout: 13 # (default=13 seconds)
+
+imu_issue_detect_horizontal_pitch_checks: 3 # (default=3 checks)
+imu_issue_detect_horizontal_pitch_min_time: 1 # (default=1 seconds)
+imu_detect_horizontal_pitch: 45 # (default=45 degrees)
 
 # STOP_BOT
 # USE_COG
