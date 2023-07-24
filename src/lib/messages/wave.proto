@@ -22,7 +22,7 @@ message WaveData
         min: 0
         max: 20
         precision: 1
-        units: { derived_dimensions: "length" }
+        units: { system: "si" derived_dimensions: "length" }
     }];
 }
 

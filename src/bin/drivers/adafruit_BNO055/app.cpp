@@ -49,8 +49,8 @@ namespace jaiabot
 {
 namespace apps
 {
-constexpr goby::middleware::Group imu_udp_in{"imu_udp_in"};
-constexpr goby::middleware::Group imu_udp_out{"imu_udp_out"};
+constexpr goby::middleware::Group gps_wave_height_udp_in{"imu_udp_in"};
+constexpr goby::middleware::Group gps_wave_height_udp_out{"imu_udp_out"};
 
 class AdaFruitBNO055Publisher : public zeromq::MultiThreadApplication<config::AdaFruitBNO055Publisher>
 {
@@ -87,23 +87,27 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<imu_udp_in, imu_udp_out>;
+    using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_wave_height_udp_in,
+                                                                     gps_wave_height_udp_out>;
     launch_thread<GPSUDPThread>(cfg().udp_config());
 
-    interthread().subscribe<imu_udp_in>([this](const goby::middleware::protobuf::IOData& data) {
-        // Deserialize from the UDP packet
-        jaiabot::protobuf::IMUData imu_data;
-        if (!imu_data.ParseFromString(data.data()))
-        {
-            glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet" << endl;
-            return;
-        }
+    interthread().subscribe<gps_wave_height_udp_in>(
+        [this](const goby::middleware::protobuf::IOData& data) {
+            // Deserialize from the UDP packet
+            jaiabot::protobuf::IMUData imu_data;
+            if (!imu_data.ParseFromString(data.data()))
+            {
+                glog.is_warn() && glog << "Couldn't deserialize IMUData from the UDP packet"
+                                       << endl;
+                return;
+            }
 
-        glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString() << endl;
+            glog.is_debug2() && glog << "Publishing IMU data: " << imu_data.ShortDebugString()
+                                     << endl;
 
-        interprocess().publish<groups::imu>(imu_data);
-        last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
-    });
+            interprocess().publish<groups::imu>(imu_data);
+            last_adafruit_BNO055_report_time_ = goby::time::SteadyClock::now();
+        });
 
     interprocess().subscribe<jaiabot::groups::moos>([this](const protobuf::MOOSMessage& moos_msg) {
         if (moos_msg.key() == "JAIABOT_MISSION_STATE")
@@ -128,7 +132,7 @@ void jaiabot::apps::AdaFruitBNO055Publisher::loop()
     command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
 
     io_data->set_data(command.SerializeAsString());
-    interthread().publish<imu_udp_out>(io_data);
+    interthread().publish<gps_wave_height_udp_out>(io_data);
 
     glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
 }
