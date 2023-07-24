@@ -610,14 +610,21 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                 Notify<Failed, protobuf::PRE_DEPLOYMENT__FAILED>
 {
     using StateBase = boost::statechart::state<Failed, PreDeployment>;
-    Failed(typename StateBase::my_context c) : StateBase(c) {}
-    ~Failed() {}
+    Failed(typename StateBase::my_context c);
+    ~Failed();
+    void loop(const EvLoop&);
 
     // allow Activate from Failed in case an error resolves itself
     // while the vehicle is powered on (e.g. GPS fix after several minutes).
     // If Activate is sent and the vehicle still has an error,
     // SelfTest will simply fail again and we'll end up back here in Failed (as desired)
-    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
+                         boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>>;
+
+  private:
+    // determines when to stop into logging
+    goby::time::SteadyClock::time_point failed_startup_log_timeout_;
 };
 
 struct WaitForMissionPlan

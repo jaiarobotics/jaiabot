@@ -139,6 +139,44 @@ void jaiabot::statechart::predeployment::StartingUp::loop(const EvLoop&)
         post_event(EvStartupTimeout());
 }
 
+// PreDeployment::Failed
+jaiabot::statechart::predeployment::Failed::Failed(typename StateBase::my_context c) : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int failed_startup_log_seconds = cfg().failed_startup_log_timeout();
+
+    goby::time::SteadyClock::duration failed_startup_log_duration =
+        std::chrono::seconds(failed_startup_log_seconds);
+
+    failed_startup_log_timeout_ = start_timeout + failed_startup_log_duration;
+
+    loop(EvLoop());
+}
+
+jaiabot::statechart::predeployment::Failed::~Failed()
+{
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+}
+
+void jaiabot::statechart::predeployment::Failed::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // make sure we have a safety timeout to transition into unpowered ascent
+    if (current_clock >= failed_startup_log_timeout_)
+    {
+        glog.is_verbose() && glog << "Stop Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
+}
+
 // PreDeployment::Idle
 jaiabot::statechart::predeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
 {
