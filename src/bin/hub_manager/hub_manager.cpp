@@ -79,6 +79,8 @@ class HubManager : public ApplicationBase
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
+    void
+    handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
 
     void handle_subscription_report(
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
@@ -146,8 +148,14 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
 
     // automatically subscribe to bots that send us subscriptions
     interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
-        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report)
-        { handle_subscription_report(report); });
+        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report) {
+            handle_subscription_report(report);
+        });
+
+    interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            handle_hardware_status(hardware_status);
+        });
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -493,4 +501,15 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
             command_publisher);
     }
+}
+
+/**
+ * @brief Handle incoming hardware status
+ * 
+ * @param linux_hardware_status 
+ */
+void jaiabot::apps::HubManager::handle_hardware_status(
+    const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status)
+{
+    *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
 }

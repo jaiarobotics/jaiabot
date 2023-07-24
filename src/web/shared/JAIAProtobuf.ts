@@ -1108,5 +1108,6 @@ export interface HubStatus {
     warning?: Warning[]
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
+    linux_hardware_status?: LinuxHardwareStatus
 }
 
