@@ -2064,7 +2064,9 @@ export default class CommandControl extends React.Component {
 				break
 			}
 		}
-		run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
+		if (run.command.plan?.goal[goalNum - 1]) {
+			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
+		}
 	}
 
     setEditModeToggle(runNumber: number, isOn: boolean) {

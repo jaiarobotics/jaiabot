@@ -5,6 +5,8 @@ import {Feature} from 'ol'
 import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
 import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
+// We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these
+// resource variables.
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
