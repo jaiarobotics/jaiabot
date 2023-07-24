@@ -13,7 +13,7 @@ import socket
 # Parse arguments
 parser = argparse.ArgumentParser(prog=__file__, description='Calculates wave statistics from gpsd TPV data')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Use a simulated gpsd')
-parser.add_argument('-g', dest='gpsd_host', help='Hostname and port as `hostname:port`')      # option that takes a value
+parser.add_argument('-g', dest='gpsd_host', default='localhost:2947', help='Hostname and port as `hostname:port`')      # option that takes a value
 parser.add_argument('-l', dest='log_level', default='INFO', help='Log level')
 parser.add_argument('-p', dest='listen_port', default=53293, help='Port to listen for requests')
 args = parser.parse_args()
@@ -29,6 +29,8 @@ else:
     if args.gpsd_host is None:
         logging.error('No hostname:port specified!')
         exit(1)
+    else:
+        logging.info(f'Connected to gpsd at "{args.gpsd_host}"')
     
     components = args.gpsd_host.split(':')
 
@@ -36,6 +38,8 @@ else:
     port = int(components[1])
 
     gpsdClient = GPSDClient(hostname, port)
+
+
 
 
 # Get the analyzer and start the thread
