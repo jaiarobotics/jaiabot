@@ -2065,7 +2065,7 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		
-		if (run?.command.plan?.goal[goalNum - 1].moveWptMode) {
+		if (run?.command.plan?.goal[goalNum - 1]) {
 			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 		}
 	}
