@@ -49,16 +49,23 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('127.0.0.1', 0))
 
 while True:
-    input()
+    print('[S] to start sampling, [D] to stop sampling, [Enter] to take measurement')
+    inputString = input().lower()
+
+    commandMap = {
+        's': WaveCommand.START_SAMPLING,
+        'd': WaveCommand.STOP_SAMPLING
+    }
 
     command = WaveCommand()
-    command.type = WaveCommand.TAKE_READING
+    command.type = commandMap.get(inputString, WaveCommand.TAKE_READING)
 
     sock.sendto(command.SerializeToString(), ('localhost', args.listen_port))
 
-    data = sock.recv(1024)
-    waveData = WaveData()
-    waveData.ParseFromString(data)
+    if command.type == WaveCommand.TAKE_READING:
+        data = sock.recv(1024)
+        waveData = WaveData()
+        waveData.ParseFromString(data)
 
-    logging.info(f'Significant wave height: {waveData.significant_wave_height}')
+        logging.info(f'Significant wave height: {waveData.significant_wave_height}')
 

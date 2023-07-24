@@ -33,8 +33,14 @@ class UDPListener:
                 logging.warning(e)
                 continue
 
-            response = WaveData()
-            response.significant_wave_height = self.analyzer.significantWaveHeight()
+            if command.type == WaveCommand.START_SAMPLING:
+                self.analyzer.start()
+            elif command.type == WaveCommand.STOP_SAMPLING:
+                self.analyzer.stop()
+            elif command.type == WaveCommand.TAKE_READING:
+                response = WaveData()
+                significant_wave_height = self.analyzer.significantWaveHeight()
+                response.significant_wave_height = significant_wave_height
 
-            data = response.SerializeToString()
-            self.sock.sendto(data, addr)
+                data = response.SerializeToString()
+                self.sock.sendto(data, addr)

@@ -38,19 +38,37 @@ class Analyzer:
 
     _thread: Thread
     _lock: Lock
+    _sampling = False
 
     def __init__(self, client: GPSDClient, sampleFrequency: float = 2.5) -> None:
         self.client = client
         self.sampleFrequency = sampleFrequency
         self._lock = Lock()
-        self._thread = Thread(target=lambda: self.loop(), daemon=True)
-        self._thread.start()
+
+    def start(self):
+        with self._lock:
+            if self._sampling:
+                return
+
+            self.samples = []
+            self._sampling = True
+            self._thread = Thread(target=lambda: self.loop(), daemon=True)
+            self._thread.start()
+
+    def stop(self):
+        with self._lock:
+            self._sampling = False
+            self.samples = []
 
     def loop(self):
         for result in self.client.dict_stream(filter=['TPV']):
             sample = GPSSample.fromTPVDict(result)
             self.addSample(sample)
             sleep(1 / self.sampleFrequency)
+
+            with self._lock:
+                if not self._sampling:
+                    break
 
     def addSample(self, sample: GPSSample):
         if sample is None:
@@ -69,8 +87,8 @@ class Analyzer:
     def significantWaveHeight(self):
         with self._lock:
             if len(self.samples) < 2:
-                return None
+                return 0.0
 
             alts = [sample.alt for sample in self.samples]
-            return 4 * stdev([sample.alt for sample in self.samples])
+            return 4 * stdev(alts)
     

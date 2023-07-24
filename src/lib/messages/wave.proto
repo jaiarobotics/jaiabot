@@ -9,6 +9,8 @@ message WaveCommand
     enum WaveCommandType
     {
         TAKE_READING = 0;
+        START_SAMPLING = 1;
+        STOP_SAMPLING = 2;
     }
 
     required WaveCommandType type = 1;
