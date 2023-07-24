@@ -556,6 +556,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
 
             latest_bot_status_.set_last_command_time_with_units(command.time_with_units());
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                interprocess().publish<jaiabot::groups::engineering_status>(
+                    latest_engineering_status);
+            }
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::sky>(
@@ -732,8 +739,6 @@ void jaiabot::apps::Fusion::loop()
                 }
             }
         }
-
-        interprocess().publish<jaiabot::groups::engineering_status>(latest_engineering_status);
     }
 
     // When initialized, always send node_status for pid app and frontseat app
