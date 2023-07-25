@@ -13,6 +13,7 @@ import socket
 # Parse arguments
 parser = argparse.ArgumentParser(prog=__file__, description='Calculates wave statistics from gpsd TPV data')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Use a simulated gpsd')
+parser.add_argument('-i', dest='interactive', action='store_true', help='Use interactive mode')
 parser.add_argument('-g', dest='gpsd_host', default='localhost:2947', help='Hostname and port as `hostname:port`')      # option that takes a value
 parser.add_argument('-l', dest='log_level', default='INFO', help='Log level')
 parser.add_argument('-p', dest='listen_port', default=53293, help='Port to listen for requests')
@@ -49,27 +50,28 @@ analyzer = Analyzer(gpsdClient)
 udpListener = UDPListener(analyzer=analyzer, listen_port=args.listen_port)
 
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('127.0.0.1', 0))
+if args.interactive:
 
-while True:
-    print('[S] to start sampling, [D] to stop sampling, [Enter] to take measurement')
-    inputString = input().lower()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('127.0.0.1', 0))
 
-    commandMap = {
-        's': WaveCommand.START_SAMPLING,
-        'd': WaveCommand.STOP_SAMPLING
-    }
+    while True:
+        print('[S] to start sampling, [D] to stop sampling, [Enter] to take measurement')
+        inputString = input().lower()
 
-    command = WaveCommand()
-    command.type = commandMap.get(inputString, WaveCommand.TAKE_READING)
+        commandMap = {
+            's': WaveCommand.START_SAMPLING,
+            'd': WaveCommand.STOP_SAMPLING
+        }
 
-    sock.sendto(command.SerializeToString(), ('localhost', args.listen_port))
+        command = WaveCommand()
+        command.type = commandMap.get(inputString, WaveCommand.TAKE_READING)
 
-    if command.type == WaveCommand.TAKE_READING:
-        data = sock.recv(1024)
-        waveData = WaveData()
-        waveData.ParseFromString(data)
+        sock.sendto(command.SerializeToString(), ('localhost', args.listen_port))
 
-        logging.info(f'Significant wave height: {waveData.significant_wave_height}')
+        if command.type == WaveCommand.TAKE_READING:
+            data = sock.recv(1024)
+            waveData = WaveData()
+            waveData.ParseFromString(data)
 
+            logging.info(f'Significant wave height: {waveData.significant_wave_height}')

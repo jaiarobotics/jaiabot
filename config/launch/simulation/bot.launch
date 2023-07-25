@@ -45,3 +45,6 @@ jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver
 
 # Salinity sensor
 jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver) -vv
+
+# GPS wave sensor
+jaiabot_gps_wave_height_driver <(../../gen/bot.py jaiabot_gps_wave_height_driver) -vv

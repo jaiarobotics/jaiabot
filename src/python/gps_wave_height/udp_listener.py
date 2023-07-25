@@ -16,7 +16,7 @@ class UDPListener:
 
         self.analyzer = analyzer
 
-        self._thread = Thread(target=lambda: self.loop(), daemon=True)
+        self._thread = Thread(target=lambda: self.loop(), daemon=False) # daemon=False, to ONLY end app when thread ends (for non-interactive mode)
         self._thread.start()
 
         logging.info(f'Listening on port {listen_port}')

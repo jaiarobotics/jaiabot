@@ -214,6 +214,14 @@ jaiabot::apps::MissionManager::MissionManager()
             machine_->process_event(ev);
         });
 
+    // subscribe for gps wave height data
+    interprocess().subscribe<jaiabot::groups::gps_wave>(
+        [this](const jaiabot::protobuf::WaveData& wave_data) {
+            statechart::EvMeasurement ev;
+            ev.significant_wave_height = wave_data.significant_wave_height_with_units();
+            machine_->process_event(ev);
+        });
+
     // subscribe for health data
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {

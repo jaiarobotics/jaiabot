@@ -23,10 +23,14 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
+#include "jaiabot/messages/wave.pb.h"
 #include "machine_common.h"
 #include <fstream>
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
+
+using jaiabot::protobuf::WaveCommand;
+using jaiabot::protobuf::WaveData;
 
 namespace jaiabot
 {
@@ -111,6 +115,9 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
         boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperature;
     boost::optional<double> salinity;
+    boost::optional<
+        boost::units::quantity<goby::middleware::protobuf::LatLonPoint::depth_unit, double>>
+        significant_wave_height;
 };
 
 struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
@@ -1202,6 +1209,11 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+
+        // Start sampling for wave height
+        auto waveCommand = WaveCommand();
+        waveCommand.set_type(WaveCommand::START_SAMPLING);
+        this->interprocess().template publish<groups::gps_wave>(waveCommand);
     }
 
     ~SurfaceDriftTaskCommon()
@@ -1236,6 +1248,13 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             if (heading < 0 * boost::units::si::radians) heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
             drift.set_heading_with_units(heading);
         }
+
+        drift_packet().set_significant_wave_height_with_units(significant_wave_height_);
+
+        // Stop sampling for wave height
+        auto waveCommand = WaveCommand();
+        waveCommand.set_type(WaveCommand::STOP_SAMPLING);
+        this->interprocess().template publish<groups::gps_wave>(waveCommand);
     }
 
     void loop(const EvLoop&)
@@ -1250,6 +1269,19 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
         this->interprocess().template publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+        // Ask for a significant wave height
+        auto waveCommand = WaveCommand();
+        waveCommand.set_type(WaveCommand::TAKE_READING);
+        this->interprocess().template publish<groups::gps_wave>(waveCommand);
+    }
+
+    void measurement(const EvMeasurement& measurement)
+    {
+        if (measurement.significant_wave_height)
+        {
+            significant_wave_height_ = measurement.significant_wave_height.get();
+        }
     }
 
     jaiabot::protobuf::DriftPacket& drift_packet()
@@ -1257,12 +1289,16 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
         return *(this->template context<Task>().task_packet().mutable_drift());
     }
 
-    using reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvLoop, SurfaceDriftTaskCommon,
-                                                              &SurfaceDriftTaskCommon::loop>>;
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, SurfaceDriftTaskCommon,
+                                             &SurfaceDriftTaskCommon::loop>,
+        boost::statechart::in_state_reaction<EvMeasurement, SurfaceDriftTaskCommon,
+                                             &SurfaceDriftTaskCommon::measurement>>;
 
   private:
     goby::time::SteadyClock::time_point drift_time_stop_;
+    boost::units::quantity<goby::middleware::protobuf::LatLonPoint::depth_unit, double>
+        significant_wave_height_{0};
 };
 
 // similar to MovementSelection but for Tasks
