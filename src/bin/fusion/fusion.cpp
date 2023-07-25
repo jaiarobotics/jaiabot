@@ -874,6 +874,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     // Exit if bot is not in a state to detect an imu issue
     if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
     {
+        glog.is_debug2() &&
+            glog << "detect_imu_issue() Exit bot is not in a state to detect an imu issue" << endl;
         // Reset increment
         imu_issue_crs_hdg_incr_ = 0;
         return;
@@ -882,12 +884,15 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     // Exit if bot is not horizontal
     if (!is_bot_horizontal_)
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot is not horizontal" << endl;
         return;
     }
 
     // Exit if bot has a desired speed of zero
     if (bot_desired_speed_ == 0)
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot has a desired speed of zero"
+                                 << endl;
         return;
     }
 
@@ -896,17 +901,22 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         !latest_bot_status_.attitude().has_course_over_ground() &&
         !latest_bot_status_.attitude().pitch())
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot does not have attitude data"
+                                 << endl;
         return;
     }
 
     double heading = latest_bot_status_.attitude().heading();
     double course = latest_bot_status_.attitude().course_over_ground();
 
-    // Exit if bots desired heading and current heading diff is above the max.
+    // Exit if bot's desired heading and current heading diff is above the max.
     // This means the bot turning.
     if (degrees_difference(bot_desired_heading_, heading) >
         cfg().imu_detect_desired_heading_vs_current_max_diff())
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot's desired heading and current "
+                                    "heading diff is above the max"
+                                 << endl;
         return;
     }
 
@@ -917,11 +927,12 @@ void jaiabot::apps::Fusion::detect_imu_issue()
              << ", timout: " << std::chrono::seconds(cfg().course_over_ground_timeout()).count()
              << ", current time: " << now.time_since_epoch().count() << endl;
 
-    // Exit if Course is not updating
+    // Exit if bot's course is not updating
     if (last_data_time_[DataType::COURSE] +
             std::chrono::seconds(cfg().course_over_ground_timeout()) <
         now)
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot's course is not updating" << endl;
         return;
     }
 
@@ -933,6 +944,9 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     // is the same as the current course
     if (previous_course_over_ground_ == course)
     {
+        glog.is_debug2() && glog << "detect_imu_issue() Exit bot's previous course over ground is "
+                                    "the same as the current course"
+                                 << endl;
         return;
     }
 
@@ -951,9 +965,10 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         if (imu_issue_crs_hdg_incr_ < (cfg().total_imu_issue_checks() - 1))
         {
-            glog.is_debug1() && glog << "Have not reached threshold for total checks "
-                                     << imu_issue_crs_hdg_incr_ << " < "
-                                     << (cfg().total_imu_issue_checks() - 1) << std::endl;
+            glog.is_debug2() &&
+                glog << "detect_imu_issue() Have not reached threshold for total checks "
+                     << imu_issue_crs_hdg_incr_ << " < " << (cfg().total_imu_issue_checks() - 1)
+                     << std::endl;
             // Increment until we reach total_imu_issue_checks
             imu_issue_crs_hdg_incr_++;
         }
@@ -961,7 +976,10 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         {
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             imu_issue_ = true;
-            glog.is_debug1() && glog << "Post IMU Warning" << endl;
+            glog.is_debug2() && glog
+                                    << "detect_imu_issue() Post IMU Warning: The diff between "
+                                       "course over ground and magnetic heading indicates imu issue"
+                                    << endl;
         }
     }
     else
@@ -976,11 +994,16 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         interprocess().publish<jaiabot::groups::imu>(imu_issue);
         imu_issue_ = true;
-        glog.is_debug1() && glog << "Post IMU Warning" << endl;
+        glog.is_debug2() &&
+            glog << "detect_imu_issue() Post IMU Warning: No heading data indicates imu issue"
+                 << endl;
     }
 
     if (imu_issue_)
     {
+        glog.is_debug2() &&
+            glog << "detect_imu_issue() Reported IMU issue so let's reset to detect another one"
+                 << endl;
         last_imu_issue_report_time_ = now;
         // Reset crs hdg increment
         imu_issue_crs_hdg_incr_ = 0;
