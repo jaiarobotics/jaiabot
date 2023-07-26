@@ -9,6 +9,7 @@ import { Point } from "ol/geom"
 import { getMapCoordinate } from "./shared/Utilities"
 import * as Styles from "./shared/Styles"
 import { isRemoteControlled } from "./shared/PortalStatus"
+import { createGPSMarker } from "./shared/Marker"
 
 export class BotLayers {
     layers: {[key: number]: VectorLayer<VectorSource>} = {}
@@ -87,6 +88,18 @@ export class BotLayers {
 				botLayer.setZIndex(101);
 			} else {
 				botLayer.setZIndex(100);
+			}
+
+			if (bot?.mission_state.includes('REACQUIRE_GPS')) {
+				const gpsFeature = createGPSMarker(
+					this.map,
+					{
+						lon: botLongitude, 
+						lat: botLatitude,
+						style: Styles.gps()
+					}
+				)
+				botSource.addFeature(gpsFeature)
 			}
 
 			botLayer.changed();
