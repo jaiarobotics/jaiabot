@@ -8,6 +8,7 @@
         "@mdi/js": "^7.0.96",
         "@mdi/react": "^1.6.1",
         "@mui/icons-material": "^5.10.9",
+        "@mui/joy": "^5.0.0-alpha.89",
         "@mui/material": "^5.10.13",
         "buffer": "^6.0.3",
         "es6-promise": "^4.2.8",

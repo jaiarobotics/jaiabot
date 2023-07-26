@@ -8,8 +8,9 @@ import EngineeringPanel from './EngineeringPanel'
 import MissionControllerPanel from './mission/MissionControllerPanel'
 import RCControllerPanel from './RCControllerPanel'
 import RunInfoPanel from './RunInfoPanel'
-import { taskData } from './TaskPackets'
+import DownloadQueue from './DownloadQueue'
 import JaiaAbout from './JaiaAbout'
+import { taskData } from './TaskPackets'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 
 // Material Design Icons
@@ -17,7 +18,7 @@ import Icon from '@mdi/react'
 import { mdiPlay, 
 	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
 	mdiFlagVariantPlus, mdiArrowULeftTop,
-    mdiStop, mdiViewList} from '@mdi/js'
+    mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload} from '@mdi/js'
 
 import Button from '@mui/material/Button';
 
@@ -121,7 +122,8 @@ export enum PanelType {
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
-	GOAL_SETTINGS = 'GOAL_SETTINGS'
+	GOAL_SETTINGS = 'GOAL_SETTINGS',
+	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE'
 }
 
 export enum Mode {
@@ -191,8 +193,9 @@ interface State {
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
 	podStatus: PodStatus
+	downloadQueueRemovals: number[],
 	// Incremented when podStatus is changed and needs a re-render
-	podStatusVersion: number
+	podStatusVersion: number,
 	metadata: Metadata,
 	flagClickedInfo: {
 		runNum: number,
@@ -329,7 +332,8 @@ export default class CommandControl extends React.Component {
 				runNum: -1,
 				botId: -1,
 				canDeleteRun: false
-			}
+			},
+			downloadQueueRemovals: [],
 		};
 
 		this.state.runList = {
@@ -458,7 +462,6 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
-		debugger;
 
 		map.setTarget(this.mapDivId);
 
@@ -467,10 +470,6 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0);
-
-		// ($('.panel > h2') as any).disableSelection();
-
-		// ($('button') as any).disableSelection();
 
 		this.setupMapLayersPanel()
 
@@ -1004,6 +1003,77 @@ export default class CommandControl extends React.Component {
 				info("Sent STOP")
 			}
 		})
+	}
+
+	async processBotDownloads() {
+		const downloadableBots = this.getDownloadableBots()
+		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
+
+		if (!confirm(`Would you like to do a data download for Bot${downloadableBotIds.length > 1 ? 's': ''}:  ${downloadableBotIds}`)) { return }
+
+		for (const bot of downloadableBots) {
+			console.log(bot)
+			await this.downloadBot(bot)
+			this.removeBotFromQueue(bot)
+		}
+	}
+
+	async downloadBot(bot: PortalBotStatus) {
+		try {
+			console.log('download started')
+			await this.startDownload(bot)
+			console.log('wating for 100%')
+			await this.waitFor100Percent(bot)
+			console.log('complete...checking for next bot')
+		} catch (error) {
+			console.error('Function: downloadBot', error)
+		}
+	}
+
+	async startDownload(bot: PortalBotStatus) {
+		const command = {
+			bot_id: bot.bot_id,
+			type: CommandType.RECOVERED
+		}
+
+		try {
+			await this.api.postCommand(command)
+		} catch (error) {
+			console.error('Function: startDownload', error)
+		}
+	}
+
+	waitFor100Percent(bot: PortalBotStatus) {
+		return new Promise<void>((resolve, reject) => {
+			const intervalId = setInterval(() => {
+				console.log('...check...')
+				console.log('bot.data', bot.data_offload_percentage)
+				if (bot.data_offload_percentage == undefined) {
+					clearInterval(intervalId)
+					resolve()
+				} 
+			}, 1000)
+		})
+	}
+
+	removeBotFromQueue(bot: PortalBotStatus) {
+		const downloadQueueRemovals = this.state.downloadQueueRemovals
+		downloadQueueRemovals.push(bot.bot_id)
+		this.setState({ downloadQueueRemovals })
+	}
+
+	getDownloadableBots() {
+		const downloadableBots: PortalBotStatus[] = []
+		const bots = this.getPodStatus().bots
+		for (const bot of Object.values(bots)) {
+			for (const enabledState of this.enabledEditStates) {
+				if (bot?.mission_state.includes(enabledState) && !this.state.downloadQueueRemovals.includes(bot.bot_id)) {
+					downloadableBots.push(bot)
+					break
+				}
+			}
+		}
+		return downloadableBots
 	}
 
 	/**
@@ -1589,8 +1659,11 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				<Button id= "missionStartStop" className={"button-jcc stopMission" + (botsAreAssignedToRuns ? '' : ' inactive') } onClick={this.playClicked.bind(this)}>
+				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
+				</Button>
+				<Button id="downloadAll" className={`button-jcc ${(this.getDownloadableBots().length === 0 ? 'inactive' : '')}`}  disabled={this.getDownloadableBots().length === 0} onClick={() => this.processBotDownloads()}>
+					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
@@ -1690,6 +1763,7 @@ export default class CommandControl extends React.Component {
 				error(response.message)
 			} else {
 				info("Sent Activate All")
+				this.setState({ downloadQueueRemovals: [] }, () => { this.getDownloadableBots() })
 			}
 		})
 	}
@@ -2437,9 +2511,26 @@ export default class CommandControl extends React.Component {
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.MISSION)
-			}} 
+				}} 
 			>
 				<Icon path={mdiViewList} title="Mission Panel"/>
+			</Button>
+		))
+
+		const downloadQueueButton = (visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+			<Button className="button-jcc active" onClick={() => {
+				this.setVisiblePanel(PanelType.NONE)
+				}}
+			>
+				<Icon path={mdiProgressDownload} title="Download Queue"/>
+			</Button>
+
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+				}}
+			>
+				<Icon path={mdiProgressDownload} title="Download Queue"/>
 			</Button>
 		))
 
@@ -2522,6 +2613,10 @@ export default class CommandControl extends React.Component {
 						canEditRunState={this.canEditRunState.bind(this)} 
 					/>
 				)
+				break
+			case PanelType.DOWNLOAD_QUEUE:
+				visiblePanelElement = <DownloadQueue downloadableBots={this.getDownloadableBots()} removeBotFromQueue={this.removeBotFromQueue.bind(this)} />
+				break
 		}
 
 		return (
@@ -2542,6 +2637,8 @@ export default class CommandControl extends React.Component {
 					</img>
 
 					{missionPanelButton}
+
+					{downloadQueueButton}
 
 					{engineeringButton}
 
