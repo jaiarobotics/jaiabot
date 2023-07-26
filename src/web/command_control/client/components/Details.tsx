@@ -544,9 +544,19 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     const mission_state = bot.mission_state
     takeControlFunction = takeControl
 
+    let link_quality_percentage = 0;
+
+    if (bot?.wifi_link_quality_percentage != undefined) {
+        link_quality_percentage = bot?.wifi_link_quality_percentage
+    } 
+
+    console.log(disableButton(commands.recover, mission_state));
+    console.log(!link_quality_percentage);
+    console.log((disableButton(commands.recover, mission_state) && !link_quality_percentage))
+    console.log("");
     let dataOffloadButton = (
-        <Button className={disableButton(commands.recover, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-            disabled={disableButton(commands.recover, mission_state)} 
+        <Button className={disableButton(commands.recover, mission_state) || !link_quality_percentage ? 'inactive button-jcc' : 'button-jcc'} 
+            disabled={disableButton(commands.recover, mission_state) || !link_quality_percentage ? true : false} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
@@ -554,8 +564,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     if (disableButton(commands.recover, mission_state)) {
         dataOffloadButton = ( 
-            <Button className={disableButton(commands.retryDataOffload, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                disabled={disableButton(commands.retryDataOffload, mission_state)} 
+            <Button className={disableButton(commands.retryDataOffload, mission_state) || !link_quality_percentage ? 'inactive button-jcc' : 'button-jcc'} 
+                disabled={disableButton(commands.retryDataOffload, mission_state) || !link_quality_percentage ? true : false} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
@@ -650,6 +660,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <tr>
                                         <td>Distance from Hub</td>
                                         <td>{distToHub} m</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Wi-Fi Link Quality</td>
+                                        <td>{link_quality_percentage + " %"}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -990,6 +1004,12 @@ export function HubDetailsComponent(props: HubDetailsProps) {
 
     takeControlFunction = takeControl;
 
+    let link_quality_percentage = 0;
+
+    if (hub.linux_hardware_status?.wifi?.link_quality_percentage != undefined) {
+        link_quality_percentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
+    }
+
     return (
         <div id='hubDetailsBox'>
             <div id='hubDetailsAccordionContainer' className='accordionParentContainer'>
@@ -1026,7 +1046,10 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         <td>Status Age</td>
                                         <td>{statusAge.toFixed(0)} s</td>
                                     </tr>
-
+                                    <tr>
+                                        <td>Wi-Fi Link Quality</td>
+                                        <td>{link_quality_percentage + " %"}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </AccordionDetails>

@@ -33,6 +33,7 @@ void jaiabot::apps::LinuxHardwareThread::issue_status_summary()
     sysinfo_successful_ = read_sysinfo();
     meminfo_successful_ = read_meminfo();
     disk_check_successful_ = read_disk_usage();
+    wifi_connection_successful_ = read_wlan_connection();
 
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
@@ -178,6 +179,64 @@ bool jaiabot::apps::LinuxHardwareThread::read_disk_usage()
         ok = false;
     }
     return ok;
+}
+
+bool jaiabot::apps::LinuxHardwareThread::read_wlan_connection()
+{
+    std::ifstream wireless_ifs(cfg().wireless_file());
+    const std::string wlan_interface = cfg().wlan_interface();
+
+    if (!wireless_ifs.is_open())
+        return false;
+
+    auto& wifi = *status_.mutable_wifi();
+
+    std::string line;
+    while (std::getline(wireless_ifs, line))
+    {
+        if (line.find(wlan_interface) != std::string::npos)
+        {
+            float link_quality, link_quality_percentage, signal_level;
+            int noise_level;
+            if (sscanf(line.c_str(), "%*s %*s %f %f %d", &link_quality, &signal_level,
+                       &noise_level) == 3)
+            {
+                // Calculate percentage for link quality
+                link_quality_percentage = (link_quality / 70) * 100;
+
+                glog.is_debug1() && glog << group(thread_name()) << "Link Quality: " << link_quality
+                                         << "\n"
+                                         << "Signal Level: " << signal_level << "\n"
+                                         << "Noise Level: " << noise_level << std::endl;
+                wifi.set_is_connected(true);
+                wifi.set_link_quality(link_quality);
+                wifi.set_link_quality_percentage(link_quality_percentage);
+                wifi.set_signal_level(signal_level);
+                wifi.set_noise_level(noise_level);
+                break;
+            }
+            else
+            {
+                glog.is_warn() && glog << group(thread_name())
+                                       << "No wlan0 interface: " << line.c_str() << std::endl;
+                wifi.set_is_connected(false);
+                return false;
+            }
+        }
+        else
+        {
+            wifi.set_is_connected(false);
+        }
+    }
+
+    // we didn't get all the values for some reason
+    if (!wifi.IsInitialized())
+    {
+        status_.clear_wifi();
+        return false;
+    }
+
+    return true;
 }
 
 void jaiabot::apps::LinuxHardwareThread::health(goby::middleware::protobuf::ThreadHealth& health)
