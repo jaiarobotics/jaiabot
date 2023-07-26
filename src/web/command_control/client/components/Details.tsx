@@ -1076,9 +1076,13 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                 onClick={() => {							
                                     const hubId = 10 + hub?.hub_id
                                     const fleetId = getFleetId()
-                                    // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
-                                    const url = `http://10.23.${fleetId}.${hubId}:40010`
-                                    window.open(url, '_blank')}}
+
+                                    if (fleetId != undefined
+                                        && !Number.isNaN(hubId)) {
+                                        // 40010 is the default port number set in jaiabot/src/web/jdv/server/jaiabot_data_vision.py
+                                        const url = `http://10.23.${fleetId}.${hubId}:40010`
+                                        window.open(url, '_blank')}}
+                                    }  
                             >
                                 <Icon path={mdiDatabaseEyeOutline} title='JDV'/>
                             </Button>
