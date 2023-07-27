@@ -996,22 +996,19 @@ export function HubDetailsComponent(props: HubDetailsProps) {
 
     if (hub.linux_hardware_status?.processor?.loads?.one_min != undefined) {
         loadAverageOneMin = hub.linux_hardware_status?.processor?.loads?.one_min.toFixed(2)
-    } else
-    {
+    } else {
         loadAverageOneMin = "N/A"
     }
 
     if (hub.linux_hardware_status?.processor?.loads?.five_min != undefined) {
         loadAverageFiveMin = hub.linux_hardware_status?.processor?.loads?.five_min.toFixed(2)
-    } else
-    {
+    } else {
         loadAverageFiveMin = "N/A"
     }
 
     if (hub.linux_hardware_status?.processor?.loads?.fifteen_min != undefined) {
         loadAverageFifteenMin = hub.linux_hardware_status?.processor?.loads?.fifteen_min.toFixed(2)
-    } else
-    {
+    } else {
         loadAverageFifteenMin = "N/A"
     }
 
