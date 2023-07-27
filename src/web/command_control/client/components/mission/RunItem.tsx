@@ -17,7 +17,7 @@ import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Missions } from '../Missions';
 import { Slider } from '@mui/material';
-import { deepcopy } from '../shared/Utilities';
+import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
 interface Props {
@@ -47,6 +47,10 @@ export default class RunItem extends React.Component {
         this.state = {
           isChecked: this.props.run.canEdit
         }
+    }
+
+    componentDidMount() {
+        addDropdownListener('run-accordion', 'runList', 300)
     }
     
     handleBotSelectionChange(event: SelectChangeEvent) {
@@ -194,7 +198,7 @@ export default class RunItem extends React.Component {
 
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
-        let repeatsInput =
+        let repeatsInput = (
             <div>
                 Repeats: {repeats}
                 <Slider
@@ -214,9 +218,10 @@ export default class RunItem extends React.Component {
                     }}
                 />
             </div>
+        )
 
         return (
-            <Accordion className="run-accordian">
+            <Accordion className="run-accordion">
                 <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
