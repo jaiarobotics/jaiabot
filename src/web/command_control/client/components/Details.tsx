@@ -5,7 +5,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditModeToggle from './EditModeToggle';
-import { formatLatitude, formatLongitude, formatAttitudeAngle } from './shared/Utilities'
+import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop,
@@ -425,49 +425,6 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-function addDropdownListener(targetClassName: string, parentContainerId: string) {
-    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
-    dropdownContainers.forEach((dropdownElement: HTMLElement) => {
-        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId))
-    })
-}
-
-function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string) {
-    let clickedElement = event.target as HTMLElement
-    // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
-    //     reduces some of the lag
-    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
-        clickedElement = clickedElement.parentElement
-    }
-    const dropdownTimeout: number = 400 // Milliseconds
-    setTimeout(() => {
-        const dropdownContainer = clickedElement
-        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
-    }, dropdownTimeout)
-}
-
-function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
-    const parentContainer = document.getElementById(parentContainerId)
-    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
-    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
-
-    if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
-        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
-        parentContainer.scrollBy({
-            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
-            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0,
-            behavior: 'smooth'
-        })
-    } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
-        parentContainer.scrollBy({
-            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0,
-            behavior: 'smooth'
-        })
-    }
-}
-
 export interface BotDetailsProps {
     bot: PortalBotStatus,
     hub: PortalHubStatus,
@@ -502,7 +459,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     }
 
     useEffect(() => {
-        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer')
+        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer', 400)
     }, [])
 
     const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
@@ -982,7 +939,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const takeControl = props.takeControl
 
     useEffect(() => {
-        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer')
+        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 400)
     }, [])
 
     if (!hub) {
