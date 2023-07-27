@@ -6,10 +6,11 @@ import { fromLonLat } from "ol/proj"
 import { createMarker, createFlagMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
+import { PortalBotStatus } from "./PortalStatus"
 
 export function createMissionFeatures(
     map: Map,
-    botId: number,
+    bot: PortalBotStatus,
     plan: MissionPlan,
     activeGoalIndex: number,
     isSelected: boolean,
@@ -47,7 +48,7 @@ export function createMissionFeatures(
 
         markerFeature.setProperties({
             goal: goal, 
-            botId: botId, 
+            botId: bot.bot_id, 
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,
