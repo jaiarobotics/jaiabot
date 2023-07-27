@@ -69,3 +69,19 @@ export function createFlagMarker(map: Map, parameters: MarkerParameters) {
 
     return flagFeature
 }
+
+export function createGPSMarker(map: Map, parameters: MarkerParameters) {
+    const lonLat = [parameters.lon, parameters.lat]
+    const coordinate = fromLonLat(lonLat, map.getView().getProjection())
+
+    const gpsFeature = new Feature({
+        name: 'GPS Icon',
+        geometry: new Point(coordinate)
+    })
+
+    if (parameters.style != null) {
+        gpsFeature.setStyle(parameters.style)
+    }
+
+    return gpsFeature
+}
