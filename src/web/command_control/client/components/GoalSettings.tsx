@@ -96,7 +96,7 @@ export class GoalSettingsPanel extends React.Component {
             }
         }
 
-        const canEditRun = run.canEdit
+        const canEditRun = run?.canEdit
 
         if (!canEditRun) {
             this.doneClicked()
