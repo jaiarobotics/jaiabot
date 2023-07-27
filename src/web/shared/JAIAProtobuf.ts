@@ -730,11 +730,20 @@ export interface Disk {
     data?: Information
 }
 
+export interface WiFi {
+    is_connected?: Boolean
+    link_quality?: number
+    link_quality_percentage?: number
+    signal_level?: number
+    noise_level?: number
+}
+
 export interface LinuxHardwareStatus {
     uptime?: number
     processor?: Processor
     memory?: Memory
     disk?: Disk
+    wifi?: WiFi
 }
 
 export enum SyncSource {
@@ -981,6 +990,7 @@ export interface BotStatus {
     hdop?: number
     pdop?: number
     data_offload_percentage?: number
+    wifi_link_quality_percentage?: number
 }
 
 export interface EstimatedDrift {
@@ -1108,5 +1118,6 @@ export interface HubStatus {
     warning?: Warning[]
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
+    linux_hardware_status?: LinuxHardwareStatus
 }
 
