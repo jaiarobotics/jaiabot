@@ -66,6 +66,14 @@ export default class MissionControllerPanel extends React.Component {
                         id="add-run" 
                         onClick={() => {
                             Missions.addRunWithWaypoints(-1, [], this.props.mission, this.props.setEditModeToggle);
+                            setTimeout(() => {
+                                const runListElement = document.getElementById('runList')
+                                const scrollAmount = runListElement.scrollHeight
+                                runListElement.scrollTo({
+                                    top: scrollAmount,
+                                    behavior: 'smooth'
+                                })
+                            }, 100)
                         }}
                     >
                         <Icon path={mdiPlus} title="Add Run"/>
