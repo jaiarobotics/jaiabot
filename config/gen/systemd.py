@@ -373,7 +373,20 @@ jaiabot_apps=[
      'description': 'GPSD for simulator only',
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION}
+     'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_gps_wave_height_driver',
+     'description': 'Jaiabot Wave Height Driver',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_GPS_WAVE_HEIGHT_DRIVER',
+     'runs_on': Type.BOT},
+    {'exe': 'gps_wave_height.py',
+     'description': 'Jaiabot Wave Height Python',
+     'template': 'py-app.service.in',
+     'subdir': 'gps_wave_height',
+     'args': '',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_GPS_WAVE_HEIGHT',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME}
 ]
 
 jaia_firmware = [
