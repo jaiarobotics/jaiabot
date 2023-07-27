@@ -218,13 +218,17 @@ bool jaiabot::apps::LinuxHardwareThread::read_wlan_connection()
             else
             {
                 glog.is_warn() && glog << group(thread_name())
-                                       << "No wlan0 interface: " << line.c_str() << std::endl;
+                                       << "Incorrect inputs read for wlan0 interface: "
+                                       << line.c_str() << std::endl;
                 wifi.set_is_connected(false);
                 return false;
             }
         }
         else
         {
+            glog.is_warn() && glog << group(thread_name())
+                                   << "This line does not have wlan0 interface: " << line.c_str()
+                                   << std::endl;
             wifi.set_is_connected(false);
         }
     }
