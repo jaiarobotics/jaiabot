@@ -99,7 +99,12 @@ export class BotLayers {
 						style: Styles.gps()
 					}
 				)
+				gpsFeature.setId(`gps-${bot.bot_id}`)
 				botSource.addFeature(gpsFeature)
+			} else {
+				if (botSource.getFeatureById(`gps-${bot.bot_id}`)) {
+					botSource.removeFeature(botSource.getFeatureById(`gps-${bot.bot_id}`))
+				}
 			}
 
 			botLayer.changed();
