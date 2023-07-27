@@ -109,12 +109,12 @@ message CommandForHub
 message BotStatus
 {
     /*
-      Actual maximum size of message: 52 bytes / 416 bits
-        dccl.id head...........................8
-        user head..............................0
-        body.................................401
-        padding to full byte...................7
-      Allowed maximum size of message: 250 bytes / 2000 bits
+    Actual maximum size of message: 53 bytes / 424 bits
+            dccl.id head...........................8
+            user head..............................0
+            body.................................415
+            padding to full byte...................1
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 81
@@ -261,6 +261,14 @@ message BotStatus
     optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
 
     optional int32 data_offload_percentage = 61 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
+    optional int32 wifi_link_quality_percentage = 62 [
         (dccl.field) = {
             min: 0
             max: 100

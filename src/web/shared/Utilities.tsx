@@ -120,3 +120,51 @@ export function getElementById<T>(id: string) {
     id = id.replaceAll('#', '')
     return document.getElementById(id) as T
 }
+
+export function addDropdownListener(targetClassName: string, parentContainerId: string, delayMS: number) {
+    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
+    dropdownContainers.forEach((dropdownElement: HTMLElement) => {
+        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId, delayMS))
+    })
+}
+
+function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string, delayMS: number) {       
+    let clickedElement = event.target as HTMLElement
+    if (clickedElement.classList.contains('Mui-expanded')) {
+        return
+    }
+    // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
+    //     reduces some of the lag
+    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
+        clickedElement = clickedElement.parentElement
+    }
+    const dropdownTimeout: number = delayMS // Milliseconds
+
+    setTimeout(() => {
+        const dropdownContainer = clickedElement
+        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
+    }, dropdownTimeout)
+}
+
+function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
+    const parentContainer = document.getElementById(parentContainerId)
+    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
+    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
+
+    if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
+        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
+        parentContainer.scrollBy({
+            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
+            left: 0,
+            behavior: 'smooth'
+        })
+    } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
+        parentContainer.scrollBy({
+            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
+            left: 0,
+            behavior: 'smooth'
+        })
+    }
+}
+

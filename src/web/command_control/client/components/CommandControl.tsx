@@ -458,7 +458,6 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
-		debugger;
 
 		map.setTarget(this.mapDivId);
 

@@ -622,6 +622,26 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: break;
                 }
             });
+
+    interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            if (hardware_status.has_wifi())
+            {
+                if (hardware_status.wifi().is_connected())
+                {
+                    latest_bot_status_.set_wifi_link_quality_percentage(
+                        hardware_status.wifi().link_quality_percentage());
+                }
+                else
+                {
+                    latest_bot_status_.set_wifi_link_quality_percentage(0);
+                }
+            }
+            else
+            {
+                latest_bot_status_.clear_wifi_link_quality_percentage();
+            }
+        });
 }
 
 void jaiabot::apps::Fusion::init_node_status()
