@@ -541,31 +541,27 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1)
     }
 
-    const mission_state = bot.mission_state
+    const missionState = bot.mission_state
     takeControlFunction = takeControl
 
-    let link_quality_percentage = 0;
+    let linkQualityPercentage = 0;
 
     if (bot?.wifi_link_quality_percentage != undefined) {
-        link_quality_percentage = bot?.wifi_link_quality_percentage
+        linkQualityPercentage = bot?.wifi_link_quality_percentage
     } 
 
-    console.log(disableButton(commands.recover, mission_state));
-    console.log(!link_quality_percentage);
-    console.log((disableButton(commands.recover, mission_state) && !link_quality_percentage))
-    console.log("");
     let dataOffloadButton = (
-        <Button className={disableButton(commands.recover, mission_state) || !link_quality_percentage ? 'inactive button-jcc' : 'button-jcc'} 
-            disabled={disableButton(commands.recover, mission_state) || !link_quality_percentage ? true : false} 
+        <Button className={disableButton(commands.recover, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
+            disabled={disableButton(commands.recover, missionState) || !linkQualityPercentage ? true : false} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
     )
 
-    if (disableButton(commands.recover, mission_state)) {
+    if (disableButton(commands.recover, missionState)) {
         dataOffloadButton = ( 
-            <Button className={disableButton(commands.retryDataOffload, mission_state) || !link_quality_percentage ? 'inactive button-jcc' : 'button-jcc'} 
-                disabled={disableButton(commands.retryDataOffload, mission_state) || !link_quality_percentage ? true : false} 
+            <Button className={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
+                disabled={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? true : false} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
@@ -589,14 +585,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     <h3 className='name'>Click on the map to create goals</h3>
                     <div className='botDetailsToolbar'>
                         <Button
-                            className={disableButton(commands.stop, mission_state) ? 'inactive button-jcc' : ' button-jcc stopMission'} 
-                            disabled={disableButton(commands.stop, mission_state)} 
+                            className={disableButton(commands.stop, missionState) ? 'inactive button-jcc' : ' button-jcc stopMission'} 
+                            disabled={disableButton(commands.stop, missionState)} 
                             onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
                         <Button
-                            className={disablePlayButton(bot, mission, commands.play, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                            disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
+                            className={disablePlayButton(bot, mission, commands.play, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                            disabled={disablePlayButton(bot, mission, commands.play, missionState)} 
                             onClick={() => { issueRunCommand(api, bot, runMission(bot.bot_id, mission), bot.bot_id) }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
@@ -663,7 +659,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     </tr>
                                     <tr>
                                         <td>Wi-Fi Link Quality</td>
-                                        <td>{link_quality_percentage + " %"}</td>
+                                        <td>{linkQualityPercentage + " %"}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -683,8 +679,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </AccordionSummary>
                         <AccordionDetails className='botDetailsCommands'>
 
-                            <Button className={disableButton(commands.active, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    disabled={disableButton(commands.active, mission_state)} 
+                            <Button className={disableButton(commands.active, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    disabled={disableButton(commands.active, missionState)} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.active) }}>
                                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title='System Check'/>
                             </Button>
@@ -692,18 +688,18 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <Button
                                 className={
                                     `
-                                    ${disableButton(commands.rcMode, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    ${toggleRCModeButton(mission_state) ? 'rc-active' : 'rc-inactive' }
+                                    ${disableButton(commands.rcMode, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    ${toggleRCModeButton(missionState) ? 'rc-active' : 'rc-inactive' }
                                     `
                                 } 
-                                disabled={disableButton(commands.rcMode, mission_state)}  
+                                disabled={disableButton(commands.rcMode, missionState)}  
                                 onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive) }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
                             </Button>
 
-                            <Button className={disableButton(commands.nextTask, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    disabled={disableButton(commands.nextTask, mission_state)} 
+                            <Button className={disableButton(commands.nextTask, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    disabled={disableButton(commands.nextTask, missionState)} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
                                 <Icon path={mdiSkipNext} title='Next Task'/>
                             </Button>
@@ -724,8 +720,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 </AccordionSummary>
 
                                 <AccordionDetails>
-                                    <Button className={disableButton(commands.shutdown, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.shutdown, mission_state)} 
+                                    <Button className={disableButton(commands.shutdown, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.shutdown, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.shutdown) : false;
@@ -736,8 +732,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiPower} title='Shutdown'/>
                                     </Button>
-                                    <Button className={disableButton(commands.reboot, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.reboot, mission_state)} 
+                                    <Button className={disableButton(commands.reboot, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.reboot, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.reboot) : false;
@@ -748,8 +744,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiRestartAlert} title='Reboot'/>
                                     </Button>
-                                    <Button className={disableButton(commands.restartServices, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.restartServices, mission_state)} 
+                                    <Button className={disableButton(commands.restartServices, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.restartServices, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.restartServices) : false;
