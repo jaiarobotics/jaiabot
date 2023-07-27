@@ -23,7 +23,7 @@ using goby::glog;
 
 jaiabot::apps::LinuxHardwareThread::LinuxHardwareThread(
     const jaiabot::config::LinuxHardwareConfig& cfg)
-    : HealthMonitorThread(cfg, "linux_hardware", 1.0 / 60.0 * boost::units::si::hertz)
+    : HealthMonitorThread(cfg, "linux_hardware", 4.0 / 60.0 * boost::units::si::hertz)
 {
 }
 
