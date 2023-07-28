@@ -350,7 +350,7 @@ message ArduinoStatus
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
-    ;
+
     optional float vccvoltage = 3 [
         default = 0,
         (dccl.field) = {
