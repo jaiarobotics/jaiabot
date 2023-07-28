@@ -86,8 +86,6 @@ class HubManager : public ApplicationBase
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
 
     void intervehicle_subscribe(int bot_modem_id);
-    void
-    handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
