@@ -230,7 +230,7 @@ export function gpsIcon() {
     return new Icon({
         src: satellite,
         color: driftArrowColor,
-        anchor: [0.5, -0.5],
+        anchor: [0.5, -1.25],
         scale: 1.25
     })
 }
