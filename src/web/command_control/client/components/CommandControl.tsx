@@ -476,6 +476,9 @@ export default class CommandControl extends React.Component {
 		// Hotkeys
 		document.onkeydown = this.keyPressed.bind(this)
 
+		// Lock screen in landscape orientation
+		screen.orientation.lock('landscape')
+
 		info('Welcome to Jaia Command & Control!');
 	}
 
