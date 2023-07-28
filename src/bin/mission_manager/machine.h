@@ -783,7 +783,10 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
                            Notify<Derived, state, protobuf::SETPOINT_IVP_HELM>
 {
     using StateBase = boost::statechart::state<Derived, Parent>;
-    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c){};
+    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
 
     ~AcquiredGPSCommon(){};
 
@@ -848,6 +851,11 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             // in indoor mode, simply post that we've received a fix
             // (even though we haven't as there's no GPS)
             this->post_event(statechart::EvGPSFix());
+        }
+        else
+        {
+            this->machine().insert_warning(
+                jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
         }
     };
 
