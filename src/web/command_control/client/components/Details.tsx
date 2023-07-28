@@ -957,10 +957,32 @@ export function HubDetailsComponent(props: HubDetailsProps) {
 
     takeControlFunction = takeControl;
 
-    let link_quality_percentage = 0;
+    let loadAverageOneMin
+    let loadAverageFiveMin
+    let loadAverageFifteenMin
+
+    if (hub.linux_hardware_status?.processor?.loads?.one_min != undefined) {
+        loadAverageOneMin = hub.linux_hardware_status?.processor?.loads?.one_min.toFixed(2)
+    } else {
+        loadAverageOneMin = "N/A"
+    }
+
+    if (hub.linux_hardware_status?.processor?.loads?.five_min != undefined) {
+        loadAverageFiveMin = hub.linux_hardware_status?.processor?.loads?.five_min.toFixed(2)
+    } else {
+        loadAverageFiveMin = "N/A"
+    }
+
+    if (hub.linux_hardware_status?.processor?.loads?.fifteen_min != undefined) {
+        loadAverageFifteenMin = hub.linux_hardware_status?.processor?.loads?.fifteen_min.toFixed(2)
+    } else {
+        loadAverageFifteenMin = "N/A"
+    }
+
+    let linkQualityPercentage = 0;
 
     if (hub.linux_hardware_status?.wifi?.link_quality_percentage != undefined) {
-        link_quality_percentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
+        linkQualityPercentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
     }
 
     return (
@@ -1000,8 +1022,20 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                         <td>{statusAge.toFixed(0)} s</td>
                                     </tr>
                                     <tr>
+                                        <td>CPU Load Average (1 min)</td>
+                                        <td>{loadAverageOneMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>CPU Load Average (5 min)</td>
+                                        <td>{loadAverageFiveMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>CPU Load Average (15 min)</td>
+                                        <td>{loadAverageFifteenMin}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Wi-Fi Link Quality</td>
-                                        <td>{link_quality_percentage + " %"}</td>
+                                        <td>{linkQualityPercentage + " %"}</td>
                                     </tr>
                                 </tbody>
                             </table>
