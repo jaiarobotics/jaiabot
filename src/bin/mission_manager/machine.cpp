@@ -528,7 +528,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
-    // make sure we have a safety timeout to transition into unpowered ascent
+    // Check when to stop logging
     if (current_clock >= powered_descent_timeout_)
     {
         glog.is_debug2() && glog << "Safety Powered Descent Timeout!" << std::endl;

@@ -623,7 +623,7 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                          boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>>;
 
   private:
-    // determines when to stop into logging
+    // determines when to stop logging
     goby::time::SteadyClock::time_point failed_startup_log_timeout_;
 };
 
