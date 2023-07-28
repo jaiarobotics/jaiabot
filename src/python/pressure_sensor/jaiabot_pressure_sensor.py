@@ -128,7 +128,7 @@ while True:
         continue
 
     now = datetime.utcnow()
-    line = '%s,%9.2f,%7.2f,%s\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius, sensor.sensor_version)
+    line = '%s,%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), sensor.sensor_version, p_mbar, t_celsius)
 
     log.debug(f'Send: {line}')
     sock.sendto(line.encode('utf8'), addr)

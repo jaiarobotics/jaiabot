@@ -120,9 +120,9 @@ jaiabot::apps::BlueRoboticsPressureSensorDriver::BlueRoboticsPressureSensorDrive
             using boost::units::absolute;
 
             auto date_string = fields[0];
-            auto p_mbar = std::stod(fields[1]) * si::milli * bar;
-            auto t_celsius = std::stod(fields[2]) * absolute<celsius::temperature>();
-            auto version_string = fields[3];
+            auto version_string = fields[1];
+            auto p_mbar = std::stod(fields[2]) * si::milli * bar;
+            auto t_celsius = std::stod(fields[3]) * absolute<celsius::temperature>();
 
             glog.is_verbose() && glog << group("bar30_test") << "p_mbar: " << p_mbar
                                       << ", t_celsius: " << t_celsius
