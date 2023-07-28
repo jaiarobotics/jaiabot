@@ -437,6 +437,7 @@ export interface Goal {
     name?: string
     location?: GeographicCoordinate
     task?: MissionTask
+    moveWptMode?: boolean
 }
 
 export interface Recovery {
@@ -697,7 +698,9 @@ export enum Warning {
     WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_MUST_HAVE_A_GOAL",
     WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__TRANSIT_CANNOT_RECOVER_AT_FINAL_GOAL_WITHOUT_A_GOAL",
     WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL",
+    WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = "WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED",
     WARNING__MISSION__DATA_OFFLOAD_FAILED = "WARNING__MISSION__DATA_OFFLOAD_FAILED",
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = "WARNING__MISSION__DATA__GPS_FIX_DEGRADED"
 }
 
 export interface LoadAverages {
@@ -728,11 +731,20 @@ export interface Disk {
     data?: Information
 }
 
+export interface WiFi {
+    is_connected?: Boolean
+    link_quality?: number
+    link_quality_percentage?: number
+    signal_level?: number
+    noise_level?: number
+}
+
 export interface LinuxHardwareStatus {
     uptime?: number
     processor?: Processor
     memory?: Memory
     disk?: Disk
+    wifi?: WiFi
 }
 
 export enum SyncSource {
@@ -881,6 +893,8 @@ export interface IMUData {
     gravity?: Acceleration
     calibration_status?: CalibrationStatus
     bot_rolled_over?: boolean
+    significant_wave_height?: number
+    max_acceleration?: number
 }
 
 export enum SolutionType {
@@ -977,6 +991,7 @@ export interface BotStatus {
     hdop?: number
     pdop?: number
     data_offload_percentage?: number
+    wifi_link_quality_percentage?: number
 }
 
 export interface EstimatedDrift {
@@ -990,8 +1005,6 @@ export interface DriftPacket {
     start_location?: GeographicCoordinate
     end_location?: GeographicCoordinate
     significant_wave_height?: number
-    wave_height?: number
-    wave_period?: number
 }
 
 export interface Measurements {
@@ -1016,6 +1029,7 @@ export interface DivePacket {
     bottom_dive?: boolean
     reached_min_depth?: boolean
     bottom_type?: BottomType
+    max_acceleration?: number
 }
 
 export interface TaskPacket {
@@ -1105,5 +1119,6 @@ export interface HubStatus {
     warning?: Warning[]
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
+    linux_hardware_status?: LinuxHardwareStatus
 }
 

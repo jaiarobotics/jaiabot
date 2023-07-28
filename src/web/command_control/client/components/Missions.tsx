@@ -108,7 +108,7 @@ export class Missions {
         return isRunNumberLessThanMaxRuns
     }
 
-    static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface) {
+    static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface, setEditModeToggle: (runNumber: number, isOn: boolean) => void) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 
@@ -130,6 +130,8 @@ export class Missions {
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        setEditModeToggle(botId, true)
 
         return mission;
     }

@@ -358,6 +358,14 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     dive_depths_.push_back(max_depth);
     dive_packet().set_depth_achieved(0);
     dive_packet().set_bottom_dive(false);
+
+    glog.is_debug1() && glog << group("task") << "Dive::Dive Starting Bottom Type Sampling"
+                             << std::endl;
+
+    // Start bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -383,6 +391,14 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         while (dive_packet().measurement_size() > max_measurement_size)
             dive_packet().mutable_measurement()->RemoveLast();
     }
+
+    glog.is_debug1() && glog << group("task") << "Dive::~Dive() Stopping Bottom Type Sampling"
+                             << std::endl;
+
+    // Stop bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 }
 
 // Task::Dive::PrePoweredDescent
@@ -585,6 +601,25 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
 
             // Set depth achieved if we had a bottoming timeout
             context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
+            // Set the max_acceration
+            context<Dive>().dive_packet().set_max_acceleration_with_units(
+                this->machine().latest_max_acceleration());
+
+            // Determine Hard/Soft
+            if (this->machine().latest_max_acceleration().value() >=
+                cfg().hard_bottom_type_acceleration())
+            {
+                // Set the bottom_type Hard
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            }
+            else
+            {
+                // Set the bottom_type Soft
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+            }
 
             // used to correct dive rate calculation
             duration_correction_ = (now - last_depth_change_time_);
@@ -984,6 +1019,10 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
         // in indoor mode, simply post that we've received a fix
         // (even though we haven't as there's no GPS)
         post_event(statechart::EvGPSFix());
+    }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
     }
 }
 
