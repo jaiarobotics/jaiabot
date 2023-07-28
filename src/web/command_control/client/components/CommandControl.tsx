@@ -458,7 +458,6 @@ export default class CommandControl extends React.Component {
 		// Class that keeps track of the bot layers, and updates them
 		this.botLayers = new BotLayers(map)
 		this.hubLayers = new HubLayers(map)
-		debugger;
 
 		map.setTarget(this.mapDivId);
 
@@ -1392,8 +1391,12 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
+	/**
+	 * 
+	 * @returns fleet id of selected  (Bot does not have fleet_id in status)
+	 */
 	getFleetId() {
-		return this.state.podStatus.hubs[0].fleet_id
+		return this.state.podStatus?.hubs[this.state?.selectedHubOrBot.id]?.fleet_id
 	}
 
 	selectedHubId() {
@@ -1819,7 +1822,7 @@ export default class CommandControl extends React.Component {
 				const runNumber = run.id.slice(4)
 				const missionFeatures = MissionFeatures.createMissionFeatures(
 					map, 
-					assignedBot,
+					this.getPodStatus().bots[assignedBot],
 					plan,
 					activeGoalIndex,
 					isSelected,
@@ -1871,7 +1874,7 @@ export default class CommandControl extends React.Component {
 			if (activeMissionPlan != null) {
 				let features = MissionFeatures.createMissionFeatures(
 					map, 
-					Number(botId),
+					bot,
 					activeMissionPlan,
 					bot.active_goal,
 					this.isBotSelected(Number(botId)),
@@ -2064,7 +2067,8 @@ export default class CommandControl extends React.Component {
 				break
 			}
 		}
-		if (run.command.plan?.goal[goalNum - 1]) {
+		
+		if (run?.command.plan?.goal[goalNum - 1]) {
 			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 		}
 	}
