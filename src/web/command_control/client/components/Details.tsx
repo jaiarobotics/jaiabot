@@ -5,7 +5,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EditModeToggle from './EditModeToggle';
-import { formatLatitude, formatLongitude, formatAttitudeAngle } from './shared/Utilities'
+import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop,
@@ -425,49 +425,6 @@ function healthRow(bot: BotStatus, allInfo: boolean) {
 
 }
 
-function addDropdownListener(targetClassName: string, parentContainerId: string) {
-    const dropdownContainers = Array.from(document.getElementsByClassName(targetClassName) as HTMLCollectionOf<HTMLElement>)
-    dropdownContainers.forEach((dropdownElement: HTMLElement) => {
-        dropdownElement.addEventListener('click', (event: Event) => handleAccordionDropdownClick(event, targetClassName, parentContainerId))
-    })
-}
-
-function handleAccordionDropdownClick(event: Event, targetClassName: string, parentContainerId: string) {
-    let clickedElement = event.target as HTMLElement
-    // Difficult to avoid this function being called twice on nested accoridon clicks, but having it only adjust to accordionContainers
-    //     reduces some of the lag
-    while (!clickedElement.classList.contains(targetClassName) && !clickedElement.classList.contains('nestedAccordionContainer')) {
-        clickedElement = clickedElement.parentElement
-    }
-    const dropdownTimeout: number = 400 // Milliseconds
-    setTimeout(() => {
-        const dropdownContainer = clickedElement
-        adjustAccordionScrollPosition(parentContainerId, dropdownContainer)
-    }, dropdownTimeout)
-}
-
-function adjustAccordionScrollPosition(parentContainerId: string, dropdownContainer: HTMLElement) {
-    const parentContainer = document.getElementById(parentContainerId)
-    const parentContainerSpecs: DOMRect = parentContainer.getBoundingClientRect()
-    const dropdownContainerSpecs: DOMRect = dropdownContainer.getBoundingClientRect()
-
-    if (dropdownContainerSpecs.height > parentContainerSpecs.height) {
-        const heightDiff = dropdownContainerSpecs.height - parentContainerSpecs.height
-        parentContainer.scrollBy({
-            // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
-            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
-            left: 0,
-            behavior: 'smooth'
-        })
-    } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
-        parentContainer.scrollBy({
-            top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
-            left: 0,
-            behavior: 'smooth'
-        })
-    }
-}
-
 export interface BotDetailsProps {
     bot: PortalBotStatus,
     hub: PortalHubStatus,
@@ -502,7 +459,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     }
 
     useEffect(() => {
-        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer')
+        addDropdownListener('accordionContainer', 'botDetailsAccordionContainer', 400)
     }, [])
 
     const statusAge = Math.max(0.0, bot.portalStatusAge / 1e6)
@@ -541,21 +498,27 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         distToHub = turf.rhumbDistance(botloc, hubloc, options).toFixed(1)
     }
 
-    const mission_state = bot.mission_state
+    const missionState = bot.mission_state
     takeControlFunction = takeControl
 
+    let linkQualityPercentage = 0;
+
+    if (bot?.wifi_link_quality_percentage != undefined) {
+        linkQualityPercentage = bot?.wifi_link_quality_percentage
+    } 
+
     let dataOffloadButton = (
-        <Button className={disableButton(commands.recover, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-            disabled={disableButton(commands.recover, mission_state)} 
+        <Button className={disableButton(commands.recover, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
+            disabled={disableButton(commands.recover, missionState) || !linkQualityPercentage ? true : false} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
     )
 
-    if (disableButton(commands.recover, mission_state)) {
+    if (disableButton(commands.recover, missionState)) {
         dataOffloadButton = ( 
-            <Button className={disableButton(commands.retryDataOffload, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                disabled={disableButton(commands.retryDataOffload, mission_state)} 
+            <Button className={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
+                disabled={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? true : false} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
@@ -579,14 +542,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     <h3 className='name'>Click on the map to create goals</h3>
                     <div className='botDetailsToolbar'>
                         <Button
-                            className={disableButton(commands.stop, mission_state) ? 'inactive button-jcc' : ' button-jcc stopMission'} 
-                            disabled={disableButton(commands.stop, mission_state)} 
+                            className={disableButton(commands.stop, missionState) ? 'inactive button-jcc' : ' button-jcc stopMission'} 
+                            disabled={disableButton(commands.stop, missionState)} 
                             onClick={() => { issueCommand(api, bot.bot_id, commands.stop) }}>
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
                         <Button
-                            className={disablePlayButton(bot, mission, commands.play, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                            disabled={disablePlayButton(bot, mission, commands.play, mission_state)} 
+                            className={disablePlayButton(bot, mission, commands.play, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                            disabled={disablePlayButton(bot, mission, commands.play, missionState)} 
                             onClick={() => { issueRunCommand(api, bot, runMission(bot.bot_id, mission), bot.bot_id) }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
@@ -651,6 +614,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <td>Distance from Hub</td>
                                         <td>{distToHub} m</td>
                                     </tr>
+                                    <tr>
+                                        <td>Wi-Fi Link Quality</td>
+                                        <td>{linkQualityPercentage + " %"}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </AccordionDetails>
@@ -669,8 +636,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </AccordionSummary>
                         <AccordionDetails className='botDetailsCommands'>
 
-                            <Button className={disableButton(commands.active, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    disabled={disableButton(commands.active, mission_state)} 
+                            <Button className={disableButton(commands.active, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    disabled={disableButton(commands.active, missionState)} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.active) }}>
                                 <Icon path={mdiCheckboxMarkedCirclePlusOutline} title='System Check'/>
                             </Button>
@@ -678,18 +645,18 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <Button
                                 className={
                                     `
-                                    ${disableButton(commands.rcMode, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    ${toggleRCModeButton(mission_state) ? 'rc-active' : 'rc-inactive' }
+                                    ${disableButton(commands.rcMode, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    ${toggleRCModeButton(missionState) ? 'rc-active' : 'rc-inactive' }
                                     `
                                 } 
-                                disabled={disableButton(commands.rcMode, mission_state)}  
+                                disabled={disableButton(commands.rcMode, missionState)}  
                                 onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive) }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
                             </Button>
 
-                            <Button className={disableButton(commands.nextTask, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                    disabled={disableButton(commands.nextTask, mission_state)} 
+                            <Button className={disableButton(commands.nextTask, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    disabled={disableButton(commands.nextTask, missionState)} 
                                     onClick={() => { issueCommand(api, bot.bot_id, commands.nextTask) }}>
                                 <Icon path={mdiSkipNext} title='Next Task'/>
                             </Button>
@@ -710,8 +677,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 </AccordionSummary>
 
                                 <AccordionDetails>
-                                    <Button className={disableButton(commands.shutdown, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.shutdown, mission_state)} 
+                                    <Button className={disableButton(commands.shutdown, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.shutdown, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.shutdown) : false;
@@ -722,8 +689,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiPower} title='Shutdown'/>
                                     </Button>
-                                    <Button className={disableButton(commands.reboot, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.reboot, mission_state)} 
+                                    <Button className={disableButton(commands.reboot, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.reboot, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.reboot) : false;
@@ -734,8 +701,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiRestartAlert} title='Reboot'/>
                                     </Button>
-                                    <Button className={disableButton(commands.restartServices, mission_state) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.restartServices, mission_state)} 
+                                    <Button className={disableButton(commands.restartServices, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.restartServices, missionState)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.restartServices) : false;
@@ -972,7 +939,7 @@ export function HubDetailsComponent(props: HubDetailsProps) {
     const takeControl = props.takeControl
 
     useEffect(() => {
-        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer')
+        addDropdownListener('accordionContainer', 'hubDetailsAccordionContainer', 400)
     }, [])
 
     if (!hub) {
@@ -1010,6 +977,12 @@ export function HubDetailsComponent(props: HubDetailsProps) {
         loadAverageFifteenMin = hub.linux_hardware_status?.processor?.loads?.fifteen_min.toFixed(2)
     } else {
         loadAverageFifteenMin = "N/A"
+    }
+
+    let linkQualityPercentage = 0;
+
+    if (hub.linux_hardware_status?.wifi?.link_quality_percentage != undefined) {
+        linkQualityPercentage = hub.linux_hardware_status?.wifi?.link_quality_percentage
     }
 
     return (
@@ -1059,6 +1032,10 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                     <tr>
                                         <td>CPU Load Average (15 min)</td>
                                         <td>{loadAverageFifteenMin}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Wi-Fi Link Quality</td>
+                                        <td>{linkQualityPercentage + " %"}</td>
                                     </tr>
                                 </tbody>
                             </table>

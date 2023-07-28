@@ -162,6 +162,7 @@ enum Warning
     WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = 703;
 
     WARNING__MISSION__DATA_OFFLOAD_FAILED = 720;
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = 721;
 }
 
 message LinuxHardwareStatus
@@ -212,11 +213,21 @@ message LinuxHardwareStatus
         optional Information data = 2;
     }
 
+    message WiFi
+    {
+        required bool is_connected = 1;
+        optional uint32 link_quality = 2;
+        optional uint32 link_quality_percentage = 3;
+        optional int32 signal_level = 4;
+        optional int32 noise_level = 5;
+    }
+
     optional int32 uptime = 10
         [(dccl.field) = { units { base_dimensions: "T" } }];
     optional Processor processor = 20;
     optional Memory memory = 30;
     optional Disk disk = 40;
+    optional WiFi wifi = 50;
 }
 
 message NTPStatus
