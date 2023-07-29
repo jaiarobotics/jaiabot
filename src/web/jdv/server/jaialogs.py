@@ -35,7 +35,7 @@ LOG_DIR='logs'
 
 def set_directory(directory):
     global LOG_DIR
-    LOG_DIR = directory
+    LOG_DIR = str(directory)
     logging.info(f'Log directory: {directory}')
     os.makedirs(directory, exist_ok=True)
 
@@ -158,8 +158,11 @@ def get_logs():
 
         h5_path = goby_path.with_suffix('.h5')
 
-        h5_file = JaiaH5FileSet([h5_path])
-        duration = h5_file.duration()
+        try:
+            h5_file = JaiaH5FileSet([h5_path])
+            duration = h5_file.duration()
+        except FileNotFoundError:
+            duration = None
 
         results.append({
             'bot': bot,
@@ -173,33 +176,11 @@ def get_logs():
     return results
 
 
-def get_fields(log_names, root_path='/'):
+def get_fields(log_names: List[str], root_path='/'):
     '''Get a list of the fields below a root path in a set of logs'''
-    fields = set()
-
-    if log_names is None:
-        return []
-
-    if root_path is None or root_path == '':
-        root_path = '/'
-    else:
-        # h5py doesn't like initial slashes, unless it's the root path
-        root_path = root_path.lstrip('/')
-
-    log_names = log_names.split(',')
-    
-    for log_name in log_names:
-        h5_file = h5py.File(log_name)
-        try:
-            fields = fields.union(h5_file[root_path].keys())
-        except AttributeError:
-            # If this path is a dataset, it has no "keys()"
-            pass
-    
-    series = list(fields)
-    series.sort()
-
-    return series
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_names]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+    return h5_files.fields(root_path=root_path)
 
 
 @dataclass
@@ -348,35 +329,11 @@ def get_map(log_names):
     return seriesList
 
 
-HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
+def get_commands(log_filenames: List[str]):
+    h5_paths = [f'{LOG_DIR}/{fn}.h5' for fn in log_filenames]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
 
-def get_commands(log_filenames):
-
-    # Open all our logs
-    log_files = [h5py.File(log_name) for log_name in log_filenames]
-
-    # A dictionary mapping bot_id to an array of mission dictionaries
-    results = {}
-
-    for log_file in log_files:
-        
-        # Search for Command items
-        for path in log_file.keys():
-
-            m = HUB_COMMAND_RE.match(path)
-            if m is not None:
-                bot_id = m.group(1)
-                hub_command_path = path
-
-                if bot_id not in results:
-                    results[bot_id] = []
-                
-                command_path = hub_command_path + '/jaiabot.protobuf.Command'
-                commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
-
-                results[bot_id] = commands
-
-    return results
+    return h5_files.commands()
 
 
 BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.BotStatus$')
@@ -456,6 +413,6 @@ def generate_kmz(h5_filename: str, kmz_filename: str):
 
 # Testing
 if __name__ == '__main__':
-    set_directory('/var/log/jaiabot/bot_offload')
-    pprint(get_logs())
-
+    logging.basicConfig(level=logging.DEBUG)
+    set_directory(Path('~/jaia_logs_test').expanduser())
+    pprint(get_commands(['bot4_fleet1_20230712T182625']))

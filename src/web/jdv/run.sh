@@ -12,7 +12,7 @@ popd
 
 # Start server
 pushd server
-    ./jaiabot_data_vision.py -p 40011 &
+    ./jaiabot_data_vision.py -p 40011 -d ~/jaia_logs_test &
 popd
 
 # Build client

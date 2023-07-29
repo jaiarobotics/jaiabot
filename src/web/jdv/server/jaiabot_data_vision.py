@@ -63,7 +63,7 @@ def getLogs():
 
 @app.route('/paths', methods=['GET'])
 def getFields():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogs.get_fields(log_names, root_path))
 
