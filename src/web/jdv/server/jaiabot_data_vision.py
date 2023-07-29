@@ -52,6 +52,7 @@ def getStaticFile(path):
 
 @app.route('/', methods=['GET'])
 def getRoot():
+    '''The html/css/javascript client'''
     return getStaticFile('index.html')
 
 ####### API endpoints

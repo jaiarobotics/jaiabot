@@ -91,6 +91,9 @@ export default class LogSelector extends React.Component {
                 Start time
             </div>
             <div className="durationCell logHeader">
+                Size (bytes)
+            </div>
+            <div className="durationCell logHeader">
                 Duration
             </div>
         </div>
@@ -108,6 +111,9 @@ export default class LogSelector extends React.Component {
                 </div>
                 <div className="timeCell">
                     {date_string_from_microseconds(log.timestamp)}
+                </div>
+                <div className="durationCell">
+                    {log.size.toLocaleString()}
                 </div>
                 <div className="durationCell">
                     {duration_string_from_seconds(log.duration / 1e6)}

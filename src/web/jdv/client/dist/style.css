@@ -158,12 +158,17 @@ button {
 
 .timeCell {
     display: inline-block;
-    width: 30%;
+    width: 20%;
+}
+
+.sizeCell {
+    display: inline-block;
+    width: 20%;
 }
 
 .durationCell {
     display: inline-block;
-    width: 30%;
+    width: 20%;
 }
 
 .selected {

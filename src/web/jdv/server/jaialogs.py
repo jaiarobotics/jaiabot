@@ -18,6 +18,8 @@ import kmz
 from objects import *
 from moos_messages import *
 from pprint import pprint
+from pathlib import Path
+from jaia_h5 import JaiaH5FileSet
 
 
 # JAIA message types as python dataclasses
@@ -134,35 +136,36 @@ def get_title_from_path(path):
 
 # Data fetch functions
 
+UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
+
 def get_logs():
     '''Get list of available logs'''
     results = []
     logging.warning('log_dir = ' + LOG_DIR)
-    for filename in glob.glob(LOG_DIR + '/*_*_*.h5'):
-        components = re.match(r'.*/(.+)_(.+)_(.+)\.h5$', filename)
+    for goby_file_path_string in glob.glob(LOG_DIR + '/*_*_????????T??????.goby'):
+        goby_path = Path(goby_file_path_string)
+        filename = goby_path.stem
+        components = re.match(r'(.+)_(.+)_(.+)$', filename)
         bot, fleet, date_string = components.groups()
 
         try:
             date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            logging.warning(f'No date in file {filename}')
+            logging.warning(f'No date in filename {filename}')
             continue
 
-        # Get duration of this log
-        try:
-            path = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
-            h5_file = h5py.File(filename)
-            start = h5_file[path][0]
-            end = h5_file[path][-1]
-            duration = int(end - start)
-        except (OSError, KeyError):
-            logging.warning(f'No duration in file {filename}')
-            continue
+        file_size = goby_path.stat().st_size
+
+        h5_path = goby_path.with_suffix('.h5')
+
+        h5_file = JaiaH5FileSet([h5_path])
+        duration = h5_file.duration()
 
         results.append({
             'bot': bot,
             'fleet': fleet,
             'timestamp': date.timestamp(),
+            'size': file_size,
             'duration': duration,
             'filename': filename
         })
@@ -453,5 +456,6 @@ def generate_kmz(h5_filename: str, kmz_filename: str):
 
 # Testing
 if __name__ == '__main__':
-    filename = '/var/log/jaiabot/bot_offload/bot3_fleet1_20230411T181720.h5'
-    generate_kmz(filename, 'test.kmz')
+    set_directory('/var/log/jaiabot/bot_offload')
+    pprint(get_logs())
+
