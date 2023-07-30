@@ -163,6 +163,7 @@ class LogApp extends React.Component {
   }
 
   selectLogButtonPressed(evt: Event) {
+    this.update_log_dropdown()
     this.setState({isSelectingLogs: true})
   }
 
