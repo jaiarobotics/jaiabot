@@ -80,7 +80,7 @@ def getSeries():
 
 @app.route('/map', methods=['GET'])
 def getMap():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     return JSONResponse(jaialogs.get_map(log_names))
 
 
