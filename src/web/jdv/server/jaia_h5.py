@@ -8,6 +8,44 @@ import h5py
 import logging
 import os
 import re
+import json
+
+
+try:
+    path_descriptions = json.load(open('jaiabot_paths.json'))
+except FileNotFoundError:
+    path_descriptions = {}
+
+
+def jaia_get_description(path):
+    for description in path_descriptions:
+        if 'path' in description:
+            if description['path'] == path:
+                return description
+        
+        if 'path_regex' in description:
+            if re.match(description['path_regex'], path):
+                return description
+    
+    return None
+
+
+def get_title_from_path(path: str):
+    components = path.split('/')
+    if len(components) < 2:
+        logging.warning(f'Not enough components in path: {path}')
+        return ''
+
+    components = components[1:]
+
+    message_type_components = components[0].split('.')
+
+    if len(message_type_components) < 1:
+        logging.warning(f'Invalid path: {path}')
+        return ''
+
+    components[0] = components[0].split('.')[-1]
+    return '/'.join(components)
 
 
 # This lock is locked whenever a thread is checking to open an h5 file, potentially doing some goby -> h5 conversions
@@ -217,6 +255,44 @@ class JaiaH5FileSet:
 
         return results
 
+    def getSeries(self, paths: List[str]):
+        series_list = []
+
+        paths = [path.lstrip('/') for path in paths.split(',')]
+
+        # Get the series from the logs
+        for path in paths:
+            series_description = jaia_get_description(path) or {}
+            invalid_values = set(series_description.get('invalid_values', []))
+
+            series = Series()
+
+            for log in self.h5Files:
+                try:
+                    series += Series(log=log, path=path, scheme=1, invalid_values=invalid_values)
+                except KeyError as e:
+                    logging.warn(e)
+                    continue
+
+            series.sort()
+
+            title = get_title_from_path(path)
+            y_axis_title = title
+            units = series_description.get('units')
+
+            if units is not None:
+                y_axis_title += f'\n({units})'
+
+            series_list.append({
+                'path': path,
+                'title': title,
+                'y_axis_title': y_axis_title,
+                '_utime_': series.utime,
+                'series_y': series.y_values,
+                'hovertext': series.hovertext
+            })
+
+        return series_list
 
 
 # Testing

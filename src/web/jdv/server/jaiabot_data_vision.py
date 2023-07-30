@@ -69,7 +69,7 @@ def getFields():
 
 @app.route('/series', methods=['GET'])
 def getSeries():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     series_names = request.args.get('path')
 
     try:
