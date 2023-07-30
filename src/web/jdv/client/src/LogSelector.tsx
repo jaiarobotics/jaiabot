@@ -81,20 +81,20 @@ export default class LogSelector extends React.Component {
         const logs = this.getFilteredLogs()
 
         const logHeader = <div key="logHeader" className="logHeaderRow">
-            <div className="fleetCell logHeader">
+            <div className="smallCell logHeader">
                 Fleet
             </div>
-            <div className="botCell logHeader">
+            <div className="smallCell logHeader">
                 Bot
             </div>
-            <div className="timeCell logHeader">
+            <div className="bigCell logHeader">
                 Start time
             </div>
-            <div className="durationCell logHeader">
-                Size (bytes)
-            </div>
-            <div className="durationCell logHeader">
+            <div className="bigCell logHeader">
                 Duration
+            </div>
+            <div className="bigCell logHeader rightJustify">
+                Size (bytes)
             </div>
         </div>
 
@@ -103,20 +103,20 @@ export default class LogSelector extends React.Component {
             const className = (self.state.selectedLogs.has(log)) ? "selected" : ""
 
             const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
-                <div className="fleetCell">
+                <div className="smallCell">
                     {log.fleet}
                 </div>
-                <div className="botCell">
+                <div className="smallCell">
                     {log.bot}
                 </div>
-                <div className="timeCell">
+                <div className="bigCell">
                     {date_string_from_microseconds(log.timestamp)}
                 </div>
-                <div className="durationCell">
-                    {log.size.toLocaleString()}
+                <div className="bigCell">
+                    {log.duration ? duration_string_from_seconds(log.duration / 1e6) : "Unconverted"}
                 </div>
-                <div className="durationCell">
-                    {duration_string_from_seconds(log.duration / 1e6)}
+                <div className="bigCell rightJustify">
+                    {log.size.toLocaleString()}
                 </div>
             </div>
 
