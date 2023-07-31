@@ -325,8 +325,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         // date_string, p_mbar, t_celsius
         ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature << ","
-           << "bar30";
+           << "bar30"
+           << "," << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature;
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(ss.str());
         interthread().publish<pressure_udp_out>(io_data);
