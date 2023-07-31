@@ -194,6 +194,7 @@ interface State {
 
 	podStatus: PodStatus
 	downloadQueueRemovals: number[],
+	areBotsDownloadingInQueue: boolean,
 	// Incremented when podStatus is changed and needs a re-render
 	podStatusVersion: number,
 	metadata: Metadata,
@@ -334,6 +335,7 @@ export default class CommandControl extends React.Component {
 				canDeleteRun: false
 			},
 			downloadQueueRemovals: [],
+			areBotsDownloadingInQueue: false
 		};
 
 		this.state.runList = {
@@ -1011,6 +1013,7 @@ export default class CommandControl extends React.Component {
 
 		if (!confirm(`Would you like to do a data download for Bot${downloadableBotIds.length > 1 ? 's': ''}:  ${downloadableBotIds}`)) { return }
 
+		this.setState({ areBotsDownloadingInQueue: true })
 		for (const bot of downloadableBots) {
 			console.log(bot)
 			await this.downloadBot(bot)
@@ -1048,7 +1051,7 @@ export default class CommandControl extends React.Component {
 			const intervalId = setInterval(() => {
 				console.log('...check...')
 				console.log('bot.data', bot.data_offload_percentage)
-				if (bot.data_offload_percentage == undefined) {
+				if (bot.data_offload_percentage == undefined || bot.data_offload_percentage === 0) {
 					clearInterval(intervalId)
 					resolve()
 				} 
@@ -1074,6 +1077,14 @@ export default class CommandControl extends React.Component {
 			}
 		}
 		return downloadableBots
+	}
+
+	getDisplayDownloadBots() {
+		if (!this.state.areBotsDownloadingInQueue) {
+			return []
+		} else {
+			return this.getDownloadableBots()
+		}
 	}
 
 	/**
@@ -1666,7 +1677,7 @@ export default class CommandControl extends React.Component {
 				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
 				</Button>
-				<Button id="downloadAll" className={`button-jcc ${(this.getDownloadableBots().length === 0 ? 'inactive' : '')}`}  disabled={this.getDownloadableBots().length === 0} onClick={() => this.processBotDownloads()}>
+				<Button id="downloadAll" className={`button-jcc ${(this.getDownloadableBots().length === 0 ? 'inactive' : '')}`} disabled={this.getDownloadableBots().length === 0} onClick={() => this.processBotDownloads()}>
 					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
@@ -1767,7 +1778,7 @@ export default class CommandControl extends React.Component {
 				error(response.message)
 			} else {
 				info("Sent Activate All")
-				this.setState({ downloadQueueRemovals: [] }, () => { this.getDownloadableBots() })
+				this.setState({ downloadQueueRemovals: [], areBotsDownloadingInQueue: false }, () => { this.getDownloadableBots() })
 			}
 		})
 	}
@@ -2619,7 +2630,7 @@ export default class CommandControl extends React.Component {
 				)
 				break
 			case PanelType.DOWNLOAD_QUEUE:
-				visiblePanelElement = <DownloadQueue downloadableBots={this.getDownloadableBots()} removeBotFromQueue={this.removeBotFromQueue.bind(this)} />
+				visiblePanelElement = <DownloadQueue downloadableBots={this.getDisplayDownloadBots()} removeBotFromQueue={this.removeBotFromQueue.bind(this)} />
 				break
 		}
 
