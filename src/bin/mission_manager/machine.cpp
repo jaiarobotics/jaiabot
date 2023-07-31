@@ -1020,6 +1020,10 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
         // (even though we haven't as there's no GPS)
         post_event(statechart::EvGPSFix());
     }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
 }
 
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGPS()

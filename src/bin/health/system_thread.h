@@ -66,6 +66,7 @@ class LinuxHardwareThread : public HealthMonitorThread<jaiabot::config::LinuxHar
     bool read_sysinfo();
     bool read_meminfo();
     bool read_disk_usage();
+    bool read_wlan_connection();
     void set_use_fraction(protobuf::LinuxHardwareStatus::Information& info);
 
   private:
@@ -74,6 +75,7 @@ class LinuxHardwareThread : public HealthMonitorThread<jaiabot::config::LinuxHar
     bool sysinfo_successful_{true};
     bool meminfo_successful_{true};
     bool disk_check_successful_{true};
+    bool wifi_connection_successful_{true};
 };
 
 class NTPStatusThread : public HealthMonitorThread<jaiabot::config::NTPStatusConfig>

@@ -29,4 +29,6 @@ message HubStatus
     optional GeographicCoordinate location = 10;
 
     repeated uint32 bot_ids_in_radio_file = 11;
+
+    optional LinuxHardwareStatus linux_hardware_status = 12;
 }
