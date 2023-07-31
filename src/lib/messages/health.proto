@@ -162,6 +162,7 @@ enum Warning
     WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = 703;
 
     WARNING__MISSION__DATA_OFFLOAD_FAILED = 720;
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = 721;
 }
 
 message LinuxHardwareStatus
@@ -349,7 +350,7 @@ message ArduinoStatus
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
-    ;
+
     optional float vccvoltage = 3 [
         default = 0,
         (dccl.field) = {

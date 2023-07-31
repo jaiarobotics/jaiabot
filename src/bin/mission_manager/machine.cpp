@@ -139,6 +139,44 @@ void jaiabot::statechart::predeployment::StartingUp::loop(const EvLoop&)
         post_event(EvStartupTimeout());
 }
 
+// PreDeployment::Failed
+jaiabot::statechart::predeployment::Failed::Failed(typename StateBase::my_context c) : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int failed_startup_log_seconds = cfg().failed_startup_log_timeout();
+
+    goby::time::SteadyClock::duration failed_startup_log_duration =
+        std::chrono::seconds(failed_startup_log_seconds);
+
+    failed_startup_log_timeout_ = start_timeout + failed_startup_log_duration;
+
+    loop(EvLoop());
+}
+
+jaiabot::statechart::predeployment::Failed::~Failed()
+{
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+}
+
+void jaiabot::statechart::predeployment::Failed::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // make sure we have a safety timeout to transition into unpowered ascent
+    if (current_clock >= failed_startup_log_timeout_)
+    {
+        glog.is_verbose() && glog << "Stop Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
+}
+
 // PreDeployment::Idle
 jaiabot::statechart::predeployment::Idle::Idle(typename StateBase::my_context c) : StateBase(c)
 {
@@ -490,7 +528,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
-    // make sure we have a safety timeout to transition into unpowered ascent
+    // Check when to stop logging
     if (current_clock >= powered_descent_timeout_)
     {
         glog.is_debug2() && glog << "Safety Powered Descent Timeout!" << std::endl;
@@ -1019,6 +1057,10 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
         // in indoor mode, simply post that we've received a fix
         // (even though we haven't as there's no GPS)
         post_event(statechart::EvGPSFix());
+    }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
     }
 }
 

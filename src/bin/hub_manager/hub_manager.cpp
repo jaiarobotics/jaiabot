@@ -79,13 +79,13 @@ class HubManager : public ApplicationBase
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
+    void
+    handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
 
     void handle_subscription_report(
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
 
     void intervehicle_subscribe(int bot_modem_id);
-    void
-    handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -512,3 +512,4 @@ void jaiabot::apps::HubManager::handle_hardware_status(
 {
     *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
 }
+
