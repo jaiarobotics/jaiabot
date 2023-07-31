@@ -303,6 +303,15 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+    // Subscribe to IMU data for max_acceleration, for bottom characterization
+    interprocess().subscribe<jaiabot::groups::imu>([this](
+                                                       const jaiabot::protobuf::IMUData& imu_data) {
+        glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString() << std::endl;
+
+        machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+        machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+    });
+
     // subscribe for engineering commands
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const jaiabot::protobuf::Engineering& command) {
@@ -366,6 +375,40 @@ jaiabot::apps::MissionManager::MissionManager()
                     machine_->set_bottom_safety_depth(
                         command.bottom_depth_safety_params().safety_depth());
                 }
+            }
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                jaiabot::protobuf::Engineering engineering_status;
+                jaiabot::protobuf::GPSRequirements gps_requirements;
+
+                // Send engineering status for hdop and pdop current requirements
+                engineering_status.set_bot_id(cfg().bot_id());
+
+                // GPS Requirements
+                gps_requirements.set_transit_hdop_req(machine_->transit_hdop_req());
+                gps_requirements.set_transit_pdop_req(machine_->transit_pdop_req());
+                gps_requirements.set_after_dive_hdop_req(machine_->after_dive_hdop_req());
+                gps_requirements.set_after_dive_pdop_req(machine_->after_dive_pdop_req());
+                gps_requirements.set_transit_gps_fix_checks(machine_->transit_gps_fix_checks());
+                gps_requirements.set_transit_gps_degraded_fix_checks(
+                    machine_->transit_gps_degraded_fix_checks());
+                gps_requirements.set_after_dive_gps_fix_checks(
+                    machine_->after_dive_gps_fix_checks());
+
+                *engineering_status.mutable_gps_requirements() = gps_requirements;
+
+                engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
+                    machine_->bottom_safety_depth());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
+                    machine_->bottom_depth_safety_constant_heading());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
+                    machine_->bottom_depth_safety_constant_heading_speed());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
+                    machine_->bottom_depth_safety_constant_heading_time());
+
+                interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
             }
         });
 
@@ -470,8 +513,6 @@ void jaiabot::apps::MissionManager::loop()
     double goal_speed = 0;
     auto current_time = goby::time::SteadyClock::now();
     protobuf::MissionReport report;
-    jaiabot::protobuf::Engineering engineering_status;
-    jaiabot::protobuf::GPSRequirements gps_requirements;
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
@@ -614,32 +655,6 @@ void jaiabot::apps::MissionManager::loop()
                                  << ", machine_->hub_id(): " << machine_->hub_id() << std::endl;
         machine_->set_hub_id(hub_id_);
     }
-
-    // Send engineering status for hdop and pdop current requirements
-    engineering_status.set_bot_id(cfg().bot_id());
-
-    // GPS Requirements
-    gps_requirements.set_transit_hdop_req(machine_->transit_hdop_req());
-    gps_requirements.set_transit_pdop_req(machine_->transit_pdop_req());
-    gps_requirements.set_after_dive_hdop_req(machine_->after_dive_hdop_req());
-    gps_requirements.set_after_dive_pdop_req(machine_->after_dive_pdop_req());
-    gps_requirements.set_transit_gps_fix_checks(machine_->transit_gps_fix_checks());
-    gps_requirements.set_transit_gps_degraded_fix_checks(
-        machine_->transit_gps_degraded_fix_checks());
-    gps_requirements.set_after_dive_gps_fix_checks(machine_->after_dive_gps_fix_checks());
-
-    *engineering_status.mutable_gps_requirements() = gps_requirements;
-
-    engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
-        machine_->bottom_safety_depth());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
-        machine_->bottom_depth_safety_constant_heading());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
-        machine_->bottom_depth_safety_constant_heading_speed());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
-        machine_->bottom_depth_safety_constant_heading_time());
-
-    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
 
     machine_->process_event(statechart::EvLoop());
 }

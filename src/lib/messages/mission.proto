@@ -238,6 +238,7 @@ message MissionPlan
         optional string name = 1 [(dccl.field).omit = true];
         required GeographicCoordinate location = 2;
         optional MissionTask task = 3;
+        optional bool moveWptMode = 4;
     }
 
     repeated Goal goal = 3 [(dccl.field).max_repeat = 10];

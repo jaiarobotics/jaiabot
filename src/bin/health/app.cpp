@@ -219,7 +219,7 @@ jaiabot::apps::Health::Health()
                 interprocess().publish<groups::systemd_report_ack>(ack);
             }
         });
-    if (!cfg().is_in_sim())
+    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<NTPStatusThread>(cfg().ntp());

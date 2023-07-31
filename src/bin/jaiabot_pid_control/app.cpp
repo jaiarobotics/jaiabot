@@ -165,6 +165,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
             if (command.has_pid_control()) {
                 handle_engineering_command(command.pid_control());
             }
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                publish_engineering_status();
+            }
         });
 
     // subscribe for commands from mission manager
@@ -219,8 +225,6 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " heading: " << actual_heading << " depth: " << actual_depth
                                      << std::endl;
         });
-
-    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -396,9 +400,6 @@ void jaiabot::apps::BotPidControl::loop()
     glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::low_control>(cmd_msg);
-
-    // Update the engineering_status
-    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {
