@@ -28,6 +28,9 @@
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
 
+#include "jaiabot/messages/imu.pb.h"
+using jaiabot::protobuf::IMUCommand;
+
 namespace jaiabot
 {
 namespace groups
@@ -446,6 +449,22 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_latest_max_acceleration(
+        const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration)
+    {
+        latest_max_acceleration_ = latest_max_acceleration;
+    }
+    const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration()
+    {
+        return latest_max_acceleration_;
+    }
+
+    void set_latest_significant_wave_height(const double& latest_significant_wave_height)
+    {
+        latest_significant_wave_height_ = latest_significant_wave_height;
+    }
+    const double& latest_significant_wave_height() { return latest_significant_wave_height_; }
+
     void set_create_task_packet_file(const bool& create_task_packet_file)
     {
         create_task_packet_file_ = create_task_packet_file;
@@ -512,6 +531,10 @@ struct MissionManagerStateMachine
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
     bool rf_disable_{false};
+    // IMUData.max_acceleration, to characterize the bottom type
+    boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{
+        0 * boost::units::si::meter_per_second_squared};
+    double latest_significant_wave_height_{0};
     double bottom_depth_safety_constant_heading_{0};
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
@@ -592,8 +615,9 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                 Notify<Failed, protobuf::PRE_DEPLOYMENT__FAILED>
 {
     using StateBase = boost::statechart::state<Failed, PreDeployment>;
-    Failed(typename StateBase::my_context c) : StateBase(c) {}
-    ~Failed() {}
+    Failed(typename StateBase::my_context c);
+    ~Failed();
+    void loop(const EvLoop&);
 
     void isFeasibleMissionRC(const EvMissionFeasible& ev)
     {
@@ -614,8 +638,12 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
                          boost::statechart::transition<EvRCOverrideFailed, Ready>,
+                         boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>,
                          boost::statechart::in_state_reaction<EvMissionFeasible, Failed,
                                                               &Failed::isFeasibleMissionRC>>;
+  private:
+    // determines when to stop logging
+    goby::time::SteadyClock::time_point failed_startup_log_timeout_;
 };
 
 struct WaitForMissionPlan
@@ -796,7 +824,10 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
                            Notify<Derived, state, protobuf::SETPOINT_IVP_HELM>
 {
     using StateBase = boost::statechart::state<Derived, Parent>;
-    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c){};
+    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
 
     ~AcquiredGPSCommon(){};
 
@@ -861,6 +892,11 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             // in indoor mode, simply post that we've received a fix
             // (even though we haven't as there's no GPS)
             this->post_event(statechart::EvGPSFix());
+        }
+        else
+        {
+            this->machine().insert_warning(
+                jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
         }
     };
 
@@ -1141,6 +1177,7 @@ struct SurfaceDrift
     using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
     SurfaceDrift(typename StateBase::my_context c) : StateBase(c)
     {
+        // Stop the craft
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
         interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
@@ -1238,6 +1275,15 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+
+        goby::glog.is_debug1() &&
+            goby::glog << group("task") << "SurfaceDriftTaskCommon Starting Wave Height Sampling"
+                       << std::endl;
+
+        // Start wave height sampling
+        auto imu_command = IMUCommand();
+        imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
+        this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
     }
 
     ~SurfaceDriftTaskCommon()
@@ -1271,6 +1317,19 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
                                          boost::units::atan2(dy, dx);
             if (heading < 0 * boost::units::si::radians) heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
             drift.set_heading_with_units(heading);
+
+            // Set the wave height and period
+            drift_packet().set_significant_wave_height(
+                this->machine().latest_significant_wave_height());
+
+            goby::glog.is_debug1() &&
+                goby::glog << group("task")
+                           << "~SurfaceDriftTaskCommon Stopping Wave Height Sampling" << std::endl;
+
+            // Stop wave height sampling
+            auto imu_command = IMUCommand();
+            imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
+            this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
         }
     }
 

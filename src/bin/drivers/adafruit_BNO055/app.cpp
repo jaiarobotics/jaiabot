@@ -39,6 +39,7 @@
 
 using goby::glog;
 using namespace std;
+
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
@@ -117,6 +118,15 @@ jaiabot::apps::AdaFruitBNO055Publisher::AdaFruitBNO055Publisher()
                 helm_ivp_in_mission_ = false;
             }
         }
+    });
+
+    interprocess().subscribe<jaiabot::groups::imu>([this](const protobuf::IMUCommand& imu_command) {
+        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+        io_data->set_data(imu_command.SerializeAsString());
+        interthread().publish<imu_udp_out>(io_data);
+
+        glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
+                                 << endl;
     });
 }
 

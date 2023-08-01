@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import { MissionTask, TaskType, DiveParameters, DriftParameters, ConstantHeadingParameters, GeographicCoordinate } from './shared/JAIAProtobuf';
-import { SelectChangeEvent } from '@mui/material';
 import { GlobalSettings, Save } from './Settings';
 import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
-import { Button } from '@mui/material';
+import { Button, FormControl, MenuItem } from '@mui/material';
 import * as turf from '@turf/turf';
 import Map from 'ol/Map'
-import PointerInteraction from 'ol/interaction/Pointer';
-import { toLonLat, transformWithProjections } from 'ol/proj';
 import { Draw } from 'ol/interaction';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { LineString, Point } from 'ol/geom';
+import { Point } from 'ol/geom';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 // For keeping heading angles in the [0, 360] range
 function fmod(a: number, b: number) { 
     return Number((a - (Math.floor(a / b) * b)).toPrecision(8))
 }
-
 
 interface Props {
     map?: Map
@@ -26,7 +23,6 @@ interface Props {
     location?: GeographicCoordinate
     onChange?: (task?: MissionTask) => void
 }
-
 
 // TaskOptionsPanel
 //   This panel is used to configure the task for some goal or set of goals.
@@ -155,46 +151,42 @@ function TaskOptionsPanel(props: Props) {
 
     switch(task.type) {
         case TaskType.NONE:
-            return <div>NONE</div>
-            break;
+            return <div></div>
         case TaskType.DIVE:
             return (
-                <div id="DiveDiv" className='task-options'>
-                    <table className="DiveParametersTable">
+                <div id="DiveDiv">
+                    <table className="TaskParametersTable">
                         <tbody>
-                            <tr>
-                                <td>Max Depth</td>
-                                <td><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} /> m</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Max Depth</td>
+                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} />m</td>
                             </tr>
-                            <tr>
-                                <td>Depth Interval</td>
-                                <td><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} /> m</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Depth Interval</td>
+                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} />m</td>
                             </tr>
-                            <tr>
-                                <td>Hold Time</td>
-                                <td><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} /> s</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Hold Time</td>
+                                <td className="input-row dive-time"><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} />s</td>
                             </tr>
-                            <tr>
-                                <td>Drift Time</td>
-                                <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} /> s</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Drift Time</td>
+                                <td className="input-row dive-time"><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             )
-    
-            break;
         case TaskType.STATION_KEEP:
             return null
-            break;
         case TaskType.SURFACE_DRIFT:
             return (
-                <div id="DriftDiv" className='task-options'>
-                    <table className="DriftParametersTable">
+                <div id="DriftDiv">
+                    <table className="TaskParametersTable">
                         <tbody>
-                            <tr>
-                                <td>Drift Time</td>
-                                <td><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} /> s</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Drift Time</td>
+                                <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
                             </tr>
                         </tbody>
                     </table>
@@ -210,32 +202,28 @@ function TaskOptionsPanel(props: Props) {
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
             // Select on Map button is only present if a location is passed via Props
-            const selectOnMapButton = (props.location != null) ? <Button className={"button-jcc select-on-map" + clickingMapClass} onClick={selectOnMapClicked}>Select on Map</Button> : null
+            const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked}>Select on Map</button> : null
     
             return (
-                <div id="ConstantHeadingDiv" className='task-options'>
+                <div id="ConstantHeadingDiv">
                     { selectOnMapButton }
-                    <table className="ConstantHeadingParametersTable">
+                    <table className="TaskParametersTable">
                         <tbody>
-                            <tr>
-                                <td>Heading</td>
-                                <td><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={onChangeConstantHeadingParameter} /></td>
-                                <td>deg</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Heading</td>
+                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={onChangeConstantHeadingParameter} />deg</td>
                             </tr>
-                            <tr>
-                                <td>Time</td>
-                                <td><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={onChangeConstantHeadingParameter} /></td>
-                                <td>s</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Time</td>
+                                <td className="input-row constant-heading-time"><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={onChangeConstantHeadingParameter} />s</td>
                             </tr>
-                            <tr>
-                                <td>Speed</td>
-                                <td><input type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={onChangeConstantHeadingParameter} /></td>
-                                <td>m/s</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Speed</td>
+                                <td className="input-row constant-heading-speed"><input type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={onChangeConstantHeadingParameter} />m/s</td>
                             </tr>
-                            <tr>
-                                <td>Distance</td>
-                                <td style={{textAlign: 'right'}}>{calculateDistance(constant_heading.constant_heading_speed, constant_heading.constant_heading_time)?.toFixed(1) ?? "?"}</td>
-                                <td>m</td>
+                            <tr className="task-param-container">
+                                <td className="task-label">Distance</td>
+                                <td className="input-row constant-heading-distance"><span>{calculateDistance(constant_heading.constant_heading_speed, constant_heading.constant_heading_time)?.toFixed(1) ?? ""}</span><span>m</span></td>
                             </tr>
                         </tbody>
                     </table>
@@ -247,10 +235,7 @@ function TaskOptionsPanel(props: Props) {
 
 
 export function TaskSettingsPanel(props: Props) {
-    let taskOptionsPanel = <div></div>
-
-
-    function onChangeTaskType(evt: React.ChangeEvent<HTMLSelectElement>) {
+    function onChangeTaskType(evt: SelectChangeEvent) {
         const newTaskType = evt.target.value as TaskType
         const oldTaskType = props.task?.type ?? TaskType.NONE
 
@@ -284,19 +269,16 @@ export function TaskSettingsPanel(props: Props) {
         props.onChange(newTask)
     }
 
-    const title = props.title ?? "Task"
-
     return (
-        <div>
-            {title}
-            <select name="GoalType" id="GoalType" onChange={onChangeTaskType} value={props.task?.type ?? "NONE"}>
-                <option value="NONE">None</option>
-                <option value="DIVE">Dive</option>
-                <option value="SURFACE_DRIFT">Surface Drift</option>
-                <option value="STATION_KEEP">Station Keep</option>
-                <option value="CONSTANT_HEADING">Constant Heading</option>
-            </select>
-            { TaskOptionsPanel(props) }
-        </div>
+        <FormControl sx={{ minWidth: 120 }} size="small">
+            <Select onChange={(evt) => onChangeTaskType(evt)} value={props.task?.type ?? "NONE"}>
+                <MenuItem value={"NONE"}>None</MenuItem>
+                <MenuItem value={"DIVE"}>Dive</MenuItem>
+                <MenuItem value={"SURFACE_DRIFT"}>Surface Drift</MenuItem>
+                <MenuItem value={"STATION_KEEP"}>Station Keep</MenuItem>
+                <MenuItem value={"CONSTANT_HEADING"}>Constant Heading</MenuItem>
+            </Select>
+            {TaskOptionsPanel(props)}
+        </FormControl>
     )
 }
