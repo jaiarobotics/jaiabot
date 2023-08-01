@@ -156,4 +156,8 @@ message MissionManager
 
     // Determines if the acceleration is hard or soft 
     optional double hard_bottom_type_acceleration = 84 [default = 100];
+
+    // timeout for when to stop logging if in failed state
+    optional int32 failed_startup_log_timeout = 85
+        [default = 300, (dccl.field).units = { base_dimensions: "T" }];
 }
