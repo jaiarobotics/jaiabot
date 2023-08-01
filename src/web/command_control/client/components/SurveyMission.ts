@@ -123,6 +123,9 @@ export function getSurveyMissionPlans(botIdList: number[], rallyStartLocation: G
     // console.log(rallyFinishPoints);
 
     let mpg = missionPlanningGrid;
+    if (!mpg) {
+        return
+    }
     let mpgKeys = Object.keys(mpg);
     mpgKeys.forEach(key => {
         const botId = Number(key)
