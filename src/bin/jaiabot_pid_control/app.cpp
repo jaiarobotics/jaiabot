@@ -296,7 +296,8 @@ void jaiabot::apps::BotPidControl::loop()
             if (throttle_depth_pid->need_compute())
             {
                 throttle_depth_pid->compute();
-                throttle = throttle + THROTTLE_FOR_ZERO_NET_BUOYANCY;
+                throttle =
+                    throttle + THROTTLE_FOR_ZERO_NET_BUOYANCY + cfg().dive_throttle_addition();
             }
 
             glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth

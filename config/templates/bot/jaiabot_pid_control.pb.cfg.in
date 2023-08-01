@@ -11,4 +11,9 @@ use_throttle_table_for_speed: true
 throttle_table { speed: 0 throttle: 0 }
 throttle_table { speed: 5 throttle: 100 }
 
+### Constant to add to dive throttle
+### Negative value will increase dive throttle
+### BEAWARE: only change in small increments
+dive_throttle_addition: 0 # default = 0 
+
 $jaiabot_driver_arduino_bounds

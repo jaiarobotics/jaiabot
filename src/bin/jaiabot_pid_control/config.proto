@@ -51,5 +51,7 @@ message BotPidControl
                 system: "angle::degree"
                 }];
 
+    optional double dive_throttle_addition = 34 [default = 0];
+
     optional jaiabot.protobuf.Bounds bounds = 80;
 }
