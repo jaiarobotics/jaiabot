@@ -10,6 +10,8 @@ import math
 import jaialogs
 import contours
 
+from jaia_h5 import JaiaH5FileSet
+
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
@@ -60,6 +62,17 @@ def getRoot():
 @app.route('/logs', methods=['GET'])
 def getLogs():
     return JSONResponse(jaialogs.get_logs())
+
+@app.route('/convert', methods=['POST'])
+def convertLogs():
+    log_names = parse_log_filenames(request.args.get('log'))
+    
+    return JSONResponse(jaialogs.get_log_status(log_names))
+
+@app.route('/status', methods=['GET'])
+def getLog():
+    log_names = parse_log_filenames(request.args.get('log'))
+    return JSONResponse(jaialogs.get_log_status(log_names))
 
 @app.route('/paths', methods=['GET'])
 def getFields():

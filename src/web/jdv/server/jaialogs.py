@@ -79,6 +79,13 @@ def get_logs():
     return results
 
 
+def get_log_status(log_names: List[str]):
+    h5_paths = [Path(f'{LOG_DIR}/{name}.h5') for name in log_names]
+    for h5_path in h5_paths:
+        if not h5_path.is_file():
+            return {"ready": False}
+    return {"ready": True}
+
 def get_fields(log_names: List[str], root_path='/'):
     '''Get a list of the fields below a root path in a set of logs'''
     h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_names]
