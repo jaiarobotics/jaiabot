@@ -509,7 +509,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
     let dataOffloadButton = (
         <Button className={disableButton(commands.recover, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
-            disabled={disableButton(commands.recover, missionState) || !linkQualityPercentage ? true : false} 
+            disabled={disableButton(commands.recover, missionState) || !linkQualityPercentage} 
             onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
@@ -518,7 +518,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     if (disableButton(commands.recover, missionState)) {
         dataOffloadButton = ( 
             <Button className={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
-                disabled={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? true : false} 
+                disabled={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage} 
                 onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>

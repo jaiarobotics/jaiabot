@@ -1014,10 +1014,17 @@ export default class CommandControl extends React.Component {
 		if (!confirm(`Would you like to do a data download for Bot${downloadableBotIds.length > 1 ? 's': ''}:  ${downloadableBotIds}`)) { return }
 
 		this.setState({ areBotsDownloadingInQueue: true })
+
+		let botCount = 0
 		for (const bot of downloadableBots) {
 			console.log(bot)
 			await this.downloadBot(bot)
 			this.removeBotFromQueue(bot)
+			botCount++
+			if (botCount === downloadableBots.length) {
+				this.setState({ downloadQueueRemovals: [], areBotsDownloadingInQueue: false }, () => this.getDownloadableBots())
+			}
+
 		}
 	}
 
@@ -1070,7 +1077,7 @@ export default class CommandControl extends React.Component {
 		const bots = this.getPodStatus().bots
 		for (const bot of Object.values(bots)) {
 			for (const enabledState of this.enabledEditStates) {
-				if (bot?.mission_state.includes(enabledState) && !this.state.downloadQueueRemovals.includes(bot.bot_id)) {
+				if (bot?.mission_state.includes(enabledState) && !this.state.downloadQueueRemovals.includes(bot.bot_id) && bot?.wifi_link_quality_percentage) {
 					downloadableBots.push(bot)
 					break
 				}
