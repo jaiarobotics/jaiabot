@@ -238,26 +238,21 @@ function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
     const isRCActive = isRCModeActive(botId)
 
     if (!isRCActive) {
-        if (confirm("Are you sure you'd like to use remote control mode for Bot: " + botId + '?')) {
+
+        let isCriticallyLowBattery = ""
+
+        if (Array.isArray(bot?.error)) {
+            for (let e of bot?.error) {
+                if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
+                    isCriticallyLowBattery = "***Critically Low Battery in RC Mode coulde jeopardize your recovery!***\n"
+                }
+            }
+        }
+
+        if (confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + botId + '?')) {
 
             console.debug('Running Remote Control:')
             console.debug(botMission)
-
-            let isCriticallyLowBattery = false
-
-            if (Array.isArray(bot?.error)) {
-                for (let e of bot?.error) {
-                    if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
-                        isCriticallyLowBattery = true
-                    }
-                }
-            }
-
-            if (isCriticallyLowBattery) {
-                alert('Critically Low Battery in RC Mode coulde jeopardize your recovery! Submitted request for RC Mode for: ' + botId)
-            } else {
-                info('Submitted request for RC Mode for: ' + botId);
-            }
 
             api.postCommand(botMission).then(response => {
                 if (response.message) {
