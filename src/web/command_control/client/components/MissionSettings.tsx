@@ -32,6 +32,7 @@ interface Props {
     missionBaseGoal: Goal
     missionEndTask: MissionTask
     missionParams: MissionParams
+    missionPlanningGrid: {[key: string]: number[][]}
     botList?: {[key: string]: BotStatus}
     centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
@@ -175,7 +176,7 @@ export class MissionSettingsPanel extends React.Component {
                     <hr/>
                     <div className='HorizontalFlexbox'>
                         {/*<Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>*/}
-                        <Button className="button-jcc" onClick={this.applyMissionClicked.bind(this)}>Apply</Button>
+                        <Button className={`button-jcc ${!this.props.missionPlanningGrid ? 'inactive' : ''}`} onClick={this.applyMissionClicked.bind(this)} disabled={!this.props.missionPlanningGrid}>Apply</Button>
                     </div>
 
                     <hr/>

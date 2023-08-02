@@ -117,82 +117,37 @@ export class SurveyLines {
         this.drawInteraction.on(
             'drawstart',
             (evt: DrawEvent) => {
-                commandControl.setState({
-                    missionPlanningFeature: null
-                })
+                commandControl.setState({ missionPlanningFeature: null })
                 commandControl.updateMissionLayer();
         
                 // Show the preview of the survey
                 this.listener = evt.feature.on('change', (evt2) => {
-                    // console.log('** START ********* ON CHANGE *************************')
                     const geom1 = evt2.target;
-                    // console.log('geom1');
-                    // console.log(geom1);
-        
-                    const format = new GeoJSON();
-        
                     let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusionCoords } = commandControl.state;
-        
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
                     if (stringCoords[0].length >= 2) {
                         let coords = stringCoords.slice(-2);
                         let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
-        
                         let rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));
+                        
                         if (rotationAngle < 0) {
                             rotationAngle = rotationAngle + 360;
                         }
+
                         missionParams.orientation = rotationAngle;
-                        // document.getElementById('missionOrientation').setAttribute('value', rotationAngle.toString())
-        
-                        let botList = Object.keys(commandControl.state.podStatus.bots);
-        
-                        // console.log('TESTING')
-                        // console.log(this);
-                        // console.log(this.podStatus.bots);
-                        // console.log(turf);
-                        // console.log(format);
-        
+                        let botList = Object.keys(commandControl.state.podStatus.bots);        
                         let maxLineLength = (Number(missionParams.spacing) * Number(missionParams.numGoals)) / 1000;
                         let centerLineString = turf.lineString([stringCoords[0], stringCoords[1]]);
         
                         // Check if user selects length > allowed (bots * spacing), if so make centerLine max length
                         let currentCenterLineLength = turf.length(turf.toWgs84(centerLineString));
-                        // console.log('currentCenterLineLength');
-                        // console.log(currentCenterLineLength);
-                        // console.log('maxLineLength');
-                        // console.log(maxLineLength);
                         if (currentCenterLineLength >= maxLineLength) {
                             let rhumbPoint = turf.rhumbDestination(turf.toWgs84(turf.point(stringCoords[0])), maxLineLength-(Number(missionParams.spacing)/1000), rotationAngle)
-                            // console.log('rhumbPoint');
-                            // console.log(rhumbPoint);
                             centerLineString = turf.lineString([stringCoords[0], turf.toMercator(rhumbPoint).geometry.coordinates])
-                            // console.log('centerLineString');
-                            // console.log(centerLineString);
                         }
         
-                        let centerLineStringWgs84 = turf.toWgs84(centerLineString);
-        
-                        // TODO: Maybe use turf.shortestPath here to find a way around the exclusion
-                        // let centerLineStringWgs84Diverted = null;
-                        // let centerLineStringWgs84Points = turf.coordAll(centerLineStringWgs84);
-                        // console.log('centerLineStringWgs84Points')
-                        // console.log(centerLineStringWgs84Points)
-                        // if (this.state.surveyExclusions === 6) {
-                        // 	let se = this.state.surveyExclusions
-                        // 	let optionsExc = {
-                        // 		'obstacles': turf.polygon([turf.coordAll(turf.toWgs84(turf.multiPoint(se)))]),
-                        // 		// 'minDistance': Number(missionParams.spacing)/1000,
-                        // 		'resolution': maxLineLength
-                        // 	}
-                        // 	console.log('optionsExc')
-                        // 	console.log(optionsExc)
-                        // 	centerLineStringWgs84Diverted = turf.shortestPath(centerLineStringWgs84Points[0], centerLineStringWgs84Points[1], optionsExc)
-                        // } else {
-                        // 	centerLineStringWgs84Diverted = centerLineStringWgs84;
-                        // }
-        
+                        let centerLineStringWgs84 = turf.toWgs84(centerLineString);        
                         let centerLineStringWgs84Chunked = turf.lineChunk(centerLineStringWgs84, Number(missionParams.spacing)/1000)
                         let centerLineFc = turf.combine(centerLineStringWgs84Chunked);
         
