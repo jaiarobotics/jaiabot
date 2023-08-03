@@ -87,6 +87,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     // Store timestamps from commands to ignore duplicates
     std::vector<uint64_t> command_time_history_;
+    // Store previous command time to ensure it is newer
+    uint64_t prev_command_time_{0};
 };
 
 } // namespace apps

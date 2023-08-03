@@ -660,9 +660,19 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         // Exit handle command function since we received a duplicate
         return;
     }
+    else if (prev_command_time_ > command.time())
+    {
+        glog.is_warn() && glog << "Old command received! Ignoring..." << std::endl;
+
+        // Exit handle command function if the previous
+        // Command time is greater than the one current one
+        return;
+    }
 
     // Add unique command time to history vector
     command_time_history_.push_back(command.time());
+    // Keep track of the previous command time
+    prev_command_time_ = command.time();
 
     switch (command.type())
     {

@@ -95,6 +95,9 @@ class HubManager : public ApplicationBase
 
     // Map bot id to a history of task packet timestamps to ignore duplicates
     std::map<uint16_t, std::vector<uint64_t>> task_packet_id_to_time_history_;
+
+    // Map bot id to previouse task packet timestamp
+    std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -306,6 +309,8 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     {
         auto time_history = task_packet_id_to_time_history_.at(task_packet.bot_id());
 
+        auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
+
         // Make sure the taskpacket has a unique timestamp
         // If it is not then we should not handle the taskpacket and exit
         if (std::find(time_history.begin(), time_history.end(), task_packet.start_time()) !=
@@ -315,10 +320,21 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
             // Exit since we received a duplicate
             return;
         }
+        else if (prev_time > task_packet.start_time())
+        {
+            glog.is_warn() && glog << "Old taskpacket received! Ignoring..." << std::endl;
+
+            // Exit if the previous taskpacket
+            // time is greater than the one current one
+            return;
+        }
 
         // Add unique taskpacket time to history vector
         task_packet_id_to_time_history_.at(task_packet.bot_id())
             .push_back(task_packet.start_time());
+
+        // Store the previous taskpacket time
+        task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
     }
     else
     {
@@ -326,6 +342,10 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
         std::vector<uint64_t> time_history;
         time_history.push_back(task_packet.start_time());
         task_packet_id_to_time_history_.insert(std::make_pair(task_packet.bot_id(), time_history));
+
+        // Insert new bot id to previous task packet time
+        task_packet_id_to_prev_timestamp_.insert(
+            std::make_pair(task_packet.bot_id(), task_packet.start_time()));
     }
 
     // Publish interprocess for other goby apps
