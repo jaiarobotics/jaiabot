@@ -93,10 +93,7 @@ class HubManager : public ApplicationBase
 
     std::set<int> managed_bot_modem_ids_;
 
-    // Map bot id to a history of task packet timestamps to ignore duplicates
-    std::map<uint16_t, std::vector<uint64_t>> task_packet_id_to_time_history_;
-
-    // Map bot id to previouse task packet timestamp
+    // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 };
 } // namespace apps
@@ -305,22 +302,13 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
                              << "Received Task Packet: " << task_packet.ShortDebugString()
                              << std::endl;
 
-    if (task_packet_id_to_time_history_.count(task_packet.bot_id()))
+    if (task_packet_id_to_prev_timestamp_.count(task_packet.bot_id()))
     {
-        auto time_history = task_packet_id_to_time_history_.at(task_packet.bot_id());
-
         auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
 
-        // Make sure the taskpacket has a unique timestamp
+        // Make sure the taskpacket has a newer timestamp
         // If it is not then we should not handle the taskpacket and exit
-        if (std::find(time_history.begin(), time_history.end(), task_packet.start_time()) !=
-            time_history.end())
-        {
-            glog.is_warn() && glog << "Duplicate taskpacket received! Ignoring..." << std::endl;
-            // Exit since we received a duplicate
-            return;
-        }
-        else if (prev_time > task_packet.start_time())
+        if (prev_time >= task_packet.start_time())
         {
             glog.is_warn() && glog << "Old taskpacket received! Ignoring..." << std::endl;
 
@@ -329,20 +317,11 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
             return;
         }
 
-        // Add unique taskpacket time to history vector
-        task_packet_id_to_time_history_.at(task_packet.bot_id())
-            .push_back(task_packet.start_time());
-
         // Store the previous taskpacket time
         task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
     }
     else
     {
-        // Insert new bot id to task packet time history
-        std::vector<uint64_t> time_history;
-        time_history.push_back(task_packet.start_time());
-        task_packet_id_to_time_history_.insert(std::make_pair(task_packet.bot_id(), time_history));
-
         // Insert new bot id to previous task packet time
         task_packet_id_to_prev_timestamp_.insert(
             std::make_pair(task_packet.bot_id(), task_packet.start_time()));
