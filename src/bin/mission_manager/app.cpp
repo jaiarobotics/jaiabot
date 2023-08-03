@@ -651,6 +651,19 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
+    // Make sure the command has a unique timestamp
+    // If it is not then we should not handle the command and exit
+    if (std::find(command_time_history_.begin(), command_time_history_.end(), command.time()) !=
+        command_time_history_.end())
+    {
+        glog.is_warn() && glog << "Duplicate command received! Ignoring..." << std::endl;
+        // Exit handle command function since we received a duplicate
+        return;
+    }
+
+    // Add unique command time to history vector
+    command_time_history_.push_back(command.time());
+
     switch (command.type())
     {
         case protobuf::Command::MISSION_PLAN:
