@@ -231,13 +231,11 @@ export class SurveyLines {
                         }
         
                         // Metadata/Stats
-                        document.getElementById('missionStatArea').innerText = missionParams.spArea.toFixed(2);
-                        document.getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2);
-                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2);
-                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.spRallyStartDist.toFixed(2);
-                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.spRallyFinishDist.toFixed(2);
-        
-                        // console.log('** END ********* ON CHANGE *************************')
+                        document.getElementById('missionStatArea').innerHTML = missionParams.spArea.toFixed(2) + " km&sup2;";
+                        document.getElementById('missionStatPerimeter').innerText = missionParams.spPerimeter.toFixed(2) + " km";
+                        document.getElementById('missionStatOrientation').innerText = missionParams.orientation.toFixed(2) + " deg";
+                        document.getElementById('missionStatRallyStartDistance').innerText = missionParams.spRallyStartDist.toFixed(2) + " km";;
+                        document.getElementById('missionStatRallyFinishDistance').innerText = missionParams.spRallyFinishDist.toFixed(2) + " km";;
                     }
                 })
             })

@@ -277,19 +277,7 @@ export default class CommandControl extends React.Component {
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
-			missionBaseGoal: {
-				task: {
-					type: TaskType.DIVE,
-					dive: {
-						max_depth: 10,
-						depth_interval: 10,
-						hold_time: 0
-					},
-					surface_drift: {
-						drift_time: 10
-					}
-				}
-			},
+			missionBaseGoal: { task: { type: TaskType.NONE } },
 			missionEndTask: {type: TaskType.NONE},
 			surveyPolygonFeature: null,
 			surveyPolygonGeoCoords: null,
