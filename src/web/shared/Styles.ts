@@ -197,6 +197,9 @@ export function goalSrc(taskType: TaskType | null) {
 }
 
 export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    if (!taskType) {
+        taskType === TaskType.NONE
+    }
     const src = goalSrc(taskType)
     let nonActiveGoalColor: string
 

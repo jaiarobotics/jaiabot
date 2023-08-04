@@ -48,7 +48,7 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
         )
         mpGridFeature.setProperties({'botId': key});
         mpGridFeature.setStyle(new OlStyle({
-            image: Styles.goalIcon(missionBaseGoal.task.type, false, false, false)
+            image: Styles.goalIcon(missionBaseGoal.task?.type, false, false, false)
         }))
 
         features.push(mpGridFeature);
