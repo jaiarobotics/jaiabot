@@ -92,6 +92,9 @@ class HubManager : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 
     std::set<int> managed_bot_modem_ids_;
+
+    // Map bot id to previouse task packet timestamp to ignore duplicates
+    std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -299,7 +302,32 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
                              << "Received Task Packet: " << task_packet.ShortDebugString()
                              << std::endl;
 
-    // republish
+    if (task_packet_id_to_prev_timestamp_.count(task_packet.bot_id()))
+    {
+        auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
+
+        // Make sure the taskpacket has a newer timestamp
+        // If it is not then we should not handle the taskpacket and exit
+        if (prev_time >= task_packet.start_time())
+        {
+            glog.is_warn() && glog << "Old taskpacket received! Ignoring..." << std::endl;
+
+            // Exit if the previous taskpacket
+            // time is greater than the one current one
+            return;
+        }
+
+        // Store the previous taskpacket time
+        task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
+    }
+    else
+    {
+        // Insert new bot id to previous task packet time
+        task_packet_id_to_prev_timestamp_.insert(
+            std::make_pair(task_packet.bot_id(), task_packet.start_time()));
+    }
+
+    // Publish interprocess for other goby apps
     interprocess().publish<jaiabot::groups::task_packet>(task_packet);
 }
 
