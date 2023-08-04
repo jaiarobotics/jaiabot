@@ -63,6 +63,11 @@ struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
     EvMissionFeasible(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
     jaiabot::protobuf::MissionPlan plan;
 };
+struct EvRCOverrideFailed : boost::statechart::event<EvRCOverrideFailed>
+{
+    EvRCOverrideFailed(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
+    jaiabot::protobuf::MissionPlan plan;
+};
 
 STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
@@ -617,14 +622,36 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                 Notify<Failed, protobuf::PRE_DEPLOYMENT__FAILED>
 {
     using StateBase = boost::statechart::state<Failed, PreDeployment>;
-    Failed(typename StateBase::my_context c) : StateBase(c) {}
-    ~Failed() {}
+    Failed(typename StateBase::my_context c);
+    ~Failed();
+    void loop(const EvLoop&);
+
+    void isFeasibleMissionRC(const EvMissionFeasible& ev)
+    {
+        if (ev.plan.movement() == protobuf::MissionPlan_MovementType_REMOTE_CONTROL)
+        {
+            goby::glog.is_debug1() && goby::glog << "Mission Plan is rc, override failed state."
+                                                 << std::endl;
+
+            post_event(EvRCOverrideFailed(ev.plan));
+        }
+    }
 
     // allow Activate from Failed in case an error resolves itself
     // while the vehicle is powered on (e.g. GPS fix after several minutes).
     // If Activate is sent and the vehicle still has an error,
     // SelfTest will simply fail again and we'll end up back here in Failed (as desired)
-    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
+    // Check the mission to see if is a rc mission. If it is then we should override.
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
+                         boost::statechart::transition<EvRCOverrideFailed, Ready>,
+                         boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>,
+                         boost::statechart::in_state_reaction<EvMissionFeasible, Failed,
+                                                              &Failed::isFeasibleMissionRC>>;
+
+  private:
+    // determines when to stop logging
+    goby::time::SteadyClock::time_point failed_startup_log_timeout_;
 };
 
 struct WaitForMissionPlan
@@ -648,9 +675,24 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
     Ready(typename StateBase::my_context c) : StateBase(c)
     {
         auto mission_feasible_event = dynamic_cast<const EvMissionFeasible*>(triggering_event());
+        auto mission_feasible_override_event =
+            dynamic_cast<const EvRCOverrideFailed*>(triggering_event());
+
         if (mission_feasible_event)
         {
+            goby::glog.is_debug1() && goby::glog << "Ready: mission_feasible_event." << std::endl;
             const auto plan = mission_feasible_event->plan;
+            // reset the datum on the initial mission
+            this->machine().set_mission_plan(plan, true);
+            if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
+                post_event(EvDeployed());
+        }
+        else if (mission_feasible_override_event)
+        {
+            goby::glog.is_debug1() && goby::glog << "Ready: mission_feasible_override_event."
+                                                 << std::endl;
+
+            const auto plan = mission_feasible_override_event->plan;
             // reset the datum on the initial mission
             this->machine().set_mission_plan(plan, true);
             if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)

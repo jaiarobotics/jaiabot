@@ -66,6 +66,9 @@ data_offload_only_task_packet_file: false # (optional)
 # test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
 
+# When to stop logging in a failed state
+failed_startup_log_timeout: 300 # (optional) (default=300)
+
 is_sim: $mission_manager_in_simulation
 
 # Goal Timeout Behavior

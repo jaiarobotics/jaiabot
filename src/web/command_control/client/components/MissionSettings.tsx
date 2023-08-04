@@ -1,11 +1,12 @@
 import React from 'react'
-import Button from '@mui/material/Button';
-import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf';
-import { GlobalSettings } from './Settings';
-import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
-import { TaskSettingsPanel } from './TaskSettingsPanel';
 import Map from 'ol/Map'
-import turf from '@turf/turf';
+import turf from '@turf/turf'
+import Select, { SelectChangeEvent } from '@mui/material/Select'
+import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
+import { getGeographicCoordinate } from './shared/Utilities'
+import { TaskSettingsPanel } from './TaskSettingsPanel'
+import { FormControl, MenuItem } from '@mui/material'
+import '../style/components/MissionSettings.css'
 
 // This panel passes its settings back through onMissionApply using this interface
 export interface MissionSettings {
@@ -32,6 +33,7 @@ interface Props {
     missionBaseGoal: Goal
     missionEndTask: MissionTask
     missionParams: MissionParams
+    missionPlanningGrid: {[key: string]: number[][]}
     botList?: {[key: string]: BotStatus}
     centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
@@ -102,67 +104,35 @@ export class MissionSettingsPanel extends React.Component {
         }
 
         return (
-            <div className="MissionSettingsPanel">
-                Mission Settings<hr/>
-                <div>
-                    <div>
-                        <table className="MissionParametersTable">
-                            <tbody>
-                            <tr hidden>
-                                <td>Bot Selection List:</td>
-                                <td>
-                                    <select multiple name="mission_bot_selection" id="mission-bot-selection" onChange={evt => self.changeMissionBotSelection() }>
-                                        <option value="0">Bot 0</option>
-                                        <option value="1">Bot 1</option>
-                                        <option value="2">Bot 2</option>
-                                        <option value="3">Bot 3</option>
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Mission Edit Mode:</td>
-                                <td>
-                                    <select name="mission_type" id="mission-type" defaultValue={missionType ?? "editing"} onChange={evt => self.changeMissionEditMode(evt.target.value) }>
-                                        {/*<option value="editing">Editing</option>*/}
-                                        {/*<option value="polygon-grid">Polygon</option>*/}
-                                        <option value="lines">Lines</option>
-                                        {/*<option value="exclusions">Exclusions</option>*/}
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr hidden>
-                                <td>Bot Count</td>
-                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.missionParams.numBots} onChange={this.changeMissionParameter.bind(this)} /></td>
-                            </tr>
-                            <tr>
-                                <td>Mission Spacing</td>
-                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
-                            </tr>
-                            <tr>
-                                <td>Rally Point Spacing</td>
-                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
-                            </tr>
-                            <tr>
-                                <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
-                            </tr>
-                            <tr hidden>
-                                <td>Use Max Line Length</td>
-                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.missionParams.useMaxLength} onChange={this.changeMissionParameter.bind(this)} /></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div className="mission-settings-panel-outer-container">
+				<div className="panel-heading">Mission Settings</div>
+                
+                <div className="mission-settings-panel-container">
 
-                    <hr/>
-                    {/* Settings for the goals to be used in this mission */}
+                    <div className="mission-settings-input-label">Mission Edit Mode:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => self.changeMissionEditMode(evt.target.value)}  value={missionType ?? "editing"}>
+                            <MenuItem value={"lines"}>Lines</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <div className="mission-settings-input-label">Mission Spacing:</div>
+                    <div className="mission-settings-input-row"><input type="number" name="spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
+
+                    <div className="mission-settings-input-label">Rally Point Spacing:</div>
+                    <div className="mission-settings-input-row"><input type="number" name="rally_spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
+
+                    <div className="mission-settings-input-label">Mission Orientation:</div>
+                    <div className="mission-settings-input-row"><input id='missionOrientation' name="orientation" className="mission-settings-num-input" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</div>
+
+
+                    <div className="mission-settings-tasks-title">Task:</div>
                     <TaskSettingsPanel task={missionBaseGoal.task} onChange={(task) => {
                         missionBaseGoal.task = task
                         self.setState({missionBaseGoal})
                     }} />
 
-                    <hr/>
-                    {/* Settings for the final goal to be used at the end rally point */}
+                    <div className="mission-settings-tasks-title">End Task:</div>
                     <TaskSettingsPanel 
                         title="End Task" 
                         map={map} 
@@ -172,41 +142,32 @@ export class MissionSettingsPanel extends React.Component {
                         }} 
                     />
 
-                    <hr/>
-                    <div className='HorizontalFlexbox'>
-                        {/*<Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>*/}
-                        <Button className="button-jcc" onClick={this.applyMissionClicked.bind(this)}>Apply</Button>
-                    </div>
+                    <div className="mission-settings-line-break"></div>
 
-                    <hr/>
-                    Survey Stats
-                    <div id="surveyPolygonResults">
-                        <table>
-                            <tbody>
-                            <tr>
-                                <td className="missionStatsHeader">Area (km^2): </td>
-                                <td className="missionStatsValue"><div id="missionStatArea"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Perimeter (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatPerimeter"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Mission Orientation (deg): </td>
-                                <td className="missionStatsValue"><div id="missionStatOrientation"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Rally Start Distance (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatRallyStartDistance"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Rally Finish Distance (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatRallyFinishDistance"></div></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <div className="mission-settings-header">Metrics:</div>
+
+                    <div>Area:</div>
+                    <div id="missionStatArea">-</div>
+                    
+                    <div>Perimeter:</div>
+                    <div id="missionStatPerimeter">-</div>
+                    
+                    <div>Mission Orientation:</div>
+                    <div id="missionStatOrientation">-</div>
+                    
+                    <div>Rally Start Dist:</div>
+                    <div id="missionStatRallyStartDistance">-</div>
+                    
+                    <div>Rally Finish Dist:</div>
+                    <div id="missionStatRallyFinishDistance">-</div>
+
                 </div>
+                
+                <div className="mission-settings-button-container">
+                    <button className="mission-settings-btn" onClick={() => this.props.onClose()}>Cancel</button>
+                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} onClick={this.applyMissionClicked.bind(this)} disabled={!this.props.missionPlanningGrid}>Apply</button>
+                </div>
+
             </div>
         )
     }

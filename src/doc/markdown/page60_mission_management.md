@@ -113,6 +113,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvDviePrepComplete: Triggered when the the timeout is reached in the DivePrep State. 
 - EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
+- EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
 
 #### Internal events
 
