@@ -487,6 +487,38 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
     }
 }
 
+/**
+ * @brief Check the pitch to determine if the bot is in it's veritical position.
+ * It it is then we should exit DivePrep and begin our powered descent.
+ * 
+ * @param EvVehiclePitch 
+ */
+void jaiabot::statechart::inmission::underway::task::dive::DivePrep::pitch(const EvVehiclePitch& ev)
+{
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    // If we are vertical then change to powered descent state
+    if (std::abs(ev.pitch.value()) > cfg().pitch_to_determine_vertical())
+    {
+        // Check to see if we have reached the number of checks and the min check time
+        // has been reach to determine if a bot is vertical
+        if ((pitch_angle_check_incr_ >= (cfg().pitch_angle_checks() - 1)) &&
+            ((now - last_pitch_dive_time_) >=
+             static_cast<decltype(now)>(cfg().pitch_angle_min_check_time_with_units())))
+        {
+            glog.is_warn() && glog << "DivePrep::pitch Bot is vertical!"
+                                   << "\npost_event(EvDivePrepComplete());" << std::endl;
+            post_event(EvDivePrepComplete());
+        }
+        pitch_angle_check_incr_++;
+    }
+    else
+    {
+        last_pitch_dive_time_ = now;
+        pitch_angle_check_incr_ = 0;
+    }
+}
+
 // Task::Dive::PoweredDescent
 jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDescent(
     typename StateBase::my_context c)
@@ -1076,15 +1108,15 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::pitch(
 {
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
-    // If we are not still vertical then change to unpowered ascent state
-    if (std::abs(ev.pitch.value()) <= cfg().powered_ascent_pitch_safety())
+    // If we are not vertical then change to reacquire gps state.
+    // We are most likey driving on the surface, possible pressure sensor error
+    if (std::abs(ev.pitch.value()) <= cfg().pitch_to_determine_vertical())
     {
         // Check to see if we have reached the number of checks and the min check time
         // has been reach to determine if a bot is no longer vertical
-        if ((pitch_angle_check_incr_ >= (cfg().powered_ascent_pitch_angle_checks() - 1)) &&
+        if ((pitch_angle_check_incr_ >= (cfg().pitch_angle_checks() - 1)) &&
             ((now - last_pitch_dive_time_) >=
-             static_cast<decltype(now)>(
-                 cfg().powered_ascent_pitch_angle_min_check_time_with_units())))
+             static_cast<decltype(now)>(cfg().pitch_angle_min_check_time_with_units())))
         {
             glog.is_warn() && glog << "PoweredAscent::pitch Bot is no longer vertical!"
                                    << "\npost_event(EvBotNotVertical());" << std::endl;

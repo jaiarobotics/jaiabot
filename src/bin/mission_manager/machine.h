@@ -1544,16 +1544,22 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
     ~DivePrep();
 
     void loop(const EvLoop&);
+    void pitch(const EvVehiclePitch& ev);
 
-    using reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvLoop, DivePrep, &DivePrep::loop>,
-                         boost::statechart::transition<EvDivePrepComplete, PoweredDescent>>;
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, DivePrep, &DivePrep::loop>,
+        boost::statechart::transition<EvDivePrepComplete, PoweredDescent>,
+        boost::statechart::in_state_reaction<EvVehiclePitch, DivePrep, &DivePrep::pitch>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     goby::time::MicroTime duration_{0 * boost::units::si::seconds};
     // determines when to transition into powered descent
     goby::time::SteadyClock::time_point dive_prep_timeout_;
+    // keep check of current bot angle for pitch
+    int pitch_angle_check_incr_{0};
+    goby::time::MicroTime last_pitch_dive_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct PoweredDescent

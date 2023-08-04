@@ -143,9 +143,9 @@ message MissionManager
     // The power ascent max thottle
     optional double powered_ascent_throttle_max = 57 [default = 60];
 
-    optional double powered_ascent_pitch_safety = 58 [default = 30];
+    optional double pitch_to_determine_vertical = 58 [default = 30];
 
-    optional int32 powered_ascent_pitch_angle_checks = 59 [default = 3];
+    optional int32 pitch_angle_checks = 59 [default = 3];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
@@ -164,7 +164,7 @@ message MissionManager
     required string class_b_network = 64 [default = "10.23"];
 
     // The min amount of time to trigger a EvBotNotVerticl event
-    optional double powered_ascent_pitch_angle_min_check_time = 65 
+    optional double pitch_angle_min_check_time = 65 
         [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
     enum EngineeringTestMode
