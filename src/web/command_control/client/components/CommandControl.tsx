@@ -380,7 +380,7 @@ export default class CommandControl extends React.Component {
 			this.setState({ surveyExclusionCoords })
 		})
 
-		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
 
 	}
 

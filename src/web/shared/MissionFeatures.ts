@@ -48,7 +48,7 @@ export function createMissionFeatures(
 
         markerFeature.setProperties({
             goal: goal, 
-            botId: bot.bot_id, 
+            botId: bot?.bot_id, 
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,
