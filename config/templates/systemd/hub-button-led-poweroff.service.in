@@ -1,0 +1,14 @@
+[Unit]
+Description=Hub Button LED Poweroff Mode
+DefaultDependencies=no
+Before=final.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/systemctl stop jaia_firm_hub-button-trigger_py.service
+ExecStartPre=/usr/bin/systemctl stop jaia_firm_hub-button-led-services-running_py.service
+# Run python code within a pre-installed venv
+ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/python/$subdir/$exe $args
+
+[Install]
+WantedBy=systemd-halt.service systemd-poweroff.service shutdown.target

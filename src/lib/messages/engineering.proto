@@ -67,22 +67,97 @@ enum BotStatusRate
     BotStatusRate_20_SECONDS = 5;
     BotStatusRate_40_SECONDS = 6;
     BotStatusRate_60_SECONDS = 7;
+    BotStatusRate_NO_RF = 8;
+}
+
+message GPSRequirements
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double transit_hdop_req = 1 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double transit_pdop_req = 2 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double after_dive_hdop_req = 3 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional double after_dive_pdop_req = 4 [(dccl.field) = { min: 1 max: 100 precision: 2 }];
+
+    optional uint32 transit_gps_fix_checks = 5 [(dccl.field) = { min: 1 max: 100 }];
+
+    optional uint32 transit_gps_degraded_fix_checks = 6 [(dccl.field) = { min: 1 max: 100 }];
+
+    optional uint32 after_dive_gps_fix_checks = 7 [(dccl.field) = { min: 1 max: 100 }];
+}
+
+message RFDisableOptions
+{
+    optional bool rf_disable = 1 [default = false];
+    optional int32 rf_disable_timeout_mins = 2 [default = 10, (dccl.field) = { min: 1 max: 255 }];
+}
+
+message BottomDepthSafetyParams
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    
+    optional double constant_heading = 1 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }
+    ];
+
+    optional int32 constant_heading_time = 2 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
+
+    optional double constant_heading_speed = 3 [
+        default = 2,
+        (dccl.field) = {
+            min: 0,
+            max: 3.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+
+    optional double safety_depth = 4 [
+        default = 0,
+        (dccl.field) = {
+            min: 0,
+            max: 60,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
 }
 
 message Engineering
 {
     /*
-    Actual maximum size of message: 83 bytes / 664 bits
-            dccl.id head...........................8
-            user head..............................0
-            body.................................649
-            padding to full byte...................7
-    Allowed maximum size of message: 200 bytes / 1600 bits
+    Actual maximum size of message: 98 bytes / 784 bits
+        dccl.id head...........................8
+        user head..............................0
+        body.................................723
+        padding to full byte...................5
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 127
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -94,9 +169,19 @@ message Engineering
 
     optional PIDControl pid_control = 3;
 
+    optional bool query_engineering_status = 4 [default = false];
+
+    optional bool query_bot_status = 5 [default = false];
+
     optional bool engineering_messages_enabled = 13;
 
-    optional BotStatusRate send_bot_status_rate = 14 [default = BotStatusRate_1_Hz];
+    optional BotStatusRate bot_status_rate = 14 [default = BotStatusRate_1_Hz];
+
+    optional GPSRequirements gps_requirements = 15;
+
+    optional RFDisableOptions rf_disable_options = 16;
+
+    optional BottomDepthSafetyParams bottom_depth_safety_params = 17;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

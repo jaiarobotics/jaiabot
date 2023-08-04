@@ -3,7 +3,7 @@ import threading
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
-from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus
+from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus, CommandForHub
 from jaiabot.messages.hub_pb2 import HubStatus
 
 import google.protobuf.json_format
@@ -50,6 +50,9 @@ class Interface:
 
     # ClientId that is currently in control
     controllingClientId = None
+
+    # MetaData
+    metadata = {}
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -128,6 +131,10 @@ class Interface:
                 packet = msg.task_packet
                 self.process_task_packet(packet)
 
+            if msg.HasField('device_metadata'):
+                metadata = protobufMessageToDict(msg.device_metadata)
+                self.metadata = metadata
+                
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
                 self.messages['info'] = 'Reconnected to jaiabot_web_portal'
@@ -158,7 +165,7 @@ class Interface:
         self.pingCount += 1
 
         if self.pingCount > 1:
-            self.messages['error'] = 'No response from jaiabot_web_portal app'
+            self.messages['error'] = 'Connection Dropped To HUB'
 
     def post_take_control(self, clientId):
         self.setControllingClientId(clientId)
@@ -170,6 +177,78 @@ class Interface:
         command.time = now()
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
+        
+        if self.send_message_to_portal(msg):
+            self.setControllingClientId(clientId)
+            return {'status': 'ok'}
+        else:
+            return {'status': 'fail', 'message': 'You are in spectator mode, and cannot send commands.'}
+    
+    def post_single_waypoint_mission(self, single_waypoint_mission_dict, clientId):
+        logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
+
+        if 'lat' and 'lon' in single_waypoint_mission_dict:
+            command_dict = {'bot_id': 1, 'time': now(), 'type': 'MISSION_PLAN', 
+                            'plan': {'start': 'START_IMMEDIATELY', 'movement': 'TRANSIT', 
+                            'goal': [{'location': {'lat': single_waypoint_mission_dict["lat"], 'lon': single_waypoint_mission_dict["lon"]}}], 
+                            'recovery': {'recover_at_final_goal': True}, 'speeds': {'transit': 2, 'stationkeep_outer': 1.5}}}
+
+            if 'dive_depth' in single_waypoint_mission_dict:
+                # default 10 seconds
+                drift_time = 10
+
+                if 'surface_drift_time' in single_waypoint_mission_dict:
+                    drift_time = single_waypoint_mission_dict['surface_drift_time']
+
+                command_dict['plan']['goal'] = [{
+                        'location': {
+                            'lat': single_waypoint_mission_dict["lat"],
+                            'lon': single_waypoint_mission_dict["lon"]
+                        },
+                        'task': {
+                            'type': 'DIVE',
+                            'dive': {
+                                'max_depth': single_waypoint_mission_dict['dive_depth'],
+                                'depth_interval': single_waypoint_mission_dict['dive_depth'],
+                                'hold_time': 0  
+                            },
+                            'surface_drift': {
+                                'drift_time': drift_time
+                            }
+                        }
+                    }]
+
+            if 'transit_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['transit'] = single_waypoint_mission_dict['transit_speed']
+
+            if 'station_keep_speed' in single_waypoint_mission_dict:
+                command_dict['plan']['speeds']['stationkeep_outer'] = single_waypoint_mission_dict['station_keep_speed']
+
+            if 'bot_id' in single_waypoint_mission_dict:
+                command_dict['bot_id'] = single_waypoint_mission_dict['bot_id']
+                logging.debug(f'Sending single waypoint mission: {command_dict}')
+                    
+                self.post_command(command_dict, clientId)
+            else:
+                for bot in self.bots.values():
+                    command_dict['bot_id'] = bot['bot_id']
+                    logging.debug(f'Sending single waypoint mission: {command_dict}')
+                    
+                    self.post_command(command_dict, clientId)
+
+            self.setControllingClientId(clientId)
+
+            return {'status': 'ok'}
+        
+        else:
+            return {'status': 'fail', 'message': 'You need at least a lat lon for single wpt mission: Ex: {"bot_id": 1, "lat": 41.661849, "lon": -71.273131, "dive_depth": 2, "surface_drift_time": 15,"transit_speed": 2.5, "station_keep_speed": 0.5}'}
+
+    def post_command_for_hub(self, command_for_hub_dict, clientId):
+        command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
+        logging.debug(f'Sending command for hub: {command_for_hub}')
+        command_for_hub.time = now()
+        msg = ClientToPortalMessage()
+        msg.command_for_hub.CopyFrom(command_for_hub)
         
         if self.send_message_to_portal(msg):
             self.setControllingClientId(clientId)
@@ -293,10 +372,13 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
+        # Don''t automatically take control
+        if self.controllingClientId is not None and clientId != self.controllingClientId:
+            logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
+            return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
+
         self.controllingClientId = clientId
         self.send_message_to_portal(msg)
-
-        self.setControllingClientId(clientId)
 
         return {'status': 'ok'}
 
@@ -325,5 +407,8 @@ class Interface:
     def setControllingClientId(self, clientId):
         if clientId != self.controllingClientId:
             logging.warning(f'Client {clientId} has taken control')
-        self.controllingClientId = clientId
+            self.controllingClientId = clientId
+
+    def get_Metadata(self):
+        return self.metadata
 

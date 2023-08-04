@@ -6,5 +6,24 @@ hex=@hex@
 nickname=@nickname@
 baud_flag=@baudrate_flag@
 port_flag=@serial_port_flag@
+programmer=@programmer@
+auto_erase_flag=@auto_erase_flag@
 
-avrdude -patmega328p -C+${sharedir}/avrdude.conf -carduino -Uflash:w:${sharedir}/${sketch}/${nickname}/${hex}:i ${baud_flag} ${port_flag} -v -D -V || echo "UPLOAD FAILED!"
+hex_path=${sharedir}/${sketch}/${nickname}/${hex}
+hex_mtime=`stat -c %Y ${hex_path}`
+
+# uploaded_path is an empty file that will be touched when a successful upload occurs
+# this way, we can skip programming the Arduino if the hex file is not newer
+uploaded_path=${hex_path}.uploaded
+
+# Upload if uploaded_path doesn't exist, or has older modification time than hex_path
+
+if [[ ! -f ${uploaded_path} || ${hex_mtime} -gt `stat -c %Y ${uploaded_path}` ]]; then
+    if avrdude -patmega328p -C+${sharedir}/avrdude.conf -c${programmer} -Uflash:w:${hex_path}:i ${baud_flag} ${port_flag} -v ${auto_erase_flag} -V; then
+        touch ${uploaded_path}
+    else
+        echo "UPLOAD FAILED!"
+    fi
+else
+    echo "SKIPPING ARDUINO UPLOAD: ${hex_path} is older than ${uploaded_path}"
+fi

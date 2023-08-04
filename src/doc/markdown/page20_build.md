@@ -75,6 +75,7 @@ We use CircleCI to do two main types of builds:
 
 - "basic" code build and run unit tests
 - Debian package build to produce .deb packages that can be installed by `apt`. These are categorized to allow for a stratification of stability versus the latest features:
+    - "test" builds that run when necessary to test build packages for branches before merging into `1.y`
     - "continuous" builds that are run with each commit to the `1.y` branch (usually the result of a pull request merge). This is the newest code.
     - "beta" builds that a run with each release ending in an `_` (e.g., `1.0.0_beta1`) which is changed to `~` (e.g. 1.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
     - "release" builds that are run with any other release release (`git tag`), e.g., `1.0.0`.
@@ -333,7 +334,7 @@ Use the all-in-one-script (`/scripts/docker_arm64_build-and-deploy.sh`):
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_arduino_type" can be set to one of: usb_old, usb_new, spi which will upload the ardui
+## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the ardui
 no code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appr
 opriate systemd services. If unset, the systemd services will not be installed and enabled

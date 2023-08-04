@@ -80,6 +80,8 @@ namespace apps
 {
 constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
 constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
+constexpr goby::middleware::Group web_portal_udp_customer_in{"web_portal_udp_customer_in"};
+constexpr goby::middleware::Group web_portal_udp_customer_out{"web_portal_udp_customer_out"};
 
 class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 {
@@ -95,8 +97,11 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 
     void process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg);
     void handle_command(const jaiabot::protobuf::Command& command);
+    void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& command_for_hub);
 
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
+
+    jaiabot::protobuf::DeviceMetadata device_metadata_;
 };
 
 } // namespace apps
@@ -111,13 +116,21 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::WebPortal::WebPortal()
-    : zeromq::MultiThreadApplication<config::WebPortal>(0.5 * si::hertz)
+    : zeromq::MultiThreadApplication<config::WebPortal>(0.1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
     using UDPThread =
         goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
+
+    using UDPCustomerThread =
+        goby::middleware::io::UDPPointToPointThread<web_portal_udp_customer_in,
+                                                    web_portal_udp_customer_out>;
+    if (cfg().has_udp_customer_config())
+    {
+        launch_thread<UDPCustomerThread>(cfg().udp_customer_config());
+    }
 
     glog.is_debug1() && glog << group("main") << "Web Portal Started" << endl;
     glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << endl;
@@ -194,6 +207,13 @@ jaiabot::apps::WebPortal::WebPortal()
 
             send_message_to_client(message);
         });
+
+    // Subscribe to MetaData
+    interprocess().subscribe<jaiabot::groups::metadata>(
+        [this](const jaiabot::protobuf::DeviceMetadata& metadata) {
+            jaiabot::protobuf::PortalToClientMessage message;
+            device_metadata_ = metadata;
+        });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
@@ -224,9 +244,32 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     {
         handle_command(msg.command());
     }
+
+    if (msg.has_command_for_hub())
+    {
+        handle_command_for_hub(msg.command_for_hub());
+    }
 }
 
-void jaiabot::apps::WebPortal::loop() {}
+void jaiabot::apps::WebPortal::loop()
+{
+    if (device_metadata_.IsInitialized())
+    {
+        jaiabot::protobuf::PortalToClientMessage message;
+        *message.mutable_device_metadata() = device_metadata_;
+        glog.is_debug2() && glog << group("main") << "Sending metadata to client: "
+                                 << device_metadata_.ShortDebugString() << endl;
+        send_message_to_client(message);
+    }
+    else
+    {
+        glog.is_debug2() && glog << group("main")
+                                 << "Query for metadata: " << device_metadata_.ShortDebugString()
+                                 << endl;
+        jaiabot::protobuf::QueryDeviceMetaData query_device_metadata;
+        interprocess().publish<groups::metadata>(query_device_metadata);
+    }
+}
 
 void jaiabot::apps::WebPortal::send_message_to_client(
     const jaiabot::protobuf::PortalToClientMessage& message)
@@ -252,13 +295,33 @@ void jaiabot::apps::WebPortal::send_message_to_client(
         glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString()
                                  << endl;
     }
+
+    if (cfg().has_udp_customer_config())
+    {
+        // Send just task packet information for now
+        if (message.has_task_packet())
+        {
+            auto io_data = make_shared<goby::middleware::protobuf::IOData>();
+            io_data->mutable_udp_dest()->set_addr(cfg().udp_customer_config().remote_address());
+            io_data->mutable_udp_dest()->set_port(cfg().udp_customer_config().remote_port());
+
+            // Serialize for the UDP packet
+            string data;
+            message.task_packet().SerializeToString(&data);
+            io_data->set_data(data);
+
+            // Send it
+            interthread().publish<web_portal_udp_customer_out>(io_data);
+        }
+    }
 }
 
 void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& command)
 {
     using jaiabot::protobuf::Command;
 
-    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager: " << command.ShortDebugString()
+    glog.is_debug2() && glog << group("main")
+                             << "Sending command to hub_manager: " << command.ShortDebugString()
                              << endl;
 
     goby::middleware::Publisher<Command> command_publisher(
@@ -271,4 +334,13 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
     {
         active_mission_plans[command.bot_id()] = command.plan();
     }
+}
+
+void jaiabot::apps::WebPortal::handle_command_for_hub(
+    const jaiabot::protobuf::CommandForHub& command_for_hub)
+{
+    glog.is_debug2() && glog << group("main") << "Sending command to hub_manager for hub: "
+                             << command_for_hub.ShortDebugString() << endl;
+
+    interprocess().publish<jaiabot::groups::hub_command_full>(command_for_hub);
 }

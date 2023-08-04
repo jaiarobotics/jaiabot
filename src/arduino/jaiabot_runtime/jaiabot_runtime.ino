@@ -297,7 +297,7 @@ void loop()
 
   handle_timeout();
 
-  // Command received at 4Hz
+  // Command received at 10Hz
   while (Serial.available() >= prefix_size) {
     handle_timeout();
 

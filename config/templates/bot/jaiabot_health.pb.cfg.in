@@ -6,9 +6,16 @@ auto_restart_timeout: 20
 auto_restart_init_grace_period: 60
 
 ignore_powerstate_changes: $ignore_powerstate_changes
+is_in_sim: $is_in_sim
 check_helm_ivp_status: true
 check_arduino_status: true
+test_hardware_in_sim: false
 
 arduino {
     arduino_report_timeout_seconds: 20 # (default = 20)
+}
+
+linux_hw {
+    wireless_file: "/proc/net/wireless"
+    wlan_interface: "wlan0"
 }

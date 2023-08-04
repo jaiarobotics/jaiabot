@@ -4,6 +4,7 @@ import "dccl/option_extensions.proto";
 import "jaiabot/messages/engineering.proto";
 import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
+import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
@@ -16,7 +17,8 @@ message ClientToPortalMessage
 
     optional Engineering engineering_command = 1;
     optional Command command = 2;
-    optional bool ping = 3;
+    optional CommandForHub command_for_hub = 3;
+    optional bool ping = 4;
 }
 
 message PortalToClientMessage
@@ -29,13 +31,7 @@ message PortalToClientMessage
     optional Engineering engineering_status = 2;
     optional HubStatus hub_status = 3;
     optional TaskPacket task_packet = 4;
-
-    message VersionInfo {
-        required string version = 1;
-        optional string change_log = 2;
-    }
-
-    optional VersionInfo version_info = 5;
+    optional DeviceMetadata device_metadata = 5;
     
     // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
     optional MissionPlan active_mission_plan = 6;

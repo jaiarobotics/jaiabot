@@ -52,25 +52,8 @@ job-template-amd64: &job-template-amd64
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
-          if [[ "$CIRCLE_TAG" == *"_"* ]]; then
-            repo="beta";
-          elif [ ! -z "$CIRCLE_TAG" ]; then
-            repo="release";
-          else
-            repo="continuous";
-          fi
-
-          # placeholder for future version branches
-          if [[ "$CIRCLE_BRANCH" == "1.y" ]]; then
-            version="1.y";
-          # elif [[ "$CIRCLE_BRANCH" == "2.y" ]]; then
-          #  version="2.y";
-          else
-            # default to 1.y on non-standard branches - this should probably be
-            # updated to the latest (e.g. to 2.y when 2.y exists)
-            version="1.y";
-          fi
-
+          repo=$(${CIRCLE_WORKING_DIRECTORY}/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+          version=$(${CIRCLE_WORKING_DIRECTORY}/.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
           # export these for later use
           echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
           echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
@@ -87,7 +70,7 @@ job-template-amd64: &job-template-amd64
           [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install goby3-clang-tool || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . -- -j2
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j2
     - run: &run-tests
         name: Run tests
         command: cd build && ctest --output-on-failure
@@ -96,6 +79,7 @@ job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
   resource_class: large
   steps:
+    - checkout
     - run: *run-add-gobysoft-packages-key
     - run: *run-add-jaia-packages-key
     - run: *run-set-deb-rep-and-version
@@ -134,7 +118,11 @@ job-template-deb-amd64: &job-template-deb-amd64
           export NEWVERSION="$(echo ../*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
           quilt new 01-patch-version
           quilt add CMakeLists.txt
+          export NEWVERSION_MAJOR=$(echo $NEWVERSION | cut -d . -f 1)
+          export NEWVERSION_MINOR=$(echo $NEWVERSION | cut -d . -f 2)
           export NEWVERSION_PATCH=$(echo $NEWVERSION | cut -d . -f 3)
+          sed -i "s/^set(PROJECT_VERSION_MAJOR *\".*\"/set(PROJECT_VERSION_MAJOR \"${NEWVERSION_MAJOR}\"/" CMakeLists.txt
+          sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" CMakeLists.txt
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" CMakeLists.txt
           quilt refresh                  
     - run: &run-build-pkg
@@ -184,15 +172,12 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "apt-mirror"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "apt-mirror"
-
         
 ## Begin actual config
 version: 2
@@ -228,6 +213,11 @@ workflows:
 
       # bundle after each package upload
       - bundle:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
           requires:
             - upload          
 

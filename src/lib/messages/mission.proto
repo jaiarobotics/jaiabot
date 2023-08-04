@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "jaiabot/messages/geographic_coordinate.proto";
 import "dccl/option_extensions.proto";
+import "goby/middleware/protobuf/gpsd.proto";
 
 package jaiabot.protobuf;
 
@@ -22,30 +23,61 @@ enum MissionState
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 113;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = 115;
+    IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = 116;
     
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = 122;
-    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 123;
-    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 124;
-    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 125;
-    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 126;
-    IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 127;
-    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 128;
-    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 129;
+    IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT = 123;
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 124;
+    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 125;
+    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 126;
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 127;
+    IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 128;
+    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 129;
+    IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = 130;
+    IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 131;
+    IN_MISSION__UNDERWAY__TASK__IMU_RESTART = 132;
 
-    IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 130;
-    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 131;
-    IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 132;
-    IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS = 133;
+    IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 140;
+    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 141;
+    IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 142;
+    IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS = 143;
+    IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART = 144;
 
-    IN_MISSION__UNDERWAY__ABORT = 140;
+    IN_MISSION__UNDERWAY__ABORT = 150;
 
     POST_DEPLOYMENT__RECOVERED = 200;
     POST_DEPLOYMENT__DATA_PROCESSING = 201;
     POST_DEPLOYMENT__DATA_OFFLOAD = 202;
     POST_DEPLOYMENT__IDLE = 203;
     POST_DEPLOYMENT__SHUTTING_DOWN = 204;
+}
+
+message Speeds
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double transit = 1 [
+        default = 2,
+        (dccl.field) = {
+            min: 0.1,
+            max: 3.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
+    optional double stationkeep_outer = 2 [
+        default = 0.5,
+        (dccl.field) = {
+            min: 0.1,
+            max: 3.0,
+            precision: 1,
+            units { base_dimensions: "LT^-1" }
+        }
+    ];
 }
 
 message MissionReport
@@ -57,6 +89,27 @@ message MissionReport
     required MissionState state = 10;
     optional int32 active_goal = 11;
     optional GeographicCoordinate active_goal_location = 12;
+    optional double distance_to_active_goal = 13 [(dccl.field) = {
+        min: 0
+        max: 1000
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+    optional uint32 active_goal_timeout = 14 [
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: 0
+            units { base_dimensions: "T" }
+        }
+    ];
+    optional int32 data_offload_percentage = 15 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
 }
 
 message MissionTask
@@ -124,6 +177,38 @@ message MissionTask
 
     // for type == SURFACE_DRIFT and type == DIVE
     optional DriftParameters surface_drift = 3;
+
+    message ConstantHeadingParameters
+    {
+        optional double constant_heading = 1 [(dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+
+        optional int32 constant_heading_time = 2 [
+            default = 0,
+            (dccl.field) = {
+                min: 0
+                max: 3600
+                precision: -1
+                units { base_dimensions: "T" }
+            }
+        ];
+
+        optional double constant_heading_speed = 3 [
+            default = 2,
+            (dccl.field) = {
+                min: 0.1,
+                max: 3.0,
+                precision: 1,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+    }
+
+    optional ConstantHeadingParameters constant_heading = 4;
 }
 
 message MissionPlan
@@ -153,9 +238,10 @@ message MissionPlan
         optional string name = 1 [(dccl.field).omit = true];
         required GeographicCoordinate location = 2;
         optional MissionTask task = 3;
+        optional bool moveWptMode = 4;
     }
 
-    repeated Goal goal = 3 [(dccl.field).max_repeat = 13];
+    repeated Goal goal = 3 [(dccl.field).max_repeat = 10];
 
     message Recovery
     {
@@ -164,30 +250,10 @@ message MissionPlan
     }
     optional Recovery recovery = 4;
 
-    message Speeds
-    {
-        optional double transit = 1 [
-            default = 2,
-            (dccl.field) = {
-                min: 0.1,
-                max: 6.0,
-                precision: 1,
-                units { base_dimensions: "LT^-1" }
-            }
-        ];
-        optional double stationkeep_outer = 2 [
-            default = 0.5,
-            (dccl.field) = {
-                min: 0.1,
-                max: 6.0,
-                precision: 1,
-                units { base_dimensions: "LT^-1" }
-            }
-        ];
-    }
     optional Speeds speeds = 5;
     optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
+    optional uint32 repeats = 8 [default = 1, (dccl.field) = {min: 1 max: 100 }];
 }
 
 message IvPBehaviorUpdate
@@ -282,4 +348,13 @@ message IvPBehaviorReport
     {
         TransitReport transit = 1;
     }
+}
+
+message MissionTpvMeetsGpsReq
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }

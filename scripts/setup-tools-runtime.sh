@@ -6,4 +6,4 @@ echo "Installing pip packages"
 pip install --upgrade pip
 pip install python-dateutil plotly pyQt5 h5py geopandas matplotlib flask networkx
 echo "updating PATH"
-echo "export PATH=$HOME/jaiabot/build/amd64/bin:$HOME/jaiabot/build/arm64/bin:\$PATH" >> ~/.bashrc
+echo "export PATH=$(dirname "$(pwd)")/build/amd64/bin:$(dirname "$(pwd)")/build/arm64/bin:\$PATH" >> ~/.bashrc

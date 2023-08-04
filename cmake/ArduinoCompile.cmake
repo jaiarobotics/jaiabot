@@ -49,12 +49,17 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
 
   set(arduino_compile_targets "${arduino_compile_targets};arduino_compile_${sketchname}_${nickname}" CACHE INTERNAL "Arduino sketches")
   
-  if(baudrate)
+  if(${nickname} STREQUAL "usb")
+    set(ARDUINO_SERIAL_PORT /dev/ttyUSB0 CACHE STRING "Serial port for Arduino flashing" )
     set(baudrate_flag "-b${baudrate}")
     set(serial_port_flag "-P${ARDUINO_SERIAL_PORT}")
     set(hex ${hex_name})
+    set(programmer ${avrdude_programmer})
+    set(auto_erase_flag "-D")
   else()
     set(hex ${hex_name_with_bootloader})
+    set(programmer ${avrdude_programmer})
+    set(auto_erase_flag "")
   endif()
 
   

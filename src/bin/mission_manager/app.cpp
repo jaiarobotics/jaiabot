@@ -27,6 +27,7 @@
 #include "machine.h"
 #include "mission_manager.h"
 
+#include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/pressure_temperature.pb.h"
@@ -36,6 +37,8 @@ using goby::glog;
 namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
+
+#define earthRadiusKm 6371.0
 
 namespace jaiabot
 {
@@ -53,7 +56,7 @@ class MissionManagerConfigurator
     MissionManagerConfigurator(int argc, char* argv[])
         : goby::middleware::ProtobufConfigurator<config::MissionManager>(argc, argv)
     {
-        const auto& cfg = mutable_cfg();
+        auto& cfg = mutable_cfg();
 
         // create a specific dynamic group for this bot's ID so we only subscribe to our own commands
         groups::hub_command_this_bot.reset(
@@ -88,6 +91,16 @@ jaiabot::apps::MissionManager::MissionManager()
     glog.add_group("statechart", goby::util::Colors::yellow);
     glog.add_group("movement", goby::util::Colors::lt_green);
     glog.add_group("task", goby::util::Colors::lt_blue);
+
+    use_goal_timeout_ = cfg().use_goal_timeout();
+
+    // Create a set of states. when the bot is in
+    // one of these modes we should detect goal timeout
+    for (auto gs : cfg().include_goal_timeout_states())
+    {
+        auto gts = static_cast<jaiabot::protobuf::MissionState>(gs);
+        include_goal_timeout_states_.insert(gts);
+    }
 
     for (auto m : cfg().test_mode())
     {
@@ -127,46 +140,14 @@ jaiabot::apps::MissionManager::MissionManager()
                                           << std::endl;
         });
 
-    // subscribe for commands
+    if (cfg().has_subscribe_to_hub_on_start())
     {
-        auto on_command_subscribed =
-            [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
-
-        // use vehicle ID as group for command
-        auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
-            return goby::middleware::Group(command.bot_id());
-        };
-
-        goby::middleware::Subscriber<protobuf::Command> command_subscriber{
-            cfg().command_sub_cfg(), do_set_group, on_command_subscribed};
-
-        intervehicle().subscribe_dynamic<protobuf::Command>(
-            [this](const protobuf::Command& input_command) {
-                if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
-                {
-                    protobuf::Command out_command;
-                    bool command_valid = handle_command_fragment(input_command, out_command);
-                    if (command_valid)
-                    {
-                        handle_command(out_command);
-                        // republish for logging purposes
-                        interprocess().publish<jaiabot::groups::hub_command>(out_command);
-                    }
-                }
-                else
-                {
-                    handle_command(input_command);
-                    // republish for logging purposes
-                    interprocess().publish<jaiabot::groups::hub_command>(input_command);
-                }
-            },
-            *groups::hub_command_this_bot, command_subscriber);
+        intervehicle_subscribe(cfg().subscribe_to_hub_on_start());
     }
+
+    // subscribe for commands when we get a request to subscribe (hub info changed)
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
 
     // subscribe for pHelmIvP desired course
     interprocess().subscribe<goby::middleware::frontseat::groups::desired_course>(
@@ -212,17 +193,17 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
         [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
             latest_lat_ = node_status.global_fix().lat_with_units();
+            machine_->set_latest_lat(latest_lat_);
         });
 
     // subscribe for sensor measurements (including pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
+            machine_->calculate_pressure_adjusted(pt);
+
             statechart::EvMeasurement ev;
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
-
-            auto depth = goby::util::seawater::depth(pt.pressure_with_units(), latest_lat_);
-            machine_->process_event(statechart::EvVehicleDepth(depth));
         });
 
     // subscribe for salinity data
@@ -253,7 +234,10 @@ jaiabot::apps::MissionManager::MissionManager()
     // subscribe for GPS data (to reacquire after resurfacing)
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            machine_->set_gps_tpv(tpv);
+            current_tpv_ = tpv;
+
+            // TODO make sure this meets gps requirements
+            machine_->set_gps_tpv(current_tpv_);
         });
 
     // subscribe for GPS data (to reacquire gps)
@@ -268,6 +252,14 @@ jaiabot::apps::MissionManager::MissionManager()
                 ev.hdop = sky.hdop();
                 ev.pdop = sky.pdop();
                 machine_->process_event(ev);
+
+                // Publish TPV that meets our mission requirements
+                if (current_tpv_.IsInitialized())
+                {
+                    interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
+                        current_tpv_);
+                    machine_->set_gps_tpv(current_tpv_);
+                }
             }
         });
 
@@ -281,6 +273,140 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IMUIssue::STOP_BOT:
                     machine_->process_event(statechart::EvStop());
                     break;
+                case protobuf::IMUIssue::RESTART_IMU_PY:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                default:
+                    //TODO Handle Default Case
+                    break;
+            }
+        });
+
+    // Subscribe to IMU data for max_acceleration, for bottom characterization
+    interprocess().subscribe<jaiabot::groups::imu>([this](
+                                                       const jaiabot::protobuf::IMUData& imu_data) {
+        glog.is_debug2() && glog << "Received IMUData " << imu_data.ShortDebugString() << std::endl;
+
+        machine_->set_latest_max_acceleration(imu_data.max_acceleration_with_units());
+        machine_->set_latest_significant_wave_height(imu_data.significant_wave_height());
+    });
+
+    // subscribe for engineering commands
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            glog.is_debug1() && glog << "=> " << command.ShortDebugString() << std::endl;
+
+            if (command.has_gps_requirements())
+            {
+                if (command.gps_requirements().has_transit_hdop_req())
+                {
+                    machine_->set_transit_hdop_req(command.gps_requirements().transit_hdop_req());
+                }
+                if (command.gps_requirements().has_transit_pdop_req())
+                {
+                    machine_->set_transit_pdop_req(command.gps_requirements().transit_pdop_req());
+                }
+                if (command.gps_requirements().has_after_dive_hdop_req())
+                {
+                    machine_->set_after_dive_hdop_req(
+                        command.gps_requirements().after_dive_hdop_req());
+                }
+                if (command.gps_requirements().has_after_dive_pdop_req())
+                {
+                    machine_->set_after_dive_pdop_req(
+                        command.gps_requirements().after_dive_pdop_req());
+                }
+                if (command.gps_requirements().has_transit_gps_fix_checks())
+                {
+                    machine_->set_transit_gps_fix_checks(
+                        command.gps_requirements().transit_gps_fix_checks());
+                }
+                if (command.gps_requirements().has_transit_gps_degraded_fix_checks())
+                {
+                    machine_->set_transit_gps_degraded_fix_checks(
+                        command.gps_requirements().transit_gps_degraded_fix_checks());
+                }
+                if (command.gps_requirements().has_after_dive_gps_fix_checks())
+                {
+                    machine_->set_after_dive_gps_fix_checks(
+                        command.gps_requirements().after_dive_gps_fix_checks());
+                }
+            }
+            if (command.has_bottom_depth_safety_params())
+            {
+                if (command.bottom_depth_safety_params().has_constant_heading())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading(
+                        command.bottom_depth_safety_params().constant_heading());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_speed())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_speed(
+                        command.bottom_depth_safety_params().constant_heading_speed());
+                }
+                if (command.bottom_depth_safety_params().has_constant_heading_time())
+                {
+                    machine_->set_bottom_depth_safety_constant_heading_time(
+                        command.bottom_depth_safety_params().constant_heading_time());
+                }
+                if (command.bottom_depth_safety_params().has_safety_depth())
+                {
+                    machine_->set_bottom_safety_depth(
+                        command.bottom_depth_safety_params().safety_depth());
+                }
+            }
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                jaiabot::protobuf::Engineering engineering_status;
+                jaiabot::protobuf::GPSRequirements gps_requirements;
+
+                // Send engineering status for hdop and pdop current requirements
+                engineering_status.set_bot_id(cfg().bot_id());
+
+                // GPS Requirements
+                gps_requirements.set_transit_hdop_req(machine_->transit_hdop_req());
+                gps_requirements.set_transit_pdop_req(machine_->transit_pdop_req());
+                gps_requirements.set_after_dive_hdop_req(machine_->after_dive_hdop_req());
+                gps_requirements.set_after_dive_pdop_req(machine_->after_dive_pdop_req());
+                gps_requirements.set_transit_gps_fix_checks(machine_->transit_gps_fix_checks());
+                gps_requirements.set_transit_gps_degraded_fix_checks(
+                    machine_->transit_gps_degraded_fix_checks());
+                gps_requirements.set_after_dive_gps_fix_checks(
+                    machine_->after_dive_gps_fix_checks());
+
+                *engineering_status.mutable_gps_requirements() = gps_requirements;
+
+                engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
+                    machine_->bottom_safety_depth());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
+                    machine_->bottom_depth_safety_constant_heading());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
+                    machine_->bottom_depth_safety_constant_heading_speed());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
+                    machine_->bottom_depth_safety_constant_heading_time());
+
+                interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+            }
+        });
+
+    // handle rf disable commands to make sure task packets are not sent
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        machine_->set_rf_disable(true);
+                    }
+                    else
+                    {
+                        machine_->set_rf_disable(false);
+                    }
+                }
             }
         });
 }
@@ -296,7 +422,7 @@ jaiabot::apps::MissionManager::~MissionManager()
                                          << "\nfor subscription:\n\t" << sub.ShortDebugString()
                                          << std::endl;
             };
-        goby::middleware::Subscriber<protobuf::Command> command_subscriber{cfg().command_sub_cfg(),
+        goby::middleware::Subscriber<protobuf::Command> command_subscriber{latest_command_sub_cfg_,
                                                                            on_command_unsubscribed};
 
         intervehicle().unsubscribe_dynamic<protobuf::Command>(*groups::hub_command_this_bot,
@@ -304,17 +430,85 @@ jaiabot::apps::MissionManager::~MissionManager()
     }
 }
 
+void jaiabot::apps::MissionManager::intervehicle_subscribe(
+    const jaiabot::protobuf::HubInfo& hub_info)
+{
+    // set environmental variable for dataoffload
+    setenv("jaia_dataoffload_hub_id", std::to_string(hub_info.hub_id()).c_str(), 1 /*overwrite*/);
+
+    // Update current hub id
+    hub_id_ = hub_info.hub_id();
+
+    glog.is_verbose() && glog << "Subscribing for Commands from hub " << hub_info.hub_id()
+                              << " (modem id " << hub_info.modem_id() << ")" << std::endl;
+
+    auto on_command_subscribed =
+        [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+               const goby::middleware::intervehicle::protobuf::AckData& ack) {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
+
+    // use vehicle ID as group for command
+    auto do_set_group = [](const protobuf::Command& command) -> goby::middleware::Group {
+        return goby::middleware::Group(command.bot_id());
+    };
+
+    latest_command_sub_cfg_ = cfg().command_sub_cfg();
+
+    // set command publisher to the hub that triggered this subscribe
+    latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
+    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
+
+    goby::middleware::Subscriber<protobuf::Command> command_subscriber{
+        latest_command_sub_cfg_, do_set_group, on_command_subscribed};
+
+    intervehicle().subscribe_dynamic<protobuf::Command>(
+        [this](const protobuf::Command& input_command) {
+            if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+            {
+                protobuf::Command out_command;
+                bool command_valid = handle_command_fragment(input_command, out_command);
+                if (command_valid)
+                {
+                    handle_command(out_command);
+                    // republish for logging purposes
+                    interprocess().publish<jaiabot::groups::hub_command>(out_command);
+                }
+            }
+            else
+            {
+                handle_command(input_command);
+                // republish for logging purposes
+                interprocess().publish<jaiabot::groups::hub_command>(input_command);
+            }
+        },
+        *groups::hub_command_this_bot, command_subscriber);
+}
+
 void jaiabot::apps::MissionManager::loop()
 {
+    double goal_speed = 0;
+    auto current_time = goby::time::SteadyClock::now();
     protobuf::MissionReport report;
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
+    const auto* data_offload =
+        machine_->state_cast<const statechart::postdeployment::DataOffload*>();
+
+    if (data_offload)
+    {
+        report.set_data_offload_percentage(data_offload->data_offload_percentage());
+    }
 
     // only report the goal index when not in recovery
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
-        report.set_active_goal(in_mission->goal_index());
+        // Set Active Goal Index + 1 for User Interface And Log Review.
+        report.set_active_goal(in_mission->goal_index() + 1);
+
         if (in_mission->current_goal().has_value())
         {
             if (in_mission->current_goal()->has_location())
@@ -322,11 +516,10 @@ void jaiabot::apps::MissionManager::loop()
                 *report.mutable_active_goal_location() = in_mission->current_goal()->location();
             }
         }
+        goal_speed = machine_->mission_plan().speeds().transit();
     }
     else if (in_mission && in_mission->goal_index() == statechart::InMission::RECOVERY_GOAL_INDEX)
     {
-        report.set_active_goal(in_mission->goal_index());
-
         if (machine_->mission_plan().recovery().has_recover_at_final_goal())
         {
             if (machine_->mission_plan().recovery().recover_at_final_goal())
@@ -342,9 +535,105 @@ void jaiabot::apps::MissionManager::loop()
         {
             *report.mutable_active_goal_location() = machine_->mission_plan().recovery().location();
         }
+
+        goal_speed = machine_->mission_plan().speeds().stationkeep_outer();
+    }
+
+    if (current_tpv_.has_location() && report.has_active_goal_location())
+    {
+        // Check for an updated goal
+        if (current_goal_ != report.active_goal())
+        {
+            glog.is_debug2() && glog << "current goal does not equal active:" << std::endl;
+            current_goal_ = report.active_goal();
+
+            // Clear current_goal_dist_history_ to start new with update goal
+            std::queue<double> empty;
+            std::swap(current_goal_dist_history_, empty);
+
+            updated_goal_ = true;
+            last_goal_timeout_time_ = current_time;
+        }
+
+        double distance =
+            distanceToGoal(report.active_goal_location().lat(), report.active_goal_location().lon(),
+                           current_tpv_.location().lat(), current_tpv_.location().lon());
+        // Set distance in meters
+        distance = distance * (1000);
+        report.set_distance_to_active_goal(distance);
+
+        // Check the queue size to ensure it is less than max
+        if (current_goal_dist_history_.size() >= cfg().tpv_history_max())
+        {
+            //linear_regression();
+            current_goal_dist_history_.pop();
+        }
+        current_goal_dist_history_.push(distance);
+
+        // First pass at implementing goal timeout
+        if (updated_goal_)
+        {
+            goal_timeout_ =
+                (distance / goal_speed) * cfg().goal_timeout_buffer_factor() +
+                (cfg().total_gps_fix_checks() * cfg().goal_timeout_reacquire_gps_attempts());
+
+            glog.is_debug2() &&
+                glog << "goal_timeout_: " << goal_timeout_ << " , distance: " << distance
+                     << " , goal_speed: " << goal_speed
+                     << " , goal_timeout_buffer_factor: " << cfg().goal_timeout_buffer_factor()
+                     << " , total_gps_fix_checks: " << cfg().total_gps_fix_checks()
+                     << " , goal_timeout_reacquire_gps_attempts: "
+                     << cfg().goal_timeout_reacquire_gps_attempts() << std::endl;
+            updated_goal_ = false;
+        }
+
+        // Check to see if operator wants to use goal timeout
+        // And Check to see if we are in correct state to detect goal timeout
+        if (use_goal_timeout_ && include_goal_timeout_states_.count(machine_->state()))
+        {
+            // Confirm goal_timeout_ is initialized
+            if (goal_timeout_)
+            {
+                // If current time is greater than the timeout, then go to next wpt
+                if ((last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) <= current_time)
+                {
+                    glog.is_debug2() && glog << "Goal timedout" << std::endl;
+                    machine_->process_event(statechart::EvWaypointReached());
+
+                    // Check config to see if we should skip task
+                    if (cfg().skip_goal_task())
+                    {
+                        machine_->process_event(statechart::EvTaskComplete());
+                    }
+                }
+                else
+                {
+                    auto goal_timeout = std::chrono::duration_cast<std::chrono::seconds>(
+                        (last_goal_timeout_time_ + std::chrono::seconds(goal_timeout_)) -
+                        current_time);
+
+                    glog.is_debug2() && glog << "Goal time out: " << goal_timeout.count()
+                                             << std::endl;
+                    report.set_active_goal_timeout(goal_timeout.count());
+                }
+            }
+        }
+        else
+        {
+            // Report 0 if no goal timeout
+            report.set_active_goal_timeout(0);
+        }
     }
 
     interprocess().publish<jaiabot::groups::mission_report>(report);
+
+    // Check if we have a new hub
+    if (hub_id_ != machine_->hub_id())
+    {
+        glog.is_debug1() && glog << "hub_id_: " << hub_id_
+                                 << ", machine_->hub_id(): " << machine_->hub_id() << std::endl;
+        machine_->set_hub_id(hub_id_);
+    }
 
     machine_->process_event(statechart::EvLoop());
 }
@@ -361,6 +650,20 @@ void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHea
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    // Make sure the command has a newer timestamp
+    // If it is not then we should not handle the command and exit
+    if (prev_command_time_ >= command.time())
+    {
+        glog.is_warn() && glog << "Old command received! Ignoring..." << std::endl;
+
+        // Exit handle command function if the previous
+        // Command time is greater than the one current one
+        return;
+    }
+
+    // Keep track of the previous command time
+    prev_command_time_ = command.time();
 
     switch (command.type())
     {
@@ -427,6 +730,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::NEXT_TASK:
+            // Comment wpt reached event out because
+            // there is a bug here!! We need to investigate why
+            // we skip multiple waypoints (Happens in field, not in sim)
+            // machine_->process_event(statechart::EvWaypointReached());
             machine_->process_event(statechart::EvTaskComplete());
             break;
 
@@ -542,6 +849,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     initial_fragment.plan().recovery();
             }
 
+            if (initial_fragment.plan().has_repeats())
+            {
+                out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
+            }
+
             // Loop through fragments and all the waypoints in each
             for (const auto fragment : track_command_fragments.at(input_command_fragment.time()))
             {
@@ -597,4 +909,29 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
         return true;
     }
     return false;
+}
+
+// This function converts decimal degrees to radians
+double jaiabot::apps::MissionManager::deg2rad(const double& deg) { return (deg * M_PI / 180); }
+
+/**
+ * Returns the distance between two points on the Earth.
+ * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+ * @param lat1d Latitude of the first point in degrees
+ * @param lon1d Longitude of the first point in degrees
+ * @param lat2d Latitude of the second point in degrees
+ * @param lon2d Longitude of the second point in degrees
+ * @return The distance between the two points in kilometers
+ */
+double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const double& lon1d,
+                                                     const double& lat2d, const double& lon2d)
+{
+    double lat1r, lon1r, lat2r, lon2r, u, v;
+    lat1r = deg2rad(lat1d);
+    lon1r = deg2rad(lon1d);
+    lat2r = deg2rad(lat2d);
+    lon2r = deg2rad(lon2d);
+    u = sin((lat2r - lat1r) / 2);
+    v = sin((lon2r - lon1r) / 2);
+    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
 }

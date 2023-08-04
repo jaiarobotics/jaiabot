@@ -1,116 +1,154 @@
 #!/usr/bin/env python3
 from time import sleep
-from datetime import datetime
-import random
-import sys
 import argparse
 import socket
 import logging
+from math import *
+from orientation import Orientation
+from imu import *
+from waves import Analyzer
+from threading import Thread
+from dataclasses import dataclass
+from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
+from google.protobuf import text_format
+
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
-parser.add_argument('--simulator', action='store_true')
+parser.add_argument('-s', dest='simulator', action='store_true')
+parser.add_argument('-i', dest='interactive', action='store_true')
+parser.add_argument('-f', dest='frequency', default=10, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
 args = parser.parse_args()
+
+logging.warning(args)
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('jaiabot_imu')
 log.setLevel(args.logging_level)
 
-try:
-    import adafruit_bno055
-    import board
-except ModuleNotFoundError:
-    log.warning('ModuleNotFoundError, so physical device not available')
-except NotImplementedError:
-    log.warning('NotImplementedError, so physical device not available')
 
+def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
+    # Create socket
+    port = args.port
+    if port is None:
+        log.error(f'Must specify port number')
+        exit(1)
 
-class IMU:
+    log.info(f'Socket mode: listening on port {port}.')
 
-    def __init__(self):
-        self.is_setup = False
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', port))
 
-    def setup(self):
-        if not self.is_setup:
-            self.i2c = board.I2C()
-            try:
-                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x28)
-            except ValueError: # From I2CDevice if not on 0x28: ValueError("No I2C device at address: 0x%x" % self.device_address)
-                self.sensor = adafruit_bno055.BNO055_I2C(self.i2c, address=0x29)
-            
-            self.sensor.mode = adafruit_bno055.NDOF_MODE
-            self.is_setup = True
+    while True:
 
-    def getData(self):
-        if not self.is_setup:
-            self.setup()
+        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
 
         try:
-            return {
-                "euler": self.sensor.euler,
-                "linear_acceleration": self.sensor.linear_acceleration,
-                "gravity": self.sensor.gravity,
-                "calibration_status": self.sensor.calibration_status
-            }
-        except OSError as e:
-            self.is_setup = False
-            raise e
+            # Deserialize the message
+            command = IMUCommand()
+            command.ParseFromString(data)
+            log.debug(f'Received command:\n{command}')
+
+            # Execute the command
+            if command.type == IMUCommand.TAKE_READING:
+                imuData = imu.getIMUData()
+
+                if wave_analyzer._sampling_for_wave_height:
+                    imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+
+                if wave_analyzer._sampling_for_bottom_characterization:
+                    imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+                log.debug(imuData)
+                sock.sendto(imuData.SerializeToString(), addr)
+            elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
+                wave_analyzer.startSamplingForWaveHeight()
+            elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
+                wave_analyzer.stopSamplingForWaveHeight()
+            elif command.type == IMUCommand.START_BOTTOM_TYPE_SAMPLING:
+                wave_analyzer.startSamplingForBottomCharacterization()
+            elif command.type == IMUCommand.STOP_BOTTOM_TYPE_SAMPLING:
+                wave_analyzer.stopSamplingForBottomCharacterization()
+
+        except Exception as e:
+            log.warning(e)
 
 
-class IMUSimulator:
-    def __init__(self):
-        pass
+def do_interactive_loop():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', 0)) # Port zero picks an available port
 
-    def setup(self):
-        pass
+    destinationAddress = ('localhost', args.port)
 
-    def getData(self):
-        return {
-            "euler": (0.0, 0.0, 0.0),
-            "linear_acceleration": (0.0, 0.0, 0.0),
-            "gravity": (0.0, 0.0, 9.8),
-            "calibration_status": (3, 3, 3, 3)
+    while True:
+        print('''
+    Menu
+    ====
+    [Enter]    Sample the IMU
+    [w]        Start sampling for wave height
+    [e]        Stop sampling for wave height
+    [s]        Start sampling for bottom type
+    [d]        Stop sampling for bottom type
+    
+    [x]        Exit
+    ''')
+        choice = input('Command >> ').lower()
+        print()
+
+        if choice == 'x':
+            exit()
+
+        commandTypeMap = {
+            'w': IMUCommand.START_WAVE_HEIGHT_SAMPLING,
+            'e': IMUCommand.STOP_WAVE_HEIGHT_SAMPLING,
+            's': IMUCommand.START_BOTTOM_TYPE_SAMPLING,
+            'd': IMUCommand.STOP_BOTTOM_TYPE_SAMPLING,
+            '': IMUCommand.TAKE_READING
         }
 
+        imuCommand = IMUCommand()
 
-# Setup the sensor
-if args.simulator:
-    imu = IMUSimulator()
-else:
-    imu = IMU()
+        try:
+            imuCommand.type = commandTypeMap[choice]
+        except KeyError:
+            print(f'ERROR:  Unknown command "{choice}"\n')
+            continue
+
+        sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+        print(f'  SENT:\n{text_format.MessageToString(imuCommand, as_one_line=True)}')
+        print()
+
+        if imuCommand.type == IMUCommand.TAKE_READING:
+            # Wait for reading to come back...
+            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+            try:
+                # Deserialize the message
+                imuData = IMUData()
+                imuData.ParseFromString(data)
+                print(f'RECEIVED:\n{imuData}')
+                print()
+            except Exception as e:
+                print(e)
 
 
-# Create socket
-port = args.port
+if __name__ == '__main__':
+    # Setup the sensor
+    if args.simulator:
+        imu = Simulator(wave_frequency=0.5, wave_height=1)
+    else:
+        imu = Adafruit()
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', port))
+    # Setup the wave analysis thread
+    analyzer = Analyzer(imu, args.frequency)
 
-while True:
-    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+    # Start the thread that responds to IMUCommands over the port
+    portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[imu, analyzer])
+    portThread.start()
 
-    # Respond to anyone who sends us a packet
-    try:
-        data = imu.getData()
-    except Exception as e:
-        log.error(e)
-        continue
-
-    now = datetime.utcnow()
-    euler = data['euler']
-    linear_acceleration = data['linear_acceleration']
-    gravity = data['gravity']
-    calibration_status = data['calibration_status'] # 1 is calibrated, 0 is not
-    try:
-        line = '%s,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d\n' % \
-            (now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-            euler[0], euler[2], euler[1], 
-            linear_acceleration[0], linear_acceleration[2], linear_acceleration[1],
-            gravity[0], gravity[2], gravity[1],
-            calibration_status[0], calibration_status[1], calibration_status[2], calibration_status[3])
-        log.debug('Sent: ' + line)
-
-        sock.sendto(line.encode('utf8'), addr)
-    except TypeError as e:
-        log.error(e)
+    # Main loop
+    if args.interactive:
+        do_interactive_loop()
+    else:
+        portThread.join() # Just sit around until the port daemon thread finishes (which won't happen until process killed)

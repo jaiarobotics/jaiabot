@@ -5,6 +5,12 @@ udp_config {
     bind_port: 40000
 }
 
+#udp_customer_config {
+#    bind_port: 40020
+#    remote_address: "127.0.0.1"
+#    remote_port: 40021
+#}
+
 sub_config {
     intervehicle
     {

@@ -2,7 +2,6 @@
 
 # Intended to be installed to /etc/update-motd.d to be display in the MOTD (login message)
 
-
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 echo "                                    __  __ ___                   "
 echo "                         | /\ | /\ |__)/  \ |                    "
@@ -11,12 +10,21 @@ echo ""
 echo "                       https://www.jaia.tech/                    "
 echo "                   https://github.com/jaiarobotics/              "
 export SYSTEMD_COLORS=1
-systemctl list-units -all "jaia*"
+echo "                        _ ___ __   _ _                           "
+echo "                       |_  |  |_/ | | |                          "
+echo "                       |  _|_ | | | | |                          "
+echo ""
+systemctl list-units -all "jaia_firm*"
 echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-echo
+echo "                            _  _  _                              "
+echo "                        /\ |_/|_//                               "
+echo "                       /--\|  | _|                               "
+echo ""
+systemctl list-units -all "jaiabot*"
+echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+echo 
 cat /etc/jaiabot/version
 echo ""
-echo -n "jaiabot-embedded " && apt-cache show jaiabot-embedded | grep -i version 
+echo -n "jaiabot-embedded " && apt-cache show jaiabot-embedded | grep -i version
 echo
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-

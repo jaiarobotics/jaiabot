@@ -6,19 +6,20 @@
 import sys
 import os
 from common import config
+from common import logger
 from common import is_simulation, is_runtime
 import common, common.hub, common.comms, common.sim, common.bot, common.udp
 from pathlib import Path
 
 try:
-    number_of_bots=int(os.environ['jaia_n_bots'])
-except:
-    config.fail('Must set jaia_n_bots environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
-
-try:
     fleet_index=int(os.environ['jaia_fleet_index'])
 except:
-    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_n_bots=10 jaia_fleet_index=0 ./hub.launch"')
+    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_fleet_index=0 ./hub.launch"')
+
+try:
+    hub_index=int(os.environ['jaia_hub_index'])
+except:
+    hub_index=0
 
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
@@ -33,7 +34,7 @@ templates_dir=common.jaia_templates_dir
 liaison_load_block = config.template_substitute(templates_dir+'/hub/_liaison_load.pb.cfg.in')
 
 verbosities = \
-{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+{ 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_logger':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -51,26 +52,34 @@ verbosities = \
 app_common = common.app_block(verbosities, debug_log_file_dir)
 
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
-                                                 platform='hub'+'_fleet' + str(fleet_index))
+                                                 platform='hub'+ str(hub_index) +'_fleet' + str(fleet_index))
 
 try:
     xbee_info = 'xbee { \n' + open('/etc/jaiabot/xbee_info.pb.cfg').read() + '\n}\n'
 except FileNotFoundError:
     xbee_info = 'xbee {}'
 
-if is_runtime():
+if common.jaia_comms_mode == common.CommsMode.XBEE:
+    if is_simulation():
+        xbee_serial_port='/tmp/xbeehub' + str(hub_index)
+    else:
+        xbee_serial_port='/dev/xbee'
+    
+    
     link_block = config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.xbee_modem_id(node_id),
-                                             mac_slots=common.comms.xbee_mac_slots(node_id),
-                                             xbee_config=common.comms.xbee_config())
+                                            subnet_mask=common.comms.subnet_mask,                                            
+                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            mac_slots=common.comms.xbee_mac_slots(node_id),
+                                            serial_port=xbee_serial_port,
+                                            xbee_config=common.comms.xbee_config(),
+                                            xbee_hub_id='hub_id: ' + str(hub_index))
 
-if is_simulation():
+elif common.jaia_comms_mode == common.CommsMode.WIFI:
     link_block = config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
                                              subnet_mask=common.comms.subnet_mask,                                            
                                              modem_id=common.comms.wifi_modem_id(node_id),
                                              local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, number_of_bots),
+                                             remotes=common.comms.wifi_remotes(node_id, common.comms.number_of_bots_max, fleet_index),
                                              mac_slots=common.comms.wifi_mac_slots(node_id))
 
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='HUB')
@@ -81,7 +90,8 @@ if common.app == 'gobyd':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      link_block=link_block,
-                                     persist_subscriptions='persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }'))
+                                     persist_subscriptions='persist_subscriptions { name: "hub" dir: "' + debug_log_file_dir + '" }',
+                                     required_clients=''))
 elif common.app == 'goby_opencpn_interface':
     print(config.template_substitute(templates_dir+'/hub/goby_opencpn_interface.pb.cfg.in',
                                      app_block=app_common,
@@ -95,7 +105,8 @@ elif common.app == 'jaiabot_health':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      # do not power off or restart the simulator computer
-                                     ignore_powerstate_changes=is_simulation()))
+                                     ignore_powerstate_changes=is_simulation(),
+                                     is_in_sim=is_simulation()))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
@@ -120,14 +131,14 @@ elif common.app == 'goby_logger':
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     goby_logger_dir=log_file_dir))
+                                     goby_logger_dir=log_file_dir,
+                                     goby_logger_group_regex=logger.group_regex))
 elif common.app == 'jaiabot_hub_manager':
-    start_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(0))
-    end_modem_id=common.comms.wifi_modem_id(common.bot.bot_index_to_node_id(number_of_bots))
-    all_bot_ids='managed_bot_modem_id: ' + str(list(range(start_modem_id, end_modem_id)))
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common, managed_bot_ids=all_bot_ids))
+                                     interprocess_block = interprocess_common,
+                                     hub_id=hub_index,
+                                     xbee_config=common.comms.xbee_config()))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
                                      app_block=app_common,

@@ -88,8 +88,7 @@ create_constant_heading_update(quantity<si::plane_angle> heading)
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate
-create_constant_speed_update(quantity<si::velocity> speed)
+jaiabot::protobuf::IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
 {
     jaiabot::protobuf::IvPBehaviorUpdate update;
     jaiabot::protobuf::IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
@@ -113,6 +112,22 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
     int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
     goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
     timeout_stop_ = timeout_start + timeout_duration;
+
+    if (cfg().data_offload_only_task_packet_file())
+    {
+        if (this->machine().create_task_packet_file())
+        {
+            this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
+                                                      this->machine().create_file_date_time() +
+                                                      ".taskpacket");
+
+            glog.is_debug1() && glog << "Create a task packet file and only offload that file"
+                                     << "to hub (ignore sending goby files)" << std::endl;
+
+            // Extra exclusions for rsync
+            this->machine().set_data_offload_exclude(" '*.goby'");
+        }
+    }
 }
 
 jaiabot::statechart::predeployment::StartingUp::~StartingUp() {}
@@ -122,6 +137,44 @@ void jaiabot::statechart::predeployment::StartingUp::loop(const EvLoop&)
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
     if (now >= timeout_stop_)
         post_event(EvStartupTimeout());
+}
+
+// PreDeployment::Failed
+jaiabot::statechart::predeployment::Failed::Failed(typename StateBase::my_context c) : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int failed_startup_log_seconds = cfg().failed_startup_log_timeout();
+
+    goby::time::SteadyClock::duration failed_startup_log_duration =
+        std::chrono::seconds(failed_startup_log_seconds);
+
+    failed_startup_log_timeout_ = start_timeout + failed_startup_log_duration;
+
+    loop(EvLoop());
+}
+
+jaiabot::statechart::predeployment::Failed::~Failed()
+{
+    glog.is_verbose() && glog << "Start Logging" << std::endl;
+    goby::middleware::protobuf::LoggerRequest request;
+    request.set_requested_state(goby::middleware::protobuf::LoggerRequest::START_LOGGING);
+    interprocess().publish<goby::middleware::groups::logger_request>(request);
+}
+
+void jaiabot::statechart::predeployment::Failed::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // make sure we have a safety timeout to transition into unpowered ascent
+    if (current_clock >= failed_startup_log_timeout_)
+    {
+        glog.is_verbose() && glog << "Stop Logging" << std::endl;
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        interprocess().publish<goby::middleware::groups::logger_request>(request);
+    }
 }
 
 // PreDeployment::Idle
@@ -265,19 +318,69 @@ jaiabot::statechart::inmission::underway::Task::Task(typename StateBase::my_cont
 jaiabot::statechart::inmission::underway::Task::~Task()
 {
     if (!has_manual_task_)
+    {
+        goby::glog.is_debug1() && goby::glog << "Increment Waypoint index" << std::endl;
         // each time we complete a autonomous task - we should increment the goal index
         context<InMission>().increment_goal_index();
+    }
 
     task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-    if (task_packet_.type() != protobuf::MissionTask::NONE)
-        intervehicle().publish<groups::task_packet>(task_packet_);
+    if (task_packet_.type() == protobuf::MissionTask::DIVE ||
+        task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
+    {
+        if (cfg().data_offload_only_task_packet_file())
+        {
+            // Open task packet file
+            std::ofstream task_packet_file(
+                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
+
+            // Convert to json string
+            std::string json_string;
+            google::protobuf::util::JsonPrintOptions json_options;
+            // Set the snake_case option
+            json_options.preserve_proto_field_names = true;
+
+            google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
+
+            // Check if it is a new task packet file
+            if (this->machine().create_task_packet_file())
+            {
+                task_packet_file << json_string;
+                this->machine().set_create_task_packet_file(false);
+            }
+            else
+            {
+                task_packet_file << "\n" << json_string;
+            }
+
+            // Close the json file
+            task_packet_file.close();
+        }
+
+        if (this->machine().rf_disable())
+        {
+            glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
+                                     << task_packet_.DebugString() << std::endl;
+            interprocess().publish<groups::task_packet>(task_packet_);
+        }
+        else
+        {
+            glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
+                                     << task_packet_.DebugString() << std::endl;
+            intervehicle().publish<groups::task_packet>(task_packet_);
+        }
+    }
 }
 
 // Task::Dive
 jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::my_context c)
     : StateBase(c)
 {
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
     // we currently start at the surface
     quantity<si::length> depth = 0 * si::meters + current_dive().depth_interval_with_units();
     quantity<si::length> max_depth = current_dive().max_depth_with_units();
@@ -294,13 +397,13 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     dive_packet().set_depth_achieved(0);
     dive_packet().set_bottom_dive(false);
 
-    if (machine().gps_tpv().has_location())
-    {
-        const auto& pos = machine().gps_tpv().location();
-        auto& start = *dive_packet().mutable_start_location();
-        start.set_lat_with_units(pos.lat_with_units());
-        start.set_lon_with_units(pos.lon_with_units());
-    }
+    glog.is_debug1() && glog << group("task") << "Dive::Dive Starting Bottom Type Sampling"
+                             << std::endl;
+
+    // Start bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 }
 
 jaiabot::statechart::inmission::underway::task::Dive::~Dive()
@@ -326,6 +429,62 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         while (dive_packet().measurement_size() > max_measurement_size)
             dive_packet().mutable_measurement()->RemoveLast();
     }
+
+    glog.is_debug1() && glog << group("task") << "Dive::~Dive() Stopping Bottom Type Sampling"
+                             << std::endl;
+
+    // Stop bottom type sampling
+    auto imu_command = IMUCommand();
+    imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
+    this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
+}
+
+// Task::Dive::PrePoweredDescent
+jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::PrePoweredDescent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    // duration granularity is seconds
+    int pre_powered_descent_timeout_seconds = cfg().pre_powered_descent_timeout();
+
+    goby::time::SteadyClock::duration pre_powered_descent_timeout_duration =
+        std::chrono::seconds(pre_powered_descent_timeout_seconds);
+
+    pre_powered_descent_timeout_ = start_timeout + pre_powered_descent_timeout_duration;
+
+    loop(EvLoop());
+}
+
+jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::~PrePoweredDescent()
+{
+    if (machine().gps_tpv().has_location())
+    {
+        const auto& pos = machine().gps_tpv().location();
+        auto& start = *context<Dive>().dive_packet().mutable_start_location();
+        start.set_lat_with_units(pos.lat_with_units());
+        start.set_lon_with_units(pos.lon_with_units());
+    }
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::PrePoweredDescent::loop(const EvLoop&)
+{
+    protobuf::DesiredSetpoints setpoint_msg;
+    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    if (current_clock >= pre_powered_descent_timeout_)
+    {
+        glog.is_debug2() && glog << "Pre Powered Descent completed" << std::endl;
+        post_event(EvPrePoweredDescentComplete());
+    }
+    else
+    {
+        glog.is_debug2() && glog << "Waiting for Pre Powered Descent to be completed" << std::endl;
+    }
 }
 
 // Task::Dive::PoweredDescent
@@ -333,6 +492,23 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+    // duration granularity is seconds
+    int detect_bottom_logic_init_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
+
+    // duration granularity is seconds
+    int powered_descent_timeout_seconds = cfg().powered_descent_timeout();
+
+    goby::time::SteadyClock::duration detect_bottom_logic_init_duration =
+        std::chrono::seconds(detect_bottom_logic_init_timeout_seconds);
+
+    goby::time::SteadyClock::duration powered_descent_timeout_duration =
+        std::chrono::seconds(powered_descent_timeout_seconds);
+
+    detect_bottom_logic_init_timeout_ = start_timeout + detect_bottom_logic_init_duration;
+
+    powered_descent_timeout_ = start_timeout + powered_descent_timeout_duration;
+
     loop(EvLoop());
 }
 
@@ -349,6 +525,19 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
     setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // Check when to stop logging
+    if (current_clock >= powered_descent_timeout_)
+    {
+        glog.is_debug2() && glog << "Safety Powered Descent Timeout!" << std::endl;
+        post_event(EvPowerDescentSafety());
+    }
+    else
+    {
+        glog.is_debug2() && glog << "Safety Powered Descent Timeout Not Reached!" << std::endl;
+    }
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(
@@ -395,6 +584,8 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     }
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
     dive_pdescent_debug_.set_current_time(now.value());
 
     glog.is_debug2() &&
@@ -404,49 +595,80 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
              << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps() << "\n"
              << std::endl;
 
-    // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
-    if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+    // make sure we have finished the initial startup
+    // time to begin detecting bottom
+    if (current_clock >= detect_bottom_logic_init_timeout_)
     {
+        glog.is_debug2() && glog << "Initial detect bottom timeout completed!" << std::endl;
+
+        // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
+        if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+        {
+            glog.is_debug2() &&
+                glog << "(ev.depth - last_depth_) > cfg().dive_depth_eps_with_units() == true"
+                     << "\n dive_pdescent_debug_.set_depth_changed(true);"
+                     << "\n"
+                     << std::endl;
+            last_depth_change_time_ = now;
+            last_depth_ = ev.depth;
+            dive_pdescent_debug_.set_depth_changed(true);
+        }
+
         glog.is_debug2() &&
-            glog << "(ev.depth - last_depth_) > cfg().dive_depth_eps_with_units() == true"
-                 << "\n dive_pdescent_debug_.set_depth_changed(true);"
-                 << "\n"
+            glog << "if ((now - last_depth_change_time_) > "
+                    "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())): "
+                 << ((now - last_depth_change_time_) >
+                     static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+                 << "\n now: " << now.value()
+                 << "\n last_depth_change_time_: " << last_depth_change_time_.value()
+                 << "\n static_cast<decltype(now)>(cfg().bottoming_timeout_with_units(): "
+                 << static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()).value() << "\n"
                  << std::endl;
-        last_depth_change_time_ = now;
-        last_depth_ = ev.depth;
-        dive_pdescent_debug_.set_depth_changed(true);
+
+        // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
+        if ((now - last_depth_change_time_) >
+            static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+        {
+            glog.is_debug2() &&
+                glog << "(now - last_depth_change_time_) > "
+                        "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()) == true"
+                     << "\n post_event(EvDepthTargetReached());"
+                     << "\n"
+                     << std::endl;
+            context<Dive>().set_seafloor_reached(ev.depth);
+
+            // Set depth achieved if we had a bottoming timeout
+            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+
+            // Set the max_acceration
+            context<Dive>().dive_packet().set_max_acceleration_with_units(
+                this->machine().latest_max_acceleration());
+
+            // Determine Hard/Soft
+            if (this->machine().latest_max_acceleration().value() >=
+                cfg().hard_bottom_type_acceleration())
+            {
+                // Set the bottom_type Hard
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            }
+            else
+            {
+                // Set the bottom_type Soft
+                context<Dive>().dive_packet().set_bottom_type(
+                    protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+            }
+
+            // used to correct dive rate calculation
+            duration_correction_ = (now - last_depth_change_time_);
+            post_event(EvDepthTargetReached());
+            dive_pdescent_debug_.set_depth_change_timeout(true);
+        }
     }
-
-    glog.is_debug2() &&
-        glog << "if ((now - last_depth_change_time_) > "
-                "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())): "
-             << ((now - last_depth_change_time_) >
-                 static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
-             << "\n now: " << now.value()
-             << "\n last_depth_change_time_: " << last_depth_change_time_.value()
-             << "\n static_cast<decltype(now)>(cfg().bottoming_timeout_with_units(): "
-             << static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()).value() << "\n"
-             << std::endl;
-
-    // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
-    if ((now - last_depth_change_time_) >
-        static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
+    else
     {
-        glog.is_debug2() &&
-            glog << "(now - last_depth_change_time_) > "
-                    "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()) == true"
-                 << "\n post_event(EvDepthTargetReached());"
-                 << "\n"
-                 << std::endl;
-        context<Dive>().set_seafloor_reached(ev.depth);
-
-        // Set depth achieved if we had a bottoming timeout
-        context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
-
-        // used to correct dive rate calculation
-        duration_correction_ = (now - last_depth_change_time_);
-        post_event(EvDepthTargetReached());
-        dive_pdescent_debug_.set_depth_change_timeout(true);
+        glog.is_debug2() && glog << "Waiting for initial detect bottom timeout to be completed!"
+                                 << std::endl;
     }
 
     interprocess().publish<jaiabot::groups::mission_dive>(dive_pdescent_debug_);
@@ -676,6 +898,18 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
 }
 
 // Task::Dive::PoweredAscent
+jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAscent(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
+
+    powered_ascent_motor_on_timeout_ = start_timeout + powered_ascent_motor_on_duration_;
+
+    powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
+}
+
+// Task::Dive::PoweredAscent
 jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAscent()
 {
     goby::time::MicroTime end_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
@@ -688,7 +922,50 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAsc
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
 {
     protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
+
+    // ***************************************************
+    // this logic turns the motor off and on
+    // while in powered descent to help assist the vehicle
+    // to get out of muddy bottoms
+    // ***************************************************
+
+    // we have timedout on motor on
+    // and we are not currently in motor off,
+    // turn off motor
+    if (current_clock >= powered_ascent_motor_on_timeout_ && !in_motor_off_mode_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Turn off motor, we have timed out on motor on!"
+                                 << std::endl;
+        powered_ascent_motor_off_timeout_ = current_clock + powered_ascent_motor_off_duration_;
+        in_motor_off_mode_ = true;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    }
+    // we have not timedout on motor on
+    else if (current_clock < powered_ascent_motor_on_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Leave motor running, we have not timed out!"
+                                 << std::endl;
+        setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    }
+    // we have timedout on motor off,
+    // turn on motor
+    else if (current_clock >= powered_ascent_motor_off_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Turn on motor, we have timed out on motor off!"
+                                 << std::endl;
+        powered_ascent_motor_on_timeout_ = current_clock + powered_ascent_motor_on_duration_;
+        in_motor_off_mode_ = false;
+        setpoint_msg.set_type(protobuf::SETPOINT_POWERED_ASCENT);
+    }
+    // we have not timedout on motor off
+    else if (current_clock < powered_ascent_motor_off_timeout_)
+    {
+        glog.is_debug2() && glog << "Powered Ascent: Leave motor off, we have not timed out!"
+                                 << std::endl;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+    }
+
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
@@ -727,15 +1004,16 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
 // Movement::SurfTransit
 jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading(
     typename StateBase::my_context c)
-     : StateBase(c)
+    : StateBase(c)
 {
-    boost::units::quantity< boost::units::si::plane_angle> heading(
-        (cfg().constant_heading()*boost::units::degree::degrees)
-    );
+    boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
-    boost::units::quantity< boost::units::si::velocity> speed(
-        (cfg().constant_heading_speed()*boost::units::si::meters_per_second)
-    );
+    boost::units::quantity<boost::units::si::plane_angle> heading(
+        (goal.get().task().constant_heading().constant_heading() * boost::units::degree::degrees));
+
+    boost::units::quantity<boost::units::si::velocity> speed(
+        (goal.get().task().constant_heading().constant_heading_speed() *
+         boost::units::si::meters_per_second));
 
     jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
     jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
@@ -746,9 +1024,8 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
 
-
     goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
-    int setpoint_seconds = cfg().constant_heading_timeout(); 
+    int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
     goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
     setpoint_stop_ = setpoint_start + setpoint_duration;
 }
@@ -781,6 +1058,10 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
         // (even though we haven't as there's no GPS)
         post_event(statechart::EvGPSFix());
     }
+    else
+    {
+        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
 }
 
 jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGPS()
@@ -810,6 +1091,50 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
             this->machine().mission_plan().speeds().stationkeep_outer_with_units());
 
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+}
+
+// Dive::ConstantHeading
+jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::ConstantHeading(
+    typename StateBase::my_context c)
+    : StateBase(c)
+{
+    boost::units::quantity<boost::units::si::plane_angle> heading(
+        (this->machine().bottom_depth_safety_constant_heading() * boost::units::degree::degrees));
+
+    boost::units::quantity<boost::units::si::velocity> speed(
+        (this->machine().bottom_depth_safety_constant_heading_speed() *
+         boost::units::si::meters_per_second));
+
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+
+    constantHeadingUpdate = create_constant_heading_update(heading);
+    constantSpeedUpdate = create_constant_speed_update(speed);
+
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+    goby::time::SteadyClock::time_point setpoint_start = goby::time::SteadyClock::now();
+    int setpoint_seconds = this->machine().bottom_depth_safety_constant_heading_time();
+    goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
+    setpoint_stop_ = setpoint_start + setpoint_duration;
+}
+
+jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::~ConstantHeading()
+{
+    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
+    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    constantHeadingUpdate.mutable_constantheading()->set_active(false);
+    constantSpeedUpdate.mutable_constantspeed()->set_active(false);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
+    this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+}
+
+void jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::loop(const EvLoop&)
+{
+    goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+    if (now >= setpoint_stop_)
+        post_event(EvTaskComplete());
 }
 
 jaiabot::statechart::inmission::underway::task::StationKeep::~StationKeep()
@@ -856,9 +1181,6 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
 void jaiabot::statechart::inmission::underway::movement::remotecontrol::SurfaceDrift::loop(
     const EvLoop&)
 {
-    protobuf::DesiredSetpoints setpoint_msg;
-    setpoint_msg.set_type(protobuf::SETPOINT_STOP);
-    interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 }
 
 // Movement::RemoteControl::Setpoint
@@ -905,19 +1227,34 @@ jaiabot::statechart::postdeployment::DataProcessing::DataProcessing(
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    if (cfg().data_offload_only_task_packet_file())
+    {
+        // Reset if recovered
+        // If bot is activated again and more task packets
+        // are received, then the bot will create a new file
+        // to log them
+        this->machine().set_create_task_packet_file(true);
+    }
+
     // currently we do not do any data processing on the bot
     post_event(EvDataProcessingComplete());
 }
 
 // PostDeployment::DataOffload
 jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase::my_context c)
-    : StateBase(c), offload_command_(cfg().data_offload_command() + " 2>&1")
+    : StateBase(c)
 {
-    auto offload_func = [this]() {
-        glog.is_debug1() && glog << "Offloading data with command: [" << offload_command_ << "]"
-                                 << std::endl;
+    // Inputs to data offload command log dir, hub ip, and extra exclusions for rsync
+    this->set_offload_command(cfg().data_offload_command() + " " + cfg().class_b_network() + "." +
+                              std::to_string(cfg().fleet_id()) + "." +
+                              std::to_string((cfg().hub_start_ip() + this->machine().hub_id())) +
+                              this->machine().data_offload_exclude() + " 2>&1");
 
-        FILE* pipe = popen(offload_command_.c_str(), "r");
+    auto offload_func = [this]() {
+        glog.is_debug1() && glog << "Offloading data with command: [" << this->offload_command()
+                                 << "]" << std::endl;
+
+        FILE* pipe = popen(this->offload_command().c_str(), "r");
         if (!pipe)
         {
             glog.is_warn() && glog << "Error opening pipe to data offload command: "
@@ -932,6 +1269,22 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
                 glog.is_debug1() && glog << std::string(buffer.begin(), buffer.begin() + bytes_read)
                                          << std::flush;
                 stdout.append(buffer.begin(), buffer.begin() + bytes_read);
+
+                // Check if the line contains progress information
+                std::string percent_complete_str = "";
+                percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
+                size_t pos = percent_complete_str.find("%");
+                if (pos != std::string::npos)
+                {
+                    if (pos >= 3)
+                    {
+                        glog.is_debug2() && glog << percent_complete_str.substr(pos - 3, 3) << "%"
+                                                 << std::endl;
+
+                        uint32_t percent = std::stoi(percent_complete_str.substr(pos - 3, 3));
+                        this->set_data_offload_percentage(percent);
+                    }
+                }
             }
 
             if (!feof(pipe))

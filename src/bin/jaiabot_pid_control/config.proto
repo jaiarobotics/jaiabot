@@ -44,5 +44,12 @@ message BotPidControl
     }
     repeated ThrottleSpeedEntry throttle_table = 32;
 
+    // The threshold heading_error below which the PID algorithm will target full desired speed
+    optional double full_speed_window = 33
+        [default = 1, (dccl.field).units = {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+                }];
+
     optional jaiabot.protobuf.Bounds bounds = 80;
 }

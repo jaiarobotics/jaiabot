@@ -40,6 +40,9 @@ enum Error
     ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC = 27;
     ERROR__FAILED__JAIABOT_LOG_CONVERTER = 28;
     ERROR__FAILED__JAIABOT_DATA_VISION = 29;
+    ERROR__FAILED__JAIABOT_SIMULATOR = 30;
+    ERROR__FAILED__MOOS_SIM_MOOSDB = 31;
+    ERROR__FAILED__MOOS_SIM_USIMMARINE = 32;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -81,7 +84,6 @@ enum Error
     ERROR__NOT_CALIBRATED_GYRO = 222;
     ERROR__NOT_CALIBRATED_ACCEL = 223;
     ERROR__NOT_CALIBRATED_MAG = 224;
-
 
     // TODO: IMPLEMENT
     // from xbee driver
@@ -157,8 +159,10 @@ enum Warning
         701;
     WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL =
         702;
+    WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = 703;
 
     WARNING__MISSION__DATA_OFFLOAD_FAILED = 720;
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = 721;
 }
 
 message LinuxHardwareStatus
@@ -209,11 +213,21 @@ message LinuxHardwareStatus
         optional Information data = 2;
     }
 
+    message WiFi
+    {
+        required bool is_connected = 1;
+        optional uint32 link_quality = 2;
+        optional uint32 link_quality_percentage = 3;
+        optional int32 signal_level = 4;
+        optional int32 noise_level = 5;
+    }
+
     optional int32 uptime = 10
         [(dccl.field) = { units { base_dimensions: "T" } }];
     optional Processor processor = 20;
     optional Memory memory = 30;
     optional Disk disk = 40;
+    optional WiFi wifi = 50;
 }
 
 message NTPStatus
@@ -335,16 +349,22 @@ message ArduinoStatus
     optional sint32 code = 1 [default = 1];
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
-    }];;
-    optional float vccvoltage = 3 [default = 0, (dccl.field) = {
-        units { derived_dimensions: "electric_potential" system: "si" }
     }];
-    optional float vcccurrent = 4 [default = 0, (dccl.field) = {
-        units { derived_dimensions: "current" }
-    }];
-    optional float vvcurrent = 5 [default = 0, (dccl.field) = {
-        units { derived_dimensions: "current" }
-    }];
+
+    optional float vccvoltage = 3 [
+        default = 0,
+        (dccl.field) = {
+            units { derived_dimensions: "electric_potential" system: "si" }
+        }
+    ];
+    optional float vcccurrent = 4 [
+        default = 0,
+        (dccl.field) = { units { derived_dimensions: "current" } }
+    ];
+    optional float vvcurrent = 5 [
+        default = 0,
+        (dccl.field) = { units { derived_dimensions: "current" } }
+    ];
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;

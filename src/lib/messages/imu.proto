@@ -4,24 +4,38 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message IMUCommand
+{
+    enum IMUCommandType
+    {
+        TAKE_READING = 0;
+        START_WAVE_HEIGHT_SAMPLING = 1;
+        STOP_WAVE_HEIGHT_SAMPLING = 2;
+        START_BOTTOM_TYPE_SAMPLING = 3;
+        STOP_BOTTOM_TYPE_SAMPLING = 4;
+    }
+
+    required IMUCommandType type = 1;
+}
+
 message IMUData
 {
     message EulerAngles {
-        optional double alpha = 1 
+        optional double heading = 1 
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
             
-        optional double beta = 2
+        optional double pitch = 2
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
                 }}
             ];
 
-        optional double gamma = 3
+        optional double roll = 3
             [(dccl.field) = {units {
                 derived_dimensions: "plane_angle"
                 system: "angle::degree"
@@ -48,6 +62,22 @@ message IMUData
     }
 
     optional CalibrationStatus calibration_status = 4;
+
+    optional bool bot_rolled_over = 5 [default = false];
+
+    optional double significant_wave_height = 6 [(dccl.field) = {units {
+            derived_dimensions: "length"
+            system: "si"
+            }}
+        ];
+
+    // For bottom characterization
+    optional double max_acceleration = 7
+        [(dccl.field) = {units {
+            derived_dimensions: "acceleration"
+            system: "si"
+            }}
+        ];
 
 }
 

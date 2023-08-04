@@ -12,10 +12,18 @@ package jaiabot.protobuf;
 
 message Command
 {
+    /*
+    Actual maximum size of message: 189 bytes / 1512 bits
+        dccl.id head...........................8
+        user head..............................0
+        body................................1498
+        padding to full byte...................6
+    Allowed maximum size of message: 250 bytes / 2000 bits
+    */
     option (dccl.msg) = {
         id: 80
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -56,30 +64,62 @@ message Command
 
     required CommandType type = 10;
 
-    // required for type == MISSION_PLAN
-    optional MissionPlan plan = 20;
+    oneof command_data
+    {
+        // required for type == MISSION_PLAN
+        MissionPlan plan = 20;
 
-    // required for type == REMOTE_CONTROL_SETPOINT
-    optional RemoteControl rc = 30;
+        // required for type == REMOTE_CONTROL_SETPOINT
+        RemoteControl rc = 30;
 
-    // required for type == REMOTE_CONTROL_TASK
-    optional MissionTask rc_task = 31;
+        // required for type == REMOTE_CONTROL_TASK
+        MissionTask rc_task = 31;
+    }
+}
+
+message CommandForHub
+{
+    option (dccl.msg) = {
+        id: 90
+        max_bytes: 250
+        codec_version: 4
+        unit_system: "si"
+    };
+
+    required uint32 hub_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+    required uint64 time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    enum HubCommandType
+    {
+        SCAN_FOR_BOTS = 5;
+
+        // debugging low level commands
+        RESTART_ALL_SERVICES = 40;
+        REBOOT_COMPUTER = 41;
+        SHUTDOWN_COMPUTER = 42;
+    }
+
+    required HubCommandType type = 10;
+    optional uint32 scan_for_bot_id = 11;
 }
 
 message BotStatus
 {
     /*
-    Actual maximum size of message: 50 bytes / 400 bits
+    Actual maximum size of message: 53 bytes / 424 bits
             dccl.id head...........................8
             user head..............................0
-            body.................................388
-            padding to full byte...................4
-    Allowed maximum size of message: 50 bytes / 400 bits
+            body.................................415
+            padding to full byte...................1
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 81
-        max_bytes: 50
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 
@@ -154,13 +194,20 @@ message BotStatus
 
     optional MissionState mission_state = 40;
 
-    // bounds should match MissionPlan.goal max_repeat value * expected_fragments max
-    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 38 }];
+    // bounds should match MissionPlan.goal max_repeat value *
+    // expected_fragments max
+    optional int32 active_goal = 41 [(dccl.field) = { min: 0 max: 29 }];
     optional double distance_to_active_goal = 42 [(dccl.field) = {
         min: 0
         max: 1000
         precision: 1
         units: { derived_dimensions: "length" }
+    }];
+    optional uint32 active_goal_timeout = 43 [(dccl.field) = {
+        min: 0
+        max: 3600
+        precision: 0
+        units { base_dimensions: "T" }
     }];
 
     optional double salinity = 51
@@ -201,17 +248,34 @@ message BotStatus
         units { derived_dimensions: "electric_potential" system: "si" }
     }];
 
-    optional IMUData.CalibrationStatus calibration_status = 58;
-    
-    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
-
-    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
-
     optional double battery_percent = 57 [(dccl.field) = { 
         min: 0 
         max: 100 
         precision: 0
     }];
+
+    optional IMUData.CalibrationStatus calibration_status = 58;
+
+    optional double hdop = 59 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional double pdop = 60 [(dccl.field) = { min: 0 max: 100 precision: 2 }];
+
+    optional int32 data_offload_percentage = 61 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
+    optional int32 wifi_link_quality_percentage = 62 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
 }
 
 message DriftPacket
@@ -254,6 +318,16 @@ message DriftPacket
     optional GeographicCoordinate start_location = 11;
     // location D
     optional GeographicCoordinate end_location = 12;
+
+    // Significant wave height is defined as the average wave height,
+    // from trough to crest, of the highest one-third of the waves
+    optional double significant_wave_height = 13 [(dccl.field) = {
+        min: 0
+        max: 50
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+
 }
 
 message DivePacket
@@ -310,7 +384,7 @@ message DivePacket
             [(dccl.field) = { min: 0 max: 45 precision: 1 }];
     }
 
-    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 45 }];
+    repeated Measurements measurement = 14 [(dccl.field) = { max_repeat: 50 }];
 
     // location A
     optional GeographicCoordinate start_location = 15;
@@ -324,22 +398,42 @@ message DivePacket
 
     // Did we reach seafloor?
     optional bool bottom_dive = 17 [default = false];
+
+    // Did we reach min depth?
+    optional bool reached_min_depth = 18 [default = false];
+
+    // If we reached bottom, what was the bottom type
+    enum BottomType
+    {
+        HARD = 1;
+        SOFT = 2;
+    }
+
+    optional BottomType bottom_type = 19;
+    
+    // For bottom characterization
+    optional double max_acceleration = 20 [(dccl.field) = {
+        min: 0
+        max: 100
+        precision: 1
+        units { derived_dimensions: "acceleration" }
+    }];
 }
 
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 197 bytes / 1576 bits
-            dccl.id head..........................16
-            user head..............................0
-            body................................1556
-            padding to full byte...................4
-    Allowed maximum size of message: 200 bytes / 1600 bits
+     Actual maximum size of message: 218 bytes / 1744 bits
+        dccl.id head..........................16
+        user head..............................0
+        body................................1728
+        padding to full byte...................0
+     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 0x5001
-        max_bytes: 200
-        codec_version: 3
+        max_bytes: 250
+        codec_version: 4
         unit_system: "si"
     };
 

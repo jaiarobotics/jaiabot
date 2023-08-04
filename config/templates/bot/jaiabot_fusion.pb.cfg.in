@@ -15,8 +15,13 @@ discard_location_states: IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUI
 discard_location_states: IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS
 discard_location_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 
+# IMU Detection
 imu_heading_course_max_diff: 45 # In Degrees
 course_over_ground_timeout: 3 # timeout in seconds
+total_imu_issue_checks: 4 # default (4 checks) checks * imu_detect_period (1 seconds) = time to detect
+
+# When to start detecting imu issues again after detecting one
+imu_detect_timeout: 13 # default (13 seconds)
 
 # STOP_BOT
 # USE_COG
@@ -26,14 +31,8 @@ course_over_ground_timeout: 3 # timeout in seconds
 # REPORT_IMU
 imu_issue_solution: RESTART_IMU_PY
 
-# Seconds
-imu_restart_timeout: 30 # default (30 seconds)
-
-# fusion runs at 5hz
-total_imu_issue_checks: 15
-
-# Set the rate to send bot status in milliseconds
-send_bot_status_rate: 1000 # default (1000 milliseconds)
+# Set the period to send bot status in milliseconds
+bot_status_period_ms: $bot_status_period # default ((bot_index * 10) + 1000 milliseconds)
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP
@@ -46,6 +45,6 @@ include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__TRANSIT
 include_imu_detection_states: IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP
 
 watch_battery_percentage: true # (default = true)
-battery_percentage_low_level: 30 # (default = 30)
+battery_percentage_low_level: 50 # (default = 50)
 battery_percentage_very_low_level: 20 # (default = 20)
 battery_percentage_critically_low_level: 10 # (default = 10)

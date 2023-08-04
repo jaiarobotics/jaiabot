@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JAIA Software Configuration</title>
+    <meta charset="utf-8">
+    <script src="../base1/cockpit.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>JAIA Software Configuration</h1>
+    <main tabindex="-1">
+        <section>
+            <div>
+                <h2>Software Status</h2>
+                <div>
+                    <pre class="output" id="ss_output"> 
+This will show the current software group, the software version, and if there is a new software package available.
+                    </pre>
+                </div>
+                <div>
+                    <button id="get_ss">Get Softare Status</button>
+                    <span id="ss_result"></span>
+                </div>
+            </div>
+        </section>
+        <section>
+            <div>
+                <h2>Software Update</h2>
+                <div>
+                    <pre class="output" id="su_output">
+This will update the software packages on your system.
+                    </pre>
+                </div>
+                <div>
+                    <button id="get_su">Update Software</button>
+                    <span id="su_result"></span>
+                </div>
+            </div>
+        </section>
+        <section>
+            <div>
+                <div>
+                    <h2>Software Group To Follow (release, beta, continuous)</h2>
+                    <input id="sg" value="release">
+                </div>
+                <div>
+                    <button id="set_sg">Update Software Group</button>
+                    <span id="sg_result"></span>
+                </div>
+                <div>
+                    <pre class="output" id="sg_output">
+This will update the software group you will get the jaiabot-embedded package from.
+The release group is the most stable code.
+The beta group is code that has some testing in the field.
+The continuous group is code that has minimal testing in the field.
+                    </pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="jaia-config.js"></script>
+</body>
+</html>

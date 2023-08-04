@@ -97,7 +97,7 @@ class SimulatorTranslation : public goby::moos::Translator
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    int time_out_sky_{1};
+    int time_out_sky_{200};
     double hdop_rand_max_{1};
     double pdop_rand_max_{1.5};
     double heading_rand_max_{0};
@@ -293,7 +293,7 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     }
 
     // publish gps sky data
-    if (sky_last_updated_ + std::chrono::seconds(time_out_sky_) < now)
+    if (sky_last_updated_ + std::chrono::milliseconds(time_out_sky_) < now)
     {
         goby::middleware::protobuf::gpsd::SkyView sky;
 
@@ -325,7 +325,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         // date_string, p_mbar, t_celsius
         ss << std::setprecision(std::numeric_limits<double>::digits10) << time << ","
-           << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature;
+           << "bar30"
+           << "," << quantity<decltype(si::milli * bar)>(pressure).value() << "," << temperature;
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->set_data(ss.str());
         interthread().publish<pressure_udp_out>(io_data);
@@ -357,14 +358,16 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     // publish IMUData
     {
         jaiabot::protobuf::IMUData imu_data;
-        imu_data.mutable_euler_angles()->set_gamma_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
+        imu_data.mutable_euler_angles()->set_pitch_with_units(moos_buffer["NAV_PITCH"].GetDouble() *
                                                               si::radians);
-        imu_data.mutable_euler_angles()->set_beta_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                             si::radians);
+        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
+                                                              si::radians);
         imu_data.mutable_calibration_status()->set_sys(3);
         imu_data.mutable_calibration_status()->set_gyro(3);
         imu_data.mutable_calibration_status()->set_accel(3);
         imu_data.mutable_calibration_status()->set_mag(3);
+        imu_data.set_significant_wave_height(1.5);
+        imu_data.set_max_acceleration(101);
         interprocess().publish<groups::imu>(imu_data);
     }
 

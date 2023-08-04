@@ -8,9 +8,10 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # versions
-set(PROJECT_VERSION_MAJOR "1")
-set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "0")
+# automatically patched in CircleCI build to correct version
+set(PROJECT_VERSION_MAJOR "X")
+set(PROJECT_VERSION_MINOR "Y")
+set(PROJECT_VERSION_PATCH "Z")
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_GIT_BUILD 1)
@@ -24,15 +25,42 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   execute_process(COMMAND git branch --show-current
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_VERSION_GITBRANCH)
-  
-  string(STRIP ${PROJECT_LAST_REV} PROJECT_LAST_REV)
-  string(STRIP ${PROJECT_VERSION_GITHASH} PROJECT_VERSION_GITHASH)
-  string(STRIP ${PROJECT_VERSION_GITBRANCH} PROJECT_VERSION_GITBRANCH)
 
-  string(REPLACE "~" "_" PROJECT_GIT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}) 
+  execute_process(COMMAND git describe --tags
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE PROJECT_VERSION_GITDESCRIBE)
+
+  # Regular expression to extract major, minor, and patch numbers
+  string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ ${PROJECT_VERSION_GITDESCRIBE})
+  set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
+  set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
+  set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
+ 
+  message("MAJOR VERSION: ${PROJECT_VERSION_MAJOR}")
+  message("MINOR VERSION: ${PROJECT_VERSION_MINOR}")
+  message("PATCH VERSION: ${PROJECT_VERSION_PATCH}")
+
+  if(PROJECT_LAST_REV)
+    string(STRIP ${PROJECT_LAST_REV} PROJECT_LAST_REV)
+  endif()
+
+  if(PROJECT_VERSION_GITHASH)
+    string(STRIP ${PROJECT_VERSION_GITHASH} PROJECT_VERSION_GITHASH)
+  endif()
+
+  if(PROJECT_VERSION_GITBRANCH)
+    string(STRIP ${PROJECT_VERSION_GITBRANCH} PROJECT_VERSION_GITBRANCH)
+  endif() 
+ 
+  if(PROJECT_VERSION_GITDESCRIBE)
+    string(STRIP ${PROJECT_VERSION_GITDESCRIBE} PROJECT_GIT_VERSION) 
+  endif() 
+
   execute_process(COMMAND git rev-list ${PROJECT_GIT_VERSION}..HEAD --count
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_REVS_SINCE_TAG)
+
+  message("Project Revs Since Tag: ${PROJECT_REVS_SINCE_TAG}")
 
   if(PROJECT_REVS_SINCE_TAG)
     string(STRIP ${PROJECT_REVS_SINCE_TAG} PROJECT_REVS_SINCE_TAG)
@@ -220,7 +248,25 @@ configure_file(${project_SCRIPTS_DIR}/jaiabot-checkloadavg.py ${project_BIN_DIR}
 install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
 configure_file(${project_SCRIPTS_DIR}/jaiabot-dataoffload.sh ${project_BIN_DIR} COPYONLY)
 
+# Cockpit scripts
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-update-packages.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+configure_file(${project_SCRIPTS_DIR}/jaiabot-update-packages.sh ${project_BIN_DIR} COPYONLY)
 
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-version-status.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+configure_file(${project_SCRIPTS_DIR}/jaiabot-version-status.sh ${project_BIN_DIR} COPYONLY)
+
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaiabot-software-group.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+configure_file(${project_SCRIPTS_DIR}/jaiabot-software-group.sh ${project_BIN_DIR} COPYONLY)
+
+# Firmware scripts
+install(PROGRAMS ${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh DESTINATION ${CMAKE_INSTALL_BINDIR})
+configure_file(${project_SCRIPTS_DIR}/jaia_firm_backup_date.sh ${project_BIN_DIR} COPYONLY)
+
+option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
+if(enable_testing)
+  enable_testing()
+  include(CTest)
+endif()
 
 # add the code
 add_subdirectory(src)

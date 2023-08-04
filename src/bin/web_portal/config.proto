@@ -38,5 +38,7 @@ message WebPortal
 
     required goby.middleware.protobuf.UDPOneToManyConfig udp_config = 3;
 
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_customer_config = 4;
+
     required goby.middleware.protobuf.TransporterConfig sub_config = 11;
 }

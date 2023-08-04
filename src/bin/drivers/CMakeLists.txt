@@ -1,5 +1,4 @@
 add_subdirectory(bluerobotics_pressure_sensor)
 add_subdirectory(adafruit_BNO055)
 add_subdirectory(atlas_scientific_ezo_ec)
-add_subdirectory(xbee)
 add_subdirectory(arduino)

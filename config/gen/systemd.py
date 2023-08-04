@@ -6,6 +6,7 @@ import os
 from string import Template
 import shutil
 import subprocess
+from typing import Dict
 
 # defaults based on $PATH settings
 script_dir=os.path.dirname(os.path.realpath(__file__))
@@ -42,24 +43,124 @@ parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Direct
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
 parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
-parser.add_argument('--n_bots', default=1, type=int, help='Number of bots in the fleet')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
+parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
+parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
+parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
+parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
+parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
+
 args=parser.parse_args()
+
+class LED_TYPE(Enum):
+    HUB_LED = 'hub_led'
+    NONE = 'none'
+
+class GPS_TYPE(Enum):
+    SPI = 'spi'
+    I2C = 'i2c'
+    NONE = 'none'
+
+class ELECTRONICS_STACK(Enum):
+    STACK_0 = '0'
+    STACK_1 = '1'
+    STACK_2 = '2'
+
+if args.led_type == 'hub_led':
+    jaia_led_type=LED_TYPE.HUB_LED
+elif args.led_type == 'none':
+    jaia_led_type=LED_TYPE.NONE    
+else:
+    jaia_led_type=LED_TYPE.NONE
+
+if args.electronics_stack == '0':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
+    jaia_gps_type=GPS_TYPE.I2C
+elif args.electronics_stack == '1':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_1
+    jaia_gps_type=GPS_TYPE.SPI
+elif args.electronics_stack == '2':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
+    jaia_gps_type=GPS_TYPE.SPI
+else:
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
+    jaia_gps_type=GPS_TYPE.I2C
 
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
+class Mode(Enum):
+    SIMULATION = 'simulation'
+    RUNTIME = 'runtime'
+    BOTH = 'both'
+    
+if args.simulation:
+    jaia_mode=Mode.SIMULATION
+    warp=args.warp
+else:
+    jaia_mode=Mode.RUNTIME
+    warp=1
+
+class Type(Enum):
+    BOT = 'bot'
+    HUB = 'hub'
+    BOTH = 'both'
+
+if args.type == 'bot':
+    jaia_type=Type.BOT
+    bot_or_hub_index_str='export jaia_bot_index=' + str(args.bot_index) + '; '
+elif args.type == 'hub':
+    jaia_type=Type.HUB
+    bot_or_hub_index_str='export jaia_hub_index=' + str(args.hub_index) + '; '
+
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
+
 subprocess.run('bash -ic "' +
-               'export jaia_mode=runtime; ' +
-               'export jaia_bot_index=' + str(args.bot_index) + '; ' +
+               'export jaia_mode=' + jaia_mode.value + '; ' +
+               bot_or_hub_index_str + 
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
-               'export jaia_n_bots=' + str(args.n_bots) + '; ' +
-               'export jaia_warp=1; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
+               'export jaia_warp=' + str(warp) + '; ' +
+               'export jaia_log_dir=' + str(args.log_dir) + '; ' +
+               f'export jaia_goby_log_level={args.goby_log_level}; ' +
+               'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env"',
                check=True, shell=True)
+
+# Merge /tmp/runtime.env into the target env file, but don't overwrite existing entries in the target env file
+def load_env(path: str):
+    env_dict: Dict[str, str] = {}
+    try:
+        for line in open(path):
+            items = line.split('=')
+            if len(items) == 2:
+                env_dict[items[0]] = items[1].strip()
+    except FileNotFoundError:
+        pass
+    return env_dict
+
+
+def save_env(env: Dict[str, str], path: str):
+    with open(path, 'w') as out_file:
+        for key in sorted(env.keys()):
+            out_file.write(f'{key}={env[key]}\n')
+
+
+def merge_env(src_env_path: str, dest_env_path: str):
+    src_env = load_env(src_env_path)
+    dest_env = load_env(dest_env_path)
+
+    # Clobber with any entries that already exist at dest
+    src_env.update(dest_env)
+
+    save_env(src_env, dest_env_path)
+
+
+merge_env('/tmp/runtime.env', args.env_file)
+
+####
 
 common_macros=dict()
 
@@ -73,23 +174,25 @@ common_macros['extra_unit']=''
 common_macros['extra_flags']=''
 common_macros['bhv_file']='/tmp/jaiabot_${jaia_bot_index}.bhv'
 common_macros['moos_file']='/tmp/jaiabot_${jaia_bot_index}.moos'
-common_macros['user']=os.getlogin()
-common_macros['group']=os.getlogin()
+common_macros['moos_sim_file']='/tmp/jaiabot_sim_${jaia_bot_index}.moos'
+# unless otherwise specified, apps are run both at runtime and simulation
+common_macros['runs_when']=Mode.BOTH
 
-class Type(Enum):
-     BOT = 'bot'
-     HUB = 'hub'
-     BOTH = 'both'
+try:
+    common_macros['user']=os.getlogin()
+    common_macros['group']=os.getlogin()
+except:
+    common_macros['user']=os.environ['USER']
+    common_macros['group']=os.environ['USER']
 
-if args.type == 'bot':
-    jaia_type=Type.BOT
+if jaia_type == Type.BOT:
     common_macros['gen']=args.gen_dir + '/bot.py'
-elif args.type == 'hub':
-    jaia_type=Type.HUB
+elif jaia_type == Type.HUB:
     common_macros['gen']=args.gen_dir + '/hub.py'
-
-all_goby_apps=[]
     
+    
+all_goby_apps=[]
+
 jaiabot_apps=[
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
@@ -104,24 +207,28 @@ jaiabot_apps=[
      'template': 'goby-app.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_GPS',
      'runs_on': Type.BOTH,
-     'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service'},
+     'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_logger',
      'description': 'Goby Logger',
      'template': 'logger-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
      'runs_on': Type.BOTH,
-    'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount'},
+     'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_coroner',
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_CORONER',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_health',
      'description': 'JaiaBot Health Reporting and Management',
      'template': 'health-app.service.in', # no failure_reporter start/stop since it would be meaningless
@@ -133,90 +240,111 @@ jaiabot_apps=[
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_METADATA',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_hub_manager',
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
      'description': 'JaiaBot Web GUI Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_WEB_PORTAL',
-     'runs_on': Type.HUB},
-    {'exe': 'web_app.py',
-     'description': 'JaiaBot Web Server',
-     'template': 'web.service.in',
-     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_WEB_APP',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_fusion',
      'description': 'JaiaBot Data Fusion',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_simulator',
+     'description': 'JaiaBot Simulator',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION,
+     'wanted_by': 'jaiabot_health.service'},       
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOT,
      'error_on_fail': 'ERROR__FAILED__GOBY_MOOS_GATEWAY',
      'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1',
-     'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service'},
+     'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_mission_manager',
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_PID_CONTROL',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
      'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
      'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_adafruit_BNO055_driver',
      'description': 'JaiaBot IMU Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ENGINEERING',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_imu.py',
      'description': 'JaiaBot IMU Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'adafruit_BNO055',
      'args': '20000',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'pressure_sensor',
      'args': '',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_as-ezo-ec.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
      'args': '20002',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -237,6 +365,20 @@ jaiabot_apps=[
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PNODEREPORTER',
      'runs_on': Type.BOT},
+    {'exe': 'MOOSDB',
+     'description': 'MOOSDB Simulation Broker',
+     'template': 'moosdb-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION,
+     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
+    },
+    {'exe': 'uSimMarine',
+     'description': 'uSimMarine marine vehicle simulator',
+     'template': 'moos-app-sim.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_SIM_USIMMARINE',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION},
     {'exe': 'jaiabot_log_converter',
      'description': 'jaiabot_log_converter converts goby files to h5',
      'template': 'jaiabot_log_converter.service.in',
@@ -246,25 +388,93 @@ jaiabot_apps=[
      'description': 'jaiabot_data_vision visualize log data',
      'template': 'jaiabot_data_vision.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
-     'runs_on': Type.HUB}
+     'runs_on': Type.HUB},
+    {'exe': 'gpsd',
+     'description': 'GPSD for simulator only',
+     'template': 'gpsd-sim.service.in',
+     'runs_on': Type.BOT,
+     'runs_when': Mode.SIMULATION}
 ]
 
+jaia_firmware = [
+    {'exe': 'hub-button-led-poweroff.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'hub-button-led-poweroff.service.in',
+     'subdir': 'led_button',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'hub-button-led-services-running.py',
+     'description': 'Hub Button LED Services Running Mode',
+     'template': 'hub-button-led-services-running.service.in',
+     'subdir': 'led_button',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'hub-button-trigger.py',
+     'description': 'Hub Button LED Triggers',
+     'template': 'hub-button-trigger.service.in',
+     'subdir': 'led_button',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.HUB,
+     'runs_when': Mode.RUNTIME,
+     'led_type': LED_TYPE.HUB_LED},
+    {'exe': 'gps-spi-pty.py',
+     'description': 'Create a pty, and send all the spi gps data to it',
+     'template': 'gps_spi_pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.SPI},
+    {'exe': 'gps-i2c-pty.py',
+     'description': 'Create a pty, and send all the i2c gps data to it',
+     'template': 'gps_i2c_pty.service.in',
+     'subdir': 'gps',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME,
+     'gps_type': GPS_TYPE.I2C},
+     {'exe': 'arduino_spi_gpio_pin.py',
+     'description': 'Hub Button LED Poweroff Mode',
+     'template': 'arduino-spi-gpio-pin.service.in',
+     'subdir': 'arduino',
+     'args': '--electronics_stack=' + jaia_electronics_stack.value,
+     'runs_on': Type.BOT,
+     'runs_when': Mode.RUNTIME},
+     {'exe': 'jaia_firm_backup_date.sh',
+     'description': 'Backup the date to a file when we have a valid date time ntp',
+     'template': 'backup-date.service.in',
+     'args': '',
+     'runs_on': Type.BOTH,
+     'runs_when': Mode.RUNTIME}
+]
+
+# check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
+def is_app_run(app):
+    macros={**common_macros, **app}
+    return (macros['runs_on'] == Type.BOTH or macros['runs_on'] == jaia_type) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode)
 
 for app in jaiabot_apps:
-    if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
+    if is_app_run(app):
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
 
         
 for app in jaiabot_apps:
-    if app['runs_on'] == Type.BOTH or app['runs_on'] == jaia_type:
+    if is_app_run(app):
         macros={**common_macros, **app}
-
+        
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
-        service = app['exe'].replace('.', '_').lower()
-        if macros['exe'][0:7] != 'jaiabot':
-            service = 'jaiabot_' + service
+        if 'service' in macros:
+            service = macros['service']
+        else:
+            service = app['exe'].replace('.', '_').lower()
+            if macros['exe'][0:7] != 'jaiabot':
+                service = 'jaiabot_' + service
 
         # special case for goby_coroner - need a list of everything we're running
         if app['exe'] == 'goby_coroner':
@@ -275,7 +485,7 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['goby_bin_dir']
             else:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
-                
+
         macros['service'] = service
                 
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
@@ -291,6 +501,62 @@ for app in jaiabot_apps:
         if args.disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
+# check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
+def is_firm_run(firm):
+    macros={**common_macros, **firm}
+
+    if (macros['runs_on'] != Type.BOTH and macros['runs_on'] != jaia_type):
+        return False
+    
+    if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):
+        return False
+    
+    if ('led_type' in macros):
+        if (macros['led_type'] != jaia_led_type):
+            return False
+        
+    if ('gps_type' in macros):
+        if (macros['gps_type'] != jaia_gps_type):
+            return False    
+
+    return True
+
+for firmware in jaia_firmware:
+    if is_firm_run(firmware):
+        macros={**common_macros, **firmware}
+
+        # generate service name from lowercase exe name, substituting . for _, and
+        # adding jaiabot to the front if it doesn't already start with that
+        if 'service' in macros:
+            service = macros['service']
+        else:
+            service = firmware['exe'].replace('.', '_').lower()
+            if macros['exe'][0:9] != 'jaia_firm':
+                service = 'jaia_firm_' + service
+            
+        if not 'bin_dir' in macros:
+            if macros['exe'][0:4] == 'goby':
+                macros['bin_dir'] = macros['goby_bin_dir']
+            else:
+                macros['bin_dir'] = macros['jaiabot_bin_dir']
+
+        macros['service'] = service
+                
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
+            out=Template(file.read()).substitute(macros)    
+        outfilename = args.systemd_dir + '/' + service + '.service'
+        print('Writing ' + outfilename)
+        outfile = open(outfilename, 'w')
+        outfile.write(out)
+        outfile.close()
+        if args.enable:
+            print('Enabling ' + service)
+            subprocess.run('systemctl enable ' + service, check=True, shell=True)
+        if args.disable:
+            print('Disabling ' + service)
+            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        
         
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)

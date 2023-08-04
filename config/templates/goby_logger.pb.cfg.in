@@ -7,4 +7,4 @@ load_shared_library: "libjaiabot_liaison.so.1"
 load_shared_library: "libjaiabot_config.so.1"
 
 # exclude internal groups
-group_regex: "(?!.*_internal.*).*"
+group_regex: "$goby_logger_group_regex"

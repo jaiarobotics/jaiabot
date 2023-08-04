@@ -1,0 +1,10 @@
+{
+    "version": 0,
+
+    "tools": {
+        "pinger": {
+            "label": "JAIA Config",
+            "path": "jaia-config.html"
+        }
+    }
+}

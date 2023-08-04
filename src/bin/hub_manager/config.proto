@@ -25,6 +25,8 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/transporter_config.proto";
+import "jaiabot/messages/xbee_extensions.proto";
+
 
 package jaiabot.config;
 
@@ -35,11 +37,16 @@ message HubManager
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    repeated int32 managed_bot_modem_id = 10;
+    // use to pre-seed expected bots
+    optional xbee.protobuf.Config xbee = 10;
+
     required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
     required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
         12;
+    required goby.middleware.protobuf.TransporterConfig engineering_status_sub_cfg =
+        13;
 
-    optional int32 hub_id = 13 [default = 0];
-    optional int32 health_report_timeout_seconds = 14 [default = 20];
+    optional int32 hub_id = 14 [default = 0];
+    optional int32 fleet_id = 15 [default = 0];
+    optional int32 health_report_timeout_seconds = 16 [default = 20];
 }

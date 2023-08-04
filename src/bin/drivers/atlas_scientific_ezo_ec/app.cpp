@@ -78,8 +78,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1;
-
+double loop_freq = 10;
 
 // for string delimiter
 std::vector<std::string> split (std::string s, std::string delimiter) {

@@ -341,7 +341,7 @@ class TabbedSections {
 diveTabbedSections = new TabbedSections([new TabbedSection("diveManualButton", "diveManualSection"), new TabbedSection("divePIDButton", "divePIDSection")], 0)
 throttleTabbedSections = new TabbedSections([new TabbedSection("throttleManualButton", "throttleSection"), new TabbedSection("throttlePIDButton", "speedSection")], 0)
 rudderTabbedSections = new TabbedSections([new TabbedSection("rudderManualButton", "rudderSection"), new TabbedSection("rudderPIDButton", "headingSection")], 0)
-elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManualButton", "elevatorsSection"), new TabbedSection("elevatorsPIDButton", "rollSection")], 0)
+//elevatorsTabbedSections = new TabbedSections([new TabbedSection("elevatorsManualButton", "elevatorsSection"), new TabbedSection("elevatorsPIDButton", "rollSection")], 0)
 
 ////////
 
@@ -363,10 +363,10 @@ headingSlider.onValueChanged = function(angle) {
   cardinal.innerHTML = dirs[sector]
 }
 
-portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU'])
-stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, ['KeyL'], ['KeyO'])
-rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "elevator", 10, ['KeyQ'], ['KeyE'])
-pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, ['KeyK'], ['KeyI'])
+//portElevatorSlider = new Slider(vertical, "portElevator", -100, 100, "Port Elevator", true, true, "elevator", 10, ['KeyJ'], ['KeyU'])
+//stbdElevatorSlider = new Slider(vertical, "stbdElevator", -100, 100, "Stbd Elevator", true, true, "elevator", 10, ['KeyL'], ['KeyO'])
+//rollSlider = new Slider(horizontal, "roll", -180, 180, "Roll", true, false, "", 10, ['KeyQ'], ['KeyE'])
+//pitchSlider = new Slider(horizontal, "pitch", -90, 90, "Pitch", true, false, "elevator", 10, ['KeyK'], ['KeyI'])
 
 timeoutSlider = new Slider(horizontal, "timeout", 0, 120, "Timeout", false, false, "timeout", stepSize=5, decrementKeys=["KeyV"], incrementKeys=["KeyB"], fineStepSize=1)
 timeoutSlider.value = 5
@@ -443,8 +443,8 @@ class PIDGains {
 diveGains = new PIDGains('divePID', 'depth')
 speedGains = new PIDGains('speed', 'speed')
 headingGains = new PIDGains('heading', 'heading')
-rollGains = new PIDGains('roll', 'roll')
-pitchGains = new PIDGains('pitch', 'pitch')
+//rollGains = new PIDGains('roll', 'roll')
+//pitchGains = new PIDGains('pitch', 'pitch')
 
 //////// Dive Button 
 
@@ -575,7 +575,7 @@ document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp)
 
 function handleKey(key) {
-  let elevatorsDelta = pressedKeys[FINE_CONTROL_KEY] ? portElevatorSlider.fineStepSize : portElevatorSlider.stepSize
+  //let elevatorsDelta = pressedKeys[FINE_CONTROL_KEY] ? portElevatorSlider.fineStepSize : portElevatorSlider.stepSize
 
   switch (key) {
     case 'KeyZ':
@@ -583,50 +583,51 @@ function handleKey(key) {
       speedSlider.value = 0
       rudderSlider.value = 0
       headingSlider.value = 0
-      portElevatorSlider.value = 0
-      stbdElevatorSlider.value = 0
+      //portElevatorSlider.value = 0
+      //stbdElevatorSlider.value = 0
       rollSlider.value = 0
       break;
     case 'KeyC':
       rudderSlider.value = rudderCenter
-      portElevatorSlider.value = portCenter
-      stbdElevatorSlider.value = stbdCenter
+      //portElevatorSlider.value = portCenter
+      //stbdElevatorSlider.value = stbdCenter
       break;
     case 'KeyI':
-      switch (elevatorsTabbedSections.activeIndex) {
+
+      /*switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
           portElevatorSlider.value += delta
           stbdElevatorSlider.value += delta
           break;
-        };
+        };*/
       break;
     case 'KeyK':
-      switch (elevatorsTabbedSections.activeIndex) {
+      /*switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value -= delta
           break;
-        };
+        };*/
       break;
     case 'KeyQ':
-      switch (elevatorsTabbedSections.activeIndex) {
+      /*switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.value - portElevatorSlider.minValue, stbdElevatorSlider.maxValue - stbdElevatorSlider.value)
           portElevatorSlider.value -= delta
           stbdElevatorSlider.value += delta
           break;
-        };
+        };*/
       break;
     case 'KeyE':
-      switch (elevatorsTabbedSections.activeIndex) {
+      /*switch (elevatorsTabbedSections.activeIndex) {
         case 0:
           let delta = Math.min(elevatorsDelta, portElevatorSlider.maxValue - portElevatorSlider.value, stbdElevatorSlider.value - stbdElevatorSlider.minValue)
           portElevatorSlider.value += delta
           stbdElevatorSlider.value -= delta
           break;
-        };
+        };*/
       break;
   }
 }
@@ -637,33 +638,31 @@ rudderCenter = localStorage.getItem("rudderCenter") || 0.0
 el("rudderSlider").value = rudderCenter
 el("rudderValue").innerHTML = rudderCenter
 
-portCenter = localStorage.getItem("portCenter") || 0.0
+/*portCenter = localStorage.getItem("portCenter") || 0.0
 el("portElevatorSlider").value = portCenter
 el("portElevatorValue").innerHTML = portCenter
 
 stbdCenter = localStorage.getItem("stbdCenter") || 0.0
 el("stbdElevatorSlider").value = stbdCenter
-el("stbdElevatorValue").innerHTML = stbdCenter
+el("stbdElevatorValue").innerHTML = stbdCenter*/
 
 el("rudderCenter").onclick =
-    function(e) {
-  rudderCenter = Number(el("rudderSlider").value)
-  localStorage.setItem("rudderCenter", rudderCenter)
-}
+  function(e) {
+    rudderCenter = Number(el("rudderSlider").value)
+    localStorage.setItem("rudderCenter", rudderCenter)
+  }
 
-    el("portElevatorCenter")
-        .onclick =
-        function(e) {
-  portCenter = Number(el("portElevatorSlider").value)
-  localStorage.setItem("portCenter", portCenter)
-}
+/*el("portElevatorCenter").onclick =
+  function(e) {
+    portCenter = Number(el("portElevatorSlider").value)
+    localStorage.setItem("portCenter", portCenter)
+  }
 
-        el("stbdElevatorCenter")
-            .onclick =
-            function(e) {
-  stbdCenter = Number(el("stbdElevatorSlider").value)
-  localStorage.setItem("stbdCenter", stbdCenter)
-}
+el("stbdElevatorCenter").onclick =
+  function(e) {
+    stbdCenter = Number(el("stbdElevatorSlider").value)
+    localStorage.setItem("stbdCenter", stbdCenter)
+  }*/
 
 ////////// Command Sender //////////////
 
@@ -727,7 +726,7 @@ function getVisibleCommand() {
   }
   
   // Elevators
-  switch (elevatorsTabbedSections.activeIndex) {
+  /*switch (elevatorsTabbedSections.activeIndex) {
     case 0:
       pid_control.portElevator = el("portElevatorSlider").value
       pid_control.stbdElevator = el("stbdElevatorSlider").value
@@ -749,7 +748,7 @@ function getVisibleCommand() {
         Kd : el("pitch_Kd").value
       };
       break;
-  }
+  }*/
 
   pid_control.led_switch_on = LEDSwitchON
 
@@ -897,13 +896,15 @@ function updateStatus(status) {
   warningStatus.innerHTML = warningStatusInner;
 }
 
-function getSelectedBotId() { return $("#botSelect")[0].value || "0" }
+function getSelectedBotId() {
+  return document.getElementById("botSelect")?.value || "0"
+}
 
 function updateBotSelectDropdown(bots) {
-  let selectElement = $("#botSelect")[0];
-  let existingBotIds = $("select#botSelect")
-                           .find('option')
-                           .toArray()
+  let selectElement = document.getElementById("botSelect");
+  let existingBotIds = Array
+                           .from(document.getElementById("botSelect")
+                                     .getElementsByTagName('option'))
                            .map(element => element.value)
   let newBotIds = Object.keys(bots)
 
@@ -992,6 +993,8 @@ function onMouseUpDeadMansSwitch(evt) {
 }
 
 function takeControl(evt) {
-  fetch('/jaia/takeControl', {method: 'POST', headers: {clientId: clientId}})
-  .then((response) => response.json())
+  fetch('/jaia/take-control', {
+    method : 'POST',
+    headers : {clientId : clientId}
+  }).then((response) => response.json())
 }

@@ -6,7 +6,7 @@
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_arduino_type" can be set to one of: usb_old, usb_new, spi which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
+## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
 ## 
 
@@ -48,6 +48,7 @@ else
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
             ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /usr/share/jaiabot/python/requirements.txt'"          
+            ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /home/${botuser}/jaiabot/build/arm64/share/jaiabot/jdv/requirements.txt'"          
         fi
 
     	echo "🟢 Creating and setting permissons on log dir"
@@ -55,7 +56,7 @@ else
         
         if [ ! -z "$jaiabot_arduino_type" ]; then
             echo "🟢 Loading arduino type $jaiabot_arduino_type on "$var
-            ssh ${botuser}@"$var" "/home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
+            ssh ${botuser}@"$var" "sudo /home/${botuser}/jaiabot/build/arm64/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh"
         fi
 
         echo "When you're ready, ssh ${botuser}@${var} and run 'sudo systemctl start jaiabot'"

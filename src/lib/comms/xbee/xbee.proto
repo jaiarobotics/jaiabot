@@ -1,0 +1,39 @@
+syntax = "proto2";
+
+package xbee.protobuf;
+import "dccl/option_extensions.proto";
+import "goby/acomms/protobuf/modem_message.proto";
+
+message XBeePacket
+{
+    option (dccl.msg) = {
+        id: 32764       // not really used, will be removed from message
+        max_bytes: 258  // will be 256 when we remove the ID 2 bytes == default
+                        // max packet size (ATNP)
+        codec_version: 4
+    };
+
+    // broadcast (0) + 31 hubs (0-30 inclusive) + 151 bots (0-150 inclusive)
+    // Values above 153 are currently a PLACEHOLDER (as only 1 hub modem id is
+    // used) for when we implement full multi-hub support
+    required int32 src = 1 [(dccl.field) = { min: 0, max: 183 }];
+    required int32 dest = 2 [(dccl.field) = { min: 0, max: 183 }];
+
+    // rate currently unimplemented so no field required for that
+
+    // DATA or ACK
+    required goby.acomms.protobuf.ModemTransmission.TransmissionType type = 4;
+    optional bool ack_requested = 5;
+
+    optional uint32 frame_start = 6
+        [(dccl.field) = { min: 0, max: 15, codec: "dccl.presence" }];
+
+    optional int32 acked_frame = 7
+        [(dccl.field) = { min: 0, max: 15, codec: "dccl.presence" }];
+
+    optional int32 hub_id = 8
+        [(dccl.field) = { min: 0, max: 30, codec: "dccl.presence" }];
+
+    optional bytes data = 10
+        [(dccl.field) = { codec: "dccl.var_bytes" max_length: 250 }];
+};

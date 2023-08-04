@@ -1,6 +1,6 @@
 #!/usr/bin/env -S goby_launch -P -L
 
-gobyd <(../../gen/hub.py gobyd) -n
+[env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so] gobyd <(../../gen/hub.py gobyd) -vvv -n
 goby_liaison_jaiabot <(../../gen/hub.py goby_liaison)
 jaiabot_simulator <(../../gen/hub.py jaiabot_simulator)
 goby_logger <(../../gen/hub.py goby_logger)

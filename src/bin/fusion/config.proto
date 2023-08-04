@@ -42,6 +42,8 @@ message Fusion
 
     optional int32 data_timeout_seconds = 20 [default = 20];
 
+    optional int32 heading_timeout_seconds = 21 [default = 3];
+
     repeated jaiabot.protobuf.MissionState discard_location_states = 30;
 
     optional double imu_heading_course_max_diff = 31 [default = 45];
@@ -53,14 +55,14 @@ message Fusion
 
     optional bool is_sim = 34 [default = false];
 
-    // These checks are in the loop (so fusions runs at 2hz)
-    optional int32 total_imu_issue_checks = 35 [default = 10];
+    // How many times to verify data is indicating imu issue before declaring one
+    optional int32 total_imu_issue_checks = 35 [default = 4];
 
-    // timeout in seconds
-    optional int32 imu_restart_timeout = 36 [default = 30]; 
+    // When to start detecting imu issues again after detecting one
+    optional int32 imu_detect_timeout = 36 [default = 13]; 
 
     // Rate in milliseconds
-    optional int32 send_bot_status_rate = 37 [default = 1000]; 
+    optional int32 bot_status_period_ms = 37 [default = 1000]; 
 
     repeated jaiabot.protobuf.MissionState include_course_error_detection_states = 38;
 
@@ -68,8 +70,11 @@ message Fusion
 
     // Battery configurations
     optional bool watch_battery_percentage = 40 [default = true];
-    optional float battery_percentage_low_level = 41 [default = 30];
+    optional float battery_percentage_low_level = 41 [default = 50];
     optional float battery_percentage_very_low_level = 42 [default = 20];
     optional float battery_percentage_critically_low_level = 43 [default = 10];
+
+    // The period to check for a imu issue in seconds
+    optional int32 imu_detect_period = 44 [default = 1]; 
 
 }

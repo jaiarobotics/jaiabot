@@ -25,6 +25,7 @@ The goal is to keep the state machine as simple as possible while still supporti
 		+ Movement: Bot is moving to the next Task.
 			* Transit: Bot is transiting to the next waypoint autonomously using the pHelmIvP Waypoint behavior.
 			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
+			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* RemoteControl: Bot is accepting RC setpoints from the UI. When RC commands aren't being received (for any reason), the bot is controlled by an underlying pHelmIvP StationKeep behavior that activates on the current bot location.
 				- Setpoint: Bot is performing a RC setpoint (heading, speed up to a given duration)
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
@@ -33,20 +34,24 @@ The goal is to keep the state machine as simple as possible while still supporti
 			* ...: Can be expanded in the future to allow other types of Movement states as needed
 		+ Task: Bot is performing a sampling, station keeping, or other discrete task.
 			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
+			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* StationKeep: Bot is actively maintaining a position on the surface.
 			* SurfaceDrift: Bot is drifting (propulsor off).
-			* Dive: Bot performs a dive maneuver. 
+			* Dive: Bot performs a dive maneuver.
+				- PrePoweredDescent: Bot is stopping at dive location.
 				- PoweredDescent: Bot is diving by powered reverse thrust.
 				- Hold: Bot is maintaining a specific depth.
 				- UnpoweredAscent: Bot thruster is off, waiting for bot to ascend.
 				- PoweredAscent: Bot is performing a powered ascent to the surface.
 				- ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
 				- SurfaceDrift: Bot is drifting to estimate currents.
-			* ConstantHeading: Bot is driving on a constant heading for a certain time
+				- ConstantHeading: Bot is driving on a constant heading for a certain time.
+			* ConstantHeading: Bot is driving on a constant heading for a certain time.
 			* ...: Can be expanded in the future for other types of Tasks.
 		+ Recovery: Bot is returning to a safe location for recovery.
 			* Transit: Bot is transiting to the recovery location.
 			* ReacquireGPS: Bot is waiting (on the surface) for the GPS to reacquire a fix.
+			* IMURestart: Bot is waiting (on the surface) for the IMU to restart.
 			* StationKeep: Bot is actively maintaining the recovery location position.
 			* Stopped: Control surfaces are stopped for a safe recovery.
 		+ Replan: Bot has received a new mission and is assessing feasibility. The bot stationkeeps while in this state.
@@ -99,10 +104,14 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvBeginDataProcessing: Automatically triggered upon entry to Recovered.
 - EvDataProcessingComplete: Triggered by the DataProcessing state when the data have all been processed.
 - EvDataOffloadComplete: Triggered by the DataOffload state when the data have all been offloaded to hub0.
-- EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD
-- EvGPSFix: GPS Fix received
-- EvGPSNoFix: GPS No Fix received
-- EvVehicleGPS: GPS data received
+- EvRetryDataOffload:  Triggered when the operator sends Command type: RETRY_DATA_OFFLOAD.
+- EvGPSFix: Triggered whe the GPS Fix meets our requirements. 
+- EvGPSNoFix: Triggered whe the GPS Fix does not meet our requirements.
+- EvIMURestart: Triggered when we detect an IMU Issue.
+- EvIMURestartCompleted: Triggered when the IMU Restart is completed.
+- EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
+- EvPrePoweredDescentComplete: Triggered when the the timeout is reached in the PrePoweredDescent State. 
+- EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
 
 #### Internal events
 
@@ -111,6 +120,7 @@ These are not shown on the diagram but used for providing data to the state mach
 - EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
 - EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
 - EvMeasurement: Sensor data measurement. 
+- EvVehicleGPS: Triggered when we receive GPS information, currently HDOP and PDOP information.
 
 #### Unimplemented Events
 

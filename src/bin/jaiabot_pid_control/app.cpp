@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 }
 
 jaiabot::apps::BotPidControl::BotPidControl()
-    : zeromq::MultiThreadApplication<config::BotPidControl>(2 * si::hertz)
+    : zeromq::MultiThreadApplication<config::BotPidControl>(10 * si::hertz)
 {
     auto app_config = cfg();
 
@@ -84,6 +84,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
         for (const auto& entry : app_config.throttle_table())
             speed_to_throttle_.insert(std::make_pair(entry.speed(), entry.throttle()));
     }
+
+    full_speed_window = app_config.full_speed_window();
+    glog.is_warn() && glog << "full_speed_window = " << full_speed_window << endl;
 
     // Create our PID objects
     if (cfg().has_throttle_speed_pid_gains())
@@ -162,26 +165,30 @@ jaiabot::apps::BotPidControl::BotPidControl()
             if (command.has_pid_control()) {
                 handle_engineering_command(command.pid_control());
             }
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                publish_engineering_status();
+            }
         });
 
     // subscribe for commands from mission manager
-    {
-        interprocess()
-            .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
-                [this](const jaiabot::protobuf::DesiredSetpoints& command)
-                { handle_command(command); });
-    }
+    interprocess()
+        .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(
+            [this](const jaiabot::protobuf::DesiredSetpoints& command) {
+                handle_command(command);
+            });
 
     // Subscribe to get vehicle movement and orientation, for PID targeting
-    interprocess().subscribe<jaiabot::groups::bot_status>(
-        [this](const jaiabot::protobuf::BotStatus& bot_status)
-        {
-            glog.is_debug2() && glog << "Received bot status: " << bot_status.ShortDebugString()
+    interprocess().subscribe<goby::middleware::frontseat::groups::node_status>(
+        [this](const goby::middleware::frontseat::protobuf::NodeStatus& node_status) {
+            glog.is_debug2() && glog << "Received node status: " << node_status.ShortDebugString()
                                      << std::endl;
 
-            if (bot_status.has_attitude())
+            if (node_status.has_pose())
             {
-                auto attitude = bot_status.attitude();
+                auto attitude = node_status.pose();
 
                 if (attitude.has_heading())
                 {
@@ -199,9 +206,9 @@ jaiabot::apps::BotPidControl::BotPidControl()
                 }
             }
 
-            if (bot_status.has_speed())
+            if (node_status.has_speed())
             {
-                auto speed = bot_status.speed();
+                auto speed = node_status.speed();
 
                 if (speed.has_over_ground())
                 {
@@ -209,17 +216,15 @@ jaiabot::apps::BotPidControl::BotPidControl()
                 }
             }
 
-            if (bot_status.has_depth())
+            if (node_status.has_global_fix() && node_status.global_fix().has_depth())
             {
-                actual_depth = bot_status.depth();
+                actual_depth = node_status.global_fix().depth();
             }
 
             glog.is_debug2() && glog << "Actual speed: " << actual_speed
                                      << " heading: " << actual_heading << " depth: " << actual_depth
                                      << std::endl;
         });
-
-    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -237,11 +242,22 @@ void jaiabot::apps::BotPidControl::loop()
         case PID_SPEED:
 
             {
-                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient outselves
+                // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
                 float speed_multiplier = 1.0;
 
                 if (_rudder_is_using_pid && actual_heading > -1000.0) {
-                    speed_multiplier = cos((actual_heading - target_heading) * M_PI / 180.0);
+                    // Apply a step function to the speed:
+                    //  * 100% of desired speed when we are with n degrees
+                    //  * Desired speed times dot product of heading error otherwise
+                    float heading_error_deg = actual_heading - target_heading;
+                    if (abs(heading_error_deg) < full_speed_window)
+                    {
+                        speed_multiplier = 1.0;
+                    }
+                    else
+                    {
+                        speed_multiplier = cos(heading_error_deg * M_PI / 180.0);
+                    }
                 }
                 else {
                     speed_multiplier = 1.0;
@@ -384,9 +400,6 @@ void jaiabot::apps::BotPidControl::loop()
     glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::low_control>(cmd_msg);
-
-    // Update the engineering_status
-    publish_engineering_status();
 }
 
 void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {

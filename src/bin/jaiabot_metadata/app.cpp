@@ -46,10 +46,18 @@ namespace apps
 class Metadata : public ApplicationBase
 {
   public:
-    Metadata() : ApplicationBase(1.0 / 600.0 * si::hertz) {}
+    Metadata() : ApplicationBase(1.0 / 600.0 * si::hertz)
+    {
+        // Subscribe to MetaData
+        interprocess().subscribe<jaiabot::groups::metadata>(
+            [this](const jaiabot::protobuf::QueryDeviceMetaData& query_metadata) {
+                publish_metadata();
+            });
+    }
 
   private:
     void loop() override;
+    void publish_metadata();
 };
 } // namespace apps
 } // namespace jaiabot
@@ -60,7 +68,7 @@ int main(int argc, char* argv[])
         goby::middleware::ProtobufConfigurator<jaiabot::config::Metadata>(argc, argv));
 }
 
-void jaiabot::apps::Metadata::loop()
+void jaiabot::apps::Metadata::publish_metadata()
 {
     // called at frequency passed to SingleThreadApplication (ApplicationBase)
     auto jaia_name_c = getenv("JAIA_DEVICE_NAME");
@@ -107,3 +115,5 @@ void jaiabot::apps::Metadata::loop()
 
     interprocess().publish<groups::metadata>(metadata);
 }
+
+void jaiabot::apps::Metadata::loop() { publish_metadata(); }

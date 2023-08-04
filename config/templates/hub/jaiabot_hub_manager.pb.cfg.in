@@ -1,18 +1,33 @@
 $app_block
 $interprocess_block
 
-$managed_bot_ids
+hub_id: $hub_id
 
 status_sub_cfg {
     intervehicle {
         # publisher_id added in code for each configured managed_bot_modem_id
-        # buffer configuration for BotStatus/EngineeringStatus messages
+        # buffer configuration for BotStatus messages
         buffer {
             ack_required: false
             blackout_time: 1
             max_queue: 1 
             newest_first: true 
             ttl: 60
+            value_base: 10
+        }
+    }
+}
+
+engineering_status_sub_cfg {
+    intervehicle {
+        # publisher_id added in code for each configured managed_bot_modem_id
+        # buffer configuration for EngineeringStatus messages
+        buffer {
+            ack_required: false
+            blackout_time: 1
+            max_queue: 1 
+            newest_first: true 
+            ttl: 30
             value_base: 10
         }
     }
@@ -31,4 +46,8 @@ task_packet_sub_cfg {
             value_base: 5
         }
     }
+}
+
+xbee {
+    $xbee_config
 }

@@ -33,6 +33,7 @@ using namespace std;
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/low_control.pb.h"
 #include "jaiabot/version.h"
 
@@ -65,6 +66,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
+    int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
 
     int64_t lastAckTime;
 
@@ -88,6 +90,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // LED
     bool led_switch_on = true;
 
+    // Bot rolled over
+    bool bot_rolled_over_{false};
+
     // Version Table
     std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
     std::map<uint32_t, std::set<std::string>> arduino_version_incompatibility_table_;
@@ -109,7 +114,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(4 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(10 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -239,18 +244,35 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                    << std::endl;
         } // Catch all
     });
+
+    interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
+        if (imu_data.has_bot_rolled_over())
+        {
+            bot_rolled_over_ = imu_data.bot_rolled_over();
+        }
+    });
 }
 
-int surfaceValueToMicroseconds(int input, int lower, int center, int upper)
+int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lower, int center,
+                                                             int upper)
 {
+    double microseconds = 0.0;
+
+    if (bot_rolled_over_)
+    {
+        input = input * -1;
+    }
+
     if (input > 0)
     {
-        return center + (input / 100.0) * (upper - center);
+        microseconds = center + (input / 100.0) * (upper - center);
     }
     else
     {
-        return center + (input / 100.0) * (center - lower);
+        microseconds = center + (input / 100.0) * (center - lower);
     }
+
+    return microseconds;
 }
 
 void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces& control_surfaces)

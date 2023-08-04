@@ -4,21 +4,20 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message XbeeInfo
+{
+    optional string node_id = 1 [default = "Not Available"];
+    optional string serial_number = 2 [default = "Not Available"];
+}
+
 message DeviceMetadata
 {
-    option (dccl.msg) = {
-        id: 126
-        max_bytes: 250
-        codec_version: 3
-        unit_system: "si"
-    };
-
     required string name = 1;
 
     message Version
     {
-        required uint32 major = 1;
-        required uint32 minor = 2;
+        required string major = 1;
+        required string minor = 2;
         required string patch = 3;
         optional string git_hash = 4;
         optional string git_branch = 5;
@@ -32,5 +31,10 @@ message DeviceMetadata
     optional string ivp_version = 5;
 
     optional string xbee_node_id = 6;
-    optional string xbee_serial_number = 7; 
+    optional string xbee_serial_number = 7;
+}
+
+message QueryDeviceMetaData
+{
+    optional bool query_metadata_status = 1 [default = true];
 }

@@ -10,9 +10,30 @@ message PressureTemperatureData
         unit_system: "si"
     };
 
-    required double pressure = 1
+    required double pressure_raw = 1
         [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
     optional double temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+    required string version = 3;
+}
+
+message PressureAdjustedData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double pressure_raw = 1
+        [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double pressure_adjusted = 2
+        [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double pressure_raw_before_dive = 3
+        [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double calculated_depth = 11 [(dccl.field) = {
+        min: -1
+        max: 100
+        precision: 1
+        units: { derived_dimensions: "length" }
     }];
 }

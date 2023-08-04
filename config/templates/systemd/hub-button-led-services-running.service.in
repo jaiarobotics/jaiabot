@@ -1,0 +1,12 @@
+[Unit]
+Description=Hub Button LED Services Running Mode
+
+[Service]
+User=root
+Group=root
+
+# Run python code within a pre-installed venv
+ExecStart=$jaiabot_share_dir/jaiabot/python/venv/bin/python3 $jaiabot_share_dir/jaiabot/python/$subdir/$exe $args
+
+[Install]
+WantedBy=multi-user.target

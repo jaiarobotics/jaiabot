@@ -22,7 +22,14 @@
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/pressure_temperature.pb.h"
 #include "machine_common.h"
+#include <fstream>
+#include <goby/util/seawater.h>
+#include <google/protobuf/util/json_util.h>
+
+#include "jaiabot/messages/imu.pb.h"
+using jaiabot::protobuf::IMUCommand;
 
 namespace jaiabot
 {
@@ -56,6 +63,11 @@ struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
     EvMissionFeasible(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
     jaiabot::protobuf::MissionPlan plan;
 };
+struct EvRCOverrideFailed : boost::statechart::event<EvRCOverrideFailed>
+{
+    EvRCOverrideFailed(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
+    jaiabot::protobuf::MissionPlan plan;
+};
 
 STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
@@ -81,13 +93,18 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
+STATECHART_EVENT(EvPrePoweredDescentComplete)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
+STATECHART_EVENT(EvPowerDescentSafety)
 STATECHART_EVENT(EvHoldComplete)
 STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
 STATECHART_EVENT(EvGPSNoFix)
+STATECHART_EVENT(EvIMURestart)
+STATECHART_EVENT(EvIMURestartCompleted)
+STATECHART_EVENT(EvBottomDepthAbort)
 
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
@@ -171,6 +188,7 @@ namespace movement
 struct MovementSelection;
 struct Transit;
 struct ReacquireGPS;
+struct IMURestart;
 struct RemoteControl;
 namespace remotecontrol
 {
@@ -188,18 +206,21 @@ namespace task
 {
 struct TaskSelection;
 struct ReacquireGPS;
+struct IMURestart;
 struct StationKeep;
 struct SurfaceDrift;
 struct ConstantHeading;
 struct Dive;
 namespace dive
 {
+struct PrePoweredDescent;
 struct PoweredDescent;
 struct Hold;
 struct UnpoweredAscent;
 struct PoweredAscent;
 struct ReacquireGPS;
 struct SurfaceDrift;
+struct ConstantHeading;
 } // namespace dive
 } // namespace task
 
@@ -208,6 +229,7 @@ namespace recovery
 {
 struct Transit;
 struct ReacquireGPS;
+struct IMURestart;
 struct StationKeep;
 struct Stopped;
 } // namespace recovery
@@ -309,6 +331,183 @@ struct MissionManagerStateMachine
     }
     const goby::middleware::protobuf::gpsd::TimePositionVelocity& gps_tpv() { return tpv_; }
 
+    void calculate_pressure_adjusted(
+        const jaiabot::protobuf::PressureTemperatureData& pressure_temperature)
+    {
+        jaiabot::protobuf::PressureAdjustedData pa;
+
+        set_current_pressure(pressure_temperature.pressure_raw());
+
+        pa.set_pressure_raw(pressure_temperature.pressure_raw());
+        pa.set_pressure_raw_before_dive(start_of_dive_pressure());
+
+        auto pressure_adjusted = pa.pressure_raw() - pa.pressure_raw_before_dive();
+
+        goby::glog.is_debug2() &&
+            goby::glog << "Pressure RAW: " << pa.pressure_raw()
+                       << ", Pressure RAW Start of Dive: " << pa.pressure_raw_before_dive()
+                       << ", Adjusted: " << pressure_adjusted << std::endl;
+
+        pa.set_pressure_adjusted(pressure_adjusted);
+
+        // Calculate Depth From Pressure Adjusted
+        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat());
+        post_event(statechart::EvVehicleDepth(depth));
+
+        pa.set_calculated_depth_with_units(depth);
+
+        interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
+    }
+
+    void set_start_of_dive_pressure(double start_of_dive_pressure)
+    {
+        start_of_dive_pressure_ = start_of_dive_pressure;
+    }
+    const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
+
+    void set_current_pressure(double current_pressure) { current_pressure_ = current_pressure; }
+    const double& current_pressure() { return current_pressure_; }
+
+    void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
+    const double& transit_hdop_req() { return transit_hdop_req_; }
+
+    void set_transit_pdop_req(const double& transit_pdop) { transit_pdop_req_ = transit_pdop; }
+    const double& transit_pdop_req() { return transit_pdop_req_; }
+
+    void set_after_dive_hdop_req(const double& after_dive_hdop)
+    {
+        after_dive_hdop_req_ = after_dive_hdop;
+    }
+    const double& after_dive_hdop_req() { return after_dive_hdop_req_; }
+
+    void set_after_dive_pdop_req(const double& after_dive_pdop)
+    {
+        after_dive_pdop_req_ = after_dive_pdop;
+    }
+    const double& after_dive_pdop_req() { return after_dive_pdop_req_; }
+
+    void set_transit_gps_fix_checks(const uint32_t& transit_gps_fix_checks)
+    {
+        transit_gps_fix_checks_ = transit_gps_fix_checks;
+    }
+    const uint32_t& transit_gps_fix_checks() { return transit_gps_fix_checks_; }
+
+    void set_transit_gps_degraded_fix_checks(const uint32_t& transit_gps_degraded_fix_checks)
+    {
+        transit_gps_degraded_fix_checks_ = transit_gps_degraded_fix_checks;
+    }
+    const uint32_t& transit_gps_degraded_fix_checks() { return transit_gps_degraded_fix_checks_; }
+
+    void set_after_dive_gps_fix_checks(const uint32_t& after_dive_gps_fix_checks)
+    {
+        after_dive_gps_fix_checks_ = after_dive_gps_fix_checks;
+    }
+    const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
+
+    void
+    set_bottom_depth_safety_constant_heading(const double& bottom_depth_safety_constant_heading)
+    {
+        bottom_depth_safety_constant_heading_ = bottom_depth_safety_constant_heading;
+    }
+    const double& bottom_depth_safety_constant_heading()
+    {
+        return bottom_depth_safety_constant_heading_;
+    }
+
+    void set_bottom_depth_safety_constant_heading_speed(
+        const double& bottom_depth_safety_constant_heading_speed)
+    {
+        bottom_depth_safety_constant_heading_speed_ = bottom_depth_safety_constant_heading_speed;
+    }
+    const double& bottom_depth_safety_constant_heading_speed()
+    {
+        return bottom_depth_safety_constant_heading_speed_;
+    }
+
+    void set_bottom_depth_safety_constant_heading_time(
+        const double& bottom_depth_safety_constant_heading_time)
+    {
+        bottom_depth_safety_constant_heading_time_ = bottom_depth_safety_constant_heading_time;
+    }
+    const double& bottom_depth_safety_constant_heading_time()
+    {
+        return bottom_depth_safety_constant_heading_time_;
+    }
+
+    void set_bottom_safety_depth(const double& bottom_safety_depth)
+    {
+        bottom_safety_depth_ = bottom_safety_depth;
+    }
+    const double& bottom_safety_depth() { return bottom_safety_depth_; }
+
+    void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
+    {
+        latest_lat_ = latest_lat;
+    }
+    const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat()
+    {
+        return latest_lat_;
+    }
+
+    void set_latest_max_acceleration(
+        const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration)
+    {
+        latest_max_acceleration_ = latest_max_acceleration;
+    }
+    const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration()
+    {
+        return latest_max_acceleration_;
+    }
+
+    void set_latest_significant_wave_height(const double& latest_significant_wave_height)
+    {
+        latest_significant_wave_height_ = latest_significant_wave_height;
+    }
+    const double& latest_significant_wave_height() { return latest_significant_wave_height_; }
+
+    void set_create_task_packet_file(const bool& create_task_packet_file)
+    {
+        create_task_packet_file_ = create_task_packet_file;
+    }
+    const bool& create_task_packet_file() { return create_task_packet_file_; }
+
+    void set_task_packet_file_name(const std::string& task_packet_file_name)
+    {
+        task_packet_file_name_ = task_packet_file_name;
+    }
+    const std::string& task_packet_file_name() { return task_packet_file_name_; }
+
+    const std::string& create_file_date_time()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+
+        std::tm* localTime = std::localtime(&currentTime);
+
+        std::ostringstream oss;
+        oss << (localTime->tm_year + 1900) << std::setw(2) << std::setfill('0')
+            << (localTime->tm_mon + 1) << std::setw(2) << std::setfill('0') << localTime->tm_mday
+            << "T" << std::setw(2) << std::setfill('0') << localTime->tm_hour << std::setw(2)
+            << std::setfill('0') << localTime->tm_min << std::setw(2) << std::setfill('0')
+            << localTime->tm_sec;
+
+        data_time_string_ = oss.str();
+
+        return data_time_string_;
+    }
+
+    void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
+    const bool& rf_disable() { return rf_disable_; }
+
+    void set_hub_id(const int32_t& hub_id) { hub_id_ = hub_id; }
+    const int32_t& hub_id() { return hub_id_; }
+
+    void set_data_offload_exclude(const std::string& data_offload_exclude)
+    {
+        data_offload_exclude_ = data_offload_exclude;
+    }
+    const std::string& data_offload_exclude() { return data_offload_exclude_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -317,6 +516,35 @@ struct MissionManagerStateMachine
     std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
     std::set<jaiabot::protobuf::Warning> warnings_;
     goby::middleware::protobuf::gpsd::TimePositionVelocity tpv_;
+    double transit_hdop_req_{cfg().gps_hdop_fix()};
+    double transit_pdop_req_{cfg().gps_pdop_fix()};
+    double after_dive_hdop_req_{cfg().gps_after_dive_hdop_fix()};
+    double after_dive_pdop_req_{cfg().gps_after_dive_pdop_fix()};
+    uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
+    uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
+    uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
+    double start_of_dive_pressure_{0};
+    double current_pressure_{0};
+    // if we don't get latitude information, we'll compute depth based on mid-latitude
+    // (45 degrees), which will introduce up to 0.27% error at 500 meters depth
+    // at the equator or the poles
+    boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
+        45 * boost::units::degree::degrees};
+    bool rf_disable_{false};
+    // IMUData.max_acceleration, to characterize the bottom type
+    boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{
+        0 * boost::units::si::meter_per_second_squared};
+    double latest_significant_wave_height_{0};
+    double bottom_depth_safety_constant_heading_{0};
+    double bottom_depth_safety_constant_heading_speed_{0};
+    double bottom_depth_safety_constant_heading_time_{0};
+    double bottom_safety_depth_{cfg().min_depth_safety()};
+    // Task Packet
+    bool create_task_packet_file_{true};
+    std::string task_packet_file_name_{""};
+    std::string data_time_string_{""};
+    int32_t hub_id_{0};
+    std::string data_offload_exclude_{""};
 };
 
 struct PreDeployment
@@ -334,7 +562,8 @@ struct PreDeployment
     ~PreDeployment() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
+        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
+                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
 
 namespace predeployment
@@ -386,14 +615,35 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                 Notify<Failed, protobuf::PRE_DEPLOYMENT__FAILED>
 {
     using StateBase = boost::statechart::state<Failed, PreDeployment>;
-    Failed(typename StateBase::my_context c) : StateBase(c) {}
-    ~Failed() {}
+    Failed(typename StateBase::my_context c);
+    ~Failed();
+    void loop(const EvLoop&);
+
+    void isFeasibleMissionRC(const EvMissionFeasible& ev)
+    {
+        if (ev.plan.movement() == protobuf::MissionPlan_MovementType_REMOTE_CONTROL)
+        {
+            goby::glog.is_debug1() && goby::glog << "Mission Plan is rc, override failed state."
+                                                 << std::endl;
+
+            post_event(EvRCOverrideFailed(ev.plan));
+        }
+    }
 
     // allow Activate from Failed in case an error resolves itself
     // while the vehicle is powered on (e.g. GPS fix after several minutes).
     // If Activate is sent and the vehicle still has an error,
     // SelfTest will simply fail again and we'll end up back here in Failed (as desired)
-    using reactions = boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>>;
+    // Check the mission to see if is a rc mission. If it is then we should override.
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvActivate, SelfTest>,
+                         boost::statechart::transition<EvRCOverrideFailed, Ready>,
+                         boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>,
+                         boost::statechart::in_state_reaction<EvMissionFeasible, Failed,
+                                                              &Failed::isFeasibleMissionRC>>;
+  private:
+    // determines when to stop logging
+    goby::time::SteadyClock::time_point failed_startup_log_timeout_;
 };
 
 struct WaitForMissionPlan
@@ -404,11 +654,10 @@ struct WaitForMissionPlan
     WaitForMissionPlan(typename StateBase::my_context c) : StateBase(c) {}
     ~WaitForMissionPlan() {}
 
-    using reactions = boost::mpl::list<
-        boost::statechart::transition<EvMissionFeasible, Ready>,
-        boost::statechart::transition<EvMissionInfeasible,
-                                      WaitForMissionPlan> // maybe change to in_state_reaction?
-        >;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvMissionFeasible, Ready>,
+                         // maybe change to in_state_reaction?
+                         boost::statechart::transition<EvMissionInfeasible, WaitForMissionPlan>>;
 };
 
 struct Ready : boost::statechart::state<Ready, PreDeployment>,
@@ -418,11 +667,26 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
     Ready(typename StateBase::my_context c) : StateBase(c)
     {
         auto mission_feasible_event = dynamic_cast<const EvMissionFeasible*>(triggering_event());
+        auto mission_feasible_override_event =
+            dynamic_cast<const EvRCOverrideFailed*>(triggering_event());
+
         if (mission_feasible_event)
         {
+            goby::glog.is_debug1() && goby::glog << "Ready: mission_feasible_event." << std::endl;
             const auto plan = mission_feasible_event->plan;
-            this->machine().set_mission_plan(plan,
-                                             true); // reset the datum on the initial mission
+            // reset the datum on the initial mission
+            this->machine().set_mission_plan(plan, true);
+            if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
+                post_event(EvDeployed());
+        }
+        else if (mission_feasible_override_event)
+        {
+            goby::glog.is_debug1() && goby::glog << "Ready: mission_feasible_override_event."
+                                                 << std::endl;
+
+            const auto plan = mission_feasible_override_event->plan;
+            // reset the datum on the initial mission
+            this->machine().set_mission_plan(plan, true);
             if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
@@ -439,6 +703,7 @@ struct InMission
       AppMethodsAccess<InMission>
 {
     constexpr static int RECOVERY_GOAL_INDEX{-1};
+    constexpr static int SURF_EGRESS_GOAL_INDEX{-2};
 
     using StateBase =
         boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>;
@@ -481,17 +746,41 @@ struct InMission
 
     void increment_goal_index()
     {
+        const auto& repeats = this->machine().mission_plan().repeats();
+        const auto& goal_size = this->machine().mission_plan().goal_size();
+
         ++goal_index_;
+
         // all goals completed
-        if (goal_index_ >= this->machine().mission_plan().goal_size())
+        if (goal_index_ >= goal_size)
         {
-            goby::glog.is_verbose() && goby::glog << group("movement")
-                                                  << "All goals complete, mission is complete."
+            ++repeat_index_;
+
+            goby::glog.is_verbose() && goby::glog << group("movement") << "Repeat " << repeat_index_
+                                                  << "/" << repeats << ": all goals complete"
                                                   << std::endl;
 
-            set_mission_complete();
-            goal_index_ = RECOVERY_GOAL_INDEX;
+            // all repeats completed
+            if (repeat_index_ >= repeats)
+            {
+                goby::glog.is_verbose() &&
+                    goby::glog << group("movement") << "All repeats complete, mission is complete."
+                               << std::endl;
+                set_mission_complete();
+                goal_index_ = RECOVERY_GOAL_INDEX;
+            }
+            else
+            {
+                // Do next repeat, starting with first goal
+                goal_index_ = 0;
+            }
         }
+    }
+
+    void set_goal_index_to_final_goal()
+    {
+        // Sets goal index to be the final goal index
+        goal_index_ = (this->machine().mission_plan().goal_size() - 1);
     }
 
     void set_mission_complete() { mission_complete_ = true; }
@@ -502,6 +791,7 @@ struct InMission
 
   private:
     int goal_index_{0};
+    int repeat_index_{0};
     bool mission_complete_{false};
 };
 
@@ -534,13 +824,17 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
                            Notify<Derived, state, protobuf::SETPOINT_IVP_HELM>
 {
     using StateBase = boost::statechart::state<Derived, Parent>;
-    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c){};
+    AcquiredGPSCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
 
     ~AcquiredGPSCommon(){};
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Reset Counter For Degraded Checks
             gps_degraded_fix_check_incr_ = 0;
@@ -548,14 +842,16 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
         else
         {
             // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ < (this->cfg().total_gps_degraded_fix_checks() - 1))
+            if (gps_degraded_fix_check_incr_ <
+                (this->machine().transit_gps_degraded_fix_checks() - 1))
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, but has not "
                                   "reached threshold for total checks: "
                                   " "
                                << gps_degraded_fix_check_incr_ << " < "
-                               << (this->cfg().total_gps_degraded_fix_checks() - 1) << std::endl;
+                               << (this->machine().transit_gps_degraded_fix_checks() - 1)
+                               << std::endl;
 
                 // Increment until we reach total gps degraded fix checks
                 gps_degraded_fix_check_incr_++;
@@ -564,9 +860,9 @@ struct AcquiredGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
-                               << " > " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " > " << this->cfg().gps_pdop_fix() << " Reset incr for gps fix"
-                               << std::endl;
+                               << " > " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " > " << this->machine().transit_pdop_req()
+                               << " Reset incr for gps fix" << std::endl;
 
                 // Post Event for no gps fix
                 this->post_event(statechart::EvGPSNoFix());
@@ -597,23 +893,29 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             // (even though we haven't as there's no GPS)
             this->post_event(statechart::EvGPSFix());
         }
+        else
+        {
+            this->machine().insert_warning(
+                jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+        }
     };
 
     ~ReacquireGPSCommon(){};
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_hdop_fix()) && (ev.pdop <= this->cfg().gps_pdop_fix()))
+        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
+            (ev.pdop <= this->machine().transit_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < (this->cfg().total_gps_fix_checks() - 1))
+            if (gps_fix_check_incr_ < (this->machine().transit_gps_fix_checks() - 1))
             {
-                goby::glog.is_debug2() && goby::glog << "GPS has a good fix, but has not "
-                                                        "reached threshold for total checks"
-                                                        " "
-                                                     << gps_fix_check_incr_ << " < "
-                                                     << (this->cfg().total_gps_fix_checks() - 1)
-                                                     << std::endl;
+                goby::glog.is_debug2() &&
+                    goby::glog << "GPS has a good fix, but has not "
+                                  "reached threshold for total checks"
+                                  " "
+                               << gps_fix_check_incr_ << " < "
+                               << (this->machine().transit_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -621,8 +923,8 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
             {
                 goby::glog.is_debug2() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_hdop_fix() << ", pdop is " << ev.pdop
-                               << " <= " << this->cfg().gps_pdop_fix()
+                               << " <= " << this->machine().transit_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().transit_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
                 // Post Event for gps fix
@@ -642,6 +944,42 @@ struct ReacquireGPSCommon : boost::statechart::state<Derived, Parent>,
 
   private:
     int gps_fix_check_incr_{0};
+};
+
+// Base class for all Task IMURestart as these do nearly the same thing.
+// "Derived" MUST be a child state of Task
+template <typename Derived, typename Parent, jaiabot::protobuf::MissionState state>
+struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
+                          Notify<Derived, state, protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<Derived, Parent>;
+    IMURestartCommon(typename StateBase::my_context c) : StateBase(c)
+    {
+        goby::time::SteadyClock::time_point imu_restart_start = goby::time::SteadyClock::now();
+
+        // Read in configurable time to stay in IMU Restart State
+        int imu_restart_seconds = this->cfg().imu_restart_seconds();
+        goby::time::SteadyClock::duration imu_restart_duration =
+            std::chrono::seconds(imu_restart_seconds);
+        imu_restart_time_stop_ = imu_restart_start + imu_restart_duration;
+    };
+
+    ~IMURestartCommon(){};
+
+    void loop(const EvLoop&)
+    {
+        goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+        if (now >= imu_restart_time_stop_)
+        {
+            this->post_event(EvIMURestartCompleted());
+        }
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point imu_restart_time_stop_;
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
@@ -730,7 +1068,8 @@ struct Transit
                                                               &Transit::waypoint_reached>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>>;
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>>;
 };
 
 struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
@@ -747,6 +1086,21 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Movement,
         boost::mpl::list<boost::statechart::transition<EvGPSFix, Transit>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPSCommon,
                                                               &ReacquireGPSCommon::gps>>;
+};
+
+struct IMURestart
+    : IMURestartCommon<IMURestart, Movement, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Movement,
+                           protobuf::IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
 };
 
 struct RemoteControl
@@ -821,7 +1175,13 @@ struct SurfaceDrift
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<SurfaceDrift, RemoteControl>;
-    SurfaceDrift(typename StateBase::my_context c) : StateBase(c) {}
+    SurfaceDrift(typename StateBase::my_context c) : StateBase(c)
+    {
+        // Stop the craft
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+    }
     ~SurfaceDrift() {}
 
     void loop(const EvLoop&);
@@ -915,6 +1275,15 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+
+        goby::glog.is_debug1() &&
+            goby::glog << group("task") << "SurfaceDriftTaskCommon Starting Wave Height Sampling"
+                       << std::endl;
+
+        // Start wave height sampling
+        auto imu_command = IMUCommand();
+        imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
+        this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
     }
 
     ~SurfaceDriftTaskCommon()
@@ -948,14 +1317,30 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
                                          boost::units::atan2(dy, dx);
             if (heading < 0 * boost::units::si::radians) heading = heading + (goby::util::pi<double> * 2 * boost::units::si::radians);
             drift.set_heading_with_units(heading);
+
+            // Set the wave height and period
+            drift_packet().set_significant_wave_height(
+                this->machine().latest_significant_wave_height());
+
+            goby::glog.is_debug1() &&
+                goby::glog << group("task")
+                           << "~SurfaceDriftTaskCommon Stopping Wave Height Sampling" << std::endl;
+
+            // Stop wave height sampling
+            auto imu_command = IMUCommand();
+            imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
+            this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
         }
     }
 
     void loop(const EvLoop&)
     {
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+
         if (now >= drift_time_stop_)
+        {
             this->post_event(EvTaskComplete());
+        }
 
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
@@ -986,7 +1371,7 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
     using StateBase = boost::statechart::state<TaskSelection, Task>;
     TaskSelection(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug2() && goby::glog << "Entering TaskSelect" << std::endl;
+        goby::glog.is_debug2() && goby::glog << group("task") << "Entering TaskSelect" << std::endl;
         post_event(EvTaskSelect());
     }
     ~TaskSelection() {}
@@ -1037,6 +1422,20 @@ struct ReacquireGPS
                                                               &ReacquireGPSCommon::gps>>;
 };
 
+struct IMURestart
+    : IMURestartCommon<IMURestart, Task, protobuf::IN_MISSION__UNDERWAY__TASK__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Task, protobuf::IN_MISSION__UNDERWAY__TASK__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, StationKeep>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+};
+
 struct StationKeep
     : AcquiredGPSCommon<StationKeep, Task, protobuf::IN_MISSION__UNDERWAY__TASK__STATION_KEEP>
 {
@@ -1047,7 +1446,8 @@ struct StationKeep
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
-                                                              &AcquiredGPSCommon::gps>>;
+                                                              &AcquiredGPSCommon::gps>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>>;
 };
 
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
@@ -1061,7 +1461,7 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
 };
 
 struct ConstantHeading
-    : boost::statechart::state<ConstantHeading, Task>, 
+    : boost::statechart::state<ConstantHeading, Task>,
       Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
              protobuf::SETPOINT_IVP_HELM>
 {
@@ -1078,9 +1478,9 @@ struct ConstantHeading
     goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
-struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMethodsAccess<Dive>
+struct Dive : boost::statechart::state<Dive, Task, dive::PrePoweredDescent>, AppMethodsAccess<Dive>
 {
-    using StateBase = boost::statechart::state<Dive, Task, dive::PoweredDescent>;
+    using StateBase = boost::statechart::state<Dive, Task, dive::PrePoweredDescent>;
 
     Dive(typename StateBase::my_context c);
     ~Dive();
@@ -1106,6 +1506,19 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
         dive_depths_.clear();
         dive_depths_.push_back(seafloor_depth);
         dive_packet().set_bottom_dive(true);
+
+        goby::glog.is_debug2() &&
+            goby::glog << "Seafloor Depth: " << seafloor_depth.value()
+                       << " , Safety Depth: " << this->machine().bottom_safety_depth() << std::endl;
+
+        if (seafloor_depth.value() <=
+            (this->machine().bottom_safety_depth() + cfg().dive_depth_eps()))
+        {
+            dive_packet().set_reached_min_depth(true);
+            this->machine().insert_warning(
+                jaiabot::protobuf::
+                    WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED);
+        }
     }
 
   private:
@@ -1114,6 +1527,28 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PoweredDescent>, AppMet
 };
 namespace dive
 {
+struct PrePoweredDescent
+    : boost::statechart::state<PrePoweredDescent, Dive>,
+      Notify<PrePoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT,
+             protobuf::SETPOINT_STOP>
+{
+    using StateBase = boost::statechart::state<PrePoweredDescent, Dive>;
+    PrePoweredDescent(typename StateBase::my_context c);
+    ~PrePoweredDescent();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, PrePoweredDescent, &PrePoweredDescent::loop>,
+        boost::statechart::transition<EvPrePoweredDescentComplete, PoweredDescent>>;
+
+  private:
+    goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime duration_{0 * boost::units::si::seconds};
+    // determines when to transition into powered descent
+    goby::time::SteadyClock::time_point pre_powered_descent_timeout_;
+};
+
 struct PoweredDescent
     : boost::statechart::state<PoweredDescent, Dive>,
       Notify<PoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT,
@@ -1130,7 +1565,8 @@ struct PoweredDescent
         boost::statechart::transition<EvDepthTargetReached, Hold>,
         boost::statechart::in_state_reaction<EvLoop, PoweredDescent, &PoweredDescent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, PoweredDescent,
-                                             &PoweredDescent::depth>>;
+                                             &PoweredDescent::depth>,
+        boost::statechart::transition<EvPowerDescentSafety, UnpoweredAscent>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
@@ -1140,8 +1576,12 @@ struct PoweredDescent
     boost::units::quantity<boost::units::si::length> last_depth_;
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    //Keep track of dive information
+    // keep track of dive information
     jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug_;
+    // determines when to start using powered descent logic
+    goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
+    // determines when to safely timout of powered descent and transition into unpowered ascent
+    goby::time::SteadyClock::time_point powered_descent_timeout_;
 };
 
 struct Hold
@@ -1208,7 +1648,7 @@ struct PoweredAscent
              protobuf::SETPOINT_POWERED_ASCENT>
 {
     using StateBase = boost::statechart::state<PoweredAscent, Dive>;
-    PoweredAscent(typename StateBase::my_context c) : StateBase(c) {}
+    PoweredAscent(typename StateBase::my_context c);
     ~PoweredAscent();
 
     void loop(const EvLoop&);
@@ -1223,6 +1663,18 @@ struct PoweredAscent
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
     jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
+    // determines when to turn on motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_on_timeout_;
+    // determines when to turn off motor during powered ascent
+    goby::time::SteadyClock::time_point powered_ascent_motor_off_timeout_;
+    // determines duration to have the motor on
+    goby::time::SteadyClock::duration powered_ascent_motor_on_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_on_timeout());
+    // determines duration to have the motor off
+    goby::time::SteadyClock::duration powered_ascent_motor_off_duration_ =
+        std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
+    // determines wehn we are still in motor off mode
+    bool in_motor_off_mode_{false};
 };
 
 struct ReacquireGPS
@@ -1236,18 +1688,18 @@ struct ReacquireGPS
 
     void gps(const EvVehicleGPS& ev)
     {
-        if ((ev.hdop <= this->cfg().gps_after_dive_hdop_fix()) &&
-            (ev.pdop <= this->cfg().gps_after_dive_pdop_fix()))
+        if ((ev.hdop <= this->machine().after_dive_hdop_req()) &&
+            (ev.pdop <= this->machine().after_dive_pdop_req()))
         {
             // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < this->cfg().total_after_dive_gps_fix_checks())
+            if (gps_fix_check_incr_ < (this->machine().after_dive_gps_fix_checks() - 1))
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, but has not "
                                   "reached threshold for total checks"
                                   " "
                                << gps_fix_check_incr_ << " < "
-                               << this->cfg().total_after_dive_gps_fix_checks() << std::endl;
+                               << (this->machine().after_dive_gps_fix_checks() - 1) << std::endl;
                 // Increment until we reach total gps fix checks
                 gps_fix_check_incr_++;
             }
@@ -1255,29 +1707,43 @@ struct ReacquireGPS
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->cfg().gps_after_dive_hdop_fix() << ", pdop is "
-                               << ev.pdop << " <= " << this->cfg().gps_after_dive_pdop_fix()
+                               << " <= " << this->machine().after_dive_hdop_req() << ", pdop is "
+                               << ev.pdop << " <= " << this->machine().after_dive_pdop_req()
                                << " Reset incr for gps degraded fix" << std::endl;
 
-                // Post Event for gps fix
-                this->post_event(statechart::EvGPSFix());
+                goby::glog.is_debug2() &&
+                    goby::glog << "Reached Min depth: "
+                               << context<Task>().task_packet().dive().reached_min_depth()
+                               << std::endl;
+
+                if (context<Task>().task_packet().dive().reached_min_depth())
+                {
+                    context<InMission>().set_goal_index_to_final_goal();
+                    this->post_event(EvBottomDepthAbort());
+                }
+                else
+                {
+                    // Post Event for gps fix
+                    this->post_event(statechart::EvGPSFix());
+                }
             }
         }
         else
         {
             // Reset gps fix incrementor
-            gps_fix_check_incr_ = 1;
+            gps_fix_check_incr_ = 0;
         }
     }
 
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>,
+        boost::statechart::transition<EvBottomDepthAbort, ConstantHeading>,
         boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()},
         end_time_;
-    int gps_fix_check_incr_{1};
+    int gps_fix_check_incr_{0};
 };
 
 struct SurfaceDrift
@@ -1289,6 +1755,24 @@ struct SurfaceDrift
                                  protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT>(c)
     {
     }
+};
+
+struct ConstantHeading
+    : boost::statechart::state<ConstantHeading, Dive>,
+      Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING,
+             protobuf::SETPOINT_IVP_HELM>
+{
+    using StateBase = boost::statechart::state<ConstantHeading, Dive>;
+    ConstantHeading(typename StateBase::my_context c);
+    ~ConstantHeading();
+
+    void loop(const EvLoop&);
+
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
 } // namespace dive
@@ -1317,6 +1801,7 @@ struct Transit
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvWaypointReached, StationKeep>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>>;
 };
@@ -1338,6 +1823,22 @@ struct ReacquireGPS : ReacquireGPSCommon<ReacquireGPS, Recovery,
                                                               &ReacquireGPSCommon::gps>>;
 };
 
+struct IMURestart
+    : IMURestartCommon<IMURestart, Recovery, protobuf::IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART>
+{
+    IMURestart(typename StateBase::my_context c)
+        : IMURestartCommon<IMURestart, Recovery,
+                           protobuf::IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART>(c)
+    {
+    }
+    ~IMURestart(){};
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvIMURestartCompleted, Transit>,
+        boost::statechart::transition<EvIMURestartCompleted, StationKeep>,
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+};
+
 struct StationKeep : AcquiredGPSCommon<StationKeep, Recovery,
                                        protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>
 {
@@ -1348,6 +1849,7 @@ struct StationKeep : AcquiredGPSCommon<StationKeep, Recovery,
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvStop, Stopped>,
                          boost::statechart::transition<EvGPSNoFix, ReacquireGPS>,
+                         boost::statechart::transition<EvIMURestart, IMURestart>,
                          boost::statechart::in_state_reaction<EvVehicleGPS, AcquiredGPSCommon,
                                                               &AcquiredGPSCommon::gps>>;
 };
@@ -1428,6 +1930,18 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
 
     void loop(const EvLoop&);
 
+    void set_data_offload_percentage(const uint32_t& data_offload_percentage)
+    {
+        data_offload_percentage_ = data_offload_percentage;
+    }
+    uint32_t data_offload_percentage() const { return data_offload_percentage_; }
+
+    void set_offload_command(const std::string& offload_command)
+    {
+        offload_command_ = offload_command;
+    }
+    std::string offload_command() const { return offload_command_; }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvDataOffloadComplete, Idle>,
         boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
@@ -1437,7 +1951,8 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
     // used by offload_thread_
     std::atomic<bool> offload_success_{false};
     std::atomic<bool> offload_complete_{false};
-    const std::string offload_command_;
+    std::string offload_command_{cfg().data_offload_command() + " 2>&1"};
+    uint32_t data_offload_percentage_{0};
 };
 
 struct Idle : boost::statechart::state<Idle, PostDeployment>,

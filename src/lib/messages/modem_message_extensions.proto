@@ -1,0 +1,22 @@
+syntax = "proto2";
+
+import "goby/acomms/protobuf/modem_message.proto"; 
+
+package jaiabot.protobuf;
+
+message HubInfo
+{
+    optional int32 hub_id = 1;  // Rx from hub (if set)
+    optional int32 modem_id = 2;
+    optional bool changed = 3 [default = false];  // hub changed since last Rx
+}
+
+message Transmission
+{
+    optional HubInfo hub = 1;
+}
+
+extend goby.acomms.protobuf.ModemTransmission
+{
+    optional Transmission transmission = 1500;
+}

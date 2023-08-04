@@ -26,6 +26,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "system_thread.h"
 
@@ -64,7 +65,11 @@ class Health : public ApplicationBase
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    void restart_services() { system("systemctl restart jaiabot"); }
+    void restart_services()
+    {
+        // Restart jaiabot applications and apache which is hosting JCC
+        system("systemctl restart apache2 jaiabot");
+    }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
 
@@ -73,6 +78,7 @@ class Health : public ApplicationBase
     goby::middleware::protobuf::ThreadHealth last_health_;
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
     std::set<jaiabot::protobuf::Error> failed_services_;
+    jaiabot::protobuf::LinuxHardwareStatus sim_hardware_status_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -117,6 +123,62 @@ jaiabot::apps::Health::Health()
             }
         });
 
+    // handle restart/reboot/shutdown commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const protobuf::CommandForHub& command_for_hub)
+        {
+            switch (command_for_hub.type())
+            {
+                // most commands handled by jaiabot_hub_manager
+                default: break;
+
+                case protobuf::CommandForHub::REBOOT_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to reboot computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl reboot");
+                    break;
+                case protobuf::CommandForHub::RESTART_ALL_SERVICES:
+                    glog.is_verbose() && glog << "Commanded to restart jaiabot services. "
+                                              << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        restart_services();
+                    break;
+                case protobuf::CommandForHub::SHUTDOWN_COMPUTER:
+                    glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
+                    if (!cfg().ignore_powerstate_changes())
+                        system("systemctl poweroff");
+                    break;
+            }
+        });
+
+    // handle rf disable commands since we run this app as root
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        glog.is_verbose() && glog << "Commanded to disable your Wi-Fi. "
+                                                  << std::endl;
+                        /*
+                        *  ifdown wlan0 prevents the OS from initiating any TX/RX operation on the interface. 
+                        *  The RPi shouldn't be transmitting anything at this point, and you won't be able to 
+                        *  scan for wireless networks until you bring the interface up again.
+                        */
+                        system("ifdown wlan0");
+                    }
+                    else
+                    {
+                        glog.is_verbose() && glog << "Commanded to enable your Wi-Fi. "
+                                                  << std::endl;
+                        system("ifup wlan0");
+                    }
+                }
+            }
+        });
+
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
@@ -158,9 +220,11 @@ jaiabot::apps::Health::Health()
                 interprocess().publish<groups::systemd_report_ack>(ack);
             }
         });
-
-    launch_thread<LinuxHardwareThread>(cfg().linux_hw());
-    launch_thread<NTPStatusThread>(cfg().ntp());
+    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
+    {
+        launch_thread<LinuxHardwareThread>(cfg().linux_hw());
+        launch_thread<NTPStatusThread>(cfg().ntp());
+    }
 
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())
@@ -226,6 +290,17 @@ void jaiabot::apps::Health::loop()
                                    << cfg().auto_restart_timeout() << " seconds" << std::endl;
             restart_services();
         }
+    }
+
+    if (cfg().is_in_sim() && !cfg().test_hardware_in_sim())
+    {
+        auto& wifi = *sim_hardware_status_.mutable_wifi();
+        wifi.set_is_connected(true);
+        wifi.set_link_quality(70);
+        wifi.set_link_quality_percentage(100);
+        wifi.set_signal_level(33);
+        wifi.set_noise_level(0);
+        interprocess().publish<jaiabot::groups::linux_hardware_status>(sim_hardware_status_);
     }
 }
 
