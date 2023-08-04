@@ -23,7 +23,6 @@
   .run-info-outer-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 24px;
     padding: 3px 24px 24px 24px;
   }

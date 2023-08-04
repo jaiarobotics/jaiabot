@@ -277,19 +277,7 @@ export default class CommandControl extends React.Component {
 			missionPlanningGrid: null,
 			missionPlanningLines: null,
 			missionPlanningFeature: null,
-			missionBaseGoal: {
-				task: {
-					type: TaskType.DIVE,
-					dive: {
-						max_depth: 10,
-						depth_interval: 10,
-						hold_time: 0
-					},
-					surface_drift: {
-						drift_time: 10
-					}
-				}
-			},
+			missionBaseGoal: { task: { type: TaskType.NONE } },
 			missionEndTask: {type: TaskType.NONE},
 			surveyPolygonFeature: null,
 			surveyPolygonGeoCoords: null,
@@ -1929,32 +1917,22 @@ export default class CommandControl extends React.Component {
 	 */
 	updateMissionPlanningLayer() {
 		// Update the mission layer
-		let selectedColor = '#34d2eb'
-		let unselectedColor = 'white'
-		let surveyPolygonColor = '#051d61'
+		const selectedColor = '#34d2eb'
+		const unselectedColor = 'white'
+		const surveyPolygonColor = '#051d61'
 
-		let selectedLineStyle = new OlStyle({
-			fill: new OlFillStyle({color: selectedColor}),
-			stroke: new OlStrokeStyle({color: selectedColor, width: 2.5}),
-		})
-
-		let defaultLineStyle = new OlStyle({
-			fill: new OlFillStyle({color: unselectedColor}),
-			stroke: new OlStrokeStyle({color: unselectedColor, width: 2.0}),
-		})
-
-		let surveyPolygonLineStyle = new OlStyle({
+		const surveyPolygonLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: surveyPolygonColor}),
 			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 3.0}),
 		})
 
-		let surveyPlanLineStyle = new OlStyle({
+		const surveyPlanLineStyle = new OlStyle({
 			fill: new OlFillStyle({color: surveyPolygonColor}),
 			stroke: new OlStrokeStyle({color: surveyPolygonColor, width: 1.0}),
 		})
 
 		// Place all the mission planning features in this for the missionLayer
-		let missionPlanningFeaturesList: OlFeature[] = []
+		const missionPlanningFeaturesList: OlFeature[] = []
 
 		const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
 
@@ -2194,6 +2172,7 @@ export default class CommandControl extends React.Component {
 				<MissionSettingsPanel
 					map={map}
 					missionParams={this.state.missionParams}
+					missionPlanningGrid={this.state.missionPlanningGrid}
 					centerLineString={this.state.centerLineString}
 					botList={bots}
 					missionBaseGoal={this.state.missionBaseGoal}
@@ -2218,8 +2197,7 @@ export default class CommandControl extends React.Component {
 							const runList = this.pushRunListToUndoStack().getRunList()
 							this.deleteAllRunsInMission(runList, false);
 
-							for(let id in this.missionPlans)
-							{
+							for (let id in this.missionPlans) {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
