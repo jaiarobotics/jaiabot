@@ -1064,43 +1064,7 @@ td {
 
 /******** CSS GOAL/MISSION Settings ********************/
 
-.MissionSettingsPanel {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
-  position: absolute;
-  right: @command-button-size + (2 * @command-button-padding);
-  top: @command-button-size + (2 * @command-button-padding);
-  padding: 8pt;
-  z-index: @mission-settings;
-
-  max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
-  overflow-y: auto;
-}
-
-#mission-type {
-  color: #111111ff;
-  margin: 8pt;
-  border-radius: 4pt;
-}
-
-.missionStatsHeader {
-  font-size: 10pt;
-  color: #051d61;
-  font-weight: bold;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
-
-.missionStatsValue {
-  font-size: 10pt;
-  color: #051d61;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
+.MissionSettingsPanel {}
 
 .NumberInput {
   color: @cc-text-color;
@@ -1391,13 +1355,6 @@ div.closeButton {
   text-align: center;
 }
 
-.mission-panel-commands-container {
-  display: flex;
-  background-color: @cc-accordian-color;
-  margin: 12pt 8pt;
-  padding: 2pt 0;
-}
-
 #runList {
   max-height: calc(100vh - (@command-button-size + (2 * @command-button-padding) + @command-button-size + (2 * @command-button-padding) + @rc-panel-height-px + 71.28px + 22.92px));
   overflow-y: auto;
@@ -1406,7 +1363,7 @@ div.closeButton {
 .mission-panel-commands-container {
   display: flex;
   background-color: @cc-accordian-color;
-  margin: 12pt 8pt;
+  margin: 8pt;
   padding: 2pt 0;
 }
 

@@ -80,7 +80,8 @@ const commands: {[key: string]: CommandInfo} = {
         description: 'RC mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
-            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
+            /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
+            /^.+__FAILED$/
         ]
     },
     recover: {
@@ -204,8 +205,8 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, bo
     if (!takeControlFunction()) return;
 
     if (botRun) {
-        if (bot.health_state !== 'HEALTH__OK') {
-            alert('Cannot perform this run without a health state of "HEALTH__OK"')
+        if (bot.health_state !== 'HEALTH__OK' && bot.health_state !== "HEALTH__DEGRADED") {
+            alert('Cannot perform this run without a health state of "HEALTH__OK" or "HEALTH__DEGRADED"')
             return
         }
 
@@ -229,19 +230,29 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, bo
     }
 }
 
-function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number, isRCModeActive: (botId: number) => boolean) {
+function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
+                        isRCModeActive: (botId: number) => boolean, bot: PortalBotStatus) {
 
     if (!takeControlFunction() || !botMission) return;
 
     const isRCActive = isRCModeActive(botId)
 
     if (!isRCActive) {
-        if (confirm("Are you sure you'd like to use remote control mode for Bot: " + botId + '?')) {
+
+        let isCriticallyLowBattery = ""
+
+        if (Array.isArray(bot?.error)) {
+            for (let e of bot?.error) {
+                if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
+                    isCriticallyLowBattery = "***Critically Low Battery in RC Mode coulde jeopardize your recovery!***\n"
+                }
+            }
+        }
+
+        if (confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + botId + '?')) {
 
             console.debug('Running Remote Control:')
             console.debug(botMission)
-
-            info('Submitted request for RC Mode for: ' + botId);
 
             api.postCommand(botMission).then(response => {
                 if (response.message) {
@@ -651,7 +662,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     `
                                 } 
                                 disabled={disableButton(commands.rcMode, missionState)}  
-                                onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive) }}
+                                onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive, bot) }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
                             </Button>
