@@ -61,7 +61,8 @@ function run_wt_checklist() {
    WT_CHOICE=$(whiptail --title "$title" --checklist "$menu" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT "${WT_ARRAY[@]}" --output-fd 5 5>&1 1>/dev/tty)
 }
 
-all_repos=("test" "continuous" "beta" "release")
+all_repos_except_release=("test" "continuous" "beta")
+all_repos=("${all_repos_except_release[@]}" "release")
 all_releases=("1.y" "2.y" ) # ... "3.y" "4.y" "5.y")
 
 function set_all_release()
@@ -135,10 +136,9 @@ function update_release()
 
 function choose_repos()
 {
-    run_wt_checklist "Staging Repos" "Which repos to symlink to staging (the rest will be set to release)?" "${all_repos[@]}"
+    run_wt_checklist "Staging Repos" "Which repos to symlink to staging (the rest will be set to release)?" "${all_repos_except_release[@]}"
     staging_repos="${WT_CHOICE}"
     set_all_release
-    echo "$staging_repos"
     for repo in $staging_repos
     do
         set_staging $repo

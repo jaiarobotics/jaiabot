@@ -214,30 +214,43 @@ The resulting contents was copied into Circle CI [private environmental variable
 
 ### packages.gobysoft.org mirror
 
-To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary.
-
-```
-sudo apt install apt-mirror
-```
-
-I copied `gobysoft-apt-mirror-1.y*.list` from `jaiabot/scripts/packages` to `/opt/jaia_packages` on packages.jaia.tech.
-
-#### Staging and release
-
-Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively merged into the JaiaBot repository. 
+To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update_gobysoft_mirror.sh` script.
 
 #### Create/update the mirror
 
-Run `apt-mirror`:
+Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively tested and merged into the JaiaBot repository. 
+
+The script `update_gobysoft_mirror.sh` in `jaiabot/scripts/packages` (copied to `/opt/jaia_packages` on packages.jaia.tech) can be used to interactively manage the state of the GobySoft mirrors and their relation to the Jaiabot release distributions. 
+
+The script has three actions:
+
+- "Update Staging Mirror": Use `apt-mirror` to pull the latest packages.gobysoft.org packages into the staging mirror (`/var/spool/apt-mirror/staging/${branch}` where `${branch}` is one of 1.y, 2.y, etc.). This will also prompt for "Choose Staging and Release Repositories" after completion of apt-mirror.
+- "Update Release Mirror from Staging": Copy the staging mirror to the release mirror (`/var/spool/apt-mirror/release/${branch}`) and set all repositories to point to this release mirror.
+- "Choose Staging and Release Repositories": Choice which repositories (from "test", "continuous", "beta" and "release") should point to the staging mirror, and the rest will be set to the release mirror. This is done by symlinking from `/var/spool/apt-mirror/[staging|release]/${branch}/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/[test|continuous|beta|release]/${branch}`.
+
+(For backwards compatibility, `/var/www/html/ubuntu/gobysoft/1.y` is manually symlinked to `/var/www/html/ubuntu/gobysoft/release/1.y`)
+
+#### Pulling in a new Goby release 
+
+The general process for pulling in a new Goby release should be:
+
+- Run `update_gobysoft_mirror.sh` and choose "Update Staging Mirror". Then select "test" and "continuous" for the repos to link to staging (do not select "beta" yet; "beta" (and "release") will continue to use the old GobySoft "release" repo).
+- Merge the changes in jaiabot that need the updated Goby release into 1.y which will trigger a CircleCI "continuous" build against the new Goby release in the staging repository.
+- Test on vehicles using the continuous `jaiabot.list` repos:
+
 ```
-sudo apt-mirror /opt/jaia_packages/gobysoft-apt-mirror-1.y.list
+deb http://packages.jaia.tech/ubuntu/continuous/1.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ @DISTRIBUTION@/
 ```
-
-which creates the mirror in `/var/spool/apt-mirror/staging/1.y/mirror/packages.gobysoft.org`.
-
-I symlinked `/var/spool/apt-mirror/release/1.y/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/release/1.y`, and similarly for test, beta and continuous. We can use the symlinks to vary which mirror is used, for example, if we don't need a separate gobysoft mirror for a particular repository, `/var/www/html/ubuntu/gobysoft/beta/1.y`, `/var/www/html/ubuntu/gobysoft/continuous/1.y`, etc. could all be linked to `/var/spool/apt-mirror/release/1.y/mirror/packages.gobysoft.org/ubuntu/release`.
-
-(For backwards compatibility, `/var/www/html/ubuntu/gobysoft/1.y` is symlinked to `/var/www/html/ubuntu/gobysoft/release/1.y`)
+- When ready to release a beta tag, just before tagging, run `update_gobysoft_mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
+- Tag `jaiabot` with the beta tag and push. This will trigger a CircleCI "beta" build against the staging repo.
+- Test on vehicles using the beta `jaiabot.list` repos:
+```
+deb http://packages.jaia.tech/ubuntu/beta/1.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/gobysoft/beta/1.y/ @DISTRIBUTION@/
+```
+- When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
+- Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.
 
 ## Offline updates
 
