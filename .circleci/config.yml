@@ -24,6 +24,10 @@ environment-template-focal: &environment-template-focal
   DISTRO_RELEASE_CODENAME: "focal"
   DISTRO_RELEASE_VERSION: "ubuntu20.04"
 
+environment-template-jammy: &environment-template-jammy
+  DISTRO_RELEASE_CODENAME: "jammy"
+  DISTRO_RELEASE_VERSION: "ubuntu22.04"
+  
   
 ## Pre-declare Docker containers
 
@@ -31,9 +35,13 @@ docker-base-focal: &docker-base-focal
   - image: gobysoft/jaiabot-ubuntu-amd64:20.04.1
 docker-arm64-focal: &docker-arm64-focal
   - image: gobysoft/jaiabot-ubuntu-arm64:20.04.1
-docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:20.04.1
 
+docker-base-jammy: &docker-base-jammy
+  - image: gobysoft/jaiabot-ubuntu-amd64:22.04.1
+docker-arm64-jammy: &docker-arm64-jammy
+  - image: gobysoft/jaiabot-ubuntu-arm64:22.04.1
+docker-base-light: &docker-base-light
+  - image: gobysoft/ubuntu-build-base:22.04.1    
 
     
 ## Pre-declare job templates
@@ -187,6 +195,8 @@ workflows:
     jobs:
       - amd64-focal-build:
           <<: *filter-template-non-master
+      - amd64-jammy-build:
+          <<: *filter-template-non-master
       
       - get-orig-source:
           <<: *filter-template-master-only
@@ -196,6 +206,15 @@ workflows:
           requires:
             - get-orig-source
       - arm64-focal-deb-build:
+          <<: *filter-template-master-only
+          requires:
+            - get-orig-source
+
+      - amd64-jammy-deb-build:
+          <<: *filter-template-master-only
+          requires:
+            - get-orig-source
+      - arm64-jammy-deb-build:
           <<: *filter-template-master-only
           requires:
             - get-orig-source
@@ -210,9 +229,20 @@ workflows:
           requires:
             - amd64-focal-deb-build
             - arm64-focal-deb-build
+            - amd64-jammy-deb-build
+            - arm64-jammy-deb-build
 
       # bundle after each package upload
-      - bundle:
+      - bundle-focal:
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              only: /.*/
+          requires:
+            - upload
+            
+      - bundle-jammy:
           filters:
             tags:
               only: /.*/
@@ -229,7 +259,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -282,11 +312,34 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-focal
       <<: *environment-template-arm64
+
+  amd64-jammy-build:
+    <<: *job-template-amd64
+    docker: *docker-base-jammy
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-jammy
+      
+  amd64-jammy-deb-build:
+    <<: *job-template-deb-amd64
+    docker: *docker-base-jammy
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-jammy
+      <<: *environment-template-amd64
+  arm64-jammy-deb-build: 
+    <<: *job-template-deb-cross
+    docker: *docker-arm64-jammy
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-jammy
+      <<: *environment-template-arm64
+
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-focal
+      <<: *environment-template-jammy
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -310,7 +363,7 @@ jobs:
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
-  bundle:
+  bundle-focal:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2004:current
@@ -320,7 +373,7 @@ jobs:
     steps:
       - checkout
       - run: *run-set-deb-rep-and-version
-      - run:
+      - run: &run-bundle-package
           name: Bundle package (to jaiabot/build/bundle/jaiabot_bundle.tar)
           command: |
             cd /tmp/bundle/jaiabot
@@ -328,9 +381,22 @@ jobs:
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
             sudo mkdir -p /tmp/bundle/result
-            sudo cp ../jaiabot_updates.tar /tmp/bundle/result/jaiabot_updates_${NEWVERSION}.tar
-            sudo cp ../jaiabot_updates.iso /tmp/bundle/result/jaiabot_updates_${NEWVERSION}.iso
+            sudo cp ../jaiabot_updates.tar /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.tar
+            sudo cp ../jaiabot_updates.iso /tmp/bundle/result/jaiabot_updates_${DISTRO_RELEASE_CODENAME}_${NEWVERSION}.iso
 
-      - store_artifacts:
+      - store_artifacts: &store-bundle-artifacts
           path: /tmp/bundle/result
 
+  bundle-jammy:
+    working_directory: /tmp/bundle/jaiabot
+    machine:
+      image: ubuntu-2004:current
+    resource_class: arm.medium
+    environment:
+      <<: *environment-template-jammy
+    steps:
+      - checkout
+      - run: *run-set-deb-rep-and-version
+      - run: *run-bundle-package
+      - store_artifacts: *store-bundle-artifacts
+          
