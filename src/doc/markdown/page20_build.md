@@ -214,13 +214,17 @@ The resulting contents was copied into Circle CI [private environmental variable
 
 ### packages.gobysoft.org mirror
 
-To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc.) that can be manually updated as necessary.
+To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary.
 
 ```
 sudo apt install apt-mirror
 ```
 
-I copied `gobysoft-apt-mirror-1.y.list` from `jaiabot/scripts/packages` to `/opt/jaia_packages` on packages.jaia.tech.
+I copied `gobysoft-apt-mirror-1.y*.list` from `jaiabot/scripts/packages` to `/opt/jaia_packages` on packages.jaia.tech.
+
+#### Staging and release
+
+Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively merged into the JaiaBot repository. 
 
 #### Create/update the mirror
 
@@ -229,9 +233,11 @@ Run `apt-mirror`:
 sudo apt-mirror /opt/jaia_packages/gobysoft-apt-mirror-1.y.list
 ```
 
-which creates the mirror in `/var/spool/apt-mirror/1.y/mirror/packages.gobysoft.org`.
+which creates the mirror in `/var/spool/apt-mirror/staging/1.y/mirror/packages.gobysoft.org`.
 
-I symlinked `/var/spool/apt-mirror/1.y/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/1.y`
+I symlinked `/var/spool/apt-mirror/release/1.y/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/release/1.y`, and similarly for test, beta and continuous. We can use the symlinks to vary which mirror is used, for example, if we don't need a separate gobysoft mirror for a particular repository, `/var/www/html/ubuntu/gobysoft/beta/1.y`, `/var/www/html/ubuntu/gobysoft/continuous/1.y`, etc. could all be linked to `/var/spool/apt-mirror/release/1.y/mirror/packages.gobysoft.org/ubuntu/release`.
+
+(For backwards compatibility, `/var/www/html/ubuntu/gobysoft/1.y` is symlinked to `/var/www/html/ubuntu/gobysoft/release/1.y`)
 
 ## Offline updates
 
