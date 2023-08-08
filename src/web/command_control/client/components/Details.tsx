@@ -439,7 +439,8 @@ export interface BotDetailsProps {
     isRCModeActive: (botId: number) => boolean,
     updateEditModeToggle: (run: RunInterface) => boolean,
     isEditModeToggleDisabled: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (run: RunInterface) => boolean,
+    downloadIndividualBot: (bot: PortalBotStatus) => void
 }
 
 export function BotDetailsComponent(props: BotDetailsProps) {
@@ -510,7 +511,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     let dataOffloadButton = (
         <Button className={disableButton(commands.recover, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
             disabled={disableButton(commands.recover, missionState) || !linkQualityPercentage} 
-            onClick={() => { issueCommand(api, bot.bot_id, commands.recover) }}>
+            onClick={() => { props.downloadIndividualBot(bot) }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
     )
@@ -519,7 +520,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         dataOffloadButton = ( 
             <Button className={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage ? 'inactive button-jcc' : 'button-jcc'} 
                 disabled={disableButton(commands.retryDataOffload, missionState) || !linkQualityPercentage} 
-                onClick={() => { issueCommand(api, bot.bot_id, commands.retryDataOffload) }}>
+                onClick={() => { props.downloadIndividualBot(bot) }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
         )
