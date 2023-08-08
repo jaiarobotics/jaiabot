@@ -12,6 +12,9 @@
 #include "crc16.h"
 
 // Indicates the code version
+// If you are increasing this version than update
+// arduino driver configuration to include the new
+// version
 const int arduino_version = 1;
 
 // Binary serial protocol

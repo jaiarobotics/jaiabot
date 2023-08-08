@@ -66,6 +66,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
+    std::vector<int> splitVersion(const std::string& version);
+    bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
 
     int64_t lastAckTime;
@@ -94,8 +96,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool bot_rolled_over_{false};
 
     // Version Table
-    std::map<uint32_t, std::set<std::string>> arduino_version_compatibility_table_;
-    std::map<uint32_t, std::set<std::string>> arduino_version_incompatibility_table_;
+    std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
     bool is_driver_compatible_{false};
     bool is_settings_ack_{false};
     std::string app_version_{VERSION_STRING};
@@ -127,43 +128,12 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     for (auto row : cfg().arduino_version_table())
     {
         uint32_t arduino_version = row.arduino_version();
-        for (auto app_versions_compatible : row.app_versions_compatible())
-        { arduino_version_compatibility_table_[arduino_version].insert(app_versions_compatible); }
-    }
+        std::string compatible_from = row.app_versions_compatible_from();
+        std::string compatible_to = row.app_versions_compatible_from();
 
-    for (auto row : arduino_version_compatibility_table_)
-    {
-        glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
-
-        for (auto app_versions_compatible : row.second)
-        {
-            glog.is_verbose() && glog << group("main")
-                                      << "\tapp_version compatible: " << app_versions_compatible
-                                      << std::endl;
-        }
-    }
-
-    // Creating Incompatible Version Table
-    for (auto row : cfg().arduino_version_table())
-    {
-        uint32_t arduino_version = row.arduino_version();
-        for (auto app_versions_incompatible : row.app_versions_incompatible())
-        {
-            arduino_version_incompatibility_table_[arduino_version].insert(
-                app_versions_incompatible);
-        }
-    }
-
-    for (auto row : arduino_version_incompatibility_table_)
-    {
-        glog.is_verbose() && glog << group("main") << "arduino_version: " << row.first << std::endl;
-
-        for (auto app_versions_incompatible : row.second)
-        {
-            glog.is_verbose() && glog << group("main")
-                                      << "\tapp_version incompatible: " << app_versions_incompatible
-                                      << std::endl;
-        }
+        // Insert new arduino version
+        arduino_version_compatibility_.insert(
+            std::make_pair(arduino_version, std::make_pair(compatible_from, compatible_to)));
     }
 
     // Let's just get the major, minor, and patch number without git hash
@@ -202,14 +172,21 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
             if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
             {
-                glog.is_warn() && glog << group("arduino")
-                                       << "ArduinoResponse: " << arduino_response.ShortDebugString()
-                                       << std::endl;
+                glog.is_verbose() && glog << group("arduino") << "ArduinoResponse: "
+                                          << arduino_response.ShortDebugString() << std::endl;
 
-                if (arduino_version_compatibility_table_.count(arduino_response.version()))
+                if (arduino_version_compatibility_.count(arduino_response.version()))
                 {
-                    if (arduino_version_compatibility_table_.at(arduino_response.version())
-                            .count(app_version_))
+                    auto compatible_from =
+                        arduino_version_compatibility_.at(arduino_response.version()).first;
+                    auto compatible_to =
+                        arduino_version_compatibility_.at(arduino_response.version()).second;
+
+                    // If the compatible_from ersion is less than or equal to the
+                    // app_version_ and if the app_version_ is less
+                    // than or equal to the compatible_to version
+                    if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
+                        isVersionLessThanOrEqual(app_version_, compatible_to))
                     {
                         glog.is_verbose() && glog << group("main")
                                                   << "Arduino Driver is compatible: " << std::endl;
@@ -251,6 +228,65 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             bot_rolled_over_ = imu_data.bot_rolled_over();
         }
     });
+}
+
+/**
+ * @brief Splits the version major, minor, and patch into a integer vector
+ * 
+ * @param version 
+ * @return std::vector<int> 
+ */
+std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& version)
+{
+    std::vector<int> components;
+    std::istringstream ss(version);
+    std::string component;
+
+    while (getline(ss, component, '.')) { components.push_back(std::stoi(component)); }
+
+    return components;
+}
+
+/**
+ * @brief Check to see if a major, minor, patch version is less than or
+ * equal to another version.
+ * 
+ * @param version1 
+ * @param version2 
+ * @return true 
+ * @return false 
+ */
+bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& version1,
+                                                            const std::string& version2)
+{
+    // If we receive a empty string then
+    // return true because we are accepting all
+    // versions
+    if (version1 == "" || version2 == "")
+    {
+        return true;
+    }
+
+    std::vector<int> v1 = splitVersion(version1);
+    std::vector<int> v2 = splitVersion(version2);
+
+    size_t minSize = std::min(v1.size(), v2.size());
+
+    for (size_t i = 0; i < minSize; ++i)
+    {
+        if (v1[i] <= v2[i])
+        {
+            return true;
+        }
+        else if (v1[i] > v2[i])
+        {
+            return false;
+        }
+    }
+
+    // If all compared components are equal,
+    // Then the versions are the same
+    return v1.size() == v2.size();
 }
 
 int jaiabot::apps::ArduinoDriver::surfaceValueToMicroseconds(int input, int lower, int center,

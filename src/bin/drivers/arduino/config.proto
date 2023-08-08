@@ -43,8 +43,8 @@ message ArduinoDriverConfig
     message ArduinoVersionTable
     {
         required uint32 arduino_version = 1;
-        repeated string app_versions_compatible = 2;
-        repeated string app_versions_incompatible = 3;
+        optional string app_versions_compatible_from = 2 [default = ""];
+        optional string app_versions_compatible_to = 3 [default = ""];
     }
 
     repeated ArduinoVersionTable arduino_version_table = 21;
