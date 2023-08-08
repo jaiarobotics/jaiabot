@@ -61,7 +61,7 @@ job-template-amd64: &job-template-amd64
         name: Add correct packages.jaia.tech sources.list
         command: |
           echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
-          echo "deb http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
+          echo -e "deb http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
         command: |
