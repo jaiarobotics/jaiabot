@@ -183,6 +183,21 @@ export function desiredHeadingArrow(feature: Feature): Style {
     })
 }
 
+export function headingArrow(feature: Feature): Style {
+    const heading = feature.get('heading') * DEG
+    const color = 'green'
+
+    return new Style({
+        image: new Icon({
+            src: botDesiredHeading,
+            color: color,
+            anchor: [0.5, 1.0],
+            rotation: heading,
+            rotateWithView: true
+        })
+    })
+}
+
 // Markers for the mission goals
 export function goalSrc(taskType: TaskType | null) {
     const srcMap: {[key: string]: string} = {

@@ -53,3 +53,16 @@ export function createBotDesiredHeadingFeature(properties: Properties) {
 
     return feature
 }
+
+export function createBotHeadingFeature(properties: Properties) {
+    const projection = properties.map.getView().getProjection()
+
+    const feature = new Feature({
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection))
+    })
+    feature.setProperties(properties)
+    feature.setStyle(Styles.headingArrow)
+
+    return feature
+}
