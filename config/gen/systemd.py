@@ -465,7 +465,8 @@ def is_app_run(app):
 
 for app in jaiabot_apps:
     if is_app_run(app):
-        if app['template'] == 'goby-app.service.in':
+        # goby_intervehicle_portal does not respond to goby_coroner. When this is fixed, remove the exception: https://github.com/GobySoft/goby3/issues/297
+        if app['template'] == 'goby-app.service.in' and app['exe'] != 'goby_intervehicle_portal':
             all_goby_apps.append(app['exe'])
 
         
