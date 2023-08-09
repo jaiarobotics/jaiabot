@@ -1,11 +1,6 @@
 $app_block
 $interprocess_block
 
-intervehicle {
-    $link_block
-    $persist_subscriptions
-}
-
 hold {
   # don't allow any apps to publish until jaiabot_health is ready
   required_client: "jaiabot_health"
