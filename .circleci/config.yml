@@ -172,14 +172,12 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "JAIA-518/bug/max_frame_bytes-not-working"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "JAIA-518/bug/max_frame_bytes-not-working"
         
 ## Begin actual config
 version: 2
