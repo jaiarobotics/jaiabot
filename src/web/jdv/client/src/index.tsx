@@ -26,7 +26,7 @@ import {Log} from './Log'
 
 var Plotly = require('plotly.js-dist')
 
-const APP_NAME = "Data Vision"
+const APP_NAME = "Jaia Data Vision"
 
 const formatter = new Intl.DateTimeFormat('en-US', { dateStyle: "medium", timeStyle: "medium" })
 
