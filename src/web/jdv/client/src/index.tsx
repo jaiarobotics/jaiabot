@@ -5,7 +5,8 @@ import {
   mdiUpload,
   mdiFolderOpen,
   mdiPlus,
-  mdiTrashCan
+  mdiTrashCan,
+  mdiRuler
 } from '@mdi/js'
 import Icon from '@mdi/react'
 import React from "react"
@@ -129,17 +130,21 @@ class LogApp extends React.Component {
                 <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
                 <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
-                  <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>
+                  <Icon path={mdiDownload} size={1}></Icon>
                   KML
                 </button>
                 
                 <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
-                  <Icon path={mdiUpload} size={1} style={{verticalAlign: "middle"}}></Icon>
+                  <Icon path={mdiUpload} size={1}></Icon>
                   KML
                 </button>
 
+                <button className="mapButton">
+                  <Icon path={mdiRuler} size={1}></Icon>
+                </button>
+
                 <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
-                  <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+                  <Icon path={mdiTrashCan} size={1}></Icon>
                 </button>
 
               </div>

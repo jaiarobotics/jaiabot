@@ -12,6 +12,10 @@
     background-color: lightgray;
     width: 75px;
     height: 50px;
+
+    display: flex;
+    justify-content: center;
+    align-items: centeR;
 }
 
 .mapButton:hover {
