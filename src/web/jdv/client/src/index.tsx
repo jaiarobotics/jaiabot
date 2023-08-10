@@ -50,6 +50,7 @@ interface State {
   chosenLogs: string[]
   plots: Plot[]
   layerSwitcherVisible: boolean
+  measureResultVisible: boolean
   plotNeedsRefresh: boolean
   mapNeedsRefresh: boolean
   timeFraction: number | null
@@ -80,6 +81,7 @@ class LogApp extends React.Component {
       chosenLogs : [],
       plots : [],
       layerSwitcherVisible: false,
+      measureResultVisible: false,
       plotNeedsRefresh: false,
       mapNeedsRefresh: false,
       timeFraction: null,
@@ -139,7 +141,7 @@ class LogApp extends React.Component {
                   KML
                 </button>
 
-                <button className="mapButton">
+                <button className="mapButton" onClick={() => {this.toggleMeasureResult()}}>
                   <Icon path={mdiRuler} size={1}></Icon>
                 </button>
 
@@ -150,6 +152,11 @@ class LogApp extends React.Component {
               </div>
             
               <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+              
+              <div id="measureResult" className={this.state.measureResultVisible ? "" : "notVisible"}>
+                <div id="measureMagnitude">10000</div>
+                <div id="measureUnit">KM</div>
+              </div>
 
             </div>
 
@@ -175,8 +182,11 @@ class LogApp extends React.Component {
   }
 
   togglerLayerSwitcher() {
-    var {layerSwitcherVisible} = this.state
-    this.setState({layerSwitcherVisible: !layerSwitcherVisible})
+    this.setState({ layerSwitcherVisible: !this.state.layerSwitcherVisible })
+  }
+
+  toggleMeasureResult() {
+    this.setState({ measureResultVisible: !this.state.measureResultVisible })
   }
 
   selectLogButtonPressed(evt: Event) {

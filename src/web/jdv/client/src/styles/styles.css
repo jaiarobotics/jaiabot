@@ -21,3 +21,25 @@
 .mapButton:hover {
     background-color: darkgray;
 }
+
+#measureResult {
+    border: 1px solid black;
+    border-radius: 5px;
+    background-color: lightgray;
+    width: 75px;
+    height: 50px;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: centeR;
+
+    position: absolute;
+    top: 50px;
+    left: 224px;
+    z-index: 1;
+}
+
+#measureResult.notVisible {
+    display: none;
+}
