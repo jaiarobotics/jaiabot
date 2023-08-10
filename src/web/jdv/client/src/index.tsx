@@ -23,6 +23,7 @@ import {PlotProfiles} from "./PlotProfiles"
 import TimeSlider from "./TimeSlider"
 import {Plot} from './Plot'
 import {Log} from './Log'
+import './styles/styles.css'
 
 var Plotly = require('plotly.js-dist')
 
@@ -118,39 +119,50 @@ class LogApp extends React.Component {
           </div>
 
           <div className = "bottomPane flexbox horizontal">
+            
             { this.plotSection() }
 
             <div id="mapPane">
-              <div className="flexbox vertical" style={{height:'100%'}}>
-                <div style={{width:'100%', flexGrow:1}}>
-                  <div className="openlayers-map" id="openlayers-map"></div>
-                  <div id="mapControls">
-                    <div>
-                      <div id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</div>
-                      <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
-                    </div>
+              <div className="openlayers-map" id="openlayers-map"></div>
 
-                    <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
-                      <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>KML
-                    </button>
-                    <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
-                      <Icon path={mdiUpload} size={1} style={{verticalAlign: "middle"}}></Icon>KML
-                    </button>
-                    <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
-                      <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
-                    </button>
+              <div id="mapControls">
+                <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
-                  </div>
+                <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                  <Icon path={mdiDownload} size={1} style={{verticalAlign: "middle"}}></Icon>
+                  KML
+                </button>
+                
+                <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                  <Icon path={mdiUpload} size={1} style={{verticalAlign: "middle"}}></Icon>
+                  KML
+                </button>
 
-                </div>
-                <TimeSlider t={this.state.t} tMin={this.state.tMin} tMax={this.state.tMax} onValueChanged={(t) => { 
-                  this.map.updateToTimestamp(t)
-                  this.setState({t: t })
-                }}></TimeSlider>
+                <button id="clearMapButton" className="mapButton" onClick={() => { this.map.clear() }}>
+                  <Icon path={mdiTrashCan} size={1} style={{verticalAlign: "middle"}}></Icon>
+                </button>
+
               </div>
+            
+              <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
+
             </div>
+
+
+            <TimeSlider 
+              t={this.state.t} 
+              tMin={this.state.tMin} 
+              tMax={this.state.tMax} 
+              onValueChanged={(t) => { 
+                this.map.updateToTimestamp(t)
+                this.setState({t: t })
+              }}
+            ></TimeSlider>
+
           </div>
+          
           { log_selector }
+
         </div>
 
       </Router>

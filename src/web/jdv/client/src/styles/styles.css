@@ -1,0 +1,19 @@
+#mapControls {
+    display: flex;
+    position: absolute;
+    top: 0pt;
+    left: 0pt;
+    right: 0pt;
+}
+
+.mapButton {
+    border: 1px solid black;
+    border-radius: 5px;
+    background-color: lightgray;
+    width: 75px;
+    height: 50px;
+}
+
+.mapButton:hover {
+    background-color: darkgray;
+}
