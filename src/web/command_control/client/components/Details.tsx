@@ -307,7 +307,7 @@ function runMission(bot_id: number, mission: MissionInterface) {
  * @param bot 
  * @returns boolean
  */
-function disableButton(command: CommandInfo, missionState: MissionState) {
+function disableButton(command: CommandInfo, missionState: MissionState, bot?: PortalBotStatus, downloadQueue?: PortalBotStatus[]) {
     let disable = true
     const statesAvailable = command.statesAvailable
     const statesNotAvailable = command.statesNotAvailable
@@ -327,6 +327,13 @@ function disableButton(command: CommandInfo, missionState: MissionState) {
                 disable = true
                 break
             }
+        }
+    }
+
+    if (bot && downloadQueue) {
+        const downloadQueueBotIds = downloadQueue.map((bot) => bot.bot_id)
+        if (downloadQueueBotIds.includes(bot.bot_id)) {
+            disable = true
         }
     }
 
@@ -663,11 +670,11 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <Button
                                 className={
                                     `
-                                    ${disableButton(commands.rcMode, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
+                                    ${disableButton(commands.rcMode, missionState, bot, props.downloadQueue) ? 'inactive button-jcc' : 'button-jcc'} 
                                     ${toggleRCModeButton(missionState) ? 'rc-active' : 'rc-inactive' }
                                     `
                                 } 
-                                disabled={disableButton(commands.rcMode, missionState)}  
+                                disabled={disableButton(commands.rcMode, missionState, bot, props.downloadQueue)}  
                                 onClick={() => { issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive, bot) }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
@@ -695,8 +702,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 </AccordionSummary>
 
                                 <AccordionDetails>
-                                    <Button className={disableButton(commands.shutdown, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.shutdown, missionState)} 
+                                    <Button className={disableButton(commands.shutdown, missionState, bot, props.downloadQueue) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.shutdown, missionState, bot, props.downloadQueue)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.shutdown) : false;
@@ -707,8 +714,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiPower} title='Shutdown'/>
                                     </Button>
-                                    <Button className={disableButton(commands.reboot, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.reboot, missionState)} 
+                                    <Button className={disableButton(commands.reboot, missionState, bot, props.downloadQueue) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.reboot, missionState, bot, props.downloadQueue)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.reboot) : false;
@@ -719,8 +726,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     >
                                         <Icon path={mdiRestartAlert} title='Reboot'/>
                                     </Button>
-                                    <Button className={disableButton(commands.restartServices, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
-                                            disabled={disableButton(commands.restartServices, missionState)} 
+                                    <Button className={disableButton(commands.restartServices, missionState, bot, props.downloadQueue) ? 'inactive button-jcc' : 'button-jcc'} 
+                                            disabled={disableButton(commands.restartServices, missionState, bot, props.downloadQueue)} 
                                             onClick={() => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
                                                     confirm(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`) ? issueCommand(api, bot.bot_id, commands.restartServices) : false;
