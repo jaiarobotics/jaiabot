@@ -1352,6 +1352,7 @@ export default class CommandControl extends React.Component {
 		const botIds: number[] = [];
 		const botIdsInIdleState: number[] = [];
 		const botIdsPoorHealth: number[] = [];
+		const botIdsInDownloadQueue = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 		const runs = missions.runs;
 
 		Object.keys(runs).map(key => {
@@ -1359,7 +1360,6 @@ export default class CommandControl extends React.Component {
 			if (botIndex !== -1) {
 				const botState = this.getPodStatus().bots[botIndex]?.mission_state;
 				const healthState = this.getPodStatus().bots[botIndex]?.health_state
-				const botIdsInDownloadQueue = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
 				} else if (healthState !== "HEALTH__OK") {
@@ -1389,7 +1389,7 @@ export default class CommandControl extends React.Component {
 
 				Object.keys(runs).map(key => {
 					const botIndex = runs[key].assigned;
-					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex)) {
+					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex) && !botIdsInDownloadQueue.includes(botIndex)) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
 						this.setEditRunMode([botIndex], false)
@@ -1770,8 +1770,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		for(let bot in this.getPodStatus().bots)
-		{
+		for(let bot in this.getPodStatus().bots) {
 			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyStartLocation]);
 		}
 
@@ -1790,8 +1789,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		for(let bot in this.getPodStatus().bots)
-		{
+		for(let bot in this.getPodStatus().bots) {
 			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyEndLocation]);
 		}
 
