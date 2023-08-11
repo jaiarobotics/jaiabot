@@ -11,19 +11,23 @@ import {
 import Icon from '@mdi/react'
 import React from "react"
 import ReactDOM from "react-dom/client"
-import {BrowserRouter as Router} from "react-router-dom"
+import { BrowserRouter as Router } from "react-router-dom"
 
-import {DataTable} from "./DataTable"
-import {downloadCSV} from "./DownloadCSV"
 import JaiaMap from './JaiaMap'
-import {LogApi} from "./LogApi"
 import LogSelector from "./LogSelector"
-import {OpenPlotSet} from "./OpenPlotSet"
 import PathSelector from "./PathSelector"
-import {PlotProfiles} from "./PlotProfiles"
 import TimeSlider from "./TimeSlider"
-import {Plot} from './Plot'
-import {Log} from './Log'
+
+import { createMeasureInteraction } from './interactions'
+import { DataTable } from "./DataTable"
+import { downloadCSV } from "./DownloadCSV"
+import { LogApi } from "./LogApi"
+import { OpenPlotSet } from "./OpenPlotSet"
+import { PlotProfiles } from "./PlotProfiles"
+import { Plot } from './Plot'
+import { Log } from './Log'
+import { Draw } from 'ol/interaction'
+
 import './styles/styles.css'
 
 var Plotly = require('plotly.js-dist')
@@ -51,6 +55,8 @@ interface State {
   plots: Plot[]
   layerSwitcherVisible: boolean
   measureResultVisible: boolean
+  measureMagnitude: string,
+  measureUnit: string,
   plotNeedsRefresh: boolean
   mapNeedsRefresh: boolean
   timeFraction: number | null
@@ -82,6 +88,8 @@ class LogApp extends React.Component {
       plots : [],
       layerSwitcherVisible: false,
       measureResultVisible: false,
+      measureMagnitude: '',
+      measureUnit: '',
       plotNeedsRefresh: false,
       mapNeedsRefresh: false,
       timeFraction: null,
@@ -154,12 +162,11 @@ class LogApp extends React.Component {
               <div id="layerSwitcher" style={{display: this.state.layerSwitcherVisible ? "inline-block" : "none"}}></div>
               
               <div id="measureResult" className={this.state.measureResultVisible ? "" : "notVisible"}>
-                <div id="measureMagnitude">10000</div>
-                <div id="measureUnit">KM</div>
+                <div id="measureMagnitude">{this.state.measureMagnitude}</div>
+                <div id="measureUnit">{this.state.measureUnit}</div>
               </div>
 
             </div>
-
 
             <TimeSlider 
               t={this.state.t} 
@@ -186,7 +193,32 @@ class LogApp extends React.Component {
   }
 
   toggleMeasureResult() {
+    const olMap = this.map.getMap()
+    const measureInteraction = createMeasureInteraction(olMap, this.setMeasureResultValue.bind(this))
+   
+    if (!this.state.measureResultVisible) {
+      olMap.addInteraction(measureInteraction)
+      document.getElementById('mapPane').style.cursor = 'crosshair'
+    } else {
+      const mapInteractions = olMap.getInteractions().getArray()
+      
+      for (const mapInteraction of mapInteractions) {
+        if (mapInteraction instanceof Draw) {
+          olMap.removeInteraction(mapInteraction)
+          this.setMeasureResultValue('', '')
+        }
+      }
+      document.getElementById('mapPane').style.cursor = 'default'
+    }
+
     this.setState({ measureResultVisible: !this.state.measureResultVisible })
+  }
+
+  setMeasureResultValue(magnitude: string, unit: string) {
+    this.setState({
+      measureMagnitude: magnitude,
+      measureUnit: unit
+    })
   }
 
   selectLogButtonPressed(evt: Event) {

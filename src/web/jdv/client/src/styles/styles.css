@@ -1,21 +1,23 @@
 #mapControls {
     display: flex;
+    
     position: absolute;
-    top: 0pt;
-    left: 0pt;
-    right: 0pt;
+    top: 0px;
+    left: 0px;
+    right: 0px;
 }
 
 .mapButton {
-    border: 1px solid black;
-    border-radius: 5px;
-    background-color: lightgray;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
     width: 75px;
     height: 50px;
 
-    display: flex;
-    justify-content: center;
-    align-items: centeR;
+    border: 1px solid black;
+    border-radius: 3px;
+    background-color: lightgray;
 }
 
 .mapButton:hover {
@@ -23,21 +25,23 @@
 }
 
 #measureResult {
-    border: 1px solid black;
-    border-radius: 5px;
-    background-color: lightgray;
-    width: 75px;
-    height: 50px;
-
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    align-items: centeR;
+    align-items: center;
+    gap: 3px;
+
+    width: 75px;
+    height: 50px;
 
     position: absolute;
     top: 50px;
     left: 224px;
     z-index: 1;
+
+    border: 1px solid black;
+    border-radius: 3px;
+    background-color: lightgray;
 }
 
 #measureResult.notVisible {
