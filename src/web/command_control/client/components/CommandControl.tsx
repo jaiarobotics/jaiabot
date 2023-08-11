@@ -1077,8 +1077,7 @@ export default class CommandControl extends React.Component {
 
 	removeBotFromQueue(bot: PortalBotStatus) {
 		const downloadStates = ['POST_DEPLOYMENT__DATA_PROCESSING', 'POST_DEPLOYMENT__DATA_OFFLOAD']
-        if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
-			info('Cannot cancel download while in progress.')
+        if (downloadStates.includes(this.getBotMissionState(bot.bot_id)) && !confirm('Removing this bot will not cancel the download, but it will allow the other bots to move up in the queue. You may experience slower download speeds. Select OK if you would like to continue:')) {
             return
         }
 		
@@ -1089,7 +1088,7 @@ export default class CommandControl extends React.Component {
 			}
 		})
 
-		this.setState({ botDownloadQueue: updatedQueue })
+		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
 	}
 
 	getDownloadableBots() {
