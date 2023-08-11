@@ -364,12 +364,17 @@ function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) 
     return true
 }
 
-function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, command: CommandInfo, missionState: MissionState) {
+function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, command: CommandInfo, missionState: MissionState, downloadQueue: PortalBotStatus[]) {
     if (!mission.botsAssignedToRuns[bot.bot_id]) {
         return true
     }
 
     if (disableButton(command, missionState)) {
+        return true
+    }
+
+    const downloadQueueBotIds = downloadQueue.map((bot) => bot.bot_id)
+    if (downloadQueueBotIds.includes(bot.bot_id)) {
         return true
     }
 
@@ -443,6 +448,7 @@ export interface BotDetailsProps {
     mission: MissionInterface,
     run: RunInterface,
     isExpanded: DetailsExpandedState,
+    downloadQueue: PortalBotStatus[],
     closeWindow: () => void,
     takeControl: () => boolean,
     deleteSingleMission: () => void,
@@ -560,8 +566,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
                         <Button
-                            className={disablePlayButton(bot, mission, commands.play, missionState) ? 'inactive button-jcc' : 'button-jcc'} 
-                            disabled={disablePlayButton(bot, mission, commands.play, missionState)} 
+                            className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue) ? 'inactive button-jcc' : 'button-jcc'} 
+                            disabled={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue)} 
                             onClick={() => { issueRunCommand(api, bot, runMission(bot.bot_id, mission), bot.bot_id) }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
