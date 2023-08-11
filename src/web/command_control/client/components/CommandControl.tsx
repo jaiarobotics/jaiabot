@@ -1359,10 +1359,13 @@ export default class CommandControl extends React.Component {
 			if (botIndex !== -1) {
 				const botState = this.getPodStatus().bots[botIndex]?.mission_state;
 				const healthState = this.getPodStatus().bots[botIndex]?.health_state
+				const botIdsInDownloadQueue = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
 				} else if (healthState !== "HEALTH__OK") {
 					botIdsPoorHealth.push(botIndex)
+				} else if (botIdsInDownloadQueue.includes(botIndex)) {
+					// Do not allow a bot in the download queue to start another run
 				} else {
 					botIds.push(botIndex);
 				}
