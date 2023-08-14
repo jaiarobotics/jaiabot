@@ -6,9 +6,7 @@ serial_arduino {
     baud: 115200
 }
 
-$jaiabot_driver_arduino_bounds
-
-arduino_version_table: {
+arduino_version_table {
     arduino_version: 1
     # If empty than we assume the arduino
     # version is compatible with all versions 
@@ -23,3 +21,5 @@ arduino_version_table: {
     # arduino version
     app_versions_compatible_to: ""
 }
+
+$jaiabot_driver_arduino_bounds

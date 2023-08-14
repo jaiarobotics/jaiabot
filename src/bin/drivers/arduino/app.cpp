@@ -129,8 +129,14 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     {
         uint32_t arduino_version = row.arduino_version();
         std::string compatible_from = row.app_versions_compatible_from();
-        std::string compatible_to = row.app_versions_compatible_from();
+        std::string compatible_to = row.app_versions_compatible_to();
 
+        glog.is_verbose() && glog << group("arduino") << "arduino_version : " << arduino_version
+                                  << std::endl;
+        glog.is_verbose() && glog << group("arduino") << "compatible_from : " << compatible_from
+                                  << std::endl;
+        glog.is_verbose() && glog << group("arduino") << "compatible_to : " << compatible_to
+                                  << std::endl;
         // Insert new arduino version
         arduino_version_compatibility_.insert(
             std::make_pair(arduino_version, std::make_pair(compatible_from, compatible_to)));
@@ -172,8 +178,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
             if (arduino_response.status_code() != protobuf::ArduinoStatusCode::STARTUP)
             {
-                glog.is_verbose() && glog << group("arduino") << "ArduinoResponse: "
-                                          << arduino_response.ShortDebugString() << std::endl;
+                glog.is_debug1() && glog << group("arduino") << "ArduinoResponse: "
+                                         << arduino_response.ShortDebugString() << std::endl;
 
                 if (arduino_version_compatibility_.count(arduino_response.version()))
                 {
@@ -188,15 +194,14 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                     if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
                         isVersionLessThanOrEqual(app_version_, compatible_to))
                     {
-                        glog.is_verbose() && glog << group("main")
-                                                  << "Arduino Driver is compatible: " << std::endl;
+                        glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
+                                                 << std::endl;
                         is_driver_compatible_ = true;
 
                         if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
                         {
-                            glog.is_verbose() &&
-                                glog << group("main")
-                                     << "Settings were Ack by arduino: " << std::endl;
+                            glog.is_debug2() && glog << group("main")
+                                                     << "Settings were Ack by arduino" << std::endl;
                             is_settings_ack_ = true;
                         }
                     }
@@ -259,11 +264,16 @@ std::vector<int> jaiabot::apps::ArduinoDriver::splitVersion(const std::string& v
 bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& version1,
                                                             const std::string& version2)
 {
+    glog.is_debug2() && glog << group("main") << "isVersionLessThanOrEqual() Version1: " << version1
+                             << "\nVersion2: " << version2 << std::endl;
     // If we receive a empty string then
     // return true because we are accepting all
     // versions
     if (version1 == "" || version2 == "")
     {
+        glog.is_debug3() && glog << group("main")
+                                 << "isVersionLessThanOrEqual() Return true, empty string "
+                                 << std::endl;
         return true;
     }
 
@@ -274,12 +284,20 @@ bool jaiabot::apps::ArduinoDriver::isVersionLessThanOrEqual(const std::string& v
 
     for (size_t i = 0; i < minSize; ++i)
     {
-        if (v1[i] <= v2[i])
+        if (v1[i] < v2[i])
         {
+            glog.is_debug3() &&
+                glog << group("main")
+                     << "isVersionLessThanOrEqual() Return true, because version is less or equal "
+                     << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
             return true;
         }
         else if (v1[i] > v2[i])
         {
+            glog.is_debug3() &&
+                glog << group("main")
+                     << "isVersionLessThanOrEqual() Return false, because version is greater "
+                     << "\nV1: " << v1[i] << "\nV2: " << v2[i] << std::endl;
             return false;
         }
     }
