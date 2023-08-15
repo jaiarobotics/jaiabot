@@ -1,110 +1,84 @@
 import React, { MouseEvent, ReactElement } from 'react'
-import { Save, GlobalSettings } from './Settings'
-import { Missions } from './Missions'
-import { GoalSettingsPanel } from './GoalSettings'
-import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
-import { MissionLibraryLocalStorage } from './MissionLibrary'
-import EngineeringPanel from './EngineeringPanel'
+
+
+// Jaia Imports
 import MissionControllerPanel from './mission/MissionControllerPanel'
-import RCControllerPanel from './RCControllerPanel'
-import RunInfoPanel from './RunInfoPanel'
-import { taskData } from './TaskPackets'
-import JaiaAbout from './JaiaAbout'
-import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
-
-// Material Design Icons
-import Icon from '@mdi/react'
-import { mdiPlay, 
-	mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, 
-	mdiFlagVariantPlus, mdiArrowULeftTop,
-    mdiStop, mdiViewList} from '@mdi/js'
-
-import Button from '@mui/material/Button';
-
-// TurfJS
-import * as turf from '@turf/turf';
-
-// Openlayers
-import OlMap from 'ol/Map';
-import { Interaction } from 'ol/interaction';
-import OlCollection from 'ol/Collection';;
-import OlMultiLineString from 'ol/geom/MultiLineString';
-import OlFeature from 'ol/Feature';
-import { Coordinate } from 'ol/coordinate';
-import { getLength as OlGetLength } from 'ol/sphere';
-import { Geometry, LineString, LineString as OlLineString } from 'ol/geom';
-import {
-	Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle
-} from 'ol/style';
-import OlLayerSwitcher from 'ol-layerswitcher';
-import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities';
-import { HubOrBot } from './HubOrBot'
-
-import '../style/CommandControl.less'
-
 import * as MissionFeatures from './shared/MissionFeatures'
-
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-	faMapMarkerAlt,
-	faRuler,
-	faEdit,
-	faLayerGroup,
-	faWrench,
-} from '@fortawesome/free-solid-svg-icons';
-
-import {BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps} from './Details'
-
-import { jaiaAPI } from '../../common/JaiaAPI';
-
-import { error, success, warning, info} from '../libs/notifications';
-
-// Don't use any third party css exept reset-css!
-import 'reset-css';
-import '../style/CommandControl.less';
-
-const rallyIcon = require('../icons/rally-icon.svg') as string
-
-import { LoadMissionPanel } from './LoadMissionPanel'
-import { SaveMissionPanel } from './SaveMissionPanel'
-
-import { BotListPanel } from './BotListPanel'
-import { CommandList } from './Missions';
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent } from 'ol'
-import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
-
-// Jaia imports
-import { SurveyLines } from './SurveyLines'
-import { SurveyPolygon } from './SurveyPolygon'
-import { createMap } from './Map'
+import RCControllerPanel from './RCControllerPanel'
+import EngineeringPanel from './EngineeringPanel'
+import RunInfoPanel from './RunInfoPanel'
+import JaiaAbout from './JaiaAbout'
 import { layers } from './Layers'
-
-import { getGeographicCoordinate } from './shared/Utilities'
-import { playDisconnectReconnectSounds } from './DisconnectSound'
-import { Interactions } from './Interactions'
+import { jaiaAPI } from '../../common/JaiaAPI'
+import { Missions } from './Missions'
+import { taskData } from './TaskPackets'
+import { HubOrBot } from './HubOrBot'
+import { createMap } from './Map'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
-
+import { CommandList } from './Missions'
+import { SurveyLines } from './SurveyLines'
+import { BotListPanel } from './BotListPanel'
+import { Interactions } from './Interactions'
+import { SurveyPolygon } from './SurveyPolygon'
 import { SurveyExclusions } from './SurveyExclusions'
+import { LoadMissionPanel } from './LoadMissionPanel'
+import { SaveMissionPanel } from './SaveMissionPanel'
+import { GoalSettingsPanel } from './GoalSettings'
+import { Save, GlobalSettings } from './Settings'
+import { getGeographicCoordinate } from './shared/Utilities'
+import { MissionLibraryLocalStorage } from './MissionLibrary'
+import { playDisconnectReconnectSounds } from './DisconnectSound'
+import { error, success, warning, info } from '../libs/notifications'
+import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
+import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
+import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
+import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
 
-// Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
-// output) as input instead of the less.
-// eslint-disable-next-line import/no-webpack-loader-syntax, import/no-unresolved
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less');
+
+// Openlayers
+import OlMap from 'ol/Map'
+import OlFeature from 'ol/Feature'
+import OlCollection from 'ol/Collection'
+import OlLayerSwitcher from 'ol-layerswitcher'
+import OlMultiLineString from 'ol/geom/MultiLineString'
+import { Coordinate } from 'ol/coordinate'
+import { Interaction } from 'ol/interaction'
+import { MapBrowserEvent } from 'ol'
+import { getLength as OlGetLength } from 'ol/sphere'
+import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
+import { Geometry, LineString, LineString as OlLineString } from 'ol/geom'
+import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
+
+// TurfJS
+import * as turf from '@turf/turf'
+
+
+// Styling
+import Icon from '@mdi/react'
+import Button from '@mui/material/Button'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList} from '@mdi/js'
+import 'reset-css'
+import '../style/CommandControl.less'
+
+
+// Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
+const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less')
+const rallyIcon = require('../icons/rally-icon.svg') as string
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
 
-const viewportDefaultPadding = 100;
-const sidebarInitialWidth = 0;
+const viewportDefaultPadding = 100
+const sidebarInitialWidth = 0
+const mapSettings = GlobalSettings.mapSettings
 
-const POLLING_INTERVAL_MS = 500;
-const POLLING_META_DATA_INTERVAL_MS = 10000;
-
-const MAX_GOALS = 15;
-
-var mapSettings = GlobalSettings.mapSettings
+const POLLING_INTERVAL_MS = 500
+const POLLING_META_DATA_INTERVAL_MS = 10000
+const MAX_GOALS = 15
 
 interface Props {}
 
