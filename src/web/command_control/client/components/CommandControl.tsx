@@ -218,8 +218,8 @@ export default class CommandControl extends React.Component {
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
 
-	timerID: NodeJS.Timer
-	metadataTimerID: NodeJS.Timer
+	timerID: NodeJS.Timeout
+	metadataTimerID: NodeJS.Timeout
 
 	oldPodStatus?: PodStatus
 
