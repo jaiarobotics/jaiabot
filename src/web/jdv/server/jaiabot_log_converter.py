@@ -79,7 +79,7 @@ while True:
         if not file_is_newer(h5_filename, goby_mtime):
             try:
                 # Generate h5 file
-                cmd = f'nice -n 10 goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5'
+                cmd = f'nice -n 10 goby_log_tool --input_file {goby_filename} --output_file {h5_filename} --format HDF5 --hdf5_chunk_length 10000 --hdf5_compression_level 5'
                 logging.info(cmd)
                 os.system(cmd)
 
