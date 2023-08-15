@@ -115,117 +115,97 @@ export interface MissionInterface {
 }
 
 interface State {
-	visiblePanel: PanelType,
-	mode: Mode,
-	currentInteraction: Interaction | null,
-	selectedHubOrBot?: HubOrBot,
-	lastBotCount: number,
+	podStatus: PodStatus
+	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
-	trackingTarget: number | string,
-	viewportPadding: number[],
-	measureFeature?: OlFeature,
-	homeLocation?: GeographicCoordinate,
+	lastBotCount: number,
+
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
 	missionPlanningFeature?: OlFeature<Geometry>,
 	missionBaseGoal: Goal,
 	missionEndTask: MissionTask,
-	surveyPolygonFeature?: OlFeature<Geometry>,
-	surveyPolygonGeoCoords?: Coordinate[],
-	surveyPolygonCoords?: LineString,
-	surveyPolygonChanged: boolean,
-	surveyExclusionCoords?: number[][],
-	selectedFeatures?: OlCollection<OlFeature>,
-	detailsBoxItem?: HubOrBot,
-	detailsExpanded: DetailsExpandedState,
-	goalBeingEditedBotId?: number,
-	goalBeingEditedGoalIndex?: number,
-	goalBeingEdited?: Goal,
-	loadMissionPanel?: ReactElement,
-	saveMissionPanel?: ReactElement,
-	disconnectionMessage?: string,
+
 	runList: MissionInterface,
-	// Incremented when runList has changed and mission needs a re-render
 	runListVersion: number
 	undoRunListStack: MissionInterface[],
 	editModeToggleStatus: {[botId: number]: boolean},
-	remoteControlInterval?: ReturnType<typeof setInterval>,
-	remoteControlValues: Engineering
-
-	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
-
-	podStatus: PodStatus
-	// Incremented when podStatus is changed and needs a re-render
-	podStatusVersion: number
-	metadata: Metadata,
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
 		canDeleteRun: boolean
 	}
+
+	goalBeingEditedBotId?: number,
+	goalBeingEditedGoalIndex?: number,
+	goalBeingEdited?: Goal,
+
+	selectedFeatures?: OlCollection<OlFeature>,
+	selectedHubOrBot?: HubOrBot,
+	measureFeature?: OlFeature,
+
+	mode: Mode,
+	currentInteraction: Interaction | null,
+	trackingTarget: number | string,
+	homeLocation?: GeographicCoordinate,
+
+	visiblePanel: PanelType,
+	detailsBoxItem?: HubOrBot,
+	detailsExpanded: DetailsExpandedState,
+	loadMissionPanel?: ReactElement,
+	saveMissionPanel?: ReactElement,
+
+	surveyPolygonFeature?: OlFeature<Geometry>,
+	surveyPolygonGeoCoords?: Coordinate[],
+	surveyPolygonCoords?: LineString,
+	surveyExclusionCoords?: number[][],
+	surveyPolygonChanged: boolean,
+	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+
+	remoteControlValues: Engineering
+	remoteControlInterval?: ReturnType<typeof setInterval>,
+
+	disconnectionMessage?: string,
+	viewportPadding: number[],
+	metadata: Metadata
 }
 
 export default class CommandControl extends React.Component {
-
 	props: Props
 	state: State
 
-	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	api = jaiaAPI
-
+	mapDivId = `map-${Math.round(Math.random() * 100000000)}`
 	botLayers: BotLayers
 	hubLayers: HubLayers
-
-	flagNumber = 1
-
+	oldPodStatus?: PodStatus
+	missionPlans?: CommandList = null
+	enabledEditStates: string[]
+	interactions: Interactions
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
-
 	timerID: NodeJS.Timeout
 	metadataTimerID: NodeJS.Timeout
-
-	oldPodStatus?: PodStatus
-
-	missionPlans?: CommandList = null
-
-	interactions: Interactions
-
-	enabledEditStates: string[]
+	flagNumber: number
 
 	constructor(props: Props) {
 		super(props)
 
 		this.state = {
-			// User interaction modes
-			mode: Mode.NONE,
-			visiblePanel: PanelType.NONE,
-			metadata: {},
 			podStatus: {
 				bots: {},
 				hubs: {},
 				controllingClientId: null
 			},
 			podStatusVersion: 0,
-			selectedHubOrBot: null,
-			lastBotCount: 0,
-			currentInteraction: null,
-			// incoming data
 			botExtents: {},
-			trackingTarget: null,
-			viewportPadding: [
-				viewportDefaultPadding,
-				viewportDefaultPadding,
-				viewportDefaultPadding,
-				viewportDefaultPadding + sidebarInitialWidth
-			],
-			measureFeature: null,
-			homeLocation: null,
+			lastBotCount: 0,
+
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
-				// Account for start rally and end rally
 				'numGoals': (MAX_GOALS - 2),
 				'spacing': 30,
 				'orientation': 0,
@@ -242,13 +222,32 @@ export default class CommandControl extends React.Component {
 			missionPlanningFeature: null,
 			missionBaseGoal: { task: { type: TaskType.NONE } },
 			missionEndTask: {type: TaskType.NONE},
-			surveyPolygonFeature: null,
-			surveyPolygonGeoCoords: null,
-			surveyPolygonCoords: null,
-			surveyPolygonChanged: false,
-			surveyExclusionCoords: null,
-			selectedFeatures: null,
-			// noaaEncSource: new TileArcGISRest({ url: 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer' }),
+
+			runList: {
+				id: 'mission-1',
+				name: 'Mission 1',
+				runs: {},
+				runIdIncrement: 0,
+				botsAssignedToRuns: {}
+			},
+			runListVersion: 0,
+			undoRunListStack: [],
+			editModeToggleStatus: {},
+			flagClickedInfo: {
+				runNum: -1,
+				botId: -1,
+				canDeleteRun: false
+			},
+
+			selectedHubOrBot: null,
+			measureFeature: null,
+
+			mode: Mode.NONE,
+			currentInteraction: null,
+			trackingTarget: null,
+			homeLocation: null,
+
+			visiblePanel: PanelType.NONE,
 			detailsBoxItem: null,
 			detailsExpanded: {
 				quickLook: true,
@@ -262,10 +261,15 @@ export default class CommandControl extends React.Component {
 				power: false,
 				links: false
 			},
-			runList: null,
-			runListVersion: 0,
-			undoRunListStack: [],
-			editModeToggleStatus: {},
+	
+			surveyPolygonFeature: null,
+			surveyPolygonGeoCoords: null,
+			surveyPolygonCoords: null,
+			surveyPolygonChanged: false,
+			surveyExclusionCoords: null,
+			selectedFeatures: null,
+			centerLineString: null,
+
 			remoteControlInterval: null,
 			remoteControlValues: {
 				bot_id: -1,
@@ -275,75 +279,60 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
-			centerLineString: null,
-			flagClickedInfo: {
-				runNum: -1,
-				botId: -1,
-				canDeleteRun: false
-			}
+
+			viewportPadding: [
+				viewportDefaultPadding,
+				viewportDefaultPadding,
+				viewportDefaultPadding,
+				viewportDefaultPadding + sidebarInitialWidth
+			],
+			metadata: {}
 		};
 
-		this.state.runList = {
-			id: 'mission-1',
-			name: 'Mission 1',
-			runs: {},
-			runIdIncrement: 0,
-			botsAssignedToRuns: {}
-		}
-
+		// Map initializations
 		map = createMap()
-
 		this.interactions = new Interactions(this, map)
-
 		map.addInteraction(this.interactions.pointerInteraction)
 		map.addInteraction(this.interactions.translateInteraction)
 		map.addInteraction(this.interactions.dragAndDropInteraction)
-
-		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
-		taskData.map = map
-
-		this.surveyLines = new SurveyLines(this)
-		this.surveyPolygon = new SurveyPolygon(this)
-
-		// Callbacks
-		this.changeInteraction = this.changeInteraction.bind(this);
-
-		this.setViewport = this.setViewport.bind(this);
-		this.centerOn = this.centerOn.bind(this);
-		this.fit = this.fit.bind(this);
-
-		this.sendStopAll = this.sendStopAll.bind(this);
-
-		// center persistence
+		// Center persistence
 		map.getView().setCenter(mapSettings.center)
-
 		map.getView().on('change:center', function() {
 			mapSettings.center = map.getView().getCenter()
 			Save(mapSettings)
 		})
-
-		// zoomLevel persistence
+		// Zoom-level persistence
 		map.getView().setZoom(mapSettings.zoomLevel)
-
 		map.getView().on('change:resolution', function() {
 			mapSettings.zoomLevel = map.getView().getZoom()
 			Save(mapSettings)
 		})
-
-		// rotation persistence
+		// Rotation persistence
 		map.getView().setRotation(mapSettings.rotation)
-
 		map.getView().on('change:rotation', function() {
 			mapSettings.rotation = map.getView().getRotation()
 			Save(mapSettings)
 		})
 
+		// Set the map for the TaskData object, so it knows where to put popups, and where to get the projection transform
+		taskData.map = map
+
+		// Callbacks
+		this.changeInteraction = this.changeInteraction.bind(this)
+		this.sendStopAll = this.sendStopAll.bind(this)
+		this.setViewport = this.setViewport.bind(this)
+		this.centerOn = this.centerOn.bind(this)
+		this.fit = this.fit.bind(this)
+
+		this.surveyLines = new SurveyLines(this)
+		this.surveyPolygon = new SurveyPolygon(this)
 		// Survey exclusions
 		this.surveyExclusions = new SurveyExclusions(map, (surveyExclusionCoords: number[][]) => {
 			this.setState({ surveyExclusionCoords })
 		})
 
 		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
+		this.flagNumber = 1
 
 	}
 
