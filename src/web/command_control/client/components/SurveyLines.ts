@@ -5,7 +5,6 @@ import { LineString, Point as OlPoint } from "ol/geom";
 import { Style as OlStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Circle as OlCircleStyle, Icon as OlIcon, Text as OlText } from "ol/style";
 import { EventsKey } from "ol/events";
 import { DrawEvent } from "ol/interaction/Draw";
-import { GeoJSON } from "ol/format";
 import { unByKey as OlUnobserveByKey } from "ol/Observable";
 
 import * as turf from "@turf/turf"
@@ -13,6 +12,7 @@ import * as turf from "@turf/turf"
 // Jaia imports
 import { deepcopy } from "./shared/Utilities";
 import CommandControl from "./CommandControl";
+import { GeographicCoordinate } from "./shared/JAIAProtobuf";
 
 const missionOrientationIcon = require('../icons/compass.svg')
 
@@ -123,7 +123,7 @@ export class SurveyLines {
                 // Show the preview of the survey
                 this.listener = evt.feature.on('change', (evt2) => {
                     const geom1 = evt2.target;
-                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusionCoords } = commandControl.state;
+                    let { missionParams, surveyExclusionCoords } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
                     if (stringCoords[0].length >= 2) {
@@ -219,6 +219,9 @@ export class SurveyLines {
                                 missionParams.spPerimeter = round(turf.length(fcOutputPoly), 2)
                                 missionParams.spArea = round(turf.area(fcOutputPoly)/1000, 2)
                             }
+
+                            const rallyStartLocation: GeographicCoordinate = null
+                            const rallyEndLocation: GeographicCoordinate = null
         
                             missionParams.spRallyStartDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
                             missionParams.spRallyFinishDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)

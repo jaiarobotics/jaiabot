@@ -27,8 +27,7 @@ import * as turf from '@turf/turf';
 // Openlayers
 import OlMap from 'ol/Map';
 import { Interaction } from 'ol/interaction';
-import OlCollection from 'ol/Collection';
-import OlPoint from 'ol/geom/Point';
+import OlCollection from 'ol/Collection';;
 import OlMultiLineString from 'ol/geom/MultiLineString';
 import OlFeature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
@@ -64,10 +63,7 @@ import { error, success, warning, info} from '../libs/notifications';
 import 'reset-css';
 import '../style/CommandControl.less';
 
-const rallyPointRedIcon = require('../icons/rally-point-red.svg')
-const rallyPointGreenIcon = require('../icons/rally-point-green.svg')
-const goToRallyGreen = require('../icons/go-to-rally-point-green.png')
-const goToRallyRed = require('../icons/go-to-rally-point-red.png')
+const rallyIcon = require('../icons/rally-icon.svg') as string
 
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
@@ -90,7 +86,6 @@ import { Interactions } from './Interactions'
 import { BotLayers } from './BotLayers'
 import { HubLayers } from './HubLayers'
 
-import * as JCCStyles from './Styles'
 import { SurveyExclusions } from './SurveyExclusions'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader
@@ -126,9 +121,7 @@ export enum PanelType {
 
 export enum Mode {
 	NONE = '',
-	MISSION_PLANNING = 'missionPlanning',
-	SET_RALLY_POINT_GREEN = "setRallyPointGreen",
-	SET_RALLY_POINT_RED = "setRallyPointRed"
+	MISSION_PLANNING = 'missionPlanning'
 }
 
 export interface RunInterface {
@@ -158,8 +151,6 @@ interface State {
 	viewportPadding: number[],
 	measureFeature?: OlFeature,
 	homeLocation?: GeographicCoordinate,
-	rallyStartLocation?: GeographicCoordinate,
-	rallyEndLocation?: GeographicCoordinate,
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
 	missionPlanningLines?: any,
@@ -257,8 +248,6 @@ export default class CommandControl extends React.Component {
 			],
 			measureFeature: null,
 			homeLocation: null,
-			rallyStartLocation: null,
-			rallyEndLocation: null,
 			missionParams: {
 				'missionType': 'lines',
 				'numBots': 4,
@@ -513,15 +502,9 @@ export default class CommandControl extends React.Component {
 		// Update the mission planning layer whenever relevant state changes
 		const botsChanged = (prevState.podStatus.bots.length !== this.state.podStatus.bots.length)
 		if (stateHasChanged(['surveyPolygonCoords', 'missionPlanningLines', 'missionPlanningFeature', 'missionParams', 
-		    	'mode', 'missionBaseGoal', 'rallyStartLocation', 'rallyEndLocation', 'missionPlanningGrid', 'missionEndTask'], false) ||
+		    	'mode', 'missionBaseGoal', 'missionPlanningGrid', 'missionEndTask'], false) ||
 				botsChanged) {
 			this.updateMissionPlanningLayer()
-		}
-
-		// If user changed rally point locations
-		if (prevState.rallyEndLocation !== this.state.rallyEndLocation ||
-			prevState.rallyStartLocation !== this.state.rallyStartLocation) {
-			this.updateRallyPointFeatures()
 		}
 
 		// Update the map layers panel, if needed
@@ -811,7 +794,6 @@ export default class CommandControl extends React.Component {
 	
 	/**
 	 * Zooms the map to show the entire pod of bots
-	 * @date 6/22/2023 - 8:08:17 AM
 	 *
 	 * @param {boolean} [firstMove=false]
 	 */
@@ -1182,26 +1164,6 @@ export default class CommandControl extends React.Component {
 		return false
 	}
 
-	updateRallyPointFeatures() {
-		const source = layers.rallyPointLayer.getSource()
-		source.clear()
-
-		// Add Home, if available
-		if (this.state.rallyEndLocation) {
-			let pt = getMapCoordinate(this.state.rallyEndLocation, map)
-			const feature = new OlFeature({ geometry: new OlPoint(pt) })
-			feature.setStyle(JCCStyles.rallyPointRedStyle)
-			source.addFeature(feature)
-		}
-
-		if (this.state.rallyStartLocation) {
-			let pt = getMapCoordinate(this.state.rallyStartLocation, map)
-			const feature = new OlFeature({ geometry: new OlPoint(pt) })
-			feature.setStyle(JCCStyles.rallyPointGreenStyle)
-			source.addFeature(feature)
-		}
-	}
-
 	// Runs a mission
 	_runMission(botMission: Command) {
 		// Set the speed values
@@ -1285,7 +1247,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * 
 	 * @returns Whether any bots are assigned to runs in the current runList
 	 */
 	areBotsAssignedToRuns() {
@@ -1380,7 +1341,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * 
 	 * @returns fleet id of selected  (Bot does not have fleet_id in status)
 	 */
 	getFleetId() {
@@ -1395,7 +1355,6 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-
 	handleEvent(evt: any) {
 		switch(evt.type) {
 			case 'click':
@@ -1409,16 +1368,6 @@ export default class CommandControl extends React.Component {
 
 	clickEvent(evt: MapBrowserEvent<UIEvent>) {
 		const map = evt.map;
-
-		if (this.state.mode == Mode.SET_RALLY_POINT_GREEN) {
-			this.placeRallyPointGreenAtCoordinate(evt.coordinate)
-			return false // Not a drag event
-		}
-
-		if (this.state.mode == Mode.SET_RALLY_POINT_RED) {
-			this.placeRallyPointRedAtCoordinate(evt.coordinate)
-			return false // Not a drag event
-		}
 
 		const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature: OlFeature<Geometry>) {
 			return feature
@@ -1505,24 +1454,6 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 
-	placeRallyPointGreenAtCoordinate(coordinate: number[]) {
-		this.setState({
-			rallyStartLocation: getGeographicCoordinate(coordinate, map),
-			mode: ''
-		})
-
-		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
-	}
-
-	placeRallyPointRedAtCoordinate(coordinate: number[]) {
-		this.setState({
-			rallyEndLocation: getGeographicCoordinate(coordinate, map),
-			mode: ''
-		})
-
-		this.toggleMode(Mode.SET_RALLY_POINT_RED)
-	}
-
 	stopDown(arg: boolean) {
 		return false
 	}
@@ -1552,9 +1483,6 @@ export default class CommandControl extends React.Component {
 
 	
 	/**
-	 * 
-	 * @date 6/23/2023 - 7:40:59 PM
-	 *
 	 * @returns {*} The command drawer element, with rally point buttons, stop button, flag button
 	 */
 	commandDrawer() {
@@ -1565,17 +1493,8 @@ export default class CommandControl extends React.Component {
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
-				<Button id="setRallyPointGreen" className="button-jcc" onClick={this.setRallyPointGreenClicked.bind(this)}>
-					<img src={rallyPointGreenIcon} title="Set Start Rally" />
-				</Button>
-				<Button id="goToRallyGreen" className="button-jcc" onClick={this.goToRallyGreen.bind(this)}>
-					<img src={goToRallyGreen} title="Go To Start Rally" />
-				</Button>
-				<Button id="setRallyPointRed" className="button-jcc" onClick={this.setRallyPointRedClicked.bind(this)}>
-					<img src={rallyPointRedIcon} title="Set Finish Rally" />
-				</Button>
-				<Button id="goToRallyRed" className="button-jcc" onClick={this.goToRallyRed.bind(this)}>
-					<img src={goToRallyRed} title="Go To Finish Rally" />
+				<Button className="button-jcc" title='Add Rally Point' onClick={this.rallyButtonClicked.bind(this)}>
+					<img src={rallyIcon} />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
@@ -1590,7 +1509,6 @@ export default class CommandControl extends React.Component {
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
 			</div>
-
 		)
 
 		return element
@@ -1614,65 +1532,9 @@ export default class CommandControl extends React.Component {
 		}}></SaveMissionPanel>
 
 		this.setState({saveMissionPanel: panel, loadMissionPanel: null})
-	}
-
-	setRallyPointRedClicked(evt: Event) {
-		this.toggleMode(Mode.SET_RALLY_POINT_RED)
-	}
-
-	setRallyPointGreenClicked(evt: Event) {
-		this.toggleMode(Mode.SET_RALLY_POINT_GREEN)
-	}
-
-	goToRallyGreen(evt: UIEvent) {
-		let addRuns: CommandList = {}
-
-		if (!this.state.rallyStartLocation) {
-			alert('No green rally point selected.  Click on the map to select a green rally location and try again.')
-			return
-		}
-
-		if (this.areBotsAssignedToRuns() && !confirm('Going to the green rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
-			return
-		}
-
-		for(let bot in this.getPodStatus().bots)
-		{
-			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyStartLocation]);
-		}
-
-		this.runMissions(this.getRunList(), addRuns)
-	}
-
-	goToRallyRed(evt: UIEvent) {
-		let addRuns: CommandList = {}
-
-		if (!this.state.rallyEndLocation) {
-			alert('No red rally point selected.  Click on the map to select a red rally location and try again.')
-			return
-		}
-
-		if (this.areBotsAssignedToRuns() && !confirm('Going to the red rally point will delete all runs in the mission. If the current mission is saved, select OK')) {
-			return
-		}
-
-		for(let bot in this.getPodStatus().bots)
-		{
-			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [this.state.rallyEndLocation]);
-		}
-
-		this.runMissions(this.getRunList(), addRuns)
-	}
-
-	playClicked(evt: UIEvent) {
-		if (!this.areBotsAssignedToRuns()) {
-			alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
-			return
-		}
-
-		this.runMissions(this.getRunList(), null);
-	}
 	
+	}
+
 	activateAllClicked(evt: UIEvent) {
 		if (!this.takeControl() || !confirm('Click the OK button to run a system check for all active bots:')) return;
 
@@ -1685,6 +1547,19 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	rallyButtonClicked() {
+		// Set Add Rally Point Mode => Turn it off on the next click
+	}
+
+	playClicked(evt: UIEvent) {
+		if (!this.areBotsAssignedToRuns()) {
+			alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
+			return
+		}
+
+		this.runMissions(this.getRunList(), null);
+	}
+	
 	nextTaskAllClicked(evt: UIEvent) {
 		if (!this.takeControl() || !confirm('Click the OK button to run the next task for all active bots:')) return;
 
@@ -1934,7 +1809,10 @@ export default class CommandControl extends React.Component {
 		// Place all the mission planning features in this for the missionLayer
 		const missionPlanningFeaturesList: OlFeature[] = []
 
-		const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
+		const { missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
+
+		const rallyStartLocation: any = null
+		const rallyEndLocation: any = null
 
 		if (missionPlanningGrid) {
 			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
@@ -2106,7 +1984,9 @@ export default class CommandControl extends React.Component {
 			return false
 		}
 		// Check that rally points are set
-		if (!(this.state.rallyEndLocation && this.state.rallyStartLocation)) {
+		const rallyStartLocation: any = null
+		const rallyEndLocation: any = null
+		if (!(rallyStartLocation && rallyEndLocation)) {
 			return false
 		}
 		return true
@@ -2191,7 +2071,10 @@ export default class CommandControl extends React.Component {
 						this.setState({missionEndTask: missionSettings.endTask})
 
 						if (this.state.missionParams.missionType === 'lines') {
-							const { rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							const { missionParams, missionPlanningGrid, missionBaseGoal } = this.state
+							const rallyStartLocation: any = null
+							const rallyEndLocation: any = null
+
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
 							const runList = this.pushRunListToUndoStack().getRunList()
@@ -2363,8 +2246,9 @@ export default class CommandControl extends React.Component {
 			<Button
 				className="button-jcc"
 				onClick={() => {
-					if (this.state.rallyEndLocation
-							&& this.state.rallyStartLocation) {
+					const rallyStartLocation: any = null
+					const rallyEndLocation: any = null
+					if (rallyStartLocation && rallyEndLocation) {
 						this.setVisiblePanel(PanelType.MISSION_SETTINGS)
 						this.setState({ mode: Mode.MISSION_PLANNING });
 						if (this.state.missionParams.missionType === 'polygon-grid')
