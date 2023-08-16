@@ -95,7 +95,8 @@ export enum PanelType {
 
 export enum Mode {
 	NONE = '',
-	MISSION_PLANNING = 'missionPlanning'
+	MISSION_PLANNING = 'missionPlanning',
+	NEW_RALLY_POINT = 'newRallyPoint'
 }
 
 export interface RunInterface {
@@ -481,7 +482,6 @@ export default class CommandControl extends React.Component {
 		clearInterval(this.metadataTimerID)
 	}
 
-	
 	/**
 	 * Handler for when the user presses a hotkey
 	 * 
@@ -561,7 +561,6 @@ export default class CommandControl extends React.Component {
 			}
 		}
 	}
-
 
 	/**
 	 * Removes the currentInteraction, and replaces it with newInteraction, changing the cursor to cursor
@@ -1336,6 +1335,11 @@ export default class CommandControl extends React.Component {
 			return feature
 		});
 
+		if (this.state.mode === 'newRallyPoint') {
+			this.setState({ mode: '' })
+			map.getTargetElement().style.cursor = 'default'
+		}
+
 		if (feature) {
 			const botId = feature.get('botId')
 			
@@ -1417,6 +1421,13 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 
+	handleContainerClickJCC() {
+		if (this.state.mode === 'newRallyPoint') {
+			this.setState({ mode: '' })
+			map.getTargetElement().style.cursor = 'default'
+		}
+	}
+
 	stopDown(arg: boolean) {
 		return false
 	}
@@ -1456,7 +1467,7 @@ export default class CommandControl extends React.Component {
 				<Button id="system-check-all-bots" className="button-jcc" onClick={this.activateAllClicked.bind(this)}>
 					<Icon path={mdiCheckboxMarkedCirclePlusOutline} title="System Check All Bots"/>
 				</Button>
-				<Button className="button-jcc" title='Add Rally Point' onClick={this.rallyButtonClicked.bind(this)}>
+				<Button className={`button-jcc ${this.state.mode === 'newRallyPoint' ? 'selected' : ''}`} title='Add Rally Point' onClick={this.rallyButtonClicked.bind(this)}>
 					<img src={rallyIcon} />
 				</Button>
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
@@ -1511,7 +1522,13 @@ export default class CommandControl extends React.Component {
 	}
 
 	rallyButtonClicked() {
-		// Set Add Rally Point Mode => Turn it off on the next click
+		if (this.state.mode === 'newRallyPoint') {
+			this.setState({ mode: '' })
+			map.getTargetElement().style.cursor = 'default'
+		} else {
+			this.setState({ mode: 'newRallyPoint' })
+			map.getTargetElement().style.cursor = 'crosshair'
+		}
 	}
 
 	playClicked(evt: UIEvent) {
@@ -2353,7 +2370,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		return (
-			<div id="jcc_container" className={containerClasses}>
+			<div id="jcc_container" className={containerClasses} onClick={this.handleContainerClickJCC.bind(this)}>
 
 				<JaiaAbout metadata={metadata}/>
 
