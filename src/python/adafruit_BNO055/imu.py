@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from orientation import Orientation
 from vector3 import Vector3
-from typing import Protocol
+from typing import *
 from quaternion import Quaternion
 import logging
 import datetime
@@ -49,6 +49,9 @@ class IMU:
             IMUData: the reading as an IMUData
         """
         reading = self.takeReading()
+
+        if reading is None:
+            return None
 
         imu_data = IMUData()
         imu_data.euler_angles.heading = reading.orientation.heading
@@ -108,6 +111,16 @@ class Adafruit(IMU):
             gravity = self.sensor.gravity
             calibration_status = self.sensor.calibration_status
             
+            # This is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
+            def filter(iterable: Iterable[float], threshold: float=50):
+                for value in iterable:
+                    if abs(value) > threshold:
+                        return [0.0] * len(iterable)
+                return iterable
+
+            linear_acceleration = filter(linear_acceleration)
+            gravity = filter(gravity)
+
             if None in quaternion or None in euler or None in linear_acceleration or None in gravity or None in calibration_status:
                 return None
             else:
