@@ -1,0 +1,110 @@
+# HDF5
+
+## Section: Sensors
+
+### Group: imu
+* IMUCommand
+  * required IMUCommandType type
+    * TAKE_READING = 0
+    * START_WAVE_HEIGHT_SAMPLING = 1
+    * STOP_WAVE_HEIGHT_SAMPLING = 2
+    * START_BOTTOM_TYPE_SAMPLING = 3
+    * STOP_BOTTOM_TYPE_SAMPLING = 4
+* IMUData
+  * optional EulerAngles euler_angles
+    * optional double heading
+    * optional double pitch
+    * optional double roll
+  * optional Acceleration linear_acceleration
+    * optional double x
+    * optional double y
+    * optional double z
+  * optional Acceleration gravity
+    * optional double x
+    * optional double y
+    * optional double z
+  * optional CalibrationStatus calibration_status
+    * optional int32 sys
+    * optional int32 gyro
+    * optional int32 accel
+    * optional int32 mag
+  * optional double significant_wave_height
+  * optional double max_acceleration
+* IMUIssue
+  * required SolutionType solution
+    * STOP_BOT = 0
+    * USE_COG = 1
+    * USE_CORRECTION = 2
+    * RESTART_BOT = 3
+    * REBOOT_BOT = 4
+    * REPORT_IMU = 5
+    * RESTART_IMU_PY = 6
+
+### Group: pressure_temperature
+### Group: pressure_adjusted
+### Group: salinity
+
+## Section: Low Control
+
+### Group: low_control
+### Group: control_ack
+
+## Section: High Control
+
+### Group: desired_setpoints
+
+## Section: Mission Manager
+
+### Group: mission_report
+### Group: mission_ivp_behavior_update
+### Group: mission_ivp_behavior_report
+### Group: powerstate_command
+### Group: mission_dive
+### Group: mission_tpv_meets_gps_req
+
+## Section: Hub Manager
+
+### Group: hub_status
+
+## Section: Health
+
+### Group: linux_hardware_status
+### Group: time_status
+### Group: systemd_report
+### Group: systemd_report_ack
+
+## Section: DCCL Intervehicle
+
+### Group: bot_status
+### Group: hub_command
+### Group: task_packet
+### Group: engineering_command
+### Group: engineering_status
+
+## Section: DCC Interprocess
+
+### Group: hub_command_full
+
+## Section: Metadata
+
+### Group: metadata
+
+## Section: MOOS
+
+### Group: moos
+### Group: helm_ivp
+
+## Section: Subscriptions
+
+### Group: intervehicle_subscribe_request
+
+## Section: Arduino
+
+### Group: arduino_from_pi
+### Group: arduino_to_pi
+
+## Section: Lora
+
+### Group: lora_rx
+### Group: lora_tx
+### Group: lora_report
