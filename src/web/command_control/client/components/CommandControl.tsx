@@ -147,6 +147,7 @@ interface State {
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
 	rallyFeatures: OlCollection<OlFeature>
+	rallyFeatureCount: number
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -245,6 +246,7 @@ export default class CommandControl extends React.Component {
 			selectedHubOrBot: null,
 			measureFeature: null,
 			rallyFeatures: null,
+			rallyFeatureCount: 1,
 
 			mode: Mode.NONE,
 			currentInteraction: null,
@@ -1114,8 +1116,11 @@ export default class CommandControl extends React.Component {
 	addRallyPointAt(coordinate: number[]) {
 		const point = getMapCoordinate(getGeographicCoordinate(coordinate, map), map)
 		const rallyFeature = new Feature({ geometry: new Point(point) })
-		rallyFeature.setStyle(getRallyStyle())
+		const rallyFeatureCount = this.state.rallyFeatureCount
+		rallyFeature.setStyle(getRallyStyle(rallyFeatureCount))
 		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
+
+		this.setState({ rallyFeatureCount: rallyFeatureCount + 1 })
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {

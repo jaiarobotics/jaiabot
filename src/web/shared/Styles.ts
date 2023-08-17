@@ -1,8 +1,9 @@
 import Stroke from 'ol/style/Stroke';
+import Romans from 'romans'
 import { Feature } from 'ol'
 import { LineString, Point } from 'ol/geom';
 import { Fill, Icon, Style, Text} from 'ol/style';
-import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
+import { Goal, DivePacket, TaskType } from './JAIAProtobuf'
 import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
@@ -238,7 +239,8 @@ function createGpsIcon() {
 
 function createRallyIcon() {
     return new Icon({
-        src: rallyPoint
+        src: rallyPoint,
+        scale: 1.5
     })
 }
 
@@ -290,10 +292,18 @@ export function getGpsStyle() {
     })
 }
 
-export function getRallyStyle() {
+export function getRallyStyle(rallyFeatureCount: number) {
     return new Style({
         image: createRallyIcon(),
-        zIndex: 105
+        text: new Text({
+            text: Romans.romanize(rallyFeatureCount),
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            offsetY: 8,
+            offsetX: 0
+        }),
     })
 }
 
