@@ -20,6 +20,7 @@ import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
+import { getRallyStyle } from './shared/Styles'
 import { SurveyPolygon } from './SurveyPolygon'
 import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
@@ -45,10 +46,10 @@ import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
 import { Interaction } from 'ol/interaction'
-import { MapBrowserEvent } from 'ol'
+import { Feature, MapBrowserEvent } from 'ol'
 import { getLength as OlGetLength } from 'ol/sphere'
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
-import { Geometry, LineString, LineString as OlLineString } from 'ol/geom'
+import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
 
 // TurfJS
@@ -145,6 +146,7 @@ interface State {
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
+	rallyFeatures: OlCollection<OlFeature>
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -242,6 +244,7 @@ export default class CommandControl extends React.Component {
 
 			selectedHubOrBot: null,
 			measureFeature: null,
+			rallyFeatures: null,
 
 			mode: Mode.NONE,
 			currentInteraction: null,
@@ -475,6 +478,8 @@ export default class CommandControl extends React.Component {
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
 		}
+
+		console.log(layers.rallyPointLayer.getSource().getFeatures())
 	}
 
 	componentWillUnmount() {
@@ -1106,6 +1111,13 @@ export default class CommandControl extends React.Component {
 		this.setRunList(runList)
 	}
 
+	addRallyPointAt(coordinate: number[]) {
+		const point = getMapCoordinate(getGeographicCoordinate(coordinate, map), map)
+		const rallyFeature = new Feature({ geometry: new Point(point) })
+		rallyFeature.setStyle(getRallyStyle())
+		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
+	}
+
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
 		const botId = this.state.goalBeingEditedBotId
 		const goalNum = this.state.goalBeingEditedGoalIndex
@@ -1338,6 +1350,8 @@ export default class CommandControl extends React.Component {
 		if (this.state.mode === 'newRallyPoint') {
 			this.setState({ mode: '' })
 			map.getTargetElement().style.cursor = 'default'
+			this.addRallyPointAt(evt.coordinate)
+			return
 		}
 
 		if (feature) {
@@ -1652,7 +1666,6 @@ export default class CommandControl extends React.Component {
 		let zIndex = 2
 
 		for (let key in missions?.runs) {
-			// Different style for the waypoint marker, depending on if the associated bot is selected or not
 			const run = missions?.runs[key]
 			const assignedBot = run.assigned
 			const isSelected = (assignedBot === selectedBotId)
@@ -1733,7 +1746,6 @@ export default class CommandControl extends React.Component {
 	}
 
 	/**
-	 * 
 	 * @returns List of botIds from podStatus
 	 */
 	getBotIdList() {

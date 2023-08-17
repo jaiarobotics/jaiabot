@@ -10,12 +10,8 @@ import * as Style from 'ol/style';
 
 
 export class Layers {
-
-    
     /**
-     * Layer for the missions
-     * @date 6/14/2023 - 5:14:33 PM
-     *
+     * Layer for missions
      */
     missionLayer = new VectorLayer({
         properties: {
@@ -25,12 +21,8 @@ export class Layers {
         zIndex: 2001
     })
 
-    
     /**
      * Layer for the actively running missions for each bot
-     * @date 6/14/2023 - 5:16:26 PM
-     *
-     * @type {*}
      */
     activeMissionLayer = new VectorLayer({
         properties: {
@@ -41,12 +33,8 @@ export class Layers {
         opacity: 0.25
     })
 
-    
     /**
      * Layer for planning survey missions
-     * @date 6/14/2023 - 5:16:44 PM
-     *
-     * @type {*}
      */
     missionPlanningLayer = new VectorLayer({
         properties: { 
@@ -56,13 +44,9 @@ export class Layers {
         source: new VectorSource(),
         zIndex: 2000
     });
-
     
     /**
      * Layer for rally point icons
-     * @date 6/14/2023 - 5:17:23 PM
-     *
-     * @type {*}
      */
     rallyPointLayer = new VectorLayer({
         properties: {
@@ -75,9 +59,6 @@ export class Layers {
     
     /**
      * Layer group for mission-related layers
-     * @date 6/14/2023 - 5:17:34 PM
-     *
-     * @type {*}
      */
     missionLayerGroup = new LayerGroup({
         properties: {
@@ -92,12 +73,8 @@ export class Layers {
         ]
     })
     
-    
     /**
      * Layer for measurement features
-     * @date 6/14/2023 - 5:19:11 PM
-     *
-     * @type {*}
      */
     measurementLayerGroup = new LayerGroup({
         properties: { 
@@ -113,15 +90,11 @@ export class Layers {
         ]
     })
 
-    
     /**
      * Layer for the map's graticule (lon/lat grid)
-     * @date 6/14/2023 - 5:19:27 PM
-     *
-     * @type {*}
      */
     graticuleLayer = new Graticule({
-        // the style to use for the lines, optional.
+        // the style to use for the lines, optional
         strokeStyle: new Style.Stroke({
             color: 'rgb(0,0,0)',
             width: 2,
@@ -132,12 +105,9 @@ export class Layers {
         showLabels: true,
         wrapX: false,
     })
-
     
     dragAndDropVectorLayer = new VectorLayer()
-
     baseLayerGroup = createBaseLayerGroup()
-
     chartLayerGroup = createChartLayerGroup()
 
     getAllLayers() {
