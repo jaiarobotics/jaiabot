@@ -202,6 +202,13 @@ jaiabot_apps=[
      'template': 'gobyd.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBYD',
      'runs_on': Type.BOTH },
+    {'exe': 'goby_intervehicle_portal',
+     'description': 'Goby Intervehicle Portal',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL',
+     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1',
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison',
      'description': 'Goby Liaison GUI for JaiaBot',
      'template': 'goby-app.service.in',
@@ -459,7 +466,8 @@ def is_app_run(app):
 
 for app in jaiabot_apps:
     if is_app_run(app):
-        if app['template'] == 'goby-app.service.in':
+        # goby_intervehicle_portal does not respond to goby_coroner. When this is fixed, remove the exception: https://github.com/GobySoft/goby3/issues/297
+        if app['template'] == 'goby-app.service.in' and app['exe'] != 'goby_intervehicle_portal':
             all_goby_apps.append(app['exe'])
 
         
