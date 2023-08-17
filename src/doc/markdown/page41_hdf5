@@ -41,44 +41,406 @@
     * RESTART_IMU_PY = 6
 
 ### Group: pressure_temperature
+
+* PressureTemperatureData
+  * required double pressure_raw
+  * optional double temperature
+  * required string version
+
 ### Group: pressure_adjusted
+
+* PressureAdjustedData
+  * required double pressure_raw
+  * optional double pressure_adjusted
+  * optional double pressure_raw_before_dive
+  * optional double calculated_depth
+
 ### Group: salinity
+
+* SalinityData
+  * required double conductivity
+  * required double total_dissolved_solids
+  * required double salinity
+  * required double specific_gravity
 
 ## Section: Low Control
 
 ### Group: low_control
+
+* LowControl
+  * required uint32 id
+  * required uint32 vehicle
+  * required uint64 time
+  * optional ControlSurfaces control_surfaces
+    * required sint32 motor
+    * required sint32 port_elevator
+    * required sint32 stbd_elevator
+    * required sint32 rudder
+    * required sint32 timeout
+    * required bool led_switch_on
+
 ### Group: control_ack
+
+* LowControlAck
+  * required uint32 id
+  * required uint32 vehicle
+  * required uint64 time
+  * required uint64 command_time
+  * required GeographicCoordinate location
+    * required double lat
+    * required double lon
+  * optional double range
+  * optional double speed
+  * optional double eps
 
 ## Section: High Control
 
 ### Group: desired_setpoints
 
+* DesiredSetpoints
+  * required SetpointType type
+    * SETPOINT_STOP = 0      
+      * Description: no actuator movement - drift
+    * SETPOINT_IVP_HELM = 1  
+      * Description: IvPHelm setpoints (helm_course)
+    * SETPOINT_REMOTE_CONTROL = 2 
+      * Description: fixed heading, speed, etc. for a given duration
+    * SETPOINT_DIVE = 3
+      * Description: Inverse drive control (dive_depth)
+    * SETPOINT_POWERED_ASCENT = 4
+      * Description: Power ascent to surface
+  * oneof setpoint_data
+    * goby.middleware.frontseat.protobuf.DesiredCourse helm_course
+      * required double time
+      * optional double heading
+      * optional double speed
+      * optional double depth
+      * optional double pitch
+      * optional double roll
+      * optional double z_rate
+      * optional double altitude
+    * RemoteControl remote_control
+      * required int32 duration
+      * optional double heading
+      * optional double speed
+    * double dive_depth
+
 ## Section: Mission Manager
 
 ### Group: mission_report
+
+* MissionReport
+  * required MissionState state
+    * PRE_DEPLOYMENT__STARTING_UP = 0
+    * PRE_DEPLOYMENT__IDLE = 1
+    * PRE_DEPLOYMENT__SELF_TEST = 2
+    * PRE_DEPLOYMENT__FAILED = 3
+    * PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN = 4
+    * PRE_DEPLOYMENT__READY = 5
+    * IN_MISSION__UNDERWAY__REPLAN = 100
+    * IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT = 110
+    * IN_MISSION__UNDERWAY__MOVEMENT__REACQUIRE_GPS = 111
+    * IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT = 112
+    * IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP = 113
+    * IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114
+    * IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = 115
+    * IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = 116
+    * IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120
+    * IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121
+    * IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = 122
+    * IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT = 123
+    * IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT = 124
+    * IN_MISSION__UNDERWAY__TASK__DIVE__HOLD = 125
+    * IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT = 126
+    * IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT = 127
+    * IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS = 128
+    * IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT = 129
+    * IN_MISSION__UNDERWAY__TASK__DIVE__CONSTANT_HEADING = 130
+    * IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING = 131
+    * IN_MISSION__UNDERWAY__TASK__IMU_RESTART = 132
+    * IN_MISSION__UNDERWAY__RECOVERY__TRANSIT = 140
+    * IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP = 141
+    * IN_MISSION__UNDERWAY__RECOVERY__STOPPED = 142
+    * IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS = 143
+    * IN_MISSION__UNDERWAY__RECOVERY__IMU_RESTART = 144
+    * IN_MISSION__UNDERWAY__ABORT = 150
+    * POST_DEPLOYMENT__RECOVERED = 200
+    * POST_DEPLOYMENT__DATA_PROCESSING = 201
+    * POST_DEPLOYMENT__DATA_OFFLOAD = 202
+    * POST_DEPLOYMENT__IDLE = 203
+    * POST_DEPLOYMENT__SHUTTING_DOWN = 204
+  * optional int32 active_goal
+  * optional GeographicCoordinate active_goal_location
+    * required double lat
+    * required double lon
+  * optional double distance_to_active_goal
+  * optional uint32 active_goal_timeout
+  * optional int32 data_offload_percentage
+
 ### Group: mission_ivp_behavior_update
+
+* IvPBehaviorUpdate
+  * oneof behavior
+    * TransitUpdate transit
+      * required bool active
+      * optional double x
+      * optional double y
+      * optional double speed
+    * StationkeepUpdate stationkeep
+      * required bool active
+      * optional double x
+      * optional double y
+      * optional double outer_speed
+      * optional double transit_speed
+      * optional bool center_activate
+    * ConstantHeadingUpdate constantHeading
+      * required bool active
+      * optional double heading
+    * ConstantSpeedUpdate constantSpeed
+      * required bool active
+      * optional double speed
+
 ### Group: mission_ivp_behavior_report
+
+* IvPBehaviorReport
+  * oneof behavior
+    * TransitReport transit
+      *  optional bool waypoint_reached
+
 ### Group: powerstate_command
+
+
+
 ### Group: mission_dive
 ### Group: mission_tpv_meets_gps_req
+
+* MissionTpvMeetsGpsReq
+  * optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv
+    * optional string device
+    * optional double time
+    * optional Mode mode
+      * ModeNotSeen = 0
+      * ModeNoFix = 1
+      * Mode2D = 2
+      * Mode3D= 3
+    * optional LatLonPoint location
+      * required double lat
+      * required double lon
+      * optional double depth
+      * optional double altitude
+    * optional double altitude
+    * optional double track
+    * optional double speed
+    * optional double climb
+    * optional double epc
+    * optional double epd
+    * optional double eps
+    * optional double ept
+    * optional double epv
+    * optional double epx
+    * optional double epy
 
 ## Section: Hub Manager
 
 ### Group: hub_status
 
+* HubStatus
+  * required uint32 hub_id
+  * required uint32 fleet_id
+  * required uint64 time
+  * optional goby.middleware.protobuf.HealthState health_state
+    * HEALTH__OK = 1
+    * HEALTH__DEGRADED = 2
+    * HEALTH__FAILED = 3
+  * repeated Error error
+  * repeated Warning warning
+  * optional GeographicCoordinate location
+  * repeated uint32 bot_ids_in_radio_file
+  * optional LinuxHardwareStatus linux_hardware_status
+
 ## Section: Health
 
 ### Group: linux_hardware_status
+
+* optional int32 uptime
+* optional Processor processor
+* optional Memory memory
+* optional Disk disk
+* optional WiFi wifi
+
 ### Group: time_status
+
+* optional NTPPeer system_sync_peer
+* repeated NTPPeer peer
+
 ### Group: systemd_report
+
+* SystemdStartReport
+  * required Error clear_error
+
+* SystemdStopReport
+  * required ServiceResult result
+    * SERVICE_RESULT_UNKNOWN = 0
+    * SERVICE_RESULT_SUCCESS = 1
+    * SERVICE_RESULT_PROTOCOL = 2
+    * SERVICE_RESULT_TIMEOUT = 3
+    * SERVICE_RESULT_EXIT_CODE = 4
+    * SERVICE_RESULT_SIGNAL = 5
+    * SERVICE_RESULT_CORE_DUMP = 6
+    * SERVICE_RESULT_WATCHDOG = 7
+    * SERVICE_RESULT_START_LIMIT_HIT = 8
+    * SERVICE_RESULT_RESOURCES = 9
+  * required Error error
+  * optional string journal_dump_file
+
 ### Group: systemd_report_ack
+
+* SystemdReportAck
+  * required Error error_ack
 
 ## Section: DCCL Intervehicle
 
 ### Group: bot_status
+
+* BotStatus
+  * required uint32 bot_id
+  * required uint64 time
+  * optional uint64 last_command_time
+  * optional goby.middleware.protobuf.HealthState health_state
+  * repeated Error error
+  * repeated Warning warning
+  * optional GeographicCoordinate location
+  * optional double depth
+  * optional Attitude attitude
+    * optional double roll
+    * optional double pitch
+    * optional double heading
+    * optional double course_over_ground
+  * optional Speed speed 
+    * optional double over_ground
+    * optional double over_water
+  * optional MissionState mission_state
+  * optional int32 active_goal
+  * optional double distance_to_active_goal
+  * optional uint32 active_goal_timeout
+  * optional double salinity
+  * optional double temperature
+  * optional double thermocouple_temperature
+  * optional double vv_current
+  * optional double vcc_current
+  * optional double vcc_voltage
+  * optional double battery_percent
+  * optional IMUData.CalibrationStatus calibration_status
+  * optional double hdop
+  * optional double pdop
+  * optional int32 data_offload_percentage
+  * optional int32 wifi_link_quality_percentage
+
 ### Group: hub_command
+
+* Command
+  * required uint32 bot_id
+  * required uint64 time
+  * required CommandType type
+    * MISSION_PLAN = 1
+    * ACTIVATE = 2
+    * START_MISSION = 3
+    * MISSION_PLAN_FRAGMENT = 4
+    * NEXT_TASK = 10
+    * RETURN_TO_HOME = 11
+    * STOP = 12
+    * REMOTE_CONTROL_SETPOINT = 20
+    * REMOTE_CONTROL_TASK = 21
+    * REMOTE_CONTROL_RESUME_MOVEMENT = 22
+    * RECOVERED = 30
+    * SHUTDOWN = 31
+    * RETRY_DATA_OFFLOAD = 32
+    * RESTART_ALL_SERVICES = 40
+    * REBOOT_COMPUTER = 41
+    * SHUTDOWN_COMPUTER = 42 
+  * oneof command_data
+    * MissionPlan plan
+      * optional MissionStart start
+        * START_IMMEDIATELY = 1
+        * START_ON_COMMAND = 2
+      * optional MovementType movement
+        * TRANSIT = 1
+        * REMOTE_CONTROL = 2; 
+      * repeated Goal goal
+        * optional string name
+        * required GeographicCoordinate location
+        * optional MissionTask task
+        * optional bool moveWptMode
+      * optional Recovery recovery
+        * optional bool recover_at_final_goal
+        * optional GeographicCoordinate location
+      * optional Speeds speeds
+        * optional double transit
+        * optional double stationkeep_outer
+      * optional uint32 fragment_index
+      * optional uint32 expected_fragments
+      * optional uint32 repeats
+    * RemoteControl rc
+    * MissionTask rc_task
+
+* CommandForHub
+  * required uint32 hub_id
+  * required uint64 time
+  * required HubCommandType type
+    * SCAN_FOR_BOTS = 5
+    * RESTART_ALL_SERVICES = 40
+    * REBOOT_COMPUTER = 41
+    * SHUTDOWN_COMPUTER = 42
+  * optional uint32 scan_for_bot_id
+
 ### Group: task_packet
+
+* TaskPacket
+  * required uint32 bot_id
+  * required uint64 start_time
+  * required uint64 end_time
+  * required MissionTask.TaskType type
+  * optional DivePacket dive
+    * required double dive_rate
+    * optional double unpowered_rise_rate
+    * optional double powered_rise_rate
+    * required double depth_achieved
+    * repeated Measurements measurement
+      *  optional double mean_depth
+      *  optional double mean_temperature
+      *  optional double mean_salinity
+    * optional GeographicCoordinate start_location
+    * optional double duration_to_acquire_gps
+    * optional bool bottom_dive
+    * optional bool reached_min_depth
+    * optional BottomType bottom_type
+      * HARD = 1
+      * SOFT = 2
+    * optional double max_acceleration
+  * optional DriftPacket drift
+    * optional int32 drift_duration
+    * optional EstimatedDrift estimated_drift
+      * required double speed
+      * optional double heading
+    * optional GeographicCoordinate start_location
+    * optional GeographicCoordinate end_location
+    * optional double significant_wave_height
+
 ### Group: engineering_command
+
+* Engineering
+  * required uint32 bot_id
+  * optional uint64 time
+  * optional PIDControl pid_control
+  * optional bool query_engineering_status
+  * optional bool query_bot_status
+  * optional bool engineering_messages_enabled
+  * optional BotStatusRate bot_status_rate
+  * optional GPSRequirements gps_requirements
+  * optional RFDisableOptions rf_disable_options
+  * optional BottomDepthSafetyParams bottom_depth_safety_params
+  * optional uint32 flag
+
 ### Group: engineering_status
 
 ## Section: DCC Interprocess
@@ -108,3 +470,21 @@
 ### Group: lora_rx
 ### Group: lora_tx
 ### Group: lora_report
+
+* MissionTask
+  * optional TaskType type
+    * NONE = 0
+    * DIVE = 1
+    * STATION_KEEP = 2
+    * SURFACE_DRIFT = 3
+    * CONSTANT_HEADING = 4
+  * optional DiveParameters dive
+    * optional double max_depth
+    * optional double depth_interval
+    * optional double hold_time
+  * optional DriftParameters surface_drift
+    * optional int32 drift_time
+  * optional ConstantHeadingParameters constant_heading
+    * optional double constant_heading
+    * optional int32 constant_heading_time
+    * optional double constant_heading_speed
