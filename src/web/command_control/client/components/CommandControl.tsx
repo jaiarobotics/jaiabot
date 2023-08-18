@@ -1133,14 +1133,20 @@ export default class CommandControl extends React.Component {
 	}
 
 	goToRallyPoint(rallyFeature: OlFeature<Point>) {
-		const location = getGeographicCoordinate(rallyFeature.getGeometry().getCoordinates(), map)
+		const location = rallyFeature.get('location')
 		let addRuns: CommandList = {}
 
 		for(let bot in this.getPodStatus().bots) {
 			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [location]);
 		}
 
-		this.runMissions(this.getRunList(), addRuns)
+		this.runMissions(this.getRunList(), addRuns, true)
+		this.setVisiblePanel(PanelType.NONE)
+	}
+
+	deleteRallyPoint(rallyFeature: OlFeature) {
+		layers.rallyPointLayer.getSource().removeFeature(rallyFeature)
+		this.setVisiblePanel(PanelType.NONE)
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
@@ -1179,7 +1185,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	// Runs a set of missions, and updates the GUI
-	runMissions(missions: MissionInterface, addRuns: CommandList) {
+	runMissions(missions: MissionInterface, addRuns: CommandList, rallyPointRun?: boolean) {
 		if (!this.takeControl()) return
 
 		const botIds: number[] = [];
@@ -1206,7 +1212,7 @@ export default class CommandControl extends React.Component {
 		} else {
 			if (confirm("Click the OK button to run this mission for Bots: " + botIds)) {
 				if (addRuns) {
-					this.deleteAllRunsInMission(missions, true);
+					this.deleteAllRunsInMission(missions, true, true);
 					Object.keys(addRuns).map(key => {
 						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
 					});
@@ -1247,9 +1253,9 @@ export default class CommandControl extends React.Component {
 		return Object.keys(this.getRunList().botsAssignedToRuns).length > 0
 	}
 
-	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean) {
+	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 		const activeRunNumbers = this.getActiveRunNumbers(mission)
-		const warningString = this.generateDeleteAllRunsWarnStr(activeRunNumbers)
+		const warningString = this.generateDeleteAllRunsWarnStr(activeRunNumbers, rallyPointRun)
 		if (needConfirmation && !confirm(warningString)) {
 			return
 		}
@@ -1286,9 +1292,8 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-	generateDeleteAllRunsWarnStr(missionActiveRuns: number[]) {
+	generateDeleteAllRunsWarnStr(missionActiveRuns: number[], rallyPointRun?: boolean) {
 		if (missionActiveRuns.length > 0) {
-			let warningString = ''
 			let missionActiveRunStr = ''
 			let runStr = missionActiveRuns.length > 1 ? 'Runs' : 'Run'
 			for (let i = 0; i < missionActiveRuns.length; i++) {
@@ -1298,8 +1303,11 @@ export default class CommandControl extends React.Component {
 					missionActiveRunStr += missionActiveRuns[i] + ", "
 				}
 			}
-			
-			return `Are you sure you want to delete all runs in this mission? Note: ${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission.`
+
+			if (rallyPointRun) {
+				return 'Proceeding with this action will move all bots towards the selected rally point. Select "OK" to continue:' 
+			}
+			return `Are you sure you want to delete all runs in this mission? Note: ${runStr} ${missionActiveRunStr} cannot be deleted while carrying out a mission`
 		}
 		return 'Are you sure you want to delete all runs in this mission?'
 	}
@@ -2411,6 +2419,7 @@ export default class CommandControl extends React.Component {
 					<RallyPointPanel
 						selectedRallyFeature={this.state.selectedRallyFeature}
 						goToRallyPoint={this.goToRallyPoint.bind(this)}
+						deleteRallyPoint={this.deleteRallyPoint.bind(this)}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 					/>
 				)
