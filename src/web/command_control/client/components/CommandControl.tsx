@@ -1123,7 +1123,8 @@ export default class CommandControl extends React.Component {
 		rallyFeature.setProperties({ 
 			'type': 'rallyPoint', 
 			'romanNum': Romans.romanize(this.state.rallyFeatureCount),
-			'location': getGeographicCoordinate(coordinate, map)
+			'location': getGeographicCoordinate(coordinate, map),
+			'disableDrag': true
 		})
 		rallyFeature.setStyle(getRallyStyle(rallyFeatureCount))
 		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
