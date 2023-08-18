@@ -8,6 +8,7 @@ import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
+import Romans from 'romans'
 import { layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
@@ -22,6 +23,7 @@ import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
 import { getRallyStyle } from './shared/Styles'
 import { SurveyPolygon } from './SurveyPolygon'
+import { RallyPointPanel } from './RallyPointPanel'
 import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
@@ -91,7 +93,8 @@ export enum PanelType {
 	MEASURE_TOOL = 'MEASURE_TOOL',
 	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
-	GOAL_SETTINGS = 'GOAL_SETTINGS'
+	GOAL_SETTINGS = 'GOAL_SETTINGS',
+	RALLY_POINT = 'RALLY_POINT'
 }
 
 export enum Mode {
@@ -147,7 +150,8 @@ interface State {
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
 	rallyFeatures: OlCollection<OlFeature>
-	rallyFeatureCount: number
+	rallyFeatureCount: number,
+	selectedRallyFeature: OlFeature<Point>
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -247,6 +251,7 @@ export default class CommandControl extends React.Component {
 			measureFeature: null,
 			rallyFeatures: null,
 			rallyFeatureCount: 1,
+			selectedRallyFeature: null,
 
 			mode: Mode.NONE,
 			currentInteraction: null,
@@ -480,8 +485,6 @@ export default class CommandControl extends React.Component {
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
 		}
-
-		console.log(layers.rallyPointLayer.getSource().getFeatures())
 	}
 
 	componentWillUnmount() {
@@ -1117,10 +1120,26 @@ export default class CommandControl extends React.Component {
 		const point = getMapCoordinate(getGeographicCoordinate(coordinate, map), map)
 		const rallyFeature = new Feature({ geometry: new Point(point) })
 		const rallyFeatureCount = this.state.rallyFeatureCount
+		rallyFeature.setProperties({ 
+			'type': 'rallyPoint', 
+			'romanNum': Romans.romanize(this.state.rallyFeatureCount),
+			'location': getGeographicCoordinate(coordinate, map)
+		})
 		rallyFeature.setStyle(getRallyStyle(rallyFeatureCount))
 		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
 
 		this.setState({ rallyFeatureCount: rallyFeatureCount + 1 })
+	}
+
+	goToRallyPoint(rallyFeature: OlFeature<Point>) {
+		const location = getGeographicCoordinate(rallyFeature.getGeometry().getCoordinates(), map)
+		let addRuns: CommandList = {}
+
+		for(let bot in this.getPodStatus().bots) {
+			addRuns[Number(bot)] = Missions.commandWithWaypoints(Number(bot), [location]);
+		}
+
+		this.runMissions(this.getRunList(), addRuns)
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
@@ -1167,20 +1186,15 @@ export default class CommandControl extends React.Component {
 		const botIdsPoorHealth: number[] = [];
 		const runs = missions.runs;
 
-		Object.keys(runs).map(key => {
-			let botIndex = runs[key].assigned;
-			if (botIndex !== -1) {
-				const botState = this.getPodStatus().bots[botIndex]?.mission_state;
-				const healthState = this.getPodStatus().bots[botIndex]?.health_state
-				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
-					botIdsInIdleState.push(botIndex);
-				} else if (healthState !== "HEALTH__OK") {
-					botIdsPoorHealth.push(botIndex)
-				} else {
-					botIds.push(botIndex);
-				}
+		for (const bot of Object.values(this.getPodStatus().bots)) {
+			if (bot?.mission_state === "PRE_DEPLOYMENT__IDLE" || bot?.mission_state === "POST_DEPLOYMENT__IDLE") {
+				botIdsInIdleState.push(bot?.bot_id)
+			} else if (bot.health_state !== "HEALTH__OK") {
+				botIdsPoorHealth.push(bot?.bot_id)
+			} else {
+				botIds.push(bot?.bot_id)
 			}
-		})
+		}
 
 		botIds.sort()
 		botIdsInIdleState.sort();
@@ -1430,6 +1444,12 @@ export default class CommandControl extends React.Component {
 				return false
 			}
 
+			// Clicked on a rally point
+			const isRallyPoint = feature.get('type') === 'rallyPoint'
+			if (isRallyPoint) {
+				this.setState({ selectedRallyFeature: feature }, () => this.setVisiblePanel(PanelType.RALLY_POINT))
+				return
+			}
 		}
 		
 		if (this.state.goalBeingEdited) {
@@ -1440,7 +1460,7 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 
-	handleContainerClickJCC() {
+	handleJccContainerClick() {
 		if (this.state.mode === 'newRallyPoint') {
 			this.setState({ mode: '' })
 			map.getTargetElement().style.cursor = 'default'
@@ -2384,10 +2404,20 @@ export default class CommandControl extends React.Component {
 						canEditRunState={this.canEditRunState.bind(this)} 
 					/>
 				)
+				break
+			case PanelType.RALLY_POINT:
+				visiblePanelElement = (
+					<RallyPointPanel
+						selectedRallyFeature={this.state.selectedRallyFeature}
+						goToRallyPoint={this.goToRallyPoint.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+					/>
+				)
+				break
 		}
 
 		return (
-			<div id="jcc_container" className={containerClasses} onClick={this.handleContainerClickJCC.bind(this)}>
+			<div id="jcc_container" className={containerClasses} onClick={this.handleJccContainerClick.bind(this)}>
 
 				<JaiaAbout metadata={metadata}/>
 
