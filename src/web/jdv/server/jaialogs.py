@@ -43,40 +43,50 @@ UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime
 
 def get_logs():
     '''Get list of available logs'''
-    results = []
+    results: list[dict] = []
     logging.warning('log_dir = ' + LOG_DIR)
-    for goby_file_path_string in glob.glob(LOG_DIR + '/*_*_????????T??????.goby'):
-        goby_path = Path(goby_file_path_string)
-        filename = goby_path.stem
+
+    if not os.path.isdir(LOG_DIR):
+        logging.error(f'Directory does not exist: {LOG_DIR}')
+        return results
+
+    log_file_dict: dict[str, dict] = {}
+
+    for file_path_string in glob.glob(LOG_DIR + '/*_*_????????T??????.*'):
+        file_path = Path(file_path_string)
+        filename = file_path.stem
+        log_file_info = log_file_dict.setdefault(filename, {})
+
+        suffix = file_path.suffix
         components = re.match(r'(.+)_(.+)_(.+)$', filename)
         bot, fleet, date_string = components.groups()
 
+        log_file_info.update({
+            'bot': bot,
+            'fleet': fleet,
+            'filename': filename
+        })
+
         try:
             date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
+            log_file_info['timestamp'] = date.timestamp()
         except ValueError:
             logging.warning(f'No date in filename {filename}')
             continue
 
-        file_size = goby_path.stat().st_size
+        if suffix == '.goby':
+            log_file_info['size'] = file_path.stat().st_size
 
-        h5_path = goby_path.with_suffix('.h5')
+        if suffix == '.h5':
+            try:
+                h5_file = JaiaH5FileSet([file_path])
+                duration = h5_file.duration()
+            except FileNotFoundError:
+                duration = None
 
-        try:
-            h5_file = JaiaH5FileSet([h5_path])
-            duration = h5_file.duration()
-        except FileNotFoundError:
-            duration = None
+            log_file_info['duration'] = duration
 
-        results.append({
-            'bot': bot,
-            'fleet': fleet,
-            'timestamp': date.timestamp(),
-            'size': file_size,
-            'duration': duration,
-            'filename': filename
-        })
-
-    return results
+    return list(log_file_dict.values())
 
 
 def get_log_status(log_names: List[str]):

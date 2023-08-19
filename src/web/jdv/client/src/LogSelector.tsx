@@ -116,7 +116,7 @@ export default class LogSelector extends React.Component {
                     {log.duration ? duration_string_from_seconds(log.duration / 1e6) : "Unconverted"}
                 </div>
                 <div className="bigCell rightJustify">
-                    {log.size.toLocaleString()}
+                    {log.size?.toLocaleString() ?? "?"}
                 </div>
             </div>
 
@@ -262,11 +262,20 @@ export default class LogSelector extends React.Component {
         return log_dict
     }
 
+    /**
+     * Returns <option> elements for "All" plus one for each key in the dict.
+     * @param dict A JS object with keys corresponding to each <option> element
+     * @returns The array of <option> elements
+     */
     dict_options(dict: {[key: string]: any}): ReactElement[] {
+        let first_option = <option key={"all"}>All</option>
+
+        if (!dict) {
+            return [ first_option ]            
+        }
+
         let names = Object.keys(dict)
         names.sort()
-
-        let first_option = <option key={"all"}>All</option>
 
         var elements = names.map(name => {
             return <option value={name} key={name}>{name}</option>
