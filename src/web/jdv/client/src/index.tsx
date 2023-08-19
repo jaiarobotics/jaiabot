@@ -228,6 +228,13 @@ class LogApp extends React.Component {
   }
 
   didSelectLogs(logs?: Log[]) {
+    for (const log of logs) {
+      if (!log.duration) {
+        console.error(`Log not converted: ${log.filename}`)
+        return
+      }
+    }
+
     if (logs != null) {
       this.setState({chosenLogs: logs, mapNeedsRefresh: true })
     }

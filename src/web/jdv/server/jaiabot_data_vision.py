@@ -63,15 +63,10 @@ def getRoot():
 def getLogs():
     return JSONResponse(jaialogs.get_logs())
 
-@app.route('/log/<log_name>', methods=['GET'])
-def getLog(log_name):
-    return JSONResponse(jaialogs.get_log(log_name))
-
-@app.route('/convert', methods=['POST'])
+@app.route('/convert-if-needed', methods=['POST'])
 def convertLogs():
-    log_names = parse_log_filenames(request.args.get('log'))
-    
-    return JSONResponse(jaialogs.get_log_status(log_names))
+    log_names = request.json
+    return JSONResponse(jaialogs.convert_if_needed(log_names))
 
 @app.route('/paths', methods=['GET'])
 def getFields():

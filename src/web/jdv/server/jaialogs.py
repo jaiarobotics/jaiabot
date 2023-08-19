@@ -21,6 +21,9 @@ from pprint import pprint
 from pathlib import Path
 from jaia_h5 import JaiaH5FileSet
 from series import Series, h5_get_series
+from typing import *
+
+import log_conversion
 
 
 # JAIA message types as python dataclasses
@@ -28,14 +31,16 @@ from jaia_messages import *
 
 
 LOG_DIR='logs'
+log_conversion_manager: log_conversion.LogConversionManager = None
 
 # Utility functions
 
 def set_directory(directory):
-    global LOG_DIR
+    global LOG_DIR, log_conversion_manager
     LOG_DIR = str(directory)
     logging.info(f'Log directory: {directory}')
     os.makedirs(directory, exist_ok=True)
+    log_conversion_manager = log_conversion.LogConversionManager(LOG_DIR)
 
 # Data fetch functions
 
@@ -89,38 +94,20 @@ def get_logs():
     return list(log_file_dict.values())
 
 
-def get_log(log_name):
-    goby_path = Path(f'{LOG_DIR}/{log_name}.goby')
-    h5_path = Path(f'{LOG_DIR}/{log_name}.h5')
+def convert_if_needed(log_names: List[str]):
+    '''Converts a llist of logs if needed, returning True if they're already converted, False otherwise'''
+    done = True
 
-    logging.warning([goby_path, h5_path])
+    for log_name in log_names:
+        h5_path = Path(f'{LOG_DIR}/{log_name}.h5')
 
-    if not (goby_path.exists() or h5_path.exists()):
-        return None
-
-    components = re.match(r'(.+)_(.+)_(.+)$', log_name)
-    bot, fleet, date_string = components.groups()
-
-    log_info = {
-        'bot': bot,
-        'fleet': fleet,
-        'filename': log_name,
-        'duration': None,
-        'size': None
+        if not h5_path.exists():
+            log_conversion_manager.addLogName(log_name)
+            done = False
+        
+    return {
+        'done': done
     }
-
-    try:
-        log_info['size'] = goby_path.stat().st_size
-    except FileNotFoundError:
-        pass
-
-    try:
-        h5_file = JaiaH5FileSet([h5_path])
-        log_info['duration'] = h5_file.duration()
-    except FileNotFoundError:
-        pass
-
-    return log_info
 
 
 def get_fields(log_names: List[str], root_path='/'):
