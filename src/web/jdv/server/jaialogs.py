@@ -89,12 +89,39 @@ def get_logs():
     return list(log_file_dict.values())
 
 
-def get_log_status(log_names: List[str]):
-    h5_paths = [Path(f'{LOG_DIR}/{name}.h5') for name in log_names]
-    for h5_path in h5_paths:
-        if not h5_path.is_file():
-            return {"ready": False}
-    return {"ready": True}
+def get_log(log_name):
+    goby_path = Path(f'{LOG_DIR}/{log_name}.goby')
+    h5_path = Path(f'{LOG_DIR}/{log_name}.h5')
+
+    logging.warning([goby_path, h5_path])
+
+    if not (goby_path.exists() or h5_path.exists()):
+        return None
+
+    components = re.match(r'(.+)_(.+)_(.+)$', log_name)
+    bot, fleet, date_string = components.groups()
+
+    log_info = {
+        'bot': bot,
+        'fleet': fleet,
+        'filename': log_name,
+        'duration': None,
+        'size': None
+    }
+
+    try:
+        log_info['size'] = goby_path.stat().st_size
+    except FileNotFoundError:
+        pass
+
+    try:
+        h5_file = JaiaH5FileSet([h5_path])
+        log_info['duration'] = h5_file.duration()
+    except FileNotFoundError:
+        pass
+
+    return log_info
+
 
 def get_fields(log_names: List[str], root_path='/'):
     '''Get a list of the fields below a root path in a set of logs'''
