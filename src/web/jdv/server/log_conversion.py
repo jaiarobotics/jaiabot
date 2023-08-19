@@ -39,6 +39,7 @@ class LogConversionManager:
                 logName = self.logNamesQueue.pop(0)
                 goby_path = Path(self.logRootPath, logName + '.goby')
                 h5_path   = Path(self.logRootPath, logName + '.h5')
+                temp_path = Path(self.logRootPath, logName + '.h5.temp')
 
                 if h5_path.is_file():
                     logging.info(f'File already exists: {h5_path}')
@@ -48,9 +49,10 @@ class LogConversionManager:
                     logging.error(f'File not found: {goby_path}')
                     continue
 
-                cmd = f'goby_log_tool --input_file {goby_path} --output_file {h5_path} --format HDF5'
+                cmd = f'goby_log_tool --input_file {goby_path} --output_file {temp_path} --format HDF5'
                 logging.info(cmd)
                 system(cmd)
+                system(f'mv {temp_path} {h5_path}')
 
             logging.info('Done!')
             self.isConverting = False

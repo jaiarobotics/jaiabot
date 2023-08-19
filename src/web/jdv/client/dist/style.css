@@ -368,3 +368,23 @@ div#layerSwitcher {
     top: 50pt;
     left: 0pt;
 }
+
+.busy-overlay {
+    position:absolute;
+    top: 0%;
+    right: 0%;
+    bottom: 0%;
+    left: 0%;
+
+    text-align: center;
+
+    background-color: #00000033;
+}
+
+.vertical-center {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
