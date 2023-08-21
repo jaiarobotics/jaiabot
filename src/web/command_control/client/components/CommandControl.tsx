@@ -149,9 +149,10 @@ interface State {
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
-	rallyFeatures: OlCollection<OlFeature>
 	rallyFeatureCount: number,
 	selectedRallyFeature: OlFeature<Point>
+	startRally: OlFeature<Point>
+	endRally: OlFeature<Point>
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -249,9 +250,10 @@ export default class CommandControl extends React.Component {
 
 			selectedHubOrBot: null,
 			measureFeature: null,
-			rallyFeatures: null,
 			rallyFeatureCount: 1,
 			selectedRallyFeature: null,
+			startRally: null,
+			endRally: null,
 
 			mode: Mode.NONE,
 			currentInteraction: null,
@@ -1806,8 +1808,6 @@ export default class CommandControl extends React.Component {
 	 * this.state.mode,
 	 * this.state.missionBaseGoal,
 	 * this.state.podStatus,
-	 * this.state.rallyStartLocation,
-	 * this.state.rallyEndLocation,
 	 * this.state.missionPlanningGrid,
 	 * this.missionEndTask
 	 * 
@@ -1818,8 +1818,6 @@ export default class CommandControl extends React.Component {
 	 */
 	updateMissionPlanningLayer() {
 		// Update the mission layer
-		const selectedColor = '#34d2eb'
-		const unselectedColor = 'white'
 		const surveyPolygonColor = '#051d61'
 
 		const surveyPolygonLineStyle = new OlStyle({
@@ -1834,14 +1832,11 @@ export default class CommandControl extends React.Component {
 
 		// Place all the mission planning features in this for the missionLayer
 		const missionPlanningFeaturesList: OlFeature[] = []
-
 		const { missionParams, missionPlanningGrid, missionBaseGoal, missionEndTask } = this.state
 
-		const rallyStartLocation: any = null
-		const rallyEndLocation: any = null
 
 		if (missionPlanningGrid) {
-			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
+			this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), this.state.startRally?.get('location'), this.state.endRally?.get('location'), missionParams, missionPlanningGrid, missionEndTask, missionBaseGoal)
 			const planningGridFeatures = featuresFromMissionPlanningGrid(missionPlanningGrid, missionBaseGoal)
 			missionPlanningFeaturesList.push(...planningGridFeatures)
 		}
@@ -1851,12 +1846,10 @@ export default class CommandControl extends React.Component {
 			let transformedSurveyPts = pts.map((pt) => {
 				return getMapCoordinate({lon: pt[0], lat: pt[1]}, map)
 			})
-			let surveyPolygonFeature = new OlFeature(
-				{
+			let surveyPolygonFeature = new OlFeature({
 					geometry: new OlLineString(transformedSurveyPts),
 					name: "Survey Bounds"
-				}
-			)
+			})
 			surveyPolygonFeature.setStyle(surveyPolygonLineStyle);
 			missionPlanningFeaturesList.push(surveyPolygonFeature);
 		}
@@ -1865,11 +1858,7 @@ export default class CommandControl extends React.Component {
 			let mpl = this.state.missionPlanningLines;
 			let mplKeys = Object.keys(mpl);
 			mplKeys.forEach(key => {
-				let mpLineFeatures = new OlFeature(
-					{
-						geometry: new OlMultiLineString(mpl[key])
-					}
-				)
+				let mpLineFeatures = new OlFeature({ geometry: new OlMultiLineString(mpl[key]) })
 				mpLineFeatures.setProperties({'botId': key});
 				mpLineFeatures.setStyle(surveyPlanLineStyle);
 				missionPlanningFeaturesList.push(mpLineFeatures);
@@ -1961,6 +1950,14 @@ export default class CommandControl extends React.Component {
         this.setState({ editModeToggleStatus })
     }
 
+	setSelectedRallyPoint(rallyPoint: OlFeature<Geometry>, isStart: boolean) {
+		if (isStart) {
+			this.setState({ startRally: rallyPoint })
+		} else {
+			this.setState({ endRally: rallyPoint})
+		}
+	}
+
     updateEditModeToggle(run: RunInterface) {
         if (!run?.assigned) {
             return false
@@ -2000,19 +1997,18 @@ export default class CommandControl extends React.Component {
     }
 
 	/**
-	 * 
 	 * @returns Whether we should allow the user to open the survey tool panel
 	 */
-	checkSurveyToolPermissions() {
+	canUseSurveyTool() {
 		// Check that all bots are stopped or recovered
 		const canEditMissionState = this.canEditAllBotsState()
 		if (!canEditMissionState) { 
+			warning('All bots must be stopped or recovered to use the mission survey tool')
 			return false
 		}
 		// Check that rally points are set
-		const rallyStartLocation: any = null
-		const rallyEndLocation: any = null
-		if (!(rallyStartLocation && rallyEndLocation)) {
+		if (layers.rallyPointLayer.getSource().getFeatures().length < 2) {
+			warning('At least 2 rally points are needed to use the mission survey tool')
 			return false
 		}
 		return true
@@ -2079,10 +2075,12 @@ export default class CommandControl extends React.Component {
 					map={map}
 					missionParams={this.state.missionParams}
 					missionPlanningGrid={this.state.missionPlanningGrid}
-					centerLineString={this.state.centerLineString}
-					botList={bots}
 					missionBaseGoal={this.state.missionBaseGoal}
 					missionEndTask={this.state.missionEndTask}
+					rallyFeatures={layers.rallyPointLayer.getSource().getFeatures()}
+					centerLineString={this.state.centerLineString}
+					botList={bots}
+					
 					onClose={() => {
 						this.clearMissionPlanningState()
 					}}
@@ -2093,13 +2091,13 @@ export default class CommandControl extends React.Component {
 						this.missionPlans = null
 						this.setState({missionBaseGoal: this.state.missionBaseGoal}) // Trigger re-render
 					}}
-					onMissionApply={(missionSettings: MissionSettings) => {
-						this.setState({missionEndTask: missionSettings.endTask})
+					onMissionApply={(missionSettings: MissionSettings, startRally: OlFeature, endRally: OlFeature) => {
+						this.setState({ missionEndTask: missionSettings.endTask, startRally, endRally })
 
 						if (this.state.missionParams.missionType === 'lines') {
 							const { missionParams, missionPlanningGrid, missionBaseGoal } = this.state
-							const rallyStartLocation: any = null
-							const rallyEndLocation: any = null
+							const rallyStartLocation = startRally.get('location')
+							const rallyEndLocation = endRally.get('location')
 
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
@@ -2122,6 +2120,7 @@ export default class CommandControl extends React.Component {
 					onMissionChangeBotList={() => {
 						this.changeMissionBotList()
 					}}
+					setSelectedRallyPoint={this.setSelectedRallyPoint.bind(this)}
 				/>
 			)
 		}
@@ -2272,28 +2271,25 @@ export default class CommandControl extends React.Component {
 			<Button
 				className="button-jcc"
 				onClick={() => {
-					const rallyStartLocation: any = null
-					const rallyEndLocation: any = null
-					if (rallyStartLocation && rallyEndLocation) {
-						this.setVisiblePanel(PanelType.MISSION_SETTINGS)
-						this.setState({ mode: Mode.MISSION_PLANNING });
-						if (this.state.missionParams.missionType === 'polygon-grid')
-							this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
-						if (this.state.missionParams.missionType === 'editing')
-							this.changeInteraction(this.interactions.selectInteraction, 'grab');
-						if (this.state.missionParams.missionType === 'lines')
-							this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
-						if (this.state.missionParams.missionType === 'exclusions')
-							this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
-
-						this.setState({centerLineString: null}) // Forgive me
-
-						info('Touch map to set first polygon point');
-					} 
-					else
-					{
-						info('Please place a green and red rally point before using this tool');
+					if (!this.canUseSurveyTool()) {
+						return
 					}
+
+					this.setVisiblePanel(PanelType.MISSION_SETTINGS)
+					this.setState({ mode: Mode.MISSION_PLANNING })
+
+					if (this.state.missionParams.missionType === 'polygon-grid')
+						this.changeInteraction(this.surveyPolygon.drawInteraction, 'crosshair');
+					if (this.state.missionParams.missionType === 'editing')
+						this.changeInteraction(this.interactions.selectInteraction, 'grab');
+					if (this.state.missionParams.missionType === 'lines')
+						this.changeInteraction(this.surveyLines.drawInteraction, 'crosshair');
+					if (this.state.missionParams.missionType === 'exclusions')
+						this.changeInteraction(this.surveyExclusions.interaction, 'crosshair');
+
+					this.setState({centerLineString: null})
+
+					info('Touch map to set first polygon point');
 				}}
 			>
 				<FontAwesomeIcon icon={faEdit as any} title="Edit Optimized Mission Survey" />

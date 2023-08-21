@@ -4,11 +4,13 @@ import turf from '@turf/turf'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
 import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
 import { getGeographicCoordinate } from './shared/Utilities'
-import { TaskSettingsPanel } from './TaskSettingsPanel'
 import { FormControl, MenuItem } from '@mui/material'
+import { TaskSettingsPanel } from './TaskSettingsPanel'
+import { Geometry } from 'ol/geom'
+import { Feature } from 'ol'
+
 import '../style/components/MissionSettings.css'
 
-// This panel passes its settings back through onMissionApply using this interface
 export interface MissionSettings {
     endTask: MissionTask
 }
@@ -30,31 +32,34 @@ export interface MissionParams {
 
 interface Props {
     map: Map
-    missionBaseGoal: Goal
-    missionEndTask: MissionTask
     missionParams: MissionParams
     missionPlanningGrid: {[key: string]: number[][]}
-    botList?: {[key: string]: BotStatus}
+    missionBaseGoal: Goal,
+    missionEndTask: MissionTask,
+    rallyFeatures: Feature<Geometry>[]
     centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+    botList?: {[key: string]: BotStatus}
 
     onClose: () => void
-    onChange?: () => void
-    onMissionApply: (missionSettings: MissionSettings) => void
+    onMissionApply: (missionSettings: MissionSettings, startRally: Feature<Geometry>, endRally: Feature<Geometry>) => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
+    setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void
+    onChange?: () => void
+
 }
 
 interface State {
-    missionBaseGoal: Goal
-    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
     missionParams: MissionParams
+    missionBaseGoal: Goal,
+    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
+    startRally: Feature<Geometry>,
+    endRally: Feature<Geometry>,
     botList?: {[key: string]: BotStatus}
 }
 
-
 export class MissionSettingsPanel extends React.Component {
-
     props: Props
     state: State
 
@@ -68,9 +73,11 @@ export class MissionSettingsPanel extends React.Component {
         super(props)
 
         this.state = {
+            missionParams: props.missionParams,
             missionBaseGoal: props.missionBaseGoal,
             missionEndTask: props.missionEndTask,
-            missionParams: props.missionParams,
+            startRally: null,
+            endRally: null,
             botList: props.botList
         }
 
@@ -87,14 +94,9 @@ export class MissionSettingsPanel extends React.Component {
 
     render() {
         const { map, centerLineString } = this.props
-        let self = this
-
-        let missionType = this.state.missionParams?.missionType
-
-        const {missionBaseGoal, missionEndTask} = this.state
-
+        const missionType = this.state.missionParams?.missionType
         // Get the final location, if available
-        var finalLocation: GeographicCoordinate
+        let finalLocation: GeographicCoordinate
 
         if (centerLineString != null) {
             const coordinates = centerLineString.geometry.coordinates
@@ -111,7 +113,7 @@ export class MissionSettingsPanel extends React.Component {
 
                     <div className="mission-settings-input-label">Mission Edit Mode:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
-                        <Select onChange={(evt: SelectChangeEvent) => self.changeMissionEditMode(evt.target.value)}  value={missionType ?? "editing"}>
+                        <Select onChange={(evt: SelectChangeEvent) => this.changeMissionEditMode(evt.target.value)}  value={missionType ?? "editing"}>
                             <MenuItem value={"lines"}>Lines</MenuItem>
                         </Select>
                     </FormControl>
@@ -125,22 +127,50 @@ export class MissionSettingsPanel extends React.Component {
                     <div className="mission-settings-input-label">Mission Orientation:</div>
                     <div className="mission-settings-input-row"><input id='missionOrientation' name="orientation" className="mission-settings-num-input" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</div>
 
+                    <div className="mission-settings-input-label">Start Rally:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, true)} value={this.state.startRally?.get('romanNum') ?? ''}>
+                            {this.props.rallyFeatures.map((rallyFeature) => {
+                                if (rallyFeature.get('romanNum') !== this.state.endRally?.get('romanNum')) {
+                                    return <MenuItem value={rallyFeature.get('romanNum')}>{rallyFeature.get('romanNum')}</MenuItem>
+                                }
+                            })}
+                        </Select>
+                    </FormControl>
 
-                    <div className="mission-settings-tasks-title">Task:</div>
-                    <TaskSettingsPanel task={missionBaseGoal.task} onChange={(task) => {
-                        missionBaseGoal.task = task
-                        self.setState({missionBaseGoal})
-                    }} />
+                    <div className="mission-settings-input-label">End Rally:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, false)}  value={this.state.endRally?.get('romanNum') ?? ''}>
+                            {this.props.rallyFeatures.map((rallyFeature) => {
+                                if ((rallyFeature.get('romanNum') !== this.state.startRally?.get('romanNum'))) {
+                                    return <MenuItem value={rallyFeature.get('romanNum')}>{rallyFeature.get('romanNum')}</MenuItem>
+                                }
+                            })}
+                        </Select>
+                    </FormControl>
+                    
+                    <div className="mission-settings-task-container">
+                        <div className="mission-settings-tasks-title">Task:</div>
+                        <TaskSettingsPanel 
+                            task={this.state.missionBaseGoal.task} 
+                            onChange={(task) => {
+                                const missionBaseGoal = this.state.missionBaseGoal
+                                missionBaseGoal.task = task
+                                this.setState({ missionBaseGoal })
+                            }}
+                        />
+                    </div>
 
-                    <div className="mission-settings-tasks-title">End Task:</div>
-                    <TaskSettingsPanel 
-                        title="End Task" 
-                        map={map} 
-                        location={finalLocation}
-                        task={missionEndTask} onChange={(missionEndTask) => {
-                            self.setState({missionEndTask})
-                        }} 
-                    />
+                    <div className="mission-settings-task-container">
+                        <div className="mission-settings-tasks-title">End Task:</div>
+                        <TaskSettingsPanel 
+                            title="End Task" 
+                            map={map} 
+                            location={finalLocation}
+                            task={this.state.missionEndTask} 
+                            onChange={(missionEndTask) => { this.setState({ missionEndTask })}} 
+                        />
+                    </div>
 
                     <div className="mission-settings-line-break"></div>
 
@@ -173,15 +203,30 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     changeMissionParameter(evt: Event) {
-        var {missionParams} = this.state
-
+        const missionParams = this.state.missionParams
         const target = evt.target as any
         const key = target.name
         const value = target.value as any
 
         (missionParams as any)[key] = value
 
-        this.setState({missionParams})
+        this.setState({ missionParams })
+    }
+
+    handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
+        const rallyRomanNum = evt.target.value
+        let selectedRallyFeature: Feature<Geometry> = null
+        for (const rallyFeature of this.props.rallyFeatures) {
+            if (rallyFeature.get('romanNum') === rallyRomanNum) {
+                selectedRallyFeature = rallyFeature
+                break
+            }
+        }
+        if (isStart) {
+            this.setState({ startRally: selectedRallyFeature }, () => this.props.setSelectedRallyPoint(selectedRallyFeature, true))
+        } else {
+            this.setState({ endRally: selectedRallyFeature }, () => this.props.setSelectedRallyPoint(selectedRallyFeature, false))
+        }
     }
 
     closeClicked() {
@@ -198,17 +243,15 @@ export class MissionSettingsPanel extends React.Component {
             endTask: this.state.missionEndTask
         }
 
-        this.props.onMissionApply?.(missionSettings)
+        this.props.onMissionApply?.(missionSettings, this.state.startRally, this.state.endRally)
     }
 
     changeMissionBotSelection() {
         const selected = document.querySelectorAll('#mission-bot-selection option:checked')
-        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value));
-        // let missionBots = document.getElementById('mission-bot-selection').val();
-        // console.log(missionBots);
-        let {missionParams} = this.state;
-        missionParams.selectedBots = missionBots;
-        this.setState({missionParams});
+        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value))
+        const missionParams  = this.state.missionParams
+        missionParams.selectedBots = missionBots
+        this.setState({ missionParams })
         this.onMissionChangeBotList?.()
     }
 
@@ -238,7 +281,7 @@ export class MissionSettingsPanel extends React.Component {
                 break;
         }
 
-        this.setState({missionParams});
+        this.setState({ missionParams })
 
         this.onMissionChangeEditMode?.()
 
