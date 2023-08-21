@@ -107,7 +107,7 @@ const sidebarInitialWidth = 0;
 const POLLING_INTERVAL_MS = 500;
 const POLLING_META_DATA_INTERVAL_MS = 10000;
 
-const MAX_GOALS = 15;
+const MAX_GOALS = 30;
 
 var mapSettings = GlobalSettings.mapSettings
 
@@ -218,8 +218,8 @@ export default class CommandControl extends React.Component {
 	surveyPolygon: SurveyPolygon
 	surveyExclusions: SurveyExclusions
 
-	timerID: NodeJS.Timer
-	metadataTimerID: NodeJS.Timer
+	timerID: NodeJS.Timeout
+	metadataTimerID: NodeJS.Timeout
 
 	oldPodStatus?: PodStatus
 
