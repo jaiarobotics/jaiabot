@@ -175,7 +175,10 @@ class Analyzer:
 
     def getMaximumAcceleration(self):
         with self._lock:
-            maxAcceleration = max(self.acceleration_mag._values)
+            if len(self.acceleration_mag._values) > 0:
+                maxAcceleration = max(self.acceleration_mag._values)
+            else:
+                maxAcceleration = 0.0
         
         return maxAcceleration
 

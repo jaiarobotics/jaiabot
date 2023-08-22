@@ -19,7 +19,7 @@ parser.add_argument('port', metavar='port', type=int, help='port to publish orie
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-parser.add_argument('-f', dest='frequency', default=10, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=10)')
+parser.add_argument('-f', dest='frequency', default=5, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=5)')
 args = parser.parse_args()
 
 logging.warning(args)
@@ -76,11 +76,12 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 wave_analyzer.stopSamplingForBottomCharacterization()
 
         except Exception as e:
-            traceback.print_exception()
+            traceback.print_exc()
 
 
 def do_interactive_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(5)
     sock.bind(('', 0)) # Port zero picks an available port
 
     destinationAddress = ('localhost', args.port)
@@ -124,17 +125,17 @@ def do_interactive_loop():
         print()
 
         if imuCommand.type == IMUCommand.TAKE_READING:
-            # Wait for reading to come back...
-            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
             try:
+                # Wait for reading to come back...
+                data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
                 # Deserialize the message
                 imuData = IMUData()
                 imuData.ParseFromString(data)
                 print(f'RECEIVED:\n{imuData}')
                 print()
             except Exception as e:
-                print(e)
+                traceback.print_exc()
 
 
 if __name__ == '__main__':
