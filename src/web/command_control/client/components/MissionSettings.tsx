@@ -129,10 +129,10 @@ export class MissionSettingsPanel extends React.Component {
 
                     <div className="mission-settings-input-label">Start Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
-                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, true)} value={this.state.startRally?.get('romanNum') ?? ''}>
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, true)} value={this.state.startRally?.get('num') ?? ''}>
                             {this.props.rallyFeatures.map((rallyFeature) => {
-                                if (rallyFeature.get('romanNum') !== this.state.endRally?.get('romanNum')) {
-                                    return <MenuItem value={rallyFeature.get('romanNum')}>{rallyFeature.get('romanNum')}</MenuItem>
+                                if (rallyFeature.get('num') !== this.state.endRally?.get('num')) {
+                                    return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
                         </Select>
@@ -140,10 +140,10 @@ export class MissionSettingsPanel extends React.Component {
 
                     <div className="mission-settings-input-label">End Rally:</div>
                     <FormControl sx={{ minWidth: 120 }} size="small">
-                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, false)}  value={this.state.endRally?.get('romanNum') ?? ''}>
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, false)}  value={this.state.endRally?.get('num') ?? ''}>
                             {this.props.rallyFeatures.map((rallyFeature) => {
-                                if ((rallyFeature.get('romanNum') !== this.state.startRally?.get('romanNum'))) {
-                                    return <MenuItem value={rallyFeature.get('romanNum')}>{rallyFeature.get('romanNum')}</MenuItem>
+                                if ((rallyFeature.get('num') !== this.state.startRally?.get('num'))) {
+                                    return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
                         </Select>
@@ -214,10 +214,10 @@ export class MissionSettingsPanel extends React.Component {
     }
 
     handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
-        const rallyRomanNum = evt.target.value
+        const rallyNum = evt.target.value
         let selectedRallyFeature: Feature<Geometry> = null
         for (const rallyFeature of this.props.rallyFeatures) {
-            if (rallyFeature.get('romanNum') === rallyRomanNum) {
+            if (rallyFeature.get('num') === rallyNum) {
                 selectedRallyFeature = rallyFeature
                 break
             }

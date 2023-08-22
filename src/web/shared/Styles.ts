@@ -1,5 +1,4 @@
 import Stroke from 'ol/style/Stroke';
-import Romans from 'romans'
 import { Feature } from 'ol'
 import { LineString, Point } from 'ol/geom';
 import { Fill, Icon, Style, Text} from 'ol/style';
@@ -296,7 +295,7 @@ export function getRallyStyle(rallyFeatureCount: number) {
     return new Style({
         image: createRallyIcon(),
         text: new Text({
-            text: Romans.romanize(rallyFeatureCount),
+            text: rallyFeatureCount.toString(),
             font: '12pt sans-serif',
             fill: new Fill({
                 color: 'black'

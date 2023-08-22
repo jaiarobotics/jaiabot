@@ -8,7 +8,6 @@ import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import Romans from 'romans'
 import { layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
@@ -1124,7 +1123,7 @@ export default class CommandControl extends React.Component {
 		const rallyFeatureCount = this.state.rallyFeatureCount
 		rallyFeature.setProperties({ 
 			'type': 'rallyPoint', 
-			'romanNum': Romans.romanize(this.state.rallyFeatureCount),
+			'num': this.state.rallyFeatureCount,
 			'location': getGeographicCoordinate(coordinate, map),
 			'disableDrag': true
 		})

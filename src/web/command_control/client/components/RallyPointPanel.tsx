@@ -26,7 +26,7 @@ export function RallyPointPanel(props: Props) {
                 </div>
                 <div className="rally-outer-container">
                     <div className="rally-container">
-                        <div className="rally-title">Rally: {props.selectedRallyFeature.get('romanNum')}</div>
+                        <div className="rally-title">Rally: {props.selectedRallyFeature.get('num')}</div>
                         <Button
                             className={'button-jcc'}
                             onClick={() => props.goToRallyPoint(props.selectedRallyFeature)}
