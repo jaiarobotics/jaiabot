@@ -546,7 +546,6 @@ export default class CommandControl extends React.Component {
 		OlLayerSwitcher.renderPanel(map, mapLayersPanel, {});
 
 		mapLayersPanel.addEventListener('click', handleLayerSwitcherClick)
-		mapLayersPanel.style.width = '400px'
 
 		function handleLayerSwitcherClick(event: Event) {
 			let targetElement = event.target as HTMLElement
@@ -1531,6 +1530,11 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
+				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
+						const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
+				 		jaiaInfoContainer.style.display = "grid"
+					}}>
+				</img>
 			</div>
 		)
 
@@ -1673,25 +1677,6 @@ export default class CommandControl extends React.Component {
 			<Icon path={mdiLanDisconnect} className="icon padded"></Icon>
 			{msg}
 		</div>)
-	}
-
-	toggleEngineeringPanel() {
-		let engineeringPanel = document.getElementById('engineeringPanel')
-		if (engineeringPanel.style.width == "400px") {
-			engineeringPanel.style.width = "0px"
-		} else {
-			engineeringPanel.style.width = "400px"
-		}
-	}
-
-	toggleMissionPanel() {
-		let missionPanel = document.getElementById('missionPanel')
-		if (missionPanel.style.width == "400px") {
-			missionPanel.style.width = "0px"
-		}
-		else {
-			missionPanel.style.width = "400px"
-		}
 	}
 
 	/////////////// Mission Stuff ////////////////////
@@ -2431,12 +2416,6 @@ export default class CommandControl extends React.Component {
 				<div id={this.mapDivId} className="map-control" />
 
 				<div id="viewControls">
-
-					<img className="jaia-logo button" src="/favicon.png" onClick={() => {
-						const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
-				 		jaiaInfoContainer.style.display = "grid"
-					}}>
-					</img>
 
 					{missionPanelButton}
 
