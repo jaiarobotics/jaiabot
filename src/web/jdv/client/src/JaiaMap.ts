@@ -13,6 +13,7 @@ import { createEmpty, extend, isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
 import KML, { IconUrlFunction } from 'ol/format/KML.js';
+import { ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
@@ -36,7 +37,7 @@ import OpenFileDialog from './OpenFileDialog';
 import { Buffer } from 'buffer';
 import JSZip from 'jszip';
 
-
+import './styles/JaiaMap.css'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -171,7 +172,9 @@ export default class JaiaMap {
                 this.createDepthContourLayer(),
             ],
             view: view,
-            controls: []
+            controls: [
+                new ScaleLine({ units: 'metric' })
+            ]
         })
 
         // Dispatch click events to the feature, if it has an "onclick" property set
