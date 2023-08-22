@@ -109,12 +109,12 @@ message CommandForHub
 message BotStatus
 {
     /*
-      Actual maximum size of message: 52 bytes / 416 bits
-        dccl.id head...........................8
-        user head..............................0
-        body.................................401
-        padding to full byte...................7
-      Allowed maximum size of message: 250 bytes / 2000 bits
+    Actual maximum size of message: 53 bytes / 424 bits
+            dccl.id head...........................8
+            user head..............................0
+            body.................................415
+            padding to full byte...................1
+    Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
         id: 81
@@ -268,6 +268,14 @@ message BotStatus
         }
     ];
 
+    optional int32 wifi_link_quality_percentage = 62 [
+        (dccl.field) = {
+            min: 0
+            max: 100
+            precision: 0
+        }
+    ];
+
 }
 
 message DriftPacket
@@ -320,22 +328,6 @@ message DriftPacket
         units: { derived_dimensions: "length" }
     }];
 
-    optional double wave_height = 14 [(dccl.field) = {
-        min: 0
-        max: 50
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
-
-    optional int32 wave_period = 15 [
-        default = 0,
-        (dccl.field) = {
-            min: 0
-            max: 3600
-            precision: -1
-            units { base_dimensions: "T" }
-        }
-    ];
 }
 
 message DivePacket
@@ -418,6 +410,14 @@ message DivePacket
     }
 
     optional BottomType bottom_type = 19;
+    
+    // For bottom characterization
+    optional double max_acceleration = 20 [(dccl.field) = {
+        min: 0
+        max: 100
+        precision: 1
+        units { derived_dimensions: "acceleration" }
+    }];
 }
 
 message TaskPacket

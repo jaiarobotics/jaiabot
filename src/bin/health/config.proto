@@ -41,6 +41,9 @@ message LinuxHardwareConfig
     // load per processor
     optional float high_load_factor = 30 [default = 0.9];
     optional float critical_load_factor = 31 [default = 5];
+
+    optional string wireless_file = 40 [default = "/proc/net/wireless"];
+    optional string wlan_interface = 41 [default = "wlan0"];
 }
 
 message NTPStatusConfig
@@ -94,6 +97,7 @@ message Health
     optional bool check_helm_ivp_status = 21 [default = true];
     optional bool check_arduino_status = 22 [default = true];
     optional bool is_in_sim = 23 [default = false];
+    optional bool test_hardware_in_sim = 24 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;

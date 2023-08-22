@@ -126,41 +126,8 @@ subprocess.run('bash -ic "' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env"',
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
-
-# Merge /tmp/runtime.env into the target env file, but don't overwrite existing entries in the target env file
-def load_env(path: str):
-    env_dict: Dict[str, str] = {}
-    try:
-        for line in open(path):
-            items = line.split('=')
-            if len(items) == 2:
-                env_dict[items[0]] = items[1].strip()
-    except FileNotFoundError:
-        pass
-    return env_dict
-
-
-def save_env(env: Dict[str, str], path: str):
-    with open(path, 'w') as out_file:
-        for key in sorted(env.keys()):
-            out_file.write(f'{key}={env[key]}\n')
-
-
-def merge_env(src_env_path: str, dest_env_path: str):
-    src_env = load_env(src_env_path)
-    dest_env = load_env(dest_env_path)
-
-    # Clobber with any entries that already exist at dest
-    src_env.update(dest_env)
-
-    save_env(src_env, dest_env_path)
-
-
-merge_env('/tmp/runtime.env', args.env_file)
-
-####
 
 common_macros=dict()
 
@@ -192,7 +159,7 @@ elif jaia_type == Type.HUB:
     
     
 all_goby_apps=[]
-    
+
 jaiabot_apps=[
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
@@ -202,29 +169,40 @@ jaiabot_apps=[
      'template': 'gobyd.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBYD',
      'runs_on': Type.BOTH },
+    {'exe': 'goby_intervehicle_portal',
+     'description': 'Goby Intervehicle Portal',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL',
+     'extra_service': 'Environment=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1',
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_liaison',
      'description': 'Goby Liaison GUI for JaiaBot',
      'template': 'goby-app.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_GPS',
      'runs_on': Type.BOTH,
-     'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service'},
+     'extra_unit': 'BindsTo=gpsd.service\nAfter=gpsd.service',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_logger',
      'description': 'Goby Logger',
      'template': 'logger-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
      'runs_on': Type.BOTH,
-    'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount'},
+     'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_coroner',
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBY_CORONER',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_health',
      'description': 'JaiaBot Health Reporting and Management',
      'template': 'health-app.service.in', # no failure_reporter start/stop since it would be meaningless
@@ -236,71 +214,84 @@ jaiabot_apps=[
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_METADATA',
-     'runs_on': Type.BOTH},
+     'runs_on': Type.BOTH,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_hub_manager',
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HUB_MANAGER',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_web_portal',
      'description': 'JaiaBot Web GUI Portal',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_WEB_PORTAL',
-     'runs_on': Type.HUB},
+     'runs_on': Type.HUB,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_fusion',
      'description': 'JaiaBot Data Fusion',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_simulator',
      'description': 'JaiaBot Simulator',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
      'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION},       
+     'runs_when': Mode.SIMULATION,
+     'wanted_by': 'jaiabot_health.service'},       
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
      'runs_on': Type.BOT,
      'error_on_fail': 'ERROR__FAILED__GOBY_MOOS_GATEWAY',
      'extra_service': 'Environment=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1',
-     'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service'},
+     'extra_unit': 'BindsTo=jaiabot_moosdb.service\nAfter=jaiabot_moosdb.service',
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_mission_manager',
      'description': 'JaiaBot Mission Manager',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_PID_CONTROL',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
      'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
      'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_adafruit_BNO055_driver',
      'description': 'JaiaBot IMU Sensor Driver',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DRIVER_ARDUINO',
      'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ENGINEERING',
-     'runs_on': Type.BOT},
+     'runs_on': Type.BOT,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_imu.py',
      'description': 'JaiaBot IMU Python Driver',
      'template': 'py-app.service.in',
@@ -308,7 +299,8 @@ jaiabot_apps=[
      'args': '20000',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
      'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
@@ -316,7 +308,8 @@ jaiabot_apps=[
      'args': '',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_as-ezo-ec.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
@@ -324,7 +317,8 @@ jaiabot_apps=[
      'args': '20002',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'MOOSDB',
      'description': 'MOOSDB Broker',
      'template': 'moosdb.service.in',
@@ -439,7 +433,8 @@ def is_app_run(app):
 
 for app in jaiabot_apps:
     if is_app_run(app):
-        if app['template'] == 'goby-app.service.in':
+        # goby_intervehicle_portal does not respond to goby_coroner. When this is fixed, remove the exception: https://github.com/GobySoft/goby3/issues/297
+        if app['template'] == 'goby-app.service.in' and app['exe'] != 'goby_intervehicle_portal':
             all_goby_apps.append(app['exe'])
 
         

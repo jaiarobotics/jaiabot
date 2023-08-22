@@ -28,6 +28,7 @@ detect_bottom_logic_init_timeout: 10 # (optional) (default=10)
 pre_powered_descent_timeout: 10 # (optional) (default=10)
 powered_descent_timeout: 60 # (default=60) 
 dive_surface_eps: 0.75 # (optional) (default=0.75)
+hard_bottom_type_acceleration: 100 # (optional) (default=100)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
@@ -53,6 +54,9 @@ data_offload_only_task_packet_file: false # (optional)
 
 # test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
+
+# When to stop logging in a failed state
+failed_startup_log_timeout: 300 # (optional) (default=300)
 
 is_sim: $mission_manager_in_simulation
 

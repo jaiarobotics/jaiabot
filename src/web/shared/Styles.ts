@@ -5,6 +5,8 @@ import {Feature} from 'ol'
 import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
 import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
+// We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these
+// resource variables.
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
@@ -109,21 +111,6 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
-    const isReacquiringGPS = botStatus?.mission_state?.endsWith('REACQUIRE_GPS')
-    if (feature.get('isReacquiringGPS')) {
-        style.push(
-            new Style({
-                image: new Icon({
-                    src: satellite,
-                    color: color,
-                    anchor: [0.5, -1.25],
-                    rotation: heading,
-                    rotateWithView: true
-                })
-            })
-        )
-    }
-
     return style
 }
 
@@ -210,6 +197,9 @@ export function goalSrc(taskType: TaskType | null) {
 }
 
 export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    if (!taskType) {
+        taskType === TaskType.NONE
+    }
     const src = goalSrc(taskType)
     let nonActiveGoalColor: string
 
@@ -228,15 +218,23 @@ export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSel
 
 
 export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
-    const src = runFlag
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
-        src: src,
+        src: runFlag,
         color: isSelected ? (canEdit ? editColor : selectedColor) : defaultColor,
         // Need a bigger flag for a 3-digit run number...this also causes new anchor values
         anchor: runNumber > 99 ? (isTask ? [0.21, 1.85] : [0.21, 1.55]) : (isTask ? [0.21, 1.92] : [0.21, 1.62]),
         scale: runNumber > 99 ? 1.075 : 1.0
+    })
+}
+
+export function gpsIcon() {
+    return new Icon({
+        src: satellite,
+        color: driftArrowColor,
+        anchor: [0.5, -1.25],
+        scale: 1.25
     })
 }
 
@@ -278,6 +276,13 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
         zIndex: isSelected ? 102 : 2
+    })
+}
+
+export function gps() {
+    return new Style({
+        image: gpsIcon(),
+        zIndex: 104 // One higher than the bot's zIndex to prevent to the bot from covering the icon
     })
 }
 

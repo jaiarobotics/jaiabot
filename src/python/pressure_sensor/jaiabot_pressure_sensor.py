@@ -34,6 +34,7 @@ class Sensor:
     def __init__(self):
         self.is_setup = False
         self.pressure_0 = None
+        self.sensor_version = None
 
     def setup(self):
         if not self.is_setup:
@@ -60,9 +61,11 @@ class Sensor:
             if abs(p_bar30 - ATM) < abs(p_bar02 - ATM):
                 log.info('Auto-detected bar30 sensor')
                 self.sensor = ms5837.MS5837_30BA()
+                self.sensor_version = "bar30"
             else:
                 log.info('Auto-detected bar02 sensor')
                 self.sensor = ms5837.MS5837_02BA()
+                self.sensor_version = "bar02"
 
             if self.sensor.init():
                 self.is_setup = True
@@ -125,7 +128,7 @@ while True:
         continue
 
     now = datetime.utcnow()
-    line = '%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), p_mbar, t_celsius)
+    line = '%s,%s,%9.2f,%7.2f\n' % (now.strftime('%Y-%m-%dT%H:%M:%SZ'), sensor.sensor_version, p_mbar, t_celsius)
 
     log.debug(f'Send: {line}')
     sock.sendto(line.encode('utf8'), addr)

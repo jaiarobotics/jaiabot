@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
 import Icon from '@mdi/react'
+import EditModeToggle from '../EditModeToggle';
 import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
 import { PortalBotStatus } from '../shared/PortalStatus';
 import { RunInterface, MissionInterface } from '../CommandControl';
@@ -15,11 +16,8 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import { Missions } from '../Missions';
-import Switch from '@mui/material/Switch';
-import { Slider, FormGroup, FormControlLabel } from '@mui/material';
-import { alpha, styled } from '@mui/material/styles';
-import { amber } from '@mui/material/colors';
-import { deepcopy } from '../shared/Utilities';
+import { Slider } from '@mui/material';
+import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
 interface Props {
@@ -27,6 +25,9 @@ interface Props {
     run: RunInterface
     mission: MissionInterface,
     setEditRunMode: (botIds: number[], canEdit: boolean) => void
+    updateEditModeToggle: (run: RunInterface) => boolean,
+    isEditModeToggleDisabled: (run: RunInterface) => boolean,
+    toggleEditMode: (run: RunInterface) => boolean
 }
 
 interface State {
@@ -44,60 +45,14 @@ export default class RunItem extends React.Component {
     constructor(props: Props) {
         super(props)
         this.state = {
-          isChecked: true
+          isChecked: this.props.run.canEdit
         }
     }
 
-    toggleEditMode() {
-        const botId = this.props.run.assigned
-        const isChecked = !this.state.isChecked
-        this.props.setEditRunMode([botId], isChecked)
-        this.setState({ isChecked: isChecked })
+    componentDidMount() {
+        addDropdownListener('run-accordion', 'runList', 300)
     }
-
-    updateEditModeToggle() {
-        if (!this.props.run.canEdit) {
-            return false
-        } else if (this.state.isChecked) {
-            return true
-        }
-        return false
-    }
-
-    isEditModeToggleDisabled() {
-        for (const bot of Object.values(this.props.bots)) {
-            const botId = this.props.run.assigned
-            if (botId === bot.bot_id) {
-                const missionState = bot.mission_state
-                for (const enabledMissionState of this.enabledMissionStates) {
-                    if (missionState.includes(enabledMissionState)) {
-                        return false
-                    }
-                }
-            }
-        }
-        if (this.state.isChecked) {
-            this.setState({isChecked: false})
-        }
-        return true
-    }
-
-    handleMissionStateChange() {
-        for (const bot of Object.values(this.props.bots)) {
-            const botId = this.props.run.assigned
-            if (botId === bot.bot_id) {
-                const missionState = bot.mission_state
-                for (const enabledMissionState of this.enabledMissionStates) {
-                    if (missionState.includes(enabledMissionState) && this.state.isChecked) {
-                        this.props.setEditRunMode([botId], true)
-                        return
-                    }
-                }
-                this.props.setEditRunMode([botId], false)
-            }
-        }
-    }
-
+    
     handleBotSelectionChange(event: SelectChangeEvent) {
         let value = Number(event.target.value)
 
@@ -124,8 +79,6 @@ export default class RunItem extends React.Component {
         let assignedLabel = ""
         let assignedOption = null
         this.botsNotAssigned = []
-
-        this.handleMissionStateChange()
 
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
@@ -163,7 +116,7 @@ export default class RunItem extends React.Component {
                         id="bot-assigned-select"
                         value={this.props.run.assigned.toString()}
                         label="Assign"
-                        disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
+                        disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
                         <MenuItem 
@@ -214,8 +167,8 @@ export default class RunItem extends React.Component {
         // Create Delete Button
         runDeleteButton = (
             <Button 
-                className={`button-jcc missionAccordian ${(this.isEditModeToggleDisabled() && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
-                disabled={this.isEditModeToggleDisabled() && this.props.run.assigned !== -1}
+                className={`button-jcc missionAccordian ${(this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
+                disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
                 onClick={(event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
@@ -232,41 +185,20 @@ export default class RunItem extends React.Component {
         )
 
         // Create Edit Mode Toggle
-        // MUI Styling: mui.com/material-ui/react-switch
-        const AmberSwitch = styled(Switch)(({ theme }) => ({
-            '& .MuiSwitch-switchBase.Mui-checked': {
-              color: amber[600],
-              '&:hover': {
-                backgroundColor: alpha(amber[600], theme.palette.action.hoverOpacity),
-              },
-            },
-            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: amber[600],
-            },
-            '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
-                color: amber[300],
-            }        
-        }));
-
         editModeButton = (
-            <FormGroup>
-                <FormControlLabel 
-                    control={
-                        <AmberSwitch 
-                            checked={this.updateEditModeToggle()} 
-                            disabled={this.isEditModeToggleDisabled()} 
-                            onClick={() => this.toggleEditMode()}
-                        />
-                    }
-                    label="Edit" 
-                    title='Toggle Edit Mode'
-                />
-            </FormGroup>
+            <EditModeToggle 
+                checked={this.props.updateEditModeToggle} 
+                disabled={this.props.isEditModeToggleDisabled} 
+                onClick={this.props.toggleEditMode}
+                run={this.props.run}
+                label="Edit"
+                title="ToggleEditMode"
+            />
         )
 
         let plan = this.props.run.command.plan
         let repeats = plan?.repeats ?? 1
-        let repeatsInput =
+        let repeatsInput = (
             <div>
                 Repeats: {repeats}
                 <Slider
@@ -286,9 +218,10 @@ export default class RunItem extends React.Component {
                     }}
                 />
             </div>
+        )
 
         return (
-            <Accordion className="run-accordian">
+            <Accordion className="run-accordion">
                 <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"

@@ -7,7 +7,7 @@ else
     NODE_MODULES_DIR=$1
 fi
 
-echo Installing npm dendencies to: $NODE_MODULES_DIR
+echo 🟢 Installing npm dependencies to: $NODE_MODULES_DIR
 
 cd $NODE_MODULES_DIR
-npm install --no-audit
+npm install --no-audit --quiet

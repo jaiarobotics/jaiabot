@@ -1,49 +1,4 @@
-// Sizes
-@left-sidebar-initial-width: 0px;
-@status-bar-height: 0px;
-@control-corner-radius: 12px;
-@panel-corner-radius: 8px;
-@command-button-size: 50px;
-@command-button-padding: 8px;
-@command-button-margin: 8px;
-@map-button-size: 50px;
-@layout-margin: 0.5vw;
-@layout-margin-px: 0.5 * 16px; // Assumes a 1600px wide screen
-@rc-panel-height-px: 282.54px;
-
-// Colors
-@cc-background-color: white;
-@cc-text-color: black;
-@cc-accordian-color: #767d7d;
-@cc-accordian-text-color: white;
-@cc-details-text-color: white;
-@cc-maplayers-text-color: white;
-@selected-color: rgba(108, 214, 237, 0.7);
-@inactive-color: #4c4c47;
-
-@controlled-color: #ff601c;
-@tracked-color: #ff601c;
-@disconnected: gray;
-
-@good-color: #06c006;
-@warning-color: #d5d506;
-@error-color: #cc0505;
-
-@rc-active-color: mediumpurple;
-
-@overlay-background: rgba(0, 0, 0, 0.7);
-
-// Z-Index
-@map: 0;
-@column-right: 10;
-@engineering-panel: 11;
-@mission-settings: 11;
-@goal-settings: 11;
-@map-layers: 11;
-
-// Fonts
-@global-font-family: "Helvetica Neue For Number", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
-"Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+@import "util.less";
 
 /******** CSS Jaia Command & Control ********************/
 
@@ -298,9 +253,12 @@ td {
       height: auto;
 
       display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       margin-bottom: 16px;
-      padding: 2px 8px;
+      padding: 2px 16px;
       background-color: @cc-accordian-color;
+      row-gap: 2px;
     }
 
     .button-jcc {
@@ -326,11 +284,16 @@ td {
     position: absolute;
     top: @command-button-size + (2 * @command-button-padding);
     right: @command-button-size + (2 * @command-button-padding);
+
+    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
     width: 400px;
-    height: calc(100% - @command-button-size + (2 * @command-button-padding));
+    overflow-y: auto;
+    overflow-x: hidden;
+
     background: @overlay-background;
     color: @cc-maplayers-text-color;
-    overflow-y: auto;
+    border: 2px solid @cc-accordian-color;
+
     z-index: @map-layers;
 
     button {
@@ -343,21 +306,23 @@ td {
     > ul:before {
       content: "Map Layers";
       display: block;
-      width: 396px;
+      width: 374px;
+      
       background-color: #FFFFFF;
       color: #000000;
+
       margin-top: -8px;
-      margin-left: -10px;
+      margin-left: -1px;
       margin-bottom: 20px;
-      padding: 0.25vw 2px;
-      text-align: center;
+      padding: 2pt;
+      
+      font-size: 1.1rem;
       font-weight: bold;
-      border-radius: 8px;
+      text-align: center;
     }
 
     > ul {
       padding: 12px;
-      margin-bottom: 24px;
       list-style: none;
     }
 
@@ -365,6 +330,10 @@ td {
       // 1px gap between folds...need -8px to shift all folds up to match look of mission panel
       margin-top: -8px;
       margin-bottom: 9px;
+    }
+
+    li.group:last-child {
+      margin-bottom: 0;
     }
 
 
@@ -507,6 +476,10 @@ td {
     // 9px (margin btm of closed fold) + 12px = 21px...Adds 12px margin to btm of open fold
     .group.layer-switcher-fold.layer-switcher-open {
       margin-bottom: 21px;
+    }
+
+    .group.layer-switcher-fold.layer-switcher-open:last-child {
+      margin-bottom: 0;
     }
   }
 
@@ -790,111 +763,99 @@ td {
   /******** CSS Engineering Panels ********************/
 
   #engineeringPanel {
-    z-index: @engineering-panel;
-  }
-
-  .column-right {
     position: absolute;
-    height: auto;
     top: @command-button-size + (2 * @command-button-padding);
-    bottom: @status-bar-height;
-    z-index: @column-right;
-    background-color: @overlay-background;
-    width: 400px;
     right: @command-button-size + (2 * @command-button-padding);
+    
+    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+    overflow-y: auto;
+    
+    background-color: @overlay-background;
+    border: 2px solid @cc-accordian-color;
 
-    div.panel {
-      margin: @layout-margin / 2 2px;
-      padding: @layout-margin / 2 2px;
+    z-index: 1;
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      margin: 8pt;
+      padding: 8pt;
+
       background-color: @cc-background-color;
-      color: @cc-text-color;
-      border-radius: @panel-corner-radius;
-      overflow: visible;
-      position: relative;
-      text-align: center;
-      font-weight: bold;
-
-      > h2,
-      > a > h2 {
-        margin: 0;
-        padding: 3px 5px;
-        color: @cc-text-color;
-      }
-
-      #engineering_requirements_table {
-        td {
-          text-align: right;
-          font-size: 16px;
-        }
-      }
-
-      #engineering_safety_table {
-        td {
-          text-align: right;
-          font-size: 16px;
-        }
-      }
-
-      table {
-        width: 100%;
-        margin: 4px 0;
-
-        thead {
-          text-align: center;
-        }
-
-        tbody tr {
-          border-top: 1px solid @cc-text-color;
-          box-sizing: border-box;
-          background-color: @cc-background-color;
-        }
-        tbody tr.row-selected {
-          .bgcolor(@selected-color);
-        }
-        tbody tr.row-controlled {
-          .bgcolor(@controlled-color);
-        }
-
-        td {
-          padding: 2px 0;
-          margin: 0;
-          text-align: center;
-          font-weight: normal;
-          vertical-align: middle;
-          white-space: nowrap;
-          &.name {
-            font-weight: bolder;
-            font-size: 1.8em;
-            text-align: left;
-            width: 99%;
-          }
-          > input {
-            max-width: 8em;
-            text-align: right;
-          }
-          > * {
-            margin-left: 2px;
-            margin-right: 2px;
-          }
-        }
-      } // End sidebar table
-    } // End sidebar panel
-
-    overflow: visible;
-
-    .panelsContainerVertical {
-      position: absolute;
-      overflow: visible;
-      overflow-y: auto;
-      width: 100%;
-      height: auto;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      margin: 0;
     }
 
+    #engineering_requirements_table {
+      td {
+        text-align: right;
+        font-size: 16px;
+      }
+    }
+
+    #engineering_safety_table {
+      td {
+        text-align: right;
+        font-size: 16px;
+      }
+    }
+
+    table {
+      width: 100%;
+      margin: 4px 0;
+
+      thead {
+        text-align: center;
+      }
+
+      tbody tr {
+        border-top: 1px solid @cc-text-color;
+        box-sizing: border-box;
+        background-color: @cc-background-color;
+      }
+      tbody tr.row-selected {
+        .bgcolor(@selected-color);
+      }
+      tbody tr.row-controlled {
+        .bgcolor(@controlled-color);
+      }
+
+      td {
+        padding: 2px 0;
+        margin: 0;
+        text-align: center;
+        font-weight: normal;
+        vertical-align: middle;
+        white-space: nowrap;
+        &.name {
+          font-weight: bolder;
+          font-size: 1.8em;
+          text-align: left;
+          width: 99%;
+        }
+        > input {
+          max-width: 8em;
+          text-align: right;
+        }
+        > * {
+          margin-left: 2px;
+          margin-right: 2px;
+        }
+      }
+    } // End sidebar table
+  } // End sidebar panel
+  
+  .panelsContainerVertical {
+    position: absolute;
+    overflow: visible;
+    overflow-y: auto;
+    width: 100%;
+    height: auto;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
   }
 
   .mission-speeds-label {
@@ -972,15 +933,28 @@ td {
     .MuiSvgIcon-root {
       color: white
     }
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
   }
 
   .controller {
     display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 35px;
   }
 
   .hide-controller {
     visibility: hidden;
+  }
+
+  .controller-title {
+    color: #FFFFFF;
+    font-size: 1.25rem;
+    font-weight: 600;
   }
 
   /******** CSS System Health Information ********************/
@@ -1068,33 +1042,21 @@ td {
   }
 
   button.select-on-map {
-    display: block;
-    margin: 10pt auto 10pt auto;
+    all: unset;
     background-color: lightgreen;
-
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
   }
 
   button.select-on-map.clicking-map {
     background-color: yellow;
-  }
+  }  
 
-  .GoalSettingsPanel {
-    background-color: @cc-background-color;
-    color: @cc-text-color;
-    position: absolute;
-    right: @command-button-size + (2 * @command-button-padding);
-    top: @command-button-size + (2 * @command-button-padding);;
-    padding: 8pt;
-    border-radius: 8pt;
-  
-    .ConstantHeadingParametersTable {
-      td {
-        padding: 5pt;
-      }
-    }
-    
+  button.select-on-map:hover {
+    cursor: pointer;
   }
-  
 }
 
 .opacity(@opacity) {
@@ -1106,65 +1068,7 @@ td {
 
 /******** CSS GOAL/MISSION Settings ********************/
 
-.MissionSettingsPanel {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
-  position: absolute;
-  bottom: 0;
-  right: @command-button-size + (2 * @command-button-padding);
-  top: @command-button-size + (2 * @command-button-padding);
-  padding: 8pt;
-  border-radius: 8pt;
-  z-index: @mission-settings;
-  overflow: visible;
-  overflow-y: auto;
-}
-
-#mission-type {
-  color: #111111ff;
-  margin: 8pt;
-  border-radius: 4pt;
-}
-
-.missionStatsHeader {
-  font-size: 10pt;
-  color: #051d61;
-  font-weight: bold;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
-
-.missionStatsValue {
-  font-size: 10pt;
-  color: #051d61;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
-
-.GoalSettingsPanel {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
-  position: absolute;
-  right: @command-button-size + (2 * @command-button-padding);
-  top: @command-button-size + (2 * @command-button-padding);;
-  padding: 8pt;
-  border-radius: 8pt;
-  z-index: @goal-settings;
-}
-
-.goalSettingsHeader {
-  margin: auto;
-}
-
-#GoalType {
-  color: @cc-text-color;
-  margin: 8pt;
-  border-radius: 4pt;
-}
+.MissionSettingsPanel {}
 
 .NumberInput {
   color: @cc-text-color;
@@ -1182,13 +1086,59 @@ td {
   max-width: 75pt;
 }
 
-table.DiveParametersTable > tbody > tr > td {
-  padding: 2pt;
-}
-
 table.MissionParametersTable > tbody > tr > td {
   padding: 2pt;
 }
+
+.TaskParametersTable tbody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.TaskParametersTable .task-param-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.TaskParametersTable > tbody > .task-param-container:first-child {
+  margin-top: 12px;
+}
+
+.TaskParametersTable .input-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  text-align: right;
+}
+
+.TaskParametersTable .input-row.dive-time,
+.TaskParametersTable .input-row.drift-time {
+  gap: 9px;
+}
+
+.input-row.constant-heading-time {
+  gap: 24px;
+}
+
+.input-row.constant-heading-speed {
+  gap: 5px;
+}
+
+.input-row.constant-heading-distance {
+  gap: 28px;
+}
+
+.TaskParametersTable .NumberInput {
+  all: unset;
+  width: 75px;
+  border: 1px solid #D1D5DB;
+  border-radius: 3px;
+  padding: 6px;
+}
+
 
 /******** CSS SAVING/LOADING MISSIONS ********************/
 
@@ -1273,19 +1223,21 @@ div.hoverable:hover {
 .disconnection {
   display: flex;
   align-items: center;
-
-  top: 10pt;
-  right: 70pt;
-  width: 240pt;
+  gap: 12px;
 
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 330px;
+  height: 110px;
 
-  padding: 4pt;
+  padding: 12px;
 
   background-color: @error-color;
   color: @cc-text-color;
 
-  z-index: 12;
+  z-index: 100;
 }
 
 .icon {
@@ -1330,7 +1282,7 @@ div.closeButton {
 
 .accordionContainer,
 .nestedAccordionContainer {
-  overflow: auto;
+  overflow-y: auto;
 }
 
 .nestedAccordionContainer {
@@ -1383,6 +1335,41 @@ div.closeButton {
 }
 
 /******** CSS Mission Planning *****************/
+#missionPanel {
+  position: absolute;
+  top: @command-button-size + (2 * @command-button-padding);
+  right: @command-button-size + (2 * @command-button-padding);
+  min-width: 402px;
+  max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+
+  background-color: @overlay-background;
+  border: 2px solid @cc-accordian-color;
+
+  z-index: 1;
+}
+
+.panel-heading {
+  margin: 4pt 8pt 0 8pt;
+  padding: 2pt;
+  
+  background-color: #FFFFFF;
+
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+#runList {
+  max-height: calc(100vh - (@command-button-size + (2 * @command-button-padding) + @command-button-size + (2 * @command-button-padding) + @rc-panel-height-px + 71.28px + 22.92px));
+  overflow-y: auto;
+}
+
+.mission-panel-commands-container {
+  display: flex;
+  background-color: @cc-accordian-color;
+  margin: 8pt;
+  padding: 2pt 0;
+}
 
 .runItemInfo {
   position: relative;
@@ -1404,12 +1391,4 @@ div.closeButton {
 
 #runList {
   margin: 10px;
-}
-
-.task-options {
-  margin-left: 10pt;
-
-  td {
-      padding: 5pt;
-  }
 }

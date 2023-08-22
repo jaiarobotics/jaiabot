@@ -294,7 +294,8 @@ export default class RCControllerPanel extends React.Component {
 		let soleController: ReactElement
 
 		leftController = (
-			<div className='controller'>
+			<div className="controller">
+				<div className="controller-title">Throttle</div>
 				<Joystick
 					baseColor='white' 
 					stickColor='black'
@@ -313,7 +314,8 @@ export default class RCControllerPanel extends React.Component {
 		)
 
 		rightController = (
-			<div className={`controller ${this.state.controlType === 'Manual Single' ? 'hide-controller' : ''}`}>
+			<div className={`controller ${this.state.controlType === "Manual Single" ? "hide-controller" : ""}`}>
+				<div className="controller-title">Rudder</div>
 				<Joystick
 					baseColor='white' 
 					stickColor='black'
