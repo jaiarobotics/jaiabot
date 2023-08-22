@@ -125,7 +125,6 @@ function DownloadFile(name: string, data: BlobPart) {
 
 
 export default class JaiaMap {
-
     path_point_arrays: number[][][] = []
     active_goal_dict: {[key: number]: ActiveGoal[]} = {}
     timeRange?: number[] = null
@@ -193,6 +192,10 @@ export default class JaiaMap {
                 this.getTargetElement().style.cursor = '';
             }
         });
+    }
+
+    getMap() {
+        return this.openlayersMap
     }
 
     // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view

@@ -2,6 +2,8 @@ import { Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { toLonLat, fromLonLat } from "ol/proj"
 import { GeographicCoordinate } from "./JAIAProtobuf"
+import { getLength as OlGetLength } from "ol/sphere"
+import { Geometry} from "ol/geom"
 
 let abs = Math.abs
 
@@ -166,5 +168,13 @@ function adjustAccordionScrollPosition(parentContainerId: string, dropdownContai
             behavior: 'smooth'
         })
     }
+}
+
+export function formatLength(line: Geometry, map: Map) {
+    const length = OlGetLength(line, { projection: map.getView().getProjection() });
+    if (length > 100) {
+        return {magnitude: `${Math.round((length / 1000) * 100) / 100}`, unit: 'km'};
+    }
+    return {magnitude: `${Math.round(length * 100) / 100}`, unit: 'm'};
 }
 
