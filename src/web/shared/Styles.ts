@@ -151,9 +151,8 @@ export function hubMarker(feature: Feature): Style[] {
     return style
 }
 
-export function courseOverGroundArrow(feature: Feature): Style {
-    const botStatus = feature.get('bot') as PortalBotStatus
-    const courseOverGround = (botStatus?.attitude?.course_over_ground ?? 0.0) * DEG
+export function courseOverGroundArrow(courseOverGround: number): Style {
+    const finalCourseOverGround = courseOverGround * DEG
     const color = 'green'
 
     return new Style({
@@ -161,7 +160,7 @@ export function courseOverGroundArrow(feature: Feature): Style {
             src: botCourseOverGround,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: courseOverGround,
+            rotation: finalCourseOverGround,
             rotateWithView: true
         })
     })
@@ -183,8 +182,8 @@ export function desiredHeadingArrow(feature: Feature): Style {
     })
 }
 
-export function headingArrow(feature: Feature): Style {
-    const heading = feature.get('heading') * DEG
+export function headingArrow(heading: number): Style {
+    const finalHeading = heading * DEG
     const color = 'green'
 
     return new Style({
@@ -192,7 +191,7 @@ export function headingArrow(feature: Feature): Style {
             src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: heading,
+            rotation: finalHeading,
             rotateWithView: true
         })
     })

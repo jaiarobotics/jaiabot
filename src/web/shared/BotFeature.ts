@@ -35,7 +35,7 @@ export function createBotCourseOverGroundFeature(properties: Properties) {
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
     feature.setProperties(properties)
-    feature.setStyle(Styles.courseOverGroundArrow)
+    feature.setStyle(Styles.courseOverGroundArrow(properties.courseOverGround))
 
     return feature
 }
@@ -62,7 +62,7 @@ export function createBotHeadingFeature(properties: Properties) {
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
     feature.setProperties(properties)
-    feature.setStyle(Styles.headingArrow)
+    feature.setStyle(Styles.headingArrow(properties.heading))
 
     return feature
 }
