@@ -57,7 +57,7 @@ export class Layers {
         zIndex: 2000
     });
 
-    
+
     /**
      * Layer for rally point icons
      * @date 6/14/2023 - 5:17:23 PM
@@ -70,6 +70,27 @@ export class Layers {
         },
         source: new VectorSource(),
         zIndex: 1001,
+    })
+
+
+    courseOverGroundLayer = new VectorLayer({
+        properties: {
+            title: 'Course Over Ground'
+            
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
+    })
+
+    
+    headingLayer = new VectorLayer({
+        properties: {
+            title: 'Heading'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
     })
 
     
@@ -89,6 +110,8 @@ export class Layers {
             this.activeMissionLayer,
             this.rallyPointLayer,
             this.missionPlanningLayer,
+            this.courseOverGroundLayer,
+            this.headingLayer
         ]
     })
     
