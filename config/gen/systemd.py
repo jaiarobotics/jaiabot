@@ -126,41 +126,8 @@ subprocess.run('bash -ic "' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env"',
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
-
-# Merge /tmp/runtime.env into the target env file, but don't overwrite existing entries in the target env file
-def load_env(path: str):
-    env_dict: Dict[str, str] = {}
-    try:
-        for line in open(path):
-            items = line.split('=')
-            if len(items) == 2:
-                env_dict[items[0]] = items[1].strip()
-    except FileNotFoundError:
-        pass
-    return env_dict
-
-
-def save_env(env: Dict[str, str], path: str):
-    with open(path, 'w') as out_file:
-        for key in sorted(env.keys()):
-            out_file.write(f'{key}={env[key]}\n')
-
-
-def merge_env(src_env_path: str, dest_env_path: str):
-    src_env = load_env(src_env_path)
-    dest_env = load_env(dest_env_path)
-
-    # Clobber with any entries that already exist at dest
-    src_env.update(dest_env)
-
-    save_env(src_env, dest_env_path)
-
-
-merge_env('/tmp/runtime.env', args.env_file)
-
-####
 
 common_macros=dict()
 
