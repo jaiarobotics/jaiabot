@@ -1,0 +1,20 @@
+.ol-scale-line {
+    bottom: 16px;
+    right: 27px;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 2px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .ol-scale-line-inner {
+    color: white;
+    border: 1px solid white;
+    border-top: none;
+    padding: 4px;
+    font-size: 14px;
+    text-align: center;
+    margin: 1px;
+    will-change: contents, width;
+  }

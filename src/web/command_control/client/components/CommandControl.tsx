@@ -26,6 +26,7 @@ import * as turf from '@turf/turf';
 
 // Openlayers
 import OlMap from 'ol/Map';
+import { MapBrowserEvent } from 'ol'
 import { Interaction } from 'ol/interaction';
 import OlCollection from 'ol/Collection';
 import OlPoint from 'ol/geom/Point';
@@ -75,8 +76,8 @@ import { SaveMissionPanel } from './SaveMissionPanel'
 import { BotListPanel } from './BotListPanel'
 import { CommandList } from './Missions';
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
-import { MapBrowserEvent } from 'ol'
 import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
+import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 
 // Jaia imports
 import { SurveyLines } from './SurveyLines'
@@ -493,6 +494,8 @@ export default class CommandControl extends React.Component {
 			this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 			this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
 			this.updateActiveMissionLayer()
+			this.updateBotCourseOverGroundLayer()
+			this.updateBotHeadingLayer()
 			playDisconnectReconnectSounds(this.oldPodStatus, this.state.podStatus)
 		}
 
@@ -1873,6 +1876,46 @@ export default class CommandControl extends React.Component {
 		}
 
 		let source = layers.activeMissionLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
+	updateBotCourseOverGroundLayer() {
+		const bots = this.getPodStatus().bots
+		const allFeatures = []
+
+		for (const bot of Object.values(bots)) {
+			const feature = createBotCourseOverGroundFeature({
+				map: map,
+				botId: bot?.bot_id,
+				lonLat: [bot?.location?.lon, bot?.location?.lat],
+				heading: bot?.attitude?.heading,
+				courseOverGround: bot?.attitude?.course_over_ground
+			})
+			allFeatures.push(feature)
+		}
+
+		const source = layers.courseOverGroundLayer.getSource()
+		source.clear()
+		source.addFeatures(allFeatures)
+	}
+
+	updateBotHeadingLayer() {
+		const bots = this.getPodStatus().bots
+		const allFeatures = []
+
+		for (const bot of Object.values(bots)) {
+			const feature = createBotHeadingFeature({
+				map: map,
+				botId: bot?.bot_id,
+				lonLat: [bot?.location?.lon, bot?.location?.lat],
+				heading: bot?.attitude?.heading,
+				courseOverGround: bot?.attitude?.course_over_ground
+			})
+			allFeatures.push(feature)
+		}
+
+		const source = layers.headingLayer.getSource()
 		source.clear()
 		source.addFeatures(allFeatures)
 	}
