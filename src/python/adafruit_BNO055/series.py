@@ -42,7 +42,10 @@ class Series:
     hovertext: dict
 
     def __init__(self) -> None:
-        pass
+        self.name = ''
+        self.utime = []
+        self.y_values = []
+        self.hovertext = {}
 
     def clear(self):
         self.utime.clear()

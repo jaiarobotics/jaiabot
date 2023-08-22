@@ -2,6 +2,7 @@
 from time import sleep
 import argparse
 import socket
+import traceback
 import logging
 from math import *
 from orientation import Orientation
@@ -75,7 +76,7 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 wave_analyzer.stopSamplingForBottomCharacterization()
 
         except Exception as e:
-            log.warning(e)
+            traceback.print_exception()
 
 
 def do_interactive_loop():
