@@ -1236,7 +1236,7 @@ export default class CommandControl extends React.Component {
 				const healthState = this.getPodStatus().bots[botIndex]?.health_state
 				if (botState == "PRE_DEPLOYMENT__IDLE" || botState == "POST_DEPLOYMENT__IDLE") {
 					botIdsInIdleState.push(botIndex);
-				} else if (healthState !== "HEALTH__OK") {
+				} else if (healthState === "HEALTH__FAILED") {
 					botIdsPoorHealth.push(botIndex)
 				} else {
 					botIds.push(botIndex);
