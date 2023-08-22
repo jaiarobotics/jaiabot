@@ -41,16 +41,18 @@ export default class RCControllerPanel extends React.Component {
 	// This means our max backward throttle would be 10 or 0.5 m/s.
 	limitBackwardThrottle: number = 0.1
 
-	maxForwardThrottle: number
-	maxBackwardThrottle: number
-	numberOfBins: number
+	rudderBins: number
+	throttleForwardBins: number
+	throttleBackwardsBins: number
+	maxEventValue: number
 
     constructor(props: Props) {
         super(props)
         this.api = props.api
-		this.maxForwardThrottle = this.limitForwardThrottle * 100
-		this.maxBackwardThrottle = this.limitBackwardThrottle * 100
-		this.numberOfBins = 3
+		this.rudderBins = 3
+		this.throttleForwardBins = 2
+		this.throttleBackwardsBins = 1
+		this.maxEventValue = 100
 
         this.state = {
 			isJoyStickStart: false,
@@ -63,35 +65,33 @@ export default class RCControllerPanel extends React.Component {
     }
 
 	updateThrottleDirectionMove(event: IJoystickUpdateEvent) {
-		let binNumber = 0
+		let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 		if (event.direction.toString() === 'FORWARD') {
-			const throttleForwardAdjustValue = (event.y * 100) * this.limitForwardThrottle
-			binNumber = this.calcThrottleBinNum(throttleForwardAdjustValue, 'FORWARD')
-			this.props.remoteControlValues.pid_control.throttle = throttleForwardAdjustValue
+			this.calcThrottleBinNum((event.y * 100), 'FORWARD', bin)
+			this.props.remoteControlValues.pid_control.throttle = bin.binValue
 		} else if (event.direction.toString() === 'BACKWARD') {
-			const throttleBackwardAdjustValue = (event.y * 100) * this.limitBackwardThrottle
-			binNumber = this.calcThrottleBinNum(throttleBackwardAdjustValue, 'BACKWARD')
-			this.props.remoteControlValues.pid_control.throttle = throttleBackwardAdjustValue
+			this.calcThrottleBinNum((event.y * 100), 'BACKWARD', bin)
+			this.props.remoteControlValues.pid_control.throttle = bin.binValue
 		}
-		this.setState({ throttleDirection: event.direction.toString(), throttleBinNumber: binNumber }, () => {})		
+		this.setState({ throttleDirection: event.direction.toString(), throttleBinNumber: bin.binNumber }, () => {})		
 	}
 
-	calcThrottleBinNum(speed: number, throttleDirection: string) {
+	calcThrottleBinNum(speed: number, throttleDirection: string, bin: {binNumber: number, binValue: number}) {
 		// Basic error handling to protect against unexpected speed value
 		if (!speed || speed === 0) {
 			return 0
 		}
 
-		let binNumber = 0
 		if (throttleDirection === 'FORWARD') {
-			const binBreakpointDivisor = Math.ceil(this.maxForwardThrottle / this.numberOfBins)
-			binNumber = Math.round(Number((speed / binBreakpointDivisor).toFixed(1)))
+			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.throttleForwardBins)
+			bin.binNumber = Math.ceil(Number((speed / binBreakpointDivisor).toFixed(1)))
+			bin.binValue = bin.binNumber * binBreakpointDivisor * this.limitForwardThrottle;
 		} else if (throttleDirection === 'BACKWARD') {
-			const binBreakpointDivisor = Math.ceil((this.maxBackwardThrottle) / this.numberOfBins)
+			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.throttleBackwardsBins)
 			// Speed is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
-			binNumber = Math.round(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
+			bin.binNumber = Math.ceil(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
+			bin.binValue = bin.binNumber * binBreakpointDivisor * this.limitBackwardThrottle;
 		}
-		return binNumber
 	}
 
 	updateThrottleDirectionStop() {
@@ -100,29 +100,28 @@ export default class RCControllerPanel extends React.Component {
 	}
 
 	updateRudderDirectionMove(event: IJoystickUpdateEvent) {
-		const rudderAdjustValue = this.adjustThrottleResponse(event.x)
-		const binNumber = this.calcRudderBinNum(rudderAdjustValue)
-		this.props.remoteControlValues.pid_control.rudder = rudderAdjustValue
-		this.setState({ rudderDirection: event.direction.toString(), rudderBinNumber: binNumber })
+		let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+		this.calcRudderBinNum((event.x * 100), bin)
+		this.props.remoteControlValues.pid_control.rudder = bin.binValue
+		this.setState({ rudderDirection: event.direction.toString(), rudderBinNumber: bin.binNumber })
 	}
 
-	calcRudderBinNum(speed: number) {
-		// Basic error handling to protect against unexpected speed value
-		if (!speed || speed === 0) {
+	calcRudderBinNum(positiion: number, bin: {binNumber: number, binValue: number}) {
+		// Basic error handling to protect against unexpected positiion value
+		if (!positiion || positiion === 0) {
 			return 0
 		}
 
-		const absMaxRudderSpeed = 100
-		let binNumber = 0
-		if (speed > 0) {
-			const binBreakpointDivisor = Math.ceil(absMaxRudderSpeed / this.numberOfBins)
-			binNumber = Math.round(Number((speed / binBreakpointDivisor).toFixed(1)))
+		if (positiion > 0) {
+			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.rudderBins)
+			bin.binNumber = Math.ceil(Number((positiion / binBreakpointDivisor).toFixed(1)))
+			bin.binValue = Math.min(bin.binNumber * binBreakpointDivisor, 100)
 		} else {
-			const binBreakpointDivisor = Math.ceil((absMaxRudderSpeed) / this.numberOfBins)
-			// Speed is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
-			binNumber = Math.round(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
+			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.rudderBins)
+			// Positiion is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
+			bin.binNumber = Math.ceil(Number(((positiion * -1) / binBreakpointDivisor).toFixed(1))) * -1
+			bin.binValue = Math.max(bin.binNumber * binBreakpointDivisor, -100)
 		}
-		return binNumber
 	}
 
 	updateRudderDirectionStop() {
@@ -131,26 +130,29 @@ export default class RCControllerPanel extends React.Component {
 	}
 
 	moveSoloController(event: IJoystickUpdateEvent) {
-		let rudderAdjustValue = this.adjustThrottleResponse(event.x)
 		let throttleDirection = ''
 		let rudderDirection = ''
 		let throttleBinNumber = 0
 		let rudderBinNumber = 0
 
+		let thottleBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+
 		if (event.y >= 0) {
-			const throttleForwardAdjustValue = (event.y * 100) * this.limitForwardThrottle
-			this.props.remoteControlValues.pid_control.throttle = throttleForwardAdjustValue
-			throttleBinNumber = this.calcThrottleBinNum(throttleForwardAdjustValue, 'FORWARD')
+			this.calcThrottleBinNum((event.y * 100), 'FORWARD', thottleBin)
+			this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
 			throttleDirection = 'FORWARD'
+			throttleBinNumber = thottleBin.binNumber
 		} else if (event.y < 0) {
-			const throttleBackwardAdjustValue = (event.y * 100) * this.limitBackwardThrottle
-			this.props.remoteControlValues.pid_control.throttle = throttleBackwardAdjustValue
-			throttleBinNumber = this.calcThrottleBinNum(throttleBackwardAdjustValue, 'BACKWARD')
+			this.calcThrottleBinNum((event.y * 100), 'BACKWARD', thottleBin)
+			this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
 			throttleDirection = 'BACKWARD'
+			throttleBinNumber = thottleBin.binNumber
 		}
 
-		this.props.remoteControlValues.pid_control.rudder = rudderAdjustValue
-		rudderBinNumber = this.calcRudderBinNum(rudderAdjustValue)
+		let rudderBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+		this.calcRudderBinNum((event.x * 100), rudderBin)
+		this.props.remoteControlValues.pid_control.rudder = rudderBin.binValue
+		rudderBinNumber = rudderBin.binNumber
 
 		if (event.x >= 0) {
 			rudderDirection = 'RIGHT'
@@ -166,42 +168,61 @@ export default class RCControllerPanel extends React.Component {
 		})
 	}
 
-	handleGamepadAxisChange(axisName: string, rudderAdjustValue: number, value: number) {
+	handleGamepadAxisChange(axisName: string, value: number) {
 		const controlType = this.state.controlType
+
 		let throttleDirection = ''
 		let rudderDirection = ''
+		let throttleBinNumber = 0
+		let rudderBinNumber = 0
 
 		if (axisName === (controlType === 'Manual Single' ? 'LeftStickX' : 'RightStickX')) {
-			this.props.remoteControlValues.pid_control.rudder = rudderAdjustValue
+			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+			this.calcRudderBinNum((value * 100), bin)
+			this.props.remoteControlValues.pid_control.rudder = bin.binValue
 			if (value > 0) {
 				rudderDirection = 'RIGHT'
 			} else if (value < 0) {
 				rudderDirection = 'LEFT'
-			} else if (value === 0) {
+			} else if (value == 0) {
 				rudderDirection = ''
 				this.props.remoteControlValues.pid_control.rudder = 0
 			}
+			rudderBinNumber = bin.binNumber
 		} 
 		
 		if (axisName === 'LeftStickY') {	
+			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 			if (value > 0) {
 				throttleDirection = 'FORWARD'
-				this.props.remoteControlValues.pid_control.throttle = (value * 100) * this.limitForwardThrottle
+				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
+				this.props.remoteControlValues.pid_control.throttle = bin.binValue
 			} else if (value < 0) {
 				throttleDirection = 'BACKWARD'
-				this.props.remoteControlValues.pid_control.throttle = (value * 100) * this.limitBackwardThrottle
-			} else if(value === 0) {
+				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
+				this.props.remoteControlValues.pid_control.throttle = bin.binValue
+			} else if(value == 0) {
 				throttleDirection = ''
 				this.props.remoteControlValues.pid_control.throttle = 0
 			}
+			throttleBinNumber = bin.binNumber
 		}
-		
+
 		if (throttleDirection) {
-			this.setState({ throttleDirection })
+			this.setState({ throttleDirection, throttleBinNumber })
 		}
 
 		if (rudderDirection) {
-			this.setState({ rudderDirection })
+			this.setState({ rudderDirection, rudderBinNumber })
+		}
+
+		if (!throttleDirection && !rudderDirection) {
+			this.setState({ 
+				throttleDirection, 
+				rudderDirection,
+				throttleBinNumber,
+				rudderBinNumber
+			})
 		}
 	}
 
@@ -218,17 +239,6 @@ export default class RCControllerPanel extends React.Component {
 			throttleBinNumber: 0,
 			rudderBinNumber: 0
 	 	})
-	}
-
-	adjustThrottleResponse(value: number) {
-		// Raise the absolute value of the input value to the third power
-		// For the rudder response then applying the sign back
-		const input = Math.abs(value)
-		const output = input ** 3
-		const sign = Math.sign(value)
-		const rudderAdjustValue = sign * output * 100
-
-		return rudderAdjustValue
 	}
 
     render() {
@@ -388,8 +398,7 @@ export default class RCControllerPanel extends React.Component {
 						}}
 						onAxisChange={(axisName: string, value: number) => {
 							this.props.createInterval();
-							let rudderAdjustValue = this.adjustThrottleResponse(value);
-							this.handleGamepadAxisChange(axisName, rudderAdjustValue, value)
+							this.handleGamepadAxisChange(axisName, value)
 						}}
 					>
 						<React.Fragment />
