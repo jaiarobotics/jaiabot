@@ -152,7 +152,7 @@ export function hubMarker(feature: Feature): Style[] {
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
-    const finalCourseOverGround = courseOverGround * DEG
+    const courseOverGroundDeg = courseOverGround * DEG
     const color = 'green'
 
     return new Style({
@@ -160,7 +160,7 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
             src: botCourseOverGround,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: finalCourseOverGround,
+            rotation: courseOverGroundDeg,
             rotateWithView: true
         })
     })
