@@ -346,7 +346,8 @@ export class TaskData {
                                 font : `15px Calibri,sans-serif`,
                                 text : `Duration (s): ` + driftPacket.drift_duration 
                                     + '\nDirection (deg): ' + taskCalcs.driftDirection.toFixed(2) 
-                                    + '\nSpeed (m/s): ' + taskCalcs.driftSpeed.toFixed(2),
+                                    + '\nSpeed (m/s): ' + taskCalcs.driftSpeed.toFixed(2)
+                                    + '\nSignificant Wave Height (m): ' + driftPacket.significant_wave_height?.toFixed(2) ?? '?',
                                 scale: 1,
                                 fill: new OlFillStyle({color: 'white'}),
                                 backgroundFill: new OlFillStyle({color: 'black'}),
