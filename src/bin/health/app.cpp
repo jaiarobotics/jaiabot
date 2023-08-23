@@ -99,8 +99,7 @@ jaiabot::apps::Health::Health()
 {
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::Command& command)
-        {
+        [this](const protobuf::Command& command) {
             switch (command.type())
             {
                 // most commands handled by jaiabot_mission_manager
@@ -155,8 +154,7 @@ jaiabot::apps::Health::Health()
 
     // handle rf disable commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const jaiabot::protobuf::Engineering& power_rf)
-        {
+        [this](const jaiabot::protobuf::Engineering& power_rf) {
             if (power_rf.has_rf_disable_options())
             {
                 if (power_rf.rf_disable_options().has_rf_disable())
@@ -183,8 +181,7 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUIssue& imu_issue)
-        {
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
                                      << std::endl;
 
@@ -198,12 +195,12 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-        { process_coroner_report(vehicle_health); });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+            process_coroner_report(vehicle_health);
+        });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStartReport& start_report)
-        {
+        [this](const protobuf::SystemdStartReport& start_report) {
             glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
                                      << std::endl;
             failed_services_.erase(start_report.clear_error());
@@ -213,8 +210,7 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStopReport& stop_report)
-        {
+        [this](const protobuf::SystemdStopReport& stop_report) {
             glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
                                      << std::endl;
             if (stop_report.has_error())
