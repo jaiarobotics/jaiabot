@@ -1111,6 +1111,11 @@ export default class CommandControl extends React.Component {
 		return bots[botId].mission_state
 	}
 
+	getBotDownloadPercent(botId: number) {
+		const bots = this.getPodStatus().bots
+		return bots[botId]?.data_offload_percentage
+	}
+
 	isBotInQueue(bot: PortalBotStatus) {
 		const queue = this.state.botDownloadQueue
 		for (const queuedBot of queue) {
@@ -2656,7 +2661,12 @@ export default class CommandControl extends React.Component {
 				)
 				break
 			case PanelType.DOWNLOAD_QUEUE:
-				visiblePanelElement = <DownloadQueue downloadableBots={this.state.botDownloadQueue} removeBotFromQueue={this.removeBotFromQueue.bind(this)} />
+				visiblePanelElement = (
+					<DownloadQueue 
+						downloadableBots={this.state.botDownloadQueue} 
+						removeBotFromQueue={this.removeBotFromQueue.bind(this)}
+						getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
+					/>)
 				break
 		}
 

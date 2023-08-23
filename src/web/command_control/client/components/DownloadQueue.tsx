@@ -8,6 +8,7 @@ import { PortalBotStatus } from './shared/PortalStatus';
 interface Props {
     downloadableBots: PortalBotStatus[]
     removeBotFromQueue: (bot: PortalBotStatus) => void
+    getBotDownloadPercent: (botId: number) => number
 }
 
 export default function DownloadQueue(props: Props) {
@@ -19,7 +20,7 @@ export default function DownloadQueue(props: Props) {
                     return (
                         <div className="download-queue-card">
                             <div className="download-queue-bot-number">Bot: {bot.bot_id}</div>
-                            <CircularProgress determinate value={bot.data_offload_percentage ? bot.data_offload_percentage : 0}/>
+                            <CircularProgress determinate value={props.getBotDownloadPercent(bot.bot_id)}/>
                             <div className='download-queue-clos-btn-container' onClick={() => props.removeBotFromQueue(bot)}>
                                 <Icon path={mdiClose} size={1} className='download-queue-close-btn'/>
                             </div>
