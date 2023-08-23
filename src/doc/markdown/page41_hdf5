@@ -45,6 +45,7 @@
 * PressureTemperatureData
   * required double pressure_raw
   * optional double temperature
+    * * Description: Measured in Celcius 
   * required string version
 
 ### Group: pressure_adjusted
@@ -54,6 +55,7 @@
   * optional double pressure_adjusted
   * optional double pressure_raw_before_dive
   * optional double calculated_depth
+    * Description: Measured in Meters
 
 ### Group: salinity
 
@@ -103,9 +105,11 @@
   * required uint64 time
   * optional uint64 last_command_time
   * optional goby.middleware.protobuf.HealthState health_state
-  * repeated Error error
-  * repeated Warning warning
+  * repeated Error error (Reused see Error in Reused Messages Section)
+  * repeated Warning warning (Reused see Warning in Reused Messages Section)
   * optional GeographicCoordinate location
+    * required double lat
+    * required double lon
   * optional double depth
   * optional Attitude attitude
     * optional double roll
@@ -122,6 +126,7 @@
   * optional double salinity
     * Description: Measured in PSS 
   * optional double temperature
+    * Description: Measured in Celcius
   * optional double thermocouple_temperature
   * optional double vv_current
   * optional double vcc_current
@@ -431,30 +436,7 @@
 ### Group: mission_tpv_meets_gps_req
 
 * MissionTpvMeetsGpsReq
-  * optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv
-    * optional string device
-    * optional double time
-    * optional Mode mode
-      * ModeNotSeen = 0
-      * ModeNoFix = 1
-      * Mode2D = 2
-      * Mode3D= 3
-    * optional LatLonPoint location
-      * required double lat
-      * required double lon
-      * optional double depth
-      * optional double altitude
-    * optional double altitude
-    * optional double track
-    * optional double speed
-    * optional double climb
-    * optional double epc
-    * optional double epd
-    * optional double eps
-    * optional double ept
-    * optional double epv
-    * optional double epx
-    * optional double epy
+  * optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv (Reused see TimePositionVelocity in Reused Messages Section)
 
 ## Section: Hub Manager
 
@@ -468,8 +450,8 @@
     * HEALTH__OK = 1
     * HEALTH__DEGRADED = 2
     * HEALTH__FAILED = 3
-  * repeated Error error
-  * repeated Warning warning
+  * repeated Error error (Reused see Error in Reused Messages Section)
+  * repeated Warning warning (Reused see Warning in Reused Messages Section)
   * optional GeographicCoordinate location
   * repeated uint32 bot_ids_in_radio_file
   * optional LinuxHardwareStatus linux_hardware_status
@@ -483,12 +465,38 @@
 ### Group: time_status
 
 * optional NTPPeer system_sync_peer
+  * required TallyCode tally_code
+    * PEER_CODE_UNKNOWN = -1 
+    * PEER_NOT_VALID = 0x20
+      * Description: ' '
+    * PEER_DISCARDED_BY_INTERSECTION = 0x78
+      * Description: 'x'
+    * PEER_DISCARDED_BY_TABLE_OVERFLOW = 0x2E
+      * Description: '.'
+    * PEER_DISCARDED_BY_CLUSTER_ALGORITHM = 0x2D
+      * Description: '-'
+    * PEER_INCLUDED_IN_COMBINE = 0x2B
+      * Description: '+'
+    * PEER_ALTERNATIVE_BACKUP = 0x23
+      * Description: '#'
+    * PEER_SYSTEM_SYNC_SOURCE = 0x2A
+      * Description: '*'
+    * PEER_PPS_SYNC = 0x6F 
+  * required string remote
+  * required string refid
+  * optional int32 stratum
+  * optional int32 when
+  * optional int32 poll
+  * optional int32 reach
+  * optional float delay
+  * optional float offset
+  * optional float jitter
 * repeated NTPPeer peer
 
 ### Group: systemd_report
 
 * SystemdStartReport
-  * required Error clear_error
+  * required Error clear_error (Reused see Error in Reused Messages Section)
 
 * SystemdStopReport
   * required ServiceResult result
@@ -502,13 +510,13 @@
     * SERVICE_RESULT_WATCHDOG = 7
     * SERVICE_RESULT_START_LIMIT_HIT = 8
     * SERVICE_RESULT_RESOURCES = 9
-  * required Error error
+  * required Error error (Reused see Error in Reused Messages Section)
   * optional string journal_dump_file
 
 ### Group: systemd_report_ack
 
 * SystemdReportAck
-  * required Error error_ack
+  * required Error error_ack (Reused see Error in Reused Messages Section)
 
 ## Section: Metadata
 
@@ -618,14 +626,213 @@
       * optional bool all_clients 
   * optional bytes data 
 
+## Section Goby
+
+### Group: configuration
+
+* Refer to templates directory in the jaiabot repository
+  * jaiabot/config/templates
+
+### Group: datum_update
+
+* DatumUpdate 
+  * required .goby.middleware.protobuf.LatLonPoint datum (Reused see LatLonPoint in Reused Messages Section)
+
+### Group: health report 
+
+* VehicleHealth
+  * required uint64 time
+  * required string platform
+  * required HealthState state
+    * HEALTH__OK
+    * HEALTH__DEGRADED
+    * HEALTH__FAILED
+  * repeated ProcessHealth process
+    * required string name
+    * optional uint32 pid
+    * required ThreadHealth main (Reused see ThreadHealth in Reused Messages Section)
+
+### Group: health response
+
+* ProcessHealth
+  * required string name
+  * optional uint32 pid
+  * required ThreadHealth main (Reused see ThreadHealth in Reused Messages Section)
+
+### Group: logger request 
+
+* LoggerRequest
+  * required State requested_state
+    * START_LOGGING = 1
+    * STOP_LOGGING = 2
+    * ROTATE_LOG = 3
+
+### Group: middleware frontseat desired_course
+
+* DesiredCourse
+  * required double time
+  * optional double heading
+  * optional double speed
+  * optional double depth
+  * optional double pitch
+  * optional double roll
+  * optional double z_rate
+  * optional double altitude
+
+### Group: middleware frontseat helm_state
+
+* HelmStateReport
+  * required HelmState state
+    *  HELM_NOT_RUNNING = 0
+    * HELM_DRIVE = 1
+    * HELM_PARK = 2
+
+### Group: middleware frontseat node_status 
+
+* NodeStatus 
+  * required double time
+  * optional string name
+  * optional VehicleType type
+    * UNKNOWN = 0
+    * AUV = 10
+    * GLIDER = 11
+    * USV = 20
+    * USV_POWERED = 21
+    * USV_SAILING = 22
+    * ROV = 30
+    * TARGET = 50
+    * BUOY = 60
+    * MOORING = 61
+    * MOORING_SUBSURFACE = 62
+    * MOORING_SURFACE = 63
+    * SHIP = 100
+    * OTHER = -1
+  * required .goby.middleware.protobuf.LatLonPoint global_fix (Reused see LatLonPoint in Reused Messages Section)
+  * optional CartesianCoordinate local_fix
+    * required double x
+    * required double y
+    * optional double z
+  * required EulerAngles pose
+    * optional double roll
+    * optional double pitch
+    * optional double heading
+    * optional double course_over_ground
+    * optional double roll_rate
+    * optional double pitch_rate
+    * optional double heading_rate
+  * required Speed speed
+    * required double over_ground
+    * optional double over_water
+  * optional Source source
+    * optional Sensor position
+      * GPS = 1
+      * USBL = 2
+      * LBL = 3
+      * INERTIAL_NAVIGATION_SYSTEM = 4
+      * PRESSURE = 10
+      * DVL = 20
+      * RPM_LOOKUP = 30
+      * MAGNETIC_COMPASS = 40
+    * optional Sensor depth
+    * optional Sensor speed
+    * optional Sensor heading
+
+### Group: middleware groups gpsd sky
+
+* SkyView
+  * optional string device
+  * optional double time
+  * optional double gdop
+  * optional double hdop
+  * optional double pdop
+  * optional double tdop
+  * optional double vdop
+  * optional double xdop
+  * optional double ydop
+  * optional double nsat
+  * optional double usat
+  * repeated Satellite satellite
+    * required int32 prn
+    * optional double az
+    * optional double el
+    * optional double ss
+    * optional bool used
+    * optional int32 gnssid
+    * optional int32 svid
+    * optional int32 sigid
+    * optional int32 freqid
+    * optional int32 health
+  
+
+### Group: middleware groups gpsd tpv
+
+* TimePositionVelocity (Reused see TimePositionVelocity in Reused Messages Section)
+
 ## Section: Reused Messages
+
+* LatLonPoint 
+  * required double lat
+  * required double lon
+  * optional double depth
+  * optional double altitude
+
+* ThreadHealth
+  * required string name
+  * optional int32 thread_id
+  * optional int32 uid
+  * required HealthState state
+    * HEALTH__OK
+    * HEALTH__DEGRADED
+    * HEALTH__FAILED
+  * repeated ThreadHealth child
+  * optional Error error (Reused see Error in Reused Messages Section)
+  * optional string error_message
+
+* TimePositionVelocity
+  * optional string device
+      * optional double time
+      * optional Mode mode
+        * ModeNotSeen = 0
+        * ModeNoFix = 1
+        * Mode2D = 2
+        * Mode3D= 3
+      * optional LatLonPoint location (Reused see LatLonPoint in Reused Messages Section)
+      * optional double altitude
+      * optional double track
+      * optional double speed
+      * optional double climb
+      * optional double epc
+      * optional double epd
+      * optional double eps
+      * optional double ept
+      * optional double epv
+      * optional double epx
+      * optional double epy
 
 * LinuxHardwareStatus
   * optional int32 uptime
   * optional Processor processor
+    * optional LoadAverages loads
+      * required float one_min
+      * required float five_min
+      * required float fifteen_min
+    * optional int32 num_processes
+    * optional int32 num_processors
   * optional Memory memory
+    * required Information ram 
+      * required uint64 total
+      * required uint64 available
+      * required float use_percent
+    * required Information swap
   * optional Disk disk
+    * optional Information rootfs
+    * optional Information data
   * optional WiFi wifi
+    * required bool is_connected
+    * optional uint32 link_quality
+    * optional uint32 link_quality_percentage
+    * optional int32 signal_level
+    * optional int32 noise_level
 
 * MissionTask
   * optional TaskType type
