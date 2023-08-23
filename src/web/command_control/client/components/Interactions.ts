@@ -97,7 +97,9 @@ export class Interactions {
         })
     
         this.translateInteraction = new Interaction.Translate({
-            features: commandControl.state.selectedFeatures
+            filter: function(feature) {
+                return !feature.get('disableDrag')
+            }
         })
 
     }

@@ -42,7 +42,7 @@ export function createMissionFeatures(
                 title: 'Goal ' + goalIndexStartAtOne, 
                 lon: location.lon, 
                 lat: location.lat,
-                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
+                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
             }
         )
 
@@ -68,7 +68,7 @@ export function createMissionFeatures(
                 {
                     lon: location.lon, 
                     lat: location.lat,
-                    style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
+                    style: Styles.getFlagStyle(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
             flagFeature.setProperties({
@@ -85,7 +85,7 @@ export function createMissionFeatures(
                 {
                     lon: location.lon, 
                     lat: location.lat,
-                    style: Styles.gps()
+                    style: Styles.getGpsStyle()
                 }
             )
             features.push(gpsFeature)
