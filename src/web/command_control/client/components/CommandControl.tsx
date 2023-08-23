@@ -6,6 +6,7 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
+import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
 import { layers } from './Layers'
@@ -63,7 +64,7 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList} from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -94,6 +95,7 @@ export enum PanelType {
 	MAP_LAYERS = 'MAP_LAYERS',
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
+	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
 	RALLY_POINT = 'RALLY_POINT'
 }
 
@@ -162,6 +164,7 @@ interface State {
 	visiblePanel: PanelType,
 	detailsBoxItem?: HubOrBot,
 	detailsExpanded: DetailsExpandedState,
+	botDownloadQueue: PortalBotStatus[],
 	loadMissionPanel?: ReactElement,
 	saveMissionPanel?: ReactElement,
 
@@ -274,6 +277,7 @@ export default class CommandControl extends React.Component {
 				power: false,
 				links: false
 			},
+			botDownloadQueue: [],
 	
 			surveyPolygonFeature: null,
 			surveyPolygonGeoCoords: null,
@@ -292,7 +296,6 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
-
 			viewportPadding: [
 				viewportDefaultPadding,
 				viewportDefaultPadding,
@@ -419,10 +422,6 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0);
 		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0);
-
-		// ($('.panel > h2') as any).disableSelection();
-
-		// ($('button') as any).disableSelection();
 
 		this.setupMapLayersPanel()
 
@@ -950,6 +949,139 @@ export default class CommandControl extends React.Component {
 		})
 	}
 
+	async processDownloadAllBots() {
+		const downloadableBots = this.getDownloadableBots()
+		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
+
+		if (downloadableBotIds.length === 0) {
+			info('All bots eligible for data download are queued')
+			return
+		}
+
+		if (!confirm(`Would you like to do a data download for Bot${downloadableBots.length > 1 ? 's': ''}:  ${downloadableBotIds}`)) { return }
+
+		const queue = this.state.botDownloadQueue
+		const updatedQueue = queue.concat(downloadableBots)
+		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+		info('Open the Download Panel to see the bot download queue')
+	}
+
+	async processDownloadSingleBot(bot: PortalBotStatus) {
+		if (!confirm(`Would you like to do a data download for Bot ${bot.bot_id}?`)) { return }
+		
+		const queue = this.state.botDownloadQueue
+		if (queue.length > 0) {
+			for (const queuedBot of queue) {
+				if (queuedBot.bot_id === bot.bot_id) {
+					info(`Bot ${bot.bot_id} is already queued`)
+					return
+				}
+			}
+		}
+		const updatedQueue = queue.concat(bot)
+		info(`Queued Bot ${bot.bot_id} for data download`)
+		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+	}
+
+	async downloadBotsInOrder() {
+		const queue = this.state.botDownloadQueue
+		for (const bot of queue) {
+			const updatedQueueIds = this.state.botDownloadQueue.map((bot) => bot.bot_id) // Needed to update the queue list when downloads are added after the queue started
+			if (updatedQueueIds.includes(bot.bot_id)) {
+				await this.downloadBot(bot, bot.mission_state === 'POST_DEPLOYMENT__IDLE')
+				this.removeBotFromQueue(bot)
+			}
+		}
+	}
+
+	async downloadBot(bot: PortalBotStatus, retryDownload: boolean) {
+		try {
+			await this.startDownload(bot, retryDownload)
+			await this.waitForPostDepoloymentIdle(bot, retryDownload)
+		} catch (error) {
+			console.error('Function: downloadBot', error)
+		}
+	}
+
+	async startDownload(bot: PortalBotStatus, retryDownload: boolean) {
+		const command = {
+			bot_id: bot.bot_id,
+			type: retryDownload ? CommandType.RETRY_DATA_OFFLOAD : CommandType.RECOVERED
+		}
+
+		try {
+			await this.api.postCommand(command)
+			console.log('Command', command)
+		} catch (error) {
+			console.error('Function: startDownload', error)
+		}
+	}
+
+	waitForPostDepoloymentIdle(bot: PortalBotStatus, retryDownload?: boolean) {
+		const timeoutTime = retryDownload ? 4000 : 0 // Accounts for lag in swithcing states
+		return new Promise<void>((resolve, reject) => {
+			setTimeout(() => {
+				const intervalId = setInterval(() => {
+					if (this.getBotMissionState(bot.bot_id) === 'POST_DEPLOYMENT__IDLE') {
+						clearInterval(intervalId)
+						resolve()
+					} 
+				}, 1000)
+			}, timeoutTime)
+		})
+	}
+
+	removeBotFromQueue(bot: PortalBotStatus) {
+		const downloadStates = ['POST_DEPLOYMENT__DATA_PROCESSING', 'POST_DEPLOYMENT__DATA_OFFLOAD']
+        if (downloadStates.includes(this.getBotMissionState(bot.bot_id)) && !confirm('Removing this bot will not cancel the download, but it will allow the other bots to move up in the queue. You may experience slower download speeds. Select OK if you would like to continue:')) {
+            return
+        }
+		
+		const queue = this.state.botDownloadQueue
+		const updatedQueue = queue.filter((queuedBot) => {
+			if (!(queuedBot.bot_id === bot.bot_id)) {
+				return queuedBot
+			}
+		})
+
+		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+	}
+
+	getDownloadableBots() {
+		const downloadableBots: PortalBotStatus[] = []
+		const bots = this.getPodStatus().bots
+		for (const bot of Object.values(bots)) {
+			for (const enabledState of this.enabledEditStates) {
+				if (bot?.mission_state.includes(enabledState) && bot?.wifi_link_quality_percentage && !this.isBotInQueue(bot)) {
+					downloadableBots.push(bot)
+					break
+				}
+			}
+		}
+		return downloadableBots
+	}
+
+	getBotMissionState(botId: number) {
+		// Need external function to get most up-to-date mission state, else mission state stays the same in async operations
+		const bots = this.getPodStatus().bots
+		return bots[botId].mission_state
+	}
+
+	getBotDownloadPercent(botId: number) {
+		const bots = this.getPodStatus().bots
+		return bots[botId]?.data_offload_percentage
+	}
+
+	isBotInQueue(bot: PortalBotStatus) {
+		const queue = this.state.botDownloadQueue
+		for (const queuedBot of queue) {
+			if (queuedBot.bot_id === bot.bot_id) {
+				return true
+			}
+		}
+		return false
+	}
+
 	/**
 	 * Returns a human-readable string representing the length of the input geometry
 	 * 
@@ -1194,6 +1326,7 @@ export default class CommandControl extends React.Component {
 		const botIds: number[] = [];
 		const botIdsInIdleState: number[] = [];
 		const botIdsPoorHealth: number[] = [];
+		const botIdsInDownloadQueue = this.state.botDownloadQueue.map((bot) => bot.bot_id)
 		const runs = missions.runs;
 
 		for (const bot of Object.values(this.getPodStatus().bots)) {
@@ -1201,6 +1334,8 @@ export default class CommandControl extends React.Component {
 				botIdsInIdleState.push(bot?.bot_id)
 			} else if (bot.health_state !== "HEALTH__OK") {
 				botIdsPoorHealth.push(bot?.bot_id)
+			} else if (botIdsInDownloadQueue.includes(bot.bot_id)) {
+				// Do not allow a bot in the download queue to start another run
 			} else {
 				botIds.push(bot?.bot_id)
 			}
@@ -1223,7 +1358,7 @@ export default class CommandControl extends React.Component {
 
 				Object.keys(runs).map(key => {
 					const botIndex = runs[key].assigned;
-					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex)) {
+					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex) && !botIdsInDownloadQueue.includes(botIndex)) {
 						const runCommand = runs[key].command
 						this._runMission(runCommand)
 						this.setEditRunMode([botIndex], false)
@@ -1524,8 +1659,11 @@ export default class CommandControl extends React.Component {
 				<Button className="button-jcc" style={{"backgroundColor":"#cc0505"}} onClick={this.sendStopAll.bind(this)}>
 				    <Icon path={mdiStop} title="Stop All Missions" />
 				</Button>
-				<Button id= "missionStartStop" className={"button-jcc stopMission" + (botsAreAssignedToRuns ? '' : ' inactive') } onClick={this.playClicked.bind(this)}>
+				<Button id="missionStartStop" className={`button-jcc stopMission ${(botsAreAssignedToRuns ? '' : 'inactive')}`} onClick={this.playClicked.bind(this)}>
 					<Icon path={mdiPlay} title="Run Mission"/>
+				</Button>
+				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
+					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
@@ -2199,16 +2337,18 @@ export default class CommandControl extends React.Component {
 					hub: hubs?.[0], 
 					api: this.api, 
 					mission: this.getRunList(),
-					run: this.getRun(this.selectedBotId()), 
+					run: this.getRun(this.selectedBotId()),
+					isExpanded: this.state.detailsExpanded,
+					downloadQueue: this.state.botDownloadQueue,
 					closeWindow: closeDetails.bind(this),
 					takeControl: this.takeControl.bind(this),
-					isExpanded: this.state.detailsExpanded,
 					deleteSingleMission: this.deleteSingleRun.bind(this),
 					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					isRCModeActive: this.isRCModeActive.bind(this),
 					updateEditModeToggle: this.updateEditModeToggle.bind(this),
 					isEditModeToggleDisabled: this.isEditModeToggleDisabled.bind(this),
-					toggleEditMode: this.toggleEditMode.bind(this)
+					toggleEditMode: this.toggleEditMode.bind(this),
+					downloadIndividualBot: this.processDownloadSingleBot.bind(this)
 				}
 				detailsBox = <BotDetailsComponent {...botDetailsProps} />
 				break;
@@ -2351,9 +2491,26 @@ export default class CommandControl extends React.Component {
 		) : (
 			<Button className="button-jcc" onClick={() => {
 				this.setVisiblePanel(PanelType.MISSION)
-			}} 
+				}} 
 			>
 				<Icon path={mdiViewList} title="Mission Panel"/>
+			</Button>
+		))
+
+		const downloadQueueButton = (visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+			<Button className="button-jcc active" onClick={() => {
+				this.setVisiblePanel(PanelType.NONE)
+				}}
+			>
+				<Icon path={mdiProgressDownload} title="Download Queue"/>
+			</Button>
+
+		) : (
+			<Button className="button-jcc" onClick={() => {
+				this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+				}}
+			>
+				<Icon path={mdiProgressDownload} title="Download Queue"/>
 			</Button>
 		))
 
@@ -2437,6 +2594,17 @@ export default class CommandControl extends React.Component {
 					/>
 				)
 				break
+
+			case PanelType.DOWNLOAD_QUEUE:
+				visiblePanelElement = (
+					<DownloadQueue 
+						downloadableBots={this.state.botDownloadQueue} 
+						removeBotFromQueue={this.removeBotFromQueue.bind(this)}
+						getBotDownloadPercent={this.getBotDownloadPercent.bind(this)}
+					/>
+				)
+				break
+
 			case PanelType.RALLY_POINT:
 				visiblePanelElement = (
 					<RallyPointPanel
@@ -2461,6 +2629,8 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
+
+					{downloadQueueButton}
 
 					{engineeringButton}
 

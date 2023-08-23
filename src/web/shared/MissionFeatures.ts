@@ -3,7 +3,7 @@ import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { LineString } from "ol/geom"
 import { fromLonLat } from "ol/proj"
-import { createMarker, createFlagMarker } from './Marker'
+import { createMarker, createFlagMarker, createGPSMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 import { PortalBotStatus } from "./PortalStatus"
@@ -77,6 +77,18 @@ export function createMissionFeatures(
                 isSelected: isSelected
             })            
             features.push(flagFeature)
+        }
+
+        if (bot?.mission_state.includes('REACQUIRE_GPS') && goalIndexStartAtOne === activeGoalIndex) {
+            const gpsFeature = createGPSMarker(
+                map,
+                {
+                    lon: location.lon, 
+                    lat: location.lat,
+                    style: Styles.getGpsStyle()
+                }
+            )
+            features.push(gpsFeature)
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
