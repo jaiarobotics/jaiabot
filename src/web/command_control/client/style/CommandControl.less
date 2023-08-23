@@ -871,7 +871,7 @@ td {
     bottom: 0;
     width: calc(100% - ((@command-button-size + (@command-button-margin * 2)) * 1));
     background-color: @overlay-background;
-    z-index: 1;
+    z-index: 10;
   }
 
   .rc-heading {
@@ -916,6 +916,10 @@ td {
     align-items: center;
     gap: 12px;
     padding: 8px 0 0 8px;
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
 
     .MuiSelect-select {
       display: flex;

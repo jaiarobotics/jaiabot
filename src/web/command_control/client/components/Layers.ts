@@ -44,7 +44,7 @@ export class Layers {
         source: new VectorSource(),
         zIndex: 2000
     });
-    
+
     /**
      * Layer for rally point icons
      */
@@ -54,6 +54,27 @@ export class Layers {
         },
         source: new VectorSource(),
         zIndex: 999,
+    })
+
+
+    courseOverGroundLayer = new VectorLayer({
+        properties: {
+            title: 'Course Over Ground'
+            
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
+    })
+
+    
+    headingLayer = new VectorLayer({
+        properties: {
+            title: 'Heading'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
     })
 
     
@@ -70,6 +91,8 @@ export class Layers {
             this.activeMissionLayer,
             this.rallyPointLayer,
             this.missionPlanningLayer,
+            this.courseOverGroundLayer,
+            this.headingLayer
         ]
     })
     

@@ -205,7 +205,7 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, bo
     if (!takeControlFunction()) return;
 
     if (botRun) {
-        if (bot.health_state !== 'HEALTH__OK' && bot.health_state !== "HEALTH__DEGRADED") {
+        if (bot.health_state === 'HEALTH__FAILED') {
             alert('Cannot perform this run without a health state of "HEALTH__OK" or "HEALTH__DEGRADED"')
             return
         }
