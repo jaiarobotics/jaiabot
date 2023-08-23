@@ -53,7 +53,7 @@ export class Layers {
             title: 'Rally Points'
         },
         source: new VectorSource(),
-        zIndex: 1001,
+        zIndex: 999,
     })
 
     

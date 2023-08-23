@@ -13,7 +13,7 @@ const start = require('./start.svg') as string
 const end = require('./end.svg') as string
 const botIcon = require('./bot.svg') as string
 const hubIcon = require('./hub.svg') as string
-const rallyPoint = require('./rally-icon.svg') as string
+const rallyPoint = require('./rally.svg') as string
 const runFlag = require('./run-flag.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
@@ -239,7 +239,7 @@ function createGpsIcon() {
 function createRallyIcon() {
     return new Icon({
         src: rallyPoint,
-        scale: 1.5
+        scale: 0.35
     })
 }
 
@@ -300,7 +300,7 @@ export function getRallyStyle(rallyFeatureCount: number) {
             fill: new Fill({
                 color: 'black'
             }),
-            offsetY: 8,
+            offsetY: 9,
             offsetX: 0
         }),
     })

@@ -69,7 +69,7 @@ import '../style/CommandControl.less'
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
 const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less')
-const rallyIcon = require('../icons/rally-icon.svg') as string
+const rallyIcon = require('./shared/rally.svg') as string
 
 // Sorry, map is a global because it really gets used from everywhere
 let map: OlMap
@@ -1928,9 +1928,9 @@ export default class CommandControl extends React.Component {
 		}
 	}
 
-    setEditModeToggle(runNumber: number, isOn: boolean) {
+    setEditModeToggle(botId: number, isOn: boolean) {
         const editModeToggleStatus = this.state.editModeToggleStatus
-        editModeToggleStatus[runNumber] = isOn
+        editModeToggleStatus[botId] = isOn
         this.setState({ editModeToggleStatus })
     }
 
@@ -2089,7 +2089,7 @@ export default class CommandControl extends React.Component {
 							this.deleteAllRunsInMission(runList, false);
 
 							for (let id in this.missionPlans) {
-								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
+								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList, this.setEditModeToggle.bind(this));
 							}
 
 							this.setRunList(runList)
