@@ -136,7 +136,7 @@ export class Missions {
         return mission;
     }
 
-    static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface) {
+    static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface, setEditModeToggle?: (runNumber: number, isOn: boolean) => void) {
         let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 
@@ -158,6 +158,10 @@ export class Missions {
         }
         mission.runIdIncrement = incr;
         botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        if (setEditModeToggle) {
+            setEditModeToggle(botId, true)
+        }
 
         return mission;
     }
