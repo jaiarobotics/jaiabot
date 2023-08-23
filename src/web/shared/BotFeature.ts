@@ -35,7 +35,7 @@ export function createBotCourseOverGroundFeature(properties: Properties) {
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
     feature.setProperties(properties)
-    feature.setStyle(Styles.courseOverGroundArrow)
+    feature.setStyle(Styles.courseOverGroundArrow(properties.courseOverGround))
 
     return feature
 }
@@ -50,6 +50,19 @@ export function createBotDesiredHeadingFeature(properties: Properties) {
     })
     feature.setProperties(properties)
     feature.setStyle(Styles.desiredHeadingArrow)
+
+    return feature
+}
+
+export function createBotHeadingFeature(properties: Properties) {
+    const projection = properties.map.getView().getProjection()
+
+    const feature = new Feature({
+        name: properties.botId,
+        geometry: new Point(fromLonLat(properties.lonLat, projection))
+    })
+    feature.setProperties(properties)
+    feature.setStyle(Styles.headingArrow(properties.heading))
 
     return feature
 }
