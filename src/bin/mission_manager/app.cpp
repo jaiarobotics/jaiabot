@@ -353,6 +353,40 @@ jaiabot::apps::MissionManager::MissionManager()
                         command.bottom_depth_safety_params().safety_depth());
                 }
             }
+
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                jaiabot::protobuf::Engineering engineering_status;
+                jaiabot::protobuf::GPSRequirements gps_requirements;
+
+                // Send engineering status for hdop and pdop current requirements
+                engineering_status.set_bot_id(cfg().bot_id());
+
+                // GPS Requirements
+                gps_requirements.set_transit_hdop_req(machine_->transit_hdop_req());
+                gps_requirements.set_transit_pdop_req(machine_->transit_pdop_req());
+                gps_requirements.set_after_dive_hdop_req(machine_->after_dive_hdop_req());
+                gps_requirements.set_after_dive_pdop_req(machine_->after_dive_pdop_req());
+                gps_requirements.set_transit_gps_fix_checks(machine_->transit_gps_fix_checks());
+                gps_requirements.set_transit_gps_degraded_fix_checks(
+                    machine_->transit_gps_degraded_fix_checks());
+                gps_requirements.set_after_dive_gps_fix_checks(
+                    machine_->after_dive_gps_fix_checks());
+
+                *engineering_status.mutable_gps_requirements() = gps_requirements;
+
+                engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
+                    machine_->bottom_safety_depth());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
+                    machine_->bottom_depth_safety_constant_heading());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
+                    machine_->bottom_depth_safety_constant_heading_speed());
+                engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
+                    machine_->bottom_depth_safety_constant_heading_time());
+
+                interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
+            }
         });
 
     // handle rf disable commands to make sure task packets are not sent
@@ -456,8 +490,6 @@ void jaiabot::apps::MissionManager::loop()
     double goal_speed = 0;
     auto current_time = goby::time::SteadyClock::now();
     protobuf::MissionReport report;
-    jaiabot::protobuf::Engineering engineering_status;
-    jaiabot::protobuf::GPSRequirements gps_requirements;
     report.set_state(machine_->state());
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
@@ -601,32 +633,6 @@ void jaiabot::apps::MissionManager::loop()
         machine_->set_hub_id(hub_id_);
     }
 
-    // Send engineering status for hdop and pdop current requirements
-    engineering_status.set_bot_id(cfg().bot_id());
-
-    // GPS Requirements
-    gps_requirements.set_transit_hdop_req(machine_->transit_hdop_req());
-    gps_requirements.set_transit_pdop_req(machine_->transit_pdop_req());
-    gps_requirements.set_after_dive_hdop_req(machine_->after_dive_hdop_req());
-    gps_requirements.set_after_dive_pdop_req(machine_->after_dive_pdop_req());
-    gps_requirements.set_transit_gps_fix_checks(machine_->transit_gps_fix_checks());
-    gps_requirements.set_transit_gps_degraded_fix_checks(
-        machine_->transit_gps_degraded_fix_checks());
-    gps_requirements.set_after_dive_gps_fix_checks(machine_->after_dive_gps_fix_checks());
-
-    *engineering_status.mutable_gps_requirements() = gps_requirements;
-
-    engineering_status.mutable_bottom_depth_safety_params()->set_safety_depth(
-        machine_->bottom_safety_depth());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading(
-        machine_->bottom_depth_safety_constant_heading());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_speed(
-        machine_->bottom_depth_safety_constant_heading_speed());
-    engineering_status.mutable_bottom_depth_safety_params()->set_constant_heading_time(
-        machine_->bottom_depth_safety_constant_heading_time());
-
-    interprocess().publish<jaiabot::groups::engineering_status>(engineering_status);
-
     machine_->process_event(statechart::EvLoop());
 }
 
@@ -642,6 +648,20 @@ void jaiabot::apps::MissionManager::health(goby::middleware::protobuf::ThreadHea
 void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& command)
 {
     glog.is_debug1() && glog << "Received command: " << command.ShortDebugString() << std::endl;
+
+    // Make sure the command has a newer timestamp
+    // If it is not then we should not handle the command and exit
+    if (prev_command_time_ >= command.time())
+    {
+        glog.is_warn() && glog << "Old command received! Ignoring..." << std::endl;
+
+        // Exit handle command function if the previous
+        // Command time is greater than the one current one
+        return;
+    }
+
+    // Keep track of the previous command time
+    prev_command_time_ = command.time();
 
     switch (command.type())
     {

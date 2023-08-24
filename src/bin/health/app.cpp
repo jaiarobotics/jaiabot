@@ -47,6 +47,7 @@ std::map<std::string, jaiabot::protobuf::Error> create_process_to_not_responding
     }
     // only explicitly list external apps; apps built in this repo are added via -DJAIABOT_HEALTH_PROCESS_MAP_ENTRIES
     return {MAKE_ENTRY(GOBYD),
+            MAKE_ENTRY(GOBY_INTERVEHICLE_PORTAL),
             MAKE_ENTRY(GOBY_LIAISON),
             MAKE_ENTRY(GOBY_GPS),
             MAKE_ENTRY(GOBY_LOGGER),
@@ -78,6 +79,7 @@ class Health : public ApplicationBase
     goby::middleware::protobuf::ThreadHealth last_health_;
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
     std::set<jaiabot::protobuf::Error> failed_services_;
+    jaiabot::protobuf::LinuxHardwareStatus sim_hardware_status_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -219,7 +221,7 @@ jaiabot::apps::Health::Health()
                 interprocess().publish<groups::systemd_report_ack>(ack);
             }
         });
-    if (!cfg().is_in_sim())
+    if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<NTPStatusThread>(cfg().ntp());
@@ -289,6 +291,17 @@ void jaiabot::apps::Health::loop()
                                    << cfg().auto_restart_timeout() << " seconds" << std::endl;
             restart_services();
         }
+    }
+
+    if (cfg().is_in_sim() && !cfg().test_hardware_in_sim())
+    {
+        auto& wifi = *sim_hardware_status_.mutable_wifi();
+        wifi.set_is_connected(true);
+        wifi.set_link_quality(70);
+        wifi.set_link_quality_percentage(100);
+        wifi.set_signal_level(33);
+        wifi.set_noise_level(0);
+        interprocess().publish<jaiabot::groups::linux_hardware_status>(sim_hardware_status_);
     }
 }
 

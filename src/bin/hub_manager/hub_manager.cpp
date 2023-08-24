@@ -79,6 +79,8 @@ class HubManager : public ApplicationBase
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
+    void
+    handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
 
     void handle_subscription_report(
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
@@ -90,6 +92,9 @@ class HubManager : public ApplicationBase
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
 
     std::set<int> managed_bot_modem_ids_;
+
+    // Map bot id to previouse task packet timestamp to ignore duplicates
+    std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -148,6 +153,11 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
     interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
         [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report)
         { handle_subscription_report(report); });
+
+    interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
+            handle_hardware_status(hardware_status);
+        });
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -292,7 +302,32 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
                              << "Received Task Packet: " << task_packet.ShortDebugString()
                              << std::endl;
 
-    // republish
+    if (task_packet_id_to_prev_timestamp_.count(task_packet.bot_id()))
+    {
+        auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
+
+        // Make sure the taskpacket has a newer timestamp
+        // If it is not then we should not handle the taskpacket and exit
+        if (prev_time >= task_packet.start_time())
+        {
+            glog.is_warn() && glog << "Old taskpacket received! Ignoring..." << std::endl;
+
+            // Exit if the previous taskpacket
+            // time is greater than the one current one
+            return;
+        }
+
+        // Store the previous taskpacket time
+        task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
+    }
+    else
+    {
+        // Insert new bot id to previous task packet time
+        task_packet_id_to_prev_timestamp_.insert(
+            std::make_pair(task_packet.bot_id(), task_packet.start_time()));
+    }
+
+    // Publish interprocess for other goby apps
     interprocess().publish<jaiabot::groups::task_packet>(task_packet);
 }
 
@@ -494,3 +529,15 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command_publisher);
     }
 }
+
+/**
+ * @brief Handle incoming hardware status
+ * 
+ * @param linux_hardware_status 
+ */
+void jaiabot::apps::HubManager::handle_hardware_status(
+    const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status)
+{
+    *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
+}
+

@@ -43,6 +43,7 @@ enum Error
     ERROR__FAILED__JAIABOT_SIMULATOR = 30;
     ERROR__FAILED__MOOS_SIM_MOOSDB = 31;
     ERROR__FAILED__MOOS_SIM_USIMMARINE = 32;
+    ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL = 33;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -68,6 +69,7 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_SINGLE_THREAD_PATTERN = 119;
     ERROR__NOT_RESPONDING__JAIABOT_MULTI_THREAD_PATTERN = 120;
     ERROR__NOT_RESPONDING__JAIABOT_SIMULATOR = 121;
+    ERROR__NOT_RESPONDING__GOBY_INTERVEHICLE_PORTAL = 122;
 
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_FIX = 200;
@@ -162,6 +164,7 @@ enum Warning
     WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = 703;
 
     WARNING__MISSION__DATA_OFFLOAD_FAILED = 720;
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = 721;
 }
 
 message LinuxHardwareStatus
@@ -212,11 +215,21 @@ message LinuxHardwareStatus
         optional Information data = 2;
     }
 
+    message WiFi
+    {
+        required bool is_connected = 1;
+        optional uint32 link_quality = 2;
+        optional uint32 link_quality_percentage = 3;
+        optional int32 signal_level = 4;
+        optional int32 noise_level = 5;
+    }
+
     optional int32 uptime = 10
         [(dccl.field) = { units { base_dimensions: "T" } }];
     optional Processor processor = 20;
     optional Memory memory = 30;
     optional Disk disk = 40;
+    optional WiFi wifi = 50;
 }
 
 message NTPStatus
@@ -339,7 +352,7 @@ message ArduinoStatus
     optional float thermocouple_temperature = 2 [(dccl.field) = {
         units { derived_dimensions: "temperature" system: "celsius" }
     }];
-    ;
+
     optional float vccvoltage = 3 [
         default = 0,
         (dccl.field) = {

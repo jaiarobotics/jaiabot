@@ -13,17 +13,20 @@ import { createEmpty, extend, isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
 import KML, { IconUrlFunction } from 'ol/format/KML.js';
+import { ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
 import { geoJSONToDepthContourFeatures } from './shared/Contours'
 import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
+import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './shared/BotFeature'
 import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
+
 
 import Layer from 'ol/layer/Layer';
 import { Coordinate } from 'ol/coordinate';
@@ -34,7 +37,7 @@ import OpenFileDialog from './OpenFileDialog';
 import { Buffer } from 'buffer';
 import JSZip from 'jszip';
 
-
+import './styles/JaiaMap.css'
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -122,7 +125,6 @@ function DownloadFile(name: string, data: BlobPart) {
 
 
 export default class JaiaMap {
-
     path_point_arrays: number[][][] = []
     active_goal_dict: {[key: number]: ActiveGoal[]} = {}
     timeRange?: number[] = null
@@ -167,7 +169,9 @@ export default class JaiaMap {
                 this.createDepthContourLayer(),
             ],
             view: view,
-            controls: []
+            controls: [
+                new ScaleLine({ units: 'metric' })
+            ]
         })
 
         // Dispatch click events to the feature, if it has an "onclick" property set
@@ -188,6 +192,10 @@ export default class JaiaMap {
                 this.getTargetElement().style.cursor = '';
             }
         });
+    }
+
+    getMap() {
+        return this.openlayersMap
     }
 
     // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view
@@ -521,12 +529,13 @@ export default class JaiaMap {
             return timestamp_micros - active_goal._utime_
         })?.value
 
+        const bot: PortalBotStatus = null
+        bot.bot_id = botId 
         const activeGoalIndex = activeGoal?.active_goal
         const isSelected = false
-        // Needed to satisy parameters in createMissionFeatures that are needed for dragging waypoints in the JCC but do not pertain to the JDV
         const canEdit = false
 
-        const missionFeatures = createMissionFeatures(this.openlayersMap, botId, command.plan, activeGoalIndex, isSelected, canEdit)
+        const missionFeatures = createMissionFeatures(this.openlayersMap, bot, command.plan, activeGoalIndex, isSelected, canEdit)
         this.missionVectorSource.addFeatures(missionFeatures)
     }
 

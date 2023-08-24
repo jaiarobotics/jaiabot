@@ -286,7 +286,6 @@ td {
     right: @command-button-size + (2 * @command-button-padding);
 
     max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
-    width: 400px;
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -491,7 +490,6 @@ td {
     right: 0;
     top: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: row nowrap;
   }
@@ -499,10 +497,9 @@ td {
   #viewControls {
     width: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    top: 0;
+    top: 66px;
     right: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: column wrap;
   }
@@ -873,7 +870,7 @@ td {
     bottom: 0;
     width: calc(100% - ((@command-button-size + (@command-button-margin * 2)) * 1));
     background-color: @overlay-background;
-    z-index: 1;
+    z-index: 10;
   }
 
   .rc-heading {
@@ -918,6 +915,10 @@ td {
     align-items: center;
     gap: 12px;
     padding: 8px 0 0 8px;
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
 
     .MuiSelect-select {
       display: flex;
@@ -1064,43 +1065,7 @@ td {
 
 /******** CSS GOAL/MISSION Settings ********************/
 
-.MissionSettingsPanel {
-  background-color: @cc-background-color;
-  color: @cc-text-color;
-  position: absolute;
-  right: @command-button-size + (2 * @command-button-padding);
-  top: @command-button-size + (2 * @command-button-padding);
-  padding: 8pt;
-  z-index: @mission-settings;
-
-  max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
-  overflow-y: auto;
-}
-
-#mission-type {
-  color: #111111ff;
-  margin: 8pt;
-  border-radius: 4pt;
-}
-
-.missionStatsHeader {
-  font-size: 10pt;
-  color: #051d61;
-  font-weight: bold;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
-
-.missionStatsValue {
-  font-size: 10pt;
-  color: #051d61;
-  margin: 8pt;
-  border-radius: 4pt;
-  padding: 8pt;
-  text-align: right;
-}
+.MissionSettingsPanel {}
 
 .NumberInput {
   color: @cc-text-color;
@@ -1290,7 +1255,7 @@ div.hoverable:hover {
 .jaia-logo {
   width: 40pt;
   height: 40pt;
-  margin: 60pt 4pt 20pt 4pt;
+  margin: 6px 6px 6px 12px;
   border-radius: 4pt;
   border: 1pt solid gray;
 }
@@ -1391,13 +1356,6 @@ div.closeButton {
   text-align: center;
 }
 
-.mission-panel-commands-container {
-  display: flex;
-  background-color: @cc-accordian-color;
-  margin: 12pt 8pt;
-  padding: 2pt 0;
-}
-
 #runList {
   max-height: calc(100vh - (@command-button-size + (2 * @command-button-padding) + @command-button-size + (2 * @command-button-padding) + @rc-panel-height-px + 71.28px + 22.92px));
   overflow-y: auto;
@@ -1406,7 +1364,7 @@ div.closeButton {
 .mission-panel-commands-container {
   display: flex;
   background-color: @cc-accordian-color;
-  margin: 12pt 8pt;
+  margin: 8pt;
   padding: 2pt 0;
 }
 

@@ -1,13 +1,16 @@
 import React from 'react'
-import Button from '@mui/material/Button';
-import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf';
-import { GlobalSettings } from './Settings';
-import { deepcopy, getGeographicCoordinate } from './shared/Utilities';
-import { TaskSettingsPanel } from './TaskSettingsPanel';
 import Map from 'ol/Map'
-import turf from '@turf/turf';
+import turf from '@turf/turf'
+import Select, { SelectChangeEvent } from '@mui/material/Select'
+import { BotStatus, GeographicCoordinate, Goal, MissionTask } from './shared/JAIAProtobuf'
+import { getGeographicCoordinate } from './shared/Utilities'
+import { FormControl, MenuItem } from '@mui/material'
+import { TaskSettingsPanel } from './TaskSettingsPanel'
+import { Geometry } from 'ol/geom'
+import { Feature } from 'ol'
 
-// This panel passes its settings back through onMissionApply using this interface
+import '../style/components/MissionSettings.css'
+
 export interface MissionSettings {
     endTask: MissionTask
 }
@@ -29,30 +32,34 @@ export interface MissionParams {
 
 interface Props {
     map: Map
-    missionBaseGoal: Goal
-    missionEndTask: MissionTask
     missionParams: MissionParams
-    botList?: {[key: string]: BotStatus}
+    missionPlanningGrid: {[key: string]: number[][]}
+    missionBaseGoal: Goal,
+    missionEndTask: MissionTask,
+    rallyFeatures: Feature<Geometry>[]
     centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+    botList?: {[key: string]: BotStatus}
 
     onClose: () => void
-    onChange?: () => void
-    onMissionApply: (missionSettings: MissionSettings) => void
+    onMissionApply: (missionSettings: MissionSettings, startRally: Feature<Geometry>, endRally: Feature<Geometry>) => void
     onMissionChangeEditMode: () => void
     onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
+    setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void
+    onChange?: () => void
+
 }
 
 interface State {
-    missionBaseGoal: Goal
-    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
     missionParams: MissionParams
+    missionBaseGoal: Goal,
+    missionEndTask: MissionTask // This is the final task for bots to do at the last line waypoint (station keep OR constant heading back to shore)
+    startRally: Feature<Geometry>,
+    endRally: Feature<Geometry>,
     botList?: {[key: string]: BotStatus}
 }
 
-
 export class MissionSettingsPanel extends React.Component {
-
     props: Props
     state: State
 
@@ -66,9 +73,11 @@ export class MissionSettingsPanel extends React.Component {
         super(props)
 
         this.state = {
+            missionParams: props.missionParams,
             missionBaseGoal: props.missionBaseGoal,
             missionEndTask: props.missionEndTask,
-            missionParams: props.missionParams,
+            startRally: null,
+            endRally: null,
             botList: props.botList
         }
 
@@ -85,14 +94,9 @@ export class MissionSettingsPanel extends React.Component {
 
     render() {
         const { map, centerLineString } = this.props
-        let self = this
-
-        let missionType = this.state.missionParams?.missionType
-
-        const {missionBaseGoal, missionEndTask} = this.state
-
+        const missionType = this.state.missionParams?.missionType
         // Get the final location, if available
-        var finalLocation: GeographicCoordinate
+        let finalLocation: GeographicCoordinate
 
         if (centerLineString != null) {
             const coordinates = centerLineString.geometry.coordinates
@@ -102,125 +106,127 @@ export class MissionSettingsPanel extends React.Component {
         }
 
         return (
-            <div className="MissionSettingsPanel">
-                Mission Settings<hr/>
-                <div>
-                    <div>
-                        <table className="MissionParametersTable">
-                            <tbody>
-                            <tr hidden>
-                                <td>Bot Selection List:</td>
-                                <td>
-                                    <select multiple name="mission_bot_selection" id="mission-bot-selection" onChange={evt => self.changeMissionBotSelection() }>
-                                        <option value="0">Bot 0</option>
-                                        <option value="1">Bot 1</option>
-                                        <option value="2">Bot 2</option>
-                                        <option value="3">Bot 3</option>
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Mission Edit Mode:</td>
-                                <td>
-                                    <select name="mission_type" id="mission-type" defaultValue={missionType ?? "editing"} onChange={evt => self.changeMissionEditMode(evt.target.value) }>
-                                        {/*<option value="editing">Editing</option>*/}
-                                        {/*<option value="polygon-grid">Polygon</option>*/}
-                                        <option value="lines">Lines</option>
-                                        {/*<option value="exclusions">Exclusions</option>*/}
-                                    </select>
-                                </td>
-                            </tr>
-                            <tr hidden>
-                                <td>Bot Count</td>
-                                <td><input type="number" className="NumberInput" name="num_bots" defaultValue={this.state.missionParams.numBots} onChange={this.changeMissionParameter.bind(this)} /></td>
-                            </tr>
-                            <tr>
-                                <td>Mission Spacing</td>
-                                <td><input type="number" className="NumberInput" name="spacing" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
-                            </tr>
-                            <tr>
-                                <td>Rally Point Spacing</td>
-                                <td><input type="number" className="NumberInput" name="rally_spacing" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</td>
-                            </tr>
-                            <tr>
-                                <td>Mission Orientation</td>
-                                <td><input id='missionOrientation' className="NumberInput" name="orientation" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</td>
-                            </tr>
-                            <tr hidden>
-                                <td>Use Max Line Length</td>
-                                <td><input type="checkbox" className="RadioInput" name="use_max_length" checked={this.state.missionParams.useMaxLength} onChange={this.changeMissionParameter.bind(this)} /></td>
-                            </tr>
-                            </tbody>
-                        </table>
+            <div className="mission-settings-panel-outer-container">
+				<div className="panel-heading">Mission Settings</div>
+                
+                <div className="mission-settings-panel-container">
+
+                    <div className="mission-settings-input-label">Mission Edit Mode:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => this.changeMissionEditMode(evt.target.value)}  value={missionType ?? "editing"}>
+                            <MenuItem value={"lines"}>Lines</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    <div className="mission-settings-input-label">Mission Spacing:</div>
+                    <div className="mission-settings-input-row"><input type="number" name="spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.spacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
+
+                    <div className="mission-settings-input-label">Rally Point Spacing:</div>
+                    <div className="mission-settings-input-row"><input type="number" name="rally_spacing" className="mission-settings-num-input" defaultValue={this.state.missionParams.rallySpacing} onChange={this.changeMissionParameter.bind(this)} /> m</div>
+
+                    <div className="mission-settings-input-label">Mission Orientation:</div>
+                    <div className="mission-settings-input-row"><input id='missionOrientation' name="orientation" className="mission-settings-num-input" readOnly={true} defaultValue={this.state.missionParams.orientation} onChange={this.changeMissionParameter.bind(this)} /> deg</div>
+
+                    <div className="mission-settings-input-label">Start Rally:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, true)} value={this.state.startRally?.get('num') ?? ''}>
+                            {this.props.rallyFeatures.map((rallyFeature) => {
+                                if (rallyFeature.get('num') !== this.state.endRally?.get('num')) {
+                                    return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
+                                }
+                            })}
+                        </Select>
+                    </FormControl>
+
+                    <div className="mission-settings-input-label">End Rally:</div>
+                    <FormControl sx={{ minWidth: 120 }} size="small">
+                        <Select onChange={(evt: SelectChangeEvent) => this.handleRallyFeatureSelection(evt, false)}  value={this.state.endRally?.get('num') ?? ''}>
+                            {this.props.rallyFeatures.map((rallyFeature) => {
+                                if ((rallyFeature.get('num') !== this.state.startRally?.get('num'))) {
+                                    return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
+                                }
+                            })}
+                        </Select>
+                    </FormControl>
+                    
+                    <div className="mission-settings-task-container">
+                        <div className="mission-settings-tasks-title">Task:</div>
+                        <TaskSettingsPanel 
+                            task={this.state.missionBaseGoal.task} 
+                            onChange={(task) => {
+                                const missionBaseGoal = this.state.missionBaseGoal
+                                missionBaseGoal.task = task
+                                this.setState({ missionBaseGoal })
+                            }}
+                        />
                     </div>
 
-                    <hr/>
-                    {/* Settings for the goals to be used in this mission */}
-                    <TaskSettingsPanel task={missionBaseGoal.task} onChange={(task) => {
-                        missionBaseGoal.task = task
-                        self.setState({missionBaseGoal})
-                    }} />
-
-                    <hr/>
-                    {/* Settings for the final goal to be used at the end rally point */}
-                    <TaskSettingsPanel 
-                        title="End Task" 
-                        map={map} 
-                        location={finalLocation}
-                        task={missionEndTask} onChange={(missionEndTask) => {
-                            self.setState({missionEndTask})
-                        }} 
-                    />
-
-                    <hr/>
-                    <div className='HorizontalFlexbox'>
-                        {/*<Button className="button-jcc" onClick={this.closeClicked.bind(this)}>Close</Button>*/}
-                        <Button className="button-jcc" onClick={this.applyMissionClicked.bind(this)}>Apply</Button>
+                    <div className="mission-settings-task-container">
+                        <div className="mission-settings-tasks-title">End Task:</div>
+                        <TaskSettingsPanel 
+                            title="End Task" 
+                            map={map} 
+                            location={finalLocation}
+                            task={this.state.missionEndTask} 
+                            onChange={(missionEndTask) => { this.setState({ missionEndTask })}} 
+                        />
                     </div>
 
-                    <hr/>
-                    Survey Stats
-                    <div id="surveyPolygonResults">
-                        <table>
-                            <tbody>
-                            <tr>
-                                <td className="missionStatsHeader">Area (km^2): </td>
-                                <td className="missionStatsValue"><div id="missionStatArea"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Perimeter (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatPerimeter"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Mission Orientation (deg): </td>
-                                <td className="missionStatsValue"><div id="missionStatOrientation"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Rally Start Distance (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatRallyStartDistance"></div></td>
-                            </tr>
-                            <tr>
-                                <td className="missionStatsHeader">Rally Finish Distance (km): </td>
-                                <td className="missionStatsValue"><div id="missionStatRallyFinishDistance"></div></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <div className="mission-settings-line-break"></div>
+
+                    <div className="mission-settings-header">Metrics:</div>
+
+                    <div>Area:</div>
+                    <div id="missionStatArea">-</div>
+                    
+                    <div>Perimeter:</div>
+                    <div id="missionStatPerimeter">-</div>
+                    
+                    <div>Mission Orientation:</div>
+                    <div id="missionStatOrientation">-</div>
+                    
+                    <div>Rally Start Dist:</div>
+                    <div id="missionStatRallyStartDistance">-</div>
+                    
+                    <div>Rally Finish Dist:</div>
+                    <div id="missionStatRallyFinishDistance">-</div>
+
                 </div>
+                
+                <div className="mission-settings-button-container">
+                    <button className="mission-settings-btn" onClick={() => this.props.onClose()}>Cancel</button>
+                    <button className={`mission-settings-btn ${!this.props.missionPlanningGrid ? 'disabled' : ''}`} onClick={this.applyMissionClicked.bind(this)} disabled={!this.props.missionPlanningGrid}>Apply</button>
+                </div>
+
             </div>
         )
     }
 
     changeMissionParameter(evt: Event) {
-        var {missionParams} = this.state
-
+        const missionParams = this.state.missionParams
         const target = evt.target as any
         const key = target.name
         const value = target.value as any
 
         (missionParams as any)[key] = value
 
-        this.setState({missionParams})
+        this.setState({ missionParams })
+    }
+
+    handleRallyFeatureSelection(evt: SelectChangeEvent, isStart: boolean) {
+        const rallyNum = evt.target.value
+        let selectedRallyFeature: Feature<Geometry> = null
+        for (const rallyFeature of this.props.rallyFeatures) {
+            if (rallyFeature.get('num') === rallyNum) {
+                selectedRallyFeature = rallyFeature
+                break
+            }
+        }
+        if (isStart) {
+            this.setState({ startRally: selectedRallyFeature }, () => this.props.setSelectedRallyPoint(selectedRallyFeature, true))
+        } else {
+            this.setState({ endRally: selectedRallyFeature }, () => this.props.setSelectedRallyPoint(selectedRallyFeature, false))
+        }
     }
 
     closeClicked() {
@@ -237,17 +243,15 @@ export class MissionSettingsPanel extends React.Component {
             endTask: this.state.missionEndTask
         }
 
-        this.props.onMissionApply?.(missionSettings)
+        this.props.onMissionApply?.(missionSettings, this.state.startRally, this.state.endRally)
     }
 
     changeMissionBotSelection() {
         const selected = document.querySelectorAll('#mission-bot-selection option:checked')
-        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value));
-        // let missionBots = document.getElementById('mission-bot-selection').val();
-        // console.log(missionBots);
-        let {missionParams} = this.state;
-        missionParams.selectedBots = missionBots;
-        this.setState({missionParams});
+        const missionBots = Array.from(selected).map(el => Number((el as HTMLSelectElement).value))
+        const missionParams  = this.state.missionParams
+        missionParams.selectedBots = missionBots
+        this.setState({ missionParams })
         this.onMissionChangeBotList?.()
     }
 
@@ -277,7 +281,7 @@ export class MissionSettingsPanel extends React.Component {
                 break;
         }
 
-        this.setState({missionParams});
+        this.setState({ missionParams })
 
         this.onMissionChangeEditMode?.()
 

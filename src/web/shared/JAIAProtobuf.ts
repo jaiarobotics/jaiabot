@@ -647,6 +647,9 @@ export enum HealthState {
 export enum Error {
     ERROR__PROCESS_DIED = "ERROR__PROCESS_DIED",
     ERROR__THREAD_NOT_RESPONDING = "ERROR__THREAD_NOT_RESPONDING",
+    ERROR__VEHICLE__VERY_LOW_BATTERY = "ERROR__VEHICLE__VERY_LOW_BATTERY",
+    ERROR__VEHICLE__CRITICALLY_LOW_BATTERY = "ERROR__VEHICLE__CRITICALLY_LOW_BATTERY",
+    ERROR__VEHICLE__MISSING_DATA_BATTERY = "ERROR__VEHICLE__MISSING_DATA_BATTERY"
 }
 
 export interface ThreadHealth {
@@ -700,6 +703,7 @@ export enum Warning {
     WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL = "WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL",
     WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED = "WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED",
     WARNING__MISSION__DATA_OFFLOAD_FAILED = "WARNING__MISSION__DATA_OFFLOAD_FAILED",
+    WARNING__MISSION__DATA__GPS_FIX_DEGRADED = "WARNING__MISSION__DATA__GPS_FIX_DEGRADED"
 }
 
 export interface LoadAverages {
@@ -730,11 +734,20 @@ export interface Disk {
     data?: Information
 }
 
+export interface WiFi {
+    is_connected?: Boolean
+    link_quality?: number
+    link_quality_percentage?: number
+    signal_level?: number
+    noise_level?: number
+}
+
 export interface LinuxHardwareStatus {
     uptime?: number
     processor?: Processor
     memory?: Memory
     disk?: Disk
+    wifi?: WiFi
 }
 
 export enum SyncSource {
@@ -981,6 +994,7 @@ export interface BotStatus {
     hdop?: number
     pdop?: number
     data_offload_percentage?: number
+    wifi_link_quality_percentage?: number
 }
 
 export interface EstimatedDrift {
@@ -1108,5 +1122,6 @@ export interface HubStatus {
     warning?: Warning[]
     location?: GeographicCoordinate
     bot_ids_in_radio_file?: number[]
+    linux_hardware_status?: LinuxHardwareStatus
 }
 
