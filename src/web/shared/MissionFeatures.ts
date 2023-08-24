@@ -3,7 +3,7 @@ import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { LineString } from "ol/geom"
 import { fromLonLat } from "ol/proj"
-import { createMarker, createFlagMarker } from './Marker'
+import { createMarker, createFlagMarker, createGPSMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 import { PortalBotStatus } from "./PortalStatus"
@@ -42,7 +42,7 @@ export function createMissionFeatures(
                 title: 'Goal ' + goalIndexStartAtOne, 
                 lon: location.lon, 
                 lat: location.lat,
-                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
+                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
             }
         )
 
@@ -68,7 +68,7 @@ export function createMissionFeatures(
                 {
                     lon: location.lon, 
                     lat: location.lat,
-                    style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
+                    style: Styles.getFlagStyle(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
             flagFeature.setProperties({
@@ -77,6 +77,18 @@ export function createMissionFeatures(
                 isSelected: isSelected
             })            
             features.push(flagFeature)
+        }
+
+        if (bot?.mission_state.includes('REACQUIRE_GPS') && goalIndexStartAtOne === activeGoalIndex) {
+            const gpsFeature = createGPSMarker(
+                map,
+                {
+                    lon: location.lon, 
+                    lat: location.lat,
+                    style: Styles.getGpsStyle()
+                }
+            )
+            features.push(gpsFeature)
         }
 
         // For Constant Heading tasks, we add another point to the line string at the termination point
