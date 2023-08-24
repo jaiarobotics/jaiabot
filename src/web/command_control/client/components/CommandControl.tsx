@@ -1003,7 +1003,7 @@ export default class CommandControl extends React.Component {
 	// 
 
 	// 
-	// Runs Mission (Start)
+	// Run Mission (Start)
 	// 
 	_runMission(botMission: Command) {
 		// Set the speed values
@@ -1191,7 +1191,7 @@ export default class CommandControl extends React.Component {
 	//
 
 	// 
-	// Transfering Mission to GUI (Start)
+	// Transferring Mission to GUI (Start)
 	// 
 	getMissionFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
 		const features: OlFeature[] = []
@@ -1551,7 +1551,7 @@ export default class CommandControl extends React.Component {
 		this.addWaypointAtCoordinate(evt.coordinate)
 	}
 	// 
-	// Transfering Mission to GUI (End)
+	// Transferring Mission to GUI (End)
 	//
 
 	// 
