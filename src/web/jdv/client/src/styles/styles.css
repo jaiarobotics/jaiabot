@@ -1,0 +1,49 @@
+#mapControls {
+    display: flex;
+    
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+.mapButton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 75px;
+    height: 50px;
+
+    border: 1px solid black;
+    border-radius: 3px;
+    background-color: lightgray;
+}
+
+.mapButton:hover {
+    background-color: darkgray;
+}
+
+#measureResult {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+
+    width: 75px;
+    height: 50px;
+
+    position: absolute;
+    top: 50px;
+    left: 224px;
+    z-index: 1;
+
+    border: 1px solid black;
+    border-radius: 3px;
+    background-color: lightgray;
+}
+
+#measureResult.notVisible {
+    display: none;
+}
