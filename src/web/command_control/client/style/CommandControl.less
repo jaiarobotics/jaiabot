@@ -286,7 +286,6 @@ td {
     right: @command-button-size + (2 * @command-button-padding);
 
     max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
-    width: 400px;
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -491,7 +490,6 @@ td {
     right: 0;
     top: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: row nowrap;
   }
@@ -499,10 +497,9 @@ td {
   #viewControls {
     width: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    top: 0;
+    top: 66px;
     right: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: column wrap;
   }
@@ -873,7 +870,7 @@ td {
     bottom: 0;
     width: calc(100% - ((@command-button-size + (@command-button-margin * 2)) * 1));
     background-color: @overlay-background;
-    z-index: 1;
+    z-index: 10;
   }
 
   .rc-heading {
@@ -918,6 +915,10 @@ td {
     align-items: center;
     gap: 12px;
     padding: 8px 0 0 8px;
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
 
     .MuiSelect-select {
       display: flex;
@@ -1254,7 +1255,7 @@ div.hoverable:hover {
 .jaia-logo {
   width: 40pt;
   height: 40pt;
-  margin: 60pt 4pt 20pt 4pt;
+  margin: 6px 6px 6px 12px;
   border-radius: 4pt;
   border: 1pt solid gray;
 }

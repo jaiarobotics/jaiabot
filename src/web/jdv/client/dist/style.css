@@ -213,14 +213,6 @@ li::marker {
     content: '';
 }
 
-#mapControls {
-    display: flex;
-    position: absolute;
-    top: 0pt;
-    left: 0pt;
-    right: 0pt;
-}
-
 #mapPane {
     display: block;
     position: relative;
@@ -315,32 +307,6 @@ td.dataKey {
 
 .button:hover {
     background-color: lightgray;
-}
-
-.mapButton {
-    display: block;
-    padding: 10pt;
-    border-width: 1pt;
-    border-color: black;
-    border-style: solid;
-    border-radius: 4pt;
-    background-color: lightgray;
-    margin: 10pt;
-    user-select: none;
-    width: auto;
-    height: auto;
-}
-
-.mapButton:hover {
-    background-color: darkgray;
-}
-
-div#mapButtons {
-    display:block;
-
-    position: absolute;
-    top: 0pt;
-    right: 0pt;
 }
 
 .deleteButtonSection {
