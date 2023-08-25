@@ -897,7 +897,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     glog.is_debug1() && glog << "Entering detect_imu_issue function" << endl;
 
     // Exit if bot is not in a state to detect an imu issue
-    if (include_imu_detection_states_.count(latest_bot_status_.mission_state()))
+    if (!include_imu_detection_states_.count(latest_bot_status_.mission_state()))
     {
         glog.is_debug2() &&
             glog << "detect_imu_issue() Exit bot is not in a state to detect an imu issue" << endl;
@@ -924,7 +924,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     // Exit if bot does not have attitude data
     if (!latest_bot_status_.has_attitude() && !latest_bot_status_.attitude().has_heading() &&
         !latest_bot_status_.attitude().has_course_over_ground() &&
-        !latest_bot_status_.attitude().pitch())
+        !latest_bot_status_.attitude().has_pitch())
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot does not have attitude data"
                                  << endl;
@@ -940,12 +940,13 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         cfg().imu_detect_desired_heading_vs_current_max_diff())
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot's desired heading and current "
-                                    "heading diff is above the max"
+                                 << "heading diff is above the max"
+                                 << " Desired: " << bot_desired_heading_ << ", heading: " << heading
                                  << endl;
         return;
     }
 
-    glog.is_debug1() &&
+    glog.is_debug2() &&
         glog << "Bot has heading and course over ground data"
              << ", course last updated: "
              << last_data_time_[DataType::COURSE].time_since_epoch().count()
@@ -961,7 +962,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         return;
     }
 
-    glog.is_debug1() && glog << "The course over ground value is updating"
+    glog.is_debug2() && glog << "The course over ground value is updating"
                              << ", Previous Course: " << previous_course_over_ground_
                              << ", Current Course: " << course << endl;
 
@@ -980,7 +981,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
 
     double prev_course_vs_current_diff = degrees_difference(heading, course);
 
-    glog.is_debug1() &&
+    glog.is_debug2() &&
         glog << "The previous course is different than the current course"
              << ", Difference between course and heading: " << prev_course_vs_current_diff
              << ", Max Diff: " << cfg().imu_heading_course_max_diff() << endl;
@@ -1075,16 +1076,18 @@ void jaiabot::apps::Fusion::detect_bot_horizontal(const double& pitch)
              static_cast<decltype(now)>(
                  cfg().imu_issue_detect_horizontal_pitch_min_time_with_units())))
         {
-            glog.is_warn() && glog << "Bot is no longer vertical! Start checking for imu issue."
-                                   << "\nreturn true" << std::endl;
+            glog.is_debug2() && glog << "Bot is no longer vertical! Start checking for imu issue."
+                                     << "return true" << std::endl;
             is_bot_horizontal_ = true;
+            last_pitch_time_ = now;
         }
-        pitch_angle_check_incr_++;
-        is_bot_horizontal_ = false;
+        else
+        {
+            pitch_angle_check_incr_++;
+        }
     }
     else
     {
-        last_pitch_time_ = now;
         pitch_angle_check_incr_ = 0;
         is_bot_horizontal_ = false;
     }
