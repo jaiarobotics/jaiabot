@@ -1221,6 +1221,7 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+    this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
 // PostDeployment::DataProcessing
