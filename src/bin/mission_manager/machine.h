@@ -1586,7 +1586,7 @@ struct PoweredDescent
     goby::time::MicroTime duration_correction_{0 * boost::units::si::seconds};
 
     // keep track of the depth changes so we can detect if we've hit the seafloor
-    boost::units::quantity<boost::units::si::length> last_depth_;
+    boost::units::quantity<boost::units::si::length> last_depth_{0};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
     // keep track of dive information
@@ -1655,7 +1655,7 @@ struct UnpoweredAscent
     //Keep track of dive information
     jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug_;
     // keep track of the depth changes so we can detect if we are stuck
-    boost::units::quantity<boost::units::si::length> last_depth_;
+    boost::units::quantity<boost::units::si::length> last_depth_{0};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
@@ -1698,7 +1698,7 @@ struct PoweredAscent
     // determines wehn we are still in motor off mode
     bool in_motor_off_mode_{false};
     // keep track of the depth changes so we can detect if we are stuck
-    boost::units::quantity<boost::units::si::length> last_depth_;
+    boost::units::quantity<boost::units::si::length> last_depth_{0};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
     bool are_we_rising_{true};

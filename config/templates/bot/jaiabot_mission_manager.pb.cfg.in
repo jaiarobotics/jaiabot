@@ -35,17 +35,17 @@ motor_on_time_max: 10 # (optional) (default=10) Seconds
 powered_ascent_throttle: 25 # (optional) (default=25) Percent
 powered_ascent_throttle_increment: 5 # (optional) (default=5) Percent
 powered_ascent_throttle_max: 60 # (optional) (default=60) Percent
-powered_ascent_pitch_safety: 30 # (optional) (default=30) Degrees
-powered_ascent_pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
-powered_ascent_pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
+pitch_to_determine_vertical: 30 # (optional) (default=30) Degrees
+pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
+pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
 dive_surface_eps: 0.75 # (optional) (default=0.75) Meters
 hard_bottom_type_acceleration: 100 # (optional) (default=100)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
 total_gps_degraded_fix_checks: 2 # (optional) (default=2)
-gps_hdop_fix: 1.3 # (optional) (default=1.3)
-gps_pdop_fix: 2.2 # (optional) (default=2.2)
+gps_hdop_fix: 4.3 # (optional) (default=1.3)
+gps_pdop_fix: 4.2 # (optional) (default=2.2)
 
 # GPS Requirements after a Dive 
 total_after_dive_gps_fix_checks: $total_after_dive_gps_fix_checks # (optional) (default=15 for electronics stack 1, default=75 for electronics stack 1,2)
