@@ -87,8 +87,11 @@ def getUniformSeries(freq: float):
     return f
 
 
-def sliceSeries(startTime: float):
-    '''Slice start of series.  startTime is in microseconds.'''
+def fadeSeries(startGap: float, endGap: float=None, fadePeriod: float=2e6):
+    '''Slice and fade a series in and out.  Times are in microseconds.'''
+
+    endGap = endGap or 0
+
     def f(series: Series):
         '''Returns a new Series object with the first startTime chopped off.'''
         newSeries = Series()
@@ -96,11 +99,29 @@ def sliceSeries(startTime: float):
         if len(series.utime) == 0:
             return newSeries
 
-        startTimeAbsolute = series.utime[0] + startTime
+        startTimeAbsolute = series.utime[0] + startGap
+        startFadeEndTime = startTimeAbsolute + fadePeriod
+        
+        endTimeAbsolute = series.utime[-1] - endGap
+        endFadeStartTime = endTimeAbsolute - fadePeriod
+
         for index in range(len(series.utime)):
-            if series.utime[index] > startTimeAbsolute:
-                newSeries.utime.append(series.utime[index])
-                newSeries.y_values.append(series.y_values[index])
+            t = series.utime[index]
+
+            # Outside slice range
+            if t < startTimeAbsolute or t > endTimeAbsolute:
+                continue
+
+            # Fade range
+            k = 1
+
+            if t < startFadeEndTime:
+                k *= ((cos((startFadeEndTime - t) * (pi) / (fadePeriod)) + 1) / 2)
+            elif t > endFadeStartTime:
+                k *= ((cos((t - endFadeStartTime) * (pi) / (fadePeriod)) + 1) / 2)
+
+            newSeries.utime.append(t)
+            newSeries.y_values.append(k * series.y_values[index])
 
         return newSeries
     

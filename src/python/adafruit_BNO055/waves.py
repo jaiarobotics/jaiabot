@@ -111,7 +111,7 @@ class Analyzer:
 
         # PROCESSING STEPS
         self._processToElevationSteps = [
-            sliceSeries(10e6),
+            fadeSeries(startGap=10e6, endGap=5e6, fadePeriod=5e6),
             getUniformSeries(freq=sample_frequency),
             accelerationToElevation(sampleFreq=sample_frequency, filterFunc=brickWallFilter(0.2, 2.0)),
         ]
