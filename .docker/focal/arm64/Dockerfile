@@ -26,7 +26,7 @@ RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
         >> /etc/apt/sources.list
 
 # Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
-RUN echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/release/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
+RUN echo -e "deb http://packages.jaia.tech/ubuntu/release/1.y/ focal/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/continuous/1.y/ focal/" >> /etc/apt/sources.list.d/jaiabot_release_1.y.list && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
