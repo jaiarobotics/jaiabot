@@ -324,7 +324,7 @@ message DriftPacket
     optional double significant_wave_height = 13 [(dccl.field) = {
         min: 0
         max: 50
-        precision: 1
+        precision: 3
         units: { derived_dimensions: "length" }
     }];
 
