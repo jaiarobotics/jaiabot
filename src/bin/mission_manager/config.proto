@@ -58,10 +58,6 @@ message MissionManager
     optional double bottoming_timeout = 31
         [default = 3, (dccl.field).units = { base_dimensions: "T" }];
 
-    // timeout to begin detecting depth changes in unpowered ascent
-    optional double unpowered_ascent_detect_depth_timeout = 32
-        [default = 5, (dccl.field).units = { base_dimensions: "T" }];
-
     // acceptable eps when dive surface is considered reached (in meters)
     optional double dive_surface_eps = 33
         [default = 0.75, (dccl.field).units = { base_dimensions: "L" }];

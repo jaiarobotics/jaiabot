@@ -1529,9 +1529,20 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
         }
     }
 
+    void set_current_depth(const boost::units::quantity<boost::units::si::length>& current_depth)
+    {
+        current_depth_ = current_depth;
+    }
+
+    const boost::units::quantity<boost::units::si::length> current_depth()
+    {
+        return current_depth_;
+    }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
+    boost::units::quantity<boost::units::si::length> current_depth_{0};
 };
 namespace dive
 {
@@ -1655,7 +1666,7 @@ struct UnpoweredAscent
     //Keep track of dive information
     jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug_;
     // keep track of the depth changes so we can detect if we are stuck
-    boost::units::quantity<boost::units::si::length> last_depth_{0};
+    boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
@@ -1698,10 +1709,9 @@ struct PoweredAscent
     // determines wehn we are still in motor off mode
     bool in_motor_off_mode_{false};
     // keep track of the depth changes so we can detect if we are stuck
-    boost::units::quantity<boost::units::si::length> last_depth_{0};
+    boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    bool are_we_rising_{true};
     double powered_ascent_throttle_{cfg().powered_ascent_throttle()};
     // keep check of current bot angle for pitch
     int pitch_angle_check_incr_{0};
