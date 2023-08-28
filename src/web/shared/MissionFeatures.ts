@@ -79,18 +79,6 @@ export function createMissionFeatures(
             features.push(flagFeature)
         }
 
-        if (bot?.mission_state.includes('REACQUIRE_GPS') && goalIndexStartAtOne === activeGoalIndex) {
-            const gpsFeature = createGPSMarker(
-                map,
-                {
-                    lon: location.lon, 
-                    lat: location.lat,
-                    style: Styles.getGpsStyle()
-                }
-            )
-            features.push(gpsFeature)
-        }
-
         // For Constant Heading tasks, we add another point to the line string at the termination point
         let task = goal.task
         var startCoordinate: Coordinate
