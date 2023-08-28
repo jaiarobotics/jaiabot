@@ -1198,6 +1198,7 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGP
 {
     end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
     context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
+    this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
 // Task::StationKeep
@@ -1350,6 +1351,7 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
+    this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
 // PostDeployment::DataProcessing
