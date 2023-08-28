@@ -34,25 +34,10 @@ export default class RCControllerPanel extends React.Component {
 	api: JaiaAPI
 	props: Props
 	state: State
-	// Take 40 % of the event distance provides 
-	// This means our max forward throttle would be 40 or 2 m/s.
-	limitForwardThrottle: number = 0.4 
-	// Take 10 % of the event distance provides 
-	// This means our max backward throttle would be 10 or 0.5 m/s.
-	limitBackwardThrottle: number = 0.1
-
-	rudderBins: number
-	throttleForwardBins: number
-	throttleBackwardsBins: number
-	maxEventValue: number
 
     constructor(props: Props) {
         super(props)
         this.api = props.api
-		this.rudderBins = 3
-		this.throttleForwardBins = 2
-		this.throttleBackwardsBins = 1
-		this.maxEventValue = 100
 
         this.state = {
 			isJoyStickStart: false,
@@ -83,14 +68,18 @@ export default class RCControllerPanel extends React.Component {
 		}
 
 		if (throttleDirection === 'FORWARD') {
-			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.throttleForwardBins)
-			bin.binNumber = Math.ceil(Number((speed / binBreakpointDivisor).toFixed(1)))
-			bin.binValue = bin.binNumber * binBreakpointDivisor * this.limitForwardThrottle;
+			// This means our max forward throttle would be 40 or 2 m/s.
+			if (speed <= 95) {
+				bin.binNumber = 1
+				bin.binValue = 20
+			} else if (speed > 95) {
+				bin.binNumber = 2
+				bin.binValue = 40
+			}
 		} else if (throttleDirection === 'BACKWARD') {
-			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.throttleBackwardsBins)
-			// Speed is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
-			bin.binNumber = Math.ceil(Number(((speed * -1) / binBreakpointDivisor).toFixed(1))) * -1
-			bin.binValue = bin.binNumber * binBreakpointDivisor * this.limitBackwardThrottle;
+			// This means our max backward throttle would be 10 or 0.5 m/s.
+			bin.binNumber = 1
+			bin.binValue = -10
 		}
 	}
 
@@ -106,21 +95,31 @@ export default class RCControllerPanel extends React.Component {
 		this.setState({ rudderDirection: event.direction.toString(), rudderBinNumber: bin.binNumber })
 	}
 
-	calcRudderBinNum(positiion: number, bin: {binNumber: number, binValue: number}) {
-		// Basic error handling to protect against unexpected positiion value
-		if (!positiion || positiion === 0) {
-			return 0
+	calcRudderBinNum(position: number, bin: {binNumber: number, binValue: number}) {
+		// Basic error handling to protect against unexpected position value
+		if (!position) {
+			return
 		}
-
-		if (positiion > 0) {
-			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.rudderBins)
-			bin.binNumber = Math.ceil(Number((positiion / binBreakpointDivisor).toFixed(1)))
-			bin.binValue = Math.min(bin.binNumber * binBreakpointDivisor, 100)
-		} else {
-			const binBreakpointDivisor = Math.ceil(this.maxEventValue / this.rudderBins)
-			// Positiion is multiplied by (-1) to convert it to a positive value becasue 2.5 is rounded to 3; otherwise -2.5 gets rounded to -2
-			bin.binNumber = Math.ceil(Number(((positiion * -1) / binBreakpointDivisor).toFixed(1))) * -1
-			bin.binValue = Math.max(bin.binNumber * binBreakpointDivisor, -100)
+		
+		// Added a deadzone
+		if (position > 10 && position < 50) {
+			bin.binNumber = 1
+			bin.binValue = 40
+		} else if (position >= 50 && position <= 95) {
+			bin.binNumber = 2
+			bin.binValue = 70
+		} else if (position > 95) {
+			bin.binNumber = 3
+			bin.binValue = 100
+		} else if (position < -10 && position > -50) {
+			bin.binNumber = 1
+			bin.binValue = -40
+		} else if (position <= -50 && position >= -95) {
+			bin.binNumber = 2
+			bin.binValue = -70
+		} else if (position < -95) {
+			bin.binNumber = 3
+			bin.binValue = -100
 		}
 	}
 
@@ -136,29 +135,29 @@ export default class RCControllerPanel extends React.Component {
 		let rudderBinNumber = 0
 
 		let thottleBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+		let rudderBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 
-		if (event.y >= 0) {
-			this.calcThrottleBinNum((event.y * 100), 'FORWARD', thottleBin)
-			this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
+		if (event.y > 0) {
 			throttleDirection = 'FORWARD'
-			throttleBinNumber = thottleBin.binNumber
 		} else if (event.y < 0) {
-			this.calcThrottleBinNum((event.y * 100), 'BACKWARD', thottleBin)
-			this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
 			throttleDirection = 'BACKWARD'
-			throttleBinNumber = thottleBin.binNumber
 		}
 
-		let rudderBin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
+		// Added a deadzone
+		if ((event.x * 100) > 10) {
+			rudderDirection = 'RIGHT'
+		} else if ((event.x * 100) < -10) {
+		    rudderDirection = 'LEFT'
+		}
+
+		this.calcThrottleBinNum((event.y * 100), throttleDirection, thottleBin)
+		this.props.remoteControlValues.pid_control.throttle = thottleBin.binValue
+		throttleBinNumber = thottleBin.binNumber
+
 		this.calcRudderBinNum((event.x * 100), rudderBin)
 		this.props.remoteControlValues.pid_control.rudder = rudderBin.binValue
 		rudderBinNumber = rudderBin.binNumber
 
-		if (event.x >= 0) {
-			rudderDirection = 'RIGHT'
-		} else if (event.x < 0) {
-		    rudderDirection = 'LEFT'
-		}
 
 		this.setState({ 
 			throttleDirection, 
@@ -180,11 +179,12 @@ export default class RCControllerPanel extends React.Component {
 			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 			this.calcRudderBinNum((value * 100), bin)
 			this.props.remoteControlValues.pid_control.rudder = bin.binValue
-			if (value > 0) {
+			// Added a deadzone
+			if (value > 10) {
 				rudderDirection = 'RIGHT'
-			} else if (value < 0) {
+			} else if (value < -10) {
 				rudderDirection = 'LEFT'
-			} else if (value == 0) {
+			} else if (value === 0) {
 				rudderDirection = ''
 				this.props.remoteControlValues.pid_control.rudder = 0
 			}
@@ -201,7 +201,7 @@ export default class RCControllerPanel extends React.Component {
 				throttleDirection = 'BACKWARD'
 				this.calcThrottleBinNum((value * 100), throttleDirection, bin)
 				this.props.remoteControlValues.pid_control.throttle = bin.binValue
-			} else if(value == 0) {
+			} else if(value === 0) {
 				throttleDirection = ''
 				this.props.remoteControlValues.pid_control.throttle = 0
 			}
