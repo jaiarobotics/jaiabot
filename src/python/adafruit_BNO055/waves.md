@@ -22,7 +22,7 @@ $$a_{z,unfiltered} = \frac{a \cdot g}{\lvert g \rvert}$$
 
 ### Pre-process ###
 
-At the start of a drift, we need to allow the bot to coast to a stop, and eliminate accelerations caused by motor operation and slowing down in th water.
+At the start of a drift, we need to allow the bot to coast to a stop, and eliminate accelerations caused by motor operation and slowing down in the water.
 
 Also, near the end of the drift, we want to cut out the last 5 seconds, for the same reason (sometimes sampling stops just after the motor engages for the next waypoint).
 
@@ -51,7 +51,7 @@ We then pass this spectrum through a band-pass filter that leaves only frequenci
 
 A double-integration is performed to obtain the Fourier transform of the elevation series ($E$).
 
-$$ E(f) = -(2\pi f)^2 A(f)$$
+$$ E(f) = -\frac{A(f)}{(2\pi f)^2}$$
 
 An inverse FFT is then performed, to get the resulting elevation time series, $e(t)$.
 
