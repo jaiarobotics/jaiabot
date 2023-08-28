@@ -4,13 +4,13 @@ This IMU driver includes algorithms to calculate `significant wave height` value
 
 ## Significant Wave Heights
 
-The `significant wave height` is defined as the average height of the highest two-thirds of waves.  An elevation time series can be obtained from an acceleration time series by double-integration, because acceleration is the second derivative of position.
+The `significant wave height` is defined as the average height of the highest one-third of waves.  An elevation time series can be obtained from an acceleration time series by double-integration, because acceleration is the second derivative of position.
 
 Because the IMU includes a `linear acceleration` vector as well as a `gravity` vector, we can project the `linear acceleration` vector along the `gravity` vector to get a value for the vertical acceleration, $a_z$.
 
 After pre-processing this series, we run a fast-Fourier transform (FFT), followed by double integration and inverse FFT.  This results in a time series for the elevation of the bot, $h_z$.
 
-We then run through the time series, measure trough-to-peak wave heights, and calculate the mean of the population of 2/3 highest waves.
+We then run through the time series, measure trough-to-peak wave heights, and calculate the mean of the population of 1/3 highest waves.
 
 The detailed algorithm is as follows.
 
@@ -57,7 +57,7 @@ An inverse FFT is then performed, to get the resulting elevation time series, $e
 
 ### Wave measurement ###
 
-We then step through the samples of $e(t)$, measuring the trough-to-peak heights of each wave.  The mean value of the highest 2/3 of wave heights is calculated.  This is the `significant wave height`, $H_s$.
+We then step through the samples of $e(t)$, measuring the trough-to-peak heights of each wave.  The mean value of the highest 1/3 of wave heights is calculated.  This is the `significant wave height`, $H_s$.
 
 ## Notes ##
 
