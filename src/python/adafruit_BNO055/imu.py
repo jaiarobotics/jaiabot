@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from orientation import Orientation
 from vector3 import Vector3
-from typing import Protocol
+from typing import *
 from quaternion import Quaternion
 import logging
 import datetime
@@ -49,6 +49,9 @@ class IMU:
             IMUData: the reading as an IMUData
         """
         reading = self.takeReading()
+
+        if reading is None:
+            return None
 
         imu_data = IMUData()
         imu_data.euler_angles.heading = reading.orientation.heading
@@ -110,20 +113,30 @@ class Adafruit(IMU):
             
             if None in quaternion or None in euler or None in linear_acceleration or None in gravity or None in calibration_status:
                 return None
-            else:
-                quaternion = Quaternion.from_tuple(quaternion)
-                orientation = quaternion.to_euler_angles()
-                orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
-                linear_acceleration = Vector3(*linear_acceleration)
-                linear_acceleration_world = quaternion.apply(linear_acceleration)
-                gravity = Vector3(*gravity)
 
-                return IMUReading(orientation=orientation, 
-                            linear_acceleration=linear_acceleration, 
-                            linear_acceleration_world=linear_acceleration_world,
-                            gravity=gravity,
-                            calibration_status=calibration_status,
-                            quaternion=quaternion)
+            # This is a very glitchy IMU, so we need to check for absurd values, and set those vectors to zero if we find them
+            def filter(iterable: Iterable[float], threshold: float=50):
+                for value in iterable:
+                    if abs(value) > threshold:
+                        return [0.0] * len(iterable)
+                return iterable
+
+            linear_acceleration = filter(linear_acceleration)
+            gravity = filter(gravity)
+
+            quaternion = Quaternion.from_tuple(quaternion)
+            orientation = quaternion.to_euler_angles()
+            orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
+            linear_acceleration = Vector3(*linear_acceleration)
+            linear_acceleration_world = quaternion.apply(linear_acceleration)
+            gravity = Vector3(*gravity)
+
+            return IMUReading(orientation=orientation, 
+                        linear_acceleration=linear_acceleration, 
+                        linear_acceleration_world=linear_acceleration_world,
+                        gravity=gravity,
+                        calibration_status=calibration_status,
+                        quaternion=quaternion)
 
         except OSError as e:
             self.is_setup = False
