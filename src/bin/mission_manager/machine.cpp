@@ -575,10 +575,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
 void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth(
     const EvVehicleDepth& ev)
 {
-    glog.is_debug1() &&
+    glog.is_warn() &&
         glog << "Entered "
                 "jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth: \n"
              << std::endl;
+
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
 
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
@@ -589,88 +592,55 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     dive_pdescent_debug_.set_last_depth(last_depth_.value());
     dive_pdescent_debug_.set_last_depth_change_time(last_depth_change_time_.value());
     dive_pdescent_debug_.set_bottoming_timeout_with_units(cfg().bottoming_timeout_with_units());
+    dive_pdescent_debug_.set_current_time(now.value());
 
-    glog.is_debug2() && glog << "Current Depth: " << ev.depth.value()
-                             << "\n Goal Depth: " << context<Dive>().goal_depth().value() << "\n"
-                             << std::endl;
-
-    glog.is_debug2() &&
+    glog.is_warn() &&
         glog << "if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
                 "cfg().dive_depth_eps_with_units()): "
              << (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
                  cfg().dive_depth_eps_with_units())
              << "\n ev.depth: " << ev.depth.value()
              << "\n context<Dive>().goal_depth(): " << context<Dive>().goal_depth().value()
-             << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps() << "\n"
+             << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps()
+             << "\n if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
+             << ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
+             << "\n ev.depth: " << ev.depth.value() << "\n last_depth_" << last_depth_.value()
+             << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps()
+             << "\n Intial Timeout complete: "
+             << (current_clock >= detect_bottom_logic_init_timeout_)
+             << "\n Is bot diving: " << bot_is_diving_
+             << "\n (now - last_depth_change_time_) >"
+                "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())"
+             << ((now - last_depth_change_time_) >
+                 static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
              << std::endl;
 
     if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
         cfg().dive_depth_eps_with_units())
     {
-        glog.is_debug2() && glog << "(boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
-                                    "cfg().dive_depth_eps_with_units() == true"
-                                 << "\n post_event(EvDepthTargetReached());"
-                                 << "\n"
-                                 << std::endl;
-
         // Set depth achieved if we have reached our goal depth
         context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
         dive_pdescent_debug_.set_depth_reached(true);
         post_event(EvDepthTargetReached());
     }
 
-    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
-    goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
-
-    dive_pdescent_debug_.set_current_time(now.value());
-
-    glog.is_debug2() &&
-        glog << "if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units()): "
-             << ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
-             << "\n ev.depth: " << ev.depth.value() << "\n last_depth_" << last_depth_.value()
-             << "\n cfg().dive_depth_eps: " << cfg().dive_depth_eps() << "\n"
-             << std::endl;
-
-    // make sure we have finished the initial startup
-    // time to begin detecting bottom
-    if (current_clock >= detect_bottom_logic_init_timeout_)
+    // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
+    if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
     {
-        glog.is_debug2() && glog << "Initial detect bottom timeout completed!" << std::endl;
+        last_depth_change_time_ = now;
+        last_depth_ = ev.depth;
+        dive_pdescent_debug_.set_depth_changed(true);
+        bot_is_diving_ = true;
+    }
 
-        // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
-        if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
-        {
-            glog.is_debug2() &&
-                glog << "(ev.depth - last_depth_) > cfg().dive_depth_eps_with_units() == true"
-                     << "\n dive_pdescent_debug_.set_depth_changed(true);"
-                     << "\n"
-                     << std::endl;
-            last_depth_change_time_ = now;
-            last_depth_ = ev.depth;
-            dive_pdescent_debug_.set_depth_changed(true);
-        }
-
-        glog.is_debug2() &&
-            glog << "if ((now - last_depth_change_time_) > "
-                    "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())): "
-                 << ((now - last_depth_change_time_) >
-                     static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
-                 << "\n now: " << now.value()
-                 << "\n last_depth_change_time_: " << last_depth_change_time_.value()
-                 << "\n static_cast<decltype(now)>(cfg().bottoming_timeout_with_units(): "
-                 << static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()).value() << "\n"
-                 << std::endl;
-
+    // Check if our initial timeout has been reached to detect bottom
+    // or if the bot is diving.
+    if (current_clock >= detect_bottom_logic_init_timeout_ || bot_is_diving_)
+    {
         // assume we've hit the bottom if the depth isn't changing for bottoming timeout seconds
         if ((now - last_depth_change_time_) >
             static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
         {
-            glog.is_debug2() &&
-                glog << "(now - last_depth_change_time_) > "
-                        "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()) == true"
-                     << "\n post_event(EvDepthTargetReached());"
-                     << "\n"
-                     << std::endl;
             context<Dive>().set_seafloor_reached(ev.depth);
 
             // Set depth achieved if we had a bottoming timeout
@@ -701,14 +671,9 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
             dive_pdescent_debug_.set_depth_change_timeout(true);
         }
     }
-    else
-    {
-        glog.is_debug2() && glog << "Waiting for initial detect bottom timeout to be completed!"
-                                 << std::endl;
-    }
 
     interprocess().publish<jaiabot::groups::mission_dive>(dive_pdescent_debug_);
-    glog.is_debug1() &&
+    glog.is_warn() &&
         glog << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth: "
                 "\n"
              << std::endl;
@@ -829,15 +794,10 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::depth(const EvV
              << std::endl;
     if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
     {
-        glog.is_debug2() &&
-            glog << "ev.depth > context<Dive>().dive_packet().depth_achieved_with_units() == true\n"
-                 << std::endl;
         context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
     }
 
     depths_.push_back(ev.depth);
-
-    glog.is_debug2() && glog << "Current Depth: " << ev.depth.value() << std::endl;
 
     dive_hold_debug_.set_current_depth(ev.depth.value());
     interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug_);
@@ -900,7 +860,7 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << "\n ev.depth: " << ev.depth.value() << "\n last_depth_: " << last_depth_.value()
              << "\n is current depth less than last_depth: " << (ev.depth < last_depth_)
              << "\n is the current depth - last_depth: " << (ev.depth - last_depth_).value()
-             << "\n is it less than eps: "
+             << "\n is it greater than eps: "
              << (std::abs((ev.depth - last_depth_).value()) > cfg().dive_depth_eps())
              << "\n is the current depth lest than the last: " << (ev.depth < last_depth_)
              << "\n cfg().dive_surface_eps: " << cfg().dive_depth_eps() << "\n"
@@ -909,8 +869,6 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
     // within surface eps of the surface (or any negative value)
     if (ev.depth < cfg().dive_surface_eps_with_units())
     {
-        glog.is_warn() && glog << "ev.depth < cfg().dive_surface_eps_with_units() == true"
-                               << "\npost_event(EvSurfaced());" << std::endl;
         post_event(EvSurfaced());
         dive_uascent_debug_.set_surfaced(true);
     }
@@ -921,9 +879,6 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
     if (std::abs((ev.depth - last_depth_).value()) > cfg().dive_depth_eps() &&
         (ev.depth < last_depth_))
     {
-        glog.is_warn() && glog << "UnpoweredAscent::depth we are changing depth!"
-                               << "\n"
-                               << std::endl;
         last_depth_change_time_ = now;
         last_depth_ = ev.depth;
     }
@@ -1074,8 +1029,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
     // within surface eps of the surface (or any negative value)
     if (ev.depth < cfg().dive_surface_eps_with_units())
     {
-        glog.is_warn() && glog << "ev.depth < cfg().dive_surface_eps_with_units() == true"
-                               << "\npost_event(EvSurfaced());" << std::endl;
         post_event(EvSurfaced());
         dive_pascent_debug_.set_surfaced(true);
     }

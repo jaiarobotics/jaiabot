@@ -1606,6 +1606,7 @@ struct PoweredDescent
     goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
     // determines when to safely timout of powered descent and transition into unpowered ascent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
+    bool bot_is_diving_{false};
 };
 
 struct Hold

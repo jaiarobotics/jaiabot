@@ -25,7 +25,7 @@ rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 # Dive Configurations
 dive_prep_timeout: 10 # (optional) (default=10) Seconds
 dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
-detect_bottom_logic_init_timeout: 10 # (optional) (default=10) Seconds
+detect_bottom_logic_init_timeout: 15 # (optional) (default=15) Seconds
 bottoming_timeout: 3 # (optional) (default=3) Seconds
 powered_descent_timeout: 60 # (default=60) Seconds
 bot_not_rising_timeout: 3 # (optional) (default=3) Seconds

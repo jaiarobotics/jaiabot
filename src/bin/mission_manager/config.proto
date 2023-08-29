@@ -47,7 +47,7 @@ message MissionManager
     // when we should start determining we reached bottom in powered descent logic.
     // (this gives the vehicle time to begin diving)
     optional double detect_bottom_logic_init_timeout = 29
-        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 15, (dccl.field).units = { base_dimensions: "T" }];
     
     // acceptable eps when dive depth is considered reached (in meters)
     optional double dive_depth_eps = 30
