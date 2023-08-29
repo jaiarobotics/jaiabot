@@ -262,6 +262,22 @@ jaiabot::apps::MissionManager::MissionManager()
         });
 
     interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUData& imu_data) {
+            glog.is_debug2() && glog << "Received IMU Data " << imu_data.ShortDebugString()
+                                     << std::endl;
+
+            if (imu_data.has_euler_angles())
+            {
+                if (imu_data.euler_angles().has_pitch())
+                {
+                    statechart::EvVehiclePitch ev;
+                    ev.pitch = imu_data.euler_angles().pitch_with_units();
+                    machine_->process_event(ev);
+                }
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
                                      << std::endl;
@@ -274,6 +290,11 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IMUIssue::RESTART_IMU_PY:
                     machine_->process_event(statechart::EvIMURestart());
                     break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
                 default:
                     //TODO Handle Default Case
                     break;
