@@ -24,17 +24,19 @@ rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 
 # Dive Configurations
 dive_prep_timeout: 10 # (optional) (default=10) Seconds
+pitch_to_determine_dive_prep_vertical: 70 # (optional) (default=70) Degrees
+dive_eps_to_determine_diving: 0.3 # (optional) (default=0.3) Meters
 dive_depth_eps: 0.1  #  (optional) (default=0.1) Meters
 detect_bottom_logic_init_timeout: 15 # (optional) (default=15) Seconds
 bottoming_timeout: 3 # (optional) (default=3) Seconds
 powered_descent_timeout: 60 # (default=60) Seconds
-bot_not_rising_timeout: 3 # (optional) (default=3) Seconds
+bot_not_rising_timeout: 6 # (optional) (default=6) Seconds
 motor_on_time_increment: 1 # (optional) (default=1) Seconds
 motor_on_time_max: 10 # (optional) (default=10) Seconds
 powered_ascent_throttle: 25 # (optional) (default=25) Percent
 powered_ascent_throttle_increment: 5 # (optional) (default=5) Percent
 powered_ascent_throttle_max: 60 # (optional) (default=60) Percent
-pitch_to_determine_vertical: 30 # (optional) (default=30) Degrees
+pitch_to_determine_powered_ascent_vertical: 30 # (optional) (default=30) Degrees
 pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
 pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
 dive_surface_eps: 0.75 # (optional) (default=0.75) Meters

@@ -120,7 +120,7 @@ message MissionManager
     // Bot not rising timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bot is stuck and is not rising
     optional double bot_not_rising_timeout = 52
-        [default = 3, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 6, (dccl.field).units = { base_dimensions: "T" }];
 
     // If the bot is not rising then increment the motor on time
     optional int32 motor_on_time_increment = 53
@@ -139,29 +139,35 @@ message MissionManager
     // The power ascent max thottle
     optional double powered_ascent_throttle_max = 57 [default = 60];
 
-    optional double pitch_to_determine_vertical = 58 [default = 30];
+    optional double pitch_to_determine_powered_ascent_vertical = 58 [default = 30];
 
-    optional int32 pitch_angle_checks = 59 [default = 3];
+    optional double pitch_to_determine_dive_prep_vertical = 59 [default = 70];
+
+    optional int32 pitch_angle_checks = 60 [default = 3];
+
+    // The min amount of time to trigger a EvBotNotVertical event
+    optional double pitch_angle_min_check_time = 61
+    [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // acceptable eps when we consider the bot diving (in meters)
+    optional double dive_eps_to_determine_diving = 62
+        [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
 
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
     // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
-    required string data_offload_command = 60;
+    required string data_offload_command = 70;
 
     // e.g. /var/log/jaiabot/bot/*/
-    required string log_dir = 61;
+    required string log_dir = 71;
 
     // Set to true if we want to not send goby files to hub during offload,
     // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 62 [default = false];
+    optional bool data_offload_only_task_packet_file = 72 [default = false];
 
-    required int32 hub_start_ip = 63 [default = 10];
+    required int32 hub_start_ip = 73 [default = 10];
 
-    required string class_b_network = 64 [default = "10.23"];
-
-    // The min amount of time to trigger a EvBotNotVerticl event
-    optional double pitch_angle_min_check_time = 65 
-        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+    required string class_b_network = 74 [default = "10.23"];
 
     enum EngineeringTestMode
     {
