@@ -96,7 +96,7 @@ export class BotLayers {
 					{
 						lon: botLongitude, 
 						lat: botLatitude,
-						style: Styles.gps()
+						style: Styles.getGpsStyle()
 					}
 				)
 				gpsFeature.setId(`gps-${bot.bot_id}`)

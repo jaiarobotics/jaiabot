@@ -6,12 +6,16 @@ from numpy import std
 import numpy
 from vector3 import Vector3
 import plotly.express as px
-from imu import IMU
+from imu import *
 from threading import Thread, Lock
 from time import sleep
 from copy import deepcopy
 from numpy.linalg import lstsq
 import logging
+
+from series import *
+from processing import *
+from filters import *
 
 log = logging.getLogger('jaiabot_imu')
 
@@ -84,7 +88,7 @@ class TimeSeries:
 
 
 class Analyzer:
-    acceleration_z: TimeSeries
+    acceleration_world_z: Series
     acceleration_mag: TimeSeries
 
     imu: IMU
@@ -95,14 +99,22 @@ class Analyzer:
     _sampling_for_wave_height = False
     _sampling_for_bottom_characterization = False
     _lock = Lock()
+    _processToElevationSteps: List[ProcessingStep]
 
     def __init__(self, imu: IMU, sample_frequency: float):
         log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_interval = 1 / sample_frequency
-        self.acceleration_z = TimeSeries(dt=self.sample_interval)
+        self.acceleration_world_z = Series()
         self.acceleration_mag = TimeSeries(dt=self.sample_interval)
         self.imu = imu
+
+        # PROCESSING STEPS
+        self._processToElevationSteps = [
+            fadeSeries(startGap=10e6, endGap=5e6, fadePeriod=5e6),
+            getUniformSeries(freq=sample_frequency),
+            accelerationToElevation(sampleFreq=sample_frequency, filterFunc=brickWallFilter(0.2, 2.0)),
+        ]
 
         def run():
             self._sampleLoop()
@@ -124,7 +136,9 @@ class Analyzer:
 
                     if reading is not None:
                         if self._sampling_for_wave_height:
-                            self.acceleration_z.pushValue(reading.linear_acceleration_world.z)
+                            utime = datetime.utcnow().timestamp() * 1e6
+                            self.acceleration_world_z.utime.append(utime)
+                            self.acceleration_world_z.y_values.append(reading.linear_acceleration_world.z)
 
                         if self._sampling_for_bottom_characterization:
                             self.acceleration_mag.pushValue(reading.linear_acceleration_world.magnitude())
@@ -132,19 +146,21 @@ class Analyzer:
     # Wave Height
     def startSamplingForWaveHeight(self):
         with self._lock:
-            self.acceleration_z.clear()
+            self.acceleration_world_z.clear()
             self._sampling_for_wave_height = True
 
     def stopSamplingForWaveHeight(self):
         with self._lock:
-            self.acceleration_z.clear()
+            self.acceleration_world_z.clear()
             self._sampling_for_wave_height = False
 
     def getSignificantWaveHeight(self):
         with self._lock:
-            significantWaveHeight = self.acceleration_z.getHeightsFromAccelerations().significantWaveHeight()
+            elevationSeries = processSeries(self.acceleration_world_z, self._processToElevationSteps)
+            waveHeights = elevationSeries.sortedWaveHeights()
+            swh = significantWaveHeight(waveHeights)
         
-        return significantWaveHeight
+        return swh
 
     # Bottom characterization
     def startSamplingForBottomCharacterization(self):
@@ -159,7 +175,10 @@ class Analyzer:
 
     def getMaximumAcceleration(self):
         with self._lock:
-            maxAcceleration = max(self.acceleration_mag._values)
+            if len(self.acceleration_mag._values) > 0:
+                maxAcceleration = max(self.acceleration_mag._values)
+            else:
+                maxAcceleration = 0.0
         
         return maxAcceleration
 
@@ -168,27 +187,30 @@ class Analyzer:
         with self._lock:
             acceleration_z = deepcopy(self.acceleration_z)
 
-        acceleration_z.plot()
-        acceleration_z.getHeightsFromAccelerations().plot()
-
         print(self.getSignificantWaveHeight())
 
 
 if __name__ == '__main__':
+    def filterAcc(series: Series):
+        newSeries = deepcopy(series)
+        newSeries.y_values = list(newSeries.y_values) # In case it's a tuple
 
-    # Test accelerations
-    AMPLITUDE = 1.5
-    OFFSET = pi
-    STEP = 0.1
-    N = 500
-    FREQ = 0.1
+        for i in range(2, len(series.utime) - 2 - 1):
+            proj_y = newSeries.y_values[i - 1]
+            y = newSeries.y_values[i]
 
-    accelerations = TimeSeries(STEP, numpy.array([AMPLITUDE * cos(2 * pi * i * STEP * FREQ + OFFSET) for i in range(0, N)]))
-    accelerations.plot()
+            if abs(y) > 50:
+                y = proj_y
 
-    ###
+            newSeries.y_values[i] = y
+            
+        return newSeries
 
-    x = accelerations.getHeightsFromAccelerations()
-    x.plot()
+    imu = Simulator(wave_frequency=0.33, wave_height=0.35)
+    analyzer = Analyzer(imu=imu, sample_frequency=5)
 
-    print(x.significantWaveHeight())
+    analyzer.startSamplingForWaveHeight()
+
+    while True:
+        print(analyzer.getSignificantWaveHeight())
+        sleep(1)
