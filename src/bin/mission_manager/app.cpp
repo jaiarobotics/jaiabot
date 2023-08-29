@@ -256,8 +256,6 @@ jaiabot::apps::MissionManager::MissionManager()
                 // Publish TPV that meets our mission requirements
                 if (current_tpv_.IsInitialized())
                 {
-                    interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
-                        current_tpv_);
                     machine_->set_gps_tpv(current_tpv_);
                 }
             }
