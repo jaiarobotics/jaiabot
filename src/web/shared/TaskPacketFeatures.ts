@@ -5,29 +5,6 @@ import { LineString } from 'ol/geom'
 import { Feature } from 'ol'
 import { Map } from 'ol'
 import * as Styles from "./Styles"
-
-
-function DivePacketDescription(dive: DivePacket): string[] {
-    const rows: string[] = []
-
-    if (dive?.depth_achieved != undefined) {
-        rows.push(`Depth achieved: ${dive.depth_achieved.toFixed(2)} m`)
-    }
-
-    if (dive?.duration_to_acquire_gps != undefined) {
-        rows.push(`Duration to acquire GPS: ${dive.duration_to_acquire_gps.toFixed(2)} s`)
-    }
-
-    if (dive?.powered_rise_rate != undefined) {
-        rows.push(`Powered rise rate: ${dive.powered_rise_rate.toFixed(2)} m/s`)
-    }
-
-    if (dive?.unpowered_rise_rate != undefined) {
-        rows.push(`Unpowered rise rate: ${dive.unpowered_rise_rate.toFixed(2)} m/s`)
-    }
-
-    return rows
-}
     
 
 function createDriftPacketFeature(map: Map, drift: DriftPacket) {
@@ -77,12 +54,8 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
             dive?.start_location?.lat != undefined &&
             dive?.start_location?.lon != undefined
         ) {
-
-            const rows = DivePacketDescription(dive).join('<br>') + '<br>'
-            const depthDescription = `<h3>Dive</h3>Bottom strike: ${dive.bottom_dive ? 'yes' : 'no'}<br>${rows}`
-
             if (dive.depth_achieved != 0) {
-                const diveFeature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive), popupHTML: depthDescription})
+                const diveFeature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive)})
                 diveFeature.setProperties({
                     'type': 'dive',
                     'depthAchieved': dive?.depth_achieved, // (m)
