@@ -379,7 +379,7 @@ export class PIDGainsPanel extends React.Component {
                                             id="safety_depth_input" 
                                             name="safety_depth_input" 
                                             defaultValue={engineering?.bottom_depth_safety_params?.safety_depth ?? "-"} 
-                                            min="0"
+                                            min="-1"
                                             max="60"
                                             step="any"
                                         />
