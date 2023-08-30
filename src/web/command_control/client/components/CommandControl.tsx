@@ -1469,12 +1469,10 @@ export default class CommandControl extends React.Component {
 			
 			// Check to make sure the waypoint is not part of an active run
 			const runs = this.state.runList.runs
-			let run: RunInterface = null
 			for (const runIndex of Object.keys(runs)) {
-				const testRun = runs[runIndex]
-				if (testRun.assigned === botId) {
-					run = testRun
-					if (!testRun.canEdit) {
+				const run = runs[runIndex]
+				if (run.assigned === botId) {
+					if (!run.canEdit) {
 						warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
 						return false
 					}
