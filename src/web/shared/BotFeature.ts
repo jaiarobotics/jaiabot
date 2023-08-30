@@ -20,6 +20,7 @@ export function createBotFeature(properties: Properties) {
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
+    
     feature.setProperties(properties)
     feature.setStyle(Styles.botMarker)
 
@@ -34,6 +35,7 @@ export function createBotCourseOverGroundFeature(properties: Properties) {
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
+
     feature.setProperties(properties)
     feature.setStyle(Styles.courseOverGroundArrow(properties.courseOverGround))
 
@@ -48,6 +50,7 @@ export function createBotDesiredHeadingFeature(properties: Properties) {
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
+
     feature.setProperties(properties)
     feature.setStyle(Styles.desiredHeadingArrow)
 
@@ -61,6 +64,7 @@ export function createBotHeadingFeature(properties: Properties) {
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection))
     })
+
     feature.setProperties(properties)
     feature.setStyle(Styles.headingArrow(properties.heading))
 
