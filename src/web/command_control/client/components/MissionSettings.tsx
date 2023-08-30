@@ -43,7 +43,6 @@ interface Props {
     onClose: () => void
     onMissionApply: (missionSettings: MissionSettings, startRally: Feature<Geometry>, endRally: Feature<Geometry>) => void
     onMissionChangeEditMode: () => void
-    onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
     setSelectedRallyPoint: (rallyPoint: Feature<Geometry>, isStart: boolean) => void
     onChange?: () => void
@@ -66,7 +65,6 @@ export class MissionSettingsPanel extends React.Component {
     onClose: () => void
     onChange?: () => void
     onMissionChangeEditMode: () => void
-    onMissionChangeBotList: () => void
     onTaskTypeChange: () => void
 
     constructor(props: Props) {
@@ -84,7 +82,6 @@ export class MissionSettingsPanel extends React.Component {
         this.onClose = props.onClose
         this.onChange = props.onChange
         this.onMissionChangeEditMode = props.onMissionChangeEditMode
-        this.onMissionChangeBotList = props.onMissionChangeBotList
         this.onTaskTypeChange = props.onTaskTypeChange
     }
 
@@ -252,7 +249,6 @@ export class MissionSettingsPanel extends React.Component {
         const missionParams  = this.state.missionParams
         missionParams.selectedBots = missionBots
         this.setState({ missionParams })
-        this.onMissionChangeBotList?.()
     }
 
     changeMissionEditMode(missionEditMode: string) {
