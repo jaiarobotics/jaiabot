@@ -24,6 +24,7 @@ import { Interactions } from './Interactions'
 import { getRallyStyle } from './shared/Styles'
 import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
+import { TaskPacketPanel } from './TaskPacketPanel'
 import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
@@ -96,7 +97,8 @@ export enum PanelType {
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
-	RALLY_POINT = 'RALLY_POINT'
+	RALLY_POINT = 'RALLY_POINT',
+	TASK_PACKET = 'TASK_PACKET'
 }
 
 export enum Mode {
@@ -177,6 +179,9 @@ interface State {
 
 	remoteControlValues: Engineering
 	remoteControlInterval?: ReturnType<typeof setInterval>,
+
+	taskPacketType: string,
+	taskPacketData: {[key: string]: string},
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -296,6 +301,10 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
+
+			taskPacketType: '',
+			taskPacketData: {},
+
 			viewportPadding: [
 				viewportDefaultPadding,
 				viewportDefaultPadding,
@@ -1597,6 +1606,35 @@ export default class CommandControl extends React.Component {
 				this.setState({ selectedRallyFeature: feature }, () => this.setVisiblePanel(PanelType.RALLY_POINT))
 				return
 			}
+
+			// Clicked on dive task packet
+			const isDivePacket = feature.get('type') === 'dive'
+			if (isDivePacket) {
+				const taskPacketData = {
+					// Snake case used for string parsing in task packet panel
+					depth_achieved: feature.get('depthAchieved'),
+					dive_rate: feature.get('diveRate')
+				}
+				this.setState({
+					taskPacketType: feature.get('type'),
+					taskPacketData: taskPacketData
+				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
+				return
+			}
+
+			// Clicked on drift task packet
+			const isDriftPacket = feature.get('type') === 'drift'
+			if (isDriftPacket) {
+				const taskPacketData = {
+					duration: feature.get('duration'),
+					speed: feature.get('speed')
+				}
+				this.setState({
+					taskPacketType: feature.get('type'),
+					taskPacketData: taskPacketData
+				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
+				return
+			}
 		}
 		
 		if (this.state.goalBeingEdited) {
@@ -2611,6 +2649,15 @@ export default class CommandControl extends React.Component {
 						selectedRallyFeature={this.state.selectedRallyFeature}
 						goToRallyPoint={this.goToRallyPoint.bind(this)}
 						deleteRallyPoint={this.deleteRallyPoint.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+					/>
+				)
+				break
+			case PanelType.TASK_PACKET:
+				visiblePanelElement = (
+					<TaskPacketPanel 
+						type={this.state.taskPacketType}
+						taskPacketData={this.state.taskPacketData}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 					/>
 				)

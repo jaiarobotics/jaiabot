@@ -1,28 +1,32 @@
+// Jaia Imports
+import { geoJSONToDepthContourFeatures } from "./shared/Contours"
+import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
+import { TaskPacket } from "./shared/JAIAProtobuf"
 import { jaiaAPI } from "../../common/JaiaAPI"
+
+// Open Layer Imports
 import VectorSource from 'ol/source/Vector'
 import Collection from "ol/Collection"
-import Feature from "ol/Feature"
-import { getTransform, Projection } from 'ol/proj';
-import {
-	Fill as OlFillStyle, Style as OlStyle
-} from 'ol/style';
 import OlFeature from 'ol/Feature';
-import OlIcon from 'ol/style/Icon';
+import Feature from "ol/Feature"
 import OlPoint from 'ol/geom/Point';
+import OlIcon from 'ol/style/Icon';
+import OlText from 'ol/style/Text';
+import { Map } from "ol"
+import { getTransform } from 'ol/proj';
+import { Vector as VectorLayer } from "ol/layer"
+import { Fill as OlFillStyle, Style as OlStyle } from 'ol/style';
+
+// TurfJS Imports
+import * as turf from '@turf/turf';
+import { Units } from "@turf/turf"
+
+// Icon Imports
+const bottomDiveLocationIcon = require('../icons/task_packet/X-white.png') as string
 const diveLocationIcon = require('../icons/task_packet/DiveLocation.png') as string
 const currentDirection = require('../icons/task_packet/Arrow.png') as string
-const bottomDiveLocationIcon = require('../icons/task_packet/X-white.png') as string
-import OlText from 'ol/style/Text';
-// TurfJS
-import * as turf from '@turf/turf';
-import { Vector as VectorLayer } from "ol/layer"
-import {createTaskPacketFeatures} from './shared/TaskPacketFeatures'
-import { geoJSONToDepthContourFeatures } from "./shared/Contours"
-import { TaskPacket } from "./shared/JAIAProtobuf"
-import { Map } from "ol"
-import { Units } from "@turf/turf"
-import { getMapCoordinate } from "./shared/Utilities";
 
+// Contants
 const POLL_INTERVAL = 5000
 const mercator = 'EPSG:3857'
 const equirectangular = 'EPSG:4326'
@@ -30,7 +34,6 @@ const equirectangular_to_mercator = getTransform(equirectangular, mercator);
 const mercator_to_equirectangular = getTransform(mercator, equirectangular);
 
 export class TaskData {
-
     map: Map
     pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
     collection: Collection<Feature> = new Collection([])
@@ -38,7 +41,6 @@ export class TaskData {
     taskPackets: TaskPacket[] = []
 
     // Layers
-
     contourLayer: VectorLayer<VectorSource> = new VectorLayer({
         properties: {
             title: 'Depth Contours',
@@ -102,21 +104,15 @@ export class TaskData {
         visible: false
     })
 
-    taskPacketSource: VectorSource = new VectorSource()
-
     taskPacketInfoLayer = new VectorLayer({
         properties: {
             title: 'Task Packets',
         },
         zIndex: 1001,
         opacity: 1,
-        source: this.taskPacketSource,
+        source: new VectorSource(),
         visible: false
     })
-
-
-    constructor() {
-    }
 
     updateDiveLocations() {
         let taskDiveFeatures = []
@@ -125,158 +121,26 @@ export class TaskData {
         let taskDiveBottomInfoFeatures = []
 
         for (let [bot_id, taskPacket] of Object.entries(this.taskPackets)) {
-            if(taskPacket.type == "DIVE")
-            {            
-                let divePacket = taskPacket.dive;
-                let iconStyle = new OlStyle({
-                    image: new OlIcon({
-                        src: diveLocationIcon,
-                        // the real size of your icon
-                        size: [319, 299],
-                        // the scale factor
-                        scale: 0.1
-                    })
-                });
+            if (taskPacket.type === "DIVE") {            
+                const divePacket = taskPacket.dive
+                const diveDriftResults = this.calculateDiveDrift(taskPacket);
 
-                let iconInfoStyle = new OlStyle({
-                    text : new OlText({
-                        font : `15px Calibri,sans-serif`,
-                        text : `Depth (m): ` + divePacket.depth_achieved 
-                             + '\nDiveRate (m/s): ' + divePacket.dive_rate,
-                        scale: 1,
-                        fill: new OlFillStyle({color: 'white'}),
-                        backgroundFill: new OlFillStyle({color: 'black'}),
-                        textAlign: 'end',
-                        justify: 'left',
-                        textBaseline: 'bottom',
-                        padding: [3, 5, 3, 5],
-                        offsetY: -10,
-                        offsetX: -30
-                    })
-                });
-
-                let iconBottomStyle = new OlStyle({
-                    image: new OlIcon({
-                        src: bottomDiveLocationIcon,
-                        // the real size of your icon
-                        size: [225, 225],
-                        // the scale factor
-                        scale: 0.1
-                    })
-                });
-
-                let bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
-                                    + `\nBottom Type: ` + divePacket.bottom_type;
-
-                if(divePacket.reached_min_depth)
-                {
-                    bottomDiveText = `Bottom Depth (m): ` + divePacket.depth_achieved
-                                        + `\nBottom Type: ` + divePacket.bottom_type
-                                        + '\nReached Min Depth: ' + divePacket.reached_min_depth;
-                }
-
-                if (taskPacket?.dive !== undefined) {
-                    let divePacket = taskPacket.dive;
-                    let depthAchieved = 0;
-                    let depthRate = 0;
-
-                    if (divePacket?.depth_achieved != undefined) {
-                        depthAchieved = divePacket.depth_achieved
-                    }
-
-                    if (divePacket?.dive_rate !== undefined) {
-                        depthRate = divePacket.dive_rate
-                    }
-
-                    let iconStyle = new OlStyle({
-                        image: new OlIcon({
-                            src: diveLocationIcon,
-                            // the real size of your icon
-                            size: [319, 299],
-                            // the scale factor
-                            scale: 0.1
-                        })
-                    });
+                if (diveDriftResults != undefined && diveDriftResults?.dive_location != undefined) {
+                    const diveLon = diveDriftResults.dive_location.lon
+                    const diveLat = diveDriftResults.dive_location.lat
+                    const pt = equirectangular_to_mercator([diveLon, diveLat], undefined, undefined)
     
-                    let iconInfoStyle = new OlStyle({
-                        text : new OlText({
-                            font : `15px Calibri,sans-serif`,
-                            text : `Depth (m): ` + depthAchieved 
-                                 + '\nDiveRate (m/s): ' + depthRate,
-                            scale: 1,
-                            fill: new OlFillStyle({color: 'white'}),
-                            backgroundFill: new OlFillStyle({color: 'black'}),
-                            textAlign: 'end',
-                            justify: 'left',
-                            textBaseline: 'bottom',
-                            padding: [3, 5, 3, 5],
-                            offsetY: -10,
-                            offsetX: -30
-                        })
-                    });
+                    let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
+                    let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
     
-                    let iconBottomStyle = new OlStyle({
-                        image: new OlIcon({
-                            src: bottomDiveLocationIcon,
-                            // the real size of your icon
-                            size: [225, 225],
-                            // the scale factor
-                            scale: 0.1
-                        })
-                    });
-    
-                    let bottomDiveText = `Bottom Depth (m): ` + depthAchieved;
-    
-                    if (divePacket?.reached_min_depth !== undefined
-                        && divePacket?.reached_min_depth) {
-                        bottomDiveText = `Bottom Depth (m): ` + depthAchieved
-                                            + '\nReached Min Depth: ' + divePacket.reached_min_depth;
-                    }
-    
-                    let iconBottomInfoStyle = new OlStyle({
-                        text : new OlText({
-                            font : `15px Calibri,sans-serif`,
-                            text : bottomDiveText,
-                            scale: 1,
-                            fill: new OlFillStyle({color: 'white'}),
-                            backgroundFill: new OlFillStyle({color: 'black'}),
-                            textAlign: 'end',
-                            justify: 'left',
-                            textBaseline: 'bottom',
-                            padding: [3, 5, 3, 5],
-                            offsetY: -10,
-                            offsetX: -30
-                        })
-                    });
-    
-                    let taskCalcs = this.calculateDiveDrift(taskPacket);
-
-                    if (taskCalcs !== undefined
-                        && taskCalcs?.dive_location !== undefined) {
-
-                        let diveLon = taskCalcs.dive_location.lon;
-                        let diveLat = taskCalcs.dive_location.lat;
-                        let pt = equirectangular_to_mercator([diveLon, diveLat], undefined, undefined)
-        
-                        let diveFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                        let diveInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                        let diveBottomFeature = new OlFeature({ geometry: new OlPoint(pt) })
-                        let diveBottomInfoFeature = new OlFeature({ geometry: new OlPoint(pt) })
-        
-                        diveFeature.setStyle(iconStyle)  
-                        diveInfoFeature.setStyle(iconInfoStyle)   
-                        diveBottomFeature.setStyle(iconBottomStyle)  
-                        diveBottomInfoFeature.setStyle(iconBottomInfoStyle)   
-        
-                        taskDiveFeatures.push(diveFeature) 
-                        taskDiveInfoFeatures.push(diveInfoFeature)
-                        
-                        if (divePacket?.bottom_dive !== undefined
-                            && divePacket?.bottom_dive)
-                        {
-                            taskDiveBottomFeatures.push(diveBottomFeature) 
-                            taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
-                        }
+                    taskDiveFeatures.push(diveFeature) 
+                    taskDiveInfoFeatures.push(diveInfoFeature)
+                    
+                    if (divePacket?.bottom_dive != undefined && divePacket?.bottom_dive) {
+                        taskDiveBottomFeatures.push(diveBottomFeature) 
+                        taskDiveBottomInfoFeatures.push(diveBottomInfoFeature)
                     }
                 }
             }
@@ -286,22 +150,12 @@ export class TaskData {
             features: taskDiveFeatures
         })
 
-        let diveInfoVectorSource = new VectorSource({
-            features: taskDiveInfoFeatures
-        })
-
         let diveBottomVectorSource = new VectorSource({
             features: taskDiveBottomFeatures
         })
 
-        let diveBottomInfoVectorSource = new VectorSource({
-            features: taskDiveBottomInfoFeatures
-        })
-
         this.taskPacketDiveLayer.setSource(diveVectorSource)
-        this.taskPacketDiveInfoLayer.setSource(diveInfoVectorSource)
         this.taskPacketDiveBottomLayer.setSource(diveBottomVectorSource)
-        this.taskPacketDiveBottomInfoLayer.setSource(diveBottomInfoVectorSource)
     }
 
     updateDriftLocations() {
@@ -527,8 +381,8 @@ export class TaskData {
             const taskPacketFeatures = taskPackets
                 .map((taskPacket) => { return createTaskPacketFeatures(this.map, taskPacket) }).flat()
 
-            this.taskPacketSource.clear()
-            this.taskPacketSource.addFeatures(taskPacketFeatures)
+            this.taskPacketInfoLayer.getSource().clear()
+            this.taskPacketInfoLayer.getSource().addFeatures(taskPacketFeatures)
             
             this.updateDiveLocations();
             this.updateDriftLocations();
