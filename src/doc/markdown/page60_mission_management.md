@@ -110,7 +110,9 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvIMURestart: Triggered when we detect an IMU Issue.
 - EvIMURestartCompleted: Triggered when the IMU Restart is completed.
 - EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
-- EvPrePoweredDescentComplete: Triggered when the the timeout is reached in the PrePoweredDescent State. 
+- EvDviePrepComplete: Triggered when the the timeout is reached in the DivePrep State. 
+- EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
+- EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
 
 #### Internal events
@@ -121,6 +123,7 @@ These are not shown on the diagram but used for providing data to the state mach
 - EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
 - EvMeasurement: Sensor data measurement. 
 - EvVehicleGPS: Triggered when we receive GPS information, currently HDOP and PDOP information.
+- EvVehiclePitch: Triggered when we receive IMU information, currently pitch information.
 
 #### Unimplemented Events
 

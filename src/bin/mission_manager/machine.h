@@ -93,11 +93,13 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvRetryDataOffload)
 STATECHART_EVENT(EvShutdown)
 STATECHART_EVENT(EvActivate)
-STATECHART_EVENT(EvPrePoweredDescentComplete)
+STATECHART_EVENT(EvDivePrepComplete)
 STATECHART_EVENT(EvDepthTargetReached)
 STATECHART_EVENT(EvDiveComplete)
 STATECHART_EVENT(EvPowerDescentSafety)
 STATECHART_EVENT(EvHoldComplete)
+STATECHART_EVENT(EvDiveRising)
+STATECHART_EVENT(EvBotNotVertical)
 STATECHART_EVENT(EvSurfacingTimeout)
 STATECHART_EVENT(EvSurfaced)
 STATECHART_EVENT(EvGPSFix)
@@ -125,6 +127,11 @@ struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
 {
     double hdop;
     double pdop;
+};
+
+struct EvVehiclePitch : boost::statechart::event<EvVehiclePitch>
+{
+    boost::units::quantity<boost::units::degree::plane_angle> pitch;
 };
 
 STATECHART_EVENT(EvResumeMovement)
@@ -213,7 +220,7 @@ struct ConstantHeading;
 struct Dive;
 namespace dive
 {
-struct PrePoweredDescent;
+struct DivePrep;
 struct PoweredDescent;
 struct Hold;
 struct UnpoweredAscent;
@@ -641,6 +648,7 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
                          boost::statechart::in_state_reaction<EvLoop, Failed, &Failed::loop>,
                          boost::statechart::in_state_reaction<EvMissionFeasible, Failed,
                                                               &Failed::isFeasibleMissionRC>>;
+
   private:
     // determines when to stop logging
     goby::time::SteadyClock::time_point failed_startup_log_timeout_;
@@ -1478,9 +1486,9 @@ struct ConstantHeading
     goby::time::SteadyClock::time_point setpoint_stop_;
 };
 
-struct Dive : boost::statechart::state<Dive, Task, dive::PrePoweredDescent>, AppMethodsAccess<Dive>
+struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAccess<Dive>
 {
-    using StateBase = boost::statechart::state<Dive, Task, dive::PrePoweredDescent>;
+    using StateBase = boost::statechart::state<Dive, Task, dive::DivePrep>;
 
     Dive(typename StateBase::my_context c);
     ~Dive();
@@ -1521,32 +1529,48 @@ struct Dive : boost::statechart::state<Dive, Task, dive::PrePoweredDescent>, App
         }
     }
 
+    void set_current_depth(const boost::units::quantity<boost::units::si::length>& current_depth)
+    {
+        current_depth_ = current_depth;
+    }
+
+    const boost::units::quantity<boost::units::si::length> current_depth()
+    {
+        return current_depth_;
+    }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
+    boost::units::quantity<boost::units::si::length> current_depth_{0};
 };
 namespace dive
 {
-struct PrePoweredDescent
-    : boost::statechart::state<PrePoweredDescent, Dive>,
-      Notify<PrePoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__PRE_POWERED_DESCENT,
-             protobuf::SETPOINT_STOP>
+struct DivePrep : boost::statechart::state<DivePrep, Dive>,
+                  Notify<DivePrep, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
+                         protobuf::SETPOINT_STOP>
 {
-    using StateBase = boost::statechart::state<PrePoweredDescent, Dive>;
-    PrePoweredDescent(typename StateBase::my_context c);
-    ~PrePoweredDescent();
+    using StateBase = boost::statechart::state<DivePrep, Dive>;
+    DivePrep(typename StateBase::my_context c);
+    ~DivePrep();
 
     void loop(const EvLoop&);
+    void pitch(const EvVehiclePitch& ev);
 
     using reactions = boost::mpl::list<
-        boost::statechart::in_state_reaction<EvLoop, PrePoweredDescent, &PrePoweredDescent::loop>,
-        boost::statechart::transition<EvPrePoweredDescentComplete, PoweredDescent>>;
+        boost::statechart::in_state_reaction<EvLoop, DivePrep, &DivePrep::loop>,
+        boost::statechart::transition<EvDivePrepComplete, PoweredDescent>,
+        boost::statechart::in_state_reaction<EvVehiclePitch, DivePrep, &DivePrep::pitch>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     goby::time::MicroTime duration_{0 * boost::units::si::seconds};
     // determines when to transition into powered descent
-    goby::time::SteadyClock::time_point pre_powered_descent_timeout_;
+    goby::time::SteadyClock::time_point dive_prep_timeout_;
+    // keep check of current bot angle for pitch
+    int pitch_angle_check_incr_{0};
+    goby::time::MicroTime last_pitch_dive_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct PoweredDescent
@@ -1573,7 +1597,7 @@ struct PoweredDescent
     goby::time::MicroTime duration_correction_{0 * boost::units::si::seconds};
 
     // keep track of the depth changes so we can detect if we've hit the seafloor
-    boost::units::quantity<boost::units::si::length> last_depth_;
+    boost::units::quantity<boost::units::si::length> last_depth_{0};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
     // keep track of dive information
@@ -1582,6 +1606,7 @@ struct PoweredDescent
     goby::time::SteadyClock::time_point detect_bottom_logic_init_timeout_;
     // determines when to safely timout of powered descent and transition into unpowered ascent
     goby::time::SteadyClock::time_point powered_descent_timeout_;
+    bool bot_is_diving_{false};
 };
 
 struct Hold
@@ -1635,11 +1660,16 @@ struct UnpoweredAscent
                                              &UnpoweredAscent::depth>>;
 
   private:
-    goby::time::SteadyClock::time_point timeout_stop_;
+    goby::time::MicroTime detect_depth_changes_init_timeout_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
     //Keep track of dive information
     jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug_;
+    // keep track of the depth changes so we can detect if we are stuck
+    boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
+    goby::time::MicroTime last_depth_change_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct PoweredAscent
@@ -1653,15 +1683,19 @@ struct PoweredAscent
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
+    void pitch(const EvVehiclePitch& ev);
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, PoweredAscent, &PoweredAscent::loop>,
-        boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>>;
+        boost::statechart::transition<EvDiveRising, UnpoweredAscent>,
+        boost::statechart::transition<EvBotNotVertical, ReacquireGPS>,
+        boost::statechart::in_state_reaction<EvVehicleDepth, PoweredAscent, &PoweredAscent::depth>,
+        boost::statechart::in_state_reaction<EvVehiclePitch, PoweredAscent, &PoweredAscent::pitch>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
-    //Keep track of dive information
+    // keep track of dive information
     jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug_;
     // determines when to turn on motor during powered ascent
     goby::time::SteadyClock::time_point powered_ascent_motor_on_timeout_;
@@ -1675,6 +1709,15 @@ struct PoweredAscent
         std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
     // determines wehn we are still in motor off mode
     bool in_motor_off_mode_{false};
+    // keep track of the depth changes so we can detect if we are stuck
+    boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
+    goby::time::MicroTime last_depth_change_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
+    double powered_ascent_throttle_{cfg().powered_ascent_throttle()};
+    // keep check of current bot angle for pitch
+    int pitch_angle_check_incr_{0};
+    goby::time::MicroTime last_pitch_dive_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
 
 struct ReacquireGPS
