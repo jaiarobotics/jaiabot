@@ -47,6 +47,7 @@ std::map<std::string, jaiabot::protobuf::Error> create_process_to_not_responding
     }
     // only explicitly list external apps; apps built in this repo are added via -DJAIABOT_HEALTH_PROCESS_MAP_ENTRIES
     return {MAKE_ENTRY(GOBYD),
+            MAKE_ENTRY(GOBY_INTERVEHICLE_PORTAL),
             MAKE_ENTRY(GOBY_LIAISON),
             MAKE_ENTRY(GOBY_GPS),
             MAKE_ENTRY(GOBY_LOGGER),

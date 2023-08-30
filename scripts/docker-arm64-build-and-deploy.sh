@@ -31,6 +31,21 @@ fi
 echo "🟢 Building jaiabot apps"
 docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t build_system bash -c "./scripts/arm64-build.sh"
 
+# Define what values to read in the runtime.env
+read_runtime_content=$(cat << 'END_SCRIPT'
+#!/bin/bash
+
+# Read the runtime.env file
+source /etc/jaiabot/runtime.env
+
+# Print the extracted values
+echo "jaia_bot_index=$jaia_bot_index"
+echo "jaia_hub_index=$jaia_hub_index"
+echo "jaia_electronics_stack=$jaia_electronics_stack"
+echo "jaia_fleet_index=$jaia_fleet_index"
+END_SCRIPT
+)
+
 if [ -z "$1" ]
 then
     echo "             -----------"
@@ -38,13 +53,34 @@ then
 else
     for var in "$@"
     do
-    	echo "🟢 Uploading to "$var
-	rsync -zaP --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ${botuser}@"$var":/home/${botuser}/jaiabot/
+        echo "🟢 Uploading to "$var
+        rsync -zaP --force --relative --exclude node_modules/ ./src/web ./src/lib ./src/python ./build/arm64/bin ./build/arm64/lib ./build/arm64/include ./build/arm64/share/ ./config ./scripts ./src/arduino ${botuser}@"$var":/home/${botuser}/jaiabot/
 
         if [ ! -z "$jaiabot_systemd_type" ]; then
    	    echo "🟢 Installing and enabling systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
             ssh ${botuser}@"$var" "bash -c 'sudo apt-get -y remove jaiabot-embedded'"
-            ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --enable'"
+            
+            # SSH command to execute
+            ssh_command="ssh ${botuser}@$var"
+
+            # Run the SSH command with process substitution and pass the script content
+            runtime_output=$($ssh_command "bash -s" <<< "$read_runtime_content")
+
+            echo "$runtime_output"
+
+            # Process the runtime output as needed
+            # Extract the values using awk
+            jaia_bot_index=$(echo "$runtime_output" | awk -F'=' '/jaia_bot_index=/{print $2}')
+            jaia_hub_index=$(echo "$runtime_output" | awk -F'=' '/jaia_hub_index=/{print $2}')
+            jaia_electronics_stack=$(echo "$runtime_output" | awk -F'=' '/jaia_electronics_stack=/{print $2}')
+            jaia_fleet_index=$(echo "$runtime_output" | awk -F'=' '/jaia_fleet_index=/{print $2}')
+
+            if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
+                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --enable'"
+            else
+                ssh ${botuser}@"$var" "bash -c 'cd /home/${botuser}/jaiabot/config/gen; ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led --enable'"
+            fi
+
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/'"
             ssh ${botuser}@"$var" "bash -c 'sudo cp /home/${botuser}/jaiabot/scripts/75-jaiabot-status /usr/local/bin/jaiabot-status'"
             ssh ${botuser}@"$var" "bash -c '/usr/bin/python3 -m venv /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv; source /home/${botuser}/jaiabot/build/arm64/share/jaiabot/python/venv/bin/activate; python3 -m pip install wheel; python3 -m pip install -r /usr/share/jaiabot/python/requirements.txt'"          

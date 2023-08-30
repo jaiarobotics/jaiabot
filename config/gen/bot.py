@@ -57,7 +57,8 @@ bot_status_period=(bot_index * 10) + 1000
 node_id=common.bot.bot_index_to_node_id(bot_index)
 
 verbosities = \
-{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
+{ 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -66,7 +67,7 @@ verbosities = \
   'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'VERBOSE' }},
   'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -124,10 +125,14 @@ if common.app == 'gobyd':
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     link_block=link_block,
-                                     persist_subscriptions='', # no persistent subscriptions on the bot as we get our subscriptions from the hub whenever we subscribe to the hub
-                                     required_clients='required_client: "gobyd" required_client: "jaiabot_fusion" required_client: "jaiabot_mission_manager" required_client: "jaiabot_engineering"' # these are all required in the gobyd "hold" so that the initial hub info isn't published before they're ready (allowing persist to disk of last hub in use)
+                                     required_clients='required_client: "gobyd" required_client: "jaiabot_fusion" required_client: "jaiabot_mission_manager" required_client: "jaiabot_engineering" required_client: "goby_intervehicle_portal"' # these are all required in the gobyd "hold" so that the initial hub info isn't published before they're ready (allowing persist to disk of last hub in use)
                                      ))
+elif common.app == 'goby_intervehicle_portal':    
+    print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     persist_subscriptions='', # no persistent subscriptions on the bot as we get our subscriptions from the hub whenever we subscribe to the hub
+                                     link_block=link_block))
 elif common.app == 'goby_coroner':    
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,

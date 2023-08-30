@@ -1,7 +1,8 @@
 import React from 'react'
 import Icon from '@mdi/react'
-import { PanelType } from './CommandControl';
-import { mdiClose } from '@mdi/js';
+import { mdiClose } from '@mdi/js'
+
+import { PanelType } from './CommandControl'
 import '../style/components/RunInfoPanel.css'
 
 interface Props {
