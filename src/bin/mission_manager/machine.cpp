@@ -592,7 +592,6 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     dive_pdescent_debug_.set_last_depth(last_depth_.value());
     dive_pdescent_debug_.set_last_depth_change_time(last_depth_change_time_.value());
     dive_pdescent_debug_.set_bottoming_timeout_with_units(cfg().bottoming_timeout_with_units());
-    dive_pdescent_debug_.set_current_time(now.value());
 
     glog.is_debug1() &&
         glog << "if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) < "
@@ -749,7 +748,6 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
 
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
 
-    dive_hold_debug_.set_current_time(now.time_since_epoch().count());
     dive_hold_debug_.set_hold_timeout(hold_stop_.time_since_epoch().count());
 
     glog.is_debug2() && glog << "if (now >= hold_stop_): " << (now >= hold_stop_)
