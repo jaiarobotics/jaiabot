@@ -21,7 +21,6 @@ import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
-import { getRallyStyle } from './shared/Styles'
 import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
@@ -36,13 +35,14 @@ import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
 import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
 import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
+import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
 
 
-// Openlayers
+// OpenLayers
 import OlMap from 'ol/Map'
 import OlFeature from 'ol/Feature'
 import OlCollection from 'ol/Collection'
@@ -182,6 +182,8 @@ interface State {
 
 	taskPacketType: string,
 	taskPacketData: {[key: string]: string},
+	selectedTaskPacketFeature: OlFeature,
+	taskPacketIntervalId: NodeJS.Timeout,
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -304,6 +306,8 @@ export default class CommandControl extends React.Component {
 
 			taskPacketType: '',
 			taskPacketData: {},
+			selectedTaskPacketFeature: null,
+			taskPacketIntervalId: null,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -1552,11 +1556,17 @@ export default class CommandControl extends React.Component {
 			// Clicked on dive task packet
 			const isDivePacket = feature.get('type') === 'dive'
 			if (isDivePacket) {
+				if (this.state.selectedTaskPacketFeature) {
+					this.unselectTaskPacket()
+				}
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
 					depth_achieved: feature.get('depthAchieved'),
 					dive_rate: feature.get('diveRate')
 				}
+
+				this.setTaskPacketInterval(feature)
+
 				this.setState({
 					taskPacketType: feature.get('type'),
 					taskPacketData: taskPacketData
@@ -1567,10 +1577,17 @@ export default class CommandControl extends React.Component {
 			// Clicked on drift task packet
 			const isDriftPacket = feature.get('type') === 'drift'
 			if (isDriftPacket) {
+				if (this.state.selectedTaskPacketFeature) {
+					this.unselectTaskPacket()
+				}
+
 				const taskPacketData = {
 					duration: feature.get('duration'),
 					speed: feature.get('speed')
 				}
+
+				this.setTaskPacketInterval(feature)
+
 				this.setState({
 					taskPacketType: feature.get('type'),
 					taskPacketData: taskPacketData
@@ -1793,6 +1810,59 @@ export default class CommandControl extends React.Component {
 	//
 
 	// 
+	// Task Packets (Start)
+	// 
+	updateTaskPacketLayer() {
+		const feature = this.state.selectedTaskPacketFeature
+		if (!feature) {
+			return
+		}
+
+		const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+
+		if (feature.get('animated')) {
+			feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+		} else {
+			feature.setStyle(styleFunction(feature, 'black'))
+		}
+		feature.set('animated', !feature.get('animated'))
+	}
+
+	unselectTaskPacket() {
+		const features = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		for (const feature of features) {
+			if (feature.get('selected')) {
+				feature.set('selected', false)
+				// Reset style
+				const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+				feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+			}
+		}
+		clearInterval(this.state.taskPacketIntervalId)
+		this.setState({ selectedTaskPacketFeature: null })
+	}
+
+	setTaskPacketInterval(selectedFeature: Feature) {
+		const taskPacketFeatures = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		const styleFunction = selectedFeature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+		for (const taskPacketFeature of taskPacketFeatures) {
+			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
+				selectedFeature.set('selected', true)
+				selectedFeature.setStyle(styleFunction(selectedFeature, 'black'))
+				selectedFeature.set('animated', !selectedFeature.get('animated'))
+				// Start interval that sets the style
+				const taskPacketIntervalId = setInterval(() => {
+					this.updateTaskPacketLayer()
+				}, 1000)
+				this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId })
+			}
+		}
+	}
+	// 
+	// Task Packets (End)
+	// 
+
+	// 
 	// RC Mode (Start)
 	// 
 	isRCModeActive(botId: number) {
@@ -1990,8 +2060,7 @@ export default class CommandControl extends React.Component {
 
 	// 
 	// Command Drawer (Start)
-	// 
-
+	//
 	commandDrawer() {
 		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
 
@@ -2204,6 +2273,10 @@ export default class CommandControl extends React.Component {
 
 			default:
 				break;
+		}
+		// Clean up in case a task packet was selected and the user clicked to open a different panel
+		if (panelType !== 'TASK_PACKET') {
+			this.unselectTaskPacket()
 		}
 
 		this.setState({ visiblePanel: panelType })

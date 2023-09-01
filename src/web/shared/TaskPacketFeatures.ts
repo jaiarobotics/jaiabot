@@ -1,11 +1,14 @@
-import { DriftPacket, DivePacket, TaskPacket } from './JAIAProtobuf'
+import { DivePacket, DriftPacket, TaskPacket } from './JAIAProtobuf'
 import { createMarker } from './Marker'
+
+import VectorLayer from 'ol/layer/Vector'
+import VectorSource from 'ol/source/Vector'
+import { Geometry, LineString } from 'ol/geom'
 import { fromLonLat } from 'ol/proj.js'
-import { LineString } from 'ol/geom'
 import { Feature } from 'ol'
 import { Map } from 'ol'
+
 import * as Styles from "./Styles"
-    
 
 function createDriftPacketFeature(map: Map, drift: DriftPacket) {
     const projection = map.getView().getProjection()
@@ -15,18 +18,51 @@ function createDriftPacketFeature(map: Map, drift: DriftPacket) {
     const feature = new Feature({geometry: new LineString(coordinates)})
     feature.setProperties({
         'type': 'drift',
+        'id': Math.random(),
         'duration': drift?.drift_duration, // (s)
-        'speed': drift?.estimated_drift?.speed // (m/s)
+        'speed': drift?.estimated_drift?.speed, // (m/s)
+        'startLocationLat': drift.start_location.lat,
+        'startLocationLon': drift.start_location.lon,
+        'selected': false,
+        'animated': false
     })
-    feature.setStyle(Styles.driftArrow)
+    feature.setStyle(Styles.driftPacketIconStyle(feature))
     return feature
 }
 
-export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
-    const features = []
+function createDivePacketFeature(map: Map, dive: DivePacket) {
+    const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
+    feature.setProperties({
+        'type': 'dive',
+        'id': Math.random(),
+        'depthAchieved': dive.depth_achieved, // (m)
+        'diveRate': dive.dive_rate, // (m/s)
+        'startLocationLat': dive.start_location.lat,
+        'startLocationLon': dive.start_location.lon,
+        'selected': false,
+        'animated': false
+    })
+    feature.setStyle(Styles.divePacketIconStyle(feature))
+    return feature
+}
+
+export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, index: number) {
+    const features: any[] = []
+    let selectedFeature = null
+
+    // Add the selected feature to the features[]
+    const currentFeatures = taskPacketLayer.getSource().getFeatures()
+    for (const feature of currentFeatures) {
+        if (feature.get('selected')) {
+            selectedFeature = feature
+            // Index used to prevent duplicate feature from being added to layer (OpenLayers throws error for duplicate features)
+            if (index === 0) {
+                features.push(feature)
+            }
+        }
+    }
 
     if (taskPacket?.drift != undefined) {
-        // Drift markers
         const drift = taskPacket.drift
 
         if (
@@ -40,31 +76,30 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket) {
             drift?.end_location?.lon != undefined
 
         ) {
-            features.push(createDriftPacketFeature(map, drift))
+            if (selectedFeature?.get('startLocationLat') == drift.start_location.lat && selectedFeature?.get('startLocationLon') == drift.start_location.lon) {
+                // Drfit feature is the selected feature...adding it again would disrupt the flashing animation
+            } else {
+                features.push(createDriftPacketFeature(map, drift))
+            }
         }
     }
 
     if (taskPacket?.dive != undefined) {
-        // Dive markers
         const dive = taskPacket.dive
 
         if (
             dive?.bottom_dive != undefined &&
             dive?.start_location != undefined &&
             dive?.start_location?.lat != undefined &&
-            dive?.start_location?.lon != undefined
+            dive?.start_location?.lon != undefined &&
+            dive?.depth_achieved != 0
         ) {
-            if (dive.depth_achieved != 0) {
-                const diveFeature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat, style: Styles.divePacket(dive)})
-                diveFeature.setProperties({
-                    'type': 'dive',
-                    'depthAchieved': dive?.depth_achieved, // (m)
-                    'diveRate': dive?.dive_rate // (m/s)
-                })
-                features.push(diveFeature)
+            if (selectedFeature?.get('startLocationLat') == dive.start_location.lat && selectedFeature?.get('startLocationLon') == dive.start_location.lon) {
+                // Dive feature is the selected feature...adding it again would disrupt the flashing animation
+            } else {
+                features.push(createDivePacketFeature(map, dive))
             }
         }
     }
-
     return features
 }
