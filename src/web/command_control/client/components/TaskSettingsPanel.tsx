@@ -159,19 +159,19 @@ function TaskOptionsPanel(props: Props) {
                         <tbody>
                             <tr className="task-param-container">
                                 <td className="task-label">Max Depth</td>
-                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} />m</td>
+                                <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} />m</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Depth Interval</td>
-                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} />m</td>
+                                <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} />m</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Hold Time</td>
-                                <td className="input-row dive-time"><input type="number" step="1" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} />s</td>
+                                <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} />s</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
+                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
                             </tr>
                         </tbody>
                     </table>
