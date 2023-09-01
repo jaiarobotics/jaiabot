@@ -6,7 +6,7 @@ import '../style/components/TaskPacketPanel.css'
 
 interface Props {
     type: string
-    taskPacketData: {[key: string]: string}
+    taskPacketData: {[key: string]: {[key: string]: string}}
     setVisiblePanel: (panelType: PanelType) => void
 }
 
@@ -19,7 +19,8 @@ export function TaskPacketPanel(props: Props) {
     const taskPacketValues = Object.values(taskPacketData)
     for (let i = 0; i < taskPacketKeys.length; i++) {
         taskPacketArray.push({'type': 'key', 'val': taskPacketKeys[i]})
-        taskPacketArray.push({'type': 'value', 'val': taskPacketValues[i]})
+        taskPacketArray.push({'type': 'value', 'val': taskPacketValues[i].value})
+        taskPacketArray.push({'type': 'units', 'val': taskPacketValues[i].units})
         taskPacketArray.push({'type': 'line-break'})
     }
 
@@ -42,8 +43,10 @@ export function TaskPacketPanel(props: Props) {
                             return <div className="task-packet-label">{label}:</div>
                         } else if (item.type === 'value') {
                             return <div className="task-packet-input">{item.val}</div>
+                        } else if (item.type === 'units') {
+                            return <div className="task-packet-units">{item.val}</div>
                         }
-                            return <div className="task-packet-line-break"></div>
+                        return <div className="task-packet-line-break"></div>
                         })}
                     </div>
                 </div>

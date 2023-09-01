@@ -181,7 +181,7 @@ interface State {
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 
 	taskPacketType: string,
-	taskPacketData: {[key: string]: string},
+	taskPacketData: {[key: string]: {[key: string]: string}},
 	selectedTaskPacketFeature: OlFeature,
 	taskPacketIntervalId: NodeJS.Timeout,
 
@@ -1480,14 +1480,17 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 			const botId = feature.get('botId')
 			
-			// Check to make sure the waypoint is not part of an active run
-			const runs = this.state.runList.runs
-			for (const runIndex of Object.keys(runs)) {
-				const run = runs[runIndex]
-				if (run.assigned === botId) {
-					if (!run.canEdit) {
-						warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
-						return false
+			// Allow an operator to click on a task packet while edit mode is off
+			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
+				// Check to make sure the feature selected is not tied to a bot performing a run
+				const runs = this.state.runList.runs
+				for (const runIndex of Object.keys(runs)) {
+					const run = runs[runIndex]
+					if (run.assigned === botId) {
+						if (!run.canEdit) {
+							warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
+							return false
+						}
 					}
 				}
 			}
@@ -1561,8 +1564,9 @@ export default class CommandControl extends React.Component {
 				}
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
-					depth_achieved: feature.get('depthAchieved'),
-					dive_rate: feature.get('diveRate')
+					bot_id: {value: feature.get('botId'), units: ''},
+					depth_achieved: {value: feature.get('depthAchieved'), units: 'm'},
+					dive_rate: {value: feature.get('diveRate'), units: 'm/s'}
 				}
 
 				this.setTaskPacketInterval(feature)
@@ -1582,8 +1586,10 @@ export default class CommandControl extends React.Component {
 				}
 
 				const taskPacketData = {
-					duration: feature.get('duration'),
-					speed: feature.get('speed')
+					// Snake case used for string parsing in task packet panel
+					bot_id: {value: feature.get('botId'), units: ''},
+					duration: {value: feature.get('duration'), units: 's'},
+					speed: {value: feature.get('speed'), units: 'm/s'}
 				}
 
 				this.setTaskPacketInterval(feature)
