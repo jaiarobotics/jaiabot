@@ -186,7 +186,7 @@ export class TaskData {
             }
 
             const taskPacketLayer = taskData.taskPacketInfoLayer
-            const taskPacketFeatures = taskPackets.map((taskPacket, index) => createTaskPacketFeatures(this.map, taskPacket, taskPacketLayer, this.calculateDiveDrift, index)).flat()
+            const taskPacketFeatures = taskPackets.map((taskPacket, index) => createTaskPacketFeatures(this.map, taskPacket, taskPacketLayer, index, this.calculateDiveDrift)).flat()
 
             this.taskPacketInfoLayer.getSource().clear()
             this.taskPacketInfoLayer.getSource().addFeatures(taskPacketFeatures)

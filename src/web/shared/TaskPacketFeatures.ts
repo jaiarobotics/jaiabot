@@ -60,7 +60,7 @@ function createDivePacketFeature(map: Map, dive: DivePacket, botId: number, star
     return feature
 }
 
-export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, makeTaskPacketCalculations: (taskPacket: TaskPacket) => TaskPacketCalcResults, index: number) {
+export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, index: number, makeTaskPacketCalculations?: (taskPacket: TaskPacket) => TaskPacketCalcResults) {
     const features: any[] = []
     let selectedFeature = null
 
@@ -97,7 +97,7 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskP
             ) {
                 // Drfit feature is the selected feature...adding it again would disrupt the flashing animation
             } else {
-                const driftDirection = makeTaskPacketCalculations(taskPacket)?.driftDirection
+                const driftDirection = makeTaskPacketCalculations ? makeTaskPacketCalculations(taskPacket)?.driftDirection : 0
                 features.push(createDriftPacketFeature(map, drift, taskPacket?.bot_id, taskPacket?.start_time, taskPacket?.end_time, driftDirection))
             }
         }
