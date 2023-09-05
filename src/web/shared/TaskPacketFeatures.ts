@@ -1,4 +1,5 @@
 import { DivePacket, DriftPacket, TaskPacket } from './JAIAProtobuf'
+import { GeographicCoordinate } from './JAIAProtobuf'
 import { createMarker } from './Marker'
 
 import VectorLayer from 'ol/layer/Vector'
@@ -10,7 +11,13 @@ import { Map } from 'ol'
 
 import * as Styles from "./Styles"
 
-function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number, startTime: number) {
+interface TaskPacketCalcResults {
+    dive_location?: GeographicCoordinate;
+    driftSpeed: number;
+    driftDirection: number;
+}
+
+function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number, startTime: number, endTime: number, driftDirection: number) {
     const projection = map.getView().getProjection()
     const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
     const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
@@ -21,8 +28,11 @@ function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number, s
         'id': Math.random(),
         'duration': drift.drift_duration, // (s)
         'speed': drift.estimated_drift?.speed, // (m/s)
+        'driftDirection': driftDirection,
+        'sigWaveHeight': drift?.significant_wave_height,
         'botId': botId,
         'startTime': startTime,
+        'endTime': endTime,
         'startLocation': drift.start_location,
         'selected': false,
         'animated': false
@@ -31,15 +41,17 @@ function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number, s
     return feature
 }
 
-function createDivePacketFeature(map: Map, dive: DivePacket, botId: number, startTime: number) {
+function createDivePacketFeature(map: Map, dive: DivePacket, botId: number, startTime: number, endTime: number) {
     const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
     feature.setProperties({
         'type': 'dive',
         'id': Math.random(),
         'depthAchieved': dive.depth_achieved, // (m)
         'diveRate': dive.dive_rate, // (m/s)
+        'bottomDive': dive.bottom_dive,
         'botId': botId,
         'startTime': startTime,
+        'endTime': endTime,
         'startLocation': dive.start_location,
         'selected': false,
         'animated': false
@@ -48,7 +60,7 @@ function createDivePacketFeature(map: Map, dive: DivePacket, botId: number, star
     return feature
 }
 
-export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, index: number) {
+export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, makeTaskPacketCalculations: (taskPacket: TaskPacket) => TaskPacketCalcResults, index: number) {
     const features: any[] = []
     let selectedFeature = null
 
@@ -85,7 +97,8 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskP
             ) {
                 // Drfit feature is the selected feature...adding it again would disrupt the flashing animation
             } else {
-                features.push(createDriftPacketFeature(map, drift, taskPacket?.bot_id, taskPacket?.start_time))
+                const driftDirection = makeTaskPacketCalculations(taskPacket)?.driftDirection
+                features.push(createDriftPacketFeature(map, drift, taskPacket?.bot_id, taskPacket?.start_time, taskPacket?.end_time, driftDirection))
             }
         }
     }
@@ -107,7 +120,7 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskP
             ) {
                 // Dive feature is the selected feature...adding it again would disrupt the flashing animation
             } else {
-                features.push(createDivePacketFeature(map, dive, taskPacket?.bot_id, taskPacket?.start_time))
+                features.push(createDivePacketFeature(map, dive, taskPacket?.bot_id, taskPacket?.start_time, taskPacket?.end_time))
             }
         }
     }

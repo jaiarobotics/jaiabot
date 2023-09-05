@@ -1562,11 +1562,17 @@ export default class CommandControl extends React.Component {
 				if (this.state.selectedTaskPacketFeature) {
 					this.unselectTaskPacket()
 				}
+
+				const startTime = new Date(feature.get('endTime'))
+				const endTime = new Date(feature.get('endTime'))
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
 					bot_id: {value: feature.get('botId'), units: ''},
 					depth_achieved: {value: feature.get('depthAchieved'), units: 'm'},
-					dive_rate: {value: feature.get('diveRate'), units: 'm/s'}
+					dive_rate: {value: feature.get('diveRate'), units: 'm/s'},
+					bottom_dive: {value: feature.get('bottomDive') ? 'Yes': 'No', units: ''},
+					start_time: {value: startTime.toLocaleTimeString('it-IT'), units: ''},
+					end_time: {value: endTime.toLocaleTimeString('it-IT'), units: ''}
 				}
 
 				this.setTaskPacketInterval(feature)
@@ -1585,11 +1591,17 @@ export default class CommandControl extends React.Component {
 					this.unselectTaskPacket()
 				}
 
+				const startTime = new Date(feature.get('startTime'))
+				const endTime = new Date(feature.get('endTIme'))
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
 					bot_id: {value: feature.get('botId'), units: ''},
 					duration: {value: feature.get('duration'), units: 's'},
-					speed: {value: feature.get('speed'), units: 'm/s'}
+					speed: {value: feature.get('speed'), units: 'm/s'},
+					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
+					sig_wave_heigt: {value: feature.get('sigWaveHeight'), units: 'm'},
+					start_time: {value: startTime.toLocaleTimeString('it-IT'), units: ''},
+					end_time: {value: endTime.toLocaleTimeString('it-IT'), units: ''}
 				}
 
 				this.setTaskPacketInterval(feature)
