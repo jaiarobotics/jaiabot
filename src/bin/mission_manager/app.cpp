@@ -698,11 +698,11 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             for (auto goal : command.plan().goal())
             {
                 if (goal.task().dive().max_depth() >
-                    60) //protobuf::MissionTask::DiveParameters::descriptor()
-                        //    ->FindFieldByName("max_depth")
-                        //    ->options()
-                        //    .GetExtension(dccl::field)
-                        //    .max())
+                    protobuf::MissionTask::DiveParameters::descriptor()
+                        ->FindFieldByName("max_depth")
+                        ->options()
+                        .GetExtension(dccl::field)
+                        .max())
                 {
                     goal_depth_infeasible = true;
                 }
