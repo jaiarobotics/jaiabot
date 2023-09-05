@@ -10,7 +10,7 @@ import { Map } from 'ol'
 
 import * as Styles from "./Styles"
 
-function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number) {
+function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number, startTime: number) {
     const projection = map.getView().getProjection()
     const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
     const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
@@ -22,8 +22,8 @@ function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number) {
         'duration': drift.drift_duration, // (s)
         'speed': drift.estimated_drift?.speed, // (m/s)
         'botId': botId,
-        'startLocationLat': drift.start_location.lat,
-        'startLocationLon': drift.start_location.lon,
+        'startTime': startTime,
+        'startLocation': drift.start_location,
         'selected': false,
         'animated': false
     })
@@ -31,7 +31,7 @@ function createDriftPacketFeature(map: Map, drift: DriftPacket, botId: number) {
     return feature
 }
 
-function createDivePacketFeature(map: Map, dive: DivePacket, botId: number) {
+function createDivePacketFeature(map: Map, dive: DivePacket, botId: number, startTime: number) {
     const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
     feature.setProperties({
         'type': 'dive',
@@ -39,8 +39,8 @@ function createDivePacketFeature(map: Map, dive: DivePacket, botId: number) {
         'depthAchieved': dive.depth_achieved, // (m)
         'diveRate': dive.dive_rate, // (m/s)
         'botId': botId,
-        'startLocationLat': dive.start_location.lat,
-        'startLocationLon': dive.start_location.lon,
+        'startTime': startTime,
+        'startLocation': dive.start_location,
         'selected': false,
         'animated': false
     })
@@ -78,10 +78,14 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskP
             drift?.end_location?.lon != undefined
 
         ) {
-            if (selectedFeature?.get('startLocationLat') == drift.start_location.lat && selectedFeature?.get('startLocationLon') == drift.start_location.lon) {
+            if (
+                selectedFeature?.get('startTime') === taskPacket?.start_time &&
+                selectedFeature?.get('startLocation')?.lat === drift.start_location.lat &&
+                selectedFeature?.get('startLocation')?.lon === drift.start_location.lon
+            ) {
                 // Drfit feature is the selected feature...adding it again would disrupt the flashing animation
             } else {
-                features.push(createDriftPacketFeature(map, drift, taskPacket?.bot_id))
+                features.push(createDriftPacketFeature(map, drift, taskPacket?.bot_id, taskPacket?.start_time))
             }
         }
     }
@@ -96,10 +100,14 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskP
             dive?.start_location?.lon != undefined &&
             dive?.depth_achieved != 0
         ) {
-            if (selectedFeature?.get('startLocationLat') == dive.start_location.lat && selectedFeature?.get('startLocationLon') == dive.start_location.lon) {
+            if (
+                selectedFeature?.get('startTime') === taskPacket?.start_time &&
+                selectedFeature?.get('startLocation')?.lat === dive.start_location.lat &&
+                selectedFeature?.get('startLocation')?.lon === dive.start_location.lon
+            ) {
                 // Dive feature is the selected feature...adding it again would disrupt the flashing animation
             } else {
-                features.push(createDivePacketFeature(map, dive, taskPacket?.bot_id))
+                features.push(createDivePacketFeature(map, dive, taskPacket?.bot_id, taskPacket?.start_time))
             }
         }
     }
