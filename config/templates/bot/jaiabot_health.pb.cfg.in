@@ -16,6 +16,15 @@ arduino {
 }
 
 linux_hw {
+    disk_low_available_percentage: 10
+    disk_critical_available_percentage: 2
+
+    ram_low_available_percentage: 10
+    ram_critical_available_percentage: 1
+
+    high_load_factor: 0.9
+    critical_load_factor: 5
+
     wireless_file: "/proc/net/wireless"
     wlan_interface: "wlan0"
 }
