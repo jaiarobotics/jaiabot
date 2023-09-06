@@ -321,14 +321,12 @@ export function getRallyStyle(rallyFeatureCount: number) {
 }
 
 // Markers for dives
-export function divePacket(dive: DivePacket) {
-
+export function divePacketIconStyle(feature: Feature, animationColor?: string) {
     // Depth text
-    var text = dive.depth_achieved?.toFixed(1)
+    let text = feature.get('depthAchieved') ? feature.get('depthAchieved').toFixed(1) : null
     if (text != null) {
         text = text + 'm'
-    }
-    else {
+    } else {
         text = ''
     }
 
@@ -338,7 +336,7 @@ export function divePacket(dive: DivePacket) {
     return new Style({
         image: new Icon({
             src: bottomStrike,
-            color: color
+            color: animationColor ? animationColor : color
         }),
         text: new Text({
             text: String(text),
@@ -347,8 +345,8 @@ export function divePacket(dive: DivePacket) {
                 color: 'white'
             }),
             stroke: new Stroke({
-                color: 'black', // Outline color
-                width: 3 // Outline width
+                color: 'black',
+                width: 3
             }),
             offsetY: 20
         })
@@ -457,8 +455,8 @@ export function missionPath(feature: Feature) {
     return styles
 }
 
-// The drift task linestring
-export function driftArrow(feature: Feature) {
+// Drift task linestring
+export function driftPacketIconStyle(feature: Feature, animationColor?: string) {
     const color = driftArrowColor
 
     const geometry = feature.getGeometry() as LineString
@@ -472,7 +470,7 @@ export function driftArrow(feature: Feature) {
         new Style({
             stroke: new Stroke({
                 width: 4,
-                color: color
+                color: animationColor ? animationColor : color
             })
         })
     ]
@@ -491,7 +489,7 @@ export function driftArrow(feature: Feature) {
                     anchor: [0, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
-                    color: color,
+                    color: animationColor ? animationColor : color
                 }),
                 zIndex: 1
             })
