@@ -4,7 +4,7 @@ import logging
 import copy
 import bisect
 from typing import *
-from datetime import datetime
+from datetime import *
 import statistics
 
 
@@ -41,8 +41,8 @@ class Series:
     y_values: List[float]
     hovertext: dict
 
-    def __init__(self) -> None:
-        self.name = ''
+    def __init__(self, name: str = None) -> None:
+        self.name = name or ''
         self.utime = []
         self.y_values = []
         self.hovertext = {}
@@ -67,6 +67,10 @@ class Series:
         except IndexError:
             duration = 0
         return f'<Series "{self.name}" values={len(self.utime)} duration={duration / 1e6:0.02f} sec>'
+
+    def append(self, utime: float, value: float):
+        self.utime.append(utime)
+        self.y_values.append(value)
 
     def sort(self):
         if len(self.utime) > 0 and len(self.y_values) > 0:
@@ -172,6 +176,8 @@ class Series:
 
     def duration(self):
         datetimeList = self.datetimes()
+        if len(datetimeList) < 1:
+            return timedelta(0)
         return datetimeList[-1] - datetimeList[0]
     
 
