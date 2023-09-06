@@ -81,51 +81,47 @@ def getUniformSeries(freq: float):
         
         for utime in floatRange(series.utime[0] + 1, series.utime[-1], 1e6 / freq):
             newSeries.utime.append(utime)
-            newSeries.y_values.append(series.getValueAtTime(utime))
+            newSeries.y_values.append(series.getValueAtTime(utime, interpolate=True))
         return newSeries
     
     return f
 
 
-def fadeSeries(startGap: float, endGap: float=None, fadePeriod: float=2e6):
+def fadeSeries(series: Series, startGap: float, endGap: float=None, fadePeriod: float=2e6):
     '''Slice and fade a series in and out.  Times are in microseconds.'''
 
     endGap = endGap or 0
 
-    def f(series: Series):
-        '''Returns a new Series object with the first startTime chopped off.'''
-        newSeries = Series()
+    newSeries = Series()
 
-        if len(series.utime) == 0:
-            return newSeries
-
-        startTimeAbsolute = series.utime[0] + startGap
-        startFadeEndTime = startTimeAbsolute + fadePeriod
-        
-        endTimeAbsolute = series.utime[-1] - endGap
-        endFadeStartTime = endTimeAbsolute - fadePeriod
-
-        for index in range(len(series.utime)):
-            t = series.utime[index]
-
-            # Outside slice range
-            if t < startTimeAbsolute or t > endTimeAbsolute:
-                continue
-
-            # Fade range
-            k = 1
-
-            if t < startFadeEndTime:
-                k *= ((cos((startFadeEndTime - t) * (pi) / (fadePeriod)) + 1) / 2)
-            elif t > endFadeStartTime:
-                k *= ((cos((t - endFadeStartTime) * (pi) / (fadePeriod)) + 1) / 2)
-
-            newSeries.utime.append(t)
-            newSeries.y_values.append(k * series.y_values[index])
-
+    if len(series.utime) == 0:
         return newSeries
+
+    startTimeAbsolute = series.utime[0] + startGap
+    startFadeEndTime = startTimeAbsolute + fadePeriod
     
-    return f
+    endTimeAbsolute = series.utime[-1] - endGap
+    endFadeStartTime = endTimeAbsolute - fadePeriod
+
+    for index in range(len(series.utime)):
+        t = series.utime[index]
+
+        # Outside slice range
+        if t < startTimeAbsolute or t > endTimeAbsolute:
+            continue
+
+        # Fade range
+        k = 1
+
+        if t < startFadeEndTime:
+            k *= ((cos((startFadeEndTime - t) * (pi) / (fadePeriod)) + 1) / 2)
+        elif t > endFadeStartTime:
+            k *= ((cos((t - endFadeStartTime) * (pi) / (fadePeriod)) + 1) / 2)
+
+        newSeries.utime.append(t)
+        newSeries.y_values.append(k * series.y_values[index])
+
+    return newSeries
 
 
 def subtractMovingAverage(window: int):
@@ -176,47 +172,102 @@ def filterFrequencies(sampleFreq: float, filterFunc: Callable[[float], float]):
     return f
 
 
-def accelerationToElevation(sampleFreq: float, filterFunc: Callable[[float], float]):
-    def f(inputSeries: Series):
-        '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
-        if len(inputSeries.utime) == 0:
-            return Series()
+def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
+    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
+    if len(inputSeries.utime) == 0:
+        return Series()
 
-        A = numpy.fft.rfft(inputSeries.y_values)
-        n = len(A)
-        nyquist = sampleFreq / 2
+    A = numpy.fft.rfft(inputSeries.y_values)
+    n = len(A)
+    nyquist = sampleFreq / 2
 
-        if n % 2 == 0:
-            freqCoefficient = nyquist / n
-        else:
-            freqCoefficient = nyquist * (n - 1) / n / n
+    if n % 2 == 0:
+        freqCoefficient = nyquist / n
+    else:
+        freqCoefficient = nyquist * (n - 1) / n / n
 
-        for index in range(len(A)):
-            if index == 0: # Get rid of constant acceleration term
-                A[index] = 0
-                continue
+    for index in range(len(A)):
+        if index == 0: # Get rid of constant acceleration term
+            A[index] = 0
+            continue
 
-            freq = freqCoefficient * index
+        freq = freqCoefficient * index
 
-            A[index] *= filterFunc(freq)
+        A[index] *= filterFunc(freq)
 
-            A[index] /= (-(2 * pi * freq) ** 2) # Integrate acceleration to elevation series (integrate a sin curve twice)
+        A[index] /= (-(2 * pi * freq) ** 2) # Integrate acceleration to elevation series (integrate a sin curve twice)
 
-        a = numpy.fft.irfft(A)
-        series = Series()
-        series.utime = inputSeries.utime[:len(a)]
-        series.y_values = list(a)
+    a = numpy.fft.irfft(A)
+    series = Series()
+    series.utime = inputSeries.utime[:len(a)]
+    series.y_values = list(a)
 
-        if (len(series.utime) != len(series.y_values)):
-            print(len(series.utime), len(series.y_values))
-            exit(1)
+    if (len(series.utime) != len(series.y_values)):
+        print(f'ERROR: utime and y_values not of same length!')
+        print(len(series.utime), len(series.y_values))
+        exit(1)
 
-        return series
-
-    return f
+    return series
 
 
 def processSeries(series: Series, steps: List[ProcessingStep]):
     for step in steps:
         series = step(series)
     return series
+
+def deMean(series: Series):
+    newSeries = Series()
+
+    if len(series.utime) == 0:
+        return newSeries
+
+    y_mean = statistics.mean(series.y_values)
+    newSeries.utime = series.utime
+    newSeries.y_values = [y - y_mean for y in series.y_values]
+
+    return newSeries
+
+
+def calculateSortedWaveHeights(elevationSeries: Series):
+    waveHeights: List[float] = []
+    y = elevationSeries.y_values
+
+    trough = 0
+    peak = 0
+
+    direction = 0 # +1 for up, 0 for stationary, -1 for down
+
+    # Find waves
+    for index, y in enumerate(elevationSeries.y_values):
+        oldDirection = direction
+
+        if y > 0:
+            direction = 1
+        else:
+            direction = -1
+
+        if direction == -1 and oldDirection == 1:
+            # Moving down below 0 again, so we finished a wave
+            if peak != 0 and trough != 0:
+                waveHeights.append(peak - trough)
+                peak = 0
+                trough = 0
+        
+        if direction == 1:
+            peak = max(y, peak)
+        elif direction == -1:
+            trough = min(y, trough)
+
+    sortedWaveHeights = sorted(waveHeights)
+
+    return sortedWaveHeights
+
+def calculateSignificantWaveHeightFromSortedWaveHeights(waveHeights: List[float]):
+    sortedWaveHeights = sorted(waveHeights)
+    N = floor(len(sortedWaveHeights) * 2 / 3)
+    significantWaveHeights = sortedWaveHeights[N:]
+
+    if len(significantWaveHeights) == 0:
+        return 0.0
+
+    return statistics.mean(significantWaveHeights)
