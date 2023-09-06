@@ -139,37 +139,34 @@ def subtractMovingAverage(window: int):
     return f
 
 
-def filterFrequencies(sampleFreq: float, filterFunc: Callable[[float], float]):
-    def f(inputSeries: Series):
-        '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
-        if len(inputSeries.utime) == 0:
-            return Series()
+def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
+    '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
+    if len(inputSeries.utime) == 0:
+        return Series()
 
-        A = numpy.fft.rfft(inputSeries.y_values)
-        n = len(A)
-        nyquist = sampleFreq / 2
+    A = numpy.fft.rfft(inputSeries.y_values)
+    n = len(A)
+    nyquist = sampleFreq / 2
 
-        if n % 2 == 0:
-            freqCoefficient = nyquist / n
-        else:
-            freqCoefficient = nyquist * (n - 1) / n / n
+    if n % 2 == 0:
+        freqCoefficient = nyquist / n
+    else:
+        freqCoefficient = nyquist * (n - 1) / n / n
 
-        for index in range(len(A)):
-            freq = freqCoefficient * index
-            A[index] *= filterFunc(freq)
+    for index in range(len(A)):
+        freq = freqCoefficient * index
+        A[index] *= filterFunc(freq)
 
-        a = numpy.fft.irfft(A)
-        series = Series()
-        series.utime = inputSeries.utime[:len(a)]
-        series.y_values = list(a)
+    a = numpy.fft.irfft(A)
+    series = Series()
+    series.utime = inputSeries.utime[:len(a)]
+    series.y_values = list(a)
 
-        if (len(series.utime) != len(series.y_values)):
-            print(len(series.utime), len(series.y_values))
-            exit(1)
+    if (len(series.utime) != len(series.y_values)):
+        print(len(series.utime), len(series.y_values))
+        exit(1)
 
-        return series
-
-    return f
+    return series
 
 
 def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
@@ -271,3 +268,47 @@ def calculateSignificantWaveHeightFromSortedWaveHeights(waveHeights: List[float]
         return 0.0
 
     return statistics.mean(significantWaveHeights)
+
+
+class FFTSeries:
+    frequencies: List[float] = []
+    amplitudes: List[complex] = []
+
+def getFFT(series: Series, sampleFreq: float):
+    fft = FFTSeries()
+
+    fft.amplitudes = list(numpy.fft.rfft(series.y_values))
+    n = len(fft.amplitudes)
+    nyquist = sampleFreq / 2
+
+    if n % 2 == 0:
+        freqCoefficient = nyquist / n
+    else:
+        freqCoefficient = nyquist * (n - 1) / n / n
+
+    fft.frequencies = [index * freqCoefficient for index in range(n)]
+
+    return fft
+
+
+def getSubSeriesList(series: Series, filterFunc: Callable[[Series, int], bool]):
+    '''Returns a list of subseries, where the filterFunc returns true for each (utime, y_value) pair.  When it returns false, a series will end, and when it returns true again a new series will start.'''
+    subseries: list[Series] = []
+
+    newSeries = Series()
+    newSeries.name = series.name
+
+    for index in range(len(series.utime)):
+
+        shouldInclude = filterFunc(series, index)
+
+        if shouldInclude:
+            newSeries.utime.append(series.utime[index])
+            newSeries.y_values.append(series.y_values[index])
+        else:
+            if len(newSeries.utime) > 0:
+                subseries.append(newSeries)
+                newSeries = Series()
+                newSeries.name = series.name
+
+    return subseries

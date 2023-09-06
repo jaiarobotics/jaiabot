@@ -51,6 +51,15 @@ class Series:
         self.utime.clear()
         self.y_values.clear()
 
+    def cleared(self):
+        series = Series()
+        series.name = self.name
+        series.utime = []
+        series.y_values = []
+        series.hovertext = []
+
+        return series
+
     def __add__(self, other_series: 'Series'):
         r = copy.copy(self)
         r.y_values = [other_series.y_values[index] + self.y_values[index] for index in range(len(self.y_values))]
@@ -77,6 +86,16 @@ class Series:
             self.utime, self.y_values = zip(*sorted(zip(self.utime, self.y_values)))
         else:
             logging.warning(f'Not enough values to sort.  len(utime) = {len(self.utime)}, len(y_values) = {len(self.y_values)}')
+
+    def get(self, index):
+        return (self.utime[index], self.y_values[index])
+
+    def appendPair(self, pair: Iterable[float]):
+        self.utime.append(pair[0])
+        self.y_values.append(pair[1])
+
+    def count(self):
+        return len(self.utime)
 
     def getValueAtTime(self, utime: float, interpolate: bool=False):
         index = bisect.bisect_left(self.utime, utime)
@@ -133,3 +152,94 @@ class Series:
             return timedelta(0)
         return datetimeList[-1] - datetimeList[0]
     
+
+
+from h5py import *
+
+
+def h5_get_series(dataset: Dataset):
+    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
+    dtype: numpy.dtype = dataset.dtype
+
+    def from_float(x):
+        x = float(x)
+        if isnan(x):
+            return None
+        return x
+
+    def from_int32(x):
+        if x == INT32_MAX:
+            return None
+        return int(x)
+
+    def from_uint32(x):
+        if x == UINT32_MAX:
+            return None
+        return int(x)
+
+    dtype_proc = {
+        'f': from_float,
+        'i': from_int32,
+        'u': from_uint32
+    }
+
+    map_proc = dtype_proc[dtype.kind]
+    filtered_list = [map_proc(x) for x in dataset]
+
+    return filtered_list
+
+
+def h5_get_hovertext(dataset: Dataset):
+    '''Get the hovertext for an h5 dataset'''
+
+    # Get the enum value names
+    try:
+        enum_names = dataset.attrs['enum_names']
+        enum_values = dataset.attrs['enum_values']
+        enum_dict = { int(enum_values[index]): enum_names[index] for index in range(0, len(enum_values))}
+        return enum_dict
+
+    except KeyError:
+        return None
+
+
+def readSeriesFromHDF5File(log: File=None, path: str=None, scheme=1, invalid_values: set=set(), name: str=None):
+    series = Series()
+
+    # Strip initial '/' character
+    if path is not None and path[0] == '/' and len(path) > 1:
+        path = path[1:]
+
+    if name is not None:
+        series.name = name
+    elif path is not None:
+        series.name = path.split('/')[-1]
+    else:
+        series.name = ''
+
+    series.utime = []
+    series.y_values = []
+    series.hovertext = {}
+
+    if log:
+        try:
+            _utime__array = log[get_root_item_path(path, '_utime_')]
+            _scheme__array = log[get_root_item_path(path, '_scheme_')]
+            path_array = log[path]
+
+            data = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+            data = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, data)
+
+            series.utime, schemes, series.y_values = zip(*data)
+        except (ValueError, KeyError):
+            logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
+            series.utime = []
+            series.schemes = []
+            series.y_values = []
+            series.hovertext = {}
+
+            return series
+
+        series.hovertext = h5_get_hovertext(log[path]) or {}
+
+    return series
