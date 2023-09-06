@@ -36,23 +36,18 @@ message DivePowerDescentDebug
             (dccl.field).units = 
                 { base_dimensions: "L" }
         ];
-    optional uint64 current_time = 5 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional uint64 last_depth_change_time = 6 [
+    optional uint64 last_depth_change_time = 5 [
             (dccl.field) = {
                 codec: "dccl.time2"
                 units { prefix: "micro" derived_dimensions: "time" }
         }]; 
-    optional double bottoming_timeout = 7 [
+    optional double bottoming_timeout = 6 [
             default = 0, 
             (dccl.field).units = { base_dimensions: "T" }
         ];
-    optional bool depth_reached = 8 [default = false];
-    optional bool depth_changed = 9 [default = false];
-    optional bool depth_change_timeout = 10 [default = false];
+    optional bool depth_reached = 7 [default = false];
+    optional bool depth_changed = 8 [default = false];
+    optional bool depth_change_timeout = 9 [default = false];
 }
 
 message DiveHoldDebug
@@ -67,17 +62,12 @@ message DiveHoldDebug
                 units { base_dimensions: "L" }
             }
         ];
-    optional uint64 current_time = 2 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional double hold_timeout = 3 [
+    optional double hold_timeout = 2 [
             default = 0, 
             (dccl.field).units = { base_dimensions: "T" }
         ];
-    optional bool dive_complete = 4 [default = false];
-    optional bool hold_complete = 5 [default = false];
+    optional bool dive_complete = 3 [default = false];
+    optional bool hold_complete = 4 [default = false];
 }
 
 message DiveUnpoweredAscentDebug
@@ -92,22 +82,17 @@ message DiveUnpoweredAscentDebug
                 units { base_dimensions: "L" }
             }
         ];
-    optional uint64 current_time = 2 [
-            (dccl.field) = {
-                codec: "dccl.time2"
-                units { prefix: "micro" derived_dimensions: "time" }
-        }];
-    optional double depth_eps = 3 [
+    optional double depth_eps = 2 [
             default = 0, 
             (dccl.field).units = 
                 { base_dimensions: "L" }
         ];
-    optional double unpowered_ascent_timeout = 4 [
+    optional double unpowered_ascent_timeout = 3 [
             default = 0, 
             (dccl.field).units = { base_dimensions: "T" }
         ];
-    optional bool unpowered_ascent_timed_out = 5 [default = false];
-    optional bool surfaced = 6 [default = false];
+    optional bool unpowered_ascent_timed_out = 4 [default = false];
+    optional bool surfaced = 5 [default = false];
 }
 
 message DivePoweredAscentDebug

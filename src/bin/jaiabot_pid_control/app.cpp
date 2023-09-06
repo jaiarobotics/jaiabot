@@ -586,7 +586,7 @@ void jaiabot::apps::BotPidControl::handle_command(
             handle_remote_control(command.remote_control());
             break;
         case jaiabot::protobuf::SETPOINT_DIVE: handle_dive_depth(command); break;
-        case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(); break;
+        case jaiabot::protobuf::SETPOINT_POWERED_ASCENT: handle_powered_ascent(command); break;
     }
 
     // Special case:  don't track the rudder if the target speed is zero, and the throttle is speed-PID
@@ -672,11 +672,16 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(
     toggleRudderPid(false);
 }
 
-void jaiabot::apps::BotPidControl::handle_powered_ascent()
+void jaiabot::apps::BotPidControl::handle_powered_ascent(
+    const jaiabot::protobuf::DesiredSetpoints& command)
 {
     setThrottleMode(MANUAL);
 
-    if (bounds.motor().has_throttle_ascent())
+    if (command.has_throttle())
+    {
+        throttle = command.throttle();
+    }
+    else if (bounds.motor().has_throttle_ascent())
     {
         throttle = bounds.motor().throttle_ascent();
     }

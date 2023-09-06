@@ -22,7 +22,7 @@ import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature } from './shared/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
@@ -134,8 +134,10 @@ export default class JaiaMap {
     task_packets: LogTaskPacket[] = []
     openlayersMap: Map
     openlayersProjection: Projection
+    taskPacketLayer: VectorLayer<VectorSource<Geometry>>
     botPathVectorSource = new VectorSource()
     courseOverGroundSource = new VectorSource()
+    botHeadingSource = new VectorSource()
     botVectorSource = new VectorSource()
     missionVectorSource = new VectorSource()
     taskPacketVectorSource = new VectorSource()
@@ -164,6 +166,7 @@ export default class JaiaMap {
                 this.createBotPathLayer(),
                 this.createBotLayer(),
                 this.createCourseOverGroundLayer(),
+                this.createHeadingLayer(),
                 this.createMissionLayer(),
                 this.createTaskPacketLayer(),
                 this.createDepthContourLayer(),
@@ -260,6 +263,16 @@ export default class JaiaMap {
         })
     }
 
+    createHeadingLayer() {
+        return new VectorLayer({
+            properties: {
+                title: 'Heading'
+            },
+            source: this.botHeadingSource,
+            zIndex: 11
+        })
+    }
+
     createBotLayer() {
         return new VectorLayer({
             properties: {
@@ -281,13 +294,14 @@ export default class JaiaMap {
     }
 
     createTaskPacketLayer() {
-        return new VectorLayer({
+        this.taskPacketLayer = new VectorLayer({
             properties: {
                 title: 'Task Packets',
             },
             source: this.taskPacketVectorSource,
             zIndex: 12
         })
+        return this.taskPacketLayer
     }
 
     createDepthContourLayer() {
@@ -460,6 +474,7 @@ export default class JaiaMap {
         // OpenLayers
         this.botVectorSource.clear()
         this.courseOverGroundSource.clear()
+        this.botHeadingSource.clear()
 
         if (timestamp_micros == null) {
             return
@@ -483,13 +498,15 @@ export default class JaiaMap {
 
             const botFeature = createBotFeature(properties)
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
+            const botHeadingArrow = createBotHeadingFeature(properties)
 
             this.botVectorSource.addFeature(botFeature)
             this.courseOverGroundSource.addFeature(courseOverGroundArrow)
+            this.botHeadingSource.addFeature(botHeadingArrow)
 
             if (properties.desiredHeading != null) {
                 const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
-                this.courseOverGroundSource.addFeature(desiredHeadingArrow)
+                this.botHeadingSource.addFeature(desiredHeadingArrow)
             }
         }
 
@@ -552,7 +569,7 @@ export default class JaiaMap {
                 continue
             }
 
-            this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
+            this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet, this.taskPacketLayer, task_packet.start_time))
         }
     }
 

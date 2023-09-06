@@ -35,8 +35,8 @@ message MissionManager
     optional int32 powered_ascent_motor_off_timeout = 26
         [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
-    // timeout on pre_powered descent to then transition to powered descent
-    optional int32 pre_powered_descent_timeout = 27
+    // timeout on dive prep to then transition to powered descent
+    optional int32 dive_prep_timeout = 27
         [default = 10, (dccl.field).units = { base_dimensions: "T" }];
 
     // safety timeout on powered descent to then transition to unpowered descent
@@ -47,7 +47,7 @@ message MissionManager
     // when we should start determining we reached bottom in powered descent logic.
     // (this gives the vehicle time to begin diving)
     optional double detect_bottom_logic_init_timeout = 29
-        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 15, (dccl.field).units = { base_dimensions: "T" }];
     
     // acceptable eps when dive depth is considered reached (in meters)
     optional double dive_depth_eps = 30
@@ -57,11 +57,6 @@ message MissionManager
     // dive_depth_eps before assuming the bottom has been hit
     optional double bottoming_timeout = 31
         [default = 3, (dccl.field).units = { base_dimensions: "T" }];
-
-    // surfacing timeout in seconds for unpowered ascent mode
-    // if timeout is reached then we switch to powered ascent
-    optional double surfacing_timeout = 32
-        [default = 35, (dccl.field).units = { base_dimensions: "T" }];
 
     // acceptable eps when dive surface is considered reached (in meters)
     optional double dive_surface_eps = 33
@@ -122,21 +117,57 @@ message MissionManager
 
     optional uint32 imu_restart_seconds = 51 [default = 10];
 
+    // Bot not rising timeout in seconds without depth change greater than
+    // dive_depth_eps before assuming the bot is stuck and is not rising
+    optional double bot_not_rising_timeout = 52
+        [default = 6, (dccl.field).units = { base_dimensions: "T" }];
+
+    // If the bot is not rising then increment the motor on time
+    optional int32 motor_on_time_increment = 53
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // The max the motor should be on for powered ascent
+    optional int32 motor_on_time_max = 54
+        [default = 10, (dccl.field).units = { base_dimensions: "T" }];
+
+    // The power ascent throttle
+    optional double powered_ascent_throttle = 55 [default = 25];
+
+    // The power ascent throttle increment
+    optional double powered_ascent_throttle_increment = 56 [default = 5];
+
+    // The power ascent max thottle
+    optional double powered_ascent_throttle_max = 57 [default = 60];
+
+    optional double pitch_to_determine_powered_ascent_vertical = 58 [default = 30];
+
+    optional double pitch_to_determine_dive_prep_vertical = 59 [default = 70];
+
+    optional int32 pitch_angle_checks = 60 [default = 3];
+
+    // The min amount of time to trigger a EvBotNotVertical event
+    optional double pitch_angle_min_check_time = 61
+    [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // acceptable eps when we consider the bot diving (in meters)
+    optional double dive_eps_to_determine_diving = 62
+        [default = 0.3, (dccl.field).units = { base_dimensions: "L" }];
+
     // e.g. rsync -aP --exclude='*.txt' /var/log/jaiabot/bot/*/
     // jaia@hub0:/var/log/jaiabot/bot_offload
     // ENV var "jaia_dataoffload_hub_id" will be set with the hub id to offload to
-    required string data_offload_command = 60;
+    required string data_offload_command = 70;
 
     // e.g. /var/log/jaiabot/bot/*/
-    required string log_dir = 61;
+    required string log_dir = 71;
 
     // Set to true if we want to not send goby files to hub during offload,
     // We instead would send a taskpacket file
-    optional bool data_offload_only_task_packet_file = 62 [default = false];
+    optional bool data_offload_only_task_packet_file = 72 [default = false];
 
-    required int32 hub_start_ip = 63 [default = 10];
+    required int32 hub_start_ip = 73 [default = 10];
 
-    required string class_b_network = 64 [default = "10.23"];
+    required string class_b_network = 74 [default = "10.23"];
 
     enum EngineeringTestMode
     {
