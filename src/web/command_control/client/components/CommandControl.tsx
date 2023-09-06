@@ -21,9 +21,9 @@ import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
-import { getRallyStyle } from './shared/Styles'
 import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
+import { TaskPacketPanel } from './TaskPacketPanel'
 import { SurveyExclusions } from './SurveyExclusions'
 import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
@@ -35,13 +35,14 @@ import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
 import { MissionSettingsPanel, MissionSettings, MissionParams } from './MissionSettings'
 import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared/PortalStatus'
+import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
 
 
-// Openlayers
+// OpenLayers
 import OlMap from 'ol/Map'
 import OlFeature from 'ol/Feature'
 import OlCollection from 'ol/Collection'
@@ -96,7 +97,8 @@ export enum PanelType {
 	RUN_INFO = 'RUN_INFO',
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
-	RALLY_POINT = 'RALLY_POINT'
+	RALLY_POINT = 'RALLY_POINT',
+	TASK_PACKET = 'TASK_PACKET'
 }
 
 export enum Mode {
@@ -177,6 +179,11 @@ interface State {
 
 	remoteControlValues: Engineering
 	remoteControlInterval?: ReturnType<typeof setInterval>,
+
+	taskPacketType: string,
+	taskPacketData: {[key: string]: {[key: string]: string}},
+	selectedTaskPacketFeature: OlFeature,
+	taskPacketIntervalId: NodeJS.Timeout,
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -314,6 +321,12 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
+
+			taskPacketType: '',
+			taskPacketData: {},
+			selectedTaskPacketFeature: null,
+			taskPacketIntervalId: null,
+
 			viewportPadding: [
 				viewportDefaultPadding,
 				viewportDefaultPadding,
@@ -1493,14 +1506,17 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 			const botId = feature.get('botId')
 			
-			// Check to make sure the waypoint is not part of an active run
-			const runs = this.state.runList.runs
-			for (const runIndex of Object.keys(runs)) {
-				const run = runs[runIndex]
-				if (run.assigned === botId) {
-					if (!run.canEdit) {
-						warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
-						return false
+			// Allow an operator to click on a task packet while edit mode is off
+			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
+				// Check to make sure the feature selected is not tied to a bot performing a run
+				const runs = this.state.runList.runs
+				for (const runIndex of Object.keys(runs)) {
+					const run = runs[runIndex]
+					if (run.assigned === botId) {
+						if (!run.canEdit) {
+							warning('Run cannot be modified: toggle Edit in the Mission Panel or wait for the run to terminate')
+							return false
+						}
 					}
 				}
 			}
@@ -1563,6 +1579,63 @@ export default class CommandControl extends React.Component {
 			const isRallyPoint = feature.get('type') === 'rallyPoint'
 			if (isRallyPoint) {
 				this.setState({ selectedRallyFeature: feature }, () => this.setVisiblePanel(PanelType.RALLY_POINT))
+				return
+			}
+
+			// Clicked on dive task packet
+			const isDivePacket = feature.get('type') === 'dive'
+			if (isDivePacket) {
+				if (this.state.selectedTaskPacketFeature) {
+					this.unselectTaskPacket()
+				}
+				
+				const startTime = new Date(feature.get('startTime') / 1000)
+				const endTime = new Date(feature.get('endTime') / 1000)
+				const taskPacketData = {
+					// Snake case used for string parsing in task packet panel
+					bot_id: {value: feature.get('botId'), units: ''},
+					depth_achieved: {value: feature.get('depthAchieved'), units: 'm'},
+					dive_rate: {value: feature.get('diveRate'), units: 'm/s'},
+					bottom_dive: {value: feature.get('bottomDive') ? 'Yes': 'No', units: ''},
+					start_time: {value: startTime.toLocaleString(), units: ''},
+					end_time: {value: endTime.toLocaleString(), units: ''}
+				}
+
+				this.setTaskPacketInterval(feature)
+
+				this.setState({
+					taskPacketType: feature.get('type'),
+					taskPacketData: taskPacketData
+				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
+				return
+			}
+
+			// Clicked on drift task packet
+			const isDriftPacket = feature.get('type') === 'drift'
+			if (isDriftPacket) {
+				if (this.state.selectedTaskPacketFeature) {
+					this.unselectTaskPacket()
+				}
+
+				const startTime = new Date(feature.get('startTime') / 1000)
+				const endTime = new Date(feature.get('endTime') / 1000)
+				const taskPacketData = {
+					// Snake case used for string parsing in task packet panel
+					bot_id: {value: feature.get('botId'), units: ''},
+					duration: {value: feature.get('duration'), units: 's'},
+					speed: {value: feature.get('speed'), units: 'm/s'},
+					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
+					sig_wave_height: {value: feature.get('sigWaveHeight'), units: 'm'},
+					start_time: {value: startTime.toLocaleString(), units: ''},
+					end_time: {value: endTime.toLocaleString(), units: ''}
+				}
+
+				this.setTaskPacketInterval(feature)
+
+				this.setState({
+					taskPacketType: feature.get('type'),
+					taskPacketData: taskPacketData
+				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
 				return
 			}
 		}
@@ -1781,6 +1854,59 @@ export default class CommandControl extends React.Component {
 	//
 
 	// 
+	// Task Packets (Start)
+	// 
+	updateTaskPacketLayer() {
+		const feature = this.state.selectedTaskPacketFeature
+		if (!feature) {
+			return
+		}
+
+		const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+
+		if (feature.get('animated')) {
+			feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+		} else {
+			feature.setStyle(styleFunction(feature, 'black'))
+		}
+		feature.set('animated', !feature.get('animated'))
+	}
+
+	unselectTaskPacket() {
+		const features = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		for (const feature of features) {
+			if (feature.get('selected')) {
+				feature.set('selected', false)
+				// Reset style
+				const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+				feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+			}
+		}
+		clearInterval(this.state.taskPacketIntervalId)
+		this.setState({ selectedTaskPacketFeature: null })
+	}
+
+	setTaskPacketInterval(selectedFeature: Feature) {
+		const taskPacketFeatures = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		const styleFunction = selectedFeature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+		for (const taskPacketFeature of taskPacketFeatures) {
+			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
+				selectedFeature.set('selected', true)
+				selectedFeature.setStyle(styleFunction(selectedFeature, 'black'))
+				selectedFeature.set('animated', !selectedFeature.get('animated'))
+				// Start interval that sets the style
+				const taskPacketIntervalId = setInterval(() => {
+					this.updateTaskPacketLayer()
+				}, 1000)
+				this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId })
+			}
+		}
+	}
+	// 
+	// Task Packets (End)
+	// 
+
+	// 
 	// RC Mode (Start)
 	// 
 	isRCModeActive(botId: number) {
@@ -1985,7 +2111,7 @@ export default class CommandControl extends React.Component {
 
 	// 
 	// Command Drawer (Start)
-	// 
+	//
 	commandDrawer() {
 		const botsAreAssignedToRuns = this.areBotsAssignedToRuns()
 
@@ -2335,6 +2461,10 @@ export default class CommandControl extends React.Component {
 
 			default:
 				break;
+		}
+		// Clean up in case a task packet was selected and the user clicked to open a different panel
+		if (panelType !== 'TASK_PACKET') {
+			this.unselectTaskPacket()
 		}
 
 		this.setState({ visiblePanel: panelType })
@@ -2772,6 +2902,15 @@ export default class CommandControl extends React.Component {
 						selectedRallyFeature={this.state.selectedRallyFeature}
 						goToRallyPoint={this.goToRallyPoint.bind(this)}
 						deleteRallyPoint={this.deleteRallyPoint.bind(this)}
+						setVisiblePanel={this.setVisiblePanel.bind(this)}
+					/>
+				)
+				break
+			case PanelType.TASK_PACKET:
+				visiblePanelElement = (
+					<TaskPacketPanel 
+						type={this.state.taskPacketType}
+						taskPacketData={this.state.taskPacketData}
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 					/>
 				)

@@ -134,6 +134,7 @@ export default class JaiaMap {
     task_packets: LogTaskPacket[] = []
     openlayersMap: Map
     openlayersProjection: Projection
+    taskPacketLayer: VectorLayer<VectorSource<Geometry>>
     botPathVectorSource = new VectorSource()
     courseOverGroundSource = new VectorSource()
     botHeadingSource = new VectorSource()
@@ -293,13 +294,14 @@ export default class JaiaMap {
     }
 
     createTaskPacketLayer() {
-        return new VectorLayer({
+        this.taskPacketLayer = new VectorLayer({
             properties: {
                 title: 'Task Packets',
             },
             source: this.taskPacketVectorSource,
             zIndex: 12
         })
+        return this.taskPacketLayer
     }
 
     createDepthContourLayer() {
@@ -567,7 +569,7 @@ export default class JaiaMap {
                 continue
             }
 
-            this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet))
+            this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet, this.taskPacketLayer, task_packet.start_time))
         }
     }
 
