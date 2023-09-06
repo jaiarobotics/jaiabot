@@ -1108,9 +1108,10 @@ export default class CommandControl extends React.Component {
 			runId = runList.botsAssignedToRuns[selectedBotId]
 		}
 
-		const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete the run for bot: ${selectedBotId}`
+		const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
 
-		if (runId !== '' && confirm(warningString)) { 
+		if (runId !== '' && confirm(warningString)) {
+			this.setEditModeToggle(selectedBotId, true)
 			const run = runList.runs[runId]
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
@@ -1563,6 +1564,8 @@ export default class CommandControl extends React.Component {
 		for (let bot of Object.values(bots)) {
 			const botMissionState = bot?.mission_state
 			if (!botMissionState) { continue }
+
+			
 
 			let canEditState = false
 			this.enabledEditStates.forEach((enabledState) => {

@@ -348,27 +348,7 @@ function disableButton(command: CommandInfo, missionState: MissionState, bot?: P
  * @returns boolean
  */
 function disableClearRunButton(bot: PortalBotStatus, mission: MissionInterface) {
-    const missionState = bot?.mission_state
-    let disable = true
-
-    // Basic error handling
-    if (!missionState) {
-        return true
-    }
-
-    // The bot doesn't have an assigned run to delete
-    if (!mission.botsAssignedToRuns[bot.bot_id]) {
-        return true
-    }
-
-    enabledEditStates.forEach((enabledState) => {
-        if (missionState.includes(enabledState)) {
-            disable = false
-        }
-    })
-
-    if (!disable) { return false }
-    return true
+    return false
 }
 
 function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, command: CommandInfo, missionState: MissionState, downloadQueue: PortalBotStatus[]) {
