@@ -22,6 +22,8 @@ $$a_{z,unfiltered} = \frac{a \cdot g}{\lvert g \rvert}$$
 
 ### Pre-process ###
 
+The measured acceleration series is first de-meaned.  Next, some windowing is done to the edges of the time series, as follows.
+
 At the start of a drift, we need to allow the bot to coast to a stop, and eliminate accelerations caused by motor operation and slowing down in the water.
 
 Also, near the end of the drift, we want to cut out the last 5 seconds, for the same reason (sometimes sampling stops just after the motor engages for the next waypoint).
@@ -45,7 +47,11 @@ Therefore, we process the series into a series with uniformly-spaced samples for
 
 We perform an FFT, to transform the time series into an acceleration frequency spectrum, $A$.
 
-We then pass this spectrum through a band-pass filter that leaves only frequencies between 0.2-2.0 $Hz$.  This corresponds to a period range of 0.5-5.0 $s$.
+We then pass this spectrum through a band-pass filter that leaves only wave periods between 0.5 and 15 $seconds$.  The edges of the filter function are a $cos^2$ attenuation function:
+
+$$k=[\frac{cos(\frac{\pi(f_{lim} - f)}{w}) + 1}{2}]^2$$
+
+where $f_{lim}$ is the frequency of the band edge, and $w$ is the window width.
 
 ### Elevation ###
 
@@ -63,11 +69,26 @@ We then step through the samples of $e(t)$, measuring the trough-to-peak heights
 
 ### Glitches ###
 
-The `AdaFruit BNO055` IMU produces glitching.  Therefore, I make an attempt to remove as much glitching as possible, while keeping as much valid data as possible.  There are two main types of glitches:  large and small.
+The `AdaFruit BNO055` IMU produces glitching.  Therefore, I make an attempt to remove as much glitching as possible, while keeping as much valid data as possible.  This is the algorithm to remove glitchy IMU data from the time series before processing.
 
-During a large glitch, the IMU will return acceleration component(s) with magnitudes exceeding 100 $m/s$.  I filter these out by removing data with these high magnitudes.
+#### First pass ####
 
-The smaller glitches are harder to remove.  When the IMU produces a small glitch, it gives us a value almost exactly `+1.28` $m/s$ from what it should be.  Therefore, for each point of sampled data, I consider if subtracting `1.28` $m/s$ would result in a value that's less than `25%` of the change from the previous data point.  If so, then I subtract `1.28` to correct for the glitch.
+1. Discard reading if the magnitude of the gravity vector ($g$) is outside of the range $[8,50]ms^{-2}$
+2. Discard reading if $|g_q|<0.02m^{-2}$, where $q$ is the $x$, $y$, or $z$ component
+3. Discard reading if $|a|=0$ or $|a|>50m^{-2}$, where $a$ is the linear acceleration vector
+   
+#### Second pass ####
+
+1. If $|a_i-a_{mean}|<0.2m^{-2}$, where $a_{mean}=\frac{a_{i-1}+a_{i+1}}{2}$, keep the data point with index $i$ unchanged
+2. If $|a_i-a_{extrap}|<0.64m^{-2}$, where $a_{extrap}=a_{i-1}+(t_i-t_{i-1})\frac{a_{i-1}-a_{i-2}}{t_{i-1}-t_{i-2}}$, keep the data point with index $i$ unchanged
+
+#### Third pass (if data not kept unchanged from second pass)
+
+For each of $a_{correction}\in[-1.28, 1.28]$, calculate $a_{corrected}=a_i+a_{correction}$
+
+1. If $|a_{corrected}-a_{mean}|<0.2ms^{-2}$, correct $a_i$ to $a_{corrected}$
+2. If $|a_{corrected}-a_{i-1}|<0.2ms^{-2}$, correct $a_i$ to $a_{corrected}$
+
 
 ### Fade in/out ###
 
