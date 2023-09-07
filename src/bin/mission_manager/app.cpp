@@ -693,6 +693,22 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvNewMission());
 
             bool mission_is_feasible = true;
+            bool goal_depth_infeasible = false;
+
+            // Make sure the mission plan does not include a dive
+            // greater than allowed max
+            for (auto goal : command.plan().goal())
+            {
+                if (goal.task().dive().max_depth() >
+                    protobuf::MissionTask::DiveParameters::descriptor()
+                        ->FindFieldByName("max_depth")
+                        ->options()
+                        .GetExtension(dccl::field)
+                        .max())
+                {
+                    goal_depth_infeasible = true;
+                }
+            }
 
             // must have at least one goal
             if (command.plan().movement() == protobuf::MissionPlan::TRANSIT &&
@@ -729,6 +745,15 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                     jaiabot::protobuf::
                         WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL);
 
+                mission_is_feasible = false;
+            }
+            else if (goal_depth_infeasible)
+            {
+                glog.is_warn() && glog << "Infeasible mission: Depth exceeds max depth"
+                                       << std::endl;
+                machine_->insert_warning(
+                    jaiabot::protobuf::
+                        WARNING__MISSION__INFEASIBLE_MISSION__GOAL_DESIRED_DEPTH_EXCEEDED_MAX);
                 mission_is_feasible = false;
             }
 

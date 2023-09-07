@@ -4,7 +4,7 @@ import logging
 import copy
 import bisect
 from typing import *
-from datetime import datetime
+from datetime import *
 import statistics
 
 
@@ -41,8 +41,8 @@ class Series:
     y_values: List[float]
     hovertext: dict
 
-    def __init__(self) -> None:
-        self.name = ''
+    def __init__(self, name: str = None) -> None:
+        self.name = name or ''
         self.utime = []
         self.y_values = []
         self.hovertext = {}
@@ -50,6 +50,15 @@ class Series:
     def clear(self):
         self.utime.clear()
         self.y_values.clear()
+
+    def cleared(self):
+        series = Series()
+        series.name = self.name
+        series.utime = []
+        series.y_values = []
+        series.hovertext = []
+
+        return series
 
     def __add__(self, other_series: 'Series'):
         r = copy.copy(self)
@@ -68,18 +77,37 @@ class Series:
             duration = 0
         return f'<Series "{self.name}" values={len(self.utime)} duration={duration / 1e6:0.02f} sec>'
 
+    def append(self, utime: float, value: float):
+        self.utime.append(utime)
+        self.y_values.append(value)
+
     def sort(self):
         if len(self.utime) > 0 and len(self.y_values) > 0:
             self.utime, self.y_values = zip(*sorted(zip(self.utime, self.y_values)))
         else:
             logging.warning(f'Not enough values to sort.  len(utime) = {len(self.utime)}, len(y_values) = {len(self.y_values)}')
 
-    def getValueAtTime(self, utime: float):
+    def get(self, index):
+        return (self.utime[index], self.y_values[index])
+
+    def appendPair(self, pair: Iterable[float]):
+        self.utime.append(pair[0])
+        self.y_values.append(pair[1])
+
+    def count(self):
+        return len(self.utime)
+
+    def getValueAtTime(self, utime: float, interpolate: bool=False):
         index = bisect.bisect_left(self.utime, utime)
         if index == 0:
             return None
         else:
+            # Now interpolate between values
+            if interpolate and index > 0 and index < len(self.y_values) - 1:
+                return self.y_values[index - 1] + (utime - self.utime[index - 1]) * (self.y_values[index] - self.y_values[index - 1]) / (self.utime[index] - self.utime[index - 1])
+
             return self.y_values[index - 1]
+        
         
     def getLastUtimeBefore(self, utime: float):
         index = bisect.bisect_left(self.utime, utime)
@@ -118,71 +146,100 @@ class Series:
 
         return subseries
 
-    def sortedWaveHeights(self):
-        waveHeights = []
-        y = self.y_values
-
-        trough = None
-        peak = None
-
-        direction = 0 # +1 for up, 0 for stationary, -1 for down
-
-        # Find waves
-        for index, y in enumerate(self.y_values):
-            if index == 0:
-                continue
-            
-            y0 = self.y_values[index - 1]
-
-            oldDirection = direction
-
-            if y > y0:
-                direction = 1
-            elif y < y0:
-                direction = -1
-
-            if direction == 1 and oldDirection == -1:
-                trough = y0
-            if direction == -1 and oldDirection == 1 and trough is not None:
-                peak = y0
-
-            if peak is not None and trough is not None:
-                waveHeights.append(peak - trough)
-                peak = None
-                trough = None
-
-        sortedWaveHeights = sorted(waveHeights)
-
-        return sortedWaveHeights
-
-    def filter(self, filterFunc: Callable[[float, float], bool], defaultValue: float = 0.0):
-        newUtime = []
-        newY = []
-        for index, utime in enumerate(self.utime):
-            newUtime.append(utime)
-            if filterFunc(utime, self.y_values[index]):
-                newY.append(self.y_values[index])
-            else:
-                newY.append(defaultValue)
-        
-        self.utime = newUtime
-        self.y_values = newY
-
-        return self
-
     def duration(self):
         datetimeList = self.datetimes()
+        if len(datetimeList) < 1:
+            return timedelta(0)
         return datetimeList[-1] - datetimeList[0]
     
 
-    @staticmethod
-    def magnitude(seriesList: List, name: str = 'No Name'):
-        series = Series()
-        series.name = name
 
-        for index in range(len(seriesList[0].utime)):
-            series.utime.append(seriesList[0].utime[index])
-            mag2 = sum([series.y_values[index]**2 for series in seriesList])
-            series.y_values.append(sqrt(mag2))
-        return series
-    
+from h5py import *
+
+
+def h5_get_series(dataset: Dataset):
+    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
+    dtype: numpy.dtype = dataset.dtype
+
+    def from_float(x):
+        x = float(x)
+        if isnan(x):
+            return None
+        return x
+
+    def from_int32(x):
+        if x == INT32_MAX:
+            return None
+        return int(x)
+
+    def from_uint32(x):
+        if x == UINT32_MAX:
+            return None
+        return int(x)
+
+    dtype_proc = {
+        'f': from_float,
+        'i': from_int32,
+        'u': from_uint32
+    }
+
+    map_proc = dtype_proc[dtype.kind]
+    filtered_list = [map_proc(x) for x in dataset]
+
+    return filtered_list
+
+
+def h5_get_hovertext(dataset: Dataset):
+    '''Get the hovertext for an h5 dataset'''
+
+    # Get the enum value names
+    try:
+        enum_names = dataset.attrs['enum_names']
+        enum_values = dataset.attrs['enum_values']
+        enum_dict = { int(enum_values[index]): enum_names[index] for index in range(0, len(enum_values))}
+        return enum_dict
+
+    except KeyError:
+        return None
+
+
+def readSeriesFromHDF5File(log: File=None, path: str=None, scheme=1, invalid_values: set=set(), name: str=None):
+    series = Series()
+
+    # Strip initial '/' character
+    if path is not None and path[0] == '/' and len(path) > 1:
+        path = path[1:]
+
+    if name is not None:
+        series.name = name
+    elif path is not None:
+        series.name = path.split('/')[-1]
+    else:
+        series.name = ''
+
+    series.utime = []
+    series.y_values = []
+    series.hovertext = {}
+
+    if log:
+        try:
+            _utime__array = log[get_root_item_path(path, '_utime_')]
+            _scheme__array = log[get_root_item_path(path, '_scheme_')]
+            path_array = log[path]
+
+            data = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
+            data = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, data)
+
+            series.utime, schemes, series.y_values = zip(*data)
+        except (ValueError, KeyError):
+            logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
+            series.utime = []
+            series.schemes = []
+            series.y_values = []
+            series.hovertext = {}
+
+            return series
+
+        series.hovertext = h5_get_hovertext(log[path]) or {}
+
+    return series

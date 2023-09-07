@@ -406,7 +406,6 @@
   * optional double last_depth
   * optional double goal_depth
   * optional double depth_eps
-  * optional uint64 current_time
   * optional uint64 last_depth_change_time
   * optional double bottoming_timeout
   * optional bool depth_reached
@@ -415,14 +414,12 @@
 
 * DiveHoldDebug
   * optional double current_depth
-  * optional uint64 current_time
   * optional double hold_timeout
   * optional bool dive_complete
   * optional bool hold_complete
 
 * DiveUnpoweredAscentDebug
   * optional double current_depth
-  * optional uint64 current_time
   * optional double depth_eps
   * optional double unpowered_ascent_timeout
   * optional bool unpowered_ascent_timed_out
