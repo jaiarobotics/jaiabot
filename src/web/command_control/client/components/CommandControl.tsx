@@ -2347,12 +2347,6 @@ export default class CommandControl extends React.Component {
 	// Render Helper Methods and Panels (Start)
 	// 
 	canUseSurveyTool() {
-		// Check that all bots are stopped or recovered
-		const areRunsInProgress = this.getActiveRunNumbers(this.getRunList()).length > 0
-		if (areRunsInProgress) { 
-			warning('All bots must be stopped or recovered to use the mission survey tool')
-			return false
-		}
 		// Check that rally points are set
 		if (layers.rallyPointLayer.getSource().getFeatures().length < 2) {
 			warning('At least 2 rally points are needed to use the mission survey tool')
