@@ -19,7 +19,6 @@ interface Props {
     setEditRunMode: (botIds: number[], canEdit: boolean) => void,
     setEditModeToggle: (runNumber: number, isOn: boolean) => void
     updateEditModeToggle: (run: RunInterface) => boolean,
-    isEditModeToggleDisabled: (run: RunInterface) => boolean,
     toggleEditMode: (run: RunInterface) => boolean
 }
 
@@ -53,7 +52,6 @@ export default class MissionControllerPanel extends React.Component {
 				setEditRunMode={self.props.setEditRunMode}
 				setEditModeToggle={self.props.setEditModeToggle}
 				updateEditModeToggle={self.props.updateEditModeToggle}
-				isEditModeToggleDisabled={self.props.isEditModeToggleDisabled}
 				toggleEditMode={self.props.toggleEditMode}
 			/>
 
@@ -82,7 +80,7 @@ export default class MissionControllerPanel extends React.Component {
                         className={"button-jcc" + (emptyMission ? ' inactive' : '')}
                         onClick={() => {
                             if (emptyMission) return
-                            this.props.deleteAllRunsInMission(this.props.mission) 
+                            this.props.deleteAllRunsInMission(this.props.mission, true) 
                         }}
                     >
                         <Icon path={mdiDelete} title="Clear Mission"/>
