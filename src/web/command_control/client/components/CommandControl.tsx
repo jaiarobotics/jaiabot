@@ -190,6 +190,23 @@ interface State {
 	metadata: Metadata
 }
 
+interface BotAllCommandInfo {
+	botIds?: number[],
+	botIdsInIdleState?: number[],
+	botIdsNotInIdleState?: number[],
+	botIdsInStoppedState?: number[],
+	botIdsPoorHealth?: number[],
+	botIdsDisconnected?: number[],
+	botIdsDownloadNotAvailable?: number[],
+	botIdsInDownloadQueue?: number[],
+	idleStateMessage?: string,
+	notIdleStateMessage?: string,
+	stoppedStateMessage?: string,
+	poorHealthMessage?: string,
+	downloadQueueMessage?: string,
+	disconnectedMessage?: string,
+}
+
 export default class CommandControl extends React.Component {
 	props: Props
 	state: State
@@ -201,6 +218,7 @@ export default class CommandControl extends React.Component {
 	oldPodStatus?: PodStatus
 	missionPlans?: CommandList = null
 	enabledEditStates: string[]
+	enabledDownloadStates: string[]
 	interactions: Interactions
 	surveyLines: SurveyLines
 	surveyPolygon: SurveyPolygon
@@ -361,6 +379,7 @@ export default class CommandControl extends React.Component {
 		})
 
 		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
+		this.enabledDownloadStates = ['PRE_DEPLOYMENT', 'STOPPED', 'POST_DEPLOYMENT']
 		this.flagNumber = 1
 
 	}
@@ -1036,52 +1055,59 @@ export default class CommandControl extends React.Component {
 	runMissions(missions: MissionInterface, addRuns: CommandList, rallyPointRun?: boolean) {
 		if (!this.takeControl()) return
 
-		const botIds: number[] = [];
-		const botIdsInIdleState: number[] = [];
-		const botIdsPoorHealth: number[] = [];
-		const botIdsInDownloadQueue = this.state.botDownloadQueue.map((bot) => bot.bot_id)
+		const commDest = this.determineAllCommandBots(true, false, false, false)
+
+		const botIdsAssignedToRuns: number[] = [];
 		const runs = missions.runs;
 
-		for (const bot of Object.values(this.getPodStatus().bots)) {
-			if (bot?.mission_state === "PRE_DEPLOYMENT__IDLE" || bot?.mission_state === "POST_DEPLOYMENT__IDLE") {
-				botIdsInIdleState.push(bot?.bot_id)
-			} else if (bot.health_state !== "HEALTH__OK") {
-				botIdsPoorHealth.push(bot?.bot_id)
-			} else if (botIdsInDownloadQueue.includes(bot.bot_id)) {
-				// Do not allow a bot in the download queue to start another run
-			} else {
-				botIds.push(bot?.bot_id)
-			}
+		if(addRuns) {
+			Object.keys(addRuns).map(botIndex => {
+				if (commDest.botIds.includes(Number(botIndex))) {
+					botIdsAssignedToRuns.push(Number(botIndex));
+				}
+			});
+		} else {
+			Object.keys(runs).map(key => {
+				const botIndex = runs[key].assigned;
+				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+					botIdsAssignedToRuns.push(botIndex);
+				}
+			})
 		}
 
-		botIds.sort()
-		botIdsInIdleState.sort();
-		botIdsPoorHealth.sort()
+		botIdsAssignedToRuns.sort()
 
-		if (botIdsInIdleState.length !== 0) {
-			warning("Please activate bots: " + botIdsInIdleState);
-		} else {
-			if (confirm("Click the OK button to run this mission for Bots: " + botIds)) {
-				if (addRuns) {
-					this.deleteAllRunsInMission(missions, true, true);
-					Object.keys(addRuns).map(key => {
-						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-					});
-				}
+		let botsNotAssignedToRuns = commDest.botIds.filter(id => !botIdsAssignedToRuns.includes(id));
 
-				Object.keys(runs).map(key => {
-					const botIndex = runs[key].assigned;
-					if (botIndex !== -1 && !botIdsPoorHealth.includes(botIndex) && !botIdsInDownloadQueue.includes(botIndex)) {
-						const runCommand = runs[key].command
-						this._runMission(runCommand)
-						this.setEditRunMode([botIndex], false)
-					}
-				})
-				success("Submitted missions")
-				if (botIdsPoorHealth.length > 0) {
-					warning('Did not start runs for Bots: ' + botIdsPoorHealth + ' due to poor health.')
-				}
+		let notAssignedMessage = ""
+
+		if (botsNotAssignedToRuns.length > 1) {
+			notAssignedMessage = "\nNot sending to bots: " + botsNotAssignedToRuns + " because they are not assigned to runs"
+		} else if (botsNotAssignedToRuns.length === 1) {
+			notAssignedMessage = "\nNot sending to bot: " + botsNotAssignedToRuns + " because it is not assigned to a run"
+		}
+
+		if (botIdsAssignedToRuns.length === 0) {
+			alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
+		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
+			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
+				
+			if (addRuns) {
+				this.deleteAllRunsInMission(missions, true, true);
+				Object.keys(addRuns).map(key => {
+					Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+				});
 			}
+
+			Object.keys(runs).map(key => {
+				const botIndex = runs[key].assigned;
+				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+					this._runMission(runs[key].command)
+					this.setEditRunMode([botIndex], false)
+				}
+			})
+
+			success("Submitted missions")
 		}
 	}
 	// 
@@ -1941,15 +1967,17 @@ export default class CommandControl extends React.Component {
 	// Download Queue (Start)
 	//
 	async processDownloadAllBots() {
+		const commDest = this.determineAllCommandBots(false, false, false, true)
 		const downloadableBots = this.getDownloadableBots()
 		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
 
 		if (downloadableBotIds.length === 0) {
-			info('All bots eligible for data download are queued')
+			alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
 			return
 		}
 
-		if (!confirm(`Would you like to do a data download for Bot${downloadableBots.length > 1 ? 's': ''}:  ${downloadableBotIds}`)) { return }
+		if (!confirm(`Would you like to do a data download for Bot${commDest.botIds.length > 1 ? 's': ''}:  ${commDest.botIds}` + 
+			commDest.downloadQueueMessage + commDest.disconnectedMessage)) { return }
 
 		const queue = this.state.botDownloadQueue
 		const updatedQueue = queue.concat(downloadableBots)
@@ -2039,11 +2067,16 @@ export default class CommandControl extends React.Component {
 	}
 
 	getDownloadableBots() {
+		const commDest = this.determineAllCommandBots(false, false, false, true)
+
 		const downloadableBots: PortalBotStatus[] = []
 		const bots = this.getPodStatus().bots
 		for (const bot of Object.values(bots)) {
-			for (const enabledState of this.enabledEditStates) {
-				if (bot?.mission_state.includes(enabledState) && bot?.wifi_link_quality_percentage && !this.isBotInQueue(bot)) {
+			for (const enabledState of this.enabledDownloadStates) {
+				if (bot?.mission_state.includes(enabledState) && 
+					bot?.wifi_link_quality_percentage && 
+					!this.isBotInQueue(bot) &&
+					!commDest.botIdsDisconnected.includes(bot?.bot_id)) {
 					downloadableBots.push(bot)
 					break
 				}
@@ -2116,16 +2149,127 @@ export default class CommandControl extends React.Component {
 		return element
 	}
 
-	activateAllClicked(evt: UIEvent) {
-		if (!this.takeControl() || !confirm('Click the OK button to run a system check for all active bots:')) return;
+	/**
+	 * This is a helper function for determining which bots to send an all command to
+	 * @param sendingMission determines output and bot bots to send the mission command to
+	 * @param sendingActivate determines output and bot bots to send the acivate command to
+	 * @param sendingStop determines output and bot bots to send the stop command to
+	 * @param sendingDownload determines output and bot bots to send the download command to
+	 * @returns The information needed to determin what bots to send the all command to (BotAllCommandInfo interface)
+	 */
+	determineAllCommandBots(sendingMission: boolean, sendingActivate: boolean, sendingStop: boolean, sendingDownload: boolean) {
+		let botInfo: BotAllCommandInfo
+		let stopAvailable: RegExp = /^IN_MISSION__.+$/
+		let stopNotAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
+		let idleStates: RegExp = /^.+__IDLE$/
+		let healthError: RegExp = /^HEALTH__FAILED$/
 
-		this.api.allActivate().then(response => {
-			if (response.message) {
-				error(response.message)
-			} else {
-				info("Sent Activate All")
+		botInfo = {
+			botIds: [],
+			botIdsInIdleState: [],
+			botIdsNotInIdleState: [],
+			botIdsInStoppedState: [],
+			botIdsPoorHealth: [],
+			botIdsDisconnected: [],
+			botIdsDownloadNotAvailable: [],
+			botIdsInDownloadQueue: this.state.botDownloadQueue.map((bot) => bot.bot_id),
+			idleStateMessage:  "",
+			notIdleStateMessage: "",
+			stoppedStateMessage: "",
+			poorHealthMessage: "",
+			downloadQueueMessage:  "",
+			disconnectedMessage: ""
+		}
+
+		for (const bot of Object.values(this.getPodStatus().bots)) {
+			let notAvailable = true
+			if (sendingDownload) {
+				for (const enabledState of this.enabledDownloadStates) {
+					if (bot?.mission_state.includes(enabledState)) {
+						notAvailable = false
+						break;
+					}
+				}
+				if (notAvailable) {
+					botInfo.botIdsDownloadNotAvailable.push(bot.bot_id)
+				}
 			}
-		})
+
+			if (sendingMission && idleStates.test(bot?.mission_state)) {
+				botInfo.botIdsInIdleState.push(bot?.bot_id)
+			} else if (sendingActivate && !idleStates.test(bot?.mission_state)) {
+				botInfo.botIdsNotInIdleState.push(bot?.bot_id)
+			} else if (sendingStop && (!stopAvailable.test(bot?.mission_state) || stopNotAvailable.test(bot?.mission_state))) {
+				botInfo.botIdsInStoppedState.push(bot?.bot_id)
+			} else if (sendingMission && healthError.test(bot?.health_state)) {
+				botInfo.botIdsPoorHealth.push(bot?.bot_id)
+			} else if (botInfo.botIdsInDownloadQueue.includes(bot.bot_id)) {
+				// Do not allow a bot in the download queue to start another run
+			} else if (sendingDownload && notAvailable) {
+				// Do not allow a bot in the incorrect state in the queue
+			} else if (bot?.isDisconnected) {
+				botInfo.botIdsDisconnected.push(bot?.bot_id)
+		    } else {
+				botInfo.botIds.push(bot?.bot_id)
+			}
+		}
+
+		botInfo.botIds.sort()
+		botInfo.botIdsInIdleState.sort()
+		botInfo.botIdsPoorHealth.sort()
+		botInfo.botIdsDisconnected.sort()
+		botInfo.botIdsNotInIdleState.sort()
+		botInfo.botIdsInStoppedState.sort()
+
+		if (botInfo.botIdsPoorHealth.length !==0) {
+			botInfo.poorHealthMessage = `\nNot sending to Bot${botInfo.botIdsPoorHealth.length > 1 ? 's': ''}: ` + botInfo.botIdsPoorHealth + " because the health is poor"
+		}
+		if (botInfo.botIdsInIdleState.length !==0) {
+			botInfo.idleStateMessage = `\nNot sending to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been activated`
+		}
+		if (botInfo.botIdsNotInIdleState.length !==0) {
+			botInfo.notIdleStateMessage = `\nNot sending to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been activated`
+		}
+		if (botInfo.botIdsInStoppedState.length !==0) {
+			botInfo.stoppedStateMessage = `\nNot sending to Bot${botInfo.botIdsInStoppedState.length > 1 ? 's': ''}: ` + botInfo.botIdsInStoppedState + ` because ${botInfo.botIdsInStoppedState.length > 1 ? 'they have': 'it has'} been stopped`
+		}
+		if (botInfo.botIdsInDownloadQueue.length !==0) {
+			botInfo.downloadQueueMessage = `\nNot sending to Bot${botInfo.botIdsInDownloadQueue.length > 1 ? 's': ''}: ` + botInfo.botIdsInDownloadQueue + ` because ${botInfo.botIdsInDownloadQueue.length > 1 ? 'they are': 'it is'} in the download queue`
+		}
+		if (botInfo.botIdsDownloadNotAvailable.length !==0) {
+			botInfo.downloadQueueMessage += `\nNot sending to Bot${botInfo.botIdsDownloadNotAvailable.length > 1 ? 's': ''}: ` + botInfo.botIdsDownloadNotAvailable + ` because ${botInfo.botIdsDownloadNotAvailable.length > 1 ? 'they need': 'it needs'} to be in one of these states: ${this.enabledDownloadStates}`
+		}
+		if (botInfo.botIdsDisconnected.length !==0) {
+			botInfo.disconnectedMessage = `\nNot sending to Bot${botInfo.botIdsDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsDisconnected + " because the status age is greater than 30"
+		}
+
+		return botInfo
+	}
+
+	activateAllClicked(evt: UIEvent) {
+		if (!this.takeControl()) return;
+
+		const commDest = this.determineAllCommandBots(false, true, false, false)
+
+		if (commDest.botIds.length === 0) {
+			alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+		} else if(confirm(`Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+			commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+
+			for (const botId of commDest.botIds) {
+				let c = {
+					bot_id: botId,
+					type: CommandType.ACTIVATE
+				}
+		
+				console.log(c)
+				this.api.postCommand(c).then(response => {
+					if (response.message) {
+						error(response.message)
+					}
+				})
+			}
+		}
 	}
 
 	rallyButtonClicked() {
@@ -2139,15 +2283,29 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendStopAll() {
-		if (!this.takeControl() || !confirm('Click the OK button to stop all missions:')) return
+		if (!this.takeControl()) return
 
-		this.api.allStop().then(response => {
-			if (response.message) {
-				error(response.message)
-			} else {
-				info("Sent STOP")
+		const commDest = this.determineAllCommandBots(false, false, true, false)
+
+		if (commDest.botIds.length === 0) {
+			alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+		} else if(confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+			commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+
+			for (const botId of commDest.botIds) {
+				let c = {
+					bot_id: botId,
+					type: CommandType.STOP
+				}
+		
+				console.log(c)
+				this.api.postCommand(c).then(response => {
+					if (response.message) {
+						error(response.message)
+					}
+				})
 			}
-		})
+		}
 	}
 
 	playClicked(evt: UIEvent) {
@@ -2160,15 +2318,27 @@ export default class CommandControl extends React.Component {
 	}
 
 	recoverAllClicked(evt: UIEvent) {
-		if (!this.takeControl() || !confirm('Click the OK button to recover all active bots:')) return
+		if (!this.takeControl()) return
 
-		this.api.allRecover().then(response => {
-				if (response.message) {
-						error(response.message)
-				} else {
-						info("Sent Recover All")
+		const commDest = this.determineAllCommandBots(false, false, false, false)
+
+		if(confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+			commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+
+			for (const botId of commDest.botIds) {
+				let c = {
+					bot_id: botId,
+					type: CommandType.RECOVERED
 				}
-		})
+		
+				console.log(c)
+				this.api.postCommand(c).then(response => {
+					if (response.message) {
+						error(response.message)
+					}
+				})
+			}
+		}
 	}
 
 	sendFlag(evt: UIEvent) {
