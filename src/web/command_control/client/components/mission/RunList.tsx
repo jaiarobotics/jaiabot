@@ -13,7 +13,6 @@ interface Props {
     setEditRunMode: (botIds: number[], canEdit: boolean) => void,
     setEditModeToggle: (runNumber: number, isOn: boolean) => void
     updateEditModeToggle: (run: RunInterface) => boolean,
-    isEditModeToggleDisabled: (run: RunInterface) => boolean,
     toggleEditMode: (run: RunInterface) => boolean
 }
 
@@ -49,7 +48,6 @@ export default class RunList extends React.Component {
                                 mission={self.props.mission}
                                 setEditRunMode={self.props.setEditRunMode}
                                 updateEditModeToggle={self.props.updateEditModeToggle}
-                                isEditModeToggleDisabled={self.props.isEditModeToggleDisabled}
                                 toggleEditMode={self.props.toggleEditMode}
                             />
                         </React.Fragment>

@@ -167,7 +167,7 @@ class Simulator(IMU):
         return IMUReading(orientation=quaternion.to_euler_angles(), 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
-                        gravity=Vector3(0, 0, 9.8),
+                        gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
                         calibration_status=(3, 3, 3, 3),
                         quaternion=quaternion)
 
