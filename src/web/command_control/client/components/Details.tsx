@@ -150,8 +150,6 @@ let commandsForHub: {[key: string]: CommandInfo} = {
     }
 }
 
-const enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
-
 export interface DetailsExpandedState {
     quickLook: boolean
     commands: boolean
@@ -364,14 +362,6 @@ function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, comm
     if (downloadQueueBotIds.includes(bot.bot_id)) {
         return true
     }
-
-    let inMission = true
-    for (const enabledState of enabledEditStates) {
-        if (missionState.includes(enabledState)) {
-            inMission = false
-        }
-    }
-    return inMission
 }
 
 function toggleRCModeButton(missionState: MissionState) {
@@ -442,7 +432,6 @@ export interface BotDetailsProps {
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
     updateEditModeToggle: (run: RunInterface) => boolean,
-    isEditModeToggleDisabled: (run: RunInterface) => boolean,
     toggleEditMode: (run: RunInterface) => boolean,
     downloadIndividualBot: (bot: PortalBotStatus) => void
 }
@@ -566,8 +555,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Button>
 
                         <EditModeToggle 
-                            checked={props.updateEditModeToggle} 
-                            disabled={props.isEditModeToggleDisabled} 
+                            checked={props.updateEditModeToggle}
                             onClick={props.toggleEditMode}
                             run={props.run}
                             label='Edit'
