@@ -293,7 +293,9 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IMUIssue::REBOOT_BOT: break;
                 case protobuf::IMUIssue::USE_COG: break;
                 case protobuf::IMUIssue::USE_CORRECTION: break;
-                case protobuf::IMUIssue::REPORT_IMU: break;
+                case protobuf::IMUIssue::REPORT_IMU:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
                 case protobuf::IMUIssue::RESTART_BOT: break;
                 default:
                     //TODO Handle Default Case
