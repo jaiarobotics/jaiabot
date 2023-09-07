@@ -134,7 +134,7 @@ message BottomDepthSafetyParams
     ];
 
     optional double safety_depth = 4 [
-        default = 0,
+        default = -1,
         (dccl.field) = {
             min: -1,
             max: 60,
