@@ -359,7 +359,7 @@ function disableButton(command: CommandInfo, missionState: MissionState, bot?: P
 
     const disableMessage = "The command: " + command.commandType + " cannot be sent because the bot"
     const disableState = disableMessage + " is in the incorrect state." + 
-        `${humanReadableAvailable !== "" ? '\nAvailable States:: ' + humanReadableAvailable + '\n': ''}` +
+        `${humanReadableAvailable !== "" ? '\nAvailable States: ' + humanReadableAvailable + '\n': ''}` +
         `${humanReadableNotAvailable !== "" ? '\States Not Available: ' + humanReadableNotAvailable + '\n': ''}`
     
     if (statesAvailable) {
