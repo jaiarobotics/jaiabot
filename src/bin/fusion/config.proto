@@ -61,7 +61,7 @@ message Fusion
     optional bool is_sim = 34 [default = false];
 
     // How many times to verify data is indicating imu issue before declaring one
-    optional int32 total_imu_issue_checks = 35 [default = 3];
+    optional int32 total_imu_issue_checks = 35 [default = 4];
 
     // When to start detecting imu issues again after detecting one
     optional int32 imu_detect_timeout = 36 [default = 13]; 
