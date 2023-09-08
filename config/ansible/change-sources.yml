@@ -1,0 +1,28 @@
+---
+- name: Switch to use test Debian repos
+  hosts: all
+  become: yes
+  vars:
+    allowed_repos:
+      - test
+      - continuous
+      - release
+      - beta
+  pre_tasks:
+    - name: Check if repo is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - repo is defined
+          - repo in allowed_repos
+        fail_msg: "Invalid repo. Allowed values are: {{ allowed_repos | join(', ') }}"
+  tasks:
+    - name: Comment out all lines
+      ansible.builtin.replace:
+        path: /etc/apt/sources.list.d/jaiabot.list
+        regexp: '^(deb.*)'
+        replace: '#\1'
+    - name: Uncomment test repo lines
+      ansible.builtin.replace:
+        path: /etc/apt/sources.list.d/jaiabot.list
+        regexp: '^#(deb.*/{{ repo }}/.*)'
+        replace: '\1'

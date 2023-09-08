@@ -1,0 +1,20 @@
+---
+- name: Jaiabot upgrade all
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Hold kernel packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - linux-image-generic
+        - linux-image-raspi
+        - linux-image-raspi2
+        
+    - name: Upgrade
+      apt:
+        update_cache: yes
+        upgrade: dist
+        

@@ -1,0 +1,8 @@
+all:
+  hosts:
+    bot0:
+      ansible_host: bot0-virtualfleet12
+    bot1:
+      ansible_host: bot1-virtualfleet12
+    hub0:
+      ansible_host: hub0-virtualfleet12
