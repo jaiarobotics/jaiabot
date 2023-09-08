@@ -38,7 +38,6 @@ export default class MissionControllerPanel extends React.Component {
     render() {
 		const self = this;
         const emptyMission = Object.keys(this.props.mission.runs).length == 0
-        const botId = this.props.mission.runIdIncrement * -1
 
 		let runPanelComponent =
 			<RunPanel
@@ -49,6 +48,7 @@ export default class MissionControllerPanel extends React.Component {
 				deleteAllRunsInMission={self.props.deleteAllRunsInMission}
 				autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
 				toggleEditMode={self.props.toggleEditMode}
+                unSelectHubOrBot={self.props.unSelectHubOrBot}
 			/>
 
 		return (
@@ -59,9 +59,8 @@ export default class MissionControllerPanel extends React.Component {
                         className="button-jcc" 
                         id="add-run" 
                         onClick={() => {
-                            // Without unselecting, the run index will be stuck on the previously selected run
                             this.props.unSelectHubOrBot()
-                            Missions.addRunWithWaypoints(botId, [], this.props.mission)
+                            Missions.addRunWithWaypoints(-1, [], this.props.mission)
                             setTimeout(() => {
                                 const runListElement = document.getElementById('runList')
                                 const scrollAmount = runListElement.scrollHeight

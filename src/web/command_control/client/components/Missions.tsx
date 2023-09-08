@@ -133,7 +133,6 @@ export class Missions {
     }
 
     static addRunWithGoals(botId: number, goals: Goal[], mission: MissionInterface, setEditModeToggle?: (runNumber: number, isOn: boolean) => void) {
-        let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 
         if (!Missions.isValidRunNumber(mission)) { return }
@@ -145,6 +144,7 @@ export class Missions {
             delete botsAssignedToRuns[botId];
         }
 
+        let incr = mission.runIdIncrement
         mission.runs['run-' + String(incr)] = {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
@@ -155,6 +155,8 @@ export class Missions {
         mission.runIdInEditMode = 'run-' + String(incr);
         botsAssignedToRuns[botId] = 'run-' + String(incr);
 
+        mission.runIdIncrement += 1;
+
         if (setEditModeToggle) {
             setEditModeToggle(botId, true)
         }
@@ -163,7 +165,6 @@ export class Missions {
     }
 
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
-        let incr = mission.runIdIncrement + 1;
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 
         if (!Missions.isValidRunNumber(mission)) { return }
@@ -177,6 +178,7 @@ export class Missions {
 
         command.bot_id = botId;
 
+        let incr = mission.runIdIncrement
         mission.runs['run-' + String(incr)] = {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
@@ -186,6 +188,8 @@ export class Missions {
         mission.runIdIncrement = incr;
         mission.runIdInEditMode = 'run-' + String(incr);
         botsAssignedToRuns[botId] = 'run-' + String(incr);
+
+        mission.runIdIncrement += 1;
 
         return mission;
     }

@@ -1224,7 +1224,7 @@ export default class CommandControl extends React.Component {
 		for (let key in missions?.runs) {
 			const run = missions?.runs[key]
 			const assignedBot = run.assigned
-			const isSelected = (assignedBot === selectedBotId)
+			const isSelected = (assignedBot === selectedBotId) || run.id === missions.runIdInEditMode
 			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
 			const isEdit = this.getRunList().runIdInEditMode === run.id
 
@@ -1427,21 +1427,16 @@ export default class CommandControl extends React.Component {
 
 	addWaypointAt(location: GeographicCoordinate) {
 		let botId = this.selectedBotId()
-		let runList = this.getRunList()
+		let runList = this.pushRunListToUndoStack().getRunList()
 
-		if (!botId) {
-			if (runList.runIdInEditMode === '') {
-				botId = runList.runIdIncrement * -1
-			} else {
-				botId = Number(runList.runIdInEditMode.slice(4)) * -1
-			}
-			this.setState({ selectedHubOrBot: { type: 'bot', id: botId } })
+		if (!botId && runList.runIdInEditMode === '') {
+			return
 		}
 
 		const runs = runList?.runs
 		const botsAssignedToRuns = runList?.botsAssignedToRuns
 
-		if (!(botId in botsAssignedToRuns)) {
+		if (botId && !(botId in botsAssignedToRuns)) {
 			runList = Missions.addRunWithWaypoints(botId, [], runList)
 		}
 
@@ -1449,11 +1444,16 @@ export default class CommandControl extends React.Component {
 		// The check for MAX_RUNS occurs in Missions.tsx
 		if (!runList) { return }
 
-		if (!runs[botsAssignedToRuns[botId]]?.command) {
+		if (botId && !runs[botsAssignedToRuns[botId]]?.command) {
 			runs[botsAssignedToRuns[botId]].command = Missions.commandWithWaypoints(botId, []);
 		}
 
-		const run = runs[botsAssignedToRuns[botId]]
+		let run = null
+		if (!botId) {
+			run = runs[this.getRunList().runIdInEditMode]
+		} else {
+			run = runs[botsAssignedToRuns[botId]]
+		}
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
 			warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
@@ -1498,15 +1498,17 @@ export default class CommandControl extends React.Component {
 			// Allow an operator to click on a task packet while edit mode is off
 			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
 				// Check to make sure the feature selected is not tied to a bot performing a run
-				const runs = this.state.runList.runs
-				for (const runIndex of Object.keys(runs)) {
-					const run = runs[runIndex]
-					if (run.assigned === botId) {
-						if (run.id !== this.getRunList().runIdInEditMode) {
-							warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
-							return false
-						}
+				const runList = this.state.runList
+				let isInEditMode = false
+				for (const runIndex of Object.keys(runList.runs)) {
+					const run = runList.runs[runIndex]
+					if (run.id === runList.runIdInEditMode) {
+						isInEditMode = true
 					}
+				}
+				if (!isInEditMode) {
+					warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+					return false
 				}
 			}
 
@@ -1646,13 +1648,8 @@ export default class CommandControl extends React.Component {
 		const runList = this.getRunList()
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
-			const id = run?.assigned ? run.assigned : this.selectedBotId()
-			this.setState({ selectedHubOrBot: { type: 'bot', id: id} })
 		} else {
 			runList.runIdInEditMode = ''
-			if (run?.assigned && run?.assigned < 0) {
-				this.unselectHubOrBot()
-			}
 		}
 		this.setRunList(runList)
     }

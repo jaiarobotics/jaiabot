@@ -11,6 +11,7 @@ interface Props {
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    unSelectHubOrBot: () => void
 }
 
 interface State {
@@ -44,6 +45,7 @@ export default class RunList extends React.Component {
                                 run={value} 
                                 mission={self.props.mission}
                                 toggleEditMode={self.props.toggleEditMode}
+                                unSelectHubOrBot={self.props.unSelectHubOrBot}
                             />
                         </React.Fragment>
                     )
