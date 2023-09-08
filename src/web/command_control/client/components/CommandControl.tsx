@@ -2474,6 +2474,8 @@ export default class CommandControl extends React.Component {
 					missionBaseGoal={this.state.missionBaseGoal}
 					missionEndTask={this.state.missionEndTask}
 					rallyFeatures={layers.rallyPointLayer.getSource().getFeatures()}
+					startRally={this.state.startRally}
+					endRally={this.state.endRally}
 					centerLineString={this.state.centerLineString}
 					botList={bots}
 					
