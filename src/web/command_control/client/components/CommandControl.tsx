@@ -1134,7 +1134,13 @@ export default class CommandControl extends React.Component {
 		mission.runIdIncrement = 1
 	}
 
-	deleteSingleRun(runNumber?: number) {
+	deleteSingleRun(runNumber?: number, disableMessage?: string) {
+		// Exit if we have a disableMessage
+		if (disableMessage !== "") {
+			alert(disableMessage)
+			return
+		}
+
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		const selectedBotId = this.selectedBotId()
@@ -1878,7 +1884,13 @@ export default class CommandControl extends React.Component {
 		info('Open the Download Panel to see the bot download queue')
 	}
 
-	async processDownloadSingleBot(bot: PortalBotStatus) {
+	async processDownloadSingleBot(bot: PortalBotStatus, disableMessage: string) {
+		// Exit if we have a disableMessage
+		if (disableMessage !== "") {
+			alert(disableMessage)
+			return
+		}
+
 		if (!confirm(`Would you like to do a data download for Bot ${bot.bot_id}?`)) { return }
 		
 		const queue = this.state.botDownloadQueue
@@ -2055,6 +2067,7 @@ export default class CommandControl extends React.Component {
 		let stopAvailable: RegExp = /^IN_MISSION__.+$/
 		let stopNotAvailable: RegExp = /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/
 		let idleStates: RegExp = /^.+__IDLE$/
+		let failedState: RegExp = /^PRE_DEPLOYMENT__FAILED$/
 		let healthError: RegExp = /^HEALTH__FAILED$/
 
 		botInfo = {
@@ -2088,9 +2101,9 @@ export default class CommandControl extends React.Component {
 				}
 			}
 
-			if (sendingMission && idleStates.test(bot?.mission_state)) {
+			if (sendingMission && (idleStates.test(bot?.mission_state) || failedState.test(bot?.mission_state))) {
 				botInfo.botIdsInIdleState.push(bot?.bot_id)
-			} else if (sendingActivate && !idleStates.test(bot?.mission_state)) {
+			} else if (sendingActivate && (!idleStates.test(bot?.mission_state) && !failedState.test(bot?.mission_state))) {
 				botInfo.botIdsNotInIdleState.push(bot?.bot_id)
 			} else if (sendingStop && (!stopAvailable.test(bot?.mission_state) || stopNotAvailable.test(bot?.mission_state))) {
 				botInfo.botIdsInStoppedState.push(bot?.bot_id)
