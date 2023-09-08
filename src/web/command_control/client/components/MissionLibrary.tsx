@@ -18,6 +18,8 @@ export class MissionLibraryLocalStorage {
     }
 
     missionNames() {
+        console.log(savedMissions)
+
         let savedMissionNames = Object.keys(savedMissions).filter((value) => {
             return value != '_localStorageKeyFunc'
         }). sort()
