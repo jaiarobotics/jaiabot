@@ -136,7 +136,7 @@ td {
     top: 0;
     width: 50pt;
     height: auto;
-    max-height: 85vh;
+    max-height: 95vh;
     background: @overlay-background;
     display: flex;
     flex-flow: column nowrap;
@@ -218,7 +218,7 @@ td {
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    max-height: calc(100vh - @rc-panel-height-px);
+    max-height: 95vh;
     max-width: 25vw;
 
     display: flex;
@@ -285,7 +285,7 @@ td {
     top: @command-button-size + (2 * @command-button-padding);
     right: @command-button-size + (2 * @command-button-padding);
 
-    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+    max-height: calc(95vh - @top-toolbar-height);
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -764,7 +764,7 @@ td {
     top: @command-button-size + (2 * @command-button-padding);
     right: @command-button-size + (2 * @command-button-padding);
     
-    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+    max-height: calc(95vh - @top-toolbar-height);
     overflow-y: auto;
     
     background-color: @overlay-background;
@@ -1337,7 +1337,7 @@ div.closeButton {
   top: @command-button-size + (2 * @command-button-padding);
   right: @command-button-size + (2 * @command-button-padding);
   min-width: 402px;
-  max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+  max-height: calc(95vh - @top-toolbar-height);
 
   background-color: @overlay-background;
   border: 2px solid @cc-accordian-color;
@@ -1357,7 +1357,8 @@ div.closeButton {
 }
 
 #runList {
-  max-height: calc(100vh - (@command-button-size + (2 * @command-button-padding) + @command-button-size + (2 * @command-button-padding) + @rc-panel-height-px + 71.28px + 22.92px));
+  // 77.31px = mission panel command strip, 22.91px = heading, 36px = measured buffer
+  max-height: calc(95vh - @top-toolbar-height - 77.31px - 22.91px - 36px);
   overflow-y: auto;
 }
 
