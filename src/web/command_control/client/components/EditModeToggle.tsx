@@ -3,12 +3,11 @@ import Switch from '@mui/material/Switch';
 import { FormGroup, FormControlLabel } from '@mui/material';
 import { amber } from '@mui/material/colors';
 import { alpha, styled } from '@mui/material/styles';
-import { RunInterface } from "./CommandControl";
+import { MissionInterface, RunInterface } from "./CommandControl";
 
 interface Props {
-    checked: (run: RunInterface) => boolean,
-    onClick: (run: RunInterface) => void,
-    disabled?: (run: RunInterface) => boolean,
+    onClick: (evt: React.ChangeEvent, run: RunInterface,) => void,
+    mission: MissionInterface
     run: RunInterface
     label: string,
     title: string
@@ -36,9 +35,8 @@ export default function EditModeToggle(props: Props) {
             <FormControlLabel 
                 control={
                     <AmberSwitch 
-                        checked={props.checked(props.run)} 
-                        disabled={props.disabled ? props.disabled(props.run) : false} 
-                        onClick={() => props.onClick(props.run)}
+                        checked={props.mission.runIdInEditMode === props.run?.id} 
+                        onChange={(evt: React.ChangeEvent) => props.onClick(evt, props.run)}
                     />
                 }
                 label={props.label} 

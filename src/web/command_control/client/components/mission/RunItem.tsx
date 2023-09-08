@@ -24,9 +24,8 @@ interface Props {
     bots: {[key: number]: PortalBotStatus}
     run: RunInterface
     mission: MissionInterface,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    unSelectHubOrBot: () => void
 }
 
 interface State {
@@ -42,9 +41,6 @@ export default class RunItem extends React.Component {
 
     constructor(props: Props) {
         super(props)
-        this.state = {
-          isChecked: this.props.run.canEdit
-        }
     }
 
     componentDidMount() {
@@ -92,7 +88,7 @@ export default class RunItem extends React.Component {
 
         // Check to see if that run is assigned
         // And if the bot id is not included in the botsNotAssigned array
-        if (this.props.run.assigned != -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
+        if (this.props.run.assigned !== -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
             assignedLabel = "Bot-" + this.props.run.assigned
             assignedOption = (
                 <MenuItem 
@@ -112,10 +108,11 @@ export default class RunItem extends React.Component {
                     <Select
                         labelId="bot-assigned-select-label"
                         id="bot-assigned-select"
-                        value={this.props.run.assigned.toString()}
+                        value={this.props.run?.assigned?.toString()}
                         label="Assign"
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
+
                         <MenuItem 
                             key={-1} 
                             value={-1}
@@ -154,6 +151,7 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
                     const goals = deepcopy(this.props.run.command.plan.goal)
+                    this.props.unSelectHubOrBot()
                     Missions.addRunWithGoals(-1, goals, this.props.mission);
                 }}
             >
@@ -183,8 +181,8 @@ export default class RunItem extends React.Component {
         // Create Edit Mode Toggle
         editModeButton = (
             <EditModeToggle 
-                checked={this.props.updateEditModeToggle}
                 onClick={this.props.toggleEditMode}
+                mission={this.props.mission}
                 run={this.props.run}
                 label="Edit"
                 title="ToggleEditMode"

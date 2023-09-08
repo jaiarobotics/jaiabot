@@ -10,10 +10,8 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
-    setEditModeToggle: (runNumber: number, isOn: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    unSelectHubOrBot: () => void
 }
 
 
@@ -43,10 +41,8 @@ export default class RunPanel extends React.Component {
 				    saveMissionClick={self.props.saveMissionClick}
                     deleteAllRunsInMission={self.props.deleteAllRunsInMission}
                     autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
-                    setEditRunMode={self.props.setEditRunMode}
-                    setEditModeToggle={self.props.setEditModeToggle}
-                    updateEditModeToggle={self.props.updateEditModeToggle}
                     toggleEditMode={self.props.toggleEditMode}
+                    unSelectHubOrBot={self.props.unSelectHubOrBot}
                 />}
             </React.Fragment>
         );
