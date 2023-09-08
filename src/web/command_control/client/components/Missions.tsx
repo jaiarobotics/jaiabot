@@ -1,7 +1,3 @@
-/* eslint-disable jsx-a11y/label-has-for */
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable react/sort-comp */
-/* eslint-disable no-unused-vars */
 import { Goal, GeographicCoordinate, Command, CommandType, MissionStart, MovementType} from './shared/JAIAProtobuf'
 import { MissionInterface, RunInterface } from './CommandControl';
 import { deepcopy } from './shared/Utilities';
@@ -61,7 +57,8 @@ export class Missions {
                 name: 'Mission 1',
                 runs: {},
                 runIdIncrement: 1,
-                botsAssignedToRuns: {}
+                botsAssignedToRuns: {},
+                runIdInEditMode: ''
             }
 		}
 
@@ -108,30 +105,29 @@ export class Missions {
         return isRunNumberLessThanMaxRuns
     }
 
-    static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface, setEditModeToggle: (runNumber: number, isOn: boolean) => void) {
-        let incr = mission.runIdIncrement + 1;
+    static addRunWithWaypoints(botId: number, locations: GeographicCoordinate[], mission: MissionInterface, unAssignedMission?: boolean) {
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 
         if (!Missions.isValidRunNumber(mission)) { return }
         
-        if(botsAssignedToRuns[botId] != null)
-        {
+        if (botsAssignedToRuns[botId] != null) {
             mission.runs[botsAssignedToRuns[botId]].assigned = -1;
             mission.runs[botsAssignedToRuns[botId]].command.bot_id = -1;
             delete botsAssignedToRuns[botId];
         }
 
+        let incr = mission.runIdIncrement
         mission.runs['run-' + String(incr)] = {
             id: 'run-' + String(incr),
             name: 'Run ' + String(incr),
             assigned: botId,
             command: Missions.commandWithWaypoints(botId, locations),
-            canEdit: true
         }
         mission.runIdIncrement = incr;
+        mission.runIdInEditMode = 'run-' + String(incr);
         botsAssignedToRuns[botId] = 'run-' + String(incr);
 
-        setEditModeToggle(botId, true)
+        mission.runIdIncrement += 1;
 
         return mission;
     }
@@ -154,9 +150,9 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             command: commandWithGoals(botId, deepcopy(goals)),
-            canEdit: true
         }
         mission.runIdIncrement = incr;
+        mission.runIdInEditMode = 'run-' + String(incr);
         botsAssignedToRuns[botId] = 'run-' + String(incr);
 
         if (setEditModeToggle) {
@@ -186,9 +182,9 @@ export class Missions {
             name: 'Run ' + String(incr),
             assigned: botId,
             command: command,
-            canEdit: true
         }
         mission.runIdIncrement = incr;
+        mission.runIdInEditMode = 'run-' + String(incr);
         botsAssignedToRuns[botId] = 'run-' + String(incr);
 
         return mission;

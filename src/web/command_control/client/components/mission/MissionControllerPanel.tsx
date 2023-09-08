@@ -16,10 +16,8 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
-    setEditModeToggle: (runNumber: number, isOn: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    unSelectHubOrBot: () => void
 }
 
 export default class MissionControllerPanel extends React.Component {
@@ -40,6 +38,7 @@ export default class MissionControllerPanel extends React.Component {
     render() {
 		const self = this;
         const emptyMission = Object.keys(this.props.mission.runs).length == 0
+        const botId = this.props.mission.runIdIncrement * -1
 
 		let runPanelComponent =
 			<RunPanel
@@ -49,9 +48,6 @@ export default class MissionControllerPanel extends React.Component {
 				saveMissionClick={self.props.saveMissionClick}
 				deleteAllRunsInMission={self.props.deleteAllRunsInMission}
 				autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
-				setEditRunMode={self.props.setEditRunMode}
-				setEditModeToggle={self.props.setEditModeToggle}
-				updateEditModeToggle={self.props.updateEditModeToggle}
 				toggleEditMode={self.props.toggleEditMode}
 			/>
 
@@ -63,7 +59,9 @@ export default class MissionControllerPanel extends React.Component {
                         className="button-jcc" 
                         id="add-run" 
                         onClick={() => {
-                            Missions.addRunWithWaypoints(-1, [], this.props.mission, this.props.setEditModeToggle);
+                            // Without unselecting, the run index will be stuck on the previously selected run
+                            this.props.unSelectHubOrBot()
+                            Missions.addRunWithWaypoints(botId, [], this.props.mission)
                             setTimeout(() => {
                                 const runListElement = document.getElementById('runList')
                                 const scrollAmount = runListElement.scrollHeight

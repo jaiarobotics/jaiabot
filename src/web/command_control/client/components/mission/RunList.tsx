@@ -10,10 +10,7 @@ interface Props {
     saveMissionClick: any,
     deleteAllRunsInMission: any,
     autoAssignBotsToRuns: any
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void,
-    setEditModeToggle: (runNumber: number, isOn: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
 
 interface State {
@@ -46,8 +43,6 @@ export default class RunList extends React.Component {
                                 bots={self.props.bots} 
                                 run={value} 
                                 mission={self.props.mission}
-                                setEditRunMode={self.props.setEditRunMode}
-                                updateEditModeToggle={self.props.updateEditModeToggle}
                                 toggleEditMode={self.props.toggleEditMode}
                             />
                         </React.Fragment>

@@ -24,9 +24,7 @@ interface Props {
     bots: {[key: number]: PortalBotStatus}
     run: RunInterface
     mission: MissionInterface,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
 }
 
 interface State {
@@ -42,9 +40,6 @@ export default class RunItem extends React.Component {
 
     constructor(props: Props) {
         super(props)
-        this.state = {
-          isChecked: this.props.run.canEdit
-        }
     }
 
     componentDidMount() {
@@ -92,16 +87,8 @@ export default class RunItem extends React.Component {
 
         // Check to see if that run is assigned
         // And if the bot id is not included in the botsNotAssigned array
-        if (this.props.run.assigned != -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
+        if (this.props.run.assigned > 0 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
             assignedLabel = "Bot-" + this.props.run.assigned
-            assignedOption = (
-                <MenuItem 
-                    key={this.props.run.assigned} 
-                    value={this.props.run.assigned}
-                >
-                    {assignedLabel}
-                </MenuItem>
-            )
         }
 
         // Create the Select Object
@@ -116,21 +103,26 @@ export default class RunItem extends React.Component {
                         label="Assign"
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
-                        <MenuItem 
-                            key={-1} 
-                            value={-1}
-                        >
-                            Unassigned
-                        </MenuItem>
 
                         {
-                            assignedOption ? 
-                                <MenuItem 
-                                    key={this.props.run.assigned} 
+                            <MenuItem
+                                key={this.props.mission.runIdIncrement * -1}
+                                value={this.props.mission.runIdIncrement * -1}
+                            >
+                                {"Unassigned"}
+                            </MenuItem>
+                        }
+
+                        {
+                            assignedLabel ? 
+                            (
+                                <MenuItem
+                                    key={this.props.run.assigned}
                                     value={this.props.run.assigned}
-                                >
-                                    {assignedLabel}
-                                </MenuItem> : ""
+                                    >
+                                        {assignedLabel}
+                                </MenuItem>
+                            ) : ""
                         }
                        
                         {
@@ -154,7 +146,7 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
                     const goals = deepcopy(this.props.run.command.plan.goal)
-                    Missions.addRunWithGoals(-1, goals, this.props.mission);
+                    Missions.addRunWithGoals(this.props.mission.runIdIncrement * -1, goals, this.props.mission);
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
@@ -183,8 +175,8 @@ export default class RunItem extends React.Component {
         // Create Edit Mode Toggle
         editModeButton = (
             <EditModeToggle 
-                checked={this.props.updateEditModeToggle}
                 onClick={this.props.toggleEditMode}
+                mission={this.props.mission}
                 run={this.props.run}
                 label="Edit"
                 title="ToggleEditMode"

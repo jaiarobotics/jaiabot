@@ -431,8 +431,7 @@ export interface BotDetailsProps {
     deleteSingleMission: () => void,
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean,
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean,
     downloadIndividualBot: (bot: PortalBotStatus) => void
 }
 
@@ -555,8 +554,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Button>
 
                         <EditModeToggle 
-                            checked={props.updateEditModeToggle}
                             onClick={props.toggleEditMode}
+                            mission={props.mission}
                             run={props.run}
                             label='Edit'
                             title='ToggleEditMode'
