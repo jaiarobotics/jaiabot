@@ -480,16 +480,29 @@ export default class JaiaMap {
             return
         }
 
-        for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
+        for (const [bot_id, path_point_array] of this.path_point_arrays.entries()) {
 
             const point = bisect(path_point_array, (point) => {
                 return timestamp_micros - point[0]
             })?.value
             if (point == null) continue;
 
+            const bot: PortalBotStatus = {
+                bot_id: bot_id,
+                location: {
+                    lon: point[2],
+                    lat: point[1]
+                },
+                attitude: {
+                    heading: point[3],
+                    course_over_ground: point[4],
+                }
+            }
+
             const properties = {
                 map: this.openlayersMap,
-                botId: botId,
+                bot: bot,
+                botId: bot_id,
                 lonLat: [point[2], point[1]],
                 heading: point[3],
                 courseOverGround: point[4],
@@ -546,13 +559,12 @@ export default class JaiaMap {
             return timestamp_micros - active_goal._utime_
         })?.value
 
-        const bot: PortalBotStatus = null
-        bot.bot_id = botId 
+
         const activeGoalIndex = activeGoal?.active_goal
         const isSelected = false
         const canEdit = false
 
-        const missionFeatures = createMissionFeatures(this.openlayersMap, bot, command.plan, activeGoalIndex, isSelected, canEdit)
+        const missionFeatures = createMissionFeatures(this.openlayersMap, null, command.plan, activeGoalIndex, isSelected, canEdit)
         this.missionVectorSource.addFeatures(missionFeatures)
     }
 
