@@ -229,8 +229,8 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        LogApi.get_map(this.state.chosenLogs).then((seriesArray) => {
-          this.map.setSeriesArray(seriesArray)
+        LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+          this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 

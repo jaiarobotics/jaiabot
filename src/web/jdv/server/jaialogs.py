@@ -18,6 +18,7 @@ import kmz
 from objects import *
 from moos_messages import *
 from pprint import pprint
+from types import MethodType
 
 
 # JAIA message types as python dataclasses
@@ -95,6 +96,22 @@ def h5_get_hovertext(dataset):
         return None
 
 
+def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
+    '''Returns an iterator for the paths matching regular_expression found in HDF5 file'''
+    matching_items = []
+
+    def func(name, object):
+        m = regular_expression.match(name)
+
+        if m is not None:
+            matching_items.append(name)
+
+    file.visititems(func)
+
+    for item in matching_items:
+        yield item
+
+
 # Path descriptions
 
 try:
@@ -131,6 +148,11 @@ def get_title_from_path(path):
 
     components[0] = components[0].split('.')[-1]
     return '/'.join(components)
+
+
+# Path regular expressions
+
+BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.BotStatus$')
 
 # Data fetch functions
 
@@ -303,7 +325,7 @@ def get_series(log_names, paths):
 
 def get_map(log_names):
     if log_names is None:
-        return []
+        return {}
 
     log_names = log_names.split(',')
 
@@ -316,22 +338,33 @@ def get_map(log_names):
     NodeStatus_course_over_ground_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/course_over_ground'
     DesiredSetpoints_heading_path = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/helm_course/heading'
 
-    seriesList = []
-    desired_heading_series = Series()
+    bot_id_to_map_series = {}
 
     for log in logs:
+
+        bot_id_string: str = None
+
+        # Find BotStatus to get bot_id
+        for path in itemsmatching(log, BOT_STATUS_RE):
+            bot_id_series = Series(log=log, path=path + '/bot_id', invalid_values=[None])
+            bot_id_string = str(bot_id_series.y_values[0])
+            break
+
+        if bot_id_string is None:
+            logging.warning(f'No bot_id for {log.filename}')
+            continue
+
+        map_series = bot_id_to_map_series.setdefault(bot_id_string, [])
+
         lat_series = Series(log=log, path=NodeStatus_lat_path, invalid_values=[0])
         lon_series = Series(log=log, path=NodeStatus_lon_path, invalid_values=[0])
         heading_series = Series(log=log, path=NodeStatus_heading_path)
         course_over_ground_series = Series(log=log, path=NodeStatus_course_over_ground_path)
-
-        thisSeries = []
-
         desired_heading_series = Series(log=log, path=DesiredSetpoints_heading_path)
 
         for i, lat in enumerate(lat_series.y_values):
             most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
-            thisSeries.append([
+            map_series.append([
                 lat_series.utime[i], 
                 lat_series.y_values[i], 
                 lon_series.y_values[i], 
@@ -340,9 +373,7 @@ def get_map(log_names):
                 most_recent_desired_heading
             ])
 
-        seriesList.append(thisSeries)
-
-    return seriesList
+    return bot_id_to_map_series
 
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
@@ -362,21 +393,24 @@ def get_commands(log_filenames):
 
             m = HUB_COMMAND_RE.match(path)
             if m is not None:
-                bot_id = m.group(1)
                 hub_command_path = path
 
-                if bot_id not in results:
-                    results[bot_id] = []
-                
                 command_path = hub_command_path + '/jaiabot.protobuf.Command'
                 commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
 
-                results[bot_id] = commands
+                if len(commands) > 0:
+                    bot_id_string = str(commands[0]['bot_id'])
+
+                    if bot_id_string not in results:
+                        results[bot_id_string] = []
+
+                    results[bot_id_string].extend(commands)
+
+    # Sort each bot's command list by time of command issuance
+    for bot_id_string in results:
+        results[bot_id_string].sort(key=lambda command: command['_utime_'])
 
     return results
-
-
-BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.BotStatus$')
 
 
 def get_active_goals(log_filenames):
@@ -393,23 +427,26 @@ def get_active_goals(log_filenames):
             m = BOT_STATUS_RE.match(name)
 
             if m is not None:
-                bot_id = m.group(1)
-                if bot_id not in results:
-                    results[bot_id] = []
-
                 _utime_ = h5_get_series(log_file[name + '/_utime_'])
                 bot_ids = h5_get_series(log_file[name + '/bot_id'])
                 active_goals = h5_get_series(log_file[name + '/active_goal'])
 
                 last_active_goal = None
                 for i in range(len(_utime_)):
+                    bot_id_string = str(bot_ids[i])
+
+                    active_goal_list_for_this_bot = results.setdefault(bot_id_string, [])
+
+                    try:
+                        last_active_goal = active_goal_list_for_this_bot[-1]['active_goal']
+                    except IndexError:
+                        last_active_goal = None
+
                     if active_goals[i] != last_active_goal:
-                        results[bot_id].append({
+                        active_goal_list_for_this_bot.append({
                             '_utime_': _utime_[i],
                             'active_goal': active_goals[i]
                         })
-                        
-                        last_active_goal = active_goals[i]
 
         log_file.visititems(visit_path)
 
