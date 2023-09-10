@@ -588,12 +588,45 @@ export default class JaiaMap {
                 continue
             }
 
-            if (task_packet.dive) {
-                this.divePacketLayer.getSource().addFeature(createDivePacketFeature(this.map, task_packet))
+            const diveFeature = createDivePacketFeature(this.map, task_packet)
+            if (diveFeature) {
+                const dive = task_packet.dive
+                // Add popup
+                const html = `
+                <h3>Dive</h3>
+                <table>
+                    <tbody>
+                        <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                        <tr><th>Depth</th><td>${dive.depth_achieved?.toFixed(2) ?? "?"} m</td></tr>
+                        <tr><th>Bottom Dive</th><td>${(dive.bottom_dive ?? false) ? "Yes" : "No" }</td></tr>
+                        <tr><th>Dive Rate</th><td>${dive.dive_rate?.toFixed(2) ?? "?"} m/s</td></tr>
+                        <tr><th>Duration To Acquire GPS Lock</th><td>${dive.duration_to_acquire_gps?.toFixed(1) ?? "?"} s</td></tr>
+                    </tbody>
+                </table>
+                `
+
+                Popup.addPopupHTML(this.map, diveFeature, html)
+
+                this.divePacketLayer.getSource().addFeature(diveFeature)
             }
 
-            if (task_packet.drift) {
-                this.driftPacketLayer.getSource().addFeature(createDriftPacketFeature(this.map, task_packet))
+            const driftFeature = createDriftPacketFeature(this.map, task_packet)
+            if (driftFeature) {
+                const drift = task_packet.drift
+                // Add popup
+                const html = `
+                <h3>Drift</h3>
+                <table>
+                    <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                    <tr><th>Speed</th><td>${drift.estimated_drift.speed.toFixed(2)} m/s</td></tr>
+                    <tr><th>Direction</th><td>${drift.estimated_drift.heading.toFixed(1)} deg</td></tr>
+                    <tr><th>Significant Wave Height</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
+                </table>
+                `
+
+                Popup.addPopupHTML(this.map, driftFeature, html)
+
+                this.driftPacketLayer.getSource().addFeature(driftFeature)
             }
         }
     }

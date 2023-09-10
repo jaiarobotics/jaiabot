@@ -10,6 +10,7 @@ import { Feature } from 'ol'
 import { Map } from 'ol'
 
 import * as Styles from "./Styles"
+import { addPopupHTML } from './Popup'
 
 interface TaskPacketCalcResults {
     dive_location?: GeographicCoordinate;
@@ -43,6 +44,7 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         'animated': false
     })
     feature.setStyle(Styles.driftPacketIconStyle(feature))
+
     return feature
 }
 
