@@ -268,12 +268,6 @@ li::marker {
     padding: 10pt;
 }
 
-th {
-    background-color: lightskyblue;
-    margin: 5pt;
-    text-align: left;
-}
-
 td.dataKey {
     width: 30%;
 }
@@ -336,4 +330,10 @@ div#layerSwitcher {
 
     top: 50pt;
     left: 0pt;
+}
+
+div.popup > table > tbody > tr > th {
+    text-align: left;
+    padding-right: 10px;
+    font-weight: bold;
 }
