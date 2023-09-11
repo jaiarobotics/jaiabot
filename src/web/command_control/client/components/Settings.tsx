@@ -55,12 +55,23 @@ export function Load<T>(key: string, defaultValue: T) {
     return value
 }
 
+export function LoadMissions<T>(key: string) {
+    const s = localStorage.getItem(key)
+
+    const storedValue: T = JSON.parse(s)
+
+    return storedValue
+}
+
 
 export function Save(value: any) {
     const key = value._localStorageKeyFunc()
     localStorage.setItem(key, JSON.stringify(value))
 }
 
+export function SaveMissions(key: string, value: any) {
+    localStorage.setItem(key, JSON.stringify(value))
+}
 
 export interface MapSettings {
     visibleLayers: string[]
