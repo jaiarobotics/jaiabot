@@ -1674,7 +1674,7 @@ export default class CommandControl extends React.Component {
 				break
 			}
 		}
-		
+
 		if (run?.command.plan?.goal[goalNum - 1]) {
 			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 		}
@@ -1699,7 +1699,7 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		if (this.state.goalBeingEdited?.moveWptMode) {
+		if (this.state.goalBeingEdited?.moveWptMode && run) {
 			run.command.plan.goal[goalNum -1].location = geoCoordinate
 			return true
 		}
