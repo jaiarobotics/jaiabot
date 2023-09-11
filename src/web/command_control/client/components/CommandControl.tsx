@@ -1066,7 +1066,7 @@ export default class CommandControl extends React.Component {
 		const botIdsAssignedToRuns: number[] = [];
 		const runs = missions.runs;
 
-		if(addRuns) {
+		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
 				if (commDest.botIds.includes(Number(botIndex))) {
 					botIdsAssignedToRuns.push(Number(botIndex));
@@ -1510,8 +1510,8 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 			const botId = feature.get('botId')
 			
-			// Allow an operator to click on a task packet while edit mode is off
-			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
+			// Allow an operator to click on a task packet or rally point while edit mode is off
+			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift' || feature?.get('type') === 'rallyPoint')) {
 				// Check to make sure the feature selected is not tied to a bot performing a run
 				const runList = this.state.runList
 				let isInEditMode = false
