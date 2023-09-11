@@ -523,7 +523,7 @@ export default class JaiaMap {
 
             const properties = {
                 map: this.map,
-                botId: botId,
+                botId: bot.bot_id,
                 lonLat: [point[2], point[1]],
                 heading: point[3],
                 courseOverGround: point[4],
@@ -583,8 +583,13 @@ export default class JaiaMap {
                 return timestamp_micros - active_goal._utime_
             })?.value
 
-        const missionFeatures = createMissionFeatures(this.map, bot, command.plan, activeGoalIndex, isSelected, canEdit)
-        this.missionVectorSource.addFeatures(missionFeatures)
+            const activeGoalIndex = activeGoal?.active_goal
+            const isSelected = false
+            const canEdit = false
+
+            const missionFeatures = createMissionFeatures(this.map, null, command.plan, activeGoalIndex, isSelected, canEdit)
+            this.missionVectorSource.addFeatures(missionFeatures)
+        }
     }
 
     processMissionFeatureDrag(missionFeatures: Feature<Geometry>[]) {
