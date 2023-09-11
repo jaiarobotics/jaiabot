@@ -144,9 +144,13 @@ interface State {
 		botId: number,
 	}
 
-	goalBeingEditedBotId?: number,
-	goalBeingEditedGoalIndex?: number,
-	goalBeingEdited?: Goal,
+	goalBeingEdited: {
+		goal?: Goal,
+		goalIndex?: number,
+		botId?: number,
+		runNumber?: number,
+		moveWptMode?: boolean
+	}
 
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
@@ -272,6 +276,7 @@ export default class CommandControl extends React.Component {
 				runNum: -1,
 				botId: -1
 			},
+			goalBeingEdited: {},
 
 			selectedHubOrBot: null,
 			measureFeature: null,
@@ -828,6 +833,10 @@ export default class CommandControl extends React.Component {
 
 	didClickBot(bot_id: number) {
 		this.toggleBot(bot_id)
+		if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
+			this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			this.setVisiblePanel(PanelType.NONE)
+		}
 	}
 
 	didClickHub(hub_id: number) {
@@ -1057,7 +1066,7 @@ export default class CommandControl extends React.Component {
 		const botIdsAssignedToRuns: number[] = [];
 		const runs = missions.runs;
 
-		if(addRuns) {
+		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
 				if (commDest.botIds.includes(Number(botIndex))) {
 					botIdsAssignedToRuns.push(Number(botIndex));
@@ -1462,7 +1471,7 @@ export default class CommandControl extends React.Component {
 		}
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
-			warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 			return
 		}
 
@@ -1498,37 +1507,30 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (feature) {
-			const botId = feature.get('botId')
-			
-			// Allow an operator to click on a task packet while edit mode is off
-			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
-				// Check to make sure the feature selected is not tied to a bot performing a run
+		if (feature) {			
+			// Allow an operator to click on certain features while edit mode is off
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot']
+			if (!(editModeExemptions.includes(feature?.get('type')))) {
 				const runList = this.state.runList
-				let isInEditMode = false
-				for (const runIndex of Object.keys(runList.runs)) {
-					const run = runList.runs[runIndex]
-					if (run.id === runList.runIdInEditMode) {
-						isInEditMode = true
-					}
-				}
+				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
-					warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+					warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 					return false
 				}
 			}
 
 			// Clicked on goal / waypoint
 			let goal = feature.get('goal')
-			let goalIndex = feature.get('goalIndex')
 
 			if (goal) {
 				this.pushRunListToUndoStack()
-				this.setState({
-					goalBeingEdited: goal,
-					goalBeingEditedBotId: botId,
-					goalBeingEditedGoalIndex: goalIndex
-				}, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
+				const goalBeingEdited = {
+					goal: goal,
+					goalIndex: feature.get('goalIndex'),
+					botId: feature.get('botId'),
+					runNumber: feature.get('runNumber')
+				}
+				this.setState({ goalBeingEdited }, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
 				return false
 			}
 
@@ -1621,7 +1623,7 @@ export default class CommandControl extends React.Component {
 					duration: {value: feature.get('duration'), units: 's'},
 					speed: {value: feature.get('speed'), units: 'm/s'},
 					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
-					sig_wave_height: {value: feature.get('sigWaveHeight'), units: 'm'},
+					sig_wave_height_beta: {value: feature.get('sigWaveHeight'), units: 'm'},
 					start_time: {value: startTime.toLocaleString(), units: ''},
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
@@ -1655,6 +1657,10 @@ export default class CommandControl extends React.Component {
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
 		} else {
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
 			runList.runIdInEditMode = ''
 		}
 		this.setRunList(runList)
@@ -1672,11 +1678,17 @@ export default class CommandControl extends React.Component {
 		if (run?.command.plan?.goal[goalNum - 1]) {
 			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 		}
+
+		const goalBeingEdited = this.state.goalBeingEdited
+		if (goalBeingEdited) {
+			goalBeingEdited.moveWptMode = canMoveWpt
+		}
+		this.setState({ goalBeingEdited })
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
-		const botId = this.state.goalBeingEditedBotId
-		const goalNum = this.state.goalBeingEditedGoalIndex
+		const botId = this.state.goalBeingEdited?.botId
+		const goalNum = this.state.goalBeingEdited?.goalIndex
 		const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
 		const runs = this.getRunList().runs
 		let run: RunInterface = null
@@ -1687,7 +1699,7 @@ export default class CommandControl extends React.Component {
 			}
 		}
 
-		if (this.state.goalBeingEdited?.moveWptMode) {	
+		if (this.state.goalBeingEdited?.moveWptMode) {
 			run.command.plan.goal[goalNum -1].location = geoCoordinate
 			return true
 		}
@@ -1726,6 +1738,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.runMissions(this.getRunList(), addRuns, true)
+		this.getRunList().runIdInEditMode = ''
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
@@ -2415,9 +2428,7 @@ export default class CommandControl extends React.Component {
 		const {
 			visiblePanel,
 			trackingTarget,
-			goalBeingEdited,
-			goalBeingEditedBotId,
-			goalBeingEditedGoalIndex
+			goalBeingEdited
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2769,11 +2780,12 @@ export default class CommandControl extends React.Component {
 				visiblePanelElement = (
 					<GoalSettingsPanel
 						map={map}
-						key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
-						botId={goalBeingEditedBotId}
-						goalIndex={goalBeingEditedGoalIndex}
-						goal={goalBeingEdited}
+						key={`${goalBeingEdited?.botId}-${goalBeingEdited?.goalIndex}`}
+						botId={goalBeingEdited?.botId}
+						goalIndex={goalBeingEdited?.goalIndex}
+						goal={goalBeingEdited?.goal}
 						runList={this.getRunList()}
+						runNumber={goalBeingEdited?.runNumber}
 						onChange={() => this.setRunList(this.getRunList())} 
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
