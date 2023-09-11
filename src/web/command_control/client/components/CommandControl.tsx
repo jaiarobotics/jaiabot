@@ -1471,7 +1471,7 @@ export default class CommandControl extends React.Component {
 		}
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
-			warning('Run cannot be modified: toggle Edit Mode or terminate the run')
+			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 			return
 		}
 
@@ -1515,7 +1515,7 @@ export default class CommandControl extends React.Component {
 				const runList = this.state.runList
 				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
-					warning('Run cannot be modified: toggle Edit Mode or terminate the run')
+					warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 					return false
 				}
 			}
