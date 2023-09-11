@@ -15,7 +15,7 @@ add_commander_tab: false
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
     role: USER
 
-    ansible_inventory: "inventory.yml"
+    ansible_inventory: "/etc/jaiabot/inventory.yml"
     ansible_config: "ansible-liaison.cfg"
     ansible_playbook {
         file: "change-sources.yml" 

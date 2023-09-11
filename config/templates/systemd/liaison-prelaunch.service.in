@@ -1,0 +1,21 @@
+[Unit]
+Description=$description
+
+Requires=network-online.target
+After=network-online.target
+
+Requires=var-log.mount
+After=var-log.mount
+
+[Service]
+User=$user
+Group=$group
+
+EnvironmentFile=$env_file
+ExecStart=$bin_dir/$exe -C '$gen $exe' $extra_flags
+$extra_service
+WorkingDirectory=$jaiabot_share_dir/config/ansible
+
+
+[Install]
+WantedBy=multi-user.target
