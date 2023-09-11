@@ -1471,7 +1471,7 @@ export default class CommandControl extends React.Component {
 		}
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
-			warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+			warning('Run cannot be modified: toggle Edit Mode or terminate the run')
 			return
 		}
 
@@ -1512,17 +1512,10 @@ export default class CommandControl extends React.Component {
 			
 			// Allow an operator to click on a task packet or rally point while edit mode is off
 			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift' || feature?.get('type') === 'rallyPoint')) {
-				// Check to make sure the feature selected is not tied to a bot performing a run
 				const runList = this.state.runList
-				let isInEditMode = false
-				for (const runIndex of Object.keys(runList.runs)) {
-					const run = runList.runs[runIndex]
-					if (run.id === runList.runIdInEditMode) {
-						isInEditMode = true
-					}
-				}
+				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
-					warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+					warning('Run cannot be modified: toggle Edit Mode or terminate the run')
 					return false
 				}
 			}
@@ -1665,6 +1658,10 @@ export default class CommandControl extends React.Component {
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
 		} else {
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
 			runList.runIdInEditMode = ''
 		}
 		this.setRunList(runList)
