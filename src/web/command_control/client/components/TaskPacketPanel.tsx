@@ -39,7 +39,10 @@ export function TaskPacketPanel(props: Props) {
                         if (item.type === 'key') {
                             const labelSplit = item.val.split('_')
                             const firstLetterUpper = labelSplit.map(word => word.slice(0, 1).toUpperCase() + word.slice(1))
-                            const label = firstLetterUpper.join(' ')
+                            let label = firstLetterUpper.join(' ')
+                            if (label === 'Sig Wave Height Beta') {
+                                label = 'Sig Wave Height (Beta)'
+                            }
                             return <div className="task-packet-label">{label}:</div>
                         } else if (item.type === 'value') {
                             return <div className="task-packet-input">{item.val}</div>
