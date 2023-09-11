@@ -638,7 +638,7 @@ export default class JaiaMap {
                     <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
                     <tr><th>Speed</th><td>${drift.estimated_drift.speed.toFixed(2)} m/s</td></tr>
                     <tr><th>Direction</th><td>${drift.estimated_drift.heading.toFixed(1)} deg</td></tr>
-                    <tr><th>Significant Wave Height</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
+                    <tr><th>Significant Wave Height (Beta)</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
                 </table>
                 `
 
