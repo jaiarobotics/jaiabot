@@ -1507,11 +1507,10 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (feature) {
-			const botId = feature.get('botId')
-			
-			// Allow an operator to click on a task packet or rally point while edit mode is off
-			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift' || feature?.get('type') === 'rallyPoint')) {
+		if (feature) {			
+			// Allow an operator to click on certain features while edit mode is off
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot']
+			if (!(editModeExemptions.includes(feature?.get('type')))) {
 				const runList = this.state.runList
 				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
@@ -1528,7 +1527,7 @@ export default class CommandControl extends React.Component {
 				const goalBeingEdited = {
 					goal: goal,
 					goalIndex: feature.get('goalIndex'),
-					botId: botId,
+					botId: feature.get('botId'),
 					runNumber: feature.get('runNumber')
 				}
 				this.setState({ goalBeingEdited }, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
