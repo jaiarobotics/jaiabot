@@ -1631,7 +1631,7 @@ export default class CommandControl extends React.Component {
 					duration: {value: feature.get('duration'), units: 's'},
 					speed: {value: feature.get('speed'), units: 'm/s'},
 					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
-					sig_wave_height: {value: feature.get('sigWaveHeight'), units: 'm'},
+					sig_wave_height_beta: {value: feature.get('sigWaveHeight'), units: 'm'},
 					start_time: {value: startTime.toLocaleString(), units: ''},
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
