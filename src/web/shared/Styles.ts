@@ -68,16 +68,16 @@ export function botMarker(feature: Feature): Style[] {
     }
 
     const botStatus = feature.get('bot') as PortalBotStatus
-    const heading = (botStatus.attitude?.heading ?? 0.0) * DEG
+    const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
 
     let color: string
 
-    if (botStatus.isDisconnected ?? false) {
+    if (botStatus?.isDisconnected ?? false) {
         color = disconnectedColor
-    } else if (isRemoteControlled(botStatus.mission_state)) {
+    } else if (isRemoteControlled(botStatus?.mission_state)) {
         color = remoteControlledColor
     } else if (feature.get('selected')) {
         color = selectedColor
@@ -85,7 +85,7 @@ export function botMarker(feature: Feature): Style[] {
         color = defaultColor
     }
 
-    const text = String(botStatus.bot_id ?? "")
+    const text = String(botStatus?.bot_id ?? "")
 
     var style = [ 
         // Bot body marker
