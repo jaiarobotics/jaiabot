@@ -517,8 +517,7 @@ export interface BotDetailsProps {
     deleteSingleMission: (runNumber?: number, disableMessage?: string) => void,
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean,
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean,
     downloadIndividualBot: (bot: PortalBotStatus, disableMessage: string) => void
 }
 
@@ -623,6 +622,19 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         botOffloadPercentage = ' ' + bot.data_offload_percentage + '%'
     }
 
+    let clickOnMap = (
+        <h3 className='name'>Click on the map to create waypoints</h3>
+    )
+
+    // Clear message for clicking on map if the bot has a run,
+    // but it is not in edit mode
+    if (!disableClearRunButton(bot, mission).isDisabled
+            && !props?.mission?.runIdInEditMode[bot?.bot_id]) {
+        clickOnMap = (
+            <h3 className='name'>Click edit toggle to create waypoints</h3>
+        )
+    }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
@@ -631,7 +643,7 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         <h2 className='name'>{`Bot ${bot?.bot_id}`}</h2>
                         <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
                     </div>
-                    <h3 className='name'>Click on the map to create goals</h3>
+                    {clickOnMap}
                     <div className='botDetailsToolbar'>
                         <Button
                             className={disableButton(commands.stop, missionState).isDisabled ? 'inactive button-jcc' : ' button-jcc stopMission'} 
@@ -652,8 +664,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                         </Button>
 
                         <EditModeToggle 
-                            checked={props.updateEditModeToggle}
                             onClick={props.toggleEditMode}
+                            mission={props.mission}
                             run={props.run}
                             label='Edit'
                             title='ToggleEditMode'
