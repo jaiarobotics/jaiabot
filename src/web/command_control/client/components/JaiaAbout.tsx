@@ -20,46 +20,48 @@ export default class JaiaAbot extends React.Component {
     }
 
     closeAboutCard() {
-        const aboutCard = document.getElementById('jaiaAboutContainer') as HTMLElement
+        const aboutCard = document.getElementById('jaia-about-container') as HTMLElement
         aboutCard.style.display = 'none'
     }
 
     render() {
-        let jcc_version = ""
+        let jcc_version = ''
 
-        if (this.props?.metadata?.jaiabot_version?.major
-            && this.props?.metadata?.jaiabot_version?.minor
-            && this.props?.metadata?.jaiabot_version?.patch) {
-            jcc_version = this.props.metadata.jaiabot_version.major + "." 
-                            + this.props.metadata.jaiabot_version.minor + "."
-                            + this.props.metadata.jaiabot_version.patch
+        if (
+            this.props?.metadata?.jaiabot_version?.major && 
+            this.props?.metadata?.jaiabot_version?.minor && 
+            this.props?.metadata?.jaiabot_version?.patch
+        ) {
+            jcc_version = this.props.metadata.jaiabot_version.major + '.'
+                        + this.props.metadata.jaiabot_version.minor + '.'
+                        + this.props.metadata.jaiabot_version.patch
         }
         
         return (
-            <div id='jaiaAboutContainer'>
-                <div className='jaiaAboutCloseBtnContainer' onClick={() => this.closeAboutCard()}>
-                    <Icon path={mdiClose} size={1} className='jaiaAboutCloseBtn'/>
+            <div id='jaia-about-container'>
+                <div className='jaia-about-close-btn-container' onClick={() => this.closeAboutCard()}>
+                    <Icon path={mdiClose} size={1} className='jaia-about-close-btn'/>
                 </div>
-                <img src='/favicon.png' className='jaiaAboutLogo'></img>
-                <div className='jaiaAboutContactContainer'>
-                    <div className='jaiaAboutLabel'>Website:</div>
-                    <a href='https://www.jaia.tech' className='jaiaAboutInput jaiaAboutLink' target='_blank' rel='noopener noreferrer'>www.jaia.tech</a>
+                <img src='/favicon.png' className='jaia-about-logo'></img>
+                <div className='jaia-about-contact-container'>
+                    <div className='jaia-about-label'>Website:</div>
+                    <a href='https://www.jaia.tech' className='jaia-about-input jaia-about-link' target='_blank' rel='noopener noreferrer'>www.jaia.tech</a>
                 </div>
-                <div className='jaiaAboutContactContainer'>
-                    <div className='jaiaAboutLabel'>Phone:</div>
-                    <div className='jaiaAboutInput'>+1 (401) 214-9232</div>
+                <div className='jaia-about-contact-container'>
+                    <div className='jaia-about-label'>Phone:</div>
+                    <div className='jaia-about-input'>+1 (401) 214-9232</div>
                 </div>
-                <div className='jaiaAboutContactContainer'>
-                    <div className='jaiaAboutLabel'>Address:</div>
-                    <div className='jaiaAboutInput'>22 Burnside St Bristol RI 02809</div>
+                <div className='jaia-about-contact-container'>
+                    <div className='jaia-about-label'>Address:</div>
+                    <div className='jaia-about-input'>22 Burnside St Bristol RI 02809</div>
                 </div>
-                <div className='jaiaAboutContactContainer'>
-                    <div className='jaiaAboutLabel'>JCC Version:</div>
-                    <div className='jaiaAboutInput'>{jcc_version}</div>
+                <div className='jaia-about-contact-container'>
+                    <div className='jaia-about-label'>JCC Version:</div>
+                    <div className='jaia-about-input'>{jcc_version}</div>
                 </div>
-                <div className='jaiaAboutContactContainer lastJaiaInfoContainer'>
-                    <div className='jaiaAboutLabel'>Documentation:</div>
-                    <a href='http://52.36.157.57/index.html' target='_blank' rel='noopener noreferrer' className='jaiaAboutInput jaiaAboutLink'>JaiaDocs</a>
+                <div className='jaia-about-contact-container last-jaia-info-container'>
+                    <div className='jaia-about-label'>Documentation:</div>
+                    <a href='http://52.36.157.57/index.html' target='_blank' rel='noopener noreferrer' className='jaia-about-input jaia-about-link'>JaiaDocs</a>
                 </div>
             </div>
         )

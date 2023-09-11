@@ -2076,7 +2076,7 @@ export default class CommandControl extends React.Component {
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
-						const jaiaInfoContainer = document.getElementById('jaiaAboutContainer') as HTMLElement
+						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
 					}}>
 				</img>
