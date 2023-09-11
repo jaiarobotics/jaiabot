@@ -4,7 +4,7 @@ import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
-import { MissionInterface, PanelType, RunInterface } from './CommandControl';
+import { MissionInterface, PanelType} from './CommandControl';
 import { Icon } from '@mdi/react'
 import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
@@ -24,7 +24,6 @@ interface Props {
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
     setMoveWptMode: (canMoveWptMode: boolean, botId: number, goalNum: number) => void
-    canEditRunState: (run: RunInterface) => boolean
 }
 
 interface State {
@@ -94,12 +93,6 @@ export class GoalSettingsPanel extends React.Component {
             if (testRun.assigned === this.props.botId) {
                 run = testRun
             }
-        }
-
-        const canEditRun = run?.canEdit
-
-        if (!canEditRun) {
-            this.doneClicked()
         }
     }
 
