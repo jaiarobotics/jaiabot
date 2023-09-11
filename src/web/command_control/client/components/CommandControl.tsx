@@ -1687,14 +1687,14 @@ export default class CommandControl extends React.Component {
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
-		const botId = this.state.goalBeingEdited?.botId
 		const goalNum = this.state.goalBeingEdited?.goalIndex
 		const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
 		const runs = this.getRunList().runs
+		const runId = `run-${this.state.goalBeingEdited?.runNumber}`
 		let run: RunInterface = null
 
 		for (const testRun of Object.values(runs)) {
-			if (testRun.assigned === botId) {
+			if (testRun.id === runId) {
 				run = testRun 
 			}
 		}
