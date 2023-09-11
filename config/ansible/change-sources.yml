@@ -1,7 +1,8 @@
 ---
-- name: Switch to use test Debian repos
+- name: Change JaiaBot repository
   hosts: all
   become: yes
+  gather_facts: no
   vars:
     allowed_repos:
       - test

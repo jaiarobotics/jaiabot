@@ -1,0 +1,36 @@
+---
+- name: Check for updates to JaiaBot packages
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Get current installed version
+      shell: "dpkg-query -W -f='${Version}' jaiabot-embedded || echo 'Not installed'"
+      register: current_version
+
+    - name: Get available version to install
+      shell: "apt-cache policy jaiabot-embedded | grep Candidate: | awk '{print $2}'"
+      register: available_version
+      
+    - name: Set facts for current and available versions
+      set_fact:
+        jaiabot_current_version: "{{ current_version.stdout }}"
+        jaiabot_available_version: "{{ available_version.stdout }}"
+
+    - name: Set fact if upgrade available
+      set_fact:
+        jaiabot_upgrade_available: "{{ jaiabot_current_version != jaiabot_available_version }}"
+
+        
+    - name: Display current package information
+      debug:
+        var: jaiabot_current_version
+
+    - name: Display available package information
+      debug:
+        var: jaiabot_available_version
+        

@@ -1,0 +1,44 @@
+syntax = "proto2";
+
+import "goby/zeromq/protobuf/liaison_config.proto";
+
+package jaiabot.protobuf;
+
+message UpgradeConfig
+{
+    enum Role
+    {
+        USER = 1;
+        ADVANCED = 2;
+        DEVELOPER = 3;
+    }
+
+    optional Role role = 1 [default = USER];
+
+    message AnsiblePlaybook
+    {
+        required string file = 1;
+        required string name = 2;
+        required Role role = 3;
+
+        message Variable
+        {
+            required string name = 1;
+            required string display_name = 2;
+            repeated string value = 3;
+        }
+        repeated Variable input_var = 4;
+        repeated Variable output_var = 5;
+
+        
+    }
+    repeated AnsiblePlaybook ansible_playbook = 2;
+    required string ansible_inventory = 3;
+    required string ansible_config = 4;
+    optional double check_freq = 10 [default = 10];
+}
+
+extend goby.apps.zeromq.protobuf.LiaisonConfig
+{
+    optional UpgradeConfig jaiabot_upgrade_config = 1301;
+}

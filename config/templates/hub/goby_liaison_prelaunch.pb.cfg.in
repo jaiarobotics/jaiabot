@@ -1,0 +1,68 @@
+$app_block
+
+interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
+http_address: "0.0.0.0"
+http_port: $http_port
+
+start_paused: false
+update_freq: 10
+
+add_home_tab: false
+add_scope_tab: false
+add_commander_tab: false
+
+
+[jaiabot.protobuf.jaiabot_upgrade_config] { 
+    role: USER
+
+    ansible_inventory: "inventory.yml"
+    ansible_config: "ansible-liaison.cfg"
+    ansible_playbook {
+        file: "change-sources.yml" 
+        name: "Change JaiaBot repository"
+        role: ADVANCED
+
+        # added to ansible-playbook -e "repo=continuous"
+        input_var {
+            name: "repo"
+            display_name: "Repository"
+            value: "release"
+            value: "beta"
+            value: "continuous"
+        }
+    }
+    ansible_playbook {
+        file: "check-version.yml" 
+        name: "Check for updates to JaiaBot packages"
+        role: USER
+
+        # Must be present in "ansible_facts" JSON field for output of one of the tasks
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_available_version"
+            display_name: "New Available JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_upgrade_available"
+            display_name: "Upgrade available?"
+        }
+    }
+    ansible_playbook {
+        file: "install.yml" 
+        name: "Upgrade JaiaBot packages"
+        role: USER
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+    }
+    ansible_playbook {
+        file: "upgrade-all.yml" 
+        name: "Upgrade all system packages (including JaiaBot packages)"
+        role: USER
+    }
+
+}

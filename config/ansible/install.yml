@@ -1,6 +1,7 @@
 ---
-- name: Jaiabot Install/upgrade
+- name: Upgrade JaiaBot packages
   hosts: all
+  gather_facts: no
   become: yes
 
   tasks:
@@ -23,3 +24,11 @@
           - libgoby3-moos
           - libdccl4
         state: latest
+
+    - name: Get current installed version
+      shell: "dpkg-query -W -f='${Version}' jaiabot-embedded || echo 'Not installed'"
+      register: current_version
+      
+    - name: Set facts for current and available versions
+      set_fact:
+        jaiabot_current_version: "{{ current_version.stdout }}"
