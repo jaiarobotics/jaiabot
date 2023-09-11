@@ -9,7 +9,7 @@
         update_cache: yes
 
     - name: Get current installed version
-      shell: "dpkg-query -W -f='${Version}' jaiabot-embedded || echo 'Not installed'"
+      shell: "apt-cache policy jaiabot-embedded | grep Installed: | awk '{print $2}'"
       register: current_version
 
     - name: Get available version to install

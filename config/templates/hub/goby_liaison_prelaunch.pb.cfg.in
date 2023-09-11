@@ -61,7 +61,7 @@ add_commander_tab: false
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
-        name: "Upgrade all system packages (including JaiaBot packages)"
+        name: "Upgrade all system packages (including JaiaBot packages if installed)"
         role: USER
     }
 
