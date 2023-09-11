@@ -125,7 +125,7 @@ function DownloadFile(name: string, data: BlobPart) {
 
 
 export default class JaiaMap {
-    path_point_arrays: number[][][] = []
+    botIdToMapSeries: {[key: string]: number[][]} = {}
     active_goal_dict: {[key: number]: ActiveGoal[]} = {}
     timeRange?: number[] = null
     tMin?: number = null
@@ -315,8 +315,8 @@ export default class JaiaMap {
     }
 
     // Set the array of paths
-    setSeriesArray(seriesArray: number[][][]) {
-        this.path_point_arrays = seriesArray
+    setMapDict(botIdToMapSeries: {[key: string]: number[][]}) {
+        this.botIdToMapSeries = botIdToMapSeries
         this.updatePath()
     }
 
@@ -328,11 +328,12 @@ export default class JaiaMap {
 
         const botLineColorArray = this.getBotLineColorArray()
 
-        for (const [botIndex, ptArray] of this.path_point_arrays.entries()) {
+        for (const botIdString in this.botIdToMapSeries) {
+            const botId = Number(botIdString)
 
-            const ptArray = this.path_point_arrays[botIndex]
+            const ptArray = this.botIdToMapSeries[botIdString]
 
-            const lineColor = botLineColorArray[botIndex % botLineColorArray.length]
+            const lineColor = botLineColorArray[botId % botLineColorArray.length]
 
             const style = new Style({
                 stroke: new Stroke({
@@ -453,7 +454,7 @@ export default class JaiaMap {
     }
 
     clear() {
-        this.path_point_arrays = []
+        this.botIdToMapSeries = {}
         this.command_dict = {}
         this.task_packets = []
         this.active_goal_dict = {}
@@ -480,16 +481,32 @@ export default class JaiaMap {
             return
         }
 
-        for (const [botId, path_point_array] of this.path_point_arrays.entries()) {
+        for (const botIdString in this.botIdToMapSeries) {
+            const mapSeries = this.botIdToMapSeries[botIdString]
 
-            const point = bisect(path_point_array, (point) => {
+            const bot_id = Number(botIdString)
+
+            const point = bisect(mapSeries, (point) => {
                 return timestamp_micros - point[0]
             })?.value
             if (point == null) continue;
 
+            const bot: PortalBotStatus = {
+                bot_id: bot_id,
+                location: {
+                    lon: point[2],
+                    lat: point[1]
+                },
+                attitude: {
+                    heading: point[3],
+                    course_over_ground: point[4],
+                }
+            }
+
             const properties = {
                 map: this.openlayersMap,
-                botId: botId,
+                bot: bot,
+                botId: bot_id,
                 lonLat: [point[2], point[1]],
                 heading: point[3],
                 courseOverGround: point[4],
@@ -526,34 +543,37 @@ export default class JaiaMap {
             return
         }
 
-        // This assumes that we have a command_dict with only one botId!
-        const botId = Number(botIdArray[0])
+        for (const bot_id_string of botIdArray) {
+            let bot_id = Number(bot_id_string)
 
-        const commandArray = this.command_dict[botId].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
+            const commandArray = this.command_dict[bot_id].filter((command) => {return command.type == 'MISSION_PLAN'}) // Remove those pesky NEXT_TASK commands, etc.
 
-        const command = bisect(commandArray, (command) => {
-            return timestamp_micros - command._utime_
-        })?.value
+            const command = bisect(commandArray, (command) => {
+                return timestamp_micros - command._utime_
+            })?.value
 
-        if (command == null) {
-            return
+            if (command == null) {
+                return
+            }
+
+            const activeGoalsArray = this.active_goal_dict[bot_id]
+
+            if (!activeGoalsArray) {
+                continue
+            }
+
+            const activeGoal = bisect(activeGoalsArray, (active_goal) => {
+                return timestamp_micros - active_goal._utime_
+            })?.value
+
+
+            const activeGoalIndex = activeGoal?.active_goal
+            const isSelected = false
+            const canEdit = false
+
+            const missionFeatures = createMissionFeatures(this.openlayersMap, null, command.plan, activeGoalIndex, isSelected, canEdit)
+            this.missionVectorSource.addFeatures(missionFeatures)
         }
-
-        // This assumes that we have an active_goal_dict with only one botId!
-        const activeGoalsArray = this.active_goal_dict[botId]
-
-        const activeGoal = bisect(activeGoalsArray, (active_goal) => {
-            return timestamp_micros - active_goal._utime_
-        })?.value
-
-        const bot: PortalBotStatus = null
-        bot.bot_id = botId 
-        const activeGoalIndex = activeGoal?.active_goal
-        const isSelected = false
-        const canEdit = false
-
-        const missionFeatures = createMissionFeatures(this.openlayersMap, bot, command.plan, activeGoalIndex, isSelected, canEdit)
-        this.missionVectorSource.addFeatures(missionFeatures)
     }
 
     processMissionFeatureDrag(missionFeatures: Feature<Geometry>[]) {

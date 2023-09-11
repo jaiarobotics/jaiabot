@@ -27,6 +27,8 @@ export function createMissionFeatures(
 
     let goals = plan.goal ?? []
 
+    console.log(`goals = ${goals}`)
+
     for (const [goalIndex, goal] of goals.entries()) {
         const location = goal.location
         // Increment by one to account for 0 index
