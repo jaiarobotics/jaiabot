@@ -2,9 +2,9 @@ import { LoadMissions, SaveMissions } from './Settings'
 import { RunLibrary } from './Missions'
 import { MissionInterface } from './CommandControl';
 
-const savedMissionKey = "savedMissions"
+const savedMissionsKey = "savedMissions"
 
-const savedMissions = LoadMissions<RunLibrary>(savedMissionKey)
+const savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
 
 export class MissionLibraryLocalStorage {
     static missionLibraryLocalStorage: MissionLibraryLocalStorage
@@ -38,7 +38,7 @@ export class MissionLibraryLocalStorage {
         }
 
         savedMissions[key] = JSON.parse(JSON.stringify(mission))
-        SaveMissions(savedMissionKey, savedMissions)
+        SaveMissions(savedMissionsKey, savedMissions)
     }
 
     deleteMission(key: string) {
@@ -47,7 +47,7 @@ export class MissionLibraryLocalStorage {
         }
 
         delete savedMissions[key]
-        SaveMissions(savedMissionKey, savedMissions)
+        SaveMissions(savedMissionsKey, savedMissions)
     }
 
 }
