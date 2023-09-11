@@ -32,6 +32,7 @@ export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) 
     feature.set('onclick', function (evt: OlMapBrowserEvent<UIEvent>) {
         const coordinate = evt.coordinate;
         overlay.setPosition(coordinate);
+        map.getOverlays().clear()
         map.addOverlay(overlay)
     });
 
