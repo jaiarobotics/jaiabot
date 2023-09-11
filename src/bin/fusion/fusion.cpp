@@ -910,6 +910,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     if (!is_bot_horizontal_)
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot is not horizontal" << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -918,6 +920,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot has a desired speed of zero"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -928,6 +932,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot does not have attitude data"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -943,6 +949,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
                                  << "heading diff is above the max"
                                  << " Desired: " << bot_desired_heading_ << ", heading: " << heading
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -959,6 +967,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         now)
     {
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot's course is not updating" << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 
@@ -973,6 +983,8 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         glog.is_debug2() && glog << "detect_imu_issue() Exit bot's previous course over ground is "
                                     "the same as the current course"
                                  << endl;
+        // Reset increment
+        imu_issue_crs_hdg_incr_ = 0;
         return;
     }
 

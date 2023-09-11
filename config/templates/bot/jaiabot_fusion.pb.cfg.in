@@ -21,7 +21,7 @@ course_over_ground_timeout: 3 # timeout in seconds
 total_imu_issue_checks: 4 # (default=4 checks) checks * imu_detect_period (1 seconds) = time to detect
 
 # When to start detecting imu issues again after detecting one
-imu_detect_timeout: 13 # (default=13 seconds)
+imu_detect_timeout: 14 # (default=14 seconds)
 
 imu_issue_detect_horizontal_pitch_checks: 3 # (default=3 checks)
 imu_issue_detect_horizontal_pitch_min_time: 1 # (default=1 seconds)
