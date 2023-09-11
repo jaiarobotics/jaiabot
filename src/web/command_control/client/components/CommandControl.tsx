@@ -1742,6 +1742,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.runMissions(this.getRunList(), addRuns, true)
+		this.getRunList().runIdInEditMode = ''
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
