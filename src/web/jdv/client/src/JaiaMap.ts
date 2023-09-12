@@ -22,8 +22,8 @@ import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature } from './shared/BotFeature'
-import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature, botPopupHTML } from './shared/BotFeature'
+import { createDivePacketFeature, createDriftPacketFeature, createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
 
@@ -132,15 +132,30 @@ export default class JaiaMap {
     tMax?: number = null
     timestamp?: number = null
     task_packets: LogTaskPacket[] = []
-    openlayersMap: Map
-    openlayersProjection: Projection
-    taskPacketLayer: VectorLayer<VectorSource<Geometry>>
+    map: Map
+    projection: Projection
+
+    divePacketLayer: VectorLayer<VectorSource<Geometry>> = new VectorLayer({
+        properties: {
+            title: 'Dives',
+        },
+        source: new VectorSource(),
+        zIndex: 12
+    })
+    
+    driftPacketLayer: VectorLayer<VectorSource<Geometry>> = new VectorLayer({
+        properties: {
+            title: 'Drifts',
+        },
+        source: new VectorSource(),
+        zIndex: 12
+    })
+    
     botPathVectorSource = new VectorSource()
     courseOverGroundSource = new VectorSource()
     botHeadingSource = new VectorSource()
     botVectorSource = new VectorSource()
     missionVectorSource = new VectorSource()
-    taskPacketVectorSource = new VectorSource()
     depthContourVectorSource = new VectorSource()
     command_dict: {[key: number]: LogCommand[]}
     depthContourFeatures: Feature[]
@@ -148,7 +163,7 @@ export default class JaiaMap {
     constructor(openlayersMapDivId: string) {
         this.setupOpenlayersMap(openlayersMapDivId)
 
-        OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'), {})
+        OlLayerSwitcher.renderPanel(this.map, document.getElementById('layerSwitcher'), {})
     }
 
     setupOpenlayersMap(openlayersMapDivId: string) {
@@ -157,9 +172,9 @@ export default class JaiaMap {
             zoom: 2
         })
 
-        this.openlayersProjection = view.getProjection()
+        this.projection = view.getProjection()
 
-        this.openlayersMap = new Map({
+        this.map = new Map({
             target: openlayersMapDivId,
             layers: [
                 this.createOpenlayersTileLayerGroup(),
@@ -178,14 +193,16 @@ export default class JaiaMap {
         })
 
         // Dispatch click events to the feature, if it has an "onclick" property set
-        this.openlayersMap.on("click", (e) => {
-            this.openlayersMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
+        this.map.on("click", (e) => {
+            this.map.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
                 feature.get('onclick')?.(e)
+            }, {
+                hitTolerance: 20
             })
         });
 
         // Change cursor to hand pointer, when hovering over a feature with an onclick property
-        this.openlayersMap.on("pointermove", function (evt) {
+        this.map.on("pointermove", function (evt) {
             var hit = this.forEachFeatureAtPixel(evt.pixel, function(feature: Feature, layer: Layer) {
                 return (feature.get('onclick') != null)
             }); 
@@ -198,12 +215,12 @@ export default class JaiaMap {
     }
 
     getMap() {
-        return this.openlayersMap
+        return this.map
     }
 
     // Takes a [lon, lat] coordinate, and returns the OpenLayers coordinates of that point for the current map's view
     fromLonLat(coordinate: Coordinate) {
-        return fromLonLat(coordinate, this.openlayersProjection)
+        return fromLonLat(coordinate, this.projection)
     }
 
     createOpenlayersTileLayerGroup() {
@@ -294,14 +311,17 @@ export default class JaiaMap {
     }
 
     createTaskPacketLayer() {
-        this.taskPacketLayer = new VectorLayer({
+        const taskPacketLayerGroup = new LayerGroup({
             properties: {
-                title: 'Task Packets',
+                title: 'Task Data'
             },
-            source: this.taskPacketVectorSource,
-            zIndex: 12
+            layers: [
+                this.divePacketLayer,
+                this.driftPacketLayer
+            ]
         })
-        return this.taskPacketLayer
+
+        return taskPacketLayerGroup
     }
 
     createDepthContourLayer() {
@@ -379,11 +399,11 @@ export default class JaiaMap {
 
                 // parameters: {title?, lon, lat, style?, time?, popupHTML?}
                 const startPt = ptArray[0]
-                const startMarker = createMarker2(this.openlayersMap, {title: "Start", lon: startPt[2], lat: startPt[1], timestamp: startPt[0], style: Styles.startMarker})
+                const startMarker = createMarker2(this.map, {title: "Start", lon: startPt[2], lat: startPt[1], timestamp: startPt[0], style: Styles.startMarker})
                 this.botPathVectorSource.addFeature(startMarker)
 
                 const endPt = ptArray[ptArray.length - 1]
-                const endMarker = createMarker2(this.openlayersMap, {title: "End", lon: endPt[2], lat: endPt[1], timestamp: endPt[0], style: Styles.endMarker})
+                const endMarker = createMarker2(this.map, {title: "End", lon: endPt[2], lat: endPt[1], timestamp: endPt[0], style: Styles.endMarker})
                 this.botPathVectorSource.addFeature(endMarker)
 
             }
@@ -393,7 +413,7 @@ export default class JaiaMap {
         const extent = this.botPathVectorSource.getExtent()
         const padding = 80 // in pixels
         if (!isEmpty(extent)) {
-            this.openlayersMap.getView().fit(extent, {
+            this.map.getView().fit(extent, {
                 padding: [padding, padding, padding, padding],
                 duration: 0.25
             })
@@ -449,7 +469,7 @@ export default class JaiaMap {
     }
 
     updateWithDepthContourGeoJSON(depthContourGeoJSON: object) {
-        this.depthContourFeatures = geoJSONToDepthContourFeatures(this.openlayersMap.getView().getProjection(), depthContourGeoJSON)
+        this.depthContourFeatures = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), depthContourGeoJSON)
         this.updateDepthContours()
     }
 
@@ -504,9 +524,8 @@ export default class JaiaMap {
             }
 
             const properties = {
-                map: this.openlayersMap,
-                bot: bot,
-                botId: bot_id,
+                map: this.map,
+                botId: bot.bot_id,
                 lonLat: [point[2], point[1]],
                 heading: point[3],
                 courseOverGround: point[4],
@@ -514,6 +533,8 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
+            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
+
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
             const botHeadingArrow = createBotHeadingFeature(properties)
 
@@ -566,12 +587,11 @@ export default class JaiaMap {
                 return timestamp_micros - active_goal._utime_
             })?.value
 
-
             const activeGoalIndex = activeGoal?.active_goal
             const isSelected = false
             const canEdit = false
 
-            const missionFeatures = createMissionFeatures(this.openlayersMap, null, command.plan, activeGoalIndex, isSelected, canEdit)
+            const missionFeatures = createMissionFeatures(this.map, null, command.plan, activeGoalIndex, isSelected, canEdit)
             this.missionVectorSource.addFeatures(missionFeatures)
         }
     }
@@ -581,7 +601,8 @@ export default class JaiaMap {
     }
 
     updateTaskAnnotations() {
-        this.taskPacketVectorSource.clear()
+        this.divePacketLayer.getSource().clear()
+        this.driftPacketLayer.getSource().clear()
 
         for (const task_packet of this.task_packets ?? []) {
             // Discard the lower-precision DCCL task packets
@@ -589,7 +610,46 @@ export default class JaiaMap {
                 continue
             }
 
-            this.taskPacketVectorSource.addFeatures(createTaskPacketFeatures(this.openlayersMap, task_packet, this.taskPacketLayer, task_packet.start_time))
+            const diveFeature = createDivePacketFeature(this.map, task_packet)
+            if (diveFeature) {
+                const dive = task_packet.dive
+                // Add popup
+                const html = `
+                <h3>Dive</h3>
+                <table>
+                    <tbody>
+                        <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                        <tr><th>Depth</th><td>${dive.depth_achieved?.toFixed(2) ?? "?"} m</td></tr>
+                        <tr><th>Bottom Dive</th><td>${(dive.bottom_dive ?? false) ? "Yes" : "No" }</td></tr>
+                        <tr><th>Dive Rate</th><td>${dive.dive_rate?.toFixed(2) ?? "?"} m/s</td></tr>
+                        <tr><th>Duration To Acquire GPS Lock</th><td>${dive.duration_to_acquire_gps?.toFixed(1) ?? "?"} s</td></tr>
+                    </tbody>
+                </table>
+                `
+
+                Popup.addPopupHTML(this.map, diveFeature, html)
+
+                this.divePacketLayer.getSource().addFeature(diveFeature)
+            }
+
+            const driftFeature = createDriftPacketFeature(this.map, task_packet)
+            if (driftFeature) {
+                const drift = task_packet.drift
+                // Add popup
+                const html = `
+                <h3>Drift</h3>
+                <table>
+                    <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
+                    <tr><th>Speed</th><td>${drift.estimated_drift.speed.toFixed(2)} m/s</td></tr>
+                    <tr><th>Direction</th><td>${drift.estimated_drift.heading.toFixed(1)} deg</td></tr>
+                    <tr><th>Significant Wave Height (Beta)</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
+                </table>
+                `
+
+                Popup.addPopupHTML(this.map, driftFeature, html)
+
+                this.driftPacketLayer.getSource().addFeature(driftFeature)
+            }
         }
     }
 
@@ -639,13 +699,13 @@ export default class JaiaMap {
 
             // Set the layer's title for use in the layer switcher
             newLayer.set('title', file.name)
-            this.openlayersMap.addLayer(newLayer)
+            this.map.addLayer(newLayer)
         }
 
         // Zoom to extent
         // this.openlayersMap.getView().fit(extent)
 
-        OlLayerSwitcher.renderPanel(this.openlayersMap, document.getElementById('layerSwitcher'), {})
+        OlLayerSwitcher.renderPanel(this.map, document.getElementById('layerSwitcher'), {})
     }
 
 }

@@ -27,8 +27,6 @@ export function createMissionFeatures(
 
     let goals = plan.goal ?? []
 
-    console.log(`goals = ${goals}`)
-
     for (const [goalIndex, goal] of goals.entries()) {
         const location = goal.location
         // Increment by one to account for 0 index
@@ -50,7 +48,8 @@ export function createMissionFeatures(
 
         markerFeature.setProperties({
             goal: goal, 
-            botId: bot?.bot_id, 
+            botId: bot?.bot_id,
+            runNumber: runNumber,
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,

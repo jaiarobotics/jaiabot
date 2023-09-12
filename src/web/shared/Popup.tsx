@@ -30,10 +30,19 @@ export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) 
     };
 
     feature.set('onclick', function (evt: OlMapBrowserEvent<UIEvent>) {
-        const coordinate = evt.coordinate;
-        overlay.setPosition(coordinate);
+        const overlayOffsetPixels = [50, 0]
+
+        const clickCoordinate = evt.coordinate;
+        const clickPixelCoordinate = map.getPixelFromCoordinate(clickCoordinate)
+        const overlayPixelCoordinate = [clickPixelCoordinate[0] + overlayOffsetPixels[0], clickPixelCoordinate[1] + overlayOffsetPixels[1]]
+        const overlayCoordinate = map.getCoordinateFromPixel(overlayPixelCoordinate)
+
+        overlay.setPosition(overlayCoordinate);
+        map.getOverlays().clear()
         map.addOverlay(overlay)
     });
+
+    console.log(`Added popup for ${feature.getId()}: ${popupElement.innerHTML}`)
 
 }
 

@@ -144,9 +144,13 @@ interface State {
 		botId: number,
 	}
 
-	goalBeingEditedBotId?: number,
-	goalBeingEditedGoalIndex?: number,
-	goalBeingEdited?: Goal,
+	goalBeingEdited: {
+		goal?: Goal,
+		goalIndex?: number,
+		botId?: number,
+		runNumber?: number,
+		moveWptMode?: boolean
+	}
 
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
@@ -197,6 +201,7 @@ interface BotAllCommandInfo {
 	botIdsDisconnected?: number[],
 	botIdsDownloadNotAvailable?: number[],
 	botIdsInDownloadQueue?: number[],
+	botIdsWifiDisconnected?: number[],
 	idleStateMessage?: string,
 	notIdleStateMessage?: string,
 	stoppedStateMessage?: string,
@@ -272,6 +277,7 @@ export default class CommandControl extends React.Component {
 				runNum: -1,
 				botId: -1
 			},
+			goalBeingEdited: {},
 
 			selectedHubOrBot: null,
 			measureFeature: null,
@@ -828,6 +834,10 @@ export default class CommandControl extends React.Component {
 
 	didClickBot(bot_id: number) {
 		this.toggleBot(bot_id)
+		if (this.state.visiblePanel === PanelType.GOAL_SETTINGS) {
+			this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			this.setVisiblePanel(PanelType.NONE)
+		}
 	}
 
 	didClickHub(hub_id: number) {
@@ -1057,7 +1067,7 @@ export default class CommandControl extends React.Component {
 		const botIdsAssignedToRuns: number[] = [];
 		const runs = missions.runs;
 
-		if(addRuns) {
+		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
 				if (commDest.botIds.includes(Number(botIndex))) {
 					botIdsAssignedToRuns.push(Number(botIndex));
@@ -1462,7 +1472,7 @@ export default class CommandControl extends React.Component {
 		}
 		
 		if (run.id !== this.getRunList().runIdInEditMode) {
-			warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+			warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 			return
 		}
 
@@ -1498,37 +1508,30 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (feature) {
-			const botId = feature.get('botId')
-			
-			// Allow an operator to click on a task packet while edit mode is off
-			if (!(feature?.get('type') === 'dive' || feature?.get('type') === 'drift')) {
-				// Check to make sure the feature selected is not tied to a bot performing a run
+		if (feature) {			
+			// Allow an operator to click on certain features while edit mode is off
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot']
+			if (!(editModeExemptions.includes(feature?.get('type')))) {
 				const runList = this.state.runList
-				let isInEditMode = false
-				for (const runIndex of Object.keys(runList.runs)) {
-					const run = runList.runs[runIndex]
-					if (run.id === runList.runIdInEditMode) {
-						isInEditMode = true
-					}
-				}
+				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
-					warning('Run cannot be modified: toggle Edit in the Mission Panel or terminate the run')
+					warning('Run cannot be modified: toggle Edit in the Mission Panel, Bot Details Panel, or delete the run')
 					return false
 				}
 			}
 
 			// Clicked on goal / waypoint
 			let goal = feature.get('goal')
-			let goalIndex = feature.get('goalIndex')
 
 			if (goal) {
 				this.pushRunListToUndoStack()
-				this.setState({
-					goalBeingEdited: goal,
-					goalBeingEditedBotId: botId,
-					goalBeingEditedGoalIndex: goalIndex
-				}, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
+				const goalBeingEdited = {
+					goal: goal,
+					goalIndex: feature.get('goalIndex'),
+					botId: feature.get('botId'),
+					runNumber: feature.get('runNumber')
+				}
+				this.setState({ goalBeingEdited }, () => this.setVisiblePanel(PanelType.GOAL_SETTINGS))
 				return false
 			}
 
@@ -1621,7 +1624,7 @@ export default class CommandControl extends React.Component {
 					duration: {value: feature.get('duration'), units: 's'},
 					speed: {value: feature.get('speed'), units: 'm/s'},
 					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
-					sig_wave_height: {value: feature.get('sigWaveHeight'), units: 'm'},
+					sig_wave_height_beta: {value: feature.get('sigWaveHeight'), units: 'm'},
 					start_time: {value: startTime.toLocaleString(), units: ''},
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
@@ -1655,6 +1658,10 @@ export default class CommandControl extends React.Component {
 		if (evt.target.checked) {
 			runList.runIdInEditMode = run?.id
 		} else {
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
 			runList.runIdInEditMode = ''
 		}
 		this.setRunList(runList)
@@ -1668,26 +1675,32 @@ export default class CommandControl extends React.Component {
 				break
 			}
 		}
-		
+
 		if (run?.command.plan?.goal[goalNum - 1]) {
 			run.command.plan.goal[goalNum - 1].moveWptMode = canMoveWpt
 		}
+
+		const goalBeingEdited = this.state.goalBeingEdited
+		if (goalBeingEdited) {
+			goalBeingEdited.moveWptMode = canMoveWpt
+		}
+		this.setState({ goalBeingEdited })
 	}
 
 	clickToMoveWaypoint(evt: MapBrowserEvent<UIEvent>) {
-		const botId = this.state.goalBeingEditedBotId
-		const goalNum = this.state.goalBeingEditedGoalIndex
+		const goalNum = this.state.goalBeingEdited?.goalIndex
 		const geoCoordinate = getGeographicCoordinate(evt.coordinate, map)
 		const runs = this.getRunList().runs
+		const runId = `run-${this.state.goalBeingEdited?.runNumber}`
 		let run: RunInterface = null
 
 		for (const testRun of Object.values(runs)) {
-			if (testRun.assigned === botId) {
+			if (testRun.id === runId) {
 				run = testRun 
 			}
 		}
 
-		if (this.state.goalBeingEdited?.moveWptMode) {	
+		if (this.state.goalBeingEdited?.moveWptMode && run) {
 			run.command.plan.goal[goalNum -1].location = geoCoordinate
 			return true
 		}
@@ -1726,6 +1739,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		this.runMissions(this.getRunList(), addRuns, true)
+		this.getRunList().runIdInEditMode = ''
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
@@ -2079,6 +2093,7 @@ export default class CommandControl extends React.Component {
 			botIdsDisconnected: [],
 			botIdsDownloadNotAvailable: [],
 			botIdsInDownloadQueue: this.state.botDownloadQueue.map((bot) => bot.bot_id),
+			botIdsWifiDisconnected: [],
 			idleStateMessage:  "",
 			notIdleStateMessage: "",
 			stoppedStateMessage: "",
@@ -2115,7 +2130,9 @@ export default class CommandControl extends React.Component {
 				// Do not allow a bot in the incorrect state in the queue
 			} else if (bot?.isDisconnected) {
 				botInfo.botIdsDisconnected.push(bot?.bot_id)
-		    } else {
+		    } else if (sendingDownload && !bot?.wifi_link_quality_percentage) {
+				botInfo.botIdsWifiDisconnected.push(bot?.bot_id)
+			} else {
 				botInfo.botIds.push(bot?.bot_id)
 			}
 		}
@@ -2128,25 +2145,28 @@ export default class CommandControl extends React.Component {
 		botInfo.botIdsInStoppedState.sort()
 
 		if (botInfo.botIdsPoorHealth.length !==0) {
-			botInfo.poorHealthMessage = `\nNot sending to Bot${botInfo.botIdsPoorHealth.length > 1 ? 's': ''}: ` + botInfo.botIdsPoorHealth + " because the health is poor"
+			botInfo.poorHealthMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsPoorHealth.length > 1 ? 's': ''}: ` + botInfo.botIdsPoorHealth + " because the health is poor"
 		}
 		if (botInfo.botIdsInIdleState.length !==0) {
-			botInfo.idleStateMessage = `\nNot sending to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been activated`
+			botInfo.idleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsInIdleState + ` because ${botInfo.botIdsInIdleState.length > 1 ? 'they have': 'it has'} not been activated`
 		}
 		if (botInfo.botIdsNotInIdleState.length !==0) {
-			botInfo.notIdleStateMessage = `\nNot sending to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been activated`
+			botInfo.notIdleStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsNotInIdleState.length > 1 ? 's': ''}: ` + botInfo.botIdsNotInIdleState + ` because ${botInfo.botIdsNotInIdleState.length > 1 ? 'they have': 'it has'} been activated`
 		}
 		if (botInfo.botIdsInStoppedState.length !==0) {
-			botInfo.stoppedStateMessage = `\nNot sending to Bot${botInfo.botIdsInStoppedState.length > 1 ? 's': ''}: ` + botInfo.botIdsInStoppedState + ` because ${botInfo.botIdsInStoppedState.length > 1 ? 'they have': 'it has'} been stopped`
+			botInfo.stoppedStateMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInStoppedState.length > 1 ? 's': ''}: ` + botInfo.botIdsInStoppedState + ` because ${botInfo.botIdsInStoppedState.length > 1 ? 'they have': 'it has'} been stopped`
 		}
 		if (botInfo.botIdsInDownloadQueue.length !==0) {
-			botInfo.downloadQueueMessage = `\nNot sending to Bot${botInfo.botIdsInDownloadQueue.length > 1 ? 's': ''}: ` + botInfo.botIdsInDownloadQueue + ` because ${botInfo.botIdsInDownloadQueue.length > 1 ? 'they are': 'it is'} in the download queue`
+			botInfo.downloadQueueMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsInDownloadQueue.length > 1 ? 's': ''}: ` + botInfo.botIdsInDownloadQueue + ` because ${botInfo.botIdsInDownloadQueue.length > 1 ? 'they are': 'it is'} in the download queue`
 		}
 		if (botInfo.botIdsDownloadNotAvailable.length !==0) {
-			botInfo.downloadQueueMessage += `\nNot sending to Bot${botInfo.botIdsDownloadNotAvailable.length > 1 ? 's': ''}: ` + botInfo.botIdsDownloadNotAvailable + ` because ${botInfo.botIdsDownloadNotAvailable.length > 1 ? 'they need': 'it needs'} to be in one of these states: ${this.enabledDownloadStates}`
+			botInfo.downloadQueueMessage += `\nThe command cannot be sent to Bot${botInfo.botIdsDownloadNotAvailable.length > 1 ? 's': ''}: ` + botInfo.botIdsDownloadNotAvailable + ` because ${botInfo.botIdsDownloadNotAvailable.length > 1 ? 'they need': 'it needs'} to be in one of these states: ${this.enabledDownloadStates}`
 		}
 		if (botInfo.botIdsDisconnected.length !==0) {
-			botInfo.disconnectedMessage = `\nNot sending to Bot${botInfo.botIdsDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsDisconnected + " because the status age is greater than 30"
+			botInfo.disconnectedMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsDisconnected + " because the status age is greater than 30"
+		}
+		if (botInfo.botIdsWifiDisconnected.length !==0) {
+			botInfo.downloadQueueMessage = `\nThe command cannot be sent to Bot${botInfo.botIdsWifiDisconnected.length > 1 ? 's': ''}: ` + botInfo.botIdsWifiDisconnected + " the Wi-Fi Link Quality is poor (Check Quick Look in Bot Details)"
 		}
 
 		return botInfo
@@ -2415,9 +2435,7 @@ export default class CommandControl extends React.Component {
 		const {
 			visiblePanel,
 			trackingTarget,
-			goalBeingEdited,
-			goalBeingEditedBotId,
-			goalBeingEditedGoalIndex
+			goalBeingEdited
 		} = this.state;
 		
 		// Are we currently in control of the bots?
@@ -2769,11 +2787,12 @@ export default class CommandControl extends React.Component {
 				visiblePanelElement = (
 					<GoalSettingsPanel
 						map={map}
-						key={`${goalBeingEditedBotId}-${goalBeingEditedGoalIndex}`}
-						botId={goalBeingEditedBotId}
-						goalIndex={goalBeingEditedGoalIndex}
-						goal={goalBeingEdited}
+						key={`${goalBeingEdited?.botId}-${goalBeingEdited?.goalIndex}`}
+						botId={goalBeingEdited?.botId}
+						goalIndex={goalBeingEdited?.goalIndex}
+						goal={goalBeingEdited?.goal}
 						runList={this.getRunList()}
+						runNumber={goalBeingEdited?.runNumber}
 						onChange={() => this.setRunList(this.getRunList())} 
 						setVisiblePanel={this.setVisiblePanel.bind(this)}
 						setMoveWptMode={this.setMoveWptMode.bind(this)}
