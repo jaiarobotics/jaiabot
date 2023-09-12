@@ -91,5 +91,5 @@ add_commander_tab: false
         file: "reboot-hubs.yml" 
         name: "Reboot Hub"
         role: USER
-    }
+    }    
 }

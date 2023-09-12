@@ -8,7 +8,7 @@
       apt:
         update_cache: yes
 
-    - include_tasks: tasks/get_version.yml
+    - include_tasks: tasks/get-version.yml
 
     - name: Set fact if upgrade available
       set_fact:

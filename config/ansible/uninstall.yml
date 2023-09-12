@@ -13,4 +13,4 @@
         name: "{{ jaiabot_packages }}"
         state: absent
 
-    - include_tasks: tasks/get_version.yml
+    - include_tasks: tasks/get-version.yml

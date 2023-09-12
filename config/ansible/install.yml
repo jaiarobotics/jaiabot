@@ -13,5 +13,5 @@
         name: "{{ jaiabot_packages }}"
         state: latest
 
-    - include_tasks: tasks/get_version.yml
-    - include_tasks: tasks/restart_jaiabot.yml
+    - include_tasks: tasks/get-version.yml
+    - include_tasks: tasks/restart-jaiabot.yml

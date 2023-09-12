@@ -24,7 +24,7 @@
         update_cache: yes
         upgrade: dist
 
-    - include_tasks: tasks/get_version.yml
+    - include_tasks: tasks/get-version.yml
 
     - name: Remount firmware read-only
       mount:
@@ -32,4 +32,4 @@
         opts: "ro"
         state: remounted
 
-    - include_tasks: tasks/restart_jaiabot.yml
+    - include_tasks: tasks/restart-jaiabot.yml
