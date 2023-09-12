@@ -1,7 +1,7 @@
 ---
 - name: Upgrade JaiaBot packages
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: yes
   vars_files:
     - vars/packages.yml
@@ -14,3 +14,4 @@
         state: latest
 
     - include_tasks: tasks/get_version.yml
+    - include_tasks: tasks/restart_jaiabot.yml

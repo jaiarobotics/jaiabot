@@ -51,15 +51,19 @@ add_commander_tab: false
             display_name: "Upgrade available?"
         }
     }
-    ansible_playbook {
-        file: "uninstall.yml" 
-        name: "Remove JaiaBot packages"
-        role: ADVANCED
-        output_var {
-            name: "jaiabot_current_version"
-            display_name: "Current JaiaBot Version"
-        }
-    }
+
+    # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
+    
+    # ansible_playbook {
+    #     file: "uninstall.yml" 
+    #     name: "Remove JaiaBot packages"
+    #     role: ADVANCED
+    #     output_var {
+    #         name: "jaiabot_current_version"
+    #         display_name: "Current JaiaBot Version"
+    #     }
+    # }
+    
     ansible_playbook {
         file: "install.yml" 
         name: "Install or Upgrade JaiaBot packages only"
@@ -79,9 +83,13 @@ add_commander_tab: false
         }
     }
     ansible_playbook {
-        file: "reboot.yml" 
-        name: "Reboot"
+        file: "reboot-bots.yml" 
+        name: "Reboot Bots"
         role: USER
     }
-
+    ansible_playbook {
+        file: "reboot-hubs.yml" 
+        name: "Reboot Hub"
+        role: USER
+    }
 }

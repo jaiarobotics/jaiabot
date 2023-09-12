@@ -31,3 +31,5 @@
         path: /boot/firmware
         opts: "ro"
         state: remounted
+
+    - include_tasks: tasks/restart_jaiabot.yml
