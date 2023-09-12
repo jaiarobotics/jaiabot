@@ -1,0 +1,40 @@
+---
+- name: Jaiabot factory upgrade all
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Remount firmware read-write
+      mount:
+        path: /boot/firmware
+        opts: "rw"
+        state: remounted
+
+    - name: Remount /media/root-ro read-write
+      mount:
+        path: /media/root-ro
+        opts: "rw"
+        state: remounted
+        
+    - name: Bind mount /dev to /media/root-ro/dev
+      mount:
+        path: /media/root-ro/dev
+        src: /dev
+        fstype: none
+        opts: bind
+        state: mounted
+
+    - name: Copy /etc/apt/sources.list.d/jaiabot.list into /media/root-ro
+      shell: "cp /etc/apt/sources.list.d/jaiabot.list /media/root-ro/etc/apt/sources.list.d/jaiabot.list"
+        
+    - name: Update read-only underlay
+      shell: "overlayroot-chroot apt-get update"
+
+    - name: Upgrade read-only underlay
+      shell: "overlayroot-chroot apt-get dist-upgrade"
+
+    # Don't remount disks RO as we need to reboot anyway    
+
+    # clear overlay
+    - include_tasks: tasks/delete-overlay.yml

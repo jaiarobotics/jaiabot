@@ -29,16 +29,16 @@ message UpgradeConfig
         }
         repeated Variable input_var = 4;
         repeated Variable output_var = 5;
-
-        
+        optional bool confirmation_required = 6 [default = false];
     }
     repeated AnsiblePlaybook ansible_playbook = 2;
     required string ansible_inventory = 3;
     required string ansible_config = 4;
 
-    // limit hosts to this hub and the bots, since currently we do not have hub<->hub networking
+    // limit hosts to this hub and the bots, since currently we do not have
+    // hub<->hub networking
     required string this_hub = 5;
-    
+
     optional double check_freq = 10 [default = 10];
 }
 

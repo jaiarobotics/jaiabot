@@ -1,0 +1,4 @@
+    - name: Remove read-write overlay
+      ansible.builtin.file:
+        path: /media/root-rw/overlay
+        state: absent

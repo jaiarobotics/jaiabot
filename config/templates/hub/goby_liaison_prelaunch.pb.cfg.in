@@ -13,7 +13,7 @@ add_commander_tab: false
 
 
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
-    role: DEVELOPER
+    role: USER
 
     ansible_inventory: "/etc/jaiabot/inventory.yml"
     ansible_config: "ansible-liaison.cfg"
@@ -92,4 +92,19 @@ add_commander_tab: false
         name: "Reboot Hub"
         role: USER
     }    
+
+    ansible_playbook {
+        file: "factory-reset.yml" 
+        name: "Factory Reset [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        role: ADVANCED
+        confirmation_required: true
+    }    
+
+    ansible_playbook {
+        file: "factory-upgrade-all.yml" 
+        name: "Upgrade all packages on Factory image [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        role: DEVELOPER
+        confirmation_required: true
+    }    
+
 }

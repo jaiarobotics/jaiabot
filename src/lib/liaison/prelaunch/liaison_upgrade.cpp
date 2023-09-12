@@ -1,5 +1,6 @@
 #include <Wt/WComboBox>
 #include <Wt/WContainerWidget>
+#include <Wt/WDialog>
 #include <Wt/WGroupBox>
 #include <Wt/WPushButton>
 #include <Wt/WTable>
@@ -70,7 +71,8 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
       result_div(new WContainerWidget(group_div)),
       result_text(new WText("", result_div)),
       result_table(new WTable(result_div)),
-      run_text_it(jaiabot::LiaisonUpgrade::running_.begin())
+      run_text_it(jaiabot::LiaisonUpgrade::running_.begin()),
+      pb_playbook(playbook)
 {
     run_button_div->setInline(true);
     run_button_div->setPadding(default_padding);
@@ -110,6 +112,21 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::AnsiblePlaybookConfig(
 void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
 {
     AnsiblePlaybookConfig& playbook = playbooks_[playbook_index];
+
+    if (playbook.pb_playbook.confirmation_required())
+    {
+        WDialog dialog("Confirm executing: " + playbook.pb_playbook.name());
+        WPushButton ok("Run", dialog.contents());
+        WPushButton cancel("Cancel", dialog.contents());
+
+        dialog.rejectWhenEscapePressed();
+        ok.clicked().connect(&dialog, &WDialog::accept);
+        cancel.clicked().connect(&dialog, &WDialog::reject);
+
+        if (dialog.exec() != WDialog::Accepted)
+            return;
+    }
+
     glog.is_debug1() && glog << "Running playbook: " << playbook.file << std::endl;
     for (auto& playbook : playbooks_) playbook.result_table->clear();
 

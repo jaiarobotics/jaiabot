@@ -83,6 +83,7 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
         std::unique_ptr<ProcessData> pdata;
         std::string last_log;
         std::shared_ptr<LogFileResource> log_resource;
+        const jaiabot::protobuf::UpgradeConfig::AnsiblePlaybook& pb_playbook;
     };
     friend struct AnsiblePlaybookConfig;
 
