@@ -331,6 +331,9 @@ function runMission(bot_id: number, mission: MissionInterface) {
     let run = runs[runId];
 
     if (run) {
+        if (mission.runIdInEditMode === run.id) {
+            mission.runIdInEditMode = ''
+        }
         return run.command;
     }
     else {
@@ -589,12 +592,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     let dataOffloadButton = (
         <Button className={(disableButton(commands.recover, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
             onClick={() => { 
+                let disableMessage = disableButton(commands.recover, missionState).disableMessage
+
                 if (!linkQualityPercentage) {
-                    disableButton(commands.recover, missionState).disableMessage += 
-                        "The command: " + commands.recover + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
+                    disableMessage += 
+                        "The command: " + commands.recover.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
                 }
 
-                props.downloadIndividualBot(bot, disableButton(commands.recover, missionState).disableMessage) 
+                props.downloadIndividualBot(bot, disableMessage) 
             }}>
             <Icon path={mdiDownload} title='Data Offload'/>
         </Button>
@@ -604,12 +609,14 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         dataOffloadButton = ( 
             <Button className={(disableButton(commands.retryDataOffload, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
                 onClick={() => {
+                    let disableMessage = disableButton(commands.recover, missionState).disableMessage
+
                     if (!linkQualityPercentage) {
-                        disableButton(commands.retryDataOffload, missionState).disableMessage += 
-                            "The command: " + commands.recover + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
+                        disableMessage += 
+                            "The command: " + commands.recover.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
                     }
 
-                    props.downloadIndividualBot(bot, disableButton(commands.retryDataOffload, missionState).disableMessage) 
+                    props.downloadIndividualBot(bot, disableMessage) 
                 }}>
                 <Icon path={mdiDownload} title='Retry Data Offload'/>
             </Button>
