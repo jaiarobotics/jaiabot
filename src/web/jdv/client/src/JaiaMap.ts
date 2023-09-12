@@ -22,7 +22,7 @@ import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
-import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature } from './shared/BotFeature'
+import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature, botPopupHTML } from './shared/BotFeature'
 import { createDivePacketFeature, createDriftPacketFeature, createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
@@ -196,6 +196,8 @@ export default class JaiaMap {
         this.map.on("click", (e) => {
             this.map.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
                 feature.get('onclick')?.(e)
+            }, {
+                hitTolerance: 20
             })
         });
 
@@ -531,6 +533,8 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
+            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
+
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
             const botHeadingArrow = createBotHeadingFeature(properties)
 
