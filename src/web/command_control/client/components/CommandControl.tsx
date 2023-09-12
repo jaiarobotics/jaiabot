@@ -1880,6 +1880,8 @@ export default class CommandControl extends React.Component {
 	// Download Queue (Start)
 	//
 	async processDownloadAllBots() {
+		if (!this.takeControl()) return
+
 		const commDest = this.determineAllCommandBots(false, false, false, true)
 		const downloadableBots = this.getDownloadableBots()
 		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
@@ -1899,6 +1901,8 @@ export default class CommandControl extends React.Component {
 	}
 
 	async processDownloadSingleBot(bot: PortalBotStatus, disableMessage: string) {
+		if (!this.takeControl()) return
+		
 		// Exit if we have a disableMessage
 		if (disableMessage !== "") {
 			alert(disableMessage)
