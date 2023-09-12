@@ -126,9 +126,14 @@ elif common.app == 'goby_liaison':
                                      load_protobufs=liaison_load_block))
 elif common.app == 'goby_liaison_prelaunch':
     liaison_port=9091
+    this_hub='hub'+ str(hub_index) +'_fleet' + str(fleet_index)
+    if is_simulation():
+        this_hub='hub0'
+    
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
-                                     http_port=liaison_port))
+                                     http_port=liaison_port,
+                                     this_hub=this_hub))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,

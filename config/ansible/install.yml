@@ -25,10 +25,4 @@
           - libdccl4
         state: latest
 
-    - name: Get current installed version
-      shell: "apt-cache policy jaiabot-embedded | grep Installed: | awk '{print $2}'"
-      register: current_version
-      
-    - name: Set facts for current and available versions
-      set_fact:
-        jaiabot_current_version: "{{ current_version.stdout }}"
+    - include_tasks: tasks/get_version.yml

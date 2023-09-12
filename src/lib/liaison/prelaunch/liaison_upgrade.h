@@ -71,8 +71,8 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
 
         struct ProcessData
         {
-            ProcessData(const std::string& config, const std::string& inventory,
-                        const std::string& playbook_file, const std::string& input_vars);
+            ProcessData(const protobuf::UpgradeConfig& cfg, const std::string& playbook_file,
+                        const std::string& input_vars);
             ~ProcessData();
 
             boost::asio::io_service io;

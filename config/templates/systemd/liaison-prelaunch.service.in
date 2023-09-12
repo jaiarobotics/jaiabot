@@ -12,9 +12,9 @@ User=$user
 Group=$group
 
 EnvironmentFile=$env_file
-ExecStart=$bin_dir/$exe -C '$gen $exe' $extra_flags
+ExecStart=$bin_dir/$exe -C '$gen goby_liaison_prelaunch' $extra_flags
 $extra_service
-WorkingDirectory=$jaiabot_share_dir/config/ansible
+WorkingDirectory=$jaiabot_share_dir/jaiabot/config/ansible
 
 
 [Install]

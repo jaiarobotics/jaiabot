@@ -17,6 +17,7 @@ add_commander_tab: false
 
     ansible_inventory: "/etc/jaiabot/inventory.yml"
     ansible_config: "ansible-liaison.cfg"
+    this_hub: "$this_hub"
     ansible_playbook {
         file: "change-sources.yml" 
         name: "Change JaiaBot repository"
@@ -52,8 +53,8 @@ add_commander_tab: false
     }
     ansible_playbook {
         file: "install.yml" 
-        name: "Upgrade JaiaBot packages"
-        role: USER
+        name: "Install or Upgrade JaiaBot packages only"
+        role: ADVANCED
         output_var {
             name: "jaiabot_current_version"
             display_name: "Current JaiaBot Version"
@@ -61,8 +62,12 @@ add_commander_tab: false
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
-        name: "Upgrade all system packages (including JaiaBot packages if installed)"
+        name: "Upgrade Jaiabot and system packages"
         role: USER
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
     }
 
 }

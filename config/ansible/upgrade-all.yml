@@ -2,20 +2,32 @@
 - name: Jaiabot upgrade all
   hosts: all
   become: yes
-  gather_facts: no
+  gather_facts: yes
 
   tasks:
-    - name: Hold kernel packages
+    - name: Remount firmware read-write
+      mount:
+        path: /boot/firmware
+        opts: "rw"
+        state: remounted
+
+    # Can hopefully be removed when we switch to EFI boot
+    # For now we get an error with update-grub on amd64 images due to overlay root
+    - name: Hold kernel packages on amd64
       dpkg_selections:
-        name: "{{ item }}"
+        name: linux-image-generic
         selection: hold
-      loop:
-        - linux-image-generic
-        - linux-image-raspi
-        - linux-image-raspi2
+      when: ansible_architecture == "x86_64"
         
     - name: Upgrade
       apt:
         update_cache: yes
         upgrade: dist
-        
+
+    - include_tasks: tasks/get_version.yml
+
+    - name: Remount firmware read-only
+      mount:
+        path: /boot/firmware
+        opts: "ro"
+        state: remounted
