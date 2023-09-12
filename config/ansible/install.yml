@@ -3,26 +3,14 @@
   hosts: all
   gather_facts: no
   become: yes
-
+  vars_files:
+    - vars/packages.yml
+    
   tasks:
     - name: Install/upgrade jaiabot packages
       apt:
         update_cache: yes
-        name:
-          - jaiabot-apps
-          - jaiabot-arduino
-          - jaiabot-config
-          - jaiabot-data-vision
-          - jaiabot-embedded
-          - jaiabot-python
-          - jaiabot-web
-          - libjaiabot
-          - goby3-apps
-          - goby3-gui
-          - goby3-moos
-          - libgoby3
-          - libgoby3-moos
-          - libdccl4
+        name: "{{ jaiabot_packages }}"
         state: latest
 
     - include_tasks: tasks/get_version.yml

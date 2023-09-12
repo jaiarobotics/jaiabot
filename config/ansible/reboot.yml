@@ -1,0 +1,8 @@
+---
+- name: Reboot
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Reboot
+      ansible.builtin.reboot:

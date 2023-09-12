@@ -111,7 +111,7 @@ void jaiabot::LiaisonUpgrade::run_ansible_playbook(std::size_t playbook_index)
 {
     AnsiblePlaybookConfig& playbook = playbooks_[playbook_index];
     glog.is_debug1() && glog << "Running playbook: " << playbook.file << std::endl;
-    playbook.result_table->clear();
+    for (auto& playbook : playbooks_) playbook.result_table->clear();
 
     try
     {
