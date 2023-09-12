@@ -1,6 +1,6 @@
 import { HubStatus, BotStatus, HealthState } from "./shared/JAIAProtobuf"
 import React = require("react")
-import { PodStatus } from "./shared/PortalStatus"
+import { PodStatus, PortalBotStatus } from "./shared/PortalStatus"
 
 
 interface Props {
@@ -35,13 +35,14 @@ export function BotListPanel(props: Props) {
     let bots = Object.values(props.podStatus?.bots ?? {}).sort(compareByBotId)
     let hubs = Object.values(props.podStatus?.hubs ?? {}).sort(compareByHubId)
     
-    function BotDiv(bot: BotStatus) {
+    function BotDiv(bot: PortalBotStatus) {
         var key = 'bot-' + bot.bot_id
         var botClass = 'bot-item'
 
         let faultLevelClass = 'faultLevel' + faultLevel(bot.health_state)
         let selected = bot.bot_id == props.selectedBotId ? 'selected' : ''
         let tracked = bot.bot_id == props.trackedBotId ? 'tracked' : ''
+        let disconnected = Math.max(0.0, bot.portalStatusAge / 1e6) > 30 ? 'disconnected' : ''
 
         return (
             <div
@@ -49,7 +50,7 @@ export function BotListPanel(props: Props) {
                 onClick={
                     () => { props.didClickBot(bot.bot_id) }
                 }
-                className={`${botClass} ${faultLevelClass} ${selected} ${tracked}`}
+                className={`${botClass} ${faultLevelClass} ${selected} ${tracked} ${disconnected}`}
             >
                 { bot.bot_id }
             </div>
