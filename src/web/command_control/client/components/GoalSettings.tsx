@@ -179,7 +179,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label wpt-label">Wpt:</div>
                     <div className="goal-settings-wpt-input-container">
                         <div className="goal-settings-input wpt-input">{goalIndex}</div>
-                        <div className="goal-settings-delete-wpt-container" onClick={() => this.deleteWaypoint()}>
+                        <div className="goal-settings-delete-wpt-container button-jcc" onClick={() => this.deleteWaypoint()}>
                             <Icon path={mdiDelete} title='Delete Waypoint'/>
                         </div>
                     </div>
