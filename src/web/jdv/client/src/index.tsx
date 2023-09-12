@@ -141,12 +141,12 @@ class LogApp extends React.Component {
 
                 <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
                 
                 <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
 
                 <button className="mapButton" onClick={() => {this.toggleMeasureResult()}}>
