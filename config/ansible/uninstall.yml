@@ -1,0 +1,16 @@
+---
+- name: Remove JaiaBot packages
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars_files:
+    - vars/packages.yml
+    
+  tasks:
+    - name: Remove jaiabot packages
+      apt:
+        update_cache: yes
+        name: "{{ jaiabot_packages }}"
+        state: absent
+
+    - include_tasks: tasks/get_version.yml
