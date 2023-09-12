@@ -450,6 +450,10 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
 
     dive_prep_timeout_ = start_timeout + dive_prep_duration;
 
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
     loop(EvLoop());
 }
 
@@ -462,10 +466,6 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::~DivePrep()
         start.set_lat_with_units(pos.lat_with_units());
         start.set_lon_with_units(pos.lon_with_units());
     }
-
-    // This makes sure we capture the pressure before the dive begins
-    // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const EvLoop&)
