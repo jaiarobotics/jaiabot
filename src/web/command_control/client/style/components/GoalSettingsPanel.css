@@ -31,9 +31,13 @@
 }
 
 .goal-settings-delete-wpt-container {
-  height: 30px;
-  width: 30px;
   justify-self: center;
+}
+
+.goal-settings-delete-wpt-container.button-jcc {
+  margin: 0 !important;
+  width: 42px !important;
+  height: 42px !important;
 }
 
 .goal-settings-delete-wpt-container:hover {
@@ -52,7 +56,7 @@
 }
 
 .goal-settings-label.wpt-label {
-  margin-top: 6px;
+  align-self: center;
 }
 
 .goal-settings-label.task-label {
