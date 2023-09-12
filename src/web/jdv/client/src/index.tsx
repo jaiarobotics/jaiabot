@@ -168,7 +168,9 @@ class LogApp extends React.Component {
 
             </div>
 
-            <TimeSlider 
+          </div>
+          
+          <TimeSlider 
               t={this.state.t} 
               tMin={this.state.tMin} 
               tMax={this.state.tMax} 
@@ -176,10 +178,8 @@ class LogApp extends React.Component {
                 this.map.updateToTimestamp(t)
                 this.setState({t: t })
               }}
-            ></TimeSlider>
+          ></TimeSlider>
 
-          </div>
-          
           { log_selector }
 
         </div>
