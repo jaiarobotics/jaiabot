@@ -165,21 +165,6 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
     })
 }
 
-export function desiredHeadingArrow(feature: Feature): Style {
-    const desiredHeading = feature.get('desiredHeading') * DEG
-    const color = 'green'
-
-    return new Style({
-        image: new Icon({
-            src: botDesiredHeading,
-            color: color,
-            anchor: [0.5, 1.0],
-            rotation: desiredHeading,
-            rotateWithView: true
-        })
-    })
-}
-
 export function headingArrow(heading: number): Style {
     const finalHeading = heading * DEG
     const color = 'green'
@@ -193,6 +178,11 @@ export function headingArrow(heading: number): Style {
             rotateWithView: true
         })
     })
+}
+
+export function desiredHeadingArrow(feature: Feature): Style {
+    const desiredHeading = feature.get('desiredHeading') as number ?? 0.0
+    return headingArrow(desiredHeading)
 }
 
 // Markers for the mission goals
