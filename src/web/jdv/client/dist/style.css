@@ -223,7 +223,6 @@ li::marker {
     background-color: #000000ee;
     width: 100%;
     height: 40pt;
-    position: absolute;
     bottom: 0pt;
     user-select: none;
 }
@@ -235,7 +234,7 @@ li::marker {
 .TimeSliderBack {
     background-color: slategray;
     height: 10pt;
-    position: absolute;
+    position: relative;
     top: 0pt;
     left: 0pt;
     right: 0pt;
