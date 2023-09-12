@@ -331,6 +331,9 @@ function runMission(bot_id: number, mission: MissionInterface) {
     let run = runs[runId];
 
     if (run) {
+        if (mission.runIdInEditMode === run.id) {
+            mission.runIdInEditMode = ''
+        }
         return run.command;
     }
     else {
