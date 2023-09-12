@@ -21,6 +21,11 @@ try:
 except:
     hub_index=0
 
+try:
+    user_role=os.environ['jaia_user_role'].upper()
+except:
+    user_role=USER
+    
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
@@ -130,7 +135,8 @@ elif common.app == 'goby_liaison_prelaunch':
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
-                                     this_hub=this_hub))
+                                     this_hub=this_hub,
+                                     user_role=user_role))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,

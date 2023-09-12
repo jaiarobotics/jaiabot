@@ -50,6 +50,7 @@ parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets t
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
+parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 
 args=parser.parse_args()
@@ -125,6 +126,7 @@ subprocess.run('bash -ic "' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
+               f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
