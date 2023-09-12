@@ -32,7 +32,7 @@
       shell: "overlayroot-chroot apt-get update"
 
     - name: Upgrade read-only underlay
-      shell: "overlayroot-chroot apt-get dist-upgrade"
+      shell: "overlayroot-chroot apt-get dist-upgrade -y"
 
     # Don't remount disks RO as we need to reboot anyway    
 

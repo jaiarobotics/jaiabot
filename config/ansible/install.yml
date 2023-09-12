@@ -14,4 +14,6 @@
         state: latest
 
     - include_tasks: tasks/get-version.yml
-    - include_tasks: tasks/restart-jaiabot.yml
+
+ # Do not include as it takes a long time if NTP isn't sync'd
+ #  - include_tasks: tasks/restart-jaiabot.yml
