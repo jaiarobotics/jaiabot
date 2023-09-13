@@ -24,7 +24,7 @@ except:
 try:
     user_role=os.environ['jaia_user_role'].upper()
 except:
-    user_role=USER
+    user_role='USER'
     
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
