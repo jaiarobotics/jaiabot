@@ -1167,6 +1167,10 @@ export default class CommandControl extends React.Component {
 			const run = runList.runs[runId]
 			delete runList?.runs[runId]
 			delete runList?.botsAssignedToRuns[run.assigned]
+			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+				this.setVisiblePanel(PanelType.NONE)
+				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+			}
 		}
 	}
 
@@ -1510,7 +1514,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {			
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
 			if (!(editModeExemptions.includes(feature?.get('type')))) {
 				const runList = this.state.runList
 				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
@@ -1659,7 +1663,7 @@ export default class CommandControl extends React.Component {
 			runList.runIdInEditMode = run?.id
 		} else {
 			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-				this.setVisiblePanel(PanelType.NONE)
+				this.setVisiblePanel(PanelType.GOAL_SETTINGS)
 				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
 			}
 			runList.runIdInEditMode = ''
@@ -2791,7 +2795,6 @@ export default class CommandControl extends React.Component {
 				visiblePanelElement = (
 					<GoalSettingsPanel
 						map={map}
-						key={`${goalBeingEdited?.botId}-${goalBeingEdited?.goalIndex}`}
 						botId={goalBeingEdited?.botId}
 						goalIndex={goalBeingEdited?.goalIndex}
 						goal={goalBeingEdited?.goal}
