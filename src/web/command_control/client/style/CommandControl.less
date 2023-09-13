@@ -58,8 +58,8 @@ td {
 
   .button-jcc {
     display: inline-block;
-    height: @command-button-size;
     width: auto;
+    height: @command-button-size;
     min-width: @command-button-size;
     min-height: @command-button-size;
     border-radius: @control-corner-radius;
@@ -136,7 +136,7 @@ td {
     top: 0;
     width: 50pt;
     height: auto;
-    max-height: 85vh;
+    max-height: 95vh;
     background: @overlay-background;
     display: flex;
     flex-flow: column nowrap;
@@ -218,7 +218,7 @@ td {
     left: 50pt;
     color: @cc-details-text-color;
     padding: 8pt;
-    max-height: calc(100vh - @rc-panel-height-px);
+    max-height: 95vh;
     max-width: 25vw;
 
     display: flex;
@@ -285,8 +285,7 @@ td {
     top: @command-button-size + (2 * @command-button-padding);
     right: @command-button-size + (2 * @command-button-padding);
 
-    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
-    width: 400px;
+    max-height: calc(95vh - @top-toolbar-height);
     overflow-y: auto;
     overflow-x: hidden;
 
@@ -491,7 +490,6 @@ td {
     right: 0;
     top: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: row nowrap;
   }
@@ -499,10 +497,9 @@ td {
   #viewControls {
     width: ((@command-button-size + (@command-button-margin * 2)) * 1);
     position: absolute;
-    top: 0;
+    top: 66px;
     right: 0;
     background: @overlay-background;
-    border-radius: 0 @panel-corner-radius 0 0;
     display: flex;
     flex-flow: column wrap;
   }
@@ -767,7 +764,7 @@ td {
     top: @command-button-size + (2 * @command-button-padding);
     right: @command-button-size + (2 * @command-button-padding);
     
-    max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+    max-height: calc(95vh - @top-toolbar-height);
     overflow-y: auto;
     
     background-color: @overlay-background;
@@ -873,7 +870,7 @@ td {
     bottom: 0;
     width: calc(100% - ((@command-button-size + (@command-button-margin * 2)) * 1));
     background-color: @overlay-background;
-    z-index: 1;
+    z-index: 10;
   }
 
   .rc-heading {
@@ -918,6 +915,10 @@ td {
     align-items: center;
     gap: 12px;
     padding: 8px 0 0 8px;
+
+    .MuiInputBase-root {
+      margin: 0;
+    }
 
     .MuiSelect-select {
       display: flex;
@@ -1254,7 +1255,7 @@ div.hoverable:hover {
 .jaia-logo {
   width: 40pt;
   height: 40pt;
-  margin: 60pt 4pt 20pt 4pt;
+  margin: 6px 6px 6px 12px;
   border-radius: 4pt;
   border: 1pt solid gray;
 }
@@ -1336,7 +1337,7 @@ div.closeButton {
   top: @command-button-size + (2 * @command-button-padding);
   right: @command-button-size + (2 * @command-button-padding);
   min-width: 402px;
-  max-height: calc(100vh - (@rc-panel-height-px + @command-button-size + (2 * @command-button-padding)));
+  max-height: calc(95vh - @top-toolbar-height);
 
   background-color: @overlay-background;
   border: 2px solid @cc-accordian-color;
@@ -1356,7 +1357,8 @@ div.closeButton {
 }
 
 #runList {
-  max-height: calc(100vh - (@command-button-size + (2 * @command-button-padding) + @command-button-size + (2 * @command-button-padding) + @rc-panel-height-px + 71.28px + 22.92px));
+  // 77.31px = mission panel command strip, 22.91px = heading, 36px = measured buffer
+  max-height: calc(95vh - @top-toolbar-height - 77.31px - 22.91px - 36px);
   overflow-y: auto;
 }
 

@@ -256,9 +256,23 @@ jaiabot::apps::MissionManager::MissionManager()
                 // Publish TPV that meets our mission requirements
                 if (current_tpv_.IsInitialized())
                 {
-                    interprocess().publish<jaiabot::groups::mission_tpv_meets_gps_req>(
-                        current_tpv_);
                     machine_->set_gps_tpv(current_tpv_);
+                }
+            }
+        });
+
+    interprocess().subscribe<jaiabot::groups::imu>(
+        [this](const jaiabot::protobuf::IMUData& imu_data) {
+            glog.is_debug2() && glog << "Received IMU Data " << imu_data.ShortDebugString()
+                                     << std::endl;
+
+            if (imu_data.has_euler_angles())
+            {
+                if (imu_data.euler_angles().has_pitch())
+                {
+                    statechart::EvVehiclePitch ev;
+                    ev.pitch = imu_data.euler_angles().pitch_with_units();
+                    machine_->process_event(ev);
                 }
             }
         });
@@ -276,6 +290,13 @@ jaiabot::apps::MissionManager::MissionManager()
                 case protobuf::IMUIssue::RESTART_IMU_PY:
                     machine_->process_event(statechart::EvIMURestart());
                     break;
+                case protobuf::IMUIssue::REBOOT_BOT: break;
+                case protobuf::IMUIssue::USE_COG: break;
+                case protobuf::IMUIssue::USE_CORRECTION: break;
+                case protobuf::IMUIssue::REPORT_IMU:
+                    machine_->process_event(statechart::EvIMURestart());
+                    break;
+                case protobuf::IMUIssue::RESTART_BOT: break;
                 default:
                     //TODO Handle Default Case
                     break;
@@ -672,6 +693,22 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvNewMission());
 
             bool mission_is_feasible = true;
+            bool goal_depth_infeasible = false;
+
+            // Make sure the mission plan does not include a dive
+            // greater than allowed max
+            for (auto goal : command.plan().goal())
+            {
+                if (goal.task().dive().max_depth() >
+                    protobuf::MissionTask::DiveParameters::descriptor()
+                        ->FindFieldByName("max_depth")
+                        ->options()
+                        .GetExtension(dccl::field)
+                        .max())
+                {
+                    goal_depth_infeasible = true;
+                }
+            }
 
             // must have at least one goal
             if (command.plan().movement() == protobuf::MissionPlan::TRANSIT &&
@@ -708,6 +745,15 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                     jaiabot::protobuf::
                         WARNING__MISSION__INFEASIBLE_MISSION__MUST_HAVE_RECOVERY_LOCATION_IF_NOT_RECOVERING_AT_FINAL_GOAL);
 
+                mission_is_feasible = false;
+            }
+            else if (goal_depth_infeasible)
+            {
+                glog.is_warn() && glog << "Infeasible mission: Depth exceeds max depth"
+                                       << std::endl;
+                machine_->insert_warning(
+                    jaiabot::protobuf::
+                        WARNING__MISSION__INFEASIBLE_MISSION__GOAL_DESIRED_DEPTH_EXCEEDED_MAX);
                 mission_is_feasible = false;
             }
 
@@ -847,6 +893,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             {
                 *out_command.mutable_plan()->mutable_recovery() =
                     initial_fragment.plan().recovery();
+            }
+
+            if (initial_fragment.plan().has_speeds())
+            {
+                *out_command.mutable_plan()->mutable_speeds() = initial_fragment.plan().speeds();
             }
 
             if (initial_fragment.plan().has_repeats())

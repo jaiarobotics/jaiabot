@@ -1,21 +1,21 @@
-import { Vector as OlVectorSource } from "ol/source";
-import { Draw as OlDrawInteraction } from "ol/interaction";
-import { Feature as OlFeature } from "ol";
-import { LineString, Point as OlPoint } from "ol/geom";
+// OpenLayers imports
 import { Style as OlStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Circle as OlCircleStyle, Icon as OlIcon, Text as OlText } from "ol/style";
+import { LineString, Point as OlPoint } from "ol/geom";
+import { unByKey as OlUnobserveByKey } from "ol/Observable";
+import { Draw as OlDrawInteraction } from "ol/interaction";
+import { Vector as OlVectorSource } from "ol/source";
+import { Feature as OlFeature } from "ol";
 import { EventsKey } from "ol/events";
 import { DrawEvent } from "ol/interaction/Draw";
-import { GeoJSON } from "ol/format";
-import { unByKey as OlUnobserveByKey } from "ol/Observable";
+import { warning } from "../libs/notifications";
+
+// Jaia imports
+import CommandControl from "./CommandControl";
+import { deepcopy } from "./shared/Utilities";
 
 import * as turf from "@turf/turf"
 
-// Jaia imports
-import { deepcopy } from "./shared/Utilities";
-import CommandControl from "./CommandControl";
-
 const missionOrientationIcon = require('../icons/compass.svg')
-
 
 function round(value: any, precision: number): any {
     if (typeof value === "number")
@@ -32,7 +32,6 @@ function round(value: any, precision: number): any {
 
     return value
 }
-
 
 // Survey planning using lines
 function surveyLineStyle(feature: OlFeature<LineString>) {
@@ -117,13 +116,17 @@ export class SurveyLines {
         this.drawInteraction.on(
             'drawstart',
             (evt: DrawEvent) => {
+                if (!commandControl.state.startRally || !commandControl.state.endRally) {
+                    warning('Please select a start and end rally point for this run')
+                    return
+                }
                 commandControl.setState({ missionPlanningFeature: null })
                 commandControl.updateMissionLayer();
         
                 // Show the preview of the survey
                 this.listener = evt.feature.on('change', (evt2) => {
                     const geom1 = evt2.target;
-                    let { missionParams, rallyStartLocation, rallyEndLocation, surveyExclusionCoords } = commandControl.state;
+                    let { missionParams, surveyExclusionCoords, startRally, endRally } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
                     if (stringCoords[0].length >= 2) {
@@ -184,10 +187,7 @@ export class SurveyLines {
                                     let alongPointsBeforeExclusion = turf.coordAll(turf.cleanCoords(turf.multiPoint(round(turf.coordAll(turf.explode(offsetLine)), 7))))
                                     let alongPointsAfterExclusion: number[][] = []
                                     alongPointsBeforeExclusion.forEach(point => {
-                                        // console.log('this.state.surveyExclusions');
                                         let se = turf.coordAll(turf.toWgs84(turf.multiPoint(surveyExclusionCoords)));
-                                        // console.log(se);
-                                        // console.log(point);
                                         let options = {'ignoreBoundary': true}
                                         if (turf.booleanPointInPolygon(point, turf.polygon([se]), options) === false) {
                                             alongPointsAfterExclusion.push(point)
@@ -202,8 +202,6 @@ export class SurveyLines {
         
                             // Metadata setup
                             // TODO: Add hub position so we can get a distance to furthest point away from it, no LL atm
-                            // console.log('hubs');
-                            // console.log(Object.values(this.podStatus?.hubs ?? {}));
                             let fcInput: turf.helpers.Feature<turf.helpers.Point>[] = []
                             Object.keys(alongPoints).forEach(key => {
                                 let points = alongPoints[key]
@@ -220,8 +218,8 @@ export class SurveyLines {
                                 missionParams.spArea = round(turf.area(fcOutputPoly)/1000, 2)
                             }
         
-                            missionParams.spRallyStartDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([rallyStartLocation.lon, rallyStartLocation.lat])), 2)
-                            missionParams.spRallyFinishDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([rallyEndLocation.lon, rallyEndLocation.lat])), 2)
+                            missionParams.spRallyStartDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[0], turf.point([startRally.get('location').lon, startRally.get('location').lat])), 2)
+                            missionParams.spRallyFinishDist = round(turf.distance(centerLineStringWgs84.geometry.coordinates[1], turf.point([endRally.get('location').lon, endRally.get('location').lat])), 2)
         
                             commandControl.setState({
                                 missionPlanningLines: alongLines,
@@ -243,29 +241,17 @@ export class SurveyLines {
         this.drawInteraction.on(
             'drawend',
             (evt: DrawEvent) => {
-                // console.log('surveyLinesInteraction drawend');
-                // this.surveyLinesInteraction.finishDrawing();
-                // this.updateMissionLayer();
-                // console.log(evt);
-                // console.log(map);
+                if (!commandControl.state.startRally || !commandControl.state.endRally) {
+                    return
+                }
         
                 commandControl.setState({
                     missionPlanningFeature: evt.feature
                 })
         
-                // console.log(this.surveyLinesInteraction);
-                // console.log(this.surveyLinesInteraction.finishCoordinate_);
-                // console.log(this.surveyLinesInteraction.sketchCoords_);
                 commandControl.updateMissionLayer();
                 OlUnobserveByKey(this.listener);
-        
-                // map.changed();
-                // map.renderSync();
-                // map.updateSize();
             }
-        );
-            
+        )
     }
-
-
 }

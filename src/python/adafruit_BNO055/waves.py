@@ -6,89 +6,49 @@ from numpy import std
 import numpy
 from vector3 import Vector3
 import plotly.express as px
-from imu import IMU
+from imu import *
 from threading import Thread, Lock
 from time import sleep
 from copy import deepcopy
 from numpy.linalg import lstsq
 import logging
 
+from series import *
+from processing import *
+from filters import *
+
 log = logging.getLogger('jaiabot_imu')
 
 
-def filter_quadratic(values: Iterable):
-    '''Fit data to a quadratic, and subtract it to remove any drift due to constant acceleration error'''
-    indices = numpy.arange(0, len(values))
-    A = numpy.vstack([indices*indices, indices, numpy.ones(len(indices))]).T
-    a, b, c = lstsq(A, values, rcond=None)[0]
+def isValidReading(reading: IMUReading):
+    '''Returns True if this reading doesn't contain an obvious glitch in gravity or linear_acceleration'''
 
-    newValues = []
-    for i, value in enumerate(values):
-        correction = a*i*i + b*i + c
-        newValues.append(value - correction)
-    return newValues
+    g_mag = reading.gravity.magnitude()
+    a_mag = reading.linear_acceleration.magnitude()
+    if g_mag < 8 or g_mag > 50:
+        return False
+    
+    if abs(reading.gravity.x) < 0.02 or abs(reading.gravity.y) < 0.02 or abs(reading.gravity.z) < 0.02: # Sometimes the gravity components glitch out to 0.01 for no reason
+        return False
+    
+    if a_mag == 0 or a_mag > 50:
+        return False
 
-
-def plotValues(values: Iterable[float], dt: float = 1.0):
-    x = numpy.arange(0, len(values) * dt, dt)
-    fig = px.line(x=x, y=values)
-    fig.show()
-
-
-class TimeSeries:
-    dt: float
-    max_value_count: float
-    _values: List[float]
-
-    def __init__(self, dt: float, values: List[float] = [], max_value_count=1000) -> None:
-        self.dt = dt
-        self._values = deepcopy(values)
-        self.max_value_count = max_value_count
-
-    def pushValue(self, value: float):
-        self._values.append(value)
-
-        if len(self._values) > self.max_value_count:
-            self._values.pop(0)
-
-    def clear(self):
-        self._values.clear()
-
-    def plot(self):
-        plotValues(self._values, self.dt)
-
-    def getHeightsFromAccelerations(self):
-        speed = 0
-        height = 0
-        heights = []
-
-        accelerations = self._values
-
-        for accel in accelerations:
-            speed += accel * self.dt
-            height += speed * self.dt
-            heights.append(height)
-
-        # Eliminate any constant speed
-        heights = filter_quadratic(heights)
-
-        integral = TimeSeries(dt=self.dt, values=heights)
-        return integral
-
-    def significantWaveHeight(self):
-        if len(self._values) <= 1:
-            return 0
-
-        # Significant wave height is defined as 4 times standard deviation
-        return 4 * float(std(self._values))
+    return True
 
 
 class Analyzer:
-    acceleration_z: TimeSeries
-    acceleration_mag: TimeSeries
+    linear_acceleration_x = Series('acc.x')
+    linear_acceleration_y = Series('acc.y')
+    linear_acceleration_z = Series('acc.z')
+
+    gravity_x = Series('g.x')
+    gravity_y = Series('g.y')
+    gravity_z = Series('g.z')
+
+    max_acceleration_magnitude = 0.0
 
     imu: IMU
-    max_points = 1000
     sample_interval: float
 
     _thread: Thread
@@ -96,12 +56,12 @@ class Analyzer:
     _sampling_for_bottom_characterization = False
     _lock = Lock()
 
+
     def __init__(self, imu: IMU, sample_frequency: float):
         log.info(f'Analyzer sampling rate: {sample_frequency} Hz')
 
         self.sample_interval = 1 / sample_frequency
-        self.acceleration_z = TimeSeries(dt=self.sample_interval)
-        self.acceleration_mag = TimeSeries(dt=self.sample_interval)
+
         self.imu = imu
 
         def run():
@@ -124,71 +84,115 @@ class Analyzer:
 
                     if reading is not None:
                         if self._sampling_for_wave_height:
-                            self.acceleration_z.pushValue(reading.linear_acceleration_world.z)
+                            if isValidReading(reading):
+                                utime = datetime.utcnow().timestamp() * 1e6
+
+                                self.linear_acceleration_x.append(utime, reading.linear_acceleration.x)
+                                self.linear_acceleration_y.append(utime, reading.linear_acceleration.y)
+                                self.linear_acceleration_z.append(utime, reading.linear_acceleration.z)
+
+                                self.gravity_x.append(utime, reading.gravity.x)
+                                self.gravity_y.append(utime, reading.gravity.y)
+                                self.gravity_z.append(utime, reading.gravity.z)
 
                         if self._sampling_for_bottom_characterization:
-                            self.acceleration_mag.pushValue(reading.linear_acceleration_world.magnitude())
+                            acceleration_magnitude = reading.linear_acceleration.magnitude()
+                            self.max_acceleration_magnitude = max(acceleration_magnitude, self.max_acceleration_magnitude)
 
     # Wave Height
+    def clearAccelerationSeries(self):
+        self.linear_acceleration_x.clear()
+        self.linear_acceleration_y.clear()
+        self.linear_acceleration_z.clear()
+
+        self.gravity_x.clear()
+        self.gravity_y.clear()
+        self.gravity_z.clear()
+
+
     def startSamplingForWaveHeight(self):
         with self._lock:
-            self.acceleration_z.clear()
+            self.clearAccelerationSeries()
             self._sampling_for_wave_height = True
 
     def stopSamplingForWaveHeight(self):
         with self._lock:
-            self.acceleration_z.clear()
+            self.clearAccelerationSeries()
             self._sampling_for_wave_height = False
 
     def getSignificantWaveHeight(self):
         with self._lock:
-            significantWaveHeight = self.acceleration_z.getHeightsFromAccelerations().significantWaveHeight()
-        
-        return significantWaveHeight
+            swh = calculateSignificantWaveHeight(self.linear_acceleration_x, self.linear_acceleration_y, self.linear_acceleration_z, self.gravity_x, self.gravity_y, self.gravity_z)
+        return swh
 
     # Bottom characterization
     def startSamplingForBottomCharacterization(self):
         with self._lock:
-            self.acceleration_mag.clear()
+            self.max_acceleration_magnitude = 0
             self._sampling_for_bottom_characterization = True
 
     def stopSamplingForBottomCharacterization(self):
         with self._lock:
-            self.acceleration_mag.clear()
+            self.max_acceleration_magnitude = 0
             self._sampling_for_bottom_characterization = False
 
     def getMaximumAcceleration(self):
         with self._lock:
-            maxAcceleration = max(self.acceleration_mag._values)
-        
-        return maxAcceleration
+            return self.max_acceleration_magnitude
 
     def debug(self):
-
-        with self._lock:
-            acceleration_z = deepcopy(self.acceleration_z)
-
-        acceleration_z.plot()
-        acceleration_z.getHeightsFromAccelerations().plot()
-
         print(self.getSignificantWaveHeight())
 
 
+def calculateSignificantWaveHeight(acc_x: Series, acc_y: Series, acc_z: Series, g_x: Series, g_y: Series, g_z: Series):
+    # Filter out glitches from the IMU
+    acc_x = filterAcc(acc_x)
+    acc_y = filterAcc(acc_y)
+    acc_z = filterAcc(acc_z)
+
+    g_x = filterAcc(g_x)
+    g_y = filterAcc(g_y)
+    g_z = filterAcc(g_z)
+
+    # Get the vertical acceleration series
+    acc_vertical = Series()
+    acc_vertical.name = 'acc_vertical'
+    acc_vertical.utime = acc_x.utime
+    for i in range(len(acc_x.utime)):
+        acc_vertical.y_values.append((acc_x.y_values[i] * g_x.y_values[i] + 
+                                      acc_y.y_values[i] * g_y.y_values[i] + 
+                                      acc_z.y_values[i] * g_z.y_values[i]) / 9.8)
+        
+    # Get a uniformly-sampled series (for our FFT)
+    sampleFreq = 4
+    acc_vertical = getUniformSeries(freq=sampleFreq)(acc_vertical)
+
+    # Define bandpass filter
+    bandPassFilter = cos2Filter(1/15, 2.0, 0.01)
+
+    # De-mean the series
+    acc_vertical = deMean(acc_vertical)
+
+    # Fade the acceleration in and out from 10 seconds in, to 5 seconds before the end (to avoid noise from the motor)
+    acc_vertical = fadeSeries(acc_vertical, 10e6, 5e6, 5e6)
+
+    # Calculate an elevation series from the acceleration series
+    elev_vertical = accelerationToElevation(acc_vertical, sampleFreq=sampleFreq, filterFunc=bandPassFilter)
+
+    # Calculate a list of sorted wave heights
+    sorted_wave_heights = calculateSortedWaveHeights(elev_vertical)
+
+    swh = calculateSignificantWaveHeightFromSortedWaveHeights(sorted_wave_heights)
+
+    return swh
+
+
 if __name__ == '__main__':
+    imu = Simulator(wave_frequency=0.33, wave_height=0.35)
+    analyzer = Analyzer(imu=imu, sample_frequency=4)
 
-    # Test accelerations
-    AMPLITUDE = 1.5
-    OFFSET = pi
-    STEP = 0.1
-    N = 500
-    FREQ = 0.1
+    analyzer.startSamplingForWaveHeight()
 
-    accelerations = TimeSeries(STEP, numpy.array([AMPLITUDE * cos(2 * pi * i * STEP * FREQ + OFFSET) for i in range(0, N)]))
-    accelerations.plot()
-
-    ###
-
-    x = accelerations.getHeightsFromAccelerations()
-    x.plot()
-
-    print(x.significantWaveHeight())
+    while True:
+        print(analyzer.getSignificantWaveHeight())
+        sleep(1)

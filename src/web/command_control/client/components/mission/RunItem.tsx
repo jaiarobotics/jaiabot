@@ -24,10 +24,8 @@ interface Props {
     bots: {[key: number]: PortalBotStatus}
     run: RunInterface
     mission: MissionInterface,
-    setEditRunMode: (botIds: number[], canEdit: boolean) => void
-    updateEditModeToggle: (run: RunInterface) => boolean,
-    isEditModeToggleDisabled: (run: RunInterface) => boolean,
-    toggleEditMode: (run: RunInterface) => boolean
+    toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
+    unSelectHubOrBot: () => void
 }
 
 interface State {
@@ -37,16 +35,12 @@ interface State {
 export default class RunItem extends React.Component {
     props: Props
     state: State
-    botId: number | null
     botsNotAssigned: number[]
-    enabledMissionStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
+    nonActiveRunStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT']
     api = jaiaAPI
 
     constructor(props: Props) {
         super(props)
-        this.state = {
-          isChecked: this.props.run.canEdit
-        }
     }
 
     componentDidMount() {
@@ -94,7 +88,7 @@ export default class RunItem extends React.Component {
 
         // Check to see if that run is assigned
         // And if the bot id is not included in the botsNotAssigned array
-        if (this.props.run.assigned != -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
+        if (this.props.run.assigned !== -1 && !this.botsNotAssigned.includes(this.props.run.assigned)) {
             assignedLabel = "Bot-" + this.props.run.assigned
             assignedOption = (
                 <MenuItem 
@@ -114,11 +108,11 @@ export default class RunItem extends React.Component {
                     <Select
                         labelId="bot-assigned-select-label"
                         id="bot-assigned-select"
-                        value={this.props.run.assigned.toString()}
+                        value={this.props.run?.assigned?.toString()}
                         label="Assign"
-                        disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
                         onChange={(evt: SelectChangeEvent) => this.handleBotSelectionChange(evt)}
                     >
+
                         <MenuItem 
                             key={-1} 
                             value={-1}
@@ -157,6 +151,7 @@ export default class RunItem extends React.Component {
                 onClick={(event) => {
                     event.stopPropagation();
                     const goals = deepcopy(this.props.run.command.plan.goal)
+                    this.props.unSelectHubOrBot()
                     Missions.addRunWithGoals(-1, goals, this.props.mission);
                 }}
             >
@@ -167,13 +162,12 @@ export default class RunItem extends React.Component {
         // Create Delete Button
         runDeleteButton = (
             <Button 
-                className={`button-jcc missionAccordian ${(this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1) ?  'inactive' : ''}`}
-                disabled={this.props.isEditModeToggleDisabled(this.props.run) && this.props.run.assigned !== -1}
+                className={`button-jcc missionAccordian`}
                 onClick={(event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
 		            if (confirm(warningString)) {
-                        //Deep copy
+                        // Deep copy
                         const mission = this.props.mission
                         delete mission?.runs[this.props.run.id]
                         delete mission?.botsAssignedToRuns[this.props.run.assigned]
@@ -187,9 +181,8 @@ export default class RunItem extends React.Component {
         // Create Edit Mode Toggle
         editModeButton = (
             <EditModeToggle 
-                checked={this.props.updateEditModeToggle} 
-                disabled={this.props.isEditModeToggleDisabled} 
                 onClick={this.props.toggleEditMode}
+                mission={this.props.mission}
                 run={this.props.run}
                 label="Edit"
                 title="ToggleEditMode"

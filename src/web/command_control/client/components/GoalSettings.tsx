@@ -4,7 +4,7 @@ import { Goal } from './shared/JAIAProtobuf';
 import { deepcopy } from './shared/Utilities'
 import { TaskSettingsPanel } from './TaskSettingsPanel';
 import { Map } from 'ol';
-import { MissionInterface, PanelType, RunInterface } from './CommandControl';
+import { MissionInterface, PanelType} from './CommandControl';
 import { Icon } from '@mdi/react'
 import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
@@ -21,10 +21,10 @@ interface Props {
     goal: Goal
     map: Map
     runList: MissionInterface
+    runNumber: number
     onChange: () => void
     setVisiblePanel: (panelType: PanelType) => void
-    setMoveWptMode: (canMoveWptMode: boolean, botId: number, goalNum: number) => void
-    canEditRunState: (run: RunInterface) => boolean
+    setMoveWptMode: (canMoveWptMode: boolean, runId: string, goalNum: number) => void
 }
 
 interface State {
@@ -52,13 +52,13 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     componentWillUnmount() {
-        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
+        this.props.setMoveWptMode(false, `run-${this.props.runNumber}`, this.props.goalIndex)
     }
 
     handleToggleClick() {
         const updatedIsChecked = !this.state.isChecked
         this.setState({ isChecked: updatedIsChecked })
-        this.props.setMoveWptMode(updatedIsChecked, this.props.botId, this.props.goalIndex)
+        this.props.setMoveWptMode(updatedIsChecked, `run-${this.props.runNumber}`, this.props.goalIndex)
     }
 
     isChecked() {
@@ -66,24 +66,26 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     doneClicked() {
-        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
+        this.props.setMoveWptMode(false, `run-${this.props.runNumber}`, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
     }
 
     cancelClicked() {
         const { goal } = this.props
 
-        // Clear this goal
-        Object.keys(goal).forEach((key: keyof Goal) => {
-            delete goal[key]
-        })
+        if (goal) {
+            // Clear this goal
+            Object.keys(goal).forEach((key: keyof Goal) => {
+                delete goal[key]
+            })
 
-        // Copy items from our backup copy of the goal
-        Object.assign(goal, this.oldGoal)
+            // Copy items from our backup copy of the goal
+            Object.assign(goal, this.oldGoal)
+        }
 
-        this.props.onChange()
-        this.props.setMoveWptMode(false, this.props.botId, this.props.goalIndex)
         this.props.setVisiblePanel(PanelType.NONE)
+        this.props.onChange()
+        this.props.setMoveWptMode(false, `run-${this.props.runNumber}`, this.props.goalIndex)
     }
 
     updatePanelVisibility() {
@@ -94,12 +96,6 @@ export class GoalSettingsPanel extends React.Component {
             if (testRun.assigned === this.props.botId) {
                 run = testRun
             }
-        }
-
-        const canEditRun = run?.canEdit
-
-        if (!canEditRun) {
-            this.doneClicked()
         }
     }
 
@@ -186,7 +182,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label wpt-label">Wpt:</div>
                     <div className="goal-settings-wpt-input-container">
                         <div className="goal-settings-input wpt-input">{goalIndex}</div>
-                        <div className="goal-settings-delete-wpt-container" onClick={() => this.deleteWaypoint()}>
+                        <div className="goal-settings-delete-wpt-container button-jcc" onClick={() => this.deleteWaypoint()}>
                             <Icon path={mdiDelete} title='Delete Waypoint'/>
                         </div>
                     </div>

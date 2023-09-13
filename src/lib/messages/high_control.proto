@@ -62,5 +62,8 @@ message DesiredSetpoints
         // inverse dive control to target depth, i.e. SETPOINT_DIVE
         double dive_depth = 12
             [(dccl.field).units = { derived_dimensions: "length" }];
+
+        // throttle control, i.e. SETPOINT_POWERED_ASCENT
+        double throttle = 13;
     };
 }

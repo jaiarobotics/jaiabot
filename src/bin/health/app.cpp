@@ -47,6 +47,7 @@ std::map<std::string, jaiabot::protobuf::Error> create_process_to_not_responding
     }
     // only explicitly list external apps; apps built in this repo are added via -DJAIABOT_HEALTH_PROCESS_MAP_ENTRIES
     return {MAKE_ENTRY(GOBYD),
+            MAKE_ENTRY(GOBY_INTERVEHICLE_PORTAL),
             MAKE_ENTRY(GOBY_LIAISON),
             MAKE_ENTRY(GOBY_GPS),
             MAKE_ENTRY(GOBY_LOGGER),
@@ -262,6 +263,9 @@ void jaiabot::apps::Health::process_coroner_report(
                 process_to_not_responding_error_.find(boost::to_lower_copy(proc.main().name()));
             if (it != process_to_not_responding_error_.end())
             {
+                glog.is_warn() && glog << "App: " << proc.main().name()
+                                       << " is not reponding, Error Message: " << it->second
+                                       << std::endl;
                 last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                     ->add_error(it->second);
             }

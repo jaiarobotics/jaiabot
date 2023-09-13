@@ -3,7 +3,7 @@ import { Feature, Map } from "ol"
 import { Coordinate } from "ol/coordinate"
 import { LineString } from "ol/geom"
 import { fromLonLat } from "ol/proj"
-import { createMarker, createFlagMarker } from './Marker'
+import { createMarker, createFlagMarker, createGPSMarker } from './Marker'
 import { MissionPlan, TaskType, GeographicCoordinate } from './JAIAProtobuf';
 import { transformTranslate, point } from "@turf/turf"
 import { PortalBotStatus } from "./PortalStatus"
@@ -42,13 +42,14 @@ export function createMissionFeatures(
                 title: 'Goal ' + goalIndexStartAtOne, 
                 lon: location.lon, 
                 lat: location.lat,
-                style: Styles.goal(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
+                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
             }
         )
 
         markerFeature.setProperties({
             goal: goal, 
-            botId: bot?.bot_id, 
+            botId: bot?.bot_id,
+            runNumber: runNumber,
             goalIndex: goalIndexStartAtOne,
             location: location,
             canEdit: canEdit,
@@ -68,7 +69,7 @@ export function createMissionFeatures(
                 {
                     lon: location.lon, 
                     lat: location.lat,
-                    style: Styles.flag(goal, isSelected, runNumber, zIndex, canEdit)
+                    style: Styles.getFlagStyle(goal, isSelected, runNumber, zIndex, canEdit)
                 }
             )
             flagFeature.setProperties({

@@ -13,11 +13,11 @@ package jaiabot.protobuf;
 message Command
 {
     /*
-    Actual maximum size of message: 189 bytes / 1512 bits
+    Actual maximum size of message: 179 bytes / 1432 bits
         dccl.id head...........................8
         user head..............................0
-        body................................1498
-        padding to full byte...................6
+        body................................1422
+        padding to full byte...................2
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -324,7 +324,7 @@ message DriftPacket
     optional double significant_wave_height = 13 [(dccl.field) = {
         min: 0
         max: 50
-        precision: 1
+        precision: 3
         units: { derived_dimensions: "length" }
     }];
 

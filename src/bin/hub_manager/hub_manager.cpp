@@ -444,6 +444,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
             }
 
+            if (command.plan().has_speeds() && fragment_index == 0)
+            {
+                *command_fragment.mutable_plan()->mutable_speeds() = command.plan().speeds();
+            }
+
             if (command.plan().has_repeats() && fragment_index == 0)
             {
                 command_fragment.mutable_plan()->set_repeats(command.plan().repeats());

@@ -1,23 +1,18 @@
 import React from 'react'
 import Icon from '@mdi/react'
-import { PanelType } from './CommandControl';
-import { mdiClose } from '@mdi/js';
+import { mdiClose } from '@mdi/js'
+
+import { PanelType } from './CommandControl'
 import '../style/components/RunInfoPanel.css'
 
 interface Props {
     setVisiblePanel: (panelType: PanelType) => void,
     runNum: number,
     botId: number
-    canDeleteRun: boolean
     deleteRun: (runNum: number) => void
 }
 
 export default function RunInfoPanel(props: Props) {
-    let deleteButton = null
-    if (props.canDeleteRun) {
-        deleteButton = <button className="run-info-btn" onClick={() => handleDeleteRunClick()}>Delete Run</button>
-    }
-
     const handleDeleteRunClick = () => {
         props.deleteRun(props.runNum)
         props.setVisiblePanel(PanelType.NONE)
@@ -40,7 +35,7 @@ export default function RunInfoPanel(props: Props) {
                         <div className="run-info-label">Bot:</div>
                         <div className="run-info-input">{props.botId}</div>
                         <div className="run-info-line-break"></div>
-                        {deleteButton}
+                        <button className="run-info-btn" onClick={() => handleDeleteRunClick()}>Delete Run</button>
                     </div>
                 </div>
             </div>

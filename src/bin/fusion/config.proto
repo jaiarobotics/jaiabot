@@ -26,11 +26,16 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/imu.proto";
+import "dccl/option_extensions.proto";
 
 package jaiabot.config;
 
 message Fusion
 {
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
     // required parameters for connecting to 'gobyd'
@@ -59,7 +64,7 @@ message Fusion
     optional int32 total_imu_issue_checks = 35 [default = 4];
 
     // When to start detecting imu issues again after detecting one
-    optional int32 imu_detect_timeout = 36 [default = 13]; 
+    optional int32 imu_detect_timeout = 36 [default = 14]; 
 
     // Rate in milliseconds
     optional int32 bot_status_period_ms = 37 [default = 1000]; 
@@ -77,4 +82,17 @@ message Fusion
     // The period to check for a imu issue in seconds
     optional int32 imu_detect_period = 44 [default = 1]; 
 
+    // When the bots pitch is horizontal then we can start detecting imu issues again
+    optional int32 imu_issue_detect_horizontal_pitch_checks = 45 [default = 3];
+    
+    // The min amount of time to determine the bot is horizontal
+    optional double imu_issue_detect_horizontal_pitch_min_time = 46 
+        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+
+    // The angle at which we determine the bot to be horizontal
+    optional double imu_detect_horizontal_pitch = 47 [default = 45];
+
+    // The max diff between desired heading and current heading when
+    // detecting an imu issue
+    optional double imu_detect_desired_heading_vs_current_max_diff = 48 [default = 45];
 }

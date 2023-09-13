@@ -1,43 +1,42 @@
 import Stroke from 'ol/style/Stroke';
-import { Fill, Icon, Style, Text} from 'ol/style';
+import { Feature } from 'ol'
 import { LineString, Point } from 'ol/geom';
-import {Feature} from 'ol'
-import {Goal, DivePacket, TaskType} from './JAIAProtobuf'
+import { Fill, Icon, Style, Text} from 'ol/style';
+import { Goal, DivePacket, TaskType } from './JAIAProtobuf'
 import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
-// We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these
-// resource variables.
+// We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const arrowHead = require('./arrowHead.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
+const start = require('./start.svg') as string
 const end = require('./end.svg') as string
-const start = require('./start.svg')
 const botIcon = require('./bot.svg') as string
-const hub = require('./hub.svg') as string
+const hubIcon = require('./hub.svg') as string
+const rallyPoint = require('./rally.svg') as string
 const runFlag = require('./run-flag.svg') as string
 const botCourseOverGround = require('./botCourseOverGround.svg') as string
 const botDesiredHeading = require('./botDesiredHeading.svg') as string
 const taskDive = require('./taskDive.svg') as string
 const taskDrift = require('./taskDrift.svg') as string
-export const taskNone = require('./taskNone.svg') as string
 const taskStationKeep = require('./taskStationKeep.svg') as string
 const taskConstantHeading = require('./taskConstantHeading.svg') as string
 const satellite = require('./satellite.svg') as string
+export const taskNone = require('./taskNone.svg') as string
 
 // Export the PNG data for use in KMZ files
 export const arrowHeadPng = require('./arrowHead.png') as string
 export const bottomStrikePng = require('./bottomStrike.png') as string
-
 
 // Colors
 const defaultColor = 'white'
 const defaultPathColor = 'white'
 const activeGoalColor = 'chartreuse'
 const selectedColor = 'turquoise'
+const editColor = 'gold'
+const remoteControlledColor = 'mediumpurple'
 const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
-const remoteControlledColor = 'mediumpurple'
-const editColor = 'gold'
 
 export const startMarker = new Style({
     image: new Icon({
@@ -69,16 +68,16 @@ export function botMarker(feature: Feature): Style[] {
     }
 
     const botStatus = feature.get('bot') as PortalBotStatus
-    const heading = (botStatus.attitude?.heading ?? 0.0) * DEG
+    const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
 
     let color: string
 
-    if (botStatus.isDisconnected ?? false) {
+    if (botStatus?.isDisconnected ?? false) {
         color = disconnectedColor
-    } else if (isRemoteControlled(botStatus.mission_state)) {
+    } else if (isRemoteControlled(botStatus?.mission_state)) {
         color = remoteControlledColor
     } else if (feature.get('selected')) {
         color = selectedColor
@@ -86,7 +85,7 @@ export function botMarker(feature: Feature): Style[] {
         color = defaultColor
     }
 
-    const text = String(botStatus.bot_id ?? "")
+    const text = String(botStatus?.bot_id ?? "")
 
     var style = [ 
         // Bot body marker
@@ -131,7 +130,7 @@ export function hubMarker(feature: Feature): Style[] {
         // Hub body marker
         new Style({
             image: new Icon({
-                src: hub,
+                src: hubIcon,
                 color: color,
                 anchor: [0.5, 0.5],
                 rotateWithView: true
@@ -151,9 +150,8 @@ export function hubMarker(feature: Feature): Style[] {
     return style
 }
 
-export function courseOverGroundArrow(feature: Feature): Style {
-    const botStatus = feature.get('bot') as PortalBotStatus
-    const courseOverGround = (botStatus?.attitude?.course_over_ground ?? 0.0) * DEG
+export function courseOverGroundArrow(courseOverGround: number): Style {
+    const courseOverGroundDeg = courseOverGround * DEG
     const color = 'green'
 
     return new Style({
@@ -161,15 +159,14 @@ export function courseOverGroundArrow(feature: Feature): Style {
             src: botCourseOverGround,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: courseOverGround,
+            rotation: courseOverGroundDeg,
             rotateWithView: true
         })
     })
 }
 
-
-export function desiredHeadingArrow(feature: Feature): Style {
-    const desiredHeading = feature.get('desiredHeading') * DEG
+export function headingArrow(heading: number): Style {
+    const finalHeading = heading * DEG
     const color = 'green'
 
     return new Style({
@@ -177,14 +174,19 @@ export function desiredHeadingArrow(feature: Feature): Style {
             src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: desiredHeading,
+            rotation: finalHeading,
             rotateWithView: true
         })
     })
 }
 
+export function desiredHeadingArrow(feature: Feature): Style {
+    const desiredHeading = feature.get('desiredHeading') as number ?? 0.0
+    return headingArrow(desiredHeading)
+}
+
 // Markers for the mission goals
-export function goalSrc(taskType: TaskType | null) {
+function getGoalSrc(taskType: TaskType | null) {
     const srcMap: {[key: string]: string} = {
         'DIVE': taskDive,
         'STATION_KEEP': taskStationKeep,
@@ -196,11 +198,11 @@ export function goalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+export function createGoalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     if (!taskType) {
         taskType === TaskType.NONE
     }
-    const src = goalSrc(taskType)
+    const src = getGoalSrc(taskType)
     let nonActiveGoalColor: string
 
     if (canEdit) {
@@ -217,7 +219,7 @@ export function goalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSel
 }
 
 
-export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
+function createFlagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
@@ -229,7 +231,7 @@ export function flagIcon(taskType: TaskType | null, isSelected: boolean, runNumb
     })
 }
 
-export function gpsIcon() {
+function createGpsIcon() {
     return new Icon({
         src: satellite,
         color: driftArrowColor,
@@ -238,8 +240,15 @@ export function gpsIcon() {
     })
 }
 
-export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
-    let icon = goalIcon(goal.task?.type, isActive, isSelected, canEdit)
+function createRallyIcon() {
+    return new Icon({
+        src: rallyPoint,
+        scale: 0.35
+    })
+}
+
+export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+    let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
     return new Style({
         image: icon,
@@ -259,8 +268,8 @@ export function goal(goalIndex: number, goal: Goal, isActive: boolean, isSelecte
     })
 }
 
-export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
-    let icon = flagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
+export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
+    let icon = createFlagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
 
     return new Style({
@@ -279,22 +288,35 @@ export function flag(goal: Goal, isSelected: boolean, runNumber: string, zIndex:
     })
 }
 
-export function gps() {
+export function getGpsStyle() {
     return new Style({
-        image: gpsIcon(),
+        image: createGpsIcon(),
         zIndex: 104 // One higher than the bot's zIndex to prevent to the bot from covering the icon
     })
 }
 
-// Markers for dives
-export function divePacket(dive: DivePacket) {
+export function getRallyStyle(rallyFeatureCount: number) {
+    return new Style({
+        image: createRallyIcon(),
+        text: new Text({
+            text: rallyFeatureCount.toString(),
+            font: '12pt sans-serif',
+            fill: new Fill({
+                color: 'black'
+            }),
+            offsetY: 9,
+            offsetX: 0
+        }),
+    })
+}
 
+// Markers for dives
+export function divePacketIconStyle(feature: Feature, animationColor?: string) {
     // Depth text
-    var text = dive.depth_achieved?.toFixed(1)
+    let text = feature.get('depthAchieved') ? feature.get('depthAchieved').toFixed(1) : null
     if (text != null) {
         text = text + 'm'
-    }
-    else {
+    } else {
         text = ''
     }
 
@@ -304,7 +326,7 @@ export function divePacket(dive: DivePacket) {
     return new Style({
         image: new Icon({
             src: bottomStrike,
-            color: color
+            color: animationColor ? animationColor : color
         }),
         text: new Text({
             text: String(text),
@@ -313,8 +335,8 @@ export function divePacket(dive: DivePacket) {
                 color: 'white'
             }),
             stroke: new Stroke({
-                color: 'black', // Outline color
-                width: 3 // Outline width
+                color: 'black',
+                width: 3
             }),
             offsetY: 20
         })
@@ -423,8 +445,8 @@ export function missionPath(feature: Feature) {
     return styles
 }
 
-// The drift task linestring
-export function driftArrow(feature: Feature) {
+// Drift task linestring
+export function driftPacketIconStyle(feature: Feature, animationColor?: string) {
     const color = driftArrowColor
 
     const geometry = feature.getGeometry() as LineString
@@ -438,7 +460,7 @@ export function driftArrow(feature: Feature) {
         new Style({
             stroke: new Stroke({
                 width: 4,
-                color: color
+                color: animationColor ? animationColor : color
             })
         })
     ]
@@ -457,7 +479,7 @@ export function driftArrow(feature: Feature) {
                     anchor: [0, 0.5],
                     rotateWithView: true,
                     rotation: -rotation,
-                    color: color,
+                    color: animationColor ? animationColor : color
                 }),
                 zIndex: 1
             })

@@ -2,6 +2,7 @@
 from time import sleep
 import argparse
 import socket
+import traceback
 import logging
 from math import *
 from orientation import Orientation
@@ -15,10 +16,10 @@ from google.protobuf import text_format
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO055 sensor, and publish them over UDP port')
 parser.add_argument('port', metavar='port', type=int, help='port to publish orientation data')
-parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
-parser.add_argument('-s', dest='simulator', action='store_true')
-parser.add_argument('-i', dest='interactive', action='store_true')
-parser.add_argument('-f', dest='frequency', default=10, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations')
+parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
+parser.add_argument('-s', dest='simulator', action='store_true', help='Simulate the IMU, instead of using a physical one')
+parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
+parser.add_argument('-f', dest='frequency', default=4, type=float, help='Frequency (Hz) to sample the IMU for wave height calculations (default=4)')
 args = parser.parse_args()
 
 logging.warning(args)
@@ -54,14 +55,17 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
             if command.type == IMUCommand.TAKE_READING:
                 imuData = imu.getIMUData()
 
-                if wave_analyzer._sampling_for_wave_height:
-                    imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+                if imuData is None:
+                    log.warning('getIMUData returned None')
+                else:
+                    if wave_analyzer._sampling_for_wave_height:
+                        imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
 
-                if wave_analyzer._sampling_for_bottom_characterization:
-                    imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
+                    if wave_analyzer._sampling_for_bottom_characterization:
+                        imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
 
-                log.debug(imuData)
-                sock.sendto(imuData.SerializeToString(), addr)
+                    log.debug(imuData)
+                    sock.sendto(imuData.SerializeToString(), addr)
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
             elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
@@ -72,11 +76,12 @@ def do_port_loop(imu: IMU, wave_analyzer: Analyzer):
                 wave_analyzer.stopSamplingForBottomCharacterization()
 
         except Exception as e:
-            log.warning(e)
+            traceback.print_exc()
 
 
 def do_interactive_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(5)
     sock.bind(('', 0)) # Port zero picks an available port
 
     destinationAddress = ('localhost', args.port)
@@ -120,17 +125,17 @@ def do_interactive_loop():
         print()
 
         if imuCommand.type == IMUCommand.TAKE_READING:
-            # Wait for reading to come back...
-            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
             try:
+                # Wait for reading to come back...
+                data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
                 # Deserialize the message
                 imuData = IMUData()
                 imuData.ParseFromString(data)
                 print(f'RECEIVED:\n{imuData}')
                 print()
             except Exception as e:
-                print(e)
+                traceback.print_exc()
 
 
 if __name__ == '__main__':
