@@ -21,6 +21,7 @@ interface Props {
     title?: string
     task?: MissionTask
     location?: GeographicCoordinate
+    isEditMode?: boolean
     onChange?: (task?: MissionTask) => void
 }
 
@@ -159,19 +160,19 @@ function TaskOptionsPanel(props: Props) {
                         <tbody>
                             <tr className="task-param-container">
                                 <td className="task-label">Max Depth</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} />m</td>
+                                <td className="input-row"><input type="number" step="0.1" min="0" max="60" className="NumberInput" name="max_depth" defaultValue={dive.max_depth} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Depth Interval</td>
-                                <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} />m</td>
+                                <td className="input-row"><input type="number" step="0.1" min="0.1" max="60" className="NumberInput" name="depth_interval" defaultValue={dive.depth_interval} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />m</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Hold Time</td>
-                                <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} />s</td>
+                                <td className="input-row dive-time"><input type="number" step="1" min="0" max="3600" className="NumberInput" name="hold_time" defaultValue={dive.hold_time} onChange={onChangeDiveParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Drift Time</td>
-                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
+                                <td className="input-row dive-time"><input type="number" step="10" min="0" max="3600" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
                         </tbody>
                     </table>
@@ -186,7 +187,7 @@ function TaskOptionsPanel(props: Props) {
                         <tbody>
                             <tr className="task-param-container">
                                 <td className="task-label">Drift Time</td>
-                                <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} />s</td>
+                                <td className="input-row drift-time"><input type="number" step="1" className="NumberInput" name="drift_time" defaultValue={surface_drift.drift_time} onChange={onChangeDriftParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
                         </tbody>
                     </table>
@@ -202,7 +203,7 @@ function TaskOptionsPanel(props: Props) {
             const clickingMapClass = clickingMap ? " clicking-map" : ""
 
             // Select on Map button is only present if a location is passed via Props
-            const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked}>Select on Map</button> : null
+            const selectOnMapButton = (props.location != null) ? <button className={"select-on-map" + clickingMapClass} onClick={selectOnMapClicked} disabled={!props?.isEditMode}>Select on Map</button> : null
     
             return (
                 <div id="ConstantHeadingDiv">
@@ -211,15 +212,15 @@ function TaskOptionsPanel(props: Props) {
                         <tbody>
                             <tr className="task-param-container">
                                 <td className="task-label">Heading</td>
-                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={onChangeConstantHeadingParameter} />deg</td>
+                                <td className="input-row"><input type="number" step="1" className="NumberInput" name="constant_heading" value={constant_heading.constant_heading.toFixed(0)} onChange={onChangeConstantHeadingParameter} disabled={!props?.isEditMode} />deg</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Time</td>
-                                <td className="input-row constant-heading-time"><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={onChangeConstantHeadingParameter} />s</td>
+                                <td className="input-row constant-heading-time"><input type="number" step="1" className="NumberInput" name="constant_heading_time" value={constant_heading.constant_heading_time.toFixed(0)} onChange={onChangeConstantHeadingParameter} disabled={!props?.isEditMode} />s</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Speed</td>
-                                <td className="input-row constant-heading-speed"><input type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={onChangeConstantHeadingParameter} />m/s</td>
+                                <td className="input-row constant-heading-speed"><input type="number" min="1" max="3" step="1" className="NumberInput" name="constant_heading_speed" value={constant_heading.constant_heading_speed.toFixed(0)} onChange={onChangeConstantHeadingParameter} disabled={!props?.isEditMode} />m/s</td>
                             </tr>
                             <tr className="task-param-container">
                                 <td className="task-label">Distance</td>
@@ -270,7 +271,7 @@ export function TaskSettingsPanel(props: Props) {
     }
 
     return (
-        <FormControl sx={{ minWidth: 120 }} size="small">
+        <FormControl sx={{ minWidth: 120 }} size="small" disabled={!props?.isEditMode}>
             <Select onChange={(evt) => onChangeTaskType(evt)} value={props.task?.type ?? "NONE"}>
                 <MenuItem value={"NONE"}>None</MenuItem>
                 <MenuItem value={"DIVE"}>Dive</MenuItem>
