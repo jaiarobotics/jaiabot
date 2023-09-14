@@ -1585,7 +1585,7 @@ export default class CommandControl extends React.Component {
 			const isDivePacket = feature.get('type') === 'dive'
 			if (isDivePacket) {
 				if (this.state.selectedTaskPacketFeature) {
-					this.unselectTaskPacket()
+					this.unselectAllTaskPackets()
 				}
 				
 				const startTime = new Date(feature.get('startTime') / 1000)
@@ -1600,7 +1600,7 @@ export default class CommandControl extends React.Component {
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
 
-				this.setTaskPacketInterval(feature)
+				this.setTaskPacketInterval(feature, 'dive')
 
 				this.setState({
 					taskPacketType: feature.get('type'),
@@ -1613,7 +1613,7 @@ export default class CommandControl extends React.Component {
 			const isDriftPacket = feature.get('type') === 'drift'
 			if (isDriftPacket) {
 				if (this.state.selectedTaskPacketFeature) {
-					this.unselectTaskPacket()
+					this.unselectAllTaskPackets()
 				}
 
 				const startTime = new Date(feature.get('startTime') / 1000)
@@ -1629,7 +1629,7 @@ export default class CommandControl extends React.Component {
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
 
-				this.setTaskPacketInterval(feature)
+				this.setTaskPacketInterval(feature, 'drfit')
 
 				this.setState({
 					taskPacketType: feature.get('type'),
@@ -1785,23 +1785,28 @@ export default class CommandControl extends React.Component {
 		feature.set('animated', !feature.get('animated'))
 	}
 
-	unselectTaskPacket() {
-		const features = taskData.taskPacketInfoLayer.getSource().getFeatures()
+	unselectTaskPacket(type: string) {
+		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
 		for (const feature of features) {
 			if (feature.get('selected')) {
 				feature.set('selected', false)
 				// Reset style
-				const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
-				feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+				const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+				feature.setStyle(styleFunction(feature, type === 'dive' ? 'white' : 'darkorange'))
 			}
 		}
 		clearInterval(this.state.taskPacketIntervalId)
 		this.setState({ selectedTaskPacketFeature: null })
 	}
 
-	setTaskPacketInterval(selectedFeature: Feature) {
-		const taskPacketFeatures = taskData.taskPacketInfoLayer.getSource().getFeatures()
-		const styleFunction = selectedFeature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
+	unselectAllTaskPackets() {
+		this.unselectTaskPacket('dive')
+		this.unselectTaskPacket('drift')
+	}
+
+	setTaskPacketInterval(selectedFeature: Feature, type: string) {
+		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
 				selectedFeature.set('selected', true)
@@ -2388,7 +2393,7 @@ export default class CommandControl extends React.Component {
 		}
 		// Clean up in case a task packet was selected and the user clicked to open a different panel
 		if (panelType !== 'TASK_PACKET') {
-			this.unselectTaskPacket()
+			this.unselectAllTaskPackets()
 		}
 
 		this.setState({ visiblePanel: panelType })
