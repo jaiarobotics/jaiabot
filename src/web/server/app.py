@@ -4,6 +4,21 @@ import argparse
 from flask import Flask, send_from_directory, Response, request
 import json
 import logging
+from datetime import *
+
+def parseDate(dateString: str):
+    if dateString is None:
+        return None
+    
+    try:
+        return datetime.strptime(dateString, '%Y-%m-%dT%H:%M:%S')
+    except:
+        try:
+            return datetime.strptime(dateString, '%Y-%m-%d')
+        except:
+            logging.warning(f'Could not parse dateString: {dateString}')
+            return None
+    
 
 # Internal Imports
 import jaia
@@ -53,7 +68,10 @@ def getStatus():
 
 @app.route('/jaia/task-packets', methods=['GET'])
 def getPackets():
-    return JSONResponse(jaia_interface.get_task_packets())
+    startDate = parseDate(request.args.get('startDate', None))
+    endDate = parseDate(request.args.get('endDate', None))
+
+    return JSONResponse(jaia_interface.get_task_packets(startDate=startDate, endDate=endDate))
 
 @app.route('/jaia/metadata', methods=['GET'])
 def getMetadata():
