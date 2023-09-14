@@ -15,7 +15,6 @@ enum LatLon {
 }
 
 interface Props {
-    key: string // When this changes, React will create a new component
     botId: number
     goalIndex: number
     goal: Goal
@@ -172,7 +171,8 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     render() {
-        const { botId, goalIndex, goal } = this.props
+        const { goal, goalIndex, botId } = this.props
+        const isEditMode = this.props.runList.runIdInEditMode === `run-${this.props.runNumber}`
 
         this.updatePanelVisibility()
 
@@ -182,7 +182,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label wpt-label">Wpt:</div>
                     <div className="goal-settings-wpt-input-container">
                         <div className="goal-settings-input wpt-input">{goalIndex}</div>
-                        <div className="goal-settings-delete-wpt-container button-jcc" onClick={() => this.deleteWaypoint()}>
+                        <div className={`goal-settings-delete-wpt-container button-jcc ${!isEditMode ? 'goal-settings-hide' : ''}`} onClick={() => this.deleteWaypoint()}>
                             <Icon path={mdiDelete} title='Delete Waypoint'/>
                         </div>
                     </div>
@@ -190,7 +190,7 @@ export class GoalSettingsPanel extends React.Component {
                     <div className="goal-settings-label">Bot:</div>
                     <div className="goal-settings-input">{botId}</div>
                     <div className="goal-settings-line-break"></div>
-                    <div className="goal-settings-move-container">
+                    <div className={`goal-settings-move-container ${!isEditMode ? 'goal-settings-hide' : ''}`}>
                         <div className="goal-settings-label move-label">Tap To Move</div>
                         <WptToggle 
                             checked={() => this.isChecked()}
@@ -199,17 +199,18 @@ export class GoalSettingsPanel extends React.Component {
                             title='Click on map to move goal'
                         />
                     </div>
-                    <div className="goal-settings-line-break"></div>
+                    <div className={`goal-settings-line-break ${!isEditMode ? 'goal-settings-hide' : ''}`}></div>
                     <div className="goal-settings-label coord-label">Lat:</div>
-                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LAT)} onChange={(e) => this.handleCoordChange(e, LatLon.LAT)} />
+                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LAT)} onChange={(e) => this.handleCoordChange(e, LatLon.LAT)} disabled={!isEditMode} />
                     <div className="goal-settings-label coord-label">Lon:</div>
-                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LON)} onChange={(e) => this.handleCoordChange(e, LatLon.LON)} />
+                    <input className="goal-settings-input coord-input" value={this.getCoordValue(LatLon.LON)} onChange={(e) => this.handleCoordChange(e, LatLon.LON)} disabled={!isEditMode} />
                     <div className="goal-settings-line-break"></div>
                     <div className="goal-settings-label task-label">Task:</div>
                     <TaskSettingsPanel 
                         task={goal?.task}
                         map={this.props.map}
                         location={goal?.location}
+                        isEditMode={isEditMode}
                         onChange={task => {
                             goal.task = task
                             this.props.onChange?.()
@@ -217,9 +218,9 @@ export class GoalSettingsPanel extends React.Component {
                     />
                     <div className="goal-settings-line-break"></div>
                 </div>
-                <div className="goal-settings-button-container">
-                        <button className="goal-settings-btn" onClick={this.cancelClicked.bind(this)}>Cancel</button>
-                        <button className="goal-settings-btn" onClick={this.doneClicked.bind(this)}>Done</button>
+                <div className={`goal-settings-button-container ${!isEditMode ? 'goal-settings-single-button-container' : ''}`}>
+                        <button className={`goal-settings-btn ${!isEditMode ? 'goal-settings-hide' : ''}`} onClick={this.cancelClicked.bind(this)}>Cancel</button>
+                        <button className={`goal-settings-btn ${!isEditMode ? 'goal-settings-single-btn' : ''}`} onClick={this.doneClicked.bind(this)}>{!isEditMode ? 'Close' : 'Done'}</button>
                 </div>
             </div>
         )
