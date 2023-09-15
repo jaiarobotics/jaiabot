@@ -41,6 +41,7 @@ export class LoadMissionPanel extends React.Component {
 
         // Mission rows
         let missionNames = this.props.missionLibrary.missionNames()
+
         let missionNameRows = missionNames.map((name) => {
 
             var rowClasses = "LoadMissionPanel row hoverable"
@@ -81,7 +82,7 @@ export class LoadMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
-    loadClicked() {
+    loadClicked() { 
         if (this.props.areBotsAssignedToRuns() && !confirm('Loading a new mission will delete all runs in the mission. If the current mission is saved, select OK')) {
             return 
         }
