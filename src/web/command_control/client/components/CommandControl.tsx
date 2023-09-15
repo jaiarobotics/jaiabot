@@ -1191,7 +1191,7 @@ export default class CommandControl extends React.Component {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		this.deleteAllRunsInMission(runList, true);
-		for (let run in mission.runs) {
+		for (let run in mission?.runs) {
 			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
 
