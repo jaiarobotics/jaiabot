@@ -11,13 +11,10 @@ def parseDate(dateString: str):
         return None
     
     try:
-        return datetime.strptime(dateString, '%Y-%m-%dT%H:%M:%S')
+        return datetime.fromisoformat(dateString.replace('Z', '+00:00'))
     except:
-        try:
-            return datetime.strptime(dateString, '%Y-%m-%d')
-        except:
-            logging.warning(f'Could not parse dateString: {dateString}')
-            return None
+        logging.warning(f'Could not parse dateString: {dateString}')
+        return None
     
 
 # Internal Imports
@@ -68,8 +65,8 @@ def getStatus():
 
 @app.route('/jaia/task-packets', methods=['GET'])
 def getPackets():
-    startDate = parseDate(request.args.get('startDate', None))
-    endDate = parseDate(request.args.get('endDate', None))
+    startDate = parseDate(request.args.get('startDate', None)) or datetime.now() - timedelta(days=1)
+    endDate = parseDate(request.args.get('endDate', None)) or datetime.now()
 
     return JSONResponse(jaia_interface.get_task_packets(startDate=startDate, endDate=endDate))
 

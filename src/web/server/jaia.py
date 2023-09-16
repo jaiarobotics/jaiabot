@@ -145,7 +145,7 @@ class Interface:
 
 
             if msg.HasField('task_packet'):
-                logging.warn('Task packet received')
+                logging.info('Task packet received')
                 packet = msg.task_packet
                 self.process_task_packet(packet)
 
@@ -454,6 +454,6 @@ class Interface:
             self.offloaded_task_packets.extend(taskPackets)
 
         self.offloaded_task_packets = filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
-        self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: taskPacket['start_time'])
+        self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))
 
         self.offloaded_task_packet_dates = [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
