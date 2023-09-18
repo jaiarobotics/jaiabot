@@ -6,6 +6,7 @@ import { jaiaAPI } from "../../common/JaiaAPI"
 
 // Open Layer Imports
 import VectorSource from 'ol/source/Vector'
+import ClusterSource from 'ol/source/Cluster'
 import Collection from "ol/Collection"
 import Feature from "ol/Feature"
 import { Map } from "ol"
@@ -36,13 +37,19 @@ export class TaskData {
         visible: false,
       })
 
+    taskPacketInfoSource = new VectorSource()
+
     taskPacketInfoLayer = new VectorLayer({
         properties: {
             title: 'Task Packets',
         },
         zIndex: 1001,
         opacity: 1,
-        source: new VectorSource(),
+        source: new ClusterSource({
+            distance: 50,
+            minDistance: 25,
+            source: this.taskPacketInfoSource
+        }),
         visible: false
     })
 
@@ -188,8 +195,8 @@ export class TaskData {
             const taskPacketLayer = taskData.taskPacketInfoLayer
             const taskPacketFeatures = taskPackets.map((taskPacket, index) => createTaskPacketFeatures(this.map, taskPacket, taskPacketLayer, index)).flat()
 
-            this.taskPacketInfoLayer.getSource().clear()
-            this.taskPacketInfoLayer.getSource().addFeatures(taskPacketFeatures)
+            this.taskPacketInfoSource.clear()
+            this.taskPacketInfoSource.addFeatures(taskPacketFeatures)
         })
     }
 
