@@ -7,6 +7,7 @@ import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const arrowHead = require('./arrowHead.svg') as string
+const driftMapIcon = require('./driftMapIcon.svg') as string
 const bottomStrike = require('./bottomStrike.svg') as string
 const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const start = require('./start.svg') as string
@@ -446,45 +447,36 @@ export function missionPath(feature: Feature) {
 }
 
 // Drift task linestring
-export function driftPacketIconStyle(feature: Feature, animationColor?: string) {
-    const color = driftArrowColor
+export function driftPacketIconStyle(feature: Feature) {
+    const geometry = feature.getGeometry() as Point
+    const drift = feature.get('drift') as DriftTask
+    // const text = `${drift.estimated_drift.speed.toFixed(1)} m/s`
+    // const text = `${drift.estimated_drift.heading.toFixed(1)} deg`
 
-    const geometry = feature.getGeometry() as LineString
-    const styles = [
-        new Style({
-            stroke: new Stroke({
-                width: 6,
-                color: 'black'
-            })
+    const colorMap = [ 'green', 'yellow', 'orange', 'red' ]
+    const colorIndex = Math.min(Math.floor((drift.estimated_drift.speed ?? 0.0) / 0.5), colorMap.length)
+    var color = colorMap[colorIndex]
+
+    return new Style({
+        image: new Icon({
+            src: driftMapIcon,
+            anchor: [0.5, 0.5],
+            rotateWithView: true,
+            rotation: (drift.estimated_drift.heading - 90) * DEG,
+            color: color
         }),
-        new Style({
-            stroke: new Stroke({
-                width: 4,
-                color: animationColor ? animationColor : color
-            })
-        })
-    ]
-
-    geometry.forEachSegment(function (start, end) {
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
-        const rotation = Math.atan2(dy, dx);
-
-        // arrows
-        styles.push(
-            new Style({
-                geometry: new Point(end),
-                image: new Icon({
-                    src: arrowHead,
-                    anchor: [0, 0.5],
-                    rotateWithView: true,
-                    rotation: -rotation,
-                    color: animationColor ? animationColor : color
-                }),
-                zIndex: 1
-            })
-        );
-    });
-
-    return styles
+        // text: new Text({
+        //     text: String(text),
+        //     font: '14pt sans-serif',
+        //     fill: new Fill({
+        //         color: 'white'
+        //     }),
+        //     stroke: new Stroke({
+        //         color: 'black',
+        //         width: 3
+        //     }),
+        //     offsetY: 20
+        // }),
+        zIndex: 1
+    })
 }

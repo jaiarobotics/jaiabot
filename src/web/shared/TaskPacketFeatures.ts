@@ -4,13 +4,14 @@ import { createMarker } from './Marker'
 
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
-import { Geometry, LineString } from 'ol/geom'
+import { Geometry, Point } from 'ol/geom'
 import { fromLonLat } from 'ol/proj.js'
 import { Feature } from 'ol'
 import { Map } from 'ol'
 
 import * as Styles from "./Styles"
 import { addPopupHTML } from './Popup'
+import { destination } from '@turf/turf'
 
 interface TaskPacketCalcResults {
     dive_location?: GeographicCoordinate;
@@ -27,9 +28,10 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
     const projection = map.getView().getProjection()
     const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
     const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
-    const coordinates = [start, end]
-    const feature = new Feature({geometry: new LineString(coordinates)})
+    const middle = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2]
+    const feature = new Feature({geometry: new Point(middle)})
     feature.setProperties({
+        'drift': drift,
         'type': 'drift',
         'id': Math.random(),
         'duration': drift.drift_duration, // (s)
@@ -72,12 +74,12 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     return feature
 }
 
-export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, taskPacketLayer: VectorLayer<VectorSource<Geometry>>, index: number) {
+export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, destinationSource: VectorSource<Geometry>, index: number) {
     const features: any[] = []
     let selectedFeature = null
 
     // Add the selected feature to the features[]
-    const currentFeatures = taskPacketLayer.getSource().getFeatures()
+    const currentFeatures = destinationSource.getFeatures()
     for (const feature of currentFeatures) {
         if (feature.get('selected')) {
             selectedFeature = feature

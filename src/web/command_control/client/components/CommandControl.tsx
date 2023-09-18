@@ -1790,7 +1790,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	unselectTaskPacket() {
-		const features = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		const features = taskData.layer.getSource().getFeatures()
 		for (const feature of features) {
 			if (feature.get('selected')) {
 				feature.set('selected', false)
@@ -1804,7 +1804,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	setTaskPacketInterval(selectedFeature: Feature) {
-		const taskPacketFeatures = taskData.taskPacketInfoLayer.getSource().getFeatures()
+		const taskPacketFeatures = taskData.layer.getSource().getFeatures()
 		const styleFunction = selectedFeature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
