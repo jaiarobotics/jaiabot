@@ -1,6 +1,6 @@
 // Jaia Imports
+import { getDivePacketFeature, getDriftPacketFeature } from './shared/TaskPacketFeatures'
 import { geoJSONToDepthContourFeatures } from "./shared/Contours"
-import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { jaiaAPI } from "../../common/JaiaAPI"
 
@@ -42,79 +42,110 @@ export class TaskData {
         visible: false,
       })
 
-    source: VectorSource
-    clusterSource: ClusterSource
-    layer: VectorLayer<VectorSource>
+    diveSource: VectorSource
+    driftSource: VectorSource
+
+    divePacketLayer: VectorLayer<VectorSource>
+    drfitPacketLayer: VectorLayer<VectorSource>
 
     constructor() {
-        this.source = new VectorSource()
+        this.diveSource = new VectorSource()
+        this.driftSource = new VectorSource()
 
-        this.clusterSource = new ClusterSource({
-            distance: 30,
-            minDistance: 15,
-            source: this.source,
-            geometryFunction: (feature: Feature<Geometry>) => {
-                const geometry = feature.getGeometry()
+        function clusterIconStyle(feature: Feature) {
+            const subFeatures = feature.get('features') as Feature[]
+            const size = subFeatures.length as number
 
-                if (geometry instanceof Point) {
-                    return geometry
-                }
-
-                if (geometry instanceof LineString) {
-                    return new Point(geometry.getFirstCoordinate())
-                }
-
-                return null
+            if (size == 1) {
+                // Only one feature, so just return its style
+                return subFeatures[0].getStyle() as Style
             }
-        })
 
-        const styleCache: {[key: number]: Style} = {}
+            // Otherwise return the cluster icon
+            let style = styleCache[size];
+            if (!style) {
+              style = new Style({
+                image: new CircleStyle({
+                  radius: 15,
+                  stroke: new Stroke({
+                    color: 'black',
+                    width: 2,
+                  }),
+                  fill: new Fill({
+                    color: 'lightgray',
+                  }),
+                }),
+                text: new TextStyle({
+                  text: size.toString(),
+                  fill: new Fill({
+                    color: 'black',
+                  }),
+                  font: '18px Arial, sans-serif'
+                }),
+              });
+              styleCache[size] = style;
+            }
+            return style;
 
-        this.layer = new VectorLayer({
+        }
+
+        this.divePacketLayer = new VectorLayer({
             properties: {
-                title: 'Task Packets',
+                title: 'Dive Packets',
             },
             zIndex: 1001,
             opacity: 1,
-            source: this.clusterSource,
-            visible: true,
-            style: function (feature) {
-                const subFeatures = feature.get('features') as Feature[]
-                const size = subFeatures.length as number
-
-                if (size == 1) {
-                    // Only one feature, so just return its style
-                    return subFeatures[0].getStyle() as Style
+            source: new ClusterSource({
+                distance: 30,
+                minDistance: 15,
+                source: this.diveSource,
+                geometryFunction: (feature: Feature<Geometry>) => {
+                    const geometry = feature.getGeometry()
+    
+                    if (geometry instanceof Point) {
+                        return geometry
+                    }
+    
+                    if (geometry instanceof LineString) {
+                        return new Point(geometry.getFirstCoordinate())
+                    }
+    
+                    return null
                 }
-
-                // Otherwise return the cluster icon
-                let style = styleCache[size];
-                if (!style) {
-                  style = new Style({
-                    image: new CircleStyle({
-                      radius: 15,
-                      stroke: new Stroke({
-                        color: 'black',
-                        width: 2,
-                      }),
-                      fill: new Fill({
-                        color: 'lightgray',
-                      }),
-                    }),
-                    text: new TextStyle({
-                      text: size.toString(),
-                      fill: new Fill({
-                        color: 'black',
-                      }),
-                      font: '18px Arial, sans-serif'
-                    }),
-                  });
-                  styleCache[size] = style;
-                }
-                return style;
-
-              },
+            }),
+            style: clusterIconStyle,
+            visible: false
         })
+    
+        this.drfitPacketLayer = new VectorLayer({
+            properties: {
+                title: 'Drift Packets',
+            },
+            zIndex: 1001,
+            opacity: 1,
+            source: new ClusterSource({
+                distance: 30,
+                minDistance: 15,
+                source: this.driftSource,
+                geometryFunction: (feature: Feature<Geometry>) => {
+                    const geometry = feature.getGeometry()
+    
+                    if (geometry instanceof Point) {
+                        return geometry
+                    }
+    
+                    if (geometry instanceof LineString) {
+                        return new Point(geometry.getFirstCoordinate())
+                    }
+    
+                    return null
+                }
+            }),
+            style: clusterIconStyle,
+            visible: false
+        })
+    
+        const styleCache: {[key: number]: Style} = {}
 
     }
 
@@ -135,7 +166,7 @@ export class TaskData {
           features[i] = new Feature(new Point(coordinates));
         }
 
-        this.source.addFeatures(features)
+        this.diveSource.addFeatures(features)
     }
 
     calculateDiveDrift(taskPacket: TaskPacket) {
@@ -270,28 +301,61 @@ export class TaskData {
             console.error(error)
         }).then((taskPackets: TaskPacket[]) => {
 
-            if (this.source.getFeatures().length > 0) {
-                return
-            }
-
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
 
                 if (taskPackets.length >= 3) {
                     this._updateContourPlot()
                 }
-
             }
 
-            const taskPacketFeatures = taskPackets.map((taskPacket, index) => createTaskPacketFeatures(this.map, taskPacket, self.source, index)).flat()
+            const divePacketLayer = this.divePacketLayer
+            const driftPacketLayer = this.drfitPacketLayer
 
-            this.source.clear()
-            this.source.addFeatures(taskPacketFeatures)
+            const divePacketFeatures = []
+            const driftPacketFeatures = []
+
+            for (const taskPacket of taskPackets) {
+                if (taskPacket?.dive) {
+                    // Dive packets include both dive and drift data
+                    const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer)
+                    const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
+
+                    if (diveFeature) {
+                        divePacketFeatures.push(diveFeature)
+                    }
+
+                    if (driftFeature) {
+                        driftPacketFeatures.push(driftFeature)
+                    }
+                } else if (taskPacket?.drift) {
+                    const feature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
+
+                    if (feature) {
+                        driftPacketFeatures.push(feature)
+                    }
+                }
+            }
+            
+
+            this.diveSource.clear()
+            this.diveSource.addFeatures(divePacketFeatures)
+
+            this.driftSource.clear()
+            this.driftSource.addFeatures(driftPacketFeatures)
         })
     }
 
     getContourLayer() {
         return this.contourLayer
+    }
+
+    getDiveLayer() {
+        return this.divePacketLayer
+    }
+
+    getDriftLayer() {
+        return this.drfitPacketLayer
     }
 }
 

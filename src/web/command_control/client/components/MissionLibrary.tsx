@@ -4,7 +4,7 @@ import { MissionInterface } from './CommandControl';
 
 const savedMissionsKey = "savedMissions"
 
-const savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
+let savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
 
 export class MissionLibraryLocalStorage {
     static missionLibraryLocalStorage: MissionLibraryLocalStorage
@@ -20,21 +20,40 @@ export class MissionLibraryLocalStorage {
     }
 
     missionNames() {
-        let savedMissionNames = Object.keys(savedMissions). sort()
-        return savedMissionNames
+        // Check to see if we have saved missions
+        if (savedMissions) {
+            let savedMissionNames = Object?.keys(savedMissions).sort()
+            return savedMissionNames
+        }
+
+        return []
     }
 
     hasMission(name: string) {
-        return (name in savedMissions)
+        if (savedMissions) {
+            return (name in savedMissions)
+        }
+
+        return
     }
 
     loadMission(key: string) {
-        return savedMissions[key]
+        savedMissions = LoadMissions<RunLibrary>(savedMissionsKey)
+
+        if (savedMissions) {
+            return savedMissions[key]
+        }
+
+        return
     }
 
     saveMission(key: string, mission: MissionInterface) {
-        if (key == null) {
+        if (!key) {
             return
+        }
+
+        if (!savedMissions) {
+            savedMissions = {}
         }
 
         savedMissions[key] = JSON.parse(JSON.stringify(mission))

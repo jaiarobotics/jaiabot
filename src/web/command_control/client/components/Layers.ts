@@ -105,7 +105,8 @@ export class Layers {
         },
         layers: [
             taskData.getContourLayer(),
-            taskData.layer
+            taskData.getDiveLayer(),
+            taskData.getDriftLayer()
         ]
     })
 

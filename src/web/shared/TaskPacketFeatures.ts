@@ -1,5 +1,4 @@
-import { DivePacket, DriftPacket, TaskPacket } from './JAIAProtobuf'
-import { GeographicCoordinate } from './JAIAProtobuf'
+import { TaskPacket } from './JAIAProtobuf'
 import { createMarker } from './Marker'
 
 import VectorLayer from 'ol/layer/Vector'
@@ -10,13 +9,29 @@ import { Feature } from 'ol'
 import { Map } from 'ol'
 
 import * as Styles from "./Styles"
-import { addPopupHTML } from './Popup'
-import { destination } from '@turf/turf'
 
-interface TaskPacketCalcResults {
-    dive_location?: GeographicCoordinate;
-    driftSpeed: number;
-    driftDirection: number;
+export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
+    const dive = task_packet.dive
+    if (!dive) {
+        return null
+    }
+
+    const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
+    feature.setProperties({
+        'type': 'dive',
+        'id': Math.random(),
+        'depthAchieved': dive.depth_achieved, // (m)
+        'diveRate': dive.dive_rate, // (m/s)
+        'bottomDive': dive.bottom_dive,
+        'botId': task_packet.bot_id,
+        'startTime': task_packet.start_time,
+        'endTime': task_packet.end_time,
+        'startLocation': dive.start_location,
+        'selected': false,
+        'animated': false
+    })
+    feature.setStyle(Styles.divePacketIconStyle(feature))
+    return feature
 }
 
 export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
@@ -50,49 +65,26 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
     return feature
 }
 
-export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
-    const dive = task_packet.dive
-    if (!dive) {
-        return null
-    }
-
-    const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
-    feature.setProperties({
-        'type': 'dive',
-        'id': Math.random(),
-        'depthAchieved': dive.depth_achieved, // (m)
-        'diveRate': dive.dive_rate, // (m/s)
-        'bottomDive': dive.bottom_dive,
-        'botId': task_packet.bot_id,
-        'startTime': task_packet.start_time,
-        'endTime': task_packet.end_time,
-        'startLocation': dive.start_location,
-        'selected': false,
-        'animated': false
-    })
-    feature.setStyle(Styles.divePacketIconStyle(feature))
-    return feature
-}
-
-export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, destinationSource: VectorSource<Geometry>, index: number) {
-    const features: any[] = []
-    let selectedFeature = null
-
-    // Add the selected feature to the features[]
-    const currentFeatures = destinationSource.getFeatures()
-    for (const feature of currentFeatures) {
-        if (feature.get('selected')) {
-            selectedFeature = feature
-            // Index used to prevent duplicate feature from being added to layer (OpenLayers throws error for duplicate features)
-            if (index === 0) {
-                features.push(feature)
-            }
+export function getDivePacketFeature(map: Map, taskPacket: TaskPacket, divePacketLayer: VectorLayer<VectorSource<Geometry>>) {
+    if (taskPacket?.dive != undefined) {
+        const dive = taskPacket.dive
+        if (
+            dive?.bottom_dive != undefined &&
+            dive?.start_location != undefined &&
+            dive?.start_location?.lat != undefined &&
+            dive?.start_location?.lon != undefined &&
+            dive?.depth_achieved != 0
+        ) {
+            const selectedFeature = getSelectedFeature(divePacketLayer)
+            const newFeature = createDivePacketFeature(map, taskPacket)
+            return compareFeatures(selectedFeature, newFeature)
         }
     }
+}
 
+export function getDriftPacketFeature(map: Map, taskPacket: TaskPacket, driftPacketLayer: VectorLayer<VectorSource<Geometry>>) {
     if (taskPacket?.drift != undefined) {
         const drift = taskPacket.drift
-
         if (
             drift?.drift_duration != undefined &&
             drift?.drift_duration != 0 &&
@@ -104,38 +96,25 @@ export function createTaskPacketFeatures(map: Map, taskPacket: TaskPacket, desti
             drift?.end_location?.lon != undefined
 
         ) {
-            if (
-                selectedFeature?.get('startTime') === taskPacket?.start_time &&
-                selectedFeature?.get('startLocation')?.lat === drift.start_location.lat &&
-                selectedFeature?.get('startLocation')?.lon === drift.start_location.lon
-            ) {
-                // Drfit feature is the selected feature...adding it again would disrupt the flashing animation
-            } else {
-                features.push(createDriftPacketFeature(map, taskPacket))
-            }
+            const selectedFeature = getSelectedFeature(driftPacketLayer)
+            const newFeature = createDriftPacketFeature(map, taskPacket)
+            return compareFeatures(selectedFeature, newFeature)
         }
     }
+}
 
-    if (taskPacket?.dive != undefined) {
-        const dive = taskPacket.dive
-
-        if (
-            dive?.bottom_dive != undefined &&
-            dive?.start_location != undefined &&
-            dive?.start_location?.lat != undefined &&
-            dive?.start_location?.lon != undefined &&
-            dive?.depth_achieved != 0
-        ) {
-            if (
-                selectedFeature?.get('startTime') === taskPacket?.start_time &&
-                selectedFeature?.get('startLocation')?.lat === dive.start_location.lat &&
-                selectedFeature?.get('startLocation')?.lon === dive.start_location.lon
-            ) {
-                // Dive feature is the selected feature...adding it again would disrupt the flashing animation
-            } else {
-                features.push(createDivePacketFeature(map, taskPacket))
-            }
+function getSelectedFeature(layer: VectorLayer<VectorSource<Geometry>>) {
+    const currentFeatures = layer.getSource().getFeatures()
+    for (const feature of currentFeatures) {
+        if (feature.get('selected')) {
+            return feature
         }
+    }  
+}
+
+function compareFeatures(selectedFeature: Feature<Geometry>, newFeature: Feature<Geometry>) {
+    if (selectedFeature?.get('botId') === newFeature.get('botId') && selectedFeature?.get('startTime') === newFeature.get('startTime')) {
+        return selectedFeature
     }
-    return features
+    return newFeature
 }
