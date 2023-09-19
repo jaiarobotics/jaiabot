@@ -3,11 +3,11 @@ import { createMarker } from './Marker'
 
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
-import { Geometry, LineString } from 'ol/geom'
-import { fromLonLat } from 'ol/proj.js'
+import { Geometry } from 'ol/geom'
 import { Feature } from 'ol'
 import { Map } from 'ol'
 
+import * as turf from '@turf/turf'
 import * as Styles from "./Styles"
 
 export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
@@ -40,11 +40,11 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         return null
     }
 
-    const projection = map.getView().getProjection()
-    const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
-    const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
-    const coordinates = [start, end]
-    const feature = new Feature({geometry: new LineString(coordinates)})
+    const start = turf.point([drift.start_location.lon, drift.start_location.lat])
+    const end = turf.point([drift.end_location.lon, drift.end_location.lat])
+    const midpoint = turf.midpoint(start, end).geometry.coordinates
+
+    const feature = createMarker(map, {title: 'drift', lon: midpoint[0], lat: midpoint[1]})
     feature.setProperties({
         'type': 'drift',
         'id': Math.random(),
@@ -59,7 +59,8 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         'selected': false,
         'animated': false
     })
-    feature.setStyle(Styles.driftPacketIconStyle(feature))
+    const style = Styles.driftPacketIconStyle(feature)
+    feature.setStyle(style)
 
     return feature
 }
