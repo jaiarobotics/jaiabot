@@ -350,13 +350,14 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
 
     const defaultSrc = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
     const animatedSrc = require(`./drift-arrows/drift-arrow-animated-${binNumber}.svg`)
-    let src = animatedColor === 'white' ? animatedSrc : defaultSrc
+    let src = animatedColor === 'black' ? animatedSrc : defaultSrc
     
     return new Style({
         image: new Icon({
             src: src,
-            rotation: feature.get('driftDirection') * DEG * -1, // Radians to degrees with (-1) adjustment becasue OpenLayers rotates in reverse direction of standard trig calculations
+            rotation: feature.get('driftDirection') * DEG,
             rotateWithView: true,
+            scale: 0.9
         }),
     })
 }

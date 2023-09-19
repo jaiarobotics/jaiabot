@@ -1782,9 +1782,9 @@ export default class CommandControl extends React.Component {
 		const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 
 		if (feature.get('animated')) {
-			feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'black'))
+			feature.setStyle(styleFunction(feature, 'white'))
 		} else {
-			feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'black' : 'white'))
+			feature.setStyle(styleFunction(feature, 'black'))
 		}
 		feature.set('animated', !feature.get('animated'))
 	}
@@ -1796,7 +1796,7 @@ export default class CommandControl extends React.Component {
 				feature.set('selected', false)
 				// Reset style
 				const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
-				feature.setStyle(styleFunction(feature, type === 'dive' ? 'white' : 'black'))
+				feature.setStyle(styleFunction(feature, 'white'))
 			}
 		}
 		clearInterval(this.state.taskPacketIntervalId)
@@ -1814,7 +1814,7 @@ export default class CommandControl extends React.Component {
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
 				selectedFeature.set('selected', true)
-				selectedFeature.setStyle(styleFunction(selectedFeature, type === 'dive' ? 'black' : 'white'))
+				selectedFeature.setStyle(styleFunction(selectedFeature, 'black'))
 				selectedFeature.set('animated', !selectedFeature.get('animated'))
 				// Start interval that sets the style
 				const taskPacketIntervalId = setInterval(() => {
