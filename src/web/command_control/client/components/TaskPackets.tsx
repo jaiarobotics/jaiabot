@@ -339,9 +339,9 @@ export class TaskData {
             
 
             this.diveSource.clear()
-            this.diveSource.addFeatures(divePacketFeatures)
-
             this.driftSource.clear()
+
+            this.diveSource.addFeatures(divePacketFeatures)
             this.driftSource.addFeatures(driftPacketFeatures)
         })
     }

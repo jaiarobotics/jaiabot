@@ -8,7 +8,9 @@ import { fromLonLat } from 'ol/proj.js'
 import { Feature } from 'ol'
 import { Map } from 'ol'
 
+import * as turf from '@turf/turf'
 import * as Styles from "./Styles"
+import { getMapCoordinate } from './Utilities'
 
 export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     const dive = task_packet.dive
@@ -16,7 +18,7 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
         return null
     }
 
-    const feature = createMarker(map, {title: 'dive', lon: dive.start_location.lon, lat: dive.start_location.lat})
+    const feature = createMarker(map, {title: 'dive', lon: dive?.start_location?.lon ?? 0, lat: dive?.start_location?.lat ?? 0})
     feature.setProperties({
         'type': 'dive',
         'id': Math.random(),
@@ -36,31 +38,37 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
 
 export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
     const drift = task_packet.drift
-    if (!drift) {
+
+    const lon = drift?.start_location?.lon
+    const lat = drift?.start_location?.lat
+
+    if (lon == null || lat == null) {
         return null
     }
 
     const projection = map.getView().getProjection()
-    const start = fromLonLat([drift.start_location.lon, drift.start_location.lat], projection)
-    const end = fromLonLat([drift.end_location.lon, drift.end_location.lat], projection)
-    const middle = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2]
-    const feature = new Feature({geometry: new Point(middle)})
+    const start = turf.point([lon, lat])
+    const end = turf.point([lon, lat])
+    const midpoint = turf.midpoint(start, end).geometry.coordinates
+
+    const feature = new Feature({geometry: new Point(fromLonLat(midpoint, projection))})
     feature.setProperties({
         'drift': drift,
         'type': 'drift',
         'id': Math.random(),
-        'duration': drift.drift_duration, // (s)
-        'speed': drift.estimated_drift?.speed, // (m/s)
-        'driftDirection': drift.estimated_drift?.heading,
-        'sigWaveHeight': drift.significant_wave_height,
+        'duration': drift?.drift_duration, // (s)
+        'speed': drift?.estimated_drift?.speed, // (m/s)
+        'driftDirection': drift?.estimated_drift?.heading,
+        'sigWaveHeight': drift?.significant_wave_height,
         'botId': task_packet.bot_id,
         'startTime': task_packet.start_time,
         'endTime': task_packet.end_time,
-        'startLocation': drift.start_location,
+        'startLocation': drift?.start_location,
         'selected': false,
         'animated': false
     })
-    feature.setStyle(Styles.driftPacketIconStyle(feature))
+    const style = Styles.driftPacketIconStyle(feature)
+    feature.setStyle(style)
 
     return feature
 }
@@ -104,16 +112,17 @@ export function getDriftPacketFeature(map: Map, taskPacket: TaskPacket, driftPac
 }
 
 function getSelectedFeature(layer: VectorLayer<VectorSource<Geometry>>) {
-    const currentFeatures = layer.getSource().getFeatures()
+    const currentFeatures = layer.getSource()?.getFeatures() ?? []
     for (const feature of currentFeatures) {
         if (feature.get('selected')) {
             return feature
         }
-    }  
+    }
+    return null
 }
 
-function compareFeatures(selectedFeature: Feature<Geometry>, newFeature: Feature<Geometry>) {
-    if (selectedFeature?.get('botId') === newFeature.get('botId') && selectedFeature?.get('startTime') === newFeature.get('startTime')) {
+function compareFeatures(selectedFeature: Feature<Geometry> | null, newFeature: Feature<Geometry> | null) {
+    if (selectedFeature?.get('botId') === newFeature?.get('botId') && selectedFeature?.get('startTime') === newFeature?.get('startTime')) {
         return selectedFeature
     }
     return newFeature
