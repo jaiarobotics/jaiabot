@@ -41,7 +41,7 @@ jaiabot_health <(../../gen/bot.py jaiabot_health)
 jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
 
 # IMU sensor
-${jaia_share_dir}/jaiabot/python/adafruit_BNO055/jaiabot_imu.py `../../gen/bot.py jaiabot_imu.py`
+[kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/adafruit_BNO055/jaiabot_imu.py `../../gen/bot.py jaiabot_imu.py`
 jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
 
 # Salinity sensor

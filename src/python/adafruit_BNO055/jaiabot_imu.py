@@ -141,7 +141,7 @@ def do_interactive_loop():
 if __name__ == '__main__':
     # Setup the sensor
     if args.simulator:
-        imu = Simulator(wave_frequency=0.5, wave_height=1)
+        imu = Simulator(wave_frequency=0.5, wave_height=0.1)
     else:
         imu = Adafruit()
 
