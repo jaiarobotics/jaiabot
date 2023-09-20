@@ -76,8 +76,8 @@ class Interface:
 
             # Get PortalToClientMessage
             try:
-                # 1 MB (1000000 bytes)
-                data = self.sock.recv(1000000)
+                # 1 KB (1000 bytes)
+                data = self.sock.recv(1000)
                 self.process_portal_to_client_message(data)
 
             except socket.timeout:
