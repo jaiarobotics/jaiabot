@@ -54,9 +54,12 @@ class IMU:
             return None
 
         imu_data = IMUData()
-        imu_data.euler_angles.heading = reading.orientation.heading
-        imu_data.euler_angles.pitch = reading.orientation.pitch
-        imu_data.euler_angles.roll = reading.orientation.roll
+        if reading.orientation.heading is not None:
+            imu_data.euler_angles.heading = reading.orientation.heading
+        if reading.orientation.pitch is not None:
+            imu_data.euler_angles.pitch = reading.orientation.pitch
+        if reading.orientation.roll is not None:
+            imu_data.euler_angles.roll = reading.orientation.roll
 
         imu_data.linear_acceleration.x = reading.linear_acceleration.x
         imu_data.linear_acceleration.y = reading.linear_acceleration.y
@@ -162,9 +165,10 @@ class Simulator(IMU):
         linear_acceleration = Vector3(0, 0, a_z)
 
         quaternion = Quaternion(1, 0, 0, 0)
+        orientation = Orientation(None, None, None) # Return None because we don't want to interfere with the jaiabot simulator app, which will use MOOS to generate these
         linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-        return IMUReading(orientation=quaternion.to_euler_angles(), 
+        return IMUReading(orientation=orientation, 
                         linear_acceleration=linear_acceleration,
                         linear_acceleration_world=linear_acceleration_world,
                         gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered
