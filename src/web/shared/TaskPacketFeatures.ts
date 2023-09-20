@@ -10,7 +10,6 @@ import { Map } from 'ol'
 
 import * as turf from '@turf/turf'
 import * as Styles from "./Styles"
-import { getMapCoordinate } from './Utilities'
 
 export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     const dive = task_packet.dive
@@ -111,9 +110,10 @@ export function getDriftPacketFeature(map: Map, taskPacket: TaskPacket, driftPac
     }
 }
 
-function getSelectedFeature(layer: VectorLayer<VectorSource<Geometry>>) {
-    const currentFeatures = layer.getSource()?.getFeatures() ?? []
-    for (const feature of currentFeatures) {
+function getSelectedFeature(collectionLayer: VectorLayer<VectorSource<Geometry>>) {
+    const currentFeatures = collectionLayer.getSource()?.getFeatures() ?? []
+    for (const featuresArray of currentFeatures) {
+        const feature = featuresArray.get('features')[0]
         if (feature.get('selected')) {
             return feature
         }
