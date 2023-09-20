@@ -1191,7 +1191,7 @@ export default class CommandControl extends React.Component {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
 		this.deleteAllRunsInMission(runList, true);
-		for (let run in mission.runs) {
+		for (let run in mission?.runs) {
 			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
 		}
 
@@ -1782,7 +1782,7 @@ export default class CommandControl extends React.Component {
 		const styleFunction = feature.get('type') === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 
 		if (feature.get('animated')) {
-			feature.setStyle(styleFunction(feature, feature.get('type') === 'dive' ? 'white' : 'darkorange'))
+			feature.setStyle(styleFunction(feature, 'white'))
 		} else {
 			feature.setStyle(styleFunction(feature, 'black'))
 		}
@@ -1796,7 +1796,7 @@ export default class CommandControl extends React.Component {
 				feature.set('selected', false)
 				// Reset style
 				const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
-				feature.setStyle(styleFunction(feature, type === 'dive' ? 'white' : 'darkorange'))
+				feature.setStyle(styleFunction(feature, 'white'))
 			}
 		}
 		clearInterval(this.state.taskPacketIntervalId)
