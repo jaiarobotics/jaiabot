@@ -454,12 +454,11 @@ def get_active_goals(log_filenames):
 
 TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
 
-def get_task_packets_json(log_filenames):
+def get_task_packet_dicts(log_filenames: List[str], scheme=1):
 
     # Open all our logs
     log_files = [h5py.File(log_name) for log_name in log_filenames]
 
-    # A dictionary mapping bot_id to an array of mission dictionaries
     results = []
 
     for log_file in log_files:
@@ -476,11 +475,14 @@ def get_task_packets_json(log_filenames):
 
                 results += task_packets
 
+    if scheme is not None:
+        results = list(filter(lambda object: object['_scheme_']==scheme, results))
+
     return results
 
 
-def get_task_packets(log_filenames) -> Iterable[TaskPacket]:
-    return [TaskPacket.from_dict(task_packet_json) for task_packet_json in get_task_packets_json(log_filenames)]
+def get_task_packets(log_filenames, scheme=1) -> Iterable[TaskPacket]:
+    return [TaskPacket.from_dict(task_packet_json) for task_packet_json in get_task_packet_dicts(log_filenames, scheme)]
 
 
 def generate_kmz(h5_filename: str, kmz_filename: str):

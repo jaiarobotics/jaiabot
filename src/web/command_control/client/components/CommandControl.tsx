@@ -55,6 +55,7 @@ import { getLength as OlGetLength } from 'ol/sphere'
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
+import {boundingExtent} from 'ol/extent.js';
 
 // TurfJS
 import * as turf from '@turf/turf'
@@ -1515,7 +1516,10 @@ export default class CommandControl extends React.Component {
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
 			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
-			if (!(editModeExemptions.includes(feature?.get('type')))) {
+			const isCollection = feature.get('features')
+			if (editModeExemptions.includes(feature?.get('type')) || isCollection) {
+				// Operator is free to click on this feature while Edit Mode is off
+			} else {
 				const runList = this.state.runList
 				const isInEditMode = `run-${feature?.get('runNumber') }` === runList.runIdInEditMode
 				if (!isInEditMode) {
@@ -1586,59 +1590,73 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on dive task packet
-			const isDivePacket = feature.get('type') === 'dive'
+			const isDivePacket = isCollection && isCollection.length === 1 && feature.get('features')[0].get('type') === 'dive'
 			if (isDivePacket) {
 				if (this.state.selectedTaskPacketFeature) {
 					this.unselectAllTaskPackets()
 				}
-				
-				const startTime = new Date(feature.get('startTime') / 1000)
-				const endTime = new Date(feature.get('endTime') / 1000)
+
+				const diveFeature = feature.get('features')[0]				
+				const startTime = new Date(diveFeature.get('startTime') / 1000)
+				const endTime = new Date(diveFeature.get('endTime') / 1000)
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
-					bot_id: {value: feature.get('botId'), units: ''},
-					depth_achieved: {value: feature.get('depthAchieved'), units: 'm'},
-					dive_rate: {value: feature.get('diveRate'), units: 'm/s'},
-					bottom_dive: {value: feature.get('bottomDive') ? 'Yes': 'No', units: ''},
+					bot_id: {value: diveFeature.get('botId'), units: ''},
+					depth_achieved: {value: diveFeature.get('depthAchieved'), units: 'm'},
+					dive_rate: {value: diveFeature.get('diveRate'), units: 'm/s'},
+					bottom_dive: {value: diveFeature.get('bottomDive') ? 'Yes': 'No', units: ''},
 					start_time: {value: startTime.toLocaleString(), units: ''},
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
 
-				this.setTaskPacketInterval(feature, 'dive')
+				this.setTaskPacketInterval(diveFeature, 'dive')
 
 				this.setState({
-					taskPacketType: feature.get('type'),
+					taskPacketType: diveFeature.get('type'),
 					taskPacketData: taskPacketData
 				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
 				return
 			}
 
 			// Clicked on drift task packet
-			const isDriftPacket = feature.get('type') === 'drift'
+			const isDriftPacket = isCollection && isCollection.length === 1 && feature.get('features')[0].get('type') === 'drift'
 			if (isDriftPacket) {
 				if (this.state.selectedTaskPacketFeature) {
 					this.unselectAllTaskPackets()
 				}
 
-				const startTime = new Date(feature.get('startTime') / 1000)
-				const endTime = new Date(feature.get('endTime') / 1000)
+				const driftFeature = feature.get('features')[0]				
+				const startTime = new Date(driftFeature.get('startTime') / 1000)
+				const endTime = new Date(driftFeature.get('endTime') / 1000)
 				const taskPacketData = {
 					// Snake case used for string parsing in task packet panel
-					bot_id: {value: feature.get('botId'), units: ''},
-					duration: {value: feature.get('duration'), units: 's'},
-					speed: {value: feature.get('speed'), units: 'm/s'},
-					drift_direction: {value: feature.get('driftDirection'), units: 'deg'},
-					sig_wave_height_beta: {value: feature.get('sigWaveHeight'), units: 'm'},
+					bot_id: {value: driftFeature.get('botId'), units: ''},
+					duration: {value: driftFeature.get('duration'), units: 's'},
+					speed: {value: driftFeature.get('speed'), units: 'm/s'},
+					drift_direction: {value: driftFeature.get('driftDirection'), units: 'deg'},
+					sig_wave_height_beta: {value: driftFeature.get('sigWaveHeight'), units: 'm'},
 					start_time: {value: startTime.toLocaleString(), units: ''},
 					end_time: {value: endTime.toLocaleString(), units: ''}
 				}
 
-				this.setTaskPacketInterval(feature, 'drfit')
+				this.setTaskPacketInterval(driftFeature, 'drfit')
 
 				this.setState({
-					taskPacketType: feature.get('type'),
+					taskPacketType: driftFeature.get('type'),
 					taskPacketData: taskPacketData
 				}, () => this.setVisiblePanel(PanelType.TASK_PACKET))
+				return
+			}
+
+			// Clicked on cluster
+			if (isCollection  && isCollection.length > 1 ) {
+				const extent = boundingExtent(
+					isCollection.map((r: any) => r?.getGeometry()?.getCoordinates())
+				  );
+				if (extent) {
+					map.getView().fit(extent, {duration: 1000, padding: [50, 50, 50, 50]});
+				}
+				
 				return
 			}
 		}
@@ -1795,7 +1813,8 @@ export default class CommandControl extends React.Component {
 
 	unselectTaskPacket(type: string) {
 		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
-		for (const feature of features) {
+		for (const featuresArray of features) {
+			const feature = featuresArray.get('features')[0]
 			if (feature.get('selected')) {
 				feature.set('selected', false)
 				// Reset style
@@ -1816,7 +1835,7 @@ export default class CommandControl extends React.Component {
 		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
 		const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
-			if (taskPacketFeature.get('id') === selectedFeature.get('id')) {
+			if (taskPacketFeature.get('features')[0].get('id') === selectedFeature.get('id')) {
 				selectedFeature.set('selected', true)
 				selectedFeature.setStyle(styleFunction(selectedFeature, 'black'))
 				selectedFeature.set('animated', !selectedFeature.get('animated'))
