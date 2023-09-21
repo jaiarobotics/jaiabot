@@ -7,6 +7,7 @@ declare -a ProcessArray=(
     goby_liaison_jaiabot
     goby_moos_gateway
     goby_opencpn_interface
+    goby_intervehicle_portal
     jaiabot_bluerobotics_pressure_sensor_driver
     jaiabot_engineering
     jaiabot_fusion

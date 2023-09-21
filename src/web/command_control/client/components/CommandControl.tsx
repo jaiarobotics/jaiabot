@@ -55,6 +55,7 @@ import { getLength as OlGetLength } from 'ol/sphere'
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
+import {boundingExtent} from 'ol/extent.js';
 
 // TurfJS
 import * as turf from '@turf/turf'
@@ -1588,7 +1589,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on dive task packet
-			const isDivePacket = isCollection && feature.get('features')[0].get('type') === 'dive'
+			const isDivePacket = isCollection && isCollection.length === 1 && feature.get('features')[0].get('type') === 'dive'
 			if (isDivePacket) {
 				if (this.state.selectedTaskPacketFeature) {
 					this.unselectAllTaskPackets()
@@ -1617,7 +1618,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on drift task packet
-			const isDriftPacket = isCollection && feature.get('features')[0].get('type') === 'drift'
+			const isDriftPacket = isCollection && isCollection.length === 1 && feature.get('features')[0].get('type') === 'drift'
 			if (isDriftPacket) {
 				if (this.state.selectedTaskPacketFeature) {
 					this.unselectAllTaskPackets()
@@ -1646,8 +1647,15 @@ export default class CommandControl extends React.Component {
 				return
 			}
 
-			if (isCollection) {
-				// Modify the contents of this conditional for handling cluster icon clicks
+			// Clicked on cluster
+			if (isCollection  && isCollection.length > 1 ) {
+				const extent = boundingExtent(
+					isCollection.map((r: any) => r?.getGeometry()?.getCoordinates())
+				  );
+				if (extent) {
+					map.getView().fit(extent, {duration: 1000, padding: [50, 50, 50, 50]});
+				}
+				
 				return
 			}
 		}

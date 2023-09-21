@@ -69,6 +69,18 @@ class Interface:
     # Data from taskpacket files
     offloaded_task_packet_dates: List[str] = []
     offloaded_task_packets: List[Dict] = []
+    offloaded_task_packet_files_prev = -1
+    offloaded_task_packet_files_curr = 0
+
+    merge_task_packet_list = []
+
+    # Set the initial time for checking for task packet files
+    start_task_packet_check_time = now()
+
+    # Time between checking for task packet files (10 Seconds)
+    task_packet_check_interval = 10_000_000
+
+    check_for_offloaded_task_packets = False
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -97,6 +109,13 @@ class Interface:
                 # 1 MB (1000000 bytes)
                 data = self.sock.recv(1000000)
                 self.process_portal_to_client_message(data)
+
+                # Check if the desired time interval has passed
+                if now() - self.start_task_packet_check_time >= self.task_packet_check_interval:
+                    self.load_taskpacket_files()
+                    
+                    # Reset the start time
+                    self.start_task_packet_check_time = now()
 
             except socket.timeout:
                 self.ping_portal()
@@ -425,7 +444,19 @@ class Interface:
         else:
             endIndex = len(self.offloaded_task_packets)
 
-        return self.offloaded_task_packets[startIndex: endIndex] + self.received_task_packets
+        # Only attempt to merge after we check for more taskpacket files
+        if self.check_for_offloaded_task_packets:
+            for offloaded_task_packet in self.offloaded_task_packets[startIndex: endIndex]:
+                # Get the start_time from the offloaded task packet in seconds
+                offloaded_start_time = round(int(offloaded_task_packet.get('start_time')), -6)  
+
+                # Check if an item with the same start_time in seconds exists in merged_list
+                if not any(round(int(item.get('start_time')), -6) == offloaded_start_time for item in self.received_task_packets):
+                    # If no matching start_time found in merged_list, add the offloaded task packet
+                    self.received_task_packets.append(offloaded_task_packet)
+
+        self.check_for_offloaded_task_packets = False
+        return self.received_task_packets
 
     # Contour map
 
@@ -444,6 +475,14 @@ class Interface:
 
     def load_taskpacket_files(self):
         taskPacketWindow = timedelta(days=1)
+
+        self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
+
+        if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
+            self.check_for_offloaded_task_packets = True
+            self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
+        else:
+            self.check_for_offloaded_task_packets = False
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
