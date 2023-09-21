@@ -223,7 +223,6 @@ li::marker {
     background-color: #000000ee;
     width: 100%;
     height: 40pt;
-    position: absolute;
     bottom: 0pt;
     user-select: none;
 }
@@ -235,7 +234,7 @@ li::marker {
 .TimeSliderBack {
     background-color: slategray;
     height: 10pt;
-    position: absolute;
+    position: relative;
     top: 0pt;
     left: 0pt;
     right: 0pt;
@@ -266,12 +265,6 @@ li::marker {
 .dataTable>table {
     width: 100%;
     padding: 10pt;
-}
-
-th {
-    background-color: lightskyblue;
-    margin: 5pt;
-    text-align: left;
 }
 
 td.dataKey {
@@ -336,4 +329,10 @@ div#layerSwitcher {
 
     top: 50pt;
     left: 0pt;
+}
+
+div.popup > table > tbody > tr > th {
+    text-align: left;
+    padding-right: 10px;
+    font-weight: bold;
 }

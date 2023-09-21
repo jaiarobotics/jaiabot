@@ -31,9 +31,13 @@
 }
 
 .goal-settings-delete-wpt-container {
-  height: 30px;
-  width: 30px;
   justify-self: center;
+}
+
+.goal-settings-delete-wpt-container.button-jcc {
+  margin: 0 !important;
+  width: 42px !important;
+  height: 42px !important;
 }
 
 .goal-settings-delete-wpt-container:hover {
@@ -52,7 +56,7 @@
 }
 
 .goal-settings-label.wpt-label {
-  margin-top: 6px;
+  align-self: center;
 }
 
 .goal-settings-label.task-label {
@@ -94,6 +98,10 @@
   padding: 12px 24px;
 }
 
+.goal-settings-button-container.goal-settings-single-button-container {
+  justify-content: center;
+}
+
 .goal-settings-btn {
   all: unset;
   background-color: #D1D5DB;
@@ -107,6 +115,11 @@
   cursor: pointer;
 }
 
+.goal-settings-btn.goal-settings-single-btn {
+  width: 100%;
+  text-align: center;
+}
+
 .goal-settings-line-break {
   grid-column: 1 / 3;
   height: 1px;
@@ -115,6 +128,10 @@
 
 .goal-settings.line-break-final {
   height: 0;
+}
+
+.goal-settings-hide {
+  display: none !important;
 }
 
 .MuiFormControl-root > .MuiInputBase-root {

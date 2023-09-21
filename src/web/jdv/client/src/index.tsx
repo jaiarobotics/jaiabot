@@ -141,12 +141,12 @@ class LogApp extends React.Component {
 
                 <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
                 
                 <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
-                  KML
+                  KMZ
                 </button>
 
                 <button className="mapButton" onClick={() => {this.toggleMeasureResult()}}>
@@ -168,7 +168,9 @@ class LogApp extends React.Component {
 
             </div>
 
-            <TimeSlider 
+          </div>
+          
+          <TimeSlider 
               t={this.state.t} 
               tMin={this.state.tMin} 
               tMax={this.state.tMax} 
@@ -176,10 +178,8 @@ class LogApp extends React.Component {
                 this.map.updateToTimestamp(t)
                 this.setState({t: t })
               }}
-            ></TimeSlider>
+          ></TimeSlider>
 
-          </div>
-          
           { log_selector }
 
         </div>
@@ -229,8 +229,8 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        LogApi.get_map(this.state.chosenLogs).then((seriesArray) => {
-          this.map.setSeriesArray(seriesArray)
+        LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+          this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 

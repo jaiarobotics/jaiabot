@@ -895,6 +895,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                     initial_fragment.plan().recovery();
             }
 
+            if (initial_fragment.plan().has_speeds())
+            {
+                *out_command.mutable_plan()->mutable_speeds() = initial_fragment.plan().speeds();
+            }
+
             if (initial_fragment.plan().has_repeats())
             {
                 out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());

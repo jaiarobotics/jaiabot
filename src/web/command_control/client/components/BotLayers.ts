@@ -14,9 +14,11 @@ import { createGPSMarker } from "./shared/Marker"
 export class BotLayers {
     layers: {[key: number]: VectorLayer<VectorSource>} = {}
     map: Map
+	zIndex: number
 
     constructor(map: Map) {
         this.map = map
+		this.zIndex = 3000
     }
 
     getBotLayer(bot_id: number) {
@@ -73,6 +75,7 @@ export class BotLayers {
 				botFeature.setGeometry(new Point(getMapCoordinate(bot.location, this.map)))
 			}
 			
+			botFeature.set('type', 'bot')
 			botFeature.set('bot', bot)
 			botFeature.setStyle(Styles.botMarker)
 
@@ -81,13 +84,13 @@ export class BotLayers {
 			botFeature.set('controlled', false);
 
 			if (isRemoteControlled(bot.mission_state)) {
-				botLayer.setZIndex(103);
+				botLayer.setZIndex(this.zIndex + 3);
 			} else if (botFeature.get('selected')) {
-				botLayer.setZIndex(102);
+				botLayer.setZIndex(this.zIndex + 2);
 			} else if (botFeature.get('tracked')) {
-				botLayer.setZIndex(101);
+				botLayer.setZIndex(this.zIndex + 1);
 			} else {
-				botLayer.setZIndex(100);
+				botLayer.setZIndex(this.zIndex);
 			}
 
 			if (bot?.mission_state.includes('REACQUIRE_GPS')) {

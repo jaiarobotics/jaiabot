@@ -1,15 +1,21 @@
+import glob
+import json
+import bisect
 import socket
 import threading
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
-from jaiabot.messages.jaia_dccl_pb2 import Command, BotStatus, CommandForHub
+from jaiabot.messages.jaia_dccl_pb2 import *
 from jaiabot.messages.hub_pb2 import HubStatus
 
 import google.protobuf.json_format
 
 from time import sleep
-import datetime
+from pathlib import *
+from pprint import *
+from typing import *
+from datetime import *
 from math import *
 import contours
 
@@ -17,11 +23,15 @@ import logging
 
 
 def now():
-    return int(datetime.datetime.now().timestamp() * 1e6)
+    return int(datetime.now().timestamp() * 1e6)
 
 
 def utcnow():
-    return int(datetime.datetime.utcnow().timestamp() * 1e6)
+    return int(datetime.utcnow().timestamp() * 1e6)
+
+def utime(d: datetime):
+    '''Returns the utime for a datetime object'''
+    return int(d.timestamp() * 1e6)
 
 
 def floatFrom(obj):
@@ -46,13 +56,31 @@ class Interface:
     bots_engineering = {}
 
     # List of all TaskPackets received, with last known location of that bot
-    task_packets = []
+    received_task_packets = []
 
     # ClientId that is currently in control
     controllingClientId = None
 
     # MetaData
     metadata = {}
+
+    # Path to taskpacket files
+    taskPacketPath = '/var/log/jaiabot/bot_offload/'
+    # Data from taskpacket files
+    offloaded_task_packet_dates: List[str] = []
+    offloaded_task_packets: List[Dict] = []
+    offloaded_task_packet_files_prev = -1
+    offloaded_task_packet_files_curr = 0
+
+    merge_task_packet_list = []
+
+    # Set the initial time for checking for task packet files
+    start_task_packet_check_time = now()
+
+    # Time between checking for task packet files (10 Seconds)
+    task_packet_check_interval = 10_000_000
+
+    check_for_offloaded_task_packets = False
 
     def __init__(self, goby_host=('optiplex', 40000), read_only=False):
         self.goby_host = goby_host
@@ -62,6 +90,8 @@ class Interface:
         self.read_only = read_only
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
+
+        self.load_taskpacket_files()
 
         # Messages to display on the client end
         self.messages = {}
@@ -79,6 +109,13 @@ class Interface:
                 # 1 MB (1000000 bytes)
                 data = self.sock.recv(1000000)
                 self.process_portal_to_client_message(data)
+
+                # Check if the desired time interval has passed
+                if now() - self.start_task_packet_check_time >= self.task_packet_check_interval:
+                    self.load_taskpacket_files()
+                    
+                    # Reset the start time
+                    self.start_task_packet_check_time = now()
 
             except socket.timeout:
                 self.ping_portal()
@@ -127,7 +164,7 @@ class Interface:
 
 
             if msg.HasField('task_packet'):
-                logging.warn('Task packet received')
+                logging.info('Task packet received')
                 packet = msg.task_packet
                 self.process_task_packet(packet)
 
@@ -384,7 +421,7 @@ class Interface:
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
-        self.task_packets.append(task_packet)
+        self.received_task_packets.append(task_packet)
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -393,14 +430,38 @@ class Interface:
         except IndexError:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
-    def get_task_packets(self):
-        return self.task_packets
+    def get_task_packets(self, startDate: datetime=None, endDate: datetime=None):
+        # Get stored task packets within date range
+        if startDate is not None:
+            start_utime = utime(startDate)
+            startIndex = bisect.bisect_left(self.offloaded_task_packet_dates, start_utime)
+        else:
+            startIndex = 0
+
+        if endDate is not None:
+            end_utime = utime(endDate)
+            endIndex = bisect.bisect_right(self.offloaded_task_packet_dates, end_utime)
+        else:
+            endIndex = len(self.offloaded_task_packets)
+
+        # Only attempt to merge after we check for more taskpacket files
+        if self.check_for_offloaded_task_packets:
+            for offloaded_task_packet in self.offloaded_task_packets[startIndex: endIndex]:
+                # Get the start_time from the offloaded task packet in seconds
+                offloaded_start_time = round(int(offloaded_task_packet.get('start_time')), -6)  
+
+                # Check if an item with the same start_time in seconds exists in merged_list
+                if not any(round(int(item.get('start_time')), -6) == offloaded_start_time for item in self.received_task_packets):
+                    # If no matching start_time found in merged_list, add the offloaded task packet
+                    self.received_task_packets.append(offloaded_task_packet)
+
+        self.check_for_offloaded_task_packets = False
+        return self.received_task_packets
 
     # Contour map
 
     def get_depth_contours(self):
-
-        return contours.taskPacketsToContours(self.task_packets)
+        return contours.taskPacketsToContours(self.get_task_packets())
 
     # Controlling clientId
 
@@ -412,3 +473,24 @@ class Interface:
     def get_Metadata(self):
         return self.metadata
 
+    def load_taskpacket_files(self):
+        taskPacketWindow = timedelta(days=1)
+
+        self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
+
+        if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
+            self.check_for_offloaded_task_packets = True
+            self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
+
+        for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
+            filePath = Path(filePath)
+            stem = filePath.stem
+            dateString = stem[-15:]
+
+            taskPackets: List[Dict] = [json.loads(line) for line in open(filePath)]
+            self.offloaded_task_packets.extend(taskPackets)
+
+        self.offloaded_task_packets = filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
+        self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))
+
+        self.offloaded_task_packet_dates = [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]

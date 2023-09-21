@@ -2,6 +2,8 @@ import { Feature, Map } from "ol"
 import { Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
 import * as Styles from "./Styles"
+import { addPopupHTML } from "./Popup"
+import { BotStatusRate, BotStatus } from "./JAIAProtobuf"
 
 
 interface Properties {
@@ -27,6 +29,28 @@ export function createBotFeature(properties: Properties) {
     return feature
 }
 
+export function botPopupHTML(bot: BotStatus) {
+    return `
+        <h3>Bot ${bot.bot_id}</h3>
+        <table>
+            <tbody>
+                <tr>
+                    <th><image src="headingIcon.svg" style="vertical-align: middle; text-align: center;" /></th>
+                    <th>Heading</th>
+                    <td>${bot.attitude?.heading?.toFixed(1) ?? "?"}</td>
+                    <td>deg</td>
+                </tr>
+                <tr>
+                    <th><image src="courseOverGroundIcon.svg" style="vertical-align: middle; text-align: center;" /></th>
+                    <th>Course Over Ground</th>
+                    <td>${bot.attitude?.course_over_ground?.toFixed(1) ?? "?"}</td>
+                    <td>deg</td>
+                </tr>
+            </tbody>
+        </table>
+    `
+}
+
 
 export function createBotCourseOverGroundFeature(properties: Properties) {
     const projection = properties.map.getView().getProjection()
@@ -48,11 +72,11 @@ export function createBotDesiredHeadingFeature(properties: Properties) {
 
     const feature = new Feature({
         name: properties.botId,
-        geometry: new Point(fromLonLat(properties.lonLat, projection))
+        geometry: new Point(fromLonLat(properties.lonLat, projection)),
+        style: Styles.desiredHeadingArrow,
     })
 
     feature.setProperties(properties)
-    feature.setStyle(Styles.desiredHeadingArrow)
 
     return feature
 }

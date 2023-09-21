@@ -87,7 +87,7 @@ message MissionManager
     optional double gps_after_dive_pdop_fix = 40 [default = 2.2];
 
     // Min depth safety behavior
-    optional double min_depth_safety = 41 [default = 0];
+    optional double min_depth_safety = 41 [default = -1];
 
     // Time factor used to increase/decrease time to travel to goal
     optional double goal_timeout_buffer_factor = 44 [default = 1];

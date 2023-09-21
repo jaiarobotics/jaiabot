@@ -3,9 +3,9 @@ import { HubStatus, BotStatus, MissionPlan, Engineering, MissionState } from "./
 
 export interface PortalBotStatus extends BotStatus {
 	active_mission_plan?: MissionPlan,
-	portalStatusAge: number,
+	portalStatusAge?: number,
 	isDisconnected?: boolean,
-	engineering: Engineering
+	engineering?: Engineering
 }
 
 export interface PortalHubStatus extends HubStatus {
