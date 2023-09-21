@@ -2536,7 +2536,6 @@ export default class CommandControl extends React.Component {
 					api={this.api} 
 					bot={bots[this.selectedBotId()]}  
 					createInterval={this.createRemoteControlInterval.bind(this)} 
-					clearInterval={this.clearRemoteControlInterval.bind(this)} 
 					remoteControlValues={this.state.remoteControlValues}
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}

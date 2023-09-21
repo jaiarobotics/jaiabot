@@ -16,7 +16,6 @@ interface Props {
 	isRCModeActive: boolean,
 	remoteControlValues: Engineering,
 	createInterval: () => void,
-	clearInterval: () => void,
 	weAreInControl: () => boolean,
 	weHaveInterval: () => boolean
 }
