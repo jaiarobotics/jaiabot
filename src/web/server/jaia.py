@@ -481,8 +481,6 @@ class Interface:
         if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
             self.check_for_offloaded_task_packets = True
             self.offloaded_task_packet_files_prev = self.offloaded_task_packet_file_curr
-        else:
-            self.check_for_offloaded_task_packets = False
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
