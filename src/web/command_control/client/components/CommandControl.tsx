@@ -1512,7 +1512,7 @@ export default class CommandControl extends React.Component {
 			return
 		}
 
-		if (feature) {			
+		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
 			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
 			if (!(editModeExemptions.includes(feature?.get('type')))) {
@@ -1646,6 +1646,10 @@ export default class CommandControl extends React.Component {
 		if (this.state.goalBeingEdited) {
 			const didWaypointMove = this.clickToMoveWaypoint(evt)
 			if (didWaypointMove) { return }
+		}
+
+		if (this.state.visiblePanel === 'MEASURE_TOOL') {
+			return
 		}
 
 		this.addWaypointAtCoordinate(evt.coordinate)
