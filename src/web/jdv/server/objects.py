@@ -1,3 +1,5 @@
+from typing import *
+
 import numpy
 import cmath
 
@@ -76,7 +78,7 @@ def jaialog_get_object(group, repeated_members, item_indices):
 
 def jaialog_get_object_list(group, repeated_members=set(), indices=[]):
     '''Gets a list of objects from an h5 group'''
-    items = []
+    items: List[dict] = []
 
     item_index = 0
 

@@ -6,6 +6,8 @@ import { Fill, Icon, Style, Text} from 'ol/style';
 import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
+const driftMapIcon = require('./driftMapIcon.svg') as string
+const driftTaskPacket = require('./driftTaskPacket.svg') as string
 const start = require('./start.svg') as string
 const end = require('./end.svg') as string
 const botIcon = require('./bot.svg') as string
@@ -197,10 +199,8 @@ function getGoalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function createGoalIcon(taskType: TaskType | null, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
-    if (!taskType) {
-        taskType === TaskType.NONE
-    }
+export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    taskType = taskType ?? TaskType.NONE
     const src = getGoalSrc(taskType)
     let nonActiveGoalColor: string
 
@@ -218,7 +218,7 @@ export function createGoalIcon(taskType: TaskType | null, isActiveGoal: boolean,
 }
 
 
-function createFlagIcon(taskType: TaskType | null, isSelected: boolean, runNumber: number, canEdit: boolean) {
+function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boolean, runNumber: number, canEdit: boolean) {
     const isTask = taskType && taskType !== 'NONE'
 
     return new Icon({
