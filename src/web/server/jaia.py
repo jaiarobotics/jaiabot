@@ -449,9 +449,11 @@ class Interface:
             for offloaded_task_packet in self.offloaded_task_packets[startIndex: endIndex]:
                 # Get the start_time from the offloaded task packet in seconds
                 offloaded_start_time = round(int(offloaded_task_packet.get('start_time')), -6)  
+                # Get the bot id associated with the start time
+                offloaded_bot_id = offloaded_task_packet.get('bot_id')
 
-                # Check if an item with the same start_time in seconds exists in merged_list
-                if not any(round(int(item.get('start_time')), -6) == offloaded_start_time for item in self.received_task_packets):
+                # Check if an item with the same start_time in seconds exists for the same bot id in merged_list
+                if not any((round(int(item.get('start_time')), -6) == offloaded_start_time and item.get('bot_id') == offloaded_bot_id) for item in self.received_task_packets):
                     # If no matching start_time found in merged_list, add the offloaded task packet
                     self.received_task_packets.append(offloaded_task_packet)
 

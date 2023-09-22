@@ -357,7 +357,7 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
             src: src,
             rotation: feature.get('driftDirection') * DEG,
             rotateWithView: true,
-            scale: 0.9
+            scale: 0.7
         }),
     })
 }

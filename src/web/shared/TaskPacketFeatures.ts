@@ -21,8 +21,8 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     feature.setProperties({
         'type': 'dive',
         'id': Math.random(),
-        'depthAchieved': dive.depth_achieved, // (m)
-        'diveRate': dive.dive_rate, // (m/s)
+        'depthAchieved': Number(dive.depth_achieved?.toFixed(2)), // (m)
+        'diveRate': Number(dive.dive_rate?.toFixed(2)), // (m/s)
         'bottomDive': dive.bottom_dive,
         'botId': task_packet.bot_id,
         'startTime': task_packet.start_time,
@@ -35,19 +35,17 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
     return feature
 }
 
-export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
-    const drift = task_packet.drift
+export function createDriftPacketFeature(map: Map, taskPacket: TaskPacket) {
+    const drift = taskPacket.drift
 
-    const lon = drift?.start_location?.lon
-    const lat = drift?.start_location?.lat
-
-    if (lon == null || lat == null) {
-        return null
-    }
+    const startLon = drift?.start_location?.lon
+    const startLat = drift?.start_location?.lat
+    const endLon = drift?.end_location?.lon
+    const endLat = drift?.end_location?.lat
 
     const projection = map.getView().getProjection()
-    const start = turf.point([lon, lat])
-    const end = turf.point([lon, lat])
+    const start = turf.point([startLon, startLat])
+    const end = turf.point([endLon, endLat])
     const midpoint = turf.midpoint(start, end).geometry.coordinates
 
     const feature = new Feature({geometry: new Point(fromLonLat(midpoint, projection))})
@@ -55,13 +53,13 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         'drift': drift,
         'type': 'drift',
         'id': Math.random(),
-        'duration': drift?.drift_duration, // (s)
-        'speed': drift?.estimated_drift?.speed, // (m/s)
-        'driftDirection': drift?.estimated_drift?.heading,
-        'sigWaveHeight': drift?.significant_wave_height,
-        'botId': task_packet.bot_id,
-        'startTime': task_packet.start_time,
-        'endTime': task_packet.end_time,
+        'duration': Number(drift?.drift_duration?.toFixed(2)), // (s)
+        'speed': Number(drift?.estimated_drift?.speed?.toFixed(2)), // (m/s)
+        'driftDirection': Number(drift?.estimated_drift?.heading?.toFixed(2)),
+        'sigWaveHeight': Number(drift?.significant_wave_height?.toFixed(2)),
+        'botId': taskPacket.bot_id,
+        'startTime': taskPacket.start_time,
+        'endTime': taskPacket.end_time,
         'startLocation': drift?.start_location,
         'selected': false,
         'animated': false
