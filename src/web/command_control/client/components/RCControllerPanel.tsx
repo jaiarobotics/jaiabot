@@ -21,12 +21,25 @@ interface Props {
 }
 
 interface State {
+	controlType: string,
 	isJoyStickStart: boolean,
+	joyStickStatus: { [joyStick: string]: boolean },
 	throttleDirection: string,
 	rudderDirection: string,
 	throttleBinNumber: number,
 	rudderBinNumber: number,
-	controlType: string
+}
+
+enum JoySticks {
+	LEFT = 'LEFT',
+	RIGHT = 'RIGHT',
+	SOLE = 'SOLE'
+}
+
+enum ControlTypes {
+	MANUAL_DUAL = 'MANUAL_DUAL',
+	MANUAL_SINGLE = 'MANUAL_SINGLE',
+	DIVE = 'DIVE'
 }
 
 export default class RCControllerPanel extends React.Component {
@@ -39,12 +52,17 @@ export default class RCControllerPanel extends React.Component {
         this.api = props.api
 
         this.state = {
+			controlType: ControlTypes.MANUAL_DUAL,
 			isJoyStickStart: false,
+			joyStickStatus: {
+				'left': true,
+				'right': true,
+				'sole': false
+			},
 			throttleDirection: '',
 			rudderDirection: '',
 			throttleBinNumber: 0,
-			rudderBinNumber: 0,
-			controlType: 'Manual Dual'
+			rudderBinNumber: 0
         }
     }
 
@@ -174,7 +192,7 @@ export default class RCControllerPanel extends React.Component {
 		let throttleBinNumber = 0
 		let rudderBinNumber = 0
 
-		if (axisName === (controlType === 'Manual Single' ? 'LeftStickX' : 'RightStickX')) {
+		if (axisName === (controlType === ControlTypes.MANUAL_SINGLE ? 'LeftStickX' : 'RightStickX')) {
 			let bin: {binNumber: number, binValue: number} = {binNumber: 0, binValue: 0}
 			this.calcRudderBinNum((value * 100), bin)
 			this.props.remoteControlValues.pid_control.rudder = bin.binValue
@@ -226,7 +244,27 @@ export default class RCControllerPanel extends React.Component {
 	}
 
 	controlChange(event: SelectChangeEvent) {
-		this.setState({ controlType: event.target.value })
+		const controlType = (event.target.value).toUpperCase()
+		if (controlType === ControlTypes.MANUAL_SINGLE) {
+			this.setJoyStickStatus([JoySticks.SOLE])
+		} else if (controlType === ControlTypes.MANUAL_DUAL) {
+			this.setJoyStickStatus([JoySticks.LEFT, JoySticks.RIGHT])
+		} else if (controlType === ControlTypes.DIVE) {
+			this.setJoyStickStatus([])
+		}
+		this.setState({ controlType })
+	}
+
+	setJoyStickStatus(joySticksOn: JoySticks[]) {
+		const joyStickStatus = this.state.joyStickStatus
+		for (const key of Object.keys(joyStickStatus)) {
+			if (joySticksOn.includes(key.toUpperCase() as JoySticks)) {
+				joyStickStatus[key] = true
+			} else {
+				joyStickStatus[key] = false
+			}
+		}
+		this.setState({ joyStickStatus })
 	}
 
 	clearRemoteControlValues() {
@@ -291,8 +329,9 @@ export default class RCControllerPanel extends React.Component {
 							/>
 						}
 					>
-						<MenuItem key={1} value={'Manual Dual'}>Manual Dual</MenuItem>
-						<MenuItem key={2} value={'Manual Single'}>Manual Single</MenuItem>
+						<MenuItem key={1} value={ControlTypes.MANUAL_DUAL}>Manual Dual</MenuItem>
+						<MenuItem key={2} value={ControlTypes.MANUAL_SINGLE}>Manual Single</MenuItem>
+						<MenuItem key={3} value={ControlTypes.DIVE}>Dive</MenuItem>
 					</Select>
 				</ThemeProvider>
 			</div>
@@ -303,7 +342,7 @@ export default class RCControllerPanel extends React.Component {
 		let soleController: ReactElement
 
 		leftController = (
-			<div className="controller">
+			<div className={`controller ${this.state.joyStickStatus['left'] ? "": "hide-controller"}`}>
 				<div className="controller-title">Throttle</div>
 				<Joystick
 					baseColor='white' 
@@ -323,7 +362,7 @@ export default class RCControllerPanel extends React.Component {
 		)
 
 		rightController = (
-			<div className={`controller ${this.state.controlType === "Manual Single" ? "hide-controller" : ""}`}>
+			<div className={`controller ${this.state.joyStickStatus['right'] ? "": "hide-controller"}`}>
 				<div className="controller-title">Rudder</div>
 				<Joystick
 					baseColor='white' 
@@ -343,7 +382,7 @@ export default class RCControllerPanel extends React.Component {
 		)
 
 		soleController = (
-			<div className='controller'>
+			<div className={`controller ${this.state.joyStickStatus['sole'] ? "": "hide-controller"}`}>
 				<Joystick
 					baseColor='white' 
 					stickColor='black'
@@ -370,7 +409,7 @@ export default class RCControllerPanel extends React.Component {
 
 				<div className='stick-container'>
 
-					{this.state.controlType === 'Manual Dual' ? leftController : soleController}
+					{this.state.controlType === ControlTypes.MANUAL_DUAL ? leftController : soleController}
 
 					<div className='rc-labels-container'>
 						{selectControlType}
