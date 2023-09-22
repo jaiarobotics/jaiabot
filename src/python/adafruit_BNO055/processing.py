@@ -1,9 +1,11 @@
 from copy import deepcopy
 from series import Series
 from typing import *
+from math import *
+
+import logging
 import numpy
 import statistics
-from math import *
 
 def floatRange(start: float, end: float, delta: float):
     x = start
@@ -171,11 +173,18 @@ def filterFrequencies(inputSeries: Series, sampleFreq: float, filterFunc: Callab
 
 def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: Callable[[float], float]):
     '''Uses a real FFT to filter out frequencies between minFreq and maxFreq, and returns the filtered Series'''
+
+    # input series is empty
     if len(inputSeries.utime) == 0:
         return Series()
 
     A = numpy.fft.rfft(inputSeries.y_values)
     n = len(A)
+
+    # fft has zero points
+    if n == 0:
+        return Series()
+
     nyquist = sampleFreq / 2
 
     if n % 2 == 0:
@@ -194,6 +203,7 @@ def accelerationToElevation(inputSeries: Series, sampleFreq: float, filterFunc: 
 
         A[index] /= (-(2 * pi * freq) ** 2) # Integrate acceleration to elevation series (integrate a sin curve twice)
 
+    logging.warning(f'FFT length: {len(A)}')
     a = numpy.fft.irfft(A)
     series = Series()
     series.utime = inputSeries.utime[:len(a)]
