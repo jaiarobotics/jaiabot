@@ -149,11 +149,11 @@ message BottomDepthSafetyParams
 message Engineering
 {
     /*
-    Actual maximum size of message: 98 bytes / 784 bits
+    Actual maximum size of message: 113 bytes / 904 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................723
-        padding to full byte...................5
+        body.................................889
+        padding to full byte...................7
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
