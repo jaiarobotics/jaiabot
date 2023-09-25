@@ -118,7 +118,6 @@ export class SurveyLines {
             (evt: DrawEvent) => {
                 if (!commandControl.state.startRally || !commandControl.state.endRally) {
                     warning('Please select a start and end rally point for this run')
-                    return
                 }
                 commandControl.setState({ missionPlanningFeature: null })
                 commandControl.updateMissionLayer();
@@ -129,7 +128,7 @@ export class SurveyLines {
                     let { missionParams, surveyExclusionCoords, startRally, endRally } = commandControl.state;
                     let stringCoords = geom1.getGeometry().getCoordinates()
         
-                    if (stringCoords[0].length >= 2) {
+                    if (stringCoords[0].length >= 2 && startRally && endRally) {
                         let coords = stringCoords.slice(-2);
                         let rotAngRadians = Math.atan2(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]);
                         let rotationAngle = Number((Math.trunc(turf.radiansToDegrees(rotAngRadians)*100)/100).toFixed(2));

@@ -270,6 +270,7 @@ export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, i
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
     let icon = createFlagIcon(goal.task?.type, isSelected, Number(runNumber), canEdit)
     const isTask = goal.task?.type && goal.task.type !== 'NONE'
+    const selectedZIndex = 990 // Needs to be larger than the number of runs created in a session otherwise unselected runs would have a higher z-index (due to incrementor)
 
     return new Style({
         image: icon,
@@ -283,7 +284,7 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
             offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? selectedZIndex : zIndex
     })
 }
 
