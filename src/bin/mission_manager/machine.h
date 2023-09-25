@@ -372,7 +372,10 @@ struct MissionManagerStateMachine
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
 
-    void set_current_pressure(double current_pressure) { current_pressure_ = current_pressure; }
+    void set_current_pressure(const double& current_pressure)
+    {
+        current_pressure_ = current_pressure;
+    }
     const double& current_pressure() { return current_pressure_; }
 
     void set_transit_hdop_req(const double& transit_hdop) { transit_hdop_req_ = transit_hdop; }
@@ -793,6 +796,13 @@ struct InMission
 
     void set_mission_complete() { mission_complete_ = true; }
 
+    void set_use_heading_constant_pid(const bool& use_heading_constant_pid)
+    {
+        use_heading_constant_pid_ = use_heading_constant_pid;
+    }
+
+    bool use_heading_constant_pid() const { return use_heading_constant_pid_; }
+
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
                          boost::statechart::transition<EvRecovered, PostDeployment>>;
@@ -801,6 +811,7 @@ struct InMission
     int goal_index_{0};
     int repeat_index_{0};
     bool mission_complete_{false};
+    bool use_heading_constant_pid_{false};
 };
 
 namespace inmission
