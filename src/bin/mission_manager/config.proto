@@ -33,7 +33,7 @@ message MissionManager
 
     // powered ascent motor off timeout
     optional int32 powered_ascent_motor_off_timeout = 26
-        [default = 1, (dccl.field).units = { base_dimensions: "T" }];
+        [default = 2, (dccl.field).units = { base_dimensions: "T" }];
 
     // timeout on dive prep to then transition to powered descent
     optional int32 dive_prep_timeout = 27
