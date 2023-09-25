@@ -28,6 +28,7 @@ interface Props {
 
 interface State {
     isChecked: boolean,
+    goalIndex: number,
     pauseNumModif: boolean,
     enterNegative: {[direction: string]: boolean}
 }
@@ -41,6 +42,7 @@ export class GoalSettingsPanel extends React.Component {
         super(props)
         this.state = {
             isChecked: false,
+            goalIndex: this.props.goalIndex,
             pauseNumModif: false,
             enterNegative: {
                 'lat': false,
@@ -61,6 +63,13 @@ export class GoalSettingsPanel extends React.Component {
     }
 
     isChecked() {
+        if (this.state.goalIndex !== this.props.goalIndex) {
+            this.setState({ 
+                isChecked: false,
+                goalIndex: this.props.goalIndex
+             })
+        }
+
         return this.state.isChecked
     }
 
