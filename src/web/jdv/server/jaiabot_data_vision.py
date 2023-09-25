@@ -110,7 +110,7 @@ def getTaskPackets():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return JSONResponse(jaialogs.get_task_packets_json(log_names))
+    return JSONResponse(jaialogs.get_task_packet_dicts(log_names))
 
 
 @app.route('/moos', methods=['GET'])
@@ -134,7 +134,7 @@ def getDepthContours():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    taskPackets = jaialogs.get_task_packets_json(log_names)
+    taskPackets = jaialogs.get_task_packet_dicts(log_names)
     return JSONResponse(contours.taskPacketsToContours(taskPackets))
 
 

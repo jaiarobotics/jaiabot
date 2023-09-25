@@ -148,6 +148,7 @@ export class MissionSettingsPanel extends React.Component {
                         <div className="mission-settings-tasks-title">Task:</div>
                         <TaskSettingsPanel 
                             task={this.state.missionBaseGoal.task} 
+                            isEditMode={true}
                             onChange={(task) => {
                                 const missionBaseGoal = this.state.missionBaseGoal
                                 missionBaseGoal.task = task
@@ -162,6 +163,7 @@ export class MissionSettingsPanel extends React.Component {
                             title="End Task" 
                             map={map} 
                             location={finalLocation}
+                            isEditMode={true}
                             task={this.state.missionEndTask} 
                             onChange={(missionEndTask) => { this.setState({ missionEndTask })}} 
                         />
