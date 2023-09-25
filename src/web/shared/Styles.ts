@@ -40,6 +40,7 @@ const driftArrowColor = 'darkorange'
 const disconnectedColor = 'gray'
 
 const DEG = Math.PI / 180
+const SELECTED_Z_INDEX = 990 // Needs to be larger than the number of runs created in a session (determines increment) otherwise unselected features would have a higher z-index than selected features
 
 interface XYCoordinate {
     x: number
@@ -246,7 +247,7 @@ function createRallyIcon() {
     })
 }
 
-export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean) {
+export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean, zIndex?: number) {
     let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
     return new Style({
@@ -263,7 +264,7 @@ export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, i
             }),
             offsetY: -15
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
 }
 
@@ -283,7 +284,7 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
             offsetY: Number(runNumber) > 99 ? isTask ? -78.875 : -62.125 : isTask ? -76.75 : -61.2175,
             offsetX: Number(runNumber) > 99 ? 24 : 20
         }),
-        zIndex: isSelected ? 102 : 2
+        zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
 }
 

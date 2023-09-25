@@ -26,8 +26,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
   private:
     // Timeout
-    goby::time::MicroTime timeout{5 * boost::units::si::seconds};
-    goby::time::MicroTime lastCommandReceived{0 * boost::units::si::seconds};
+    goby::time::MicroTime timeout_{5 * boost::units::si::seconds};
+    goby::time::MicroTime lastCommandReceived_{0 * boost::units::si::seconds};
 
     // Throttle
     enum ThrottleMode
@@ -37,63 +37,61 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
         PID_DEPTH
     };
 
-    ThrottleMode _throttleMode = MANUAL;
+    ThrottleMode _throttleMode_ = MANUAL;
     void setThrottleMode(const ThrottleMode newThrottleMode);
 
-    float throttle = 0.0;
+    float throttle_ = 0.0;
 
-    float actual_speed = 0.0;
-    float target_speed = 0.0;
-    float full_speed_window = 1.0;
-    float processed_target_speed = 0.0;
-    Pid* throttle_speed_pid;
+    float actual_speed_ = 0.0;
+    float target_speed_ = 0.0;
+    float full_speed_window_ = 1.0;
+    float processed_target_speed_ = 0.0;
+    Pid* throttle_speed_pid_;
 
-    float actual_depth = 0.0;
-    float target_depth = 0.0;
-    Pid* throttle_depth_pid;
+    float actual_depth_ = 0.0;
+    float target_depth_ = 0.0;
+    Pid* throttle_depth_pid_;
 
-    bool use_throttle_table_for_speed = false;
+    bool use_throttle_table_for_speed_ = false;
 
     // maps speed to throttle value
     std::map<float, int> speed_to_throttle_;
 
     // Course targeting
-    float target_heading = 0.0;
-    float actual_heading = -1e10;
-    float rudder = 0.0;
-    bool _rudder_is_using_pid = false;
-    void toggleRudderPid(const bool enabled);
-    Pid* heading_pid;
+    float target_heading_ = 0.0;
+    float actual_heading_ = -1e10;
+    float rudder_ = 0.0;
+    bool _rudder_is_using_pid_ = false;
+    bool is_heading_constant_ = false;
+    void toggleRudderPid(const bool enabled, const bool is_heading_constant = false);
+    Pid* heading_pid_;
+    Pid* heading_constant_pid_;
 
     // Roll targeting
-    float target_roll = 0.0;
-    float actual_roll = 0.0;
-    float elevator_delta = 0.0;
-    float port_elevator = 0.0, stbd_elevator = 0.0;
-    bool _elevator_is_using_pid = false;
+    float target_roll_ = 0.0;
+    float actual_roll_ = 0.0;
+    float elevator_delta_ = 0.0;
+    float port_elevator_ = 0.0, stbd_elevator_ = 0.0;
+    bool _elevator_is_using_pid_ = false;
     void toggleElevatorPid(const bool enabled);
-    Pid* roll_pid;
+    Pid* roll_pid_;
 
     // Pitch targeting
-    float target_pitch = 0.0;
-    float actual_pitch = 0.0;
-    float elevator_middle = 0.0;
-    Pid* pitch_pid;
-    
-    bool engineering_messages_enabled = false;
-    jaiabot::protobuf::Engineering engineering_status;
+    float target_pitch_ = 0.0;
+    float actual_pitch_ = 0.0;
+    float elevator_middle_ = 0.0;
+    Pid* pitch_pid_;
 
-    jaiabot::protobuf::LowControl cmd_msg;
-    std::atomic<int> id;
+    jaiabot::protobuf::LowControl cmd_msg_;
+    std::atomic<int> id_;
 
-    jaiabot::protobuf::Bounds bounds;
+    jaiabot::protobuf::Bounds bounds_;
 
   private:
     void loop() override;
 
     void handle_command(const jaiabot::protobuf::DesiredSetpoints& command);
-    void
-    handle_helm_course(const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course);
+    void handle_helm_course(const jaiabot::protobuf::DesiredSetpoints& desired_course);
     void handle_remote_control(const jaiabot::protobuf::RemoteControl& remote_control);
     void handle_dive_depth(const jaiabot::protobuf::DesiredSetpoints& command);
     void handle_powered_ascent(const jaiabot::protobuf::DesiredSetpoints& command);

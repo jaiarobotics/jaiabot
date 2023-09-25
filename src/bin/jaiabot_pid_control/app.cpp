@@ -56,12 +56,12 @@ jaiabot::apps::BotPidControl::BotPidControl()
     // Setup our bounds configuration
     if (app_config.has_bounds())
     {
-        bounds = app_config.bounds();
+        bounds_ = app_config.bounds();
     }
 
-    if (bounds.motor().has_throttle_zero_net_buoyancy())
+    if (bounds_.motor().has_throttle_zero_net_buoyancy())
     {
-        THROTTLE_FOR_ZERO_NET_BUOYANCY = bounds.motor().throttle_zero_net_buoyancy();
+        THROTTLE_FOR_ZERO_NET_BUOYANCY = bounds_.motor().throttle_zero_net_buoyancy();
     }
 
     glog.is_verbose() && glog << "BotPidControl starting" << std::endl;
@@ -70,10 +70,10 @@ jaiabot::apps::BotPidControl::BotPidControl()
     // Setup speed => throttle table
     if (app_config.has_use_throttle_table_for_speed())
     {
-        use_throttle_table_for_speed = app_config.use_throttle_table_for_speed();
+        use_throttle_table_for_speed_ = app_config.use_throttle_table_for_speed();
     }
 
-    if (use_throttle_table_for_speed)
+    if (use_throttle_table_for_speed_)
     {
         if (app_config.throttle_table_size() < 2)
             glog.is_die() &&
@@ -85,22 +85,23 @@ jaiabot::apps::BotPidControl::BotPidControl()
             speed_to_throttle_.insert(std::make_pair(entry.speed(), entry.throttle()));
     }
 
-    full_speed_window = app_config.full_speed_window();
-    glog.is_warn() && glog << "full_speed_window = " << full_speed_window << endl;
+    full_speed_window_ = app_config.full_speed_window();
+    glog.is_warn() && glog << "full_speed_window = " << full_speed_window_ << endl;
 
     // Create our PID objects
     if (cfg().has_throttle_speed_pid_gains())
     {
         auto& gains = cfg().throttle_speed_pid_gains();
-        throttle_speed_pid =
-            new Pid(&actual_speed, &throttle, &processed_target_speed, gains.kp(), gains.ki(), gains.kd());
+        throttle_speed_pid_ = new Pid(&actual_speed_, &throttle_, &processed_target_speed_,
+                                      gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
-        throttle_speed_pid = new Pid(&actual_speed, &throttle, &processed_target_speed, 20, 10, 0);
+        throttle_speed_pid_ =
+            new Pid(&actual_speed_, &throttle_, &processed_target_speed_, 20, 10, 0);
     }
-    throttle_speed_pid->set_limits(0.0, 100.0);
-    throttle_speed_pid->set_auto();
+    throttle_speed_pid_->set_limits(0.0, 100.0);
+    throttle_speed_pid_->set_auto();
 
     /**
      * @brief Negative PIDs for throttle_depth_pid (Input positive, output negative)
@@ -109,55 +110,69 @@ jaiabot::apps::BotPidControl::BotPidControl()
     if (cfg().has_throttle_depth_pid_gains())
     {
         auto& gains = cfg().throttle_depth_pid_gains();
-        throttle_depth_pid =
-            new Pid(&actual_depth, &throttle, &target_depth, gains.kp(), gains.ki(), gains.kd());
+        throttle_depth_pid_ =
+            new Pid(&actual_depth_, &throttle_, &target_depth_, gains.kp(), gains.ki(), gains.kd());
     }
     else
     {
-        throttle_depth_pid = new Pid(&actual_depth, &throttle, &target_depth, 4, 1, 2);
+        throttle_depth_pid_ = new Pid(&actual_depth_, &throttle_, &target_depth_, 4, 1, 2);
     }
-    throttle_depth_pid->set_auto();
-    throttle_depth_pid->set_direction(E_PID_REVERSE);
-    throttle_depth_pid->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BUOYANCY);
+    throttle_depth_pid_->set_auto();
+    throttle_depth_pid_->set_direction(E_PID_REVERSE);
+    throttle_depth_pid_->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BUOYANCY);
 
     if (cfg().has_heading_pid_gains())
     {
         auto& gains = cfg().heading_pid_gains();
-        heading_pid =
-            new Pid(&actual_heading, &rudder, &target_heading, gains.kp(), gains.ki(), gains.kd());
+        heading_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, gains.kp(), gains.ki(),
+                               gains.kd());
     }
     else
     {
-        heading_pid = new Pid(&actual_heading, &rudder, &target_heading, 0.7, 0.005, 0.2);
+        heading_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, 0.7, 0.005, 0.2);
     }
-    heading_pid->set_limits(-100.0, 100.0);
-    heading_pid->set_auto();
+    heading_pid_->set_limits(-100.0, 100.0);
+    heading_pid_->set_auto();
+
+    if (cfg().has_heading_constant_pid_gains())
+    {
+        auto& gains = cfg().heading_constant_pid_gains();
+        heading_constant_pid_ = new Pid(&actual_heading_, &rudder_, &target_heading_, gains.kp(),
+                                        gains.ki(), gains.kd());
+    }
+    else
+    {
+        heading_constant_pid_ =
+            new Pid(&actual_heading_, &rudder_, &target_heading_, 0.7, 0.005, 0.2);
+    }
+    heading_constant_pid_->set_limits(-100.0, 100.0);
+    heading_constant_pid_->set_auto();
 
     if (cfg().has_roll_pid_gains())
     {
         auto& gains = cfg().roll_pid_gains();
-        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, gains.kp(), gains.ki(),
-                           gains.kd());
-    }
-    else
-    {
-        roll_pid = new Pid(&actual_roll, &elevator_delta, &target_roll, 1, 0.5, 0);
-    }
-    roll_pid->set_limits(-100.0, 100.0);
-    roll_pid->set_auto();
-
-    if (cfg().has_pitch_pid_gains())
-    {
-        auto& gains = cfg().pitch_pid_gains();
-        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, gains.kp(), gains.ki(),
+        roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, gains.kp(), gains.ki(),
                             gains.kd());
     }
     else
     {
-        pitch_pid = new Pid(&actual_pitch, &elevator_middle, &target_pitch, 1, 0.5, 0);
+        roll_pid_ = new Pid(&actual_roll_, &elevator_delta_, &target_roll_, 1, 0.5, 0);
     }
-    pitch_pid->set_limits(-100.0, 100.0);
-    pitch_pid->set_auto();
+    roll_pid_->set_limits(-100.0, 100.0);
+    roll_pid_->set_auto();
+
+    if (cfg().has_pitch_pid_gains())
+    {
+        auto& gains = cfg().pitch_pid_gains();
+        pitch_pid_ = new Pid(&actual_pitch_, &elevator_middle_, &target_pitch_, gains.kp(),
+                             gains.ki(), gains.kd());
+    }
+    else
+    {
+        pitch_pid_ = new Pid(&actual_pitch_, &elevator_middle_, &target_pitch_, 1, 0.5, 0);
+    }
+    pitch_pid_->set_limits(-100.0, 100.0);
+    pitch_pid_->set_auto();
 
     // subscribe for commands from engineering
     interprocess().subscribe<jaiabot::groups::engineering_command, jaiabot::protobuf::Engineering>(
@@ -192,17 +207,17 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
                 if (attitude.has_heading())
                 {
-                    actual_heading = attitude.heading();
+                    actual_heading_ = attitude.heading();
                 }
 
                 if (attitude.has_roll())
                 {
-                    actual_roll = attitude.roll();
+                    actual_roll_ = attitude.roll();
                 }
 
                 if (attitude.has_pitch())
                 {
-                    actual_pitch = attitude.pitch();
+                    actual_pitch_ = attitude.pitch();
                 }
             }
 
@@ -212,31 +227,32 @@ jaiabot::apps::BotPidControl::BotPidControl()
 
                 if (speed.has_over_ground())
                 {
-                    actual_speed = speed.over_ground();
+                    actual_speed_ = speed.over_ground();
                 }
             }
 
             if (node_status.has_global_fix() && node_status.global_fix().has_depth())
             {
-                actual_depth = node_status.global_fix().depth();
+                actual_depth_ = node_status.global_fix().depth();
             }
 
-            glog.is_debug2() && glog << "Actual speed: " << actual_speed
-                                     << " heading: " << actual_heading << " depth: " << actual_depth
-                                     << std::endl;
+            glog.is_debug2() && glog << "Actual speed: " << actual_speed_
+                                     << " heading: " << actual_heading_
+                                     << " depth: " << actual_depth_ << std::endl;
         });
 }
 
 void jaiabot::apps::BotPidControl::loop()
 {
-    glog.is_debug3() && glog << throttle_speed_pid->description() << endl;
-    glog.is_debug3() && glog << throttle_depth_pid->description() << endl;
-    glog.is_debug3() && glog << heading_pid->description() << endl;
-    glog.is_debug3() && glog << roll_pid->description() << endl;
-    glog.is_debug3() && glog << pitch_pid->description() << endl;
+    glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
+    glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
+    glog.is_debug3() && glog << heading_pid_->description() << endl;
+    glog.is_debug3() && glog << heading_constant_pid_->description() << endl;
+    glog.is_debug3() && glog << roll_pid_->description() << endl;
+    glog.is_debug3() && glog << pitch_pid_->description() << endl;
 
     // Speed PID
-    switch (_throttleMode)
+    switch (_throttleMode_)
     {
         case MANUAL: break;
         case PID_SPEED:
@@ -245,12 +261,13 @@ void jaiabot::apps::BotPidControl::loop()
                 // Make processed_target_speed proportional to the dot product between our heading and desired heading, with a minimum value to orient ourselves
                 float speed_multiplier = 1.0;
 
-                if (_rudder_is_using_pid && actual_heading > -1000.0) {
+                if (_rudder_is_using_pid_ && actual_heading_ > -1000.0)
+                {
                     // Apply a step function to the speed:
                     //  * 100% of desired speed when we are with n degrees
                     //  * Desired speed times dot product of heading error otherwise
-                    float heading_error_deg = actual_heading - target_heading;
-                    if (abs(heading_error_deg) < full_speed_window)
+                    float heading_error_deg = actual_heading_ - target_heading_;
+                    if (abs(heading_error_deg) < full_speed_window_)
                     {
                         speed_multiplier = 1.0;
                     }
@@ -262,198 +279,217 @@ void jaiabot::apps::BotPidControl::loop()
                 else {
                     speed_multiplier = 1.0;
                 }
-                processed_target_speed = target_speed * speed_multiplier;
-                
-                if (processed_target_speed != 0.0) {
-                    processed_target_speed = max(0.5f, processed_target_speed);
+                processed_target_speed_ = target_speed_ * speed_multiplier;
+
+                if (processed_target_speed_ != 0.0)
+                {
+                    processed_target_speed_ = max(0.5f, processed_target_speed_);
                 }
 
-                if (use_throttle_table_for_speed)
+                if (use_throttle_table_for_speed_)
                 {
-                    throttle =
-                        goby::util::linear_interpolate(processed_target_speed, speed_to_throttle_);
+                    throttle_ =
+                        goby::util::linear_interpolate(processed_target_speed_, speed_to_throttle_);
                     glog.is_debug2() &&
                         glog << group("main") << "using throttle table, processed_target_speed = "
-                             << processed_target_speed << " throttle = " << throttle << std::endl;
+                             << processed_target_speed_ << " throttle = " << throttle_ << std::endl;
                 }
                 else {
                     // Compute new throttle value
-                    if (throttle_speed_pid->need_compute())
+                    if (throttle_speed_pid_->need_compute())
                     {
-                        throttle_speed_pid->compute();
+                        throttle_speed_pid_->compute();
                     }
 
-                    glog.is_debug2() && glog << group("main") << "using speed PID, target_speed = " << target_speed
-                                            << " processed_target_speed = " << processed_target_speed
-                                            << " actual_speed = " << actual_speed
-                                            << " throttle = " << throttle << std::endl;
+                    glog.is_debug2() &&
+                        glog << group("main") << "using speed PID, target_speed = " << target_speed_
+                             << " processed_target_speed = " << processed_target_speed_
+                             << " actual_speed = " << actual_speed_ << " throttle = " << throttle_
+                             << std::endl;
                 }
 
             }
             break;
         case PID_DEPTH:
             // Compute new throttle value
-            if (throttle_depth_pid->need_compute())
+            if (throttle_depth_pid_->need_compute())
             {
-                throttle_depth_pid->compute();
-                throttle = throttle + THROTTLE_FOR_ZERO_NET_BUOYANCY;
+                throttle_depth_pid_->compute();
+                throttle_ = throttle_ + THROTTLE_FOR_ZERO_NET_BUOYANCY;
             }
 
-            glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth
-                                     << ", actual_depth = " << actual_depth
-                                     << ", throttle = " << throttle << std::endl;
+            glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth_
+                                     << ", actual_depth = " << actual_depth_
+                                     << ", throttle = " << throttle_ << std::endl;
             break;
     }
 
     // Heading PID
-    if (_rudder_is_using_pid)
+    if (_rudder_is_using_pid_)
     {
         // Make sure track is within 180 degrees of the course
-        if (actual_heading > target_heading + 180.0)
+        if (actual_heading_ > target_heading_ + 180.0)
         {
-            actual_heading -= 360.0;
+            actual_heading_ -= 360.0;
         }
-        if (actual_heading < target_heading - 180.0)
+        if (actual_heading_ < target_heading_ - 180.0)
         {
-            actual_heading += 360.0;
-        }
-
-        // Compute new rudder value
-        if (heading_pid->need_compute())
-        {
-            heading_pid->compute();
+            actual_heading_ += 360.0;
         }
 
-        glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading
-                                 << ", actual_heading = " << actual_heading
-                                 << ", rudder = " << rudder << std::endl;
+        if (!is_heading_constant_)
+        {
+            // Compute new rudder value
+            if (heading_pid_->need_compute())
+            {
+                heading_pid_->compute();
+            }
+        }
+        else
+        {
+            // Compute new rudder value
+            if (heading_constant_pid_->need_compute())
+            {
+                heading_constant_pid_->compute();
+            }
+        }
+
+        glog.is_debug2() && glog << group("main") << "target_heading = " << target_heading_
+                                 << ", actual_heading = " << actual_heading_
+                                 << ", rudder = " << rudder_
+                                 << ", is_heading_constant = " << is_heading_constant_ << std::endl;
     }
 
     // Roll/Pitch PID
-    if (_elevator_is_using_pid)
+    if (_elevator_is_using_pid_)
     {
-        if (actual_roll > target_roll + 180.0)
+        if (actual_roll_ > target_roll_ + 180.0)
         {
-            actual_roll -= 360.0;
+            actual_roll_ -= 360.0;
         }
-        if (actual_roll < target_roll - 180.0)
+        if (actual_roll_ < target_roll_ - 180.0)
         {
-            actual_roll += 360.0;
-        }
-
-        if (roll_pid->need_compute())
-        {
-            roll_pid->compute();
+            actual_roll_ += 360.0;
         }
 
-        if (actual_pitch > target_pitch + 180.0)
+        if (roll_pid_->need_compute())
         {
-            actual_pitch -= 360.0;
-        }
-        if (actual_pitch < target_pitch - 180.0)
-        {
-            actual_pitch += 360.0;
+            roll_pid_->compute();
         }
 
-        if (pitch_pid->need_compute())
+        if (actual_pitch_ > target_pitch_ + 180.0)
         {
-            pitch_pid->compute();
+            actual_pitch_ -= 360.0;
+        }
+        if (actual_pitch_ < target_pitch_ - 180.0)
+        {
+            actual_pitch_ += 360.0;
         }
 
-        glog.is_debug2() && glog << group("main") << "target_pitch = " << target_pitch
-                                 << ", actual_pitch = " << actual_pitch
-                                 << ", elevator_middle = " << elevator_middle << std::endl;
-        glog.is_debug2() && glog << group("main") << "target_roll  = " << target_roll
-                                 << ", actual_roll  = " << actual_roll
-                                 << ", elevator_delta  = " << elevator_delta << std::endl;
+        if (pitch_pid_->need_compute())
+        {
+            pitch_pid_->compute();
+        }
 
-        port_elevator = elevator_middle - elevator_delta;
-        stbd_elevator = elevator_middle + elevator_delta;
+        glog.is_debug2() && glog << group("main") << "target_pitch = " << target_pitch_
+                                 << ", actual_pitch = " << actual_pitch_
+                                 << ", elevator_middle = " << elevator_middle_ << std::endl;
+        glog.is_debug2() && glog << group("main") << "target_roll  = " << target_roll_
+                                 << ", actual_roll  = " << actual_roll_
+                                 << ", elevator_delta  = " << elevator_delta_ << std::endl;
+
+        port_elevator_ = elevator_middle_ - elevator_delta_;
+        stbd_elevator_ = elevator_middle_ + elevator_delta_;
     }
 
     // Implement a timeout
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
-    if (lastCommandReceived.value() != 0 && (now - lastCommandReceived) > timeout)
+    if (lastCommandReceived_.value() != 0 && (now - lastCommandReceived_) > timeout_)
     {
         glog.is_warn() && glog << "Timing out after "
-                               << static_cast<goby::time::SITime>(timeout).value() << " seconds."
+                               << static_cast<goby::time::SITime>(timeout_).value() << " seconds."
                                << std::endl;
-        lastCommandReceived = 0;
+        lastCommandReceived_ = 0;
 
         all_stop();
     }
 
     // Publish the LowControl
-    cmd_msg.set_id(id++);
-    cmd_msg.set_vehicle(1); // Set this to correct value?
-    cmd_msg.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    cmd_msg_.set_id(id_++);
+    cmd_msg_.set_vehicle(1); // Set this to correct value?
+    cmd_msg_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-    auto& control_surfaces = *cmd_msg.mutable_control_surfaces();
-    control_surfaces.set_timeout(static_cast<goby::time::SITime>(timeout).value());
-    control_surfaces.set_port_elevator(port_elevator);
-    control_surfaces.set_stbd_elevator(stbd_elevator);
-    control_surfaces.set_rudder(rudder);
-    control_surfaces.set_motor(throttle);
+    auto& control_surfaces = *cmd_msg_.mutable_control_surfaces();
+    control_surfaces.set_timeout(static_cast<goby::time::SITime>(timeout_).value());
+    control_surfaces.set_port_elevator(port_elevator_);
+    control_surfaces.set_stbd_elevator(stbd_elevator_);
+    control_surfaces.set_rudder(rudder_);
+    control_surfaces.set_motor(throttle_);
     control_surfaces.set_led_switch_on(led_switch_on);
 
-    glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg.ShortDebugString()
+    glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg_.ShortDebugString()
                              << std::endl;
-    interprocess().publish<jaiabot::groups::low_control>(cmd_msg);
+    interprocess().publish<jaiabot::groups::low_control>(cmd_msg_);
 }
 
 void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottleMode) {
-    if (newThrottleMode != _throttleMode) {
+    if (newThrottleMode != _throttleMode_)
+    {
         switch (newThrottleMode) {
             case MANUAL:
                 break;
-            case PID_SPEED:
-                throttle_speed_pid->reset_iterm();
-                break;
-            case PID_DEPTH:
-                throttle_depth_pid->reset_iterm();
-                break;
+            case PID_SPEED: throttle_speed_pid_->reset_iterm(); break;
+            case PID_DEPTH: throttle_depth_pid_->reset_iterm(); break;
         }
     }
-    _throttleMode = newThrottleMode;
+    _throttleMode_ = newThrottleMode;
 }
 
-void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled) {
-    if (enabled != _rudder_is_using_pid) {
-        heading_pid->reset_iterm();
+void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled,
+                                                   const bool is_heading_constant)
+{
+    if (enabled != _rudder_is_using_pid_)
+    {
+        heading_pid_->reset_iterm();
     }
-    _rudder_is_using_pid = enabled;
+    _rudder_is_using_pid_ = enabled;
+    is_heading_constant_ = is_heading_constant;
+    glog.is_debug2() && glog << group("main") << "_rudder_is_using_pid_: " << _rudder_is_using_pid_
+                             << ", is_heading_constant_: " << is_heading_constant_ << std::endl;
 }
 
 void jaiabot::apps::BotPidControl::toggleElevatorPid(const bool enabled) {
-    if (enabled != _elevator_is_using_pid) {
-        roll_pid->reset_iterm();
-        pitch_pid->reset_iterm();
+    if (enabled != _elevator_is_using_pid_)
+    {
+        roll_pid_->reset_iterm();
+        pitch_pid_->reset_iterm();
     }
-    _elevator_is_using_pid = enabled;
+    _elevator_is_using_pid_ = enabled;
 }
 
 void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::protobuf::PIDControl& command)
 {
-    glog.is_debug1() && glog << "Received engineering command: " << command.ShortDebugString() << std::endl;
+    glog.is_verbose() && glog << "Received engineering command: " << command.ShortDebugString()
+                              << std::endl;
 
-    lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
+    lastCommandReceived_ = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     // Timeout
     if (command.has_timeout())
     {
-        timeout = command.timeout_with_units<decltype(timeout)>();
+        timeout_ = command.timeout_with_units<decltype(timeout_)>();
     }
     else
     {
-        timeout = cfg().default_timeout_with_units<decltype(timeout)>();
+        timeout_ = cfg().default_timeout_with_units<decltype(timeout_)>();
     }
 
     // Throttle
     if (command.has_throttle())
     {
         setThrottleMode(MANUAL);
-        throttle = command.throttle();
+        throttle_ = command.throttle();
     }
     // Speed
     if (command.has_speed())
@@ -463,12 +499,12 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         if (speed.has_target())
         {
             setThrottleMode(PID_SPEED);
-            target_speed = speed.target();
+            target_speed_ = speed.target();
         }
 
         if (speed.has_kp())
         {
-            throttle_speed_pid->tune(speed.kp(), speed.ki(), speed.kd());
+            throttle_speed_pid_->tune(speed.kp(), speed.ki(), speed.kd());
         }
 
     }
@@ -480,19 +516,19 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         if (depth.has_target())
         {
             setThrottleMode(PID_DEPTH);
-            target_depth = depth.target();
+            target_depth_ = depth.target();
         }
 
         if (depth.has_kp())
         {
-            throttle_depth_pid->tune(depth.kp(), depth.ki(), depth.kd());
+            throttle_depth_pid_->tune(depth.kp(), depth.ki(), depth.kd());
         }
     }
 
     // Rudder
     if (command.has_rudder())
     {
-        rudder = command.rudder();
+        rudder_ = command.rudder();
         toggleRudderPid(false);
     }
     // Heading
@@ -503,24 +539,44 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         if (heading.has_target())
         {
             toggleRudderPid(true);
-            target_heading = heading.target();
+            target_heading_ = heading.target();
         }
 
         if (heading.has_kp())
         {
-            heading_pid->tune(heading.kp(), heading.ki(), heading.kd());
+            heading_pid_->tune(heading.kp(), heading.ki(), heading.kd());
+            glog.is_verbose() && glog << "heading_ tune: " << heading.kp() << std::endl;
+        }
+    }
+    // Heading Constant
+    if (command.has_heading_constant())
+    {
+        auto heading_constant = command.heading_constant();
+
+        if (heading_constant.has_target())
+        {
+            toggleRudderPid(true, true);
+            target_heading_ = heading_constant.target();
+        }
+
+        if (heading_constant.has_kp())
+        {
+            heading_constant_pid_->tune(heading_constant.kp(), heading_constant.ki(),
+                                        heading_constant.kd());
+            glog.is_verbose() && glog << "heading_constant_pid_ tune: " << heading_constant.kp()
+                                      << std::endl;
         }
     }
 
     // Elevators
     if (command.has_port_elevator())
     {
-        port_elevator = command.port_elevator();
+        port_elevator_ = command.port_elevator();
         toggleElevatorPid(false);
     }
     if (command.has_stbd_elevator())
     {
-        stbd_elevator = command.stbd_elevator();
+        stbd_elevator_ = command.stbd_elevator();
         toggleElevatorPid(false);
     }
 
@@ -532,12 +588,12 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         if (roll.has_target())
         {
             toggleElevatorPid(true);
-            target_roll = roll.target();
+            target_roll_ = roll.target();
         }
 
         if (roll.has_kp())
         {
-            roll_pid->tune(roll.kp(), roll.ki(), roll.kd());
+            roll_pid_->tune(roll.kp(), roll.ki(), roll.kd());
         }
     }
 
@@ -549,12 +605,12 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
         if (pitch.has_target())
         {
             toggleElevatorPid(true);
-            target_pitch = pitch.target();
+            target_pitch_ = pitch.target();
         }
 
         if (pitch.has_kp())
         {
-            pitch_pid->tune(pitch.kp(), pitch.ki(), pitch.kd());
+            pitch_pid_->tune(pitch.kp(), pitch.ki(), pitch.kd());
         }
     }
 
@@ -571,17 +627,17 @@ void jaiabot::apps::BotPidControl::handle_command(
 {
     glog.is_verbose() && glog << "Received command: " << command.ShortDebugString() << std::endl;
 
-    lastCommandReceived = goby::time::SystemClock::now<goby::time::MicroTime>();
+    lastCommandReceived_ = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     switch (command.type())
     {
         case jaiabot::protobuf::SETPOINT_STOP:
-            throttle = 0.0;
+            throttle_ = 0.0;
             setThrottleMode(MANUAL);
-            rudder = 0.0;
+            rudder_ = 0.0;
             toggleRudderPid(false);
             break;
-        case jaiabot::protobuf::SETPOINT_IVP_HELM: handle_helm_course(command.helm_course()); break;
+        case jaiabot::protobuf::SETPOINT_IVP_HELM: handle_helm_course(command); break;
         case jaiabot::protobuf::SETPOINT_REMOTE_CONTROL:
             handle_remote_control(command.remote_control());
             break;
@@ -590,42 +646,43 @@ void jaiabot::apps::BotPidControl::handle_command(
     }
 
     // Special case:  don't track the rudder if the target speed is zero, and the throttle is speed-PID
-    if (_throttleMode == PID_SPEED && target_speed == 0.0)
+    if (_throttleMode_ == PID_SPEED && target_speed_ == 0.0)
     {
         all_stop();
     }
 
     // Special case:  don't track the rudder during a dive
-    if (_throttleMode == PID_DEPTH)
+    if (_throttleMode_ == PID_DEPTH)
     {
         toggleRudderPid(false);
-        rudder = 0;
+        rudder_ = 0;
     }
 }
 
 void jaiabot::apps::BotPidControl::handle_helm_course(
-    const goby::middleware::frontseat::protobuf::DesiredCourse& desired_course)
+    const jaiabot::protobuf::DesiredSetpoints& command)
 {
+    auto desired_course = command.helm_course();
     if (desired_course.has_heading())
     {
-        toggleRudderPid(true);
-        target_heading = desired_course.heading();
+        toggleRudderPid(true, command.is_helm_constant_course());
+        target_heading_ = desired_course.heading();
     }
     if (desired_course.has_speed())
     {
         setThrottleMode(PID_SPEED);
-        target_speed = desired_course.speed();
+        target_speed_ = desired_course.speed();
     }
     // TO DO:  PID for the depth that uses elevators while moving forward
     if (desired_course.has_pitch())
     {
         toggleElevatorPid(true);
-        target_pitch = desired_course.pitch();
+        target_pitch_ = desired_course.pitch();
     }
     if (desired_course.has_roll())
     {
         toggleElevatorPid(true);
-        target_roll = desired_course.roll();
+        target_roll_ = desired_course.roll();
     }
     // TO DO:  PID for z_rate and altitude, if present?
 }
@@ -636,12 +693,12 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     if (remote_control.has_heading())
     {
         toggleRudderPid(true);
-        target_heading = remote_control.heading();
+        target_heading_ = remote_control.heading();
     }
     if (remote_control.has_speed())
     {
         setThrottleMode(PID_SPEED);
-        target_speed = remote_control.speed();
+        target_speed_ = remote_control.speed();
     }
 }
 
@@ -664,11 +721,11 @@ void jaiabot::apps::BotPidControl::handle_dive_depth(
     if (command.has_dive_depth())
     {
         setThrottleMode(PID_DEPTH);
-        target_depth = command.dive_depth();
+        target_depth_ = command.dive_depth();
     }
 
     // Set rudder to center
-    rudder = 0.0;
+    rudder_ = 0.0;
     toggleRudderPid(false);
 }
 
@@ -679,15 +736,15 @@ void jaiabot::apps::BotPidControl::handle_powered_ascent(
 
     if (command.has_throttle())
     {
-        throttle = command.throttle();
+        throttle_ = command.throttle();
     }
-    else if (bounds.motor().has_throttle_ascent())
+    else if (bounds_.motor().has_throttle_ascent())
     {
-        throttle = bounds.motor().throttle_ascent();
+        throttle_ = bounds_.motor().throttle_ascent();
     }
     else
     {
-        throttle = 25.0;
+        throttle_ = 25.0;
     }
 }
 
@@ -702,14 +759,15 @@ void copy_pid(Pid* pid, jaiabot::protobuf::PIDControl_PIDSettings* pid_settings)
 void jaiabot::apps::BotPidControl::publish_engineering_status() {
     auto pid_control_status = jaiabot::protobuf::PIDControl();
 
-    copy_pid(throttle_speed_pid, pid_control_status.mutable_speed());
-    copy_pid(throttle_depth_pid, pid_control_status.mutable_depth());
-    copy_pid(heading_pid, pid_control_status.mutable_heading());
-    copy_pid(pitch_pid, pid_control_status.mutable_pitch());
-    copy_pid(roll_pid, pid_control_status.mutable_roll());
+    copy_pid(throttle_speed_pid_, pid_control_status.mutable_speed());
+    copy_pid(throttle_depth_pid_, pid_control_status.mutable_depth());
+    copy_pid(heading_pid_, pid_control_status.mutable_heading());
+    copy_pid(pitch_pid_, pid_control_status.mutable_pitch());
+    copy_pid(roll_pid_, pid_control_status.mutable_roll());
+    copy_pid(heading_constant_pid_, pid_control_status.mutable_heading_constant());
 
-    pid_control_status.set_throttle(throttle);
-    pid_control_status.set_rudder(rudder);
+    pid_control_status.set_throttle(throttle_);
+    pid_control_status.set_rudder(rudder_);
 
     glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString() << endl;
 
@@ -718,9 +776,9 @@ void jaiabot::apps::BotPidControl::publish_engineering_status() {
 
 void jaiabot::apps::BotPidControl::all_stop()
 {
-    throttle = 0.0;
+    throttle_ = 0.0;
     setThrottleMode(MANUAL);
 
-    rudder = 0.0;
+    rudder_ = 0.0;
     toggleRudderPid(false);
 }

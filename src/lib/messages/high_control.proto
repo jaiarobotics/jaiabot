@@ -66,4 +66,6 @@ message DesiredSetpoints
         // throttle control, i.e. SETPOINT_POWERED_ASCENT
         double throttle = 13;
     };
+
+    optional bool is_helm_constant_course = 2 [default = false];
 }
