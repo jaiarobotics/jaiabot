@@ -1133,6 +1133,9 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
     int setpoint_seconds = goal.get().task().constant_heading().constant_heading_time();
     goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
     setpoint_stop_ = setpoint_start + setpoint_duration;
+
+    // Turn on pid for constant heading (different than the transit pid)
+    context<InMission>().set_use_heading_constant_pid(true);
 }
 
 jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeading()
@@ -1143,6 +1146,9 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeadin
     constantSpeedUpdate.mutable_constantspeed()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+    // Turn off pid for constant heading (different than the transit pid)
+    context<InMission>().set_use_heading_constant_pid(false);
 }
 
 void jaiabot::statechart::inmission::underway::task::ConstantHeading::loop(const EvLoop&)
