@@ -17,7 +17,7 @@ except Exception as e:
     jaiabot_bin_dir_default='/usr/bin'
 
 jaiabot_share_dir_default=os.path.realpath(jaiabot_bin_dir_default + '/../share')
-    
+
 try:
     goby_bin_dir_default=os.path.dirname(shutil.which('gobyd'))
 except Exception as e:
@@ -30,6 +30,7 @@ except Exception as e:
 
     
 gen_dir_default=script_dir    
+ansible_dir_default=os.path.realpath(script_dir + '/../ansible')
 
 parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate service files for a bot or a hub?')
@@ -39,6 +40,7 @@ parser.add_argument('--jaiabot_share_dir', default=jaiabot_share_dir_default, he
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
 parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
+parser.add_argument('--ansible_dir', default=ansible_dir_default, help='Directory to the Ansible configuration')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
@@ -136,6 +138,7 @@ common_macros=dict()
 common_macros['env_file']=args.env_file
 common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
 common_macros['jaiabot_share_dir']=args.jaiabot_share_dir
+common_macros['ansible_dir']=args.ansible_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
 common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
