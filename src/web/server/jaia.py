@@ -91,8 +91,6 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
-        self.load_taskpacket_files()
-
         # Messages to display on the client end
         self.messages = {}
 
@@ -436,13 +434,13 @@ class Interface:
             start_utime = utime(startDate)
             startIndex = bisect.bisect_left(self.offloaded_task_packet_dates, start_utime)
         else:
-            startIndex = 0
+            return self.received_task_packets
 
         if endDate is not None:
             end_utime = utime(endDate)
             endIndex = bisect.bisect_right(self.offloaded_task_packet_dates, end_utime)
         else:
-            endIndex = len(self.offloaded_task_packets)
+            return self.received_task_packets
 
         # Only attempt to merge after we check for more taskpacket files
         if self.check_for_offloaded_task_packets:
@@ -476,8 +474,6 @@ class Interface:
         return self.metadata
 
     def load_taskpacket_files(self):
-        taskPacketWindow = timedelta(days=1)
-
         self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
 
         if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
@@ -486,8 +482,6 @@ class Interface:
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
-            stem = filePath.stem
-            dateString = stem[-15:]
 
             for line in open(filePath):
                 try:
