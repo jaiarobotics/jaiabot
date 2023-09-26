@@ -1515,7 +1515,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt', 'line']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -1530,8 +1530,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on goal / waypoint
-			let goal = feature.get('goal')
-
+			const goal = feature.get('goal')
 			if (goal) {
 				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
@@ -1581,6 +1580,12 @@ export default class CommandControl extends React.Component {
 				})
 
 				return false
+			}
+
+			// Clicked on line between waypoints
+			const isLine = feature.get('type') === 'line'
+			if (isLine) {
+				return
 			}
 
 			// Clicked on rally point
