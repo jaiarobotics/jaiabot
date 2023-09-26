@@ -30,6 +30,7 @@ message BotPidControl
     optional PIDGains throttle_speed_pid_gains = 30;
     optional PIDGains throttle_depth_pid_gains = 40;
     optional PIDGains heading_pid_gains = 50;
+    optional PIDGains heading_constant_pid_gains = 51;
     optional PIDGains roll_pid_gains = 60;
     optional PIDGains pitch_pid_gains = 70;
 

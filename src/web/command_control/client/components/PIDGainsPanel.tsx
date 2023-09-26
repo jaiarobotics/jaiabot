@@ -11,7 +11,7 @@ import {JaiaAPI} from '../../common/JaiaAPI'
 import { getElementById } from './shared/Utilities';
 import { PortalBotStatus } from './shared/PortalStatus';
 
-let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth']
+let pidTypes: (keyof PIDControl)[] = [ 'speed', 'heading', 'roll', 'pitch', 'depth', 'heading_constant']
 let pidGains: (keyof PIDSettings)[] = ['Kp', 'Ki', 'Kd']
 
 

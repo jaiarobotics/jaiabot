@@ -42,7 +42,7 @@ export function createMissionFeatures(
                 title: 'Goal ' + goalIndexStartAtOne, 
                 lon: location.lon, 
                 lat: location.lat,
-                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit)
+                style: Styles.getGoalStyle(goalIndexStartAtOne, goal, activeRun ? goalIndexStartAtOne == activeGoalIndex : false, isSelected, canEdit, zIndex)
             }
         )
 
@@ -95,8 +95,11 @@ export function createMissionFeatures(
 
             // Create and add the constant heading arrow feature (dotted line)
             let constantHeadingSegment = new Feature({ geometry: new LineString(coordinatesArray) })
-            constantHeadingSegment.set("isSelected", isSelected)
-            constantHeadingSegment.set("isConstantHeading", true)
+            constantHeadingSegment.setProperties({
+                isSelected: isSelected,
+                isConstantHeading: true,
+                canEdit: canEdit
+            })
             constantHeadingSegment.setStyle(Styles.missionPath)
             features.push(constantHeadingSegment)
 

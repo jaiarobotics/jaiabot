@@ -1149,6 +1149,7 @@ export interface PIDControl {
     roll?: PIDSettings
     pitch?: PIDSettings
     depth?: PIDSettings
+    heading_constant?: PIDSettings
     led_switch_on?: boolean
 }
 
