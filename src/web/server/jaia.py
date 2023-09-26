@@ -489,8 +489,12 @@ class Interface:
             stem = filePath.stem
             dateString = stem[-15:]
 
-            taskPackets: List[Dict] = [json.loads(line) for line in open(filePath)]
-            self.offloaded_task_packets.extend(taskPackets)
+            for line in open(filePath):
+                try:
+                    taskPacket: Dict = json.loads(line)
+                    self.offloaded_task_packets.append(taskPacket)
+                except json.JSONDecodeError as e:
+                    logging.warning(f"Error decoding JSON line: {line} because {e}")
 
         self.offloaded_task_packets = filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
         self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))

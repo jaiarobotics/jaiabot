@@ -115,18 +115,11 @@ jaiabot::statechart::predeployment::StartingUp::StartingUp(typename StateBase::m
 
     if (cfg().data_offload_only_task_packet_file())
     {
-        if (this->machine().create_task_packet_file())
-        {
-            this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
-                                                      this->machine().create_file_date_time() +
-                                                      ".taskpacket");
+        glog.is_debug1() && glog << "Create a task packet file and only offload that file"
+                                 << "to hub (ignore sending goby files)" << std::endl;
 
-            glog.is_debug1() && glog << "Create a task packet file and only offload that file"
-                                     << "to hub (ignore sending goby files)" << std::endl;
-
-            // Extra exclusions for rsync
-            this->machine().set_data_offload_exclude(" '*.goby'");
-        }
+        // Extra exclusions for rsync
+        this->machine().set_data_offload_exclude(" '*.goby'");
     }
 }
 
@@ -331,10 +324,6 @@ jaiabot::statechart::inmission::underway::Task::~Task()
     {
         if (cfg().data_offload_only_task_packet_file())
         {
-            // Open task packet file
-            std::ofstream task_packet_file(
-                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
-
             // Convert to json string
             std::string json_string;
             google::protobuf::util::JsonPrintOptions json_options;
@@ -346,13 +335,21 @@ jaiabot::statechart::inmission::underway::Task::~Task()
             // Check if it is a new task packet file
             if (this->machine().create_task_packet_file())
             {
-                task_packet_file << json_string;
+                this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
+                                                          this->machine().create_file_date_time() +
+                                                          ".taskpacket");
                 this->machine().set_create_task_packet_file(false);
             }
             else
             {
-                task_packet_file << "\n" << json_string;
+                json_string = "\n" + json_string;
             }
+
+            // Open task packet file
+            std::ofstream task_packet_file(
+                cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
+
+            task_packet_file << json_string;
 
             // Close the json file
             task_packet_file.close();
