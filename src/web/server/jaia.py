@@ -91,8 +91,6 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
-        self.load_taskpacket_files()
-
         # Messages to display on the client end
         self.messages = {}
 
@@ -436,22 +434,24 @@ class Interface:
             start_utime = utime(startDate)
             startIndex = bisect.bisect_left(self.offloaded_task_packet_dates, start_utime)
         else:
-            startIndex = 0
+            return self.received_task_packets
 
         if endDate is not None:
             end_utime = utime(endDate)
             endIndex = bisect.bisect_right(self.offloaded_task_packet_dates, end_utime)
         else:
-            endIndex = len(self.offloaded_task_packets)
+            return self.received_task_packets
 
         # Only attempt to merge after we check for more taskpacket files
         if self.check_for_offloaded_task_packets:
             for offloaded_task_packet in self.offloaded_task_packets[startIndex: endIndex]:
                 # Get the start_time from the offloaded task packet in seconds
                 offloaded_start_time = round(int(offloaded_task_packet.get('start_time')), -6)  
+                # Get the bot id associated with the start time
+                offloaded_bot_id = offloaded_task_packet.get('bot_id')
 
-                # Check if an item with the same start_time in seconds exists in merged_list
-                if not any(round(int(item.get('start_time')), -6) == offloaded_start_time for item in self.received_task_packets):
+                # Check if an item with the same start_time in seconds exists for the same bot id in merged_list
+                if not any((round(int(item.get('start_time')), -6) == offloaded_start_time and item.get('bot_id') == offloaded_bot_id) for item in self.received_task_packets):
                     # If no matching start_time found in merged_list, add the offloaded task packet
                     self.received_task_packets.append(offloaded_task_packet)
 
@@ -474,8 +474,6 @@ class Interface:
         return self.metadata
 
     def load_taskpacket_files(self):
-        taskPacketWindow = timedelta(days=1)
-
         self.offloaded_task_packet_file_curr = len(glob.glob(self.taskPacketPath + '*.taskpacket'))
 
         if self.offloaded_task_packet_file_curr != self.offloaded_task_packet_files_prev:
@@ -484,11 +482,13 @@ class Interface:
 
         for filePath in glob.glob(self.taskPacketPath + '*.taskpacket'):
             filePath = Path(filePath)
-            stem = filePath.stem
-            dateString = stem[-15:]
 
-            taskPackets: List[Dict] = [json.loads(line) for line in open(filePath)]
-            self.offloaded_task_packets.extend(taskPackets)
+            for line in open(filePath):
+                try:
+                    taskPacket: Dict = json.loads(line)
+                    self.offloaded_task_packets.append(taskPacket)
+                except json.JSONDecodeError as e:
+                    logging.warning(f"Error decoding JSON line: {line} because {e}")
 
         self.offloaded_task_packets = filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
         self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))
