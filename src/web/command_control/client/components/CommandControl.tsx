@@ -21,6 +21,7 @@ import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
+import { SettingsPanel } from './SettingsPanel'
 import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
@@ -66,7 +67,7 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -99,7 +100,8 @@ export enum PanelType {
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
 	RALLY_POINT = 'RALLY_POINT',
-	TASK_PACKET = 'TASK_PACKET'
+	TASK_PACKET = 'TASK_PACKET',
+	SETTINGS = 'SETTINGS'
 }
 
 export enum Mode {
@@ -187,6 +189,7 @@ interface State {
 	taskPacketData: {[key: string]: {[key: string]: string}},
 	selectedTaskPacketFeature: OlFeature,
 	taskPacketIntervalId: NodeJS.Timeout,
+	isClusterModeOn: boolean
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -330,6 +333,7 @@ export default class CommandControl extends React.Component {
 			taskPacketData: {},
 			selectedTaskPacketFeature: null,
 			taskPacketIntervalId: null,
+			isClusterModeOn: true,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -1515,7 +1519,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt', 'line']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -1530,8 +1534,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on goal / waypoint
-			let goal = feature.get('goal')
-
+			const goal = feature.get('goal')
 			if (goal) {
 				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
@@ -1581,6 +1584,12 @@ export default class CommandControl extends React.Component {
 				})
 
 				return false
+			}
+
+			// Clicked on line between waypoints
+			const isLine = feature.get('type') === 'line'
+			if (isLine) {
+				return
 			}
 
 			// Clicked on rally point
@@ -1813,7 +1822,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	unselectTaskPacket(type: string) {
-		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		for (const featuresArray of features) {
 			const feature = featuresArray.get('features')[0]
 			if (feature.get('selected')) {
@@ -1833,7 +1842,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	setTaskPacketInterval(selectedFeature: Feature, type: string) {
-		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('features')[0].get('id') === selectedFeature.get('id')) {
@@ -1847,6 +1856,10 @@ export default class CommandControl extends React.Component {
 				this.setState({ selectedTaskPacketFeature: selectedFeature, taskPacketIntervalId })
 			}
 		}
+	}
+
+	setClusterModeStatus(isOn: boolean) {
+		this.setState({ isClusterModeOn: isOn })
 	}
 	// 
 	// Task Packets (End)
@@ -2088,12 +2101,43 @@ export default class CommandControl extends React.Component {
 				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
 					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+					<Button className="button-jcc active" onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+				))}
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.SETTINGS ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiCog} title="Settings"/>
+				</Button>
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.SETTINGS)
+						}}
+					>
+						<Icon path={mdiCog} title="Settings"/>
+					</Button>
+				))}
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -2742,23 +2786,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const downloadQueueButton = (visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-		))
-
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -2864,6 +2891,14 @@ export default class CommandControl extends React.Component {
 					/>
 				)
 				break
+			case PanelType.SETTINGS:
+				visiblePanelElement = (
+					<SettingsPanel
+						isClusterModeOn={this.state.isClusterModeOn}
+						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+					/>
+				)
+				break
 		}
 
 		return (
@@ -2878,8 +2913,6 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
-
-					{downloadQueueButton}
 
 					{engineeringButton}
 
