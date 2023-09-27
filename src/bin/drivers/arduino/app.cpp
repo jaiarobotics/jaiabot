@@ -64,6 +64,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
 
     int64_t lastAckTime_;
 
@@ -101,6 +103,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool is_settings_ack_{false};
     //This needs to be grabbed at runtime
     std::string app_version = "1.0.0~beta0+18+g2350a1a-0~ubuntu20.04.1";
+
+    // Used to check the time of the last arduino report
+    goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
 };
 
 } // namespace apps
@@ -177,6 +182,19 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
+
+            if (arduino_response.status_code() == 0)
+            {
+                if (is_settings_ack_)
+                {
+                    // Reset to false because the arduino restarted
+                    // Ensures that we set our bounds
+                    is_settings_ack_ = false;
+
+                    arduino_response.set_arduino_restarted(true);
+                }
+            }
+
             if (arduino_response.status_code() > 1)
             {
                 glog.is_warn() && glog << group("arduino")
@@ -212,6 +230,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                      << arduino_response.ShortDebugString() << std::endl;
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
+            last_arduino_report_time_ = goby::time::SteadyClock::now();
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -387,4 +406,18 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
     }
 
     health.set_state(health_state);
+}
+
+void jaiabot::apps::ArduinoDriver::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
+    }
 }
