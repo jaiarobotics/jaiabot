@@ -2101,12 +2101,43 @@ export default class CommandControl extends React.Component {
 				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
 					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+					<Button className="button-jcc active" onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+				))}
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.SETTINGS ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiCog} title="Settings"/>
+				</Button>
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.SETTINGS)
+						}}
+					>
+						<Icon path={mdiCog} title="Settings"/>
+					</Button>
+				))}
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -2755,40 +2786,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const downloadQueueButton = (visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-		))
-
-		const settingsButton = (visiblePanel == PanelType.SETTINGS ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<Icon path={mdiCog} title="Settings"/>
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.SETTINGS)
-				}}
-			>
-				<Icon path={mdiCog} title="Settings"/>
-			</Button>
-		))
-
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -2917,8 +2914,6 @@ export default class CommandControl extends React.Component {
 
 					{missionPanelButton}
 
-					{downloadQueueButton}
-
 					{engineeringButton}
 
 					{surveyMissionSettingsButton}
@@ -2928,8 +2923,6 @@ export default class CommandControl extends React.Component {
 					{measureButton}
 
 					{mapLayersButton}
-
-					{settingsButton}
 
 				</div>
 
