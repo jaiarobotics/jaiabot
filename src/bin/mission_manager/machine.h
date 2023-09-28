@@ -1068,12 +1068,12 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
         // Check to see if the bot has switched between vertical and horizontal positioning
         if (is_bot_vertical_ != is_bot_vertical_prev_)
         {
-            start_stop_cal_incr++;
+            start_stop_cal_incr_++;
             is_bot_vertical_prev_ = is_bot_vertical_;
         }
 
         // Check to see if our number of attempts to calibrate has reached our config
-        if (start_stop_cal_incr >= (this->cfg.imu_calibration_start_stop_attempts() - 1))
+        if (start_stop_cal_incr_ >= (this->cfg().imu_calibration_start_stop_attempts() - 1))
         {
             this->post_event(EvIMURestartCompleted());
         }
@@ -1098,7 +1098,7 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
     int rudder_{this->cfg().imu_calibration_rudder()};
     bool is_bot_vertical_{false};
     bool is_bot_vertical_prev_{false};
-    bool start_stop_cal_incr{0};
+    int start_stop_cal_incr_{0};
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,
