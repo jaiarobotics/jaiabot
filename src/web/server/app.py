@@ -18,7 +18,7 @@ def parseDate(dateString: str):
     
 
 # Internal Imports
-import jaia
+import jaia_portal
 import missions
 
 # Arguments
@@ -38,7 +38,7 @@ if args.hostname is None:
     logging.warning('no ip specified, using localhost:40001')
     args.hostname = "localhost"
 
-jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
+jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
 
 app = Flask(__name__)
 

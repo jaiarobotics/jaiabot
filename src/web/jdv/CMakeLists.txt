@@ -1,5 +1,4 @@
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/jaiabot/jdv/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../server/contours.py DESTINATION ${project_SHARE_DIR}/jaiabot/jdv/server/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/jdv)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/favicon.png DESTINATION ${project_SHARE_DIR}/jaiabot/jdv/client/dist/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/client/dist/index.html DESTINATION ${project_SHARE_DIR}/jaiabot/jdv/client/dist/)
