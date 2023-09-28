@@ -1,0 +1,3 @@
+messages/
+build/
+*.egg-info/

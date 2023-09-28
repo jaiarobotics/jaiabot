@@ -4,7 +4,7 @@ import bisect
 import socket
 import threading
 
-import jaiabot.contours
+import pyjaia.contours
 
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
@@ -462,7 +462,7 @@ class Interface:
     # Contour map
 
     def get_depth_contours(self): 
-        return jaiabot.contours.taskPacketsToContours(self.get_task_packets())
+        return pyjaia.contours.taskPacketsToContours(self.get_task_packets())
 
     # Controlling clientId
 
