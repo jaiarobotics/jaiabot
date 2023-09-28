@@ -43,6 +43,12 @@ message RemoteControl
             units { derived_dimensions: "length/time" }
         }
     ];
+
+    optional double throttle = 4
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
+
+    optional double rudder = 6
+        [(dccl.field) = { min: -100 max: 100 precision: 0 }];
 }
 
 message DesiredSetpoints

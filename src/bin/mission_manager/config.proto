@@ -115,7 +115,7 @@ message MissionManager
     optional RemoteControlSetpointEnd rc_setpoint_end = 50
         [default = RC_SETPOINT_ENDS_IN_STATIONKEEP];
 
-    optional uint32 imu_restart_seconds = 51 [default = 10];
+    optional uint32 imu_restart_seconds = 51 [default = 60];
 
     // Bot not rising timeout in seconds without depth change greater than
     // dive_depth_eps before assuming the bot is stuck and is not rising
@@ -145,7 +145,7 @@ message MissionManager
 
     optional int32 pitch_angle_checks = 60 [default = 3];
 
-    // The min amount of time to trigger a EvBotNotVertical event
+    // The min amount of time to determine bot position
     optional double pitch_angle_min_check_time = 61
     [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
@@ -191,4 +191,14 @@ message MissionManager
     // timeout for when to stop logging if in failed state
     optional int32 failed_startup_log_timeout = 85
         [default = 300, (dccl.field).units = { base_dimensions: "T" }];
+
+    optional double pitch_to_determine_imu_calibration_vertical = 86 [default = 70];
+
+    optional double pitch_to_determine_imu_calibration_horizontal = 87 [default = 30];
+
+    optional int32 imu_calibration_throttle = 88 [default = 40];
+
+    optional int32 imu_calibration_rudder = 89 [default = 100];
+
+    optional int32 imu_calibration_start_stop_attempts = 90 [default = 3];
 }

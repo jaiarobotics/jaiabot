@@ -981,6 +981,15 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
         goby::time::SteadyClock::duration imu_restart_duration =
             std::chrono::seconds(imu_restart_seconds);
         imu_restart_time_stop_ = imu_restart_start + imu_restart_duration;
+
+        // Initialize remote control values
+        remote_control_.set_duration(1);
+        remote_control_.set_throttle(0);
+        remote_control_.set_rudder(0);
+
+        // Initialize setpoint value
+        setpoint_msg_.set_type(protobuf::SETPOINT_REMOTE_CONTROL);
+        *setpoint_msg_.mutable_remote_control() = remote_control_;
     };
 
     ~IMURestartCommon(){};
@@ -994,11 +1003,102 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
         }
     }
 
+    void pitch(const EvVehiclePitch& ev)
+    {
+        auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+        // If we are not vertical then stop throttle
+        if (std::abs(ev.pitch.value()) <=
+            this->cfg().pitch_to_determine_imu_calibration_horizontal())
+        {
+            // Check to see if we have reached the number of checks and the min check time
+            // has been reach to determine if a bot is no longer vertical
+            if ((pitch_angle_horizontal_check_incr_ >= (this->cfg().pitch_angle_checks() - 1)) &&
+                ((now - last_pitch_horizontal_time_) >=
+                 static_cast<decltype(now)>(this->cfg().pitch_angle_min_check_time_with_units())))
+            {
+                goby::glog.is_debug2() &&
+                    goby::glog << "IMURestartCommon::pitch Bot is no longer vertical!" << std::endl;
+
+                is_bot_vertical_ = false;
+                remote_control_.set_throttle(0);
+                remote_control_.set_rudder(rudder_);
+
+                *setpoint_msg_.mutable_remote_control() = remote_control_;
+                this->interprocess().template publish<jaiabot::groups::desired_setpoints>(
+                    setpoint_msg_);
+            }
+            pitch_angle_horizontal_check_incr_++;
+        }
+        else
+        {
+            last_pitch_horizontal_time_ = now;
+            pitch_angle_horizontal_check_incr_ = 0;
+        }
+
+        // If we are vertical then start throttle
+        if (std::abs(ev.pitch.value()) >= this->cfg().pitch_to_determine_imu_calibration_vertical())
+        {
+            // Check to see if we have reached the number of checks and the min check time
+            // has been reach to determine if a bot is no longer vertical
+            if ((pitch_angle_vertical_check_incr_ >= (this->cfg().pitch_angle_checks() - 1)) &&
+                ((now - last_pitch_vertical_time_) >=
+                 static_cast<decltype(now)>(this->cfg().pitch_angle_min_check_time_with_units())))
+            {
+                goby::glog.is_debug2() &&
+                    goby::glog << "IMURestartCommon::pitch Bot is no longer horizontal!"
+                               << std::endl;
+
+                is_bot_vertical_ = true;
+                remote_control_.set_throttle(throttle_);
+                remote_control_.set_rudder(rudder_);
+
+                *setpoint_msg_.mutable_remote_control() = remote_control_;
+                this->interprocess().template publish<jaiabot::groups::desired_setpoints>(
+                    setpoint_msg_);
+            }
+            pitch_angle_vertical_check_incr_++;
+        }
+        else
+        {
+            last_pitch_vertical_time_ = now;
+            pitch_angle_vertical_check_incr_ = 0;
+        }
+
+        // Check to see if the bot has switched between vertical and horizontal positioning
+        if (is_bot_vertical_ != is_bot_vertical_prev_)
+        {
+            start_stop_cal_incr++;
+            is_bot_vertical_prev_ = is_bot_vertical_;
+        }
+
+        // Check to see if our number of attempts to calibrate has reached our config
+        if (start_stop_cal_incr >= (this->cfg.imu_calibration_start_stop_attempts() - 1))
+        {
+            this->post_event(EvIMURestartCompleted());
+        }
+    }
+
     using reactions = boost::mpl::list<
-        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>>;
+        boost::statechart::in_state_reaction<EvLoop, IMURestartCommon, &IMURestartCommon::loop>,
+        boost::statechart::in_state_reaction<EvVehiclePitch, IMURestartCommon,
+                                             &IMURestartCommon::pitch>>;
 
   private:
     goby::time::SteadyClock::time_point imu_restart_time_stop_;
+    int pitch_angle_vertical_check_incr_{0};
+    goby::time::MicroTime last_pitch_vertical_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
+    int pitch_angle_horizontal_check_incr_{0};
+    goby::time::MicroTime last_pitch_horizontal_time_{
+        goby::time::SystemClock::now<goby::time::MicroTime>()};
+    protobuf::RemoteControl remote_control_;
+    protobuf::DesiredSetpoints setpoint_msg_;
+    int throttle_{this->cfg().imu_calibration_throttle()};
+    int rudder_{this->cfg().imu_calibration_rudder()};
+    bool is_bot_vertical_{false};
+    bool is_bot_vertical_prev_{false};
+    bool start_stop_cal_incr{0};
 };
 
 struct Replan : boost::statechart::state<Replan, Underway>,

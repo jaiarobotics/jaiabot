@@ -40,8 +40,6 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-bool led_switch_on = true;
-
 int main(int argc, char* argv[])
 {
     return goby::run<jaiabot::apps::BotPidControl>(
@@ -426,7 +424,7 @@ void jaiabot::apps::BotPidControl::loop()
     control_surfaces.set_stbd_elevator(stbd_elevator_);
     control_surfaces.set_rudder(rudder_);
     control_surfaces.set_motor(throttle_);
-    control_surfaces.set_led_switch_on(led_switch_on);
+    control_surfaces.set_led_switch_on(led_switch_on_);
 
     glog.is_debug2() && glog << group("main") << "Sending command: " << cmd_msg_.ShortDebugString()
                              << std::endl;
@@ -616,7 +614,7 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(const jaiabot::pro
 
     if (command.has_led_switch_on())
     {
-        led_switch_on = command.led_switch_on();
+        led_switch_on_ = command.led_switch_on();
     }
 }
 
@@ -699,6 +697,16 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
     {
         setThrottleMode(PID_SPEED);
         target_speed_ = remote_control.speed();
+    }
+    if (remote_control.has_throttle())
+    {
+        setThrottleMode(MANUAL);
+        throttle_ = remote_control.throttle();
+    }
+    if (remote_control.has_rudder())
+    {
+        toggleRudderPid(false);
+        rudder_ = remote_control.rudder();
     }
 }
 

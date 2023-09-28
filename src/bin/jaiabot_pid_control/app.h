@@ -87,6 +87,8 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
 
     jaiabot::protobuf::Bounds bounds_;
 
+    bool led_switch_on_{true};
+
   private:
     void loop() override;
 
