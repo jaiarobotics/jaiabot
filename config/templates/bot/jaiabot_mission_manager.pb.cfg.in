@@ -89,7 +89,12 @@ include_goal_timeout_states: IN_MISSION__UNDERWAY__RECOVERY__REACQUIRE_GPS
 min_depth_safety: -1 # (default = -1)
 
 # IMU Restart State Timeout
-imu_restart_seconds: 10 # (default = 10)
+imu_restart_seconds: 60 # (default = 60)
+pitch_to_determine_imu_calibration_vertical: 70 # (default = 70)
+pitch_to_determine_imu_calibration_horizontal: 30 # (default = 30)
+imu_calibration_throttle: 40 # (default = 40)
+imu_calibration_rudder: 100 # (default = 100)
+imu_calibration_start_stop_attempts: 3 # (default = 3)
 
 # If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
 $subscribe_to_hub_on_start

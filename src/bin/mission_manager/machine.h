@@ -1025,8 +1025,6 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
                 remote_control_.set_rudder(rudder_);
 
                 *setpoint_msg_.mutable_remote_control() = remote_control_;
-                this->interprocess().template publish<jaiabot::groups::desired_setpoints>(
-                    setpoint_msg_);
             }
             pitch_angle_horizontal_check_incr_++;
         }
@@ -1054,8 +1052,6 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
                 remote_control_.set_rudder(rudder_);
 
                 *setpoint_msg_.mutable_remote_control() = remote_control_;
-                this->interprocess().template publish<jaiabot::groups::desired_setpoints>(
-                    setpoint_msg_);
             }
             pitch_angle_vertical_check_incr_++;
         }
@@ -1077,6 +1073,8 @@ struct IMURestartCommon : boost::statechart::state<Derived, Parent>,
         {
             this->post_event(EvIMURestartCompleted());
         }
+
+        this->interprocess().template publish<jaiabot::groups::desired_setpoints>(setpoint_msg_);
     }
 
     using reactions = boost::mpl::list<
