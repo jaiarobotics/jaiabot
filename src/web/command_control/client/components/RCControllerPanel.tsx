@@ -1,14 +1,17 @@
 import React, { ReactElement } from 'react'
-import {JaiaAPI} from '../../common/JaiaAPI'
-import { Joystick, JoystickShape } from 'react-joystick-component'
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import Button from '@mui/material/Button';
+import Gamepad from 'react-gamepad';
+import MenuItem from '@mui/material/MenuItem';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import { Icon } from '@mdi/react'
+import { mdiPlay } from '@mdi/js'
+import { JaiaAPI } from '../../common/JaiaAPI'
 import { Engineering } from './shared/JAIAProtobuf'
 import { PortalBotStatus } from './shared/PortalStatus'
-import MenuItem from '@mui/material/MenuItem';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Gamepad from 'react-gamepad';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystick'
+import { Joystick, JoystickShape } from 'react-joystick-component'
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 interface Props {
 	api: JaiaAPI,
@@ -28,6 +31,7 @@ interface State {
 	rudderDirection: string,
 	throttleBinNumber: number,
 	rudderBinNumber: number,
+	diveParameters: { [diveParam: string]: string }
 }
 
 enum JoySticks {
@@ -62,7 +66,13 @@ export default class RCControllerPanel extends React.Component {
 			throttleDirection: '',
 			rudderDirection: '',
 			throttleBinNumber: 0,
-			rudderBinNumber: 0
+			rudderBinNumber: 0,
+			diveParameters: {
+				'maxDepth': '',
+				'depthInterval': '',
+				'holdTime': '',
+				'driftTime': ''
+			}
         }
     }
 
@@ -267,6 +277,34 @@ export default class RCControllerPanel extends React.Component {
 		this.setState({ joyStickStatus })
 	}
 
+	handleDiveParamInputChange(evt: React.ChangeEvent<HTMLInputElement>) {
+		const paramType = evt.target.id
+		const diveParams = this.state.diveParameters
+		const input = evt.target.value
+		if (Number.isNaN(Number(input)) || Number(input) < 0) {
+			alert('Please enter only positive numbers for dive parameters')
+			return
+		}
+		diveParams[paramType] = input
+		this.setState({ diveParameters: diveParams })
+	}
+
+	handleDiveButtonClick() {
+		const diveParametersNum: { [diveParam: string]: number } = {}
+		for (const key of Object.keys(this.state.diveParameters)) {
+			diveParametersNum[key] = Number(this.state.diveParameters[key])
+		}
+	}
+
+	isDiveButtonDisabled() {
+		for (const value of Object.values(this.state.diveParameters)) {
+			if (value === '') {
+				return true
+			}
+		}
+		return false
+	}
+
 	clearRemoteControlValues() {
 		this.props.remoteControlValues.pid_control.throttle = 0
 		this.props.remoteControlValues.pid_control.rudder = 0
@@ -340,6 +378,8 @@ export default class RCControllerPanel extends React.Component {
 		let leftController: ReactElement
 		let rightController: ReactElement
 		let soleController: ReactElement
+		let driveControlPad: ReactElement
+		let diveControlPad: ReactElement
 
 		leftController = (
 			<div className={`controller ${this.state.joyStickStatus['left'] ? "": "hide-controller"}`}>
@@ -399,6 +439,58 @@ export default class RCControllerPanel extends React.Component {
 			</div>
 		)
 
+		driveControlPad = (
+			<div className='rc-labels-container'>
+				{selectControlType}
+				<div className='rc-info-container' >
+					<div>Throttle Direction:</div>
+					<div className='rc-data'>{this.state.throttleDirection}</div>
+					<div>Throttle:</div>
+					<div className='rc-data'>{this.state.throttleBinNumber}</div>
+				</div>
+				<div className='rc-info-container'>
+					<div>Rudder Direction:</div>
+					<div className='rc-data'>{this.state.rudderDirection}</div>	
+					<div>Rudder:</div>					
+					<div className='rc-data'>{this.state.rudderBinNumber}</div>
+				</div>
+			</div>
+		)
+
+		diveControlPad = (
+			<div className='rc-dive-labels-container'>
+				<div className='rc-labels-left'>
+					{selectControlType}
+					<div className='rc-dive-info-container' >
+						<div>Max Depth:</div>
+						<input id='maxDepth' className='rc-input' type='text' value={this.state.diveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)}/>
+						<div>m</div>
+
+						<div>Depth Interval:</div>
+						<input id='depthInterval' className='rc-input' type='text' value={this.state.diveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<div>m</div>
+
+						<div>Hold Time:</div>
+						<input id='holdTime' className='rc-input' type='text' value={this.state.diveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<div>s</div>
+
+						<div>Drift Time:</div>
+						<input id='driftTime' className='rc-input' type='text' value={this.state.diveParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<div>s</div>
+					</div>
+				</div>
+				<div className='rc-labels-right'>
+					<Button
+						className={`button-jcc button-rc-dive ${this.isDiveButtonDisabled() ? 'inactive' : ''}`}
+						disabled={this.isDiveButtonDisabled()} 
+						onClick={() => this.handleDiveButtonClick()}
+                    >
+						<Icon path={mdiPlay} title='Run Mission'/>
+                    </Button>
+				</div>
+			</div>
+		)
+
 		// Set the remoteControlValues to the selected bot id
 		this.props.remoteControlValues.bot_id = this.props.bot.bot_id
 
@@ -408,24 +500,9 @@ export default class RCControllerPanel extends React.Component {
 				<div className='rc-heading'>Remote Control Panel: Bot {this.props.bot.bot_id}</div>
 
 				<div className='stick-container'>
-
 					{this.state.controlType === ControlTypes.MANUAL_DUAL ? leftController : soleController}
 
-					<div className='rc-labels-container'>
-						{selectControlType}
-						<div className='rc-info-container' >
-							<div>Throttle Direction:</div>
-							<div className='rc-data'>{this.state.throttleDirection}</div>
-							<div>Throttle:</div>
-							<div className='rc-data'>{this.state.throttleBinNumber}</div>
-						</div>
-						<div className='rc-info-container'>
-							<div>Rudder Direction:</div>
-							<div className='rc-data'>{this.state.rudderDirection}</div>	
-							<div>Rudder:</div>					
-							<div className='rc-data'>{this.state.rudderBinNumber}</div>
-						</div>
-					</div>
+					{this.state.controlType === ControlTypes.DIVE ? diveControlPad : driveControlPad}
 
 					{rightController}
 
@@ -435,7 +512,7 @@ export default class RCControllerPanel extends React.Component {
 							console.log('connected');
 						}}
 						onAxisChange={(axisName: string, value: number) => {
-							this.props.createInterval();
+							this.props.createInterval()
 							this.handleGamepadAxisChange(axisName, value)
 						}}
 					>
