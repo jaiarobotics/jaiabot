@@ -20,6 +20,7 @@ setup(name='pyjaia',
           'protobuf==3.20.0', 
           'scipy', 
           'numpy', 
-          'cmocean'
+          'cmocean',
+          'turfpy'
           ],
      )
