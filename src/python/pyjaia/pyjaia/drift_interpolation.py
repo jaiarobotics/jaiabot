@@ -7,14 +7,14 @@ from copy import deepcopy
 from pprint import pprint
 
 import numpy as np
-import logging
 import math
-import timeit
+import random
 
 
-def plotDrifts(drifts: List["Drift"]):
-    import plotly.express as px
-    fig = px.scatter(x=[drift.location.lon for drift in drifts], y=[drift.location.lat for drift in drifts])
+def plotDrifts(driftsList: List[List["Drift"]]):
+    import plotly.graph_objects as go
+    plots = [go.Scatter(x=[drift.location.lon for drift in drifts], y=[drift.location.lat for drift in drifts], mode='markers') for drifts in driftsList]    
+    fig = go.Figure(data=plots)
     fig.show()
 
 
@@ -44,7 +44,10 @@ class LatLon:
 
     def distanceTo(self, other: "LatLon") -> float:
         return measurement.distance(self.feature(), other.feature(), units='m')
-
+    
+    def midpoint(self, other: "LatLon"):
+        midpointFeature = measurement.midpoint(self.feature(), other.feature())
+        return LatLon.fromList(midpointFeature.get('geometry').get('coordinates'))
 
 @dataclass
 class Drift:
@@ -67,14 +70,26 @@ class Drift:
             heading=fmod(ourWeight * self.heading + otherWeight * other.heading, 0, 360))
         
         return newDrift
+    
+    def interpolateToFraction(self, other: "Drift", otherWeight: float):
+        lineString = LineString([self.location.list(), other.location.list()])
+        lineLength = measurement.length(lineString)
+        ourWeight = 1 - otherWeight
 
+        newFeature = measurement.along(lineString, dist=lineLength * otherWeight)
+        newLocation = LatLon.fromList(newFeature.get('geometry').get('coordinates'))
 
-def getInterpolatedDrifts(drifts: List[Drift], delta=10):
+        return Drift(
+            location=newLocation, 
+            speed=ourWeight * self.speed + otherWeight * other.speed,
+            heading=fmod(ourWeight * self.heading + otherWeight * other.heading, 0, 360))
+
+def getInterpolatedDrifts(drifts: List[Drift], delta=25):
     # We need at least two points to do any interpolation
     if len(drifts) < 2:
-        return drifts
+        return deepcopy(drifts)
     
-    drifts = deepcopy(drifts)
+    outputDrifts: List[Drift] = deepcopy(drifts)
 
     if len(drifts) == 2:
         # Just interpolate along a line
@@ -85,72 +100,73 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=10):
         actualDelta = lineLength / nPoints
 
         for pointIndex in range(1, nPoints):
-            drifts.append(drifts[0].interpolateTo(drifts[1], pointIndex * actualDelta, 'm'))
+            outputDrifts.append(drifts[0].interpolateTo(drifts[1], pointIndex * actualDelta, 'm'))
 
-        return drifts
+        return outputDrifts
     
-    # Recursively interpolate using Delaney triangulations, until there are no distances longer than delta
-    MAX_ITER = 6
-    MAX_POINTS = 200
+    # Get the Delaney triangles
+    meshPoints2d = [drift.location.list() for drift in drifts]
+    tri = Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
 
-    for iteration in range(MAX_ITER):
+    def div(a: float, b: float):
+        if a == 0:
+            return 1
+        return math.ceil(a / b)
 
-        plotDrifts(drifts)
+    # Fill triangles with interpolated drifts
+    vertexIndices: List[int]
 
-        if len(drifts) > MAX_POINTS:
-            logging.warning(f'Maximum drift points exceeded: {len(drifts)} > {MAX_POINTS}')
-            return drifts
+    for vertexIndices in tri.simplices:
+        vertexDrifts = [drifts[i] for i in vertexIndices]
+        a = vertexDrifts[0].location.distanceTo(vertexDrifts[1].location)
+        a1 = vertexDrifts[0].location.distanceTo(vertexDrifts[2].location)
+        aDiv = div(min(a, a1), delta)
 
+        for rowIndex in range(1, aDiv):
+            # Loop through rows from vertex 0 to vertex 1/2
+            startDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[1], (rowIndex / aDiv))
+            endDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[2], (rowIndex / aDiv))
 
-        # Get the Delaney triangles
-        meshPoints2d = [drift.location.list() for drift in drifts]
-        tri = Delaunay(np.array(meshPoints2d), qhull_options="Qbb Qc Qz Q12")
+            b = startDrift.location.distanceTo(endDrift.location)
+            bDiv = div(b, delta)
 
-        tesselated = False # Did we need to add a new drift this cycle?
+            for ptIndex in range(1, bDiv):
+                newDrift = startDrift.interpolateToFraction(endDrift, ptIndex / bDiv)
 
-        # Dictionary of edges
-        connections: Set[Tuple[int]] = set()
+                outputDrifts.append(newDrift)
 
-        for simplex in tri.simplices:
-            # Simplex contains the three drift indices of the mesh points to interpolate between
-            for indexPair in [[0, 1], [0, 2], [1, 2]]:
-                index0 = simplex[indexPair[0]]
-                index1 = simplex[indexPair[1]]
+    # Interpolate the edges too
+    def getEdges(simplices: List[Tuple[int]]):
+        edges: Set[Tuple[int]] = set([])
+        for verts in simplices:
+            edges.add((verts[0], verts[1]))
+            edges.add((verts[0], verts[2]))
+            edges.add((verts[1], verts[2]))
 
-                connections.add((min(index0, index1), max(index0, index1)))
+        return edges
 
-        for indexPair in connections:
-            drift0 = drifts[indexPair[0]]
-            drift1 = drifts[indexPair[1]]
+    edges = getEdges(tri.simplices)
 
-            distance = drift0.location.distanceTo(drift1.location)
+    for edge in edges:
+        edgeDrifts = [drifts[i] for i in edge]
+        d = edgeDrifts[0].location.distanceTo(edgeDrifts[1].location)
+        dDiv = div(d, delta)
 
-            if distance > delta:
-                newDrift = drift0.interpolateTo(drift1, distance / 2, 'm')
-                drifts.append(newDrift)
+        for i in range(1, dDiv):
+            newDrift = edgeDrifts[0].interpolateToFraction(edgeDrifts[1], i / dDiv)
+            outputDrifts.append(newDrift)
 
-                tesselated = True
+    plotDrifts([outputDrifts, drifts])
 
-        if not tesselated:
-            return drifts
-
-    logging.warning(f'Maximum iterations exceeded: {iteration} >= {MAX_ITER}')
-    return drifts
+    return outputDrifts
 
 
 
 
 if __name__ == '__main__':
-    drifts = [
-        Drift(LatLon(-72, 41.2), 0, 0),
-        Drift(LatLon(-73, 40.8), 1, -1),
-        Drift(LatLon(-72, 42.3), 2, -2),
-        Drift(LatLon(-71, 41.5), 4, 23)
-    ]
-
-    timeit.timeit()
+    drifts = [ Drift(location=LatLon(random.uniform(0, 1), random.uniform(0, 1)), speed=0, heading=1) for i in range(10) ]
 
     COUNT = 15
-    DIST = 20_000
+    DIST = 5_000
 
     getInterpolatedDrifts(drifts, DIST)
