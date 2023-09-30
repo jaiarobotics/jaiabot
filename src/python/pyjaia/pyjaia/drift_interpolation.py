@@ -2,14 +2,14 @@ from typing import *
 from dataclasses import *
 from scipy.spatial import Delaunay
 from turfpy import measurement
-from geojson import Point, Feature, LineString
 from copy import deepcopy
 from pprint import pprint
+from geojson import Point, Feature, LineString, FeatureCollection
 
 import numpy as np
 import math
 import random
-
+import geojson
 
 def plotDrifts(driftsList: List[List["Drift"]]):
     import plotly.graph_objects as go
@@ -48,6 +48,10 @@ class LatLon:
     def midpoint(self, other: "LatLon"):
         midpointFeature = measurement.midpoint(self.feature(), other.feature())
         return LatLon.fromList(midpointFeature.get('geometry').get('coordinates'))
+    
+    def rhumb_destination(self, distance: float, bearing: float):
+        x = measurement.rhumb_destination(Point([self.lon, self.lat]), distance, bearing, {'units': 'm'})
+        return LatLon.fromList(x.get('geometry').get('coordinates'))
 
 @dataclass
 class Drift:
@@ -84,7 +88,7 @@ class Drift:
             speed=ourWeight * self.speed + otherWeight * other.speed,
             heading=fmod(ourWeight * self.heading + otherWeight * other.heading, 0, 360))
 
-def getInterpolatedDrifts(drifts: List[Drift], delta=25):
+def getInterpolatedDrifts(drifts: List[Drift], delta=50):
     # We need at least two points to do any interpolation
     if len(drifts) < 2:
         return deepcopy(drifts)
@@ -120,7 +124,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=25):
         vertexDrifts = [drifts[i] for i in vertexIndices]
         a = vertexDrifts[0].location.distanceTo(vertexDrifts[1].location)
         a1 = vertexDrifts[0].location.distanceTo(vertexDrifts[2].location)
-        aDiv = div(min(a, a1), delta)
+        aDiv = min(div(min(a, a1), delta), 10)
 
         for rowIndex in range(1, aDiv):
             # Loop through rows from vertex 0 to vertex 1/2
@@ -128,7 +132,7 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=25):
             endDrift = vertexDrifts[0].interpolateToFraction(vertexDrifts[2], (rowIndex / aDiv))
 
             b = startDrift.location.distanceTo(endDrift.location)
-            bDiv = div(b, delta)
+            bDiv = min(div(b, delta), 10)
 
             for ptIndex in range(1, bDiv):
                 newDrift = startDrift.interpolateToFraction(endDrift, ptIndex / bDiv)
@@ -161,12 +165,57 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=25):
     return outputDrifts
 
 
+def taskPacketsToDrifts(taskPackets: List[Dict]):
+    drifts: List[Drift] = []
+
+    for taskPacket in taskPackets:
+        print(taskPacket)
+        drift = taskPacket.get('drift', None)
+
+        if drift is not None:
+            location = drift['start_location']
+            location = LatLon(lat=location['lat'], lon=location['lon'])
+
+            estimated_drift = drift['estimated_drift']
+            drift = Drift(location=location, speed=estimated_drift['speed'], heading=estimated_drift['heading'] or 0.0)
+            drifts.append(drift)
+
+    return drifts
+
+
+def driftsToGeoJSON(drifts: List[Drift]):
+    features = []
+    for drift in drifts:
+        # as points
+        properties = {
+            'type': 'drift',
+            'speed': drift.speed,
+            'heading': drift.heading
+        }
+        features.append(Feature(geometry=Point(drift.location.list()), properties=properties))
+
+        # as lines
+        # properties = {
+        #     'type': 'drift',
+        #     'speed': drift.speed,
+        #     'heading': drift.heading
+        # }
+        # start = drift.location
+        # end = start.rhumb_destination(drift.speed * 100, drift.heading)
+        # features.append(Feature(geometry=LineString([start.list(), end.list()]), properties=properties))
+
+    return geojson.dumps(FeatureCollection(features=features))
+
+
+def taskPacketsToDriftMarkersGeoJSON(taskPackets: List[Dict]):
+    drifts = taskPacketsToDrifts(taskPackets)
+    interpolatedDrifts = getInterpolatedDrifts(drifts)
+    return driftsToGeoJSON(interpolatedDrifts)
 
 
 if __name__ == '__main__':
-    drifts = [ Drift(location=LatLon(random.uniform(0, 1), random.uniform(0, 1)), speed=0, heading=1) for i in range(10) ]
+    import json, os
 
-    COUNT = 15
-    DIST = 5_000
+    taskPackets = [json.loads(line) for line in open('/var/log/jaiabot/bot_offload/test.taskpacket')]
 
-    getInterpolatedDrifts(drifts, DIST)
+    open(os.path.expanduser('~/test.geojson'), 'w').write(taskPacketsToDriftMarkersGeoJSON(taskPackets=taskPackets))
