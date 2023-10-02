@@ -1,17 +1,19 @@
 import React, { ReactElement } from 'react'
-import Select, { SelectChangeEvent } from '@mui/material/Select';
-import Button from '@mui/material/Button';
-import Gamepad from 'react-gamepad';
+import Select, { SelectChangeEvent } from '@mui/material/Select'
+import Button from '@mui/material/Button'
+import Gamepad from 'react-gamepad'
 import MenuItem from '@mui/material/MenuItem';
-import OutlinedInput from '@mui/material/OutlinedInput';
+import OutlinedInput from '@mui/material/OutlinedInput'
 import { Icon } from '@mdi/react'
+import { error, success } from '../libs/notifications'
 import { mdiPlay } from '@mdi/js'
 import { JaiaAPI } from '../../common/JaiaAPI'
 import { Engineering } from './shared/JAIAProtobuf'
 import { PortalBotStatus } from './shared/PortalStatus'
 import { IJoystickUpdateEvent } from 'react-joystick-component/build/lib/Joystick'
+import { TaskType, CommandType } from './shared/JAIAProtobuf'
 import { Joystick, JoystickShape } from 'react-joystick-component'
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles'
 
 interface Props {
 	api: JaiaAPI,
@@ -31,7 +33,8 @@ interface State {
 	rudderDirection: string,
 	throttleBinNumber: number,
 	rudderBinNumber: number,
-	diveParameters: { [diveParam: string]: string }
+	diveParameters: { [diveParam: string]: string },
+	driftParameters: { [driftParam: string]: string }
 }
 
 enum JoySticks {
@@ -70,7 +73,9 @@ export default class RCControllerPanel extends React.Component {
 			diveParameters: {
 				'maxDepth': '',
 				'depthInterval': '',
-				'holdTime': '',
+				'holdTime': ''
+			},
+			driftParameters: {
 				'driftTime': ''
 			}
         }
@@ -277,27 +282,64 @@ export default class RCControllerPanel extends React.Component {
 		this.setState({ joyStickStatus })
 	}
 
-	handleDiveParamInputChange(evt: React.ChangeEvent<HTMLInputElement>) {
+	handleTaskParamInputChange(evt: React.ChangeEvent<HTMLInputElement>) {
+		const input = evt.target.value
 		const paramType = evt.target.id
 		const diveParams = this.state.diveParameters
-		const input = evt.target.value
+		const driftParams = this.state.driftParameters
+
 		if (Number.isNaN(Number(input)) || Number(input) < 0) {
 			alert('Please enter only positive numbers for dive parameters')
 			return
 		}
-		diveParams[paramType] = input
-		this.setState({ diveParameters: diveParams })
+
+		if (paramType === 'driftTime') {
+			driftParams[paramType] = input
+		} else {
+			diveParams[paramType] = input
+		}
+		this.setState({ diveParameters: diveParams, driftParameters: driftParams })
 	}
 
 	handleDiveButtonClick() {
 		const diveParametersNum: { [diveParam: string]: number } = {}
+		const driftParametersNum: { [driftParams: string]: number } = {}
+
 		for (const key of Object.keys(this.state.diveParameters)) {
 			diveParametersNum[key] = Number(this.state.diveParameters[key])
 		}
+
+		for (const key of Object.keys(this.state.driftParameters)) {
+			driftParametersNum[key] = Number(this.state.driftParameters[key])
+		}
+
+		const rcDiveCommand = {
+			bot_id: this.props.bot?.bot_id,
+			type: CommandType.REMOTE_CONTROL_TASK,
+			rc_task: {
+				type: TaskType.DIVE,
+				dive: diveParametersNum,
+				surface_drift: driftParametersNum
+			}
+		}
+
+		this.api.postCommand(rcDiveCommand).then(response => {
+			if (response.message) {
+				error('Unable to post RC dive command')
+			} else {
+				success('Beginning RC dive')
+			}
+		})
 	}
 
 	isDiveButtonDisabled() {
 		for (const value of Object.values(this.state.diveParameters)) {
+			if (value === '') {
+				return true
+			}
+		}
+
+		for (const value of Object.values(this.state.driftParameters)) {
 			if (value === '') {
 				return true
 			}
@@ -463,19 +505,19 @@ export default class RCControllerPanel extends React.Component {
 					{selectControlType}
 					<div className='rc-dive-info-container' >
 						<div>Max Depth:</div>
-						<input id='maxDepth' className='rc-input' type='text' value={this.state.diveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)}/>
+						<input id='maxDepth' className='rc-input' type='text' value={this.state.diveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)}/>
 						<div>m</div>
 
 						<div>Depth Interval:</div>
-						<input id='depthInterval' className='rc-input' type='text' value={this.state.diveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<input id='depthInterval' className='rc-input' type='text' value={this.state.diveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
 						<div>m</div>
 
 						<div>Hold Time:</div>
-						<input id='holdTime' className='rc-input' type='text' value={this.state.diveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<input id='holdTime' className='rc-input' type='text' value={this.state.diveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
 						<div>s</div>
 
 						<div>Drift Time:</div>
-						<input id='driftTime' className='rc-input' type='text' value={this.state.diveParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleDiveParamInputChange(evt)} />
+						<input id='driftTime' className='rc-input' type='text' value={this.state.driftParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
 						<div>s</div>
 					</div>
 				</div>

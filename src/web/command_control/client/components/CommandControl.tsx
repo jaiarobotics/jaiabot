@@ -180,6 +180,7 @@ interface State {
 	surveyPolygonChanged: boolean,
 	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
 
+	rcModeStatus: {[botId: number]: boolean},
 	remoteControlValues: Engineering
 	remoteControlInterval?: ReturnType<typeof setInterval>,
 
@@ -316,6 +317,7 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			centerLineString: null,
 
+			rcModeStatus: {},
 			remoteControlInterval: null,
 			remoteControlValues: {
 				bot_id: -1,
@@ -1064,9 +1066,8 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		const commDest = this.determineAllCommandBots(true, false, false, false)
-
-		const botIdsAssignedToRuns: number[] = [];
-		const runs = missions.runs;
+		const botIdsAssignedToRuns: number[] = []
+		const runs = missions.runs
 
 		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
@@ -1109,6 +1110,7 @@ export default class CommandControl extends React.Component {
 
 			Object.keys(runs).map(key => {
 				const botIndex = runs[key].assigned;
+				this.setRcMode(botIndex, false)
 				const runId = runs[key].id
 				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
 					this._runMission(runs[key].command)
@@ -1856,11 +1858,16 @@ export default class CommandControl extends React.Component {
 	// RC Mode (Start)
 	// 
 	isRCModeActive(botId: number) {
-		const selectedBot = this.getPodStatus().bots[botId]
-		if (selectedBot?.mission_state.includes('REMOTE_CONTROL')) {
-			return true
-		}
-		return false
+		return this.state.rcModeStatus[botId]
+	}
+
+	setRcMode(botId: number, rcMode: boolean) {
+		const rcModeStatus = this.state.rcModeStatus
+		rcModeStatus[botId] = rcMode
+		this.setState({ rcModeStatus })
+
+		const botFeature = this.botLayers.layers[botId].getSource().getFeatures()[0]
+		botFeature.setProperties({ 'rcMode': rcMode })
 	}
 
 	createRemoteControlInterval() {
@@ -2261,11 +2268,11 @@ export default class CommandControl extends React.Component {
 					type: CommandType.STOP
 				}
 		
-				console.log(c)
 				this.api.postCommand(c).then(response => {
 					if (response.message) {
 						error(response.message)
 					}
+					this.setRcMode(botId, false)
 				})
 			}
 		}
@@ -2548,12 +2555,12 @@ export default class CommandControl extends React.Component {
 			rcControllerPanel = (
 				<RCControllerPanel 
 					api={this.api} 
-					bot={bots[this.selectedBotId()]}  
-					createInterval={this.createRemoteControlInterval.bind(this)} 
+					bot={bots[this.selectedBotId()]}
+					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 					remoteControlValues={this.state.remoteControlValues}
+					createInterval={this.createRemoteControlInterval.bind(this)} 
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
-					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 			/>
 			)
 		}
@@ -2593,6 +2600,7 @@ export default class CommandControl extends React.Component {
 					deleteSingleMission: this.deleteSingleRun.bind(this),
 					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					isRCModeActive: this.isRCModeActive.bind(this),
+					setRcMode: this.setRcMode.bind(this),
 					toggleEditMode: this.toggleEditMode.bind(this),
 					downloadIndividualBot: this.processDownloadSingleBot.bind(this)
 				}
