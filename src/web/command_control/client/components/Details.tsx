@@ -615,11 +615,11 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         dataOffloadButton = ( 
             <Button className={(disableButton(commands.retryDataOffload, missionState).isDisabled || !linkQualityPercentage) ? 'inactive button-jcc' : 'button-jcc'} 
                 onClick={() => {
-                    let disableMessage = disableButton(commands.recover, missionState).disableMessage
+                    let disableMessage = disableButton(commands.retryDataOffload, missionState).disableMessage
 
                     if (!linkQualityPercentage) {
                         disableMessage += 
-                            "The command: " + commands.recover.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
+                            "The command: " + commands.retryDataOffload.commandType + " cannot be sent because the bot is not connected to Wifi (Check Link Quality in Quick Look)"
                     }
 
                     props.downloadIndividualBot(bot, disableMessage) 
