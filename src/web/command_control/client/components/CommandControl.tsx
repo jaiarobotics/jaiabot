@@ -1763,6 +1763,12 @@ export default class CommandControl extends React.Component {
 		rallyFeature.setStyle(getRallyStyle(rallyFeatureCount))
 		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
 
+		if (!this.state.startRally) {
+			this.setState({ startRally: rallyFeature })
+		} else if (!this.state.endRally) {
+			this.setState({ endRally: rallyFeature })
+		}
+
 		this.setState({ rallyFeatureCount: rallyFeatureCount + 1 })
 	}
 
@@ -1781,6 +1787,11 @@ export default class CommandControl extends React.Component {
 
 	deleteRallyPoint(rallyFeature: OlFeature) {
 		layers.rallyPointLayer.getSource().removeFeature(rallyFeature)
+		if (rallyFeature.get('location') === this.state.startRally?.get('location')) {
+			this.setState({ startRally: null })
+		} else if (rallyFeature.get('location') === this.state.endRally?.get('location')) {
+			this.setState({ endRally: null })
+		}
 		this.setVisiblePanel(PanelType.NONE)
 	}
 
