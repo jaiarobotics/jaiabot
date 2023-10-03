@@ -2573,7 +2573,8 @@ export default class CommandControl extends React.Component {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
-							this.setRunList(runList)
+							// Default to edit mode off for runs created with line tool
+							runList.runIdInEditMode = ''
 
 							// Close panel after applying
 							this.setVisiblePanel(PanelType.NONE)
