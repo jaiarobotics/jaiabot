@@ -2,8 +2,9 @@ from typing import *
 
 import numpy
 import cmath
+import h5py
 
-def get_leaf(dataset, indices):
+def get_leaf(dataset: h5py.Dataset, indices):
     '''Gets the leaf data as a python object, from a dataset, indexing into it using the indices list'''
     attrs = dataset.attrs
 
@@ -32,7 +33,7 @@ def get_leaf(dataset, indices):
 
     if isinstance(dataset, numpy.ndarray):
         # If this is an array of int8, then try to load it as a string
-        if dataset.dtype == 'int8':
+        if dataset.dtype == 'int8' or dataset.dtype == 'uint8':
             bytes_value = b''
             
             for i in dataset:

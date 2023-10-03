@@ -18,6 +18,7 @@ jaia_h5 = h5py.File(args.jaiah5_path)
 processHealthGroup = jaia_h5['goby::health::response/goby.middleware.protobuf.ProcessHealth']
 processHealthList = objects.jaialog_get_object_list(processHealthGroup, repeated_members=['child'])
 
+
 # vehicleHealthGroup = jaia_h5['goby::health::report/goby.middleware.protobuf.VehicleHealth']
 # vehicleHealthList = objects.jaialog_get_object_list(vehicleHealthGroup, repeated_members=['process', 'child'])
 
