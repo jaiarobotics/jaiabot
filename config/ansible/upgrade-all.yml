@@ -6,10 +6,7 @@
 
   tasks:
     - name: Remount firmware read-write
-      mount:
-        path: /boot/firmware
-        opts: "rw"
-        state: remounted
+      shell: "mount -o remount,rw /boot/firmware"
 
     # Can hopefully be removed when we switch to EFI boot
     # For now we get an error with update-grub on amd64 images due to overlay root
@@ -27,10 +24,7 @@
     - include_tasks: tasks/get-version.yml
 
     - name: Remount firmware read-only
-      mount:
-        path: /boot/firmware
-        opts: "ro"
-        state: remounted
+      shell: "mount -o remount,ro /boot/firmware"
 
     # Do not include as it takes a long time if NTP isn't sync'd
     #- include_tasks: tasks/restart-jaiabot.yml
