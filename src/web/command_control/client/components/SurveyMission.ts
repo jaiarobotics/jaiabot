@@ -42,7 +42,7 @@ export function featuresFromMissionPlanningGrid(missionPlanningGrid: {[key: stri
             {
                 geometry: new OlMultiPoint(mpg[key]),
                 style: new OlStyle({
-                    image: Styles.createGoalIcon(missionBaseGoal.task.type, false, false, false)
+                    image: Styles.createGoalIcon(missionBaseGoal.task?.type, false, false, false)
                 })
             }
         )

@@ -23,7 +23,7 @@ import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature, botPopupHTML } from './shared/BotFeature'
-import { createDivePacketFeature, createDriftPacketFeature, createTaskPacketFeatures } from './shared/TaskPacketFeatures'
+import { createDivePacketFeature, createDriftPacketFeature } from './shared/TaskPacketFeatures'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
 

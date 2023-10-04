@@ -3,14 +3,13 @@ import Switch from '@mui/material/Switch';
 import { FormGroup, FormControlLabel } from '@mui/material';
 import { amber } from '@mui/material/colors';
 import { alpha, styled } from '@mui/material/styles';
-import { RunInterface } from "./CommandControl";
 
 interface Props {
     checked: () => boolean,
     onClick: () => void,
     disabled?: () => boolean,
-    label: string,
-    title: string
+    label?: string,
+    title?: string
 }
 
 export default function WptToggle(props: Props) {
@@ -36,12 +35,12 @@ export default function WptToggle(props: Props) {
                 control={
                     <AmberSwitch 
                         checked={props.checked()} 
-                        disabled={props.disabled ? props.disabled() : false} 
+                        disabled={props?.disabled ? props.disabled() : false} 
                         onClick={() => props.onClick()}
                     />
                 }
-                label={props.label} 
-                title={props.title}
+                label={props?.label ? props.label : ''} 
+                title={props?.title ? props.title : ''}
             />
         </FormGroup>
     )

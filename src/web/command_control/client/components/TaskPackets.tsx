@@ -1,19 +1,23 @@
 // Jaia Imports
+import { getDivePacketFeature, getDriftPacketFeature } from './shared/TaskPacketFeatures'
 import { geoJSONToDepthContourFeatures } from "./shared/Contours"
-import { createTaskPacketFeatures } from './shared/TaskPacketFeatures'
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { jaiaAPI } from "../../common/JaiaAPI"
 
 // Open Layer Imports
 import VectorSource from 'ol/source/Vector'
-import Collection from "ol/Collection"
+import ClusterSource from 'ol/source/Cluster'
 import Feature from "ol/Feature"
+import Point from "ol/geom/Point"
 import { Map } from "ol"
 import { Vector as VectorLayer } from "ol/layer"
+import { Style, Stroke, Fill, Text as TextStyle, Circle as CircleStyle } from "ol/style"
 
 // TurfJS
 import * as turf from '@turf/turf';
 import { Units } from "@turf/turf"
+import { getMapCoordinate } from "./shared/Utilities"
+import { Geometry, LineString } from "ol/geom"
 
 // Constants
 const POLL_INTERVAL = 5000
@@ -21,9 +25,8 @@ const POLL_INTERVAL = 5000
 export class TaskData {
     map: Map
     pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
-    collection: Collection<Feature> = new Collection([])
-    depthRange = [0, 1]
     taskPackets: TaskPacket[] = []
+    styleCache: {[key: number]: Style} = {}
 
     // Layers
     contourLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -36,15 +39,40 @@ export class TaskData {
         visible: false,
       })
 
-    taskPacketInfoLayer = new VectorLayer({
-        properties: {
-            title: 'Task Packets',
-        },
-        zIndex: 1001,
-        opacity: 1,
-        source: new VectorSource(),
-        visible: false
-    })
+    diveSource: VectorSource
+    driftSource: VectorSource
+
+    divePacketLayer: VectorLayer<VectorSource>
+    driftPacketLayer: VectorLayer<VectorSource>
+
+    constructor() {
+        this.diveSource = new VectorSource()
+        this.driftSource = new VectorSource()
+        this.styleCache = {}
+        const clusterDistance = 30
+
+        this.divePacketLayer = new VectorLayer({
+            properties: {
+                title: 'Dive Packets',
+            },
+            zIndex: 1001,
+            opacity: 1,
+            source: this.createClusterSource(this.diveSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
+            visible: false
+        })
+    
+        this.driftPacketLayer = new VectorLayer({
+            properties: {
+                title: 'Drift Packets',
+            },
+            zIndex: 1001,
+            opacity: 1,
+            source: this.createClusterSource(this.driftSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
+            visible: false
+        })
+    }
 
     calculateDiveDrift(taskPacket: TaskPacket) {
         let driftPacket;
@@ -88,9 +116,9 @@ export class TaskData {
                 ) {
 
                     let driftStart = [driftPacket.start_location.lon, driftPacket.start_location.lat];
-                    let drfitEnd = [driftPacket.end_location.lon, driftPacket.end_location.lat];
+                    let driftEnd = [driftPacket.end_location.lon, driftPacket.end_location.lat];
 
-                    let driftToDiveAscentBearing = turf.bearing(drfitEnd, driftStart);
+                    let driftToDiveAscentBearing = turf.bearing(driftEnd, driftStart);
 
                     if (
                         taskPacket?.type === "DIVE" &&
@@ -172,6 +200,8 @@ export class TaskData {
     }
 
     _pollTaskPackets() {
+        const self = this
+
         jaiaAPI.getTaskPackets().catch((error) => {
             console.error(error)
         }).then((taskPackets: TaskPacket[]) => {
@@ -182,19 +212,136 @@ export class TaskData {
                 if (taskPackets.length >= 3) {
                     this._updateContourPlot()
                 }
-
             }
 
-            const taskPacketLayer = taskData.taskPacketInfoLayer
-            const taskPacketFeatures = taskPackets.map((taskPacket, index) => createTaskPacketFeatures(this.map, taskPacket, taskPacketLayer, index)).flat()
+            const divePacketLayer = this.divePacketLayer
+            const driftPacketLayer = this.driftPacketLayer
 
-            this.taskPacketInfoLayer.getSource().clear()
-            this.taskPacketInfoLayer.getSource().addFeatures(taskPacketFeatures)
+            const divePacketFeatures = []
+            const driftPacketFeatures = []
+
+            for (const taskPacket of taskPackets) {
+                if (taskPacket?.dive) {
+                    // Dive packets include both dive and drift data
+                    const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer)
+                    const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
+
+                    if (diveFeature) {
+                        divePacketFeatures.push(diveFeature)
+                    }
+
+                    if (driftFeature) {
+                        driftPacketFeatures.push(driftFeature)
+                    }
+                } else if (taskPacket?.drift) {
+                    const feature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
+
+                    if (feature) {
+                        driftPacketFeatures.push(feature)
+                    }
+                }
+            }
+            
+
+            this.diveSource.clear()
+            this.driftSource.clear()
+
+            this.diveSource.addFeatures(divePacketFeatures)
+            this.driftSource.addFeatures(driftPacketFeatures)
         })
     }
 
     getContourLayer() {
         return this.contourLayer
+    }
+
+    getDiveLayer() {
+        return this.divePacketLayer
+    }
+
+    getDriftLayer() {
+        return this.driftPacketLayer
+    }
+
+    createClusterSource(source: VectorSource<Geometry>, distance: number) {
+        return new ClusterSource({
+            distance: distance,
+            minDistance: 15,
+            source: source,
+            geometryFunction: (feature: Feature<Geometry>) => {
+                const geometry = feature.getGeometry()
+
+                if (geometry instanceof Point) {
+                    return geometry
+                }
+
+                if (geometry instanceof LineString) {
+                    return new Point(geometry.getFirstCoordinate())
+                }
+
+                return null
+            }
+        })
+    }
+
+    createClusterIconStyle(feature: Feature) {
+        const subFeatures = feature.get('features') as Feature[]
+        const size = subFeatures.length as number
+
+        if (size == 1) {
+            // Only one feature, so just return its style
+            return subFeatures[0].getStyle() as Style
+        }
+
+        // Otherwise return the cluster icon
+        let style = this.styleCache[size];
+        if (!style) {
+          style = new Style({
+            image: new CircleStyle({
+              radius: 15,
+              stroke: new Stroke({
+                color: 'black',
+                width: 2,
+              }),
+              fill: new Fill({
+                color: 'lightgray',
+              }),
+            }),
+            text: new TextStyle({
+              text: size.toString(),
+              fill: new Fill({
+                color: 'black',
+              }),
+              font: '18px Arial, sans-serif'
+            }),
+          });
+          this.styleCache[size] = style;
+        }
+        return style;
+    }
+
+    updateClusterDistance(distance: number) {
+        this.divePacketLayer.setSource(this.createClusterSource(this.diveSource, distance))
+        this.driftPacketLayer.setSource(this.createClusterSource(this.driftSource, distance))
+
+    }
+
+    /**
+     * Add a set of test features for debugging the cluster capability
+     */
+    addTestFeatures() {
+        const count = 100;
+        const features = new Array(count);
+        const e = 450;
+
+        const center = getMapCoordinate({lat: 41.662, lon: -71.273}, this.map)
+
+        for (let i = 0; i < count; ++i) {
+            const coordinates = [center[0] + 2 * e * Math.random() - e, center[1] + 2 * e * Math.random() - e];
+            features[i] = new Feature(new Point(coordinates));
+        }
+
+        this.diveSource.addFeatures(features)
     }
 }
 
