@@ -1,0 +1,19 @@
+---
+- name: Upgrade JaiaBot packages
+  hosts: all
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - vars/packages.yml
+    
+  tasks:
+    - name: Install/upgrade jaiabot packages
+      apt:
+        update_cache: yes
+        name: "{{ jaiabot_packages }}"
+        state: latest
+
+    - include_tasks: tasks/get-version.yml
+
+ # Do not include as it takes a long time if NTP isn't sync'd
+ #  - include_tasks: tasks/restart-jaiabot.yml
