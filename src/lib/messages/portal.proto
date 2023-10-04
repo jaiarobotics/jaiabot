@@ -9,6 +9,11 @@ import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
+/****************************************************************
+* No need to set restrictions on these messages because they are
+* not being sent over the radio.
+*****************************************************************/
+
 message ClientToPortalMessage
 {
     option (dccl.msg) = {
@@ -32,7 +37,7 @@ message PortalToClientMessage
     optional HubStatus hub_status = 3;
     optional TaskPacket task_packet = 4;
     optional DeviceMetadata device_metadata = 5;
-    
+
     // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
     optional MissionPlan active_mission_plan = 6;
 

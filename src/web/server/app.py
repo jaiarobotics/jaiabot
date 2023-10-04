@@ -65,8 +65,8 @@ def getStatus():
 
 @app.route('/jaia/task-packets', methods=['GET'])
 def getPackets():
-    startDate = parseDate(request.args.get('startDate', None)) or datetime.now() - timedelta(days=1)
-    endDate = parseDate(request.args.get('endDate', None)) or datetime.now()
+    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14)))) or datetime.now() - timedelta(hours=14)
+    endDate = parseDate(request.args.get('endDate', datetime.now())) or datetime.now()
 
     return JSONResponse(jaia_interface.get_task_packets(startDate=startDate, endDate=endDate))
 
