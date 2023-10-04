@@ -21,6 +21,11 @@ try:
 except:
     hub_index=0
 
+try:
+    user_role=os.environ['jaia_user_role'].upper()
+except:
+    user_role='USER'
+    
 log_file_dir = common.jaia_log_dir + '/hub'
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
@@ -37,6 +42,7 @@ verbosities = \
 { 'gobyd':                     { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_intervehicle_portal':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG2' }},
   'goby_liaison':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_liaison_prelaunch':    { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_gps':                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'DEBUG2', 'log': 'QUIET' }},
   'goby_logger':               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_coroner':              { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
@@ -123,6 +129,14 @@ elif common.app == 'goby_liaison':
                                      http_port=liaison_port,
                                      jaiabot_config=liaison_jaiabot_config,
                                      load_protobufs=liaison_load_block))
+elif common.app == 'goby_liaison_prelaunch':
+    liaison_port=9091
+    this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)    
+    print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
+                                     app_block=app_common,
+                                     http_port=liaison_port,
+                                     this_hub=this_hub,
+                                     user_role=user_role))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',
                                      app_block=app_common,
