@@ -82,6 +82,35 @@ add_commander_tab: false
             display_name: "Current JaiaBot Version"
         }
     }
+
+    ansible_playbook {
+        file: "check-vpn-status.yml" 
+        name: "Check for VPN Status"
+        role: USER
+        output_var {
+            name: "jaiabot_vpn_active_state"
+            display_name: "Check VPN Active State?"
+        }
+        output_var {
+            name: "jaiabot_vpn_enable_state"
+            display_name: "Check VPN Enable State?"
+        }
+    }
+
+    ansible_playbook {
+        file: "change-vpn-state.yml" 
+        name: "Change VPN State"
+        role: USER
+        input_var {
+            name: "state"
+            display_name: "State"
+            value: "start"
+            value: "stop"
+            value: "enable"
+            value: "disable"
+        }
+    }
+
     ansible_playbook {
         file: "reboot-bots.yml" 
         name: "Reboot Bots"
