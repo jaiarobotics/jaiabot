@@ -130,6 +130,7 @@ export class MissionSettingsPanel extends React.Component {
                                     return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
+                            <MenuItem value={0}>{''}</MenuItem>
                         </Select>
                     </FormControl>
 
@@ -141,6 +142,7 @@ export class MissionSettingsPanel extends React.Component {
                                     return <MenuItem value={rallyFeature.get('num')}>{rallyFeature.get('num')}</MenuItem>
                                 }
                             })}
+                            <MenuItem value={0}>{''}</MenuItem>
                         </Select>
                     </FormControl>
                     

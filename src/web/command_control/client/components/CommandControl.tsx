@@ -158,7 +158,8 @@ interface State {
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
-	rallyFeatureCount: number,
+	rallyCounter: number,
+	reusableRallyNums: number[],
 	selectedRallyFeature: OlFeature<Point>
 	startRally: OlFeature<Point>
 	endRally: OlFeature<Point>
@@ -285,7 +286,8 @@ export default class CommandControl extends React.Component {
 
 			selectedHubOrBot: null,
 			measureFeature: null,
-			rallyFeatureCount: 1,
+			rallyCounter: 1,
+			reusableRallyNums: [],
 			selectedRallyFeature: null,
 			startRally: null,
 			endRally: null,
@@ -1752,24 +1754,43 @@ export default class CommandControl extends React.Component {
 	addRallyPointAt(coordinate: number[]) {
 		const point = getMapCoordinate(getGeographicCoordinate(coordinate, map), map)
 		const rallyFeature = new Feature({ geometry: new Point(point) })
-		const rallyFeatureCount = this.state.rallyFeatureCount
-		
+		const rallyNum = this.getRallyNumber()
+
 		rallyFeature.setProperties({ 
 			'type': 'rallyPoint', 
-			'num': this.state.rallyFeatureCount,
+			'num': rallyNum,
+			'id': Math.random(),
 			'location': getGeographicCoordinate(coordinate, map),
 			'disableDrag': true
 		})
-		rallyFeature.setStyle(getRallyStyle(rallyFeatureCount))
+		rallyFeature.setStyle(getRallyStyle(rallyNum))
+		
 		layers.rallyPointLayer.getSource().addFeature(rallyFeature)
 
 		if (!this.state.startRally) {
+			// Start rally number will always be lower than end rally unless operator manually assigns
 			this.setState({ startRally: rallyFeature })
 		} else if (!this.state.endRally) {
-			this.setState({ endRally: rallyFeature })
+			// To prevent operator confusion, prevent auto-assign from setting an end rally with a smaller number than the start rally
+			if (rallyFeature.get('num') > this.state.startRally.get('num')) {
+				this.setState({ endRally: rallyFeature })
+			}
 		}
+	}
 
-		this.setState({ rallyFeatureCount: rallyFeatureCount + 1 })
+	getRallyNumber() {
+		let rallyNum = 0
+		if (this.state.reusableRallyNums.length > 0) {
+			// Sorted least to greatest
+			const reusableRallyNums = this.state.reusableRallyNums
+			rallyNum = reusableRallyNums[0]
+			reusableRallyNums.splice(0, 1)
+			this.setState({ reusableRallyNums })
+		} else {
+			rallyNum = this.state.rallyCounter
+			this.setState({ rallyCounter: this.state.rallyCounter + 1 })
+		}
+		return rallyNum
 	}
 
 	goToRallyPoint(rallyFeature: OlFeature<Point>) {
@@ -1787,12 +1808,43 @@ export default class CommandControl extends React.Component {
 
 	deleteRallyPoint(rallyFeature: OlFeature) {
 		layers.rallyPointLayer.getSource().removeFeature(rallyFeature)
-		if (rallyFeature.get('location') === this.state.startRally?.get('location')) {
-			this.setState({ startRally: null })
-		} else if (rallyFeature.get('location') === this.state.endRally?.get('location')) {
-			this.setState({ endRally: null })
-		}
+
+		const reusableRallyNums = this.state.reusableRallyNums
+		reusableRallyNums.push(rallyFeature.get('num'))
+		reusableRallyNums.sort()
+		this.setState({ reusableRallyNums })
+
+		this.assignRallyPointsAfterDelete(rallyFeature)
+
 		this.setVisiblePanel(PanelType.NONE)
+	}
+
+	assignRallyPointsAfterDelete(rallyFeature: OlFeature) {
+		const rallyFeatures = layers.rallyPointLayer.getSource().getFeatures()
+
+		// Check if deleted rally feature was start rally
+		if (rallyFeature.get('id') === this.state.startRally?.get('id')) {
+			this.setState({ startRally: null })
+			return
+		}
+
+		// Check if deleted rally feature was end rally
+		if (rallyFeature.get('id') === this.state.endRally?.get('id')) {
+			// Auto-assign end rally to be start rally + 1
+			if (!this.state.startRally) return
+
+			rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
+
+			for (let i = 0; i < rallyFeatures.length; i++) {
+				if (rallyFeatures[i].get('id') === this.state.startRally.get('id') && i + 1 < rallyFeatures.length) {
+					this.setState({ endRally: rallyFeatures[i + 1] })
+					return
+				}
+			}
+			// No rally numbers greater than the start rally
+			this.setState({ endRally: null })
+		}		
+		return
 	}
 
 	setSelectedRallyPoint(rallyPoint: OlFeature<Geometry>, isStart: boolean) {
@@ -2291,6 +2343,12 @@ export default class CommandControl extends React.Component {
 	}
 
 	rallyButtonClicked() {
+		// All panels with map clicking features that can interfere with setting a rally point
+		const panelsToClose = [PanelType.MEASURE_TOOL, PanelType.MISSION_SETTINGS, PanelType.GOAL_SETTINGS]
+		if (panelsToClose.includes(this.state.visiblePanel)) {
+			this.setVisiblePanel(PanelType.NONE)
+		}
+
 		if (this.state.mode === 'newRallyPoint') {
 			this.setState({ mode: '' })
 			map.getTargetElement().style.cursor = 'default'
