@@ -70,6 +70,7 @@ class ELECTRONICS_STACK(Enum):
     STACK_0 = '0'
     STACK_1 = '1'
     STACK_2 = '2'
+    STACK_3 = '2'
 
 if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
@@ -86,6 +87,9 @@ elif args.electronics_stack == '1':
     jaia_gps_type=GPS_TYPE.SPI
 elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
+    jaia_gps_type=GPS_TYPE.SPI
+elif args.electronics_stack == '3':
+    jaia_electronics_stack=ELECTRONICS_STACK.STACK_3
     jaia_gps_type=GPS_TYPE.SPI
 else:
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
@@ -283,12 +287,6 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_adafruit_BNO055_driver',
-     'description': 'JaiaBot IMU Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-     'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',
@@ -301,15 +299,6 @@ jaiabot_apps=[
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_ENGINEERING',
      'runs_on': Type.BOT,
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_imu.py',
-     'description': 'JaiaBot IMU Python Driver',
-     'template': 'py-app.service.in',
-     'subdir': 'adafruit_BNO055',
-     'args': '20000',
-     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-     'runs_on': Type.BOT,
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
@@ -377,8 +366,45 @@ jaiabot_apps=[
      'description': 'GPSD for simulator only',
      'template': 'gpsd-sim.service.in',
      'runs_on': Type.BOT,
-     'runs_when': Mode.SIMULATION}
+     'runs_when': Mode.SIMULATION},
 ]
+
+if jaia_electronics_stack.value == 3:
+    jaiabot_apps.append(
+        {'exe': 'jaiabot_adafruit_BNO085_driver',
+        'description': 'JaiaBot IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'adafruit_BNO085',
+        'args': '20000',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    )
+else:
+    jaiabot_apps.append(
+        {'exe': 'jaiabot_adafruit_BNO055_driver',
+        'description': 'JaiaBot IMU Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
+        'runs_on': Type.BOT,
+        'wanted_by': 'jaiabot_health.service'},
+        {'exe': 'jaiabot_imu.py',
+        'description': 'JaiaBot IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'adafruit_BNO055',
+        'args': '20000',
+        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+        'runs_on': Type.BOT,
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    )
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

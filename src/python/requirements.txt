@@ -19,3 +19,4 @@ scipy==1.9.1
 plotly==5.15.0
 pandas==2.0.3
 h5py==3.7.0
+adafruit-circuitpython-bno08x==1.2.4

@@ -292,36 +292,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             last_data_time_[DataType::ROLL] = now;
         }
 
-        if (calibration_status.has_sys())
+        if (imu_data.has_calibration_status())
         {
-            latest_bot_status_.mutable_calibration_status()->set_sys(calibration_status.sys());
-
-            //last_calibration_status_[DataType::CALIBRATION_SYS] = calibration_status.sys();
-            //last_data_time_[DataType::CALIBRATION_SYS] = now;
-        }
-
-        if (calibration_status.has_gyro())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_gyro(calibration_status.gyro());
-
-            //last_calibration_status_[DataType::CALIBRATION_GYRO] = calibration_status.gyro();
-            //last_data_time_[DataType::CALIBRATION_GYRO] = now;
-        }
-
-        if (calibration_status.has_accel())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_accel(calibration_status.accel());
-
-            //last_calibration_status_[DataType::CALIBRATION_ACCEL] = calibration_status.accel();
-            //last_data_time_[DataType::CALIBRATION_ACCEL] = now;
-        }
-
-        if (calibration_status.has_mag())
-        {
-            latest_bot_status_.mutable_calibration_status()->set_mag(calibration_status.mag());
-
-            //last_calibration_status_[DataType::CALIBRATION_MAG] = calibration_status.mag();
-            //last_data_time_[DataType::CALIBRATION_MAG] = now;
+            latest_bot_status_.set_calibration_status(imu_data.calibration_status());
         }
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
