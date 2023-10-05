@@ -79,9 +79,9 @@ export class JaiaAPI {
   getTaskPackets() { 
     const DAY = 86400000 // Milliseconds
 
-    // Get task packets from the previous 24-hour period
+    // Get task packets from the previous 14-hour period
     const endDate = Date.now()
-    const startDate = endDate - DAY
+    const startDate = endDate - ((DAY /24) * 14)
 
     const endDateString = new Date(endDate).toISOString()
     const startDateString = new Date(startDate).toISOString()

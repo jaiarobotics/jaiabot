@@ -1,0 +1,2 @@
+    - name: Remove read-write overlay
+      shell: "rm -rf  /media/root-rw/overlay/*"

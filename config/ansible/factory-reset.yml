@@ -1,0 +1,8 @@
+---
+- name: Factory Reset (Reboot required)
+  hosts: all
+  gather_facts: no
+  become: yes
+    
+  tasks:
+    - include_tasks: tasks/delete-overlay.yml

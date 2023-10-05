@@ -8,7 +8,6 @@ import * as Styles from "./shared/Styles"
 // Open Layer Imports
 import VectorSource from 'ol/source/Vector'
 import ClusterSource from 'ol/source/Cluster'
-import Collection from "ol/Collection"
 import Feature from "ol/Feature"
 import Point from "ol/geom/Point"
 import { Map } from "ol"
@@ -18,7 +17,6 @@ import { Style, Stroke, Fill, Text as TextStyle, Circle as CircleStyle } from "o
 // TurfJS
 import * as turf from '@turf/turf';
 import { Units } from "@turf/turf"
-import { fromLonLat } from "ol/proj"
 import { getMapCoordinate } from "./shared/Utilities"
 import { Geometry, LineString } from "ol/geom"
 
@@ -28,9 +26,8 @@ const POLL_INTERVAL = 5000
 export class TaskData {
     map: Map
     pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
-    collection: Collection<Feature> = new Collection([])
-    depthRange = [0, 1]
     taskPackets: TaskPacket[] = []
+    styleCache: {[key: number]: Style} = {}
 
     // Layers
     contourLayer: VectorLayer<VectorSource> = new VectorLayer({
@@ -63,43 +60,8 @@ export class TaskData {
     constructor() {
         this.diveSource = new VectorSource()
         this.driftSource = new VectorSource()
-
-        function clusterIconStyle(feature: Feature) {
-            const subFeatures = feature.get('features') as Feature[]
-            const size = subFeatures.length as number
-
-            if (size == 1) {
-                // Only one feature, so just return its style
-                return subFeatures[0].getStyle() as Style
-            }
-
-            // Otherwise return the cluster icon
-            let style = styleCache[size];
-            if (!style) {
-              style = new Style({
-                image: new CircleStyle({
-                  radius: 15,
-                  stroke: new Stroke({
-                    color: 'black',
-                    width: 2,
-                  }),
-                  fill: new Fill({
-                    color: 'lightgray',
-                  }),
-                }),
-                text: new TextStyle({
-                  text: size.toString(),
-                  fill: new Fill({
-                    color: 'black',
-                  }),
-                  font: '18px Arial, sans-serif'
-                }),
-              });
-              styleCache[size] = style;
-            }
-            return style;
-
-        }
+        this.styleCache = {}
+        const clusterDistance = 30
 
         this.divePacketLayer = new VectorLayer({
             properties: {
@@ -107,25 +69,8 @@ export class TaskData {
             },
             zIndex: 1001,
             opacity: 1,
-            source: new ClusterSource({
-                distance: 30,
-                minDistance: 15,
-                source: this.diveSource,
-                geometryFunction: (feature: Feature<Geometry>) => {
-                    const geometry = feature.getGeometry()
-    
-                    if (geometry instanceof Point) {
-                        return geometry
-                    }
-    
-                    if (geometry instanceof LineString) {
-                        return new Point(geometry.getFirstCoordinate())
-                    }
-    
-                    return null
-                }
-            }),
-            style: clusterIconStyle,
+            source: this.createClusterSource(this.diveSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
             visible: false
         })
     
@@ -135,50 +80,10 @@ export class TaskData {
             },
             zIndex: 1001,
             opacity: 1,
-            source: new ClusterSource({
-                distance: 30,
-                minDistance: 15,
-                source: this.driftSource,
-                geometryFunction: (feature: Feature<Geometry>) => {
-                    const geometry = feature.getGeometry()
-    
-                    if (geometry instanceof Point) {
-                        return geometry
-                    }
-    
-                    if (geometry instanceof LineString) {
-                        return new Point(geometry.getFirstCoordinate())
-                    }
-    
-                    return null
-                }
-            }),
-            style: clusterIconStyle,
+            source: this.createClusterSource(this.driftSource, clusterDistance),
+            style: this.createClusterIconStyle.bind(this),
             visible: false
         })
-    
-        const styleCache: {[key: number]: Style} = {}
-
-    }
-
-    
-    /**
-     * Add a set of test features for debugging the cluster capability
-     * @date 9/18/2023 - 5:12:58 PM
-     */
-    addTestFeatures() {
-        const count = 100;
-        const features = new Array(count);
-        const e = 450;
-
-        const center = getMapCoordinate({lat: 41.662, lon: -71.273}, this.map)
-
-        for (let i = 0; i < count; ++i) {
-          const coordinates = [center[0] + 2 * e * Math.random() - e, center[1] + 2 * e * Math.random() - e];
-          features[i] = new Feature(new Point(coordinates));
-        }
-
-        this.diveSource.addFeatures(features)
     }
 
     calculateDiveDrift(taskPacket: TaskPacket) {
@@ -223,9 +128,9 @@ export class TaskData {
                 ) {
 
                     let driftStart = [driftPacket.start_location.lon, driftPacket.start_location.lat];
-                    let drfitEnd = [driftPacket.end_location.lon, driftPacket.end_location.lat];
+                    let driftEnd = [driftPacket.end_location.lon, driftPacket.end_location.lat];
 
-                    let driftToDiveAscentBearing = turf.bearing(drfitEnd, driftStart);
+                    let driftToDiveAscentBearing = turf.bearing(driftEnd, driftStart);
 
                     if (
                         taskPacket?.type === "DIVE" &&
@@ -394,6 +299,87 @@ export class TaskData {
 
     getDriftLayer() {
         return this.driftPacketLayer
+    }
+
+    createClusterSource(source: VectorSource<Geometry>, distance: number) {
+        return new ClusterSource({
+            distance: distance,
+            minDistance: 15,
+            source: source,
+            geometryFunction: (feature: Feature<Geometry>) => {
+                const geometry = feature.getGeometry()
+
+                if (geometry instanceof Point) {
+                    return geometry
+                }
+
+                if (geometry instanceof LineString) {
+                    return new Point(geometry.getFirstCoordinate())
+                }
+
+                return null
+            }
+        })
+    }
+
+    createClusterIconStyle(feature: Feature) {
+        const subFeatures = feature.get('features') as Feature[]
+        const size = subFeatures.length as number
+
+        if (size == 1) {
+            // Only one feature, so just return its style
+            return subFeatures[0].getStyle() as Style
+        }
+
+        // Otherwise return the cluster icon
+        let style = this.styleCache[size];
+        if (!style) {
+          style = new Style({
+            image: new CircleStyle({
+              radius: 15,
+              stroke: new Stroke({
+                color: 'black',
+                width: 2,
+              }),
+              fill: new Fill({
+                color: 'lightgray',
+              }),
+            }),
+            text: new TextStyle({
+              text: size.toString(),
+              fill: new Fill({
+                color: 'black',
+              }),
+              font: '18px Arial, sans-serif'
+            }),
+          });
+          this.styleCache[size] = style;
+        }
+        return style;
+    }
+
+    updateClusterDistance(distance: number) {
+        this.divePacketLayer.setSource(this.createClusterSource(this.diveSource, distance))
+        this.driftPacketLayer.setSource(this.createClusterSource(this.driftSource, distance))
+
+    }
+
+    /**
+     * Add a set of test features for debugging the cluster capability
+     */
+    addTestFeatures() {
+        const count = 100;
+        const features = new Array(count);
+        const e = 450;
+
+        const center = getMapCoordinate({lat: 41.662, lon: -71.273}, this.map)
+
+        for (let i = 0; i < count; ++i) {
+            const coordinates = [center[0] + 2 * e * Math.random() - e, center[1] + 2 * e * Math.random() - e];
+            features[i] = new Feature(new Point(coordinates));
+        }
+
+        this.diveSource.addFeatures(features)
     }
 }
 

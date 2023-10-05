@@ -1,0 +1,37 @@
+.settings-outer-container {
+    position: absolute;
+    top: 66px;
+    right: 66px;
+
+    min-width: 250px;
+
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #767d7d;
+  
+    z-index: 1;
+  }
+
+  .settings-inner-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12pt 8pt;
+    padding: 12px;
+    background-color: #767d7d;
+    font-size: 1.1rem;
+
+    /* 66px equals max toolbar height */
+    max-height: calc(95vh - 66px);
+    overflow-y: auto;
+}
+
+.settings-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.settings-label {
+    color: #FFFFFF;
+}
