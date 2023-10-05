@@ -1,0 +1,24 @@
+---
+- name: Check for updates to JaiaBot packages
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - include_tasks: tasks/get-version.yml
+
+    - name: Set fact if upgrade available
+      set_fact:
+        jaiabot_upgrade_available: "{{ jaiabot_current_version != jaiabot_available_version }}"
+        
+    - name: Display current package information
+      debug:
+        var: jaiabot_current_version
+
+    - name: Display available package information
+      debug:
+        var: jaiabot_available_version
+        
