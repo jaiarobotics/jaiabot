@@ -1813,7 +1813,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	unselectTaskPacket(type: string) {
-		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		for (const featuresArray of features) {
 			const feature = featuresArray.get('features')[0]
 			if (feature.get('selected')) {
@@ -1833,7 +1833,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	setTaskPacketInterval(selectedFeature: Feature, type: string) {
-		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('features')[0].get('id') === selectedFeature.get('id')) {

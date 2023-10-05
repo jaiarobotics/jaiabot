@@ -160,7 +160,8 @@ def getInterpolatedDrifts(drifts: List[Drift], delta=50):
             newDrift = edgeDrifts[0].interpolateToFraction(edgeDrifts[1], i / dDiv)
             outputDrifts.append(newDrift)
 
-    plotDrifts([outputDrifts, drifts])
+    # For debugging interpolation
+    # plotDrifts([outputDrifts, drifts])
 
     return outputDrifts
 
