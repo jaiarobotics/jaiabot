@@ -44,6 +44,7 @@ enum Error
     ERROR__FAILED__MOOS_SIM_MOOSDB = 31;
     ERROR__FAILED__MOOS_SIM_USIMMARINE = 32;
     ERROR__FAILED__GOBY_INTERVEHICLE_PORTAL = 33;
+    ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER = 34;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)

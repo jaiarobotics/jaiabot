@@ -53,7 +53,7 @@ parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to 
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
-parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2', '3'], help='If set, configure services for electronics stack')
 
 args=parser.parse_args()
 
@@ -369,16 +369,16 @@ jaiabot_apps=[
      'runs_when': Mode.SIMULATION},
 ]
 
-if jaia_electronics_stack.value == 3:
-    jaiabot_apps.append(
+if jaia_electronics_stack == ELECTRONICS_STACK.STACK_3:
+    jaiabot_apps_imu = [
         {'exe': 'jaiabot_adafruit_BNO085_driver',
-        'description': 'JaiaBot IMU Sensor Driver',
+        'description': 'JaiaBot BNO085 IMU Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
         'runs_on': Type.BOT,
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot IMU Python Driver',
+        'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit_BNO085',
         'args': '20000',
@@ -386,17 +386,18 @@ if jaia_electronics_stack.value == 3:
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
-    )
+    ] 
+    jaiabot_apps.extend(jaiabot_apps_imu)
 else:
-    jaiabot_apps.append(
+    jaiabot_apps_imu = [
         {'exe': 'jaiabot_adafruit_BNO055_driver',
-        'description': 'JaiaBot IMU Sensor Driver',
+        'description': 'JaiaBot BNO055 IMU Sensor Driver',
         'template': 'goby-app.service.in',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
         'runs_on': Type.BOT,
         'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot IMU Python Driver',
+        'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit_BNO055',
         'args': '20000',
@@ -404,7 +405,8 @@ else:
         'runs_on': Type.BOT,
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
-    )
+    ]
+    jaiabot_apps.extend(jaiabot_apps_imu)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
