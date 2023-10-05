@@ -170,7 +170,6 @@ def taskPacketsToDrifts(taskPackets: List[Dict]):
     drifts: List[Drift] = []
 
     for taskPacket in taskPackets:
-        print(taskPacket)
         drift = taskPacket.get('drift', None)
 
         if drift is not None:
