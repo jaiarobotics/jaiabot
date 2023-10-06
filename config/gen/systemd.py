@@ -369,7 +369,7 @@ jaiabot_apps=[
      'runs_when': Mode.SIMULATION},
 ]
 
-if jaia_electronics_stack == ELECTRONICS_STACK.STACK_3:
+if jaia_electronics_stack.value == '3':
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_adafruit_BNO085_driver',
         'description': 'JaiaBot BNO085 IMU Sensor Driver',
