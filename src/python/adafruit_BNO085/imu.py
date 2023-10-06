@@ -87,20 +87,23 @@ class Adafruit(IMU):
 
     def setup(self):
         if not self.is_setup:
-            log.warning('We are not setup: ')
+            try:
+                log.warning('We are not setup: ')
 
-            self.sensor = BNO08X_UART(uart)
+                self.sensor = BNO08X_UART(uart)
 
-            log.warning('Connected, now lets enable output: ')
+                log.warning('Connected, now lets enable output: ')
 
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
-            self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_MAGNETOMETER)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ROTATION_VECTOR)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_LINEAR_ACCELERATION)
+                self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
 
-            self.is_setup = True
+                self.is_setup = True
+            except RuntimeError as re:
+                log.warning("RuntimeError")
 
     def takeReading(self):
         if not self.is_setup:
@@ -154,6 +157,9 @@ class Adafruit(IMU):
 
         except KeyError as re:
             log.warning("KeyError")
+
+        except AttributeError as ae:
+            log.warning("AttributeError")
     
 
 class Simulator(IMU):
