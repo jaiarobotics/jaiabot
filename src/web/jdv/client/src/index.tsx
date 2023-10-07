@@ -109,7 +109,7 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} /> : null
+    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} refreshLogs={this.refreshLogs.bind(this)} /> : null
 
     const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
     const openLogsListString = chosenLogsFilenames.join(', ')
@@ -291,6 +291,10 @@ class LogApp extends React.Component {
     }
 
     this.setState({isSelectingLogs: false})
+  }
+
+  refreshLogs() {
+    this.update_log_dropdown()
   }
 
   didSelectPaths(pathArray: string[]) {

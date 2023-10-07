@@ -1,6 +1,7 @@
 import React, { ReactElement } from "react"
 
 import {Log} from './Log'
+import { LogApi } from "./LogApi"
 
 function duration_string_from_seconds(duration_seconds: number) {
     var components = []
@@ -45,6 +46,7 @@ type LogDict = {[key: string]: {[key: string]: {[key: string]: Log}}}
 interface LogSelectorProps {
     logs: Log[]
     didSelectLogs: (logs: string[]) => undefined
+    refreshLogs: () => undefined
 }
 
 interface LogSelectorState {
@@ -61,6 +63,8 @@ export default class LogSelector extends React.Component {
 
     props: LogSelectorProps
     state: LogSelectorState
+
+    refreshTimer: NodeJS.Timeout
 
     constructor(props: LogSelectorProps) {
         super(props)
@@ -151,13 +155,21 @@ export default class LogSelector extends React.Component {
             </div>
 
             <div className="buttonSection section">
-                <button className="padded">Refresh</button>
-                <div className="spacer horizontal"></div>
+                {/* <button className="padded" onClick={self.refreshClicked.bind(self)}>Refresh</button>
+                <div className="spacer"></div> */}
                 <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
                 <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
             </div>
           </div>
         )
+    }
+
+    componentDidMount(): void {
+        this.refreshTimer = setInterval(this.refreshClicked.bind(this), 2000)
+    }
+
+    componentWillUnmount(): void {
+        clearInterval(this.refreshTimer)
     }
 
     didToggleLog(log: Log) {
@@ -347,6 +359,10 @@ export default class LogSelector extends React.Component {
 
         console.debug('Selected logs: ', selectedLogNames)
         this.props.didSelectLogs?.(selectedLogNames)
+    }
+
+    refreshClicked() {
+        this.props.refreshLogs?.()
     }
 
 }
