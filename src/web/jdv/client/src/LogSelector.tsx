@@ -122,6 +122,7 @@ export default class LogSelector extends React.Component {
             <div className="dialogHeader">Select Logs</div>
             <div className="section">
                 <div className="dialogSectionHeader">Filters</div>
+                
 
                 <div className="horizontal flexbox equal" style={{justifyContent: "space-between", alignItems: "center"}}>
 
@@ -150,6 +151,8 @@ export default class LogSelector extends React.Component {
             </div>
 
             <div className="buttonSection section">
+                <button className="padded">Refresh</button>
+                <div className="spacer horizontal"></div>
                 <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
                 <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
             </div>
