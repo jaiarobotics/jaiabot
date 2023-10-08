@@ -49,7 +49,6 @@ interface LogAppProps {
 
 
 interface State {
-  logs: Log[]
   isSelectingLogs: boolean
   chosenLogs: string[]
   plots: Plot[]
@@ -82,7 +81,6 @@ class LogApp extends React.Component {
     super(props)
 
     this.state = {
-      logs: [],
       isSelectingLogs: false,
       chosenLogs : [],
       plots : [],
@@ -109,7 +107,7 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" logs={this.state.logs} didSelectLogs={this.didSelectLogs.bind(this)} refreshLogs={this.refreshLogs.bind(this)} /> : null
+    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" didSelectLogs={this.didSelectLogs.bind(this)} /> : null
 
     const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
     const openLogsListString = chosenLogsFilenames.join(', ')
@@ -270,19 +268,11 @@ class LogApp extends React.Component {
   componentDidMount() {
     this.getElements()
     this.map = new JaiaMap('openlayers-map')
-    this.update_log_dropdown()
   }
 
   getElements() {
     // Get global element names for the functions that are still using them
     this.plot_div_element = document.getElementById('plot') as Plotly.PlotlyHTMLElement
-  }
-
-  update_log_dropdown() {
-    LogApi.get_logs().then(logs => {
-      this.setState({logs})
-      // this.didSelectLogs(['/var/log/jaiabot/bot_offload/bot3_fleet1_20221010T164115.h5'])
-    })
   }
 
   didSelectLogs(logs?: Log[]) {
@@ -291,10 +281,6 @@ class LogApp extends React.Component {
     }
 
     this.setState({isSelectingLogs: false})
-  }
-
-  refreshLogs() {
-    this.update_log_dropdown()
   }
 
   didSelectPaths(pathArray: string[]) {
