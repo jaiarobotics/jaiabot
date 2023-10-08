@@ -263,43 +263,33 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        this.startBusyIndicator()
-        LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+        const getMapPromise = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
-        }).finally(() => {
-          this.stopBusyIndicator()
         })
 
         // Get the command dictionary (botId => [Command])
-        this.startBusyIndicator()
-        LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsPromise = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
-        }).finally(() => {
-          this.stopBusyIndicator()
         })
 
         // Get the active_goals
-        this.startBusyIndicator()
-        LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalPromise = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
-        }).finally(() => {
-          this.stopBusyIndicator()
         })
 
         // Get the task packets
-        this.startBusyIndicator()
-        LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsPromie = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
-        }).finally(() => {
-          this.stopBusyIndicator()
         })
 
         // Get the depth contours
-        this.startBusyIndicator()
-        LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursPromise = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
-        }).finally(() => {
+        })
+
+        this.startBusyIndicator()
+        Promise.all([getMapPromise, getCommandsPromise, getActiveGoalPromise, getTaskPacketsPromie, getDepthContoursPromise]).finally(() => {
           this.stopBusyIndicator()
         })
 
