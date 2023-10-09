@@ -85,6 +85,11 @@ set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT
 message(STATUS "Version: ${PROJECT_VERSION}")
 set(PROJECT_SOVERSION "1")
 
+# Intervehicle API version
+
+# increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
+set(PROJECT_INTERVEHICLE_API_VERSION 1)
+
 # find Protobuf
 find_package(ProtobufLocal REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
