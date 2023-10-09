@@ -33,6 +33,7 @@
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -155,9 +156,8 @@ jaiabot::apps::HubManager::HubManager() : ApplicationBase(1 * si::hertz)
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
-        });
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
 }
 
 jaiabot::apps::HubManager::~HubManager() {}
@@ -196,11 +196,11 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
 
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
+        subscriber_cfg.mutable_intervehicle()->add_publisher_id(id);
 
-        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(subscriber_cfg);
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
+            subscriber_cfg,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>);
 
         glog.is_debug1() && glog << "Subscribing to bot_status" << std::endl;
 
@@ -210,11 +210,11 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
     }
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().task_packet_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
+        subscriber_cfg.mutable_intervehicle()->add_publisher_id(id);
 
-        goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(subscriber_cfg);
+        goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(
+            subscriber_cfg,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::TaskPacket>);
 
         glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
@@ -227,11 +227,11 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int id)
     {
         goby::middleware::protobuf::TransporterConfig subscriber_cfg =
             cfg().engineering_status_sub_cfg();
-        goby::middleware::intervehicle::protobuf::TransporterConfig& intervehicle_cfg =
-            *subscriber_cfg.mutable_intervehicle();
-        intervehicle_cfg.add_publisher_id(id);
+        subscriber_cfg.mutable_intervehicle()->add_publisher_id(id);
 
-        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(subscriber_cfg);
+        goby::middleware::Subscriber<jaiabot::protobuf::Engineering> subscriber(
+            subscriber_cfg,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::Engineering>);
 
         glog.is_debug1() && glog << "Subscribing to engineering_status" << std::endl;
 
@@ -505,10 +505,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
     }
 
-    goby::middleware::Publisher<Command> command_publisher(
-        {}, [](Command& cmd, const goby::middleware::Group& group)
-        { cmd.set_bot_id(group.numeric()); });
-
     if (!command_fragments.empty())
     {
         // Loop through each fragment and send
@@ -518,10 +514,8 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                      << command_fragment.ShortDebugString() << std::endl;
 
             intervehicle().publish_dynamic(
-                command_fragment,
-                goby::middleware::DynamicGroup(jaiabot::groups::hub_command,
-                                               command_fragment.bot_id()),
-                command_publisher);
+                command_fragment, intervehicle::hub_command_group(command_fragment.bot_id()),
+                intervehicle::default_publisher<Command>);
         }
     }
     else
@@ -529,9 +523,8 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         glog.is_debug2() && glog << group("main")
                                  << "Sending command: " << command.ShortDebugString() << std::endl;
 
-        intervehicle().publish_dynamic(
-            command, goby::middleware::DynamicGroup(jaiabot::groups::hub_command, command.bot_id()),
-            command_publisher);
+        intervehicle().publish_dynamic(command, intervehicle::hub_command_group(command.bot_id()),
+                                       intervehicle::default_publisher<Command>);
     }
 }
 
@@ -545,4 +538,3 @@ void jaiabot::apps::HubManager::handle_hardware_status(
 {
     *latest_hub_status_.mutable_linux_hardware_status() = linux_hardware_status;
 }
-
