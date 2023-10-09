@@ -168,22 +168,44 @@ void jaiabot::apps::HubManager::handle_subscription_report(
     auto command_dccl_id = jaiabot::protobuf::Command::DCCL_ID;
     if (sub_report.has_changed() && sub_report.changed().dccl_id() == command_dccl_id)
     {
-        auto bot_id = sub_report.changed().header().src();
+        auto bot_modem_id = sub_report.changed().header().src();
+        auto bot_id = jaiabot::comms::bot_id_from_modem_id(bot_modem_id);
 
-        switch (sub_report.changed().action())
+        std::uint32_t bot_api_version =
+            intervehicle::api_version_from_hub_command(bot_id, sub_report.changed().group());
+
+        if (bot_api_version == jaiabot::INTERVEHICLE_API_VERSION)
         {
-            case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
-                glog.is_verbose() && glog << group("main") << "Subscribe to bot: " << bot_id
-                                          << std::endl;
+            switch (sub_report.changed().action())
+            {
+                case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
+                    glog.is_verbose() && glog << group("main") << "Subscribe to bot: " << bot_id
+                                              << std::endl;
 
-                managed_bot_modem_ids_.insert(bot_id);
-                intervehicle_subscribe(bot_id);
+                    managed_bot_modem_ids_.insert(bot_modem_id);
+                    intervehicle_subscribe(bot_modem_id);
 
-                break;
-            case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
-                // do nothing as the bot subscriptions no longer persist across restarts
-                // this reduces edge cases problems with unsubscription messages getting through or not
-                break;
+                    break;
+                case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
+                    // do nothing as the bot subscriptions no longer persist across restarts
+                    // this reduces edge cases problems with unsubscription messages getting through or not
+                    break;
+            }
+        }
+        else
+        {
+            glog.is_warn() && glog << "Bot " << bot_id << " subscribing with API version "
+                                   << bot_api_version << " but hub is using API version "
+                                   << jaiabot::INTERVEHICLE_API_VERSION << std::endl;
+
+            jaiabot::protobuf::BotStatus status;
+            status.set_bot_id(bot_id);
+            status.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+            status.add_error(bot_api_version < jaiabot::INTERVEHICLE_API_VERSION
+                                 ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
+                                 : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB);
+
+            interprocess().publish<jaiabot::groups::bot_status>(status);
         }
     }
 }

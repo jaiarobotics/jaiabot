@@ -53,17 +53,14 @@ function(check_dccl_md5_hash DCCL_NAME EXPECTED_MD5)
     )
 endfunction()
 
-# This list of all DCCL messages used on intervehicle comms with the latest MD5 hash of "dccl -p" is simply
+# This list of all DCCL messages used on intervehicle comms with the latest MD5 hash of "dccl -a" is simply
 # to ensure that CMake checks that we don't accidentally change the DCCL message without updating PROJECT_INTERVEHICLE_API_VERSION if necessary.
-# We use "dccl -p" rather than hashing the file directly as this ensures whitespace, comments, and other non-functional changes
-# do not affect the hash.
 
 # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/CMakeLists.txt
-# and update the hash here (dccl -l build/amd64/lib/libjaiabot_messages.so -p -m jaiabot.protobuf.BotStatus | md5sum)
+# and update the hash here (dccl -l build/amd64/lib/libjaiabot_messages.so -a -m jaiabot.protobuf.BotStatus | md5sum)
 
 # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "e0f630e3370090c39d82881dde0fefb4")
-check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "bf034fed758aab4bbb33ad36f151f22c")
-check_dccl_md5_hash("jaiabot.protobuf.Command" "1725ac018b858481cffd376319ac749a")
-check_dccl_md5_hash("jaiabot.protobuf.CommandForHub" "6523ba68589b8738a1bc6ea43d1e6722")
-check_dccl_md5_hash("jaiabot.protobuf.Engineering" "c52700c64f35fdf238453fac653ca799")
+check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "6f7bbe0c3dea4d261f2cbb9b63ddc7ea")
+check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "c8b646292cf17c2dfb01cc345f1225c2")
+check_dccl_md5_hash("jaiabot.protobuf.Command" "2e7b4a319da87c4c88d77046577941d9")
+check_dccl_md5_hash("jaiabot.protobuf.Engineering" "c93eae42a168631b4a48f823294befe7")

@@ -43,6 +43,13 @@ inline goby::middleware::DynamicGroup hub_command_group(std::uint32_t bot_id)
                                                        jaiabot::comms::bot_id_total);
 }
 
+// given a bot id and the hub_command group numeric value, what API version is this subscriber (bot) using?
+inline std::uint32_t api_version_from_hub_command(std::uint32_t bot_id,
+                                                  std::uint32_t hub_command_group)
+{
+    return (hub_command_group - bot_id) / jaiabot::comms::bot_id_total;
+}
+
 // in case we ever exceed maximum valid Goby group
 static_assert(jaiabot::INTERVEHICLE_API_VERSION * jaiabot::comms::bot_id_total +
                       jaiabot::comms::bot_id_max <=

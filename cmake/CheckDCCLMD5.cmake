@@ -5,7 +5,7 @@ set(MESSAGES_LIB_PATH ${MESSAGES_LIB_PATH})
 
 # Run the binary with DCCL_NAME and capture the output
 execute_process(
-  COMMAND dccl -l ${MESSAGES_LIB_PATH} -p -m ${DCCL_NAME}
+  COMMAND dccl -l ${MESSAGES_LIB_PATH} --analyze -m ${DCCL_NAME}
   OUTPUT_VARIABLE OUTPUT
   ERROR_VARIABLE ERROR
   RESULT_VARIABLE RESULT
