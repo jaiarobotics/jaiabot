@@ -1,0 +1,28 @@
+---
+- name: Check the VPN Status
+  hosts: all
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Get current VPN active state
+      shell: "systemctl is-active wg-quick@wg_jaia | awk '{print $1}'"
+      register: vpn_active_state
+
+    - name: Get current VPN enable state
+      shell: "systemctl is-enabled wg-quick@wg_jaia | awk '{print $1}'"
+      register: vpn_enable_state
+
+      
+
+    - name: Set facts for vpn status
+      set_fact:
+        jaiabot_vpn_active_state: "{{ vpn_active_state.stdout }}"
+        jaiabot_vpn_enable_state: "{{ vpn_enable_state.stdout }}"
+
+    - name: Display current vpn active state
+      debug:
+        var: jaiabot_vpn_active_state
+      
+    - name: Display current vpn enable state
+      debug:
+        var: jaiabot_vpn_enable_state

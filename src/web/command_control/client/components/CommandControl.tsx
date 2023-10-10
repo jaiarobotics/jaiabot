@@ -1119,29 +1119,36 @@ export default class CommandControl extends React.Component {
 		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
 				
+			let continueToExecuteMission = true 
+
 			if (addRuns) {
-				this.deleteAllRunsInMission(missions, true, true);
-				Object.keys(addRuns).map(key => {
-					Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-				});
+				continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
+
+				if (continueToExecuteMission) {
+					Object.keys(addRuns).map(key => {
+						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+					});
+				}
 			}
 
-			Object.keys(runs).map(key => {
-				const botIndex = runs[key].assigned;
-				this.setRcMode(botIndex, false)
-				const runId = runs[key].id
-				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-					this._runMission(runs[key].command)
-					// Turn off edit mode when run starts for completeness
-					if (runs[key].id === this.getRunList().runIdInEditMode) {
-						const runList = this.getRunList()
-						runList.runIdInEditMode = ''
-						this.setRunList(runList)
+			if (continueToExecuteMission) {
+				Object.keys(runs).map(key => {
+					const botIndex = runs[key].assigned;
+          this.setRcMode(botIndex, false)
+					const runId = runs[key].id
+					if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+						this._runMission(runs[key].command)
+						// Turn off edit mode when run starts for completeness
+						if (runs[key].id === this.getRunList().runIdInEditMode) {
+							const runList = this.getRunList()
+							runList.runIdInEditMode = ''
+							this.setRunList(runList)
+						}
 					}
-				}
-			})
-
-			success("Submitted missions")
+				})
+	
+				success("Submitted missions")
+			}
 		}
 	}
 	// 
@@ -1154,7 +1161,7 @@ export default class CommandControl extends React.Component {
 	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 		const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
 		if (needConfirmation && !confirm(warningString)) {
-			return
+			return false
 		}
 		const runs = mission.runs
 		for (const run of Object.values(runs)) {
@@ -1163,6 +1170,8 @@ export default class CommandControl extends React.Component {
 				delete mission.botsAssignedToRuns[run.assigned]
 		}
 		mission.runIdIncrement = 1
+
+		return true
 	}
 
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {

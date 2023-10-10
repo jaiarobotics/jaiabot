@@ -1,0 +1,139 @@
+$app_block
+
+interprocess { platform: "Jaiabot Fleet Upgrade and Configuration" }
+http_address: "0.0.0.0"
+http_port: $http_port
+
+start_paused: false
+update_freq: 10
+
+add_home_tab: false
+add_scope_tab: false
+add_commander_tab: false
+
+
+[jaiabot.protobuf.jaiabot_upgrade_config] { 
+    role: $user_role
+
+    ansible_inventory: "/etc/jaiabot/inventory.yml"
+    ansible_config: "ansible-liaison.cfg"
+    this_hub: "$this_hub"
+    ansible_playbook {
+        file: "change-sources.yml" 
+        name: "Change JaiaBot repository"
+        role: ADVANCED
+
+        # added to ansible-playbook -e "repo=continuous"
+        input_var {
+            name: "repo"
+            display_name: "Repository"
+            value: "release"
+            value: "beta"
+            value: "continuous"
+        }
+    }
+    ansible_playbook {
+        file: "check-version.yml" 
+        name: "Check for updates to JaiaBot packages"
+        role: USER
+
+        # Must be present in "ansible_facts" JSON field for output of one of the tasks
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_available_version"
+            display_name: "New Available JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_upgrade_available"
+            display_name: "Upgrade available?"
+        }
+    }
+
+    # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
+    
+    # ansible_playbook {
+    #     file: "uninstall.yml" 
+    #     name: "Remove JaiaBot packages"
+    #     role: ADVANCED
+    #     output_var {
+    #         name: "jaiabot_current_version"
+    #         display_name: "Current JaiaBot Version"
+    #     }
+    # }
+    
+    ansible_playbook {
+        file: "install.yml" 
+        name: "Install or Upgrade JaiaBot packages only"
+        role: ADVANCED
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+    }
+    ansible_playbook {
+        file: "upgrade-all.yml" 
+        name: "Upgrade Jaiabot and system packages"
+        role: USER
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+    }
+
+    ansible_playbook {
+        file: "check-vpn-status.yml" 
+        name: "Check for VPN Status"
+        role: USER
+        output_var {
+            name: "jaiabot_vpn_active_state"
+            display_name: "Check VPN Active State?"
+        }
+        output_var {
+            name: "jaiabot_vpn_enable_state"
+            display_name: "Check VPN Enable State?"
+        }
+    }
+
+    ansible_playbook {
+        file: "change-vpn-state.yml" 
+        name: "Change VPN State"
+        role: USER
+        input_var {
+            name: "state"
+            display_name: "State"
+            value: "start"
+            value: "stop"
+            value: "enable"
+            value: "disable"
+        }
+    }
+
+    ansible_playbook {
+        file: "reboot-bots.yml" 
+        name: "Reboot Bots"
+        role: USER
+    }
+    ansible_playbook {
+        file: "reboot-hubs.yml" 
+        name: "Reboot Hub"
+        role: USER
+    }    
+
+    ansible_playbook {
+        file: "factory-reset.yml" 
+        name: "Factory Reset [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        role: ADVANCED
+        confirmation_required: true
+    }    
+
+    ansible_playbook {
+        file: "factory-upgrade-all.yml" 
+        name: "Upgrade all packages on Factory image [ERASES ALL MODIFICATIONS] (Reboot Required)"
+        role: DEVELOPER
+        confirmation_required: true
+    }    
+
+}
