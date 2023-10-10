@@ -51,12 +51,13 @@ import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
 import { Interaction } from 'ol/interaction'
+import { boundingExtent } from 'ol/extent.js';
 import { Feature, MapBrowserEvent } from 'ol'
 import { getLength as OlGetLength } from 'ol/sphere'
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
-import {boundingExtent} from 'ol/extent.js';
+
 
 // TurfJS
 import * as turf from '@turf/turf'
@@ -70,6 +71,10 @@ import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortaw
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
+
+
+// Utility
+import cloneDeep from 'lodash.clonedeep'
 
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
@@ -131,6 +136,7 @@ interface State {
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
 	lastBotCount: number,
+	areBotsLoadedJCC: boolean,
 
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
@@ -140,12 +146,12 @@ interface State {
 	missionEndTask: MissionTask,
 
 	runList: MissionInterface,
-	runListVersion: number
+	runListVersion: number,
 	undoRunListStack: MissionInterface[],
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
-	}
+	},
 
 	goalBeingEdited: {
 		goal?: Goal,
@@ -153,15 +159,15 @@ interface State {
 		botId?: number,
 		runNumber?: number,
 		moveWptMode?: boolean
-	}
+	},
 
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
 	rallyFeatureCount: number,
-	selectedRallyFeature: OlFeature<Point>
-	startRally: OlFeature<Point>
-	endRally: OlFeature<Point>
+	selectedRallyFeature: OlFeature<Point>,
+	startRally: OlFeature<Point>,
+	endRally: OlFeature<Point>,
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -180,11 +186,12 @@ interface State {
 	surveyPolygonCoords?: LineString,
 	surveyExclusionCoords?: number[][],
 	surveyPolygonChanged: boolean,
-	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
 
 	rcModeStatus: {[botId: number]: boolean},
-	remoteControlValues: Engineering
+	remoteControlValues: Engineering,
 	remoteControlInterval?: ReturnType<typeof setInterval>,
+	rcDives: {[botId: number]: {[taskParams: string]: string}},
 
 	taskPacketType: string,
 	taskPacketData: {[key: string]: {[key: string]: string}},
@@ -247,6 +254,7 @@ export default class CommandControl extends React.Component {
 			podStatusVersion: 0,
 			botExtents: {},
 			lastBotCount: 0,
+			areBotsLoadedJCC: false,
 
 			missionParams: {
 				'missionType': 'lines',
@@ -330,6 +338,7 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
+			rcDives: {},
 
 			taskPacketType: '',
 			taskPacketData: {},
@@ -482,6 +491,11 @@ export default class CommandControl extends React.Component {
 		// Update the map layers panel, if needed
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
+		}
+
+		if (!this.state.areBotsLoadedJCC && Object.keys(this.state.podStatus?.bots).length > 0) {
+			this.initRCDivesStorage(Object.keys(this.state.podStatus.bots))
+			this.setState({ areBotsLoadedJCC: true })
 		}
 	}
 
@@ -1925,6 +1939,28 @@ export default class CommandControl extends React.Component {
 			datumLocation = {lat: 0, lon: 0}
 		}
 	}
+
+	initRCDivesStorage(botIds: string[]) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		for (let botId of botIds) {
+			newRCDives[Number(botId)] = {
+				maxDepth: '',
+				depthInterval: '',
+				holdTime: '',
+				driftTime: ''
+			}
+		}
+		this.setState({ rcDives: newRCDives })
+	}
+
+	setRCDiveParams(diveParams: {[param: string]: string}) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		newRCDives[this.selectedBotId()].maxDepth = diveParams.maxDepth
+		newRCDives[this.selectedBotId()].depthInterval = diveParams.depthInterval
+		newRCDives[this.selectedBotId()].holdTime = diveParams.holdTime
+		newRCDives[this.selectedBotId()].driftTime = diveParams.driftTime
+		this.setState({ rcDives: newRCDives })
+	}
 	// 
 	// RC Mode (End)
 	//
@@ -2602,10 +2638,12 @@ export default class CommandControl extends React.Component {
 					bot={bots[this.selectedBotId()]}
 					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 					remoteControlValues={this.state.remoteControlValues}
+					rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
 					createInterval={this.createRemoteControlInterval.bind(this)} 
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
-			/>
+					setRCDiveParameters={this.setRCDiveParams.bind(this)}
+				/>
 			)
 		}
 

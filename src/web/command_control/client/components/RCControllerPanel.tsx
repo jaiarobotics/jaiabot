@@ -20,9 +20,11 @@ interface Props {
 	bot: PortalBotStatus,
 	isRCModeActive: boolean,
 	remoteControlValues: Engineering,
+	rcDiveParameters: { [diveParam: string]: string },
 	createInterval: () => void,
 	weAreInControl: () => boolean,
-	weHaveInterval: () => boolean
+	weHaveInterval: () => boolean,
+	setRCDiveParameters: (diveParams: {[param: string]: string} ) => void,
 }
 
 interface State {
@@ -33,8 +35,6 @@ interface State {
 	rudderDirection: string,
 	throttleBinNumber: number,
 	rudderBinNumber: number,
-	diveParameters: { [diveParam: string]: string },
-	driftParameters: { [driftParam: string]: string }
 }
 
 enum JoySticks {
@@ -69,15 +69,7 @@ export default class RCControllerPanel extends React.Component {
 			throttleDirection: '',
 			rudderDirection: '',
 			throttleBinNumber: 0,
-			rudderBinNumber: 0,
-			diveParameters: {
-				'maxDepth': '',
-				'depthInterval': '',
-				'holdTime': ''
-			},
-			driftParameters: {
-				'driftTime': ''
-			}
+			rudderBinNumber: 0
         }
     }
 
@@ -285,32 +277,27 @@ export default class RCControllerPanel extends React.Component {
 	handleTaskParamInputChange(evt: React.ChangeEvent<HTMLInputElement>) {
 		const input = evt.target.value
 		const paramType = evt.target.id
-		const diveParams = this.state.diveParameters
-		const driftParams = this.state.driftParameters
+		const diveParams = {...this.props.rcDiveParameters}
 
 		if (Number.isNaN(Number(input)) || Number(input) < 0) {
 			alert('Please enter only positive numbers for dive parameters')
 			return
 		}
-
-		if (paramType === 'driftTime') {
-			driftParams[paramType] = input
-		} else {
-			diveParams[paramType] = input
-		}
-		this.setState({ diveParameters: diveParams, driftParameters: driftParams })
+		
+		diveParams[paramType] = input
+		this.props.setRCDiveParameters(diveParams)
 	}
 
 	handleDiveButtonClick() {
 		const diveParametersNum: { [diveParam: string]: number } = {}
-		const driftParametersNum: { [driftParams: string]: number } = {}
+		const driftParametersNum: { [driftParam: string]: number } = {}
 
-		for (const key of Object.keys(this.state.diveParameters)) {
-			diveParametersNum[key] = Number(this.state.diveParameters[key])
-		}
-
-		for (const key of Object.keys(this.state.driftParameters)) {
-			driftParametersNum[key] = Number(this.state.driftParameters[key])
+		for (const key of Object.keys(this.props.rcDiveParameters)) {
+			if (key === 'driftTime') {
+				driftParametersNum[key] = Number(this.props.rcDiveParameters[key])
+			} else {
+				diveParametersNum[key] = Number(this.props.rcDiveParameters[key])
+			}
 		}
 
 		const rcDiveCommand = {
@@ -333,13 +320,7 @@ export default class RCControllerPanel extends React.Component {
 	}
 
 	isDiveButtonDisabled() {
-		for (const value of Object.values(this.state.diveParameters)) {
-			if (value === '') {
-				return true
-			}
-		}
-
-		for (const value of Object.values(this.state.driftParameters)) {
+		for (const value of Object.values(this.props.rcDiveParameters)) {
 			if (value === '') {
 				return true
 			}
@@ -505,19 +486,19 @@ export default class RCControllerPanel extends React.Component {
 					{selectControlType}
 					<div className='rc-dive-info-container' >
 						<div>Max Depth:</div>
-						<input id='maxDepth' className='rc-input' type='text' value={this.state.diveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)}/>
+						<input id='maxDepth' className='rc-input' type='text' value={this.props.rcDiveParameters.maxDepth} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
 						<div>m</div>
 
 						<div>Depth Interval:</div>
-						<input id='depthInterval' className='rc-input' type='text' value={this.state.diveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
+						<input id='depthInterval' className='rc-input' type='text' value={this.props.rcDiveParameters.depthInterval} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
 						<div>m</div>
 
 						<div>Hold Time:</div>
-						<input id='holdTime' className='rc-input' type='text' value={this.state.diveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
+						<input id='holdTime' className='rc-input' type='text' value={this.props.rcDiveParameters.holdTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off'/>
 						<div>s</div>
 
 						<div>Drift Time:</div>
-						<input id='driftTime' className='rc-input' type='text' value={this.state.driftParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} />
+						<input id='driftTime' className='rc-input' type='text' value={this.props.rcDiveParameters.driftTime} onChange={(evt: React.ChangeEvent<HTMLInputElement>) => this.handleTaskParamInputChange(evt)} autoComplete='off' />
 						<div>s</div>
 					</div>
 				</div>

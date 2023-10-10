@@ -87,7 +87,7 @@ module.exports = (env, argv) => [
           {test : /\.geojson$/, use : [ 'json-loader' ]}
         ]
       },
-      resolve : {extensions : [ '*', '.js', '.jsx', '.ts', '.tsx' ]},
+      resolve : {extensions : [ '.*', '.js', '.jsx', '.ts', '.tsx' ]},
       devServer : {
         contentBase : false,  // Don't have any non-webpack content (see
                               // HtmlWebpackPlugin and CopyWebpackPlugin below)
