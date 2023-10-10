@@ -1,10 +1,8 @@
-import { Feature, Map } from "ol"
+import { BotStatus } from "./JAIAProtobuf"
 import { Point } from "ol/geom"
 import { fromLonLat } from "ol/proj"
+import { Feature, Map } from "ol"
 import * as Styles from "./Styles"
-import { addPopupHTML } from "./Popup"
-import { BotStatusRate, BotStatus } from "./JAIAProtobuf"
-
 
 interface Properties {
     map: Map,
@@ -13,7 +11,6 @@ interface Properties {
     heading: number
     courseOverGround: number
 }
-
 
 export function createBotFeature(properties: Properties) {
     const projection = properties.map.getView().getProjection()
