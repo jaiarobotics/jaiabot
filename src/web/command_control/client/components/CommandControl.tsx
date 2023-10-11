@@ -21,6 +21,7 @@ import { CommandList } from './Missions'
 import { SurveyLines } from './SurveyLines'
 import { BotListPanel } from './BotListPanel'
 import { Interactions } from './Interactions'
+import { SettingsPanel } from './SettingsPanel'
 import { SurveyPolygon } from './SurveyPolygon'
 import { RallyPointPanel } from './RallyPointPanel'
 import { TaskPacketPanel } from './TaskPacketPanel'
@@ -50,12 +51,13 @@ import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
 import { Interaction } from 'ol/interaction'
+import { boundingExtent } from 'ol/extent.js';
 import { Feature, MapBrowserEvent } from 'ol'
 import { getLength as OlGetLength } from 'ol/sphere'
 import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
-import {boundingExtent} from 'ol/extent.js';
+
 
 // TurfJS
 import * as turf from '@turf/turf'
@@ -66,9 +68,13 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
+
+
+// Utility
+import cloneDeep from 'lodash.clonedeep'
 
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
@@ -99,7 +105,8 @@ export enum PanelType {
 	GOAL_SETTINGS = 'GOAL_SETTINGS',
 	DOWNLOAD_QUEUE = 'DOWNLOAD_QUEUE',
 	RALLY_POINT = 'RALLY_POINT',
-	TASK_PACKET = 'TASK_PACKET'
+	TASK_PACKET = 'TASK_PACKET',
+	SETTINGS = 'SETTINGS'
 }
 
 export enum Mode {
@@ -129,6 +136,7 @@ interface State {
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
 	lastBotCount: number,
+	areBotsLoadedJCC: boolean,
 
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
@@ -138,12 +146,12 @@ interface State {
 	missionEndTask: MissionTask,
 
 	runList: MissionInterface,
-	runListVersion: number
+	runListVersion: number,
 	undoRunListStack: MissionInterface[],
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
-	}
+	},
 
 	goalBeingEdited: {
 		goal?: Goal,
@@ -151,15 +159,15 @@ interface State {
 		botId?: number,
 		runNumber?: number,
 		moveWptMode?: boolean
-	}
+	},
 
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
 	rallyFeatureCount: number,
-	selectedRallyFeature: OlFeature<Point>
-	startRally: OlFeature<Point>
-	endRally: OlFeature<Point>
+	selectedRallyFeature: OlFeature<Point>,
+	startRally: OlFeature<Point>,
+	endRally: OlFeature<Point>,
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -178,15 +186,18 @@ interface State {
 	surveyPolygonCoords?: LineString,
 	surveyExclusionCoords?: number[][],
 	surveyPolygonChanged: boolean,
-	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
 
-	remoteControlValues: Engineering
+	rcModeStatus: {[botId: number]: boolean},
+	remoteControlValues: Engineering,
 	remoteControlInterval?: ReturnType<typeof setInterval>,
+	rcDives: {[botId: number]: {[taskParams: string]: string}},
 
 	taskPacketType: string,
 	taskPacketData: {[key: string]: {[key: string]: string}},
 	selectedTaskPacketFeature: OlFeature,
 	taskPacketIntervalId: NodeJS.Timeout,
+	isClusterModeOn: boolean
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -243,6 +254,7 @@ export default class CommandControl extends React.Component {
 			podStatusVersion: 0,
 			botExtents: {},
 			lastBotCount: 0,
+			areBotsLoadedJCC: false,
 
 			missionParams: {
 				'missionType': 'lines',
@@ -316,6 +328,7 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			centerLineString: null,
 
+			rcModeStatus: {},
 			remoteControlInterval: null,
 			remoteControlValues: {
 				bot_id: -1,
@@ -325,11 +338,13 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
+			rcDives: {},
 
 			taskPacketType: '',
 			taskPacketData: {},
 			selectedTaskPacketFeature: null,
 			taskPacketIntervalId: null,
+			isClusterModeOn: true,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -476,6 +491,11 @@ export default class CommandControl extends React.Component {
 		// Update the map layers panel, if needed
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
+		}
+
+		if (!this.state.areBotsLoadedJCC && Object.keys(this.state.podStatus?.bots).length > 0) {
+			this.initRCDivesStorage(Object.keys(this.state.podStatus.bots))
+			this.setState({ areBotsLoadedJCC: true })
 		}
 	}
 
@@ -1064,9 +1084,8 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		const commDest = this.determineAllCommandBots(true, false, false, false)
-
-		const botIdsAssignedToRuns: number[] = [];
-		const runs = missions.runs;
+		const botIdsAssignedToRuns: number[] = []
+		const runs = missions.runs
 
 		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
@@ -1100,28 +1119,36 @@ export default class CommandControl extends React.Component {
 		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
 				
+			let continueToExecuteMission = true 
+
 			if (addRuns) {
-				this.deleteAllRunsInMission(missions, true, true);
-				Object.keys(addRuns).map(key => {
-					Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-				});
+				continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
+
+				if (continueToExecuteMission) {
+					Object.keys(addRuns).map(key => {
+						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+					});
+				}
 			}
 
-			Object.keys(runs).map(key => {
-				const botIndex = runs[key].assigned;
-				const runId = runs[key].id
-				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-					this._runMission(runs[key].command)
-					// Turn off edit mode when run starts for completeness
-					if (runs[key].id === this.getRunList().runIdInEditMode) {
-						const runList = this.getRunList()
-						runList.runIdInEditMode = ''
-						this.setRunList(runList)
+			if (continueToExecuteMission) {
+				Object.keys(runs).map(key => {
+					const botIndex = runs[key].assigned;
+          this.setRcMode(botIndex, false)
+					const runId = runs[key].id
+					if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+						this._runMission(runs[key].command)
+						// Turn off edit mode when run starts for completeness
+						if (runs[key].id === this.getRunList().runIdInEditMode) {
+							const runList = this.getRunList()
+							runList.runIdInEditMode = ''
+							this.setRunList(runList)
+						}
 					}
-				}
-			})
-
-			success("Submitted missions")
+				})
+	
+				success("Submitted missions")
+			}
 		}
 	}
 	// 
@@ -1134,7 +1161,7 @@ export default class CommandControl extends React.Component {
 	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 		const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
 		if (needConfirmation && !confirm(warningString)) {
-			return
+			return false
 		}
 		const runs = mission.runs
 		for (const run of Object.values(runs)) {
@@ -1143,6 +1170,8 @@ export default class CommandControl extends React.Component {
 				delete mission.botsAssignedToRuns[run.assigned]
 		}
 		mission.runIdIncrement = 1
+
+		return true
 	}
 
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {
@@ -1515,7 +1544,7 @@ export default class CommandControl extends React.Component {
 
 		if (feature) {
 			// Allow an operator to click on certain features while edit mode is off
-			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt']
+			const editModeExemptions = ['dive', 'drift', 'rallyPoint', 'bot', 'wpt', 'line']
 			const isCollection = feature.get('features')
 
 			if (editModeExemptions.includes(feature?.get('type')) || isCollection || this.state.visiblePanel === 'MEASURE_TOOL') {
@@ -1530,8 +1559,7 @@ export default class CommandControl extends React.Component {
 			}
 
 			// Clicked on goal / waypoint
-			let goal = feature.get('goal')
-
+			const goal = feature.get('goal')
 			if (goal) {
 				this.pushRunListToUndoStack()
 				const goalBeingEdited = {
@@ -1581,6 +1609,12 @@ export default class CommandControl extends React.Component {
 				})
 
 				return false
+			}
+
+			// Clicked on line between waypoints
+			const isLine = feature.get('type') === 'line'
+			if (isLine) {
+				return
 			}
 
 			// Clicked on rally point
@@ -1813,7 +1847,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	unselectTaskPacket(type: string) {
-		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const features = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		for (const featuresArray of features) {
 			const feature = featuresArray.get('features')[0]
 			if (feature.get('selected')) {
@@ -1833,7 +1867,7 @@ export default class CommandControl extends React.Component {
 	}
 
 	setTaskPacketInterval(selectedFeature: Feature, type: string) {
-		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.drfitPacketLayer.getSource().getFeatures()
+		const taskPacketFeatures = type === 'dive' ? taskData.divePacketLayer.getSource().getFeatures() : taskData.driftPacketLayer.getSource().getFeatures()
 		const styleFunction = type === 'dive' ? divePacketIconStyle : driftPacketIconStyle
 		for (const taskPacketFeature of taskPacketFeatures) {
 			if (taskPacketFeature.get('features')[0].get('id') === selectedFeature.get('id')) {
@@ -1848,6 +1882,10 @@ export default class CommandControl extends React.Component {
 			}
 		}
 	}
+
+	setClusterModeStatus(isOn: boolean) {
+		this.setState({ isClusterModeOn: isOn })
+	}
 	// 
 	// Task Packets (End)
 	// 
@@ -1856,11 +1894,16 @@ export default class CommandControl extends React.Component {
 	// RC Mode (Start)
 	// 
 	isRCModeActive(botId: number) {
-		const selectedBot = this.getPodStatus().bots[botId]
-		if (selectedBot?.mission_state.includes('REMOTE_CONTROL')) {
-			return true
-		}
-		return false
+		return this.state.rcModeStatus[botId]
+	}
+
+	setRcMode(botId: number, rcMode: boolean) {
+		const rcModeStatus = this.state.rcModeStatus
+		rcModeStatus[botId] = rcMode
+		this.setState({ rcModeStatus })
+
+		const botFeature = this.botLayers.layers[botId].getSource().getFeatures()[0]
+		botFeature.setProperties({ 'rcMode': rcMode })
 	}
 
 	createRemoteControlInterval() {
@@ -1904,6 +1947,28 @@ export default class CommandControl extends React.Component {
 
 			datumLocation = {lat: 0, lon: 0}
 		}
+	}
+
+	initRCDivesStorage(botIds: string[]) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		for (let botId of botIds) {
+			newRCDives[Number(botId)] = {
+				maxDepth: '',
+				depthInterval: '',
+				holdTime: '',
+				driftTime: ''
+			}
+		}
+		this.setState({ rcDives: newRCDives })
+	}
+
+	setRCDiveParams(diveParams: {[param: string]: string}) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		newRCDives[this.selectedBotId()].maxDepth = diveParams.maxDepth
+		newRCDives[this.selectedBotId()].depthInterval = diveParams.depthInterval
+		newRCDives[this.selectedBotId()].holdTime = diveParams.holdTime
+		newRCDives[this.selectedBotId()].driftTime = diveParams.driftTime
+		this.setState({ rcDives: newRCDives })
 	}
 	// 
 	// RC Mode (End)
@@ -2088,12 +2153,43 @@ export default class CommandControl extends React.Component {
 				<Button id="downloadAll" className={`button-jcc`} onClick={() => this.processDownloadAllBots()}>
 					<Icon path={mdiDownloadMultiple} title="Download All"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
+					<Button className="button-jcc active" onClick={() => {
+						this.setVisiblePanel(PanelType.NONE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
+						}}
+					>
+						<Icon path={mdiProgressDownload} title="Download Queue"/>
+					</Button>
+				))}
 				<Button className="globalCommand button-jcc" onClick={this.restoreUndo.bind(this)}>
 					<Icon path={mdiArrowULeftTop} title="Undo"/>
 				</Button>
 				<Button className="button-jcc" onClick={this.sendFlag.bind(this)}>
 					<Icon path={mdiFlagVariantPlus} title="Flag"/>
 				</Button>
+				{(this.state.visiblePanel == PanelType.SETTINGS ? (
+				<Button className="button-jcc active" onClick={() => {
+					this.setVisiblePanel(PanelType.NONE)
+					}}
+				>
+					<Icon path={mdiCog} title="Settings"/>
+				</Button>
+				) : (
+					<Button className="button-jcc" onClick={() => {
+						this.setVisiblePanel(PanelType.SETTINGS)
+						}}
+					>
+						<Icon path={mdiCog} title="Settings"/>
+					</Button>
+				))}
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -2261,11 +2357,11 @@ export default class CommandControl extends React.Component {
 					type: CommandType.STOP
 				}
 		
-				console.log(c)
 				this.api.postCommand(c).then(response => {
 					if (response.message) {
 						error(response.message)
 					}
+					this.setRcMode(botId, false)
 				})
 			}
 		}
@@ -2529,7 +2625,8 @@ export default class CommandControl extends React.Component {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
-							this.setRunList(runList)
+							// Default to edit mode off for runs created with line tool
+							runList.runIdInEditMode = ''
 
 							// Close panel after applying
 							this.setVisiblePanel(PanelType.NONE)
@@ -2548,13 +2645,15 @@ export default class CommandControl extends React.Component {
 			rcControllerPanel = (
 				<RCControllerPanel 
 					api={this.api} 
-					bot={bots[this.selectedBotId()]}  
-					createInterval={this.createRemoteControlInterval.bind(this)} 
+					bot={bots[this.selectedBotId()]}
+					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 					remoteControlValues={this.state.remoteControlValues}
+					rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
+					createInterval={this.createRemoteControlInterval.bind(this)} 
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
-					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
-			/>
+					setRCDiveParameters={this.setRCDiveParams.bind(this)}
+				/>
 			)
 		}
 
@@ -2593,6 +2692,7 @@ export default class CommandControl extends React.Component {
 					deleteSingleMission: this.deleteSingleRun.bind(this),
 					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					isRCModeActive: this.isRCModeActive.bind(this),
+					setRcMode: this.setRcMode.bind(this),
 					toggleEditMode: this.toggleEditMode.bind(this),
 					downloadIndividualBot: this.processDownloadSingleBot.bind(this)
 				}
@@ -2742,23 +2842,6 @@ export default class CommandControl extends React.Component {
 			</Button>
 		))
 
-		const downloadQueueButton = (visiblePanel == PanelType.DOWNLOAD_QUEUE ? (
-			<Button className="button-jcc active" onClick={() => {
-				this.setVisiblePanel(PanelType.NONE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-
-		) : (
-			<Button className="button-jcc" onClick={() => {
-				this.setVisiblePanel(PanelType.DOWNLOAD_QUEUE)
-				}}
-			>
-				<Icon path={mdiProgressDownload} title="Download Queue"/>
-			</Button>
-		))
-
 		let visiblePanelElement: ReactElement
 
 		switch (visiblePanel) {
@@ -2864,6 +2947,14 @@ export default class CommandControl extends React.Component {
 					/>
 				)
 				break
+			case PanelType.SETTINGS:
+				visiblePanelElement = (
+					<SettingsPanel
+						isClusterModeOn={this.state.isClusterModeOn}
+						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
+					/>
+				)
+				break
 		}
 
 		return (
@@ -2878,8 +2969,6 @@ export default class CommandControl extends React.Component {
 				<div id="viewControls">
 
 					{missionPanelButton}
-
-					{downloadQueueButton}
 
 					{engineeringButton}
 

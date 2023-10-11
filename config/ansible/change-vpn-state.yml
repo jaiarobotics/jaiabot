@@ -1,0 +1,22 @@
+---
+- name: Change the VPN State
+  hosts: all
+  become: yes
+  gather_facts: no
+  vars:
+    allowed_states:
+      - start
+      - stop
+      - enable
+      - disable
+  pre_tasks:
+    - name: Check if state is a valid enumeration
+      ansible.builtin.assert:
+        that:
+          - state is defined
+          - state in allowed_states
+        fail_msg: "Invalid state. Allowed values are: {{ allowed_states | join(', ') }}"
+  tasks:
+    - name: Change current VPN State
+      shell: "systemctl {{ state }} wg-quick@wg_jaia"
+      register: vpn_status

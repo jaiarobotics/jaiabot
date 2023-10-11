@@ -895,7 +895,22 @@ td {
     font-size: 1.25rem;
   }
 
-  .rc-info-container {
+  .rc-dive-labels-container {
+    display: grid;
+    grid-template-columns: 1fr min-content;
+    column-gap: 12px;
+    color: white;
+    font-size: 1.25rem;
+  }
+
+  .rc-labels-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rc-info-container,
+  .rc-dive-info-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
@@ -904,9 +919,35 @@ td {
     padding: 8px;
   }
 
+  .rc-dive-info-container {
+    grid-template-columns: max-content min-content min-content;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .button-rc-dive.button-jcc {
+    margin: 0;
+    align-self: center;
+  }
+
   .rc-data {
     justify-self: center;
     font-weight: 700;
+  }
+
+  .rc-input {
+    all: unset;
+    width: 90px;
+    padding: 4px 8px 4px 4px;
+    background: none;
+    border: 2px solid white;
+    border-radius: 4px;
+    text-align: right;
+  }
+
+  .rc-input:focus {
+    border-top: 3px solid white;
+    border-bottom: 3px solid white;
   }
 
   .rc-dropdown {
@@ -914,7 +955,7 @@ td {
     grid-template-columns: min-content 1fr;
     align-items: center;
     gap: 12px;
-    padding: 8px 0 0 8px;
+    padding: 0 0 0 8px;
 
     .MuiInputBase-root {
       margin: 0;
@@ -923,8 +964,7 @@ td {
     .MuiSelect-select {
       display: flex;
       align-items: center;
-      height: 46.25px;
-      padding: 8px;
+      padding: 10px;
     }
 
     .MuiSvgIcon-root {
