@@ -380,7 +380,7 @@ export function driftMapStyle(feature: Feature) {
             src: src,
             rotation: heading * DEG,
             rotateWithView: true,
-            scale: 0.9
+            scale: 0.68
         }),
     })
 }
