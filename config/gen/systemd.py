@@ -17,7 +17,7 @@ except Exception as e:
     jaiabot_bin_dir_default='/usr/bin'
 
 jaiabot_share_dir_default=os.path.realpath(jaiabot_bin_dir_default + '/../share')
-    
+
 try:
     goby_bin_dir_default=os.path.dirname(shutil.which('gobyd'))
 except Exception as e:
@@ -30,6 +30,7 @@ except Exception as e:
 
     
 gen_dir_default=script_dir    
+ansible_dir_default=os.path.realpath(script_dir + '/../ansible')
 
 parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate service files for a bot or a hub?')
@@ -39,6 +40,7 @@ parser.add_argument('--jaiabot_share_dir', default=jaiabot_share_dir_default, he
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
 parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Directory of the MOOS binaries')
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
+parser.add_argument('--ansible_dir', default=ansible_dir_default, help='Directory to the Ansible configuration')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
 parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
 parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
@@ -50,6 +52,7 @@ parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets t
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
+parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
 
 args=parser.parse_args()
@@ -125,6 +128,7 @@ subprocess.run('bash -ic "' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
+               f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
@@ -134,6 +138,7 @@ common_macros=dict()
 common_macros['env_file']=args.env_file
 common_macros['jaiabot_bin_dir']=args.jaiabot_bin_dir
 common_macros['jaiabot_share_dir']=args.jaiabot_share_dir
+common_macros['ansible_dir']=args.ansible_dir
 common_macros['goby_bin_dir']=args.goby_bin_dir
 common_macros['moos_bin_dir']=args.moos_bin_dir
 common_macros['extra_service']=''
@@ -234,6 +239,11 @@ jaiabot_apps=[
      'error_on_fail': 'ERROR__FAILED__JAIABOT_FUSION',
      'runs_on': Type.BOT,
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'goby_liaison_standalone',
+     'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
+     'template': 'liaison-prelaunch.service.in',
+     'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
+     'runs_on': Type.HUB},
     {'exe': 'jaiabot_simulator',
      'description': 'JaiaBot Simulator',
      'template': 'goby-app.service.in',

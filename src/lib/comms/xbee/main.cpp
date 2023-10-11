@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
     driver_hub.reset(new jaiabot::comms::XBeeDriver);
     driver_bot.reset(new jaiabot::comms::XBeeDriver);
 
+    using boost::placeholders::_1;
     goby::acomms::connect(&driver_hub->signal_raw_incoming,
                           boost::bind(&handle_raw_incoming, 1, _1));
     goby::acomms::connect(&driver_bot->signal_raw_incoming,
