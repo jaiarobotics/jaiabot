@@ -1,3 +1,4 @@
+import {Log} from "./Log"
 
 export class LogApi {
 
@@ -41,7 +42,7 @@ export class LogApi {
   }
 
   // Gets all of the logs and associated metadata for each
-  static get_logs() { return this.get_json('/logs') }
+  static get_logs(): Promise<Log[]> { return this.get_json('/logs') }
 
   static get_paths(logs: string[], root_path: string) {
     var url = new URL('paths', window.location.origin)
