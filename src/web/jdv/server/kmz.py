@@ -149,13 +149,9 @@ def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
     '''Returns a kml string for the provided list of task packets'''
 
     placemarks: List[str] = []
-
-    try:
-        task_packets = list(task_packets)
-        for task_packet in task_packets:
-            placemarks += task_packet_to_kml_placemarks(task_packet)
-    except TypeError:
-        print("There are no task packets")
+    task_packets = list(task_packets)
+    for task_packet in task_packets:
+        placemarks += task_packet_to_kml_placemarks(task_packet)
 
     document_string = ''.join(placemarks)
 
