@@ -3,7 +3,7 @@ import { Feature } from 'ol'
 import { Goal, TaskType } from './JAIAProtobuf'
 import { LineString, Point } from 'ol/geom';
 import { Fill, Icon, Style, Text} from 'ol/style';
-import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
+import { PortalBotStatus } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -79,7 +79,8 @@ export function botMarker(feature: Feature): Style[] {
 
     if (botStatus?.isDisconnected ?? false) {
         color = disconnectedColor
-    } else if (isRemoteControlled(botStatus?.mission_state)) {
+    } 
+    else if (feature.get('rcMode')) {
         color = remoteControlledColor
     } else if (feature.get('selected')) {
         color = selectedColor
