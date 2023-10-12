@@ -183,6 +183,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
 
+            jaiabot::protobuf::ArduinoDebug arduino_debug;
+
             if (arduino_response.status_code() == 0)
             {
                 if (is_settings_ack_)
@@ -191,7 +193,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                     // Ensures that we set our bounds
                     is_settings_ack_ = false;
 
-                    arduino_response.set_arduino_restarted(true);
+                    arduino_debug.set_arduino_restarted(true);
+                    interprocess().publish<groups::arduino_debug>(arduino_debug);
                 }
             }
 
@@ -405,6 +408,8 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
                  << std::endl;
     }
 
+    check_last_report(health, health_state);
+
     health.set_state(health_state);
 }
 
@@ -412,10 +417,17 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
+    glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+
+        jaiabot::protobuf::ArduinoDebug arduino_debug;
+        arduino_debug.set_arduino_not_responding(true);
+        interprocess().publish<groups::arduino_debug>(arduino_debug);
+
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSION_DATA__ARDUINO_REPORT);
