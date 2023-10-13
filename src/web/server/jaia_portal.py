@@ -4,6 +4,9 @@ import bisect
 import socket
 import threading
 
+import pyjaia.contours
+import pyjaia.drift_interpolation
+
 from jaiabot.messages.portal_pb2 import ClientToPortalMessage, PortalToClientMessage
 from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
@@ -17,7 +20,6 @@ from pprint import *
 from typing import *
 from datetime import *
 from math import *
-import contours
 
 import logging
 
@@ -82,7 +84,7 @@ class Interface:
 
     check_for_offloaded_task_packets = False
 
-    def __init__(self, goby_host=('optiplex', 40000), read_only=False):
+    def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(5)
@@ -460,8 +462,13 @@ class Interface:
 
     # Contour map
 
-    def get_depth_contours(self):
-        return contours.taskPacketsToContours(self.get_task_packets())
+    def get_depth_contours(self): 
+        return pyjaia.contours.taskPacketsToContours(self.get_task_packets())
+
+    # Drift map
+    def get_drift_map(self):
+        startDate = datetime.now() - timedelta(days=1)
+        return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(startDate=startDate))
 
     # Controlling clientId
 
@@ -494,3 +501,9 @@ class Interface:
         self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))
 
         self.offloaded_task_packet_dates = [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
+
+
+if __name__ == '__main__':
+    i = Interface()
+
+    print(i.get_task_packets())

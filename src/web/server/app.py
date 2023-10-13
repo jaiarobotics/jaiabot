@@ -18,7 +18,7 @@ def parseDate(dateString: str):
     
 
 # Internal Imports
-import jaia
+import jaia_portal
 import missions
 
 # Arguments
@@ -38,7 +38,7 @@ if args.hostname is None:
     logging.warning('no ip specified, using localhost:40001')
     args.hostname = "localhost"
 
-jaia_interface = jaia.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
+jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
 
 app = Flask(__name__)
 
@@ -56,8 +56,11 @@ def getRoot():
 
 ####### API endpoints
 
-def JSONResponse(obj):
-    return Response(json.dumps(obj), mimetype='application/json')
+def JSONResponse(obj: any=None, string: str=None):
+    if obj is not None:
+        return Response(json.dumps(obj), mimetype='application/json')
+    if string is not None:
+        return Response(string, mimetype='application/json')
 
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
@@ -181,6 +184,12 @@ def jedRoot():
 @app.route('/jaia/depth-contours', methods=['GET'])
 def get_deth_contours():
     return JSONResponse(jaia_interface.get_depth_contours())
+
+######## Drift map
+
+@app.route('/jaia/drift-map', methods=['GET'])
+def get_drift_map():
+    return JSONResponse(string=jaia_interface.get_drift_map())
 
 
 if __name__ == '__main__':

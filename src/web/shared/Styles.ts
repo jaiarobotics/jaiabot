@@ -364,6 +364,27 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     })
 }
 
+export function driftMapStyle(feature: Feature) {
+    // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
+    // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const heading = feature.get('heading') as number
+    const speed = feature.get('speed') as number
+
+    const binValueIncrement = 0.5
+    let binNumber = Math.floor(speed / binValueIncrement)
+
+    const src = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
+    
+    return new Style({
+        image: new Icon({
+            src: src,
+            rotation: heading * DEG,
+            rotateWithView: true,
+            scale: 0.68
+        }),
+    })
+}
+
 // The mission path linestring
 export function missionPath(feature: Feature) {
     const isSelected = feature.get('isSelected') ?? false
