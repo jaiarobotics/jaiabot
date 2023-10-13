@@ -232,11 +232,6 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
     }
-
-    if (cfg().check_arduino_status())
-    {
-        launch_thread<ArduinoStatusThread>(cfg().arduino());
-    }
 }
 
 void jaiabot::apps::Health::process_coroner_report(
