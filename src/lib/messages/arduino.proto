@@ -37,3 +37,9 @@ message ArduinoResponse
     optional uint32 calculated_crc = 51;
     optional uint32 version = 52 [default = 0];
 }
+
+message ArduinoDebug
+{
+    optional bool arduino_restarted = 1 [default = false];
+    optional bool arduino_not_responding = 2 [default = false];
+}
