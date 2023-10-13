@@ -3,6 +3,7 @@ import { getDivePacketFeature, getDriftPacketFeature } from './shared/TaskPacket
 import { geoJSONToDepthContourFeatures } from "./shared/Contours"
 import { TaskPacket } from "./shared/JAIAProtobuf"
 import { jaiaAPI } from "../../common/JaiaAPI"
+import * as Styles from "./shared/Styles"
 
 // Open Layer Imports
 import VectorSource from 'ol/source/Vector'
@@ -37,6 +38,17 @@ export class TaskData {
         opacity: 0.5,
         source: null,
         visible: false,
+      })
+
+    driftMapLayer: VectorLayer<VectorSource> = new VectorLayer({
+        properties: {
+            title: 'Drift Map',
+        },
+        zIndex: 25,
+        opacity: 0.5,
+        source: null,
+        visible: false,
+        style: Styles.driftMapStyle
       })
 
     diveSource: VectorSource
@@ -199,6 +211,24 @@ export class TaskData {
         })
     }
 
+    
+    /**
+     * Updates the interpolated drift layer by accessing the API
+     * @date 10/5/2023 - 5:32:55 AM
+     */
+    _updateInterpolatedDrifts() {
+        jaiaAPI.getDriftMap()
+        .then(features => {
+            const tFeatures = features.map(feature => {
+                feature.setGeometry(feature.getGeometry().transform('EPSG:4326', this.map.getView().getProjection()))
+                return feature
+            })
+            this.driftMapLayer.setSource(new VectorSource({ features: tFeatures }))
+        }).catch(error => {
+            console.error(error)
+        })
+    }
+
     _pollTaskPackets() {
         const self = this
 
@@ -208,6 +238,10 @@ export class TaskData {
 
             if (taskPackets.length != this.taskPackets.length) {
                 this.taskPackets = taskPackets
+
+                if (taskPackets.length >= 2) {
+                    this._updateInterpolatedDrifts()
+                }
 
                 if (taskPackets.length >= 3) {
                     this._updateContourPlot()
@@ -253,6 +287,10 @@ export class TaskData {
 
     getContourLayer() {
         return this.contourLayer
+    }
+
+    getDriftMapLayer() {
+        return this.driftMapLayer
     }
 
     getDiveLayer() {
