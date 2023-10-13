@@ -47,4 +47,6 @@ message ArduinoDriverConfig
     }
 
     repeated ArduinoVersionTable arduino_version_table = 21;
+
+    optional int32 arduino_report_timeout_seconds = 10 [default = 2];
 }
