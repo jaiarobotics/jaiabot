@@ -8,7 +8,7 @@ import os
 import math
 
 import jaialogs
-import contours
+import pyjaia.contours
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -135,7 +135,7 @@ def getDepthContours():
         return JSONErrorResponse("Missing log filename")
 
     taskPackets = jaialogs.get_task_packet_dicts(log_names)
-    return JSONResponse(contours.taskPacketsToContours(taskPackets))
+    return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
 
 
 if __name__ == '__main__':

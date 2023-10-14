@@ -47,3 +47,11 @@
 #measureResult.notVisible {
     display: none;
 }
+
+div.buttonSection {
+    display: flex;
+}
+
+div.spacer {
+    flex-grow: 1;
+}
