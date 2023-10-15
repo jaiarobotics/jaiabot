@@ -99,27 +99,7 @@ export default class LogSelector extends React.Component {
             </div>
         </div>
 
-        const logItems = logs.map((log) => {
-            const key = `${log.fleet}-${log.bot}-${log.timestamp}`
-            const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
-
-            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
-                <div className="fleetCell">
-                    {log.fleet}
-                </div>
-                <div className="botCell">
-                    {log.bot}
-                </div>
-                <div className="timeCell">
-                    {date_string_from_microseconds(log.timestamp)}
-                </div>
-                <div className="durationCell">
-                    {duration_string_from_seconds(log.duration / 1e6)}
-                </div>
-            </div>
-
-            return row
-        })
+        const logItems = logs.map((log) => { return this.logRowElement(log) })
 
         return (
           <div className="logSelector dialog">
@@ -159,6 +139,28 @@ export default class LogSelector extends React.Component {
         )
     }
 
+    logRowElement(log: Log) {
+        const key = `${log.fleet}-${log.bot}-${log.timestamp}`
+        const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
+
+        const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
+            <div className="fleetCell">
+                {log.fleet}
+            </div>
+            <div className="botCell">
+                {log.bot}
+            </div>
+            <div className="timeCell">
+                {date_string_from_microseconds(log.timestamp)}
+            </div>
+            <div className="durationCell">
+                {duration_string_from_seconds(log.duration / 1e6)}
+            </div>
+        </div>
+
+        return row
+    }
+
     buttonsElement() {
         return <div className="buttonSection section">
             <button className="danger padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
@@ -179,7 +181,7 @@ export default class LogSelector extends React.Component {
     didToggleLog(log: Log) {
         var selectedLogs = this.state.selectedLogs
 
-        if (log.filename in Object.keys(selectedLogs)) {
+        if (log.filename in selectedLogs) {
             delete selectedLogs[log.filename]
             this.setState({selectedLogs})
         }
