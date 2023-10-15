@@ -149,8 +149,8 @@ def getH5():
     if h5_filename is None:
         return JSONErrorResponse('Please specify file to download with "file="')
     
-    h5_stem = Path(h5_filename).stem
-    headers = { 'Content-Disposition': f'attachment; filename={h5_stem}' }
+    h5_name = Path(h5_filename).name
+    headers = { 'Content-Disposition': f'attachment; filename={h5_name}' }
 
     return Response(jaialogs.getH5File(h5_filename), mimetype='application/x-hdf', headers=headers)
 
