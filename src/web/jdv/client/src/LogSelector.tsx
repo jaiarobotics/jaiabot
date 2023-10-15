@@ -154,14 +154,18 @@ export default class LogSelector extends React.Component {
                 <div className="list">{logItems}</div>
             </div>
 
-            <div className="buttonSection section">
-                {/* <button className="padded" onClick={self.refreshClicked.bind(self)}>Refresh</button>
-                <div className="spacer"></div> */}
-                <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
-                <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
-            </div>
+            { this.buttonsElement() }
           </div>
         )
+    }
+
+    buttonsElement() {
+        return <div className="buttonSection section">
+            <button className="padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
+
+            <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
+            <button className="padded" onClick={this.okClicked.bind(this)}>Open Logs</button>
+        </div>
     }
 
     componentDidMount(): void {
@@ -343,6 +347,25 @@ export default class LogSelector extends React.Component {
 
         console.debug('Selected logs: ', selectedLogNames)
         this.props.didSelectLogs?.(selectedLogNames)
+    }
+
+    async deleteClicked() {
+        const logNames = Object.values(this.state.selectedLogs).map(log => {
+            const h5Name = log.filename.split('/').at(-1)
+            const logName = h5Name.slice(0, h5Name.length - 3)
+            return logName
+        })
+
+        const logNamesString = logNames.join('\n')
+
+        if (confirm(`Are you sure you want to DELETE the logs named:\n${logNamesString}`)) {
+            logNames.forEach(logName => {
+                LogApi.delete_log(logName)
+            })
+
+            // Deselect all logs
+            this.setState({selectedLogs: {}})
+        }
     }
 
     refreshLogs() {

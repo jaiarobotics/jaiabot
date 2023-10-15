@@ -92,6 +92,11 @@ export class LogApi {
     return this.get_json(url.toString())
   }
 
+  static delete_log(logName: string) {
+    const request = new Request(`/log/${logName}`, {method: 'DELETE'})
+    fetch(request)
+  }
+
   static get_moos(logs: string[], time_range: number[]) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
