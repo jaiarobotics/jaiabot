@@ -161,8 +161,8 @@ export default class LogSelector extends React.Component {
 
     buttonsElement() {
         return <div className="buttonSection section">
-            <button className="padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
-
+            <button className="danger padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
+            <div className="spacer"></div>
             <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
             <button className="padded" onClick={this.okClicked.bind(this)}>Open Logs</button>
         </div>
