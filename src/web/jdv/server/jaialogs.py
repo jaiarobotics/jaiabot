@@ -121,7 +121,6 @@ UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime
 def get_logs():
     '''Get list of available logs'''
     results: list[dict] = []
-    logging.warning('log_dir = ' + LOG_DIR)
 
     if not os.path.isdir(LOG_DIR):
         logging.error(f'Directory does not exist: {LOG_DIR}')

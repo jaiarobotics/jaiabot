@@ -66,7 +66,10 @@ class JaiaH5FileSet:
         '''Returns duration in seconds'''
         UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
 
-        h5File = self.h5Files[0]
+        try:
+            h5File = self.h5Files[0]
+        except IndexError:
+            None
 
         # Get duration of the first log, if the h5 file exists
         try:
@@ -85,7 +88,10 @@ class JaiaH5FileSet:
                 h5Path = Path(h5FileName)
 
                 if h5Path.is_file():
-                    h5Files.append(h5py.File(h5FileName))
+                    try:
+                        h5Files.append(h5py.File(h5FileName))
+                    except BlockingIOError as e:
+                        logging.warning(f'While trying to open {h5FileName}, exception occured: {e}')
                     continue
 
                 # h5 file doesn't exist
