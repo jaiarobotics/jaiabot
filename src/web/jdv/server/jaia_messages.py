@@ -23,10 +23,10 @@ class GeographicCoordinate:
 @dataclass
 class DivePacket:
     depth_achieved: float
-    measurement: List[Measurement]
     start_location: GeographicCoordinate
 
     # fields with default values are optional in the JSON
+    measurement: Optional[List[Measurement]] = None
     duration_to_acquire_gps: Optional[float] = None
     bottom_dive: bool = False
     unpowered_rise_rate: Optional[float] = None
