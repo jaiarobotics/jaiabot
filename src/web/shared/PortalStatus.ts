@@ -35,3 +35,7 @@ export interface Metadata {
 	xbee_node_id?: string,
 	xbee_serial_number?: string
 }
+
+export function isRemoteControlled(mission_state?: MissionState) {
+	return mission_state?.includes('REMOTE_CONTROL')	|| false
+}
