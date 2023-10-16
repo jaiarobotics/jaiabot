@@ -166,7 +166,6 @@ def kml_from_task_packets(task_packets: Iterable[TaskPacket]):
 
 def write_file(task_packets: Iterable[TaskPacket], output_kmz_path: str):
     '''Creates a kmz file at output_kmz_path, containing placemarks for the input task_packets'''
-   
     with zipfile.ZipFile(output_kmz_path, 'w') as output_kmz_file:
         kml_file_string = kml_from_task_packets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)
