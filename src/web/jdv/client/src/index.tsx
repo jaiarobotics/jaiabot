@@ -9,7 +9,7 @@ import {
   mdiRuler
 } from '@mdi/js'
 import Icon from '@mdi/react'
-import React from "react"
+import React, { ReactElement } from "react"
 import ReactDOM from "react-dom/client"
 import { BrowserRouter as Router } from "react-router-dom"
 
@@ -68,6 +68,8 @@ interface State {
 
   // Plot sets
   isOpenPlotSetDisplayed: boolean
+
+  busyIndicator: boolean
 }
 
 
@@ -100,6 +102,8 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
+
+      busyIndicator: false
     }
   }
 
@@ -111,6 +115,9 @@ class LogApp extends React.Component {
 
     const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
     const openLogsListString = chosenLogsFilenames.join(', ')
+
+    var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="vertical-center"></img></div> : null
+
 
     return (
       <Router>
@@ -179,6 +186,7 @@ class LogApp extends React.Component {
           ></TimeSlider>
 
           { log_selector }
+          {busyOverlay}
 
         </div>
 
@@ -275,12 +283,27 @@ class LogApp extends React.Component {
     this.plot_div_element = document.getElementById('plot') as Plotly.PlotlyHTMLElement
   }
 
-  didSelectLogs(logs?: Log[]) {
-    if (logs != null) {
-      this.setState({chosenLogs: logs, mapNeedsRefresh: true })
+  didSelectLogs(logFilenames?: string[]) {
+    this.setState({isSelectingLogs: false})
+    if (logFilenames == null) return
+  
+    const self = this
+
+    function openLogsWhenReady() {
+      LogApi.post_convert_if_needed(logFilenames).then((response) => {
+        if (response.done) {
+          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true, busyIndicator: false })
+        }
+        else {
+          console.log(`Waiting on conversion of ${logFilenames}`)
+          self.setState({busyIndicator: true})
+          setTimeout(openLogsWhenReady, 500)
+        }
+      })
     }
 
-    this.setState({isSelectingLogs: false})
+    openLogsWhenReady()
+
   }
 
   didSelectPaths(pathArray: string[]) {

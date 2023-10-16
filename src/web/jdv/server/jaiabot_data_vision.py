@@ -10,6 +10,8 @@ import math
 import jaialogs
 import pyjaia.contours
 
+from jaia_h5 import JaiaH5FileSet
+
 # Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", dest='port', type=int, default=40010, help="Port to serve the jaiabot_data_vision interface")
@@ -52,6 +54,7 @@ def getStaticFile(path):
 
 @app.route('/', methods=['GET'])
 def getRoot():
+    '''The html/css/javascript client'''
     return getStaticFile('index.html')
 
 ####### API endpoints
@@ -60,15 +63,20 @@ def getRoot():
 def getLogs():
     return JSONResponse(jaialogs.get_logs())
 
+@app.route('/convert-if-needed', methods=['POST'])
+def convertLogs():
+    log_names = request.json
+    return JSONResponse(jaialogs.convert_if_needed(log_names))
+
 @app.route('/paths', methods=['GET'])
 def getFields():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogs.get_fields(log_names, root_path))
 
 @app.route('/series', methods=['GET'])
 def getSeries():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     series_names = request.args.get('path')
 
     try:
@@ -79,7 +87,7 @@ def getSeries():
 
 @app.route('/map', methods=['GET'])
 def getMap():
-    log_names = request.args.get('log')
+    log_names = parse_log_filenames(request.args.get('log'))
     return JSONResponse(jaialogs.get_map(log_names))
 
 

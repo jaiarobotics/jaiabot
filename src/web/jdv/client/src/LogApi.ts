@@ -32,6 +32,27 @@ export class LogApi {
     });
   }
 
+  // Do a JSON GET request
+  static post(url_string: string, jsonObject: object) {
+    var request = new Request(url_string, {
+      method : 'POST',
+      headers : new Headers({'Content-Type' : 'application/json'}),
+      body: JSON.stringify(jsonObject)
+    })
+
+    return fetch(request)
+        .then(resp => resp.json())
+        .then(response_object => {
+          // If there's an error message in there, we need to throw it
+          if (response_object.error != null) {
+            throw new Error(response_object.error)
+          } else {
+            return response_object
+          }
+        })
+        .catch(err => {console.error(err)})
+  }
+
   // Get a series corresponding to a set of log files and paths
   static get_series(logs: string[], paths: string[]) {
     var url = new URL('series', window.location.origin)
@@ -100,4 +121,10 @@ export class LogApi {
 
     return this.download_file(url.toString())
   }
+
+  // Convert logs if needed
+  static post_convert_if_needed(logs: string[]) {
+    return this.post('convert-if-needed', logs)
+  }
+
 }

@@ -1,80 +1,40 @@
-from cmath import isnan
-from dataclasses import dataclass, field
-from email.policy import default
 import glob
-from typing import Iterable, Type, Optional
+from typing import Iterable
 import h5py
 import logging
 import json
 import re
-import math
-import copy
 import datetime
 import os
 
-import bisect
 import kmz
 
 from objects import *
 from moos_messages import *
 from pprint import pprint
-from types import MethodType
+from pathlib import Path
+from jaia_h5 import JaiaH5FileSet
+from typing import *
+
+import log_conversion
 
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
 
 
-INT32_MAX = (2 << 30) - 1
-UINT32_MAX = (2 << 31) - 1
-
 LOG_DIR='logs'
+log_conversion_manager: log_conversion.LogConversionManager = None
 
 # Utility functions
 
 def set_directory(directory):
-    global LOG_DIR
-    LOG_DIR = directory
+    global LOG_DIR, log_conversion_manager
+    LOG_DIR = str(directory)
     logging.info(f'Log directory: {directory}')
     os.makedirs(directory, exist_ok=True)
 
-def get_root_item_path(path, root_item=''):
-    '''Get the path to a root_item associated with that path'''
-    components = path.split('/')
-    components = components[:2] + [root_item]
-    return '/'.join(components)
-
-
-def h5_get_series(dataset):
-    '''Get a filtered, JSON-serializable representation of an h5 dataset'''
-    dtype = dataset.dtype
-
-    def from_float(x):
-        x = float(x)
-        if math.isnan(x):
-            return None
-        return x
-
-    def from_int32(x):
-        if x == INT32_MAX:
-            return None
-        return int(x)
-
-    def from_uint32(x):
-        if x == UINT32_MAX:
-            return None
-        return int(x)
-
-    dtype_proc = {
-        'f': from_float,
-        'i': from_int32,
-        'u': from_uint32
-    }
-
-    map_proc = dtype_proc[dtype.kind]
-    filtered_list = [map_proc(x) for x in dataset]
-
-    return filtered_list
+    log_conversion_manager = log_conversion.LogConversionManager(LOG_DIR)
 
 
 def h5_get_string(dataset):
@@ -156,302 +116,99 @@ BOT_STATUS_RE = re.compile(r'^jaiabot::bot_status.*;([0-9]+)/jaiabot.protobuf.Bo
 
 # Data fetch functions
 
+UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
+
 def get_logs():
     '''Get list of available logs'''
-    results = []
+    results: list[dict] = []
     logging.warning('log_dir = ' + LOG_DIR)
-    for filename in glob.glob(LOG_DIR + '/*_*_*.h5'):
-        components = re.match(r'.*/(.+)_(.+)_(.+)\.h5$', filename)
+
+    if not os.path.isdir(LOG_DIR):
+        logging.error(f'Directory does not exist: {LOG_DIR}')
+        return results
+
+    log_file_dict: dict[str, dict] = {}
+
+    for file_path_string in glob.glob(LOG_DIR + '/*_*_????????T??????.*'):
+        file_path = Path(file_path_string)
+        filename = file_path.stem
+        log_file_info = log_file_dict.setdefault(filename, {})
+
+        suffix = file_path.suffix
+        components = re.match(r'(.+)_(.+)_(.+)$', filename)
         bot, fleet, date_string = components.groups()
 
-        try:
-            date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
-        except ValueError:
-            logging.warning(f'No date in file {filename}')
-            continue
-
-        # Get duration of this log
-        try:
-            path = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime_'
-            h5_file = h5py.File(filename)
-            start = h5_file[path][0]
-            end = h5_file[path][-1]
-            duration = int(end - start)
-        except (OSError, KeyError):
-            logging.warning(f'No duration in file {filename}')
-            continue
-
-        results.append({
+        log_file_info.update({
             'bot': bot,
             'fleet': fleet,
-            'timestamp': date.timestamp(),
-            'duration': duration,
             'filename': filename
         })
 
-    return results
-
-
-def get_fields(log_names, root_path='/'):
-    '''Get a list of the fields below a root path in a set of logs'''
-    fields = set()
-
-    if log_names is None:
-        return []
-
-    if root_path is None or root_path == '':
-        root_path = '/'
-    else:
-        # h5py doesn't like initial slashes, unless it's the root path
-        root_path = root_path.lstrip('/')
-
-    log_names = log_names.split(',')
-    
-    for log_name in log_names:
-        h5_file = h5py.File(log_name)
         try:
-            fields = fields.union(h5_file[root_path].keys())
-        except AttributeError:
-            # If this path is a dataset, it has no "keys()"
-            pass
-    
-    series = list(fields)
-    series.sort()
+            date = datetime.datetime.strptime(date_string, r'%Y%m%dT%H%M%S').replace(tzinfo=datetime.timezone.utc)
+            log_file_info['timestamp'] = date.timestamp()
+        except ValueError:
+            logging.warning(f'No date in filename {filename}')
+            continue
 
-    return series
+        if suffix == '.goby':
+            log_file_info['size'] = file_path.stat().st_size
 
-
-@dataclass
-class Series:
-    utime: list
-    y_values: list
-    hovertext: dict
-
-    def __init__(self, log=None, path=None, scheme=1, invalid_values=set()) -> None:
-        self.utime = []
-        self.y_values = []
-        self.hovertext = {}
-
-        if log:
+        if suffix == '.h5':
             try:
-                _utime__array = log[get_root_item_path(path, '_utime_')]
-                _scheme__array = log[get_root_item_path(path, '_scheme_')]
-                path_array = log[path]
+                h5_file = JaiaH5FileSet([file_path])
+                duration = h5_file.duration()
+            except FileNotFoundError:
+                duration = None
 
-                series = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-                series = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, series)
+            log_file_info['duration'] = duration
 
-                self.utime, schemes, self.y_values = zip(*series)
-            except (ValueError, KeyError):
-                logging.warning(f'No valid data found for log: {log.filename}, series path: {path}')
-                self.utime = []
-                self.schemes = []
-                self.y_values = []
-                self.hovertext = {}
-
-                return
-
-            self.hovertext = h5_get_hovertext(log[path]) or {}
-
-    def __add__(self, other_series: 'Series'):
-        r = copy.copy(self)
-        r.utime += list(other_series.utime)
-        r.y_values += list(other_series.y_values)
-        r.hovertext.update(other_series.hovertext)
-        return r
-
-    def sort(self):
-        if len(self.utime) > 0 and len(self.y_values) > 0:
-            self.utime, self.y_values = zip(*sorted(zip(self.utime, self.y_values)))
-        else:
-            logging.warning(f'Not enough values to sort.  len(utime) = {len(self.utime)}, len(y_values) = {len(self.y_values)}')
-
-    def getValueAtTime(self, t):
-        index = bisect.bisect_left(self.utime, t)
-        if index == 0:
-            return None
-        else:
-            return self.y_values[index - 1]
+    return list(log_file_dict.values())
 
 
-def get_series(log_names, paths):
+def convert_if_needed(log_names: List[str]):
+    '''Converts a llist of logs if needed, returning True if they're already converted, False otherwise'''
+    done = True
+
+    for log_name in log_names:
+        h5_path = Path(f'{LOG_DIR}/{log_name}.h5')
+
+        if not h5_path.exists():
+            log_conversion_manager.addLogName(log_name)
+            done = False
+        
+    return {
+        'done': done
+    }
+
+
+def get_fields(log_names: List[str], root_path='/'):
+    '''Get a list of the fields below a root path in a set of logs'''
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_names]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+    return h5_files.fields(root_path=root_path)
+
+
+def get_series(log_names: List[str], paths: List[str]):
     '''Get a series'''
 
     if log_names is None or paths is None:
         return []
 
-    series_list = []
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_names]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
 
-    log_names = log_names.split(',')
-    paths = [path.lstrip('/') for path in paths.split(',')]
+    return h5_files.getSeries(paths)
 
+
+def get_map(log_names: List[str]):
     # Open all our logs
-    logs = [h5py.File(log_name) for log_name in log_names]
-
-    # Get the series from the logs
-    for path in paths:
-        series_description = jaia_get_description(path) or {}
-        invalid_values = set(series_description.get('invalid_values', []))
-
-        series = Series()
-
-        for log in logs:
-            try:
-                series += Series(log=log, path=path, scheme=1, invalid_values=invalid_values)
-            except KeyError as e:
-                logging.warn(e)
-                continue
-
-        series.sort()
-
-        title = get_title_from_path(path)
-        y_axis_title = title
-        units = series_description.get('units')
-
-        if units is not None:
-            y_axis_title += f'\n({units})'
-
-        series_list.append({
-            'path': path,
-            'title': title,
-            'y_axis_title': y_axis_title,
-            '_utime_': series.utime,
-            'series_y': series.y_values,
-            'hovertext': series.hovertext
-        })
-
-    return series_list
-
-
-def get_map(log_names):
-    if log_names is None:
-        return {}
-
-    log_names = log_names.split(',')
-
-    # Open all our logs
-    logs = [h5py.File(log_name) for log_name in log_names]
-
-    NodeStatus_lat_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lat'
-    NodeStatus_lon_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lon'
-    NodeStatus_heading_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/heading'
-    NodeStatus_course_over_ground_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/course_over_ground'
-    DesiredSetpoints_heading_path = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/helm_course/heading'
-
-    bot_id_to_map_series = {}
-
-    for log in logs:
-
-        bot_id_string: str = None
-
-        # Find BotStatus to get bot_id
-        for path in itemsmatching(log, BOT_STATUS_RE):
-            bot_id_series = Series(log=log, path=path + '/bot_id', invalid_values=[None])
-            bot_id_string = str(bot_id_series.y_values[0])
-            break
-
-        if bot_id_string is None:
-            logging.warning(f'No bot_id for {log.filename}')
-            continue
-
-        map_series = bot_id_to_map_series.setdefault(bot_id_string, [])
-
-        lat_series = Series(log=log, path=NodeStatus_lat_path, invalid_values=[0])
-        lon_series = Series(log=log, path=NodeStatus_lon_path, invalid_values=[0])
-        heading_series = Series(log=log, path=NodeStatus_heading_path)
-        course_over_ground_series = Series(log=log, path=NodeStatus_course_over_ground_path)
-        desired_heading_series = Series(log=log, path=DesiredSetpoints_heading_path)
-
-        for i, lat in enumerate(lat_series.y_values):
-            most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
-            map_series.append([
-                lat_series.utime[i], 
-                lat_series.y_values[i], 
-                lon_series.y_values[i], 
-                heading_series.y_values[i], 
-                course_over_ground_series.y_values[i], 
-                most_recent_desired_heading
-            ])
-
-    return bot_id_to_map_series
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_names]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+    return h5_files.map()
 
 
 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*;([0-9]+)')
-
-def get_commands(log_filenames):
-
-    # Open all our logs
-    log_files = [h5py.File(log_name) for log_name in log_filenames]
-
-    # A dictionary mapping bot_id to an array of mission dictionaries
-    results = {}
-
-    for log_file in log_files:
-        
-        # Search for Command items
-        for path in log_file.keys():
-
-            m = HUB_COMMAND_RE.match(path)
-            if m is not None:
-                hub_command_path = path
-
-                command_path = hub_command_path + '/jaiabot.protobuf.Command'
-                commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
-
-                if len(commands) > 0:
-                    bot_id_string = str(commands[0]['bot_id'])
-
-                    if bot_id_string not in results:
-                        results[bot_id_string] = []
-
-                    results[bot_id_string].extend(commands)
-
-    # Sort each bot's command list by time of command issuance
-    for bot_id_string in results:
-        results[bot_id_string].sort(key=lambda command: command['_utime_'])
-
-    return results
-
-
-def get_active_goals(log_filenames):
-
-    # Open all our logs
-    log_files = [h5py.File(log_name) for log_name in log_filenames]
-
-    # A dictionary mapping bot_id to an array of active_goal dictionaries
-    results = {}
-
-    for log_file in log_files:
-
-        def visit_path(name, object):
-            m = BOT_STATUS_RE.match(name)
-
-            if m is not None:
-                _utime_ = h5_get_series(log_file[name + '/_utime_'])
-                bot_ids = h5_get_series(log_file[name + '/bot_id'])
-                active_goals = h5_get_series(log_file[name + '/active_goal'])
-
-                last_active_goal = None
-                for i in range(len(_utime_)):
-                    bot_id_string = str(bot_ids[i])
-
-                    active_goal_list_for_this_bot = results.setdefault(bot_id_string, [])
-
-                    try:
-                        last_active_goal = active_goal_list_for_this_bot[-1]['active_goal']
-                    except IndexError:
-                        last_active_goal = None
-
-                    if active_goals[i] != last_active_goal:
-                        active_goal_list_for_this_bot.append({
-                            '_utime_': _utime_[i],
-                            'active_goal': active_goals[i]
-                        })
-
-        log_file.visititems(visit_path)
-
-    return results
-
 TASK_PACKET_RE = re.compile(r'jaiabot::task_packet.*;([0-9]+)')
 
 def get_task_packet_dicts(log_filenames: List[str], scheme=1):
@@ -481,6 +238,25 @@ def get_task_packet_dicts(log_filenames: List[str], scheme=1):
     return results
 
 
+def get_commands(log_filenames: List[str]):
+    h5_paths = [f'{LOG_DIR}/{fn}.h5' for fn in log_filenames]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+
+    return h5_files.commands()
+
+
+def get_active_goals(log_filenames: List[str]):
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_filenames]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+    return h5_files.activeGoals()
+
+
+def get_task_packets_json(log_filenames: List[str]):
+    h5_paths = [f'{LOG_DIR}/{name}.h5' for name in log_filenames]
+    h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+    return h5_files.taskPackets()
+
+
 def get_task_packets(log_filenames, scheme=1) -> Iterable[TaskPacket]:
     return [TaskPacket.from_dict(task_packet_json) for task_packet_json in get_task_packet_dicts(log_filenames, scheme)]
 
@@ -492,5 +268,6 @@ def generate_kmz(h5_filename: str, kmz_filename: str):
 
 # Testing
 if __name__ == '__main__':
-    filename = '/var/log/jaiabot/bot_offload/bot3_fleet1_20230411T181720.h5'
-    generate_kmz(filename, 'test.kmz')
+    logging.basicConfig(level=logging.DEBUG)
+    set_directory(Path('~/jaia_logs_test').expanduser())
+    pprint(get_task_packets(['bot4_fleet1_20230712T182625']))
