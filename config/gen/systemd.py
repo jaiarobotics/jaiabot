@@ -53,9 +53,14 @@ parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to 
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
-parser.add_argument('--electronics_stack', choices=['0', '1', '2', '3'], help='If set, configure services for electronics stack')
+parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
+parser.add_argument('--imu_type', choices=['bno055', 'bno085'], help='If set, configure services for imu type')
 
 args=parser.parse_args()
+
+class IMU_TYPE(Enum):
+    BNO055 = 'bno055'
+    BNO085 = 'bno085'
 
 class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
@@ -72,6 +77,11 @@ class ELECTRONICS_STACK(Enum):
     STACK_2 = '2'
     STACK_3 = '2'
 
+if args.imu_type == 'bno055':
+    jaia_imu_type == IMU_TYPE.BNO055
+elif args.imu_type == 'bno085':
+    jaia_imu_type == IMU_TYPE.BNO085
+
 if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
 elif args.led_type == 'none':
@@ -87,9 +97,6 @@ elif args.electronics_stack == '1':
     jaia_gps_type=GPS_TYPE.SPI
 elif args.electronics_stack == '2':
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_2
-    jaia_gps_type=GPS_TYPE.SPI
-elif args.electronics_stack == '3':
-    jaia_electronics_stack=ELECTRONICS_STACK.STACK_3
     jaia_gps_type=GPS_TYPE.SPI
 else:
     jaia_electronics_stack=ELECTRONICS_STACK.STACK_0
@@ -134,6 +141,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
                f'export jaia_user_role={args.user_role}; ' +
                'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
+               'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -369,7 +377,7 @@ jaiabot_apps=[
      'runs_when': Mode.SIMULATION},
 ]
 
-if jaia_electronics_stack.value == '3':
+if jaia_imu_type.value == 'bno085':
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_adafruit_BNO085_driver',
         'description': 'JaiaBot BNO085 IMU Sensor Driver',
