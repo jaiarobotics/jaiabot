@@ -1,8 +1,0 @@
-flask==2.2.2
-h5py==3.7.0
-simplejson==3.16.0
-cmocean==2.0
-scipy==1.9.1
-matplotlib==3.6.0
-dataclasses_json==0.5.7
-file:../../python/pyjaia
