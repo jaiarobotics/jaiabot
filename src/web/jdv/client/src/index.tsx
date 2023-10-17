@@ -466,8 +466,8 @@ class LogApp extends React.Component {
       var actionBar: JSX.Element | null
 
       if (this.state.chosenLogs.length > 0) {
-        actionBar = <div className = "plotButtonBar"><
-            button title = "Add Plot" className =
+        actionBar = <div className = "plotButtonBar">
+        <button title = "Add Plot" className =
                 "plotButton" onClick = {this.addPlotClicked.bind(this)}><
             Icon path = {mdiPlus} size = {1} style =
                 {{ verticalAlign: "middle" }}></Icon>
@@ -557,6 +557,11 @@ class LogApp extends React.Component {
 
     savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
+
+      if (plotSetName == null) {
+        // User clicked Cancel
+        return
+      }
 
       if (PlotProfiles.exists(plotSetName)) {
         if (!confirm(`Are you sure you want to overwrite plot set named \"${
