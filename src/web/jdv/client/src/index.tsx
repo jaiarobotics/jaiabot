@@ -115,9 +115,6 @@ class LogApp extends React.Component {
     // Show log selection box?
     const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
-    const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
-    const openLogsListString = chosenLogsFilenames.join(', ')
-
     return (
       <Router>
         <div className="vertical flexbox maximized">
@@ -130,7 +127,7 @@ class LogApp extends React.Component {
 
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-            <div id="logList" className="padded">{openLogsListString}</div>
+            { this.chosenLogsListElement() }
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -143,12 +140,12 @@ class LogApp extends React.Component {
               <div id="mapControls">
                 <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
-                <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                <button id="kmlExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
                   KMZ
                 </button>
                 
-                <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                <button id="kmlImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
                   KMZ
                 </button>
@@ -192,6 +189,18 @@ class LogApp extends React.Component {
 
       </Router>
     )
+  }
+
+  chosenLogsListElement() {
+    const chosenLogsElements = this.state.chosenLogs.map(chosenLogPath => {
+      const chosenLogName = chosenLogPath.split('/').at(-1)
+      const href = `/h5?file=${chosenLogPath}`
+      return <a href={href} style={{padding: '10pt'}}>{chosenLogName}</a>
+    })
+
+    return <div id="logList" className="padded">
+      {chosenLogsElements}
+    </div>
   }
 
   loadingIndicatorIfNeeded(): React.JSX.Element {
