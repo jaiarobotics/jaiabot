@@ -43,8 +43,12 @@ function save(key: string, value: string) {
 
 type LogDict = {[key: string]: {[key: string]: {[key: string]: Log}}}
 
+interface LogSelectorDelegate {
+    didSelectLogs: (logs: string[]) => void
+}
+
 interface LogSelectorProps {
-    didSelectLogs: (logs: string[]) => undefined
+    delegate: LogSelectorDelegate
 }
 
 interface LogSelectorState {
@@ -333,7 +337,7 @@ export default class LogSelector extends React.Component {
     }
 
     cancelClicked() {
-        this.props.didSelectLogs?.(null)
+        this.props.delegate.didSelectLogs(null)
     }
 
     okClicked() {
@@ -342,7 +346,7 @@ export default class LogSelector extends React.Component {
         })
 
         console.debug('Selected logs: ', selectedLogNames)
-        this.props.didSelectLogs?.(selectedLogNames)
+        this.props.delegate.didSelectLogs(selectedLogNames)
     }
 
     refreshLogs() {
