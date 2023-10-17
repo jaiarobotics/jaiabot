@@ -42,8 +42,6 @@ export function addPopup(map: Map, feature: Feature, popupElement: HTMLElement) 
         map.addOverlay(overlay)
     });
 
-    console.log(`Added popup for ${feature.getId()}: ${popupElement.innerHTML}`)
-
 }
 
 export function addPopupHTML(map: Map, feature: Feature, popupHTML: string) {
