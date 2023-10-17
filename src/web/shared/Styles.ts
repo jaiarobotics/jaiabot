@@ -113,6 +113,10 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
+    if (botStatus.mission_state.includes('REACQUIRE_GPS')) {
+        style.push(getGpsStyle(heading))
+    }
+
     return style
 }
 
@@ -232,15 +236,6 @@ function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boole
     })
 }
 
-function createGpsIcon() {
-    return new Icon({
-        src: satellite,
-        color: driftArrowColor,
-        anchor: [0.5, -1.25],
-        scale: 1.25
-    })
-}
-
 function createRallyIcon() {
     return new Icon({
         src: rallyPoint,
@@ -289,9 +284,16 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
     })
 }
 
-export function getGpsStyle() {
+function getGpsStyle(headingRadians: number) {
     return new Style({
-        image: createGpsIcon(),
+        image: new Icon({
+            src: satellite,
+            color: driftArrowColor,
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
+            rotateWithView: true
+        }),
         zIndex: 104 // One higher than the bot's zIndex to prevent to the bot from covering the icon
     })
 }

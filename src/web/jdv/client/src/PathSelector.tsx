@@ -85,8 +85,6 @@ export default class PathSelector extends React.Component {
                     return
                 }
 
-                console.log('Selected path = ', this.state.chosen_path)
-
                 // Callback
                 this.props.didSelectPath?.(this.state.chosen_path)
 

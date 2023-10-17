@@ -1,4 +1,27 @@
 import {Log} from "./Log"
+import download from "downloadjs"
+
+
+
+/**
+ * Initiates a browser download of the given URL, with filename and mimeType
+ * @date 10/14/2023 - 8:29:07 PM
+ *
+ * @param {string} url URL of the target
+ * @param {string} [filename='filename'] Default filename to save the URL as
+ * @param {string} [mimeType='text/plain'] MIME type of the content
+ * @returns {*} A Promise for the fetch operation
+ */
+function downloadURL(url: string, filename: string='filename', mimeType: string='text/plain') {
+  return fetch(url, { method: 'GET' })
+  .then( res => {
+    return res.blob()
+  })
+  .then( blob => {
+    download(blob, filename, mimeType)
+  });
+}
+
 
 export class LogApi {
 
@@ -20,16 +43,6 @@ export class LogApi {
           }
         })
         .catch(err => {console.error(err)})
-  }
-
-  // Download a GET request
-  static download_file(url: string) {
-    return fetch(url, { method: 'GET' })
-    .then( res => res.blob() )
-    .then( blob => {
-      var file = window.URL.createObjectURL(blob);
-      window.location.assign(file);
-    });
   }
 
   // Get a series corresponding to a set of log files and paths
@@ -92,12 +105,28 @@ export class LogApi {
     return this.get_json(url.toString())
   }
 
+  static delete_log(logName: string) {
+    const request = new Request(`/log/${logName}`, {method: 'DELETE'})
+    fetch(request)
+  }
+
   static get_moos(logs: string[], time_range: number[]) {
     var url = new URL('moos', window.location.origin)
     url.searchParams.append('log', logs.join(','))
     url.searchParams.append('t_start', String(time_range[0]))
     url.searchParams.append('t_end', String(time_range[1]))
 
-    return this.download_file(url.toString())
+    return downloadURL(url.toString(), 'moos.csv', 'text/csv')
   }
+
+  static get_hdf5(log: string) {
+    var url = new URL('h5', window.location.origin)
+    url.searchParams.append('file', log)
+
+    const components = log.split('/')
+    const filename = components[components.length - 1]
+
+    return downloadURL(url.toString(), filename, 'application/x-hdf')
+  }
+
 }
