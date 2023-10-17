@@ -68,6 +68,9 @@ interface State {
 
   // Plot sets
   isOpenPlotSetDisplayed: boolean
+
+  // Modal busy indicator
+  isBusy: boolean
 }
 
 
@@ -76,6 +79,7 @@ class LogApp extends React.Component {
   state: State
   map: JaiaMap
   plot_div_element: any
+  busySemaphore: number = 0
 
   constructor(props: LogAppProps) {
     super(props)
@@ -100,6 +104,8 @@ class LogApp extends React.Component {
 
       // Plot sets
       isOpenPlotSetDisplayed: false,
+
+      isBusy: false
     }
   }
 
@@ -107,10 +113,7 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" didSelectLogs={this.didSelectLogs.bind(this)} /> : null
-
-    const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
-    const openLogsListString = chosenLogsFilenames.join(', ')
+    const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
     return (
       <Router>
@@ -124,7 +127,7 @@ class LogApp extends React.Component {
 
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-            <div id="logList" className="padded">{openLogsListString}</div>
+            { this.chosenLogsListElement() }
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -137,12 +140,12 @@ class LogApp extends React.Component {
               <div id="mapControls">
                 <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
-                <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                <button id="kmlExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
                   KMZ
                 </button>
                 
-                <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                <button id="kmlImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
                   KMZ
                 </button>
@@ -182,8 +185,48 @@ class LogApp extends React.Component {
 
         </div>
 
+        {this.loadingIndicatorIfNeeded()}
+
       </Router>
     )
+  }
+
+  chosenLogsListElement() {
+    const chosenLogsElements = this.state.chosenLogs.map(chosenLogPath => {
+      const chosenLogName = chosenLogPath.split('/').at(-1)
+      const href = `/h5?file=${chosenLogPath}`
+      return <a href={href} style={{padding: '10pt'}}>{chosenLogName}</a>
+    })
+
+    return <div id="logList" className="padded">
+      {chosenLogsElements}
+    </div>
+  }
+
+  loadingIndicatorIfNeeded(): React.JSX.Element {
+    if (this.busySemaphore > 0) {
+      return (
+        <div className='vertical flexbox maximized' style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#00000050'}}>
+          <img src = "/favicon.png" className='padded' style={{width: '50pt', height: '50pt'}} />
+          <div style={{textAlign: 'center'}}>
+            Loading
+          </div>
+        </div>
+      )
+    }
+    else {
+      return null
+    }
+  }
+
+  startBusyIndicator() {
+    this.busySemaphore += 1
+    this.setState({isBusy: this.busySemaphore > 0})
+  }
+
+  stopBusyIndicator() {
+    this.busySemaphore -= 1
+    this.setState({isBusy: this.busySemaphore > 0})
   }
 
   togglerLayerSwitcher() {
@@ -227,29 +270,34 @@ class LogApp extends React.Component {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
         // Get map data
-        LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+        const getMapPromise = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsPromise = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalPromise = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsPromie = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursPromise = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
+        })
+
+        this.startBusyIndicator()
+        Promise.all([getMapPromise, getCommandsPromise, getActiveGoalPromise, getTaskPacketsPromie, getDepthContoursPromise]).finally(() => {
+          this.stopBusyIndicator()
         })
 
       }
@@ -261,7 +309,9 @@ class LogApp extends React.Component {
     }
     
     if (this.state.plotNeedsRefresh) {
+      this.startBusyIndicator()
       this.refresh_plots()
+      this.stopBusyIndicator()
     }
   }
 
@@ -275,7 +325,7 @@ class LogApp extends React.Component {
     this.plot_div_element = document.getElementById('plot') as Plotly.PlotlyHTMLElement
   }
 
-  didSelectLogs(logs?: Log[]) {
+  didSelectLogs(logs?: string[]) {
     if (logs != null) {
       this.setState({chosenLogs: logs, mapNeedsRefresh: true })
     }
@@ -284,6 +334,8 @@ class LogApp extends React.Component {
   }
 
   didSelectPaths(pathArray: string[]) {
+    this.startBusyIndicator()
+
     LogApi.get_series(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
@@ -293,6 +345,9 @@ class LogApp extends React.Component {
           }
         })
         .catch(err => {alert(err)})
+        .then(() => {
+          this.stopBusyIndicator()
+        })
 
     this.setState({isPathSelectorDisplayed: false})
   }
