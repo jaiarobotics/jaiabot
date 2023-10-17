@@ -55,3 +55,7 @@ div.buttonSection {
 div.spacer {
     flex-grow: 1;
 }
+
+.danger {
+    color: red;
+}

@@ -193,6 +193,15 @@ def get_logs():
     return results
 
 
+def delete_log(logName: str):
+    logGlob = f'{LOG_DIR}/{logName}.*'
+    logPaths = glob.glob(logGlob)
+
+    for logPath in logPaths:
+        logging.warning(f'Deleting file {logPath}')
+        os.remove(logPath)
+
+
 def get_fields(log_names, root_path='/'):
     '''Get a list of the fields below a root path in a set of logs'''
     fields = set()
