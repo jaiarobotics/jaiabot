@@ -234,30 +234,36 @@ class LogApp extends React.Component {
   componentDidUpdate() {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
+        this.setState({busyIndicator: true})
+
         // Get map data
-        LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
+        const getMapJob = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
           this.setState({tMin: this.map.tMin, tMax: this.map.tMax, t: this.map.timestamp})
         })
 
         // Get the command dictionary (botId => [Command])
-        LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
+        const getCommandsJob = LogApi.get_commands(this.state.chosenLogs).then((command_dict) => {
           this.map.updateWithCommands(command_dict)
         })
 
         // Get the active_goals
-        LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
+        const getActiveGoalsJob = LogApi.get_active_goal(this.state.chosenLogs).then((active_goal_dict) => {
           this.map.updateWithActiveGoal(active_goal_dict)
         })
 
         // Get the task packets
-        LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
+        const getTaskPacketsJob = LogApi.get_task_packets(this.state.chosenLogs).then((task_packets) => {
           this.map.updateWithTaskPackets(task_packets)
         })
 
         // Get the depth contours
-        LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
+        const getDepthContoursJob = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
+        })
+
+        Promise.allSettled([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob]).finally(() => {
+          this.setState({busyIndicator: false})
         })
 
       }
@@ -284,7 +290,7 @@ class LogApp extends React.Component {
   }
 
   didSelectLogs(logFilenames?: string[]) {
-    this.setState({isSelectingLogs: false})
+    this.setState({isSelectingLogs: false, busyIndicator: true})
     if (logFilenames == null) return
   
     const self = this
@@ -292,13 +298,15 @@ class LogApp extends React.Component {
     function openLogsWhenReady() {
       LogApi.post_convert_if_needed(logFilenames).then((response) => {
         if (response.done) {
-          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true, busyIndicator: false })
+          self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true, busyIndicator: false})
         }
         else {
           console.log(`Waiting on conversion of ${logFilenames}`)
-          self.setState({busyIndicator: true})
-          setTimeout(openLogsWhenReady, 500)
+          setTimeout(openLogsWhenReady, 1000)
         }
+      }).catch((err) => {
+        alert(err)
+        this.setState({busyIndicator: false})
       })
     }
 
@@ -307,6 +315,8 @@ class LogApp extends React.Component {
   }
 
   didSelectPaths(pathArray: string[]) {
+    this.setState({busyIndicator: true})
+
     LogApi.get_series(this.state.chosenLogs, pathArray)
         .then((series) => {
           if (series != null) {
@@ -315,7 +325,12 @@ class LogApp extends React.Component {
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
-        .catch(err => {alert(err)})
+        .catch(err => {
+          alert(err)
+        })
+        .finally(() => {
+          this.setState({busyIndicator: false})
+        })
 
     this.setState({isPathSelectorDisplayed: false})
   }
