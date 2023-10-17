@@ -103,27 +103,7 @@ export default class LogSelector extends React.Component {
             </div>
         </div>
 
-        const logItems = logs.map((log) => {
-            const key = `${log.fleet}-${log.bot}-${log.timestamp}`
-            const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
-
-            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
-                <div className="fleetCell">
-                    {log.fleet}
-                </div>
-                <div className="botCell">
-                    {log.bot}
-                </div>
-                <div className="timeCell">
-                    {date_string_from_microseconds(log.timestamp)}
-                </div>
-                <div className="durationCell">
-                    {duration_string_from_seconds(log.duration / 1e6)}
-                </div>
-            </div>
-
-            return row
-        })
+        const logItems = logs.map((log) => { return this.logRowElement(log) })
 
         return (
           <div className="logSelector dialog">
@@ -158,14 +138,40 @@ export default class LogSelector extends React.Component {
                 <div className="list">{logItems}</div>
             </div>
 
-            <div className="buttonSection section">
-                {/* <button className="padded" onClick={self.refreshClicked.bind(self)}>Refresh</button>
-                <div className="spacer"></div> */}
-                <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
-                <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
-            </div>
+            { this.buttonsElement() }
           </div>
         )
+    }
+
+    logRowElement(log: Log) {
+        const key = `${log.fleet}-${log.bot}-${log.timestamp}`
+        const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
+
+        const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
+            <div className="fleetCell">
+                {log.fleet}
+            </div>
+            <div className="botCell">
+                {log.bot}
+            </div>
+            <div className="timeCell">
+                {date_string_from_microseconds(log.timestamp)}
+            </div>
+            <div className="durationCell">
+                {duration_string_from_seconds(log.duration / 1e6)}
+            </div>
+        </div>
+
+        return row
+    }
+
+    buttonsElement() {
+        return <div className="buttonSection section">
+            <button className="danger padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
+            <div className="spacer"></div>
+            <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
+            <button className="padded" onClick={this.okClicked.bind(this)}>Open Logs</button>
+        </div>
     }
 
     componentDidMount(): void {
@@ -179,7 +185,7 @@ export default class LogSelector extends React.Component {
     didToggleLog(log: Log) {
         var selectedLogs = this.state.selectedLogs
 
-        if (log.filename in Object.keys(selectedLogs)) {
+        if (log.filename in selectedLogs) {
             delete selectedLogs[log.filename]
             this.setState({selectedLogs})
         }
@@ -347,6 +353,25 @@ export default class LogSelector extends React.Component {
 
         console.debug('Selected logs: ', selectedLogNames)
         this.props.delegate.didSelectLogs(selectedLogNames)
+    }
+
+    async deleteClicked() {
+        const logNames = Object.values(this.state.selectedLogs).map(log => {
+            const h5Name = log.filename.split('/').at(-1)
+            const logName = h5Name.slice(0, h5Name.length - 3)
+            return logName
+        })
+
+        const logNamesString = logNames.join('\n')
+
+        if (confirm(`Are you sure you want to DELETE the logs named:\n${logNamesString}`)) {
+            logNames.forEach(logName => {
+                LogApi.delete_log(logName)
+            })
+
+            // Deselect all logs
+            this.setState({selectedLogs: {}})
+        }
     }
 
     refreshLogs() {

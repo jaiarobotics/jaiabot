@@ -63,6 +63,10 @@ def getRoot():
 def getLogs():
     return JSONResponse(jaialogs.get_logs())
 
+@app.route('/log/<logName>', methods=['DELETE'])
+def deleteLog(logName: str):
+    return JSONResponse(jaialogs.delete_log(logName))
+
 @app.route('/paths', methods=['GET'])
 def getFields():
     log_names = request.args.get('log')
