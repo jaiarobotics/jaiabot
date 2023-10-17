@@ -92,23 +92,6 @@ export class BotLayers {
 				botLayer.setZIndex(this.zIndex);
 			}
 
-			if (bot?.mission_state.includes('REACQUIRE_GPS')) {
-				const gpsFeature = createGPSMarker(
-					this.map,
-					{
-						lon: botLongitude, 
-						lat: botLatitude,
-						style: Styles.getGpsStyle()
-					}
-				)
-				gpsFeature.setId(`gps-${bot.bot_id}`)
-				botSource.addFeature(gpsFeature)
-			} else {
-				if (botSource.getFeatureById(`gps-${bot.bot_id}`)) {
-					botSource.removeFeature(botSource.getFeatureById(`gps-${bot.bot_id}`))
-				}
-			}
-
 			botLayer.changed();
 
 		} // end foreach bot
