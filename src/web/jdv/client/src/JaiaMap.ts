@@ -13,7 +13,7 @@ import { createEmpty, extend, isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
 import KML, { IconUrlFunction } from 'ol/format/KML.js';
-import { ScaleLine } from 'ol/control'
+import { Attribution, ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
@@ -188,6 +188,7 @@ export default class JaiaMap {
             ],
             view: view,
             controls: [
+                new Attribution(),
                 new ScaleLine({ units: 'metric' })
             ]
         })

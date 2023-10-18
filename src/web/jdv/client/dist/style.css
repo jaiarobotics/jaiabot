@@ -336,3 +336,10 @@ div.popup > table > tbody > tr > th {
     padding-right: 10px;
     font-weight: bold;
 }
+
+.ol-attribution {
+    display: block;
+    position: absolute;
+    left: 10pt;
+    bottom: 10pt;
+}
