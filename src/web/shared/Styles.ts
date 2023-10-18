@@ -71,6 +71,7 @@ export function botMarker(feature: Feature): Style[] {
 
     const botStatus = feature.get('bot') as PortalBotStatus
     const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG
+
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
@@ -113,7 +114,7 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
-    if (botStatus.mission_state.includes('REACQUIRE_GPS')) {
+    if (botStatus?.mission_state?.includes('REACQUIRE_GPS')) {
         style.push(getGpsStyle(heading))
     }
 
