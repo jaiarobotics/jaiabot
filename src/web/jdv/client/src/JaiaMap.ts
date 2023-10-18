@@ -188,7 +188,10 @@ export default class JaiaMap {
             ],
             view: view,
             controls: [
-                new Attribution(),
+                new Attribution({
+                    collapseClassName: "attributionsCollapseButton",
+                    collapsible: false
+                }),
                 new ScaleLine({ units: 'metric' })
             ]
         })
@@ -234,16 +237,20 @@ export default class JaiaMap {
             layers: [
                 new TileLayer({
                     properties: {
-                        title: 'Google Satellite & Roads',
+                        title: 'ArcGIS Satellite Imagery',
                         type: 'base',
                     },
                     zIndex: 1,
-                    source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
+                    source: new SourceXYZ({ 
+                        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                        attributions: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community, ESRI',
+                        attributionsCollapsible: false
+                    }),
                 }),
                 new TileLayer({
                     properties: {
                         title: 'OpenStreetMap',
-                        type: 'base',
+                        type: 'base'
                     },
                     zIndex: 1,
                     source: new OSM(),
