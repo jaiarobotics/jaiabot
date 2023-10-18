@@ -290,12 +290,14 @@ class LogApp extends React.Component {
   }
 
   didSelectLogs(logFilenames?: string[]) {
-    this.setState({isSelectingLogs: false, busyIndicator: true})
+    this.setState({isSelectingLogs: false})
     if (logFilenames == null) return
   
     const self = this
 
     function openLogsWhenReady() {
+      this.setState({busyIndicator: true})
+
       LogApi.post_convert_if_needed(logFilenames).then((response) => {
         if (response.done) {
           self.setState({chosenLogs: logFilenames, mapNeedsRefresh: true, busyIndicator: false})
