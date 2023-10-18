@@ -69,6 +69,7 @@ interface State {
   // Plot sets
   isOpenPlotSetDisplayed: boolean
 
+  // Modal busy indicator
   busyIndicator: boolean
 }
 
@@ -78,6 +79,7 @@ class LogApp extends React.Component {
   state: State
   map: JaiaMap
   plot_div_element: any
+  busySemaphore: number = 0
 
   constructor(props: LogAppProps) {
     super(props)
@@ -111,10 +113,7 @@ class LogApp extends React.Component {
     const self = this;
 
     // Show log selection box?
-    const log_selector = this.state.isSelectingLogs ? <LogSelector key="logSelector" didSelectLogs={this.didSelectLogs.bind(this)} /> : null
-
-    const chosenLogsFilenames = this.state.chosenLogs.map((input: string) => { return input.split('/').slice(-1) })
-    const openLogsListString = chosenLogsFilenames.join(', ')
+    const log_selector = this.state.isSelectingLogs ? <LogSelector delegate={this} /> : null
 
     var busyOverlay = this.state.busyIndicator ? <div className="busy-overlay"><img src="https://i.gifer.com/VAyR.gif" className="vertical-center"></img></div> : null
 
@@ -131,7 +130,7 @@ class LogApp extends React.Component {
 
           <div>
             <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>Select Log(s)</button>
-            <div id="logList" className="padded">{openLogsListString}</div>
+            { this.chosenLogsListElement() }
           </div>
 
           <div className = "bottomPane flexbox horizontal">
@@ -144,12 +143,12 @@ class LogApp extends React.Component {
               <div id="mapControls">
                 <button id="layerSwitcherToggler" className="mapButton" onClick={() => {this.togglerLayerSwitcher()}}>Layers</button>
 
-                <button id="mapExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
+                <button id="kmlExportButton" className="mapButton" onClick={() => { this.map.exportKml() }}>
                   <Icon path={mdiDownload} size={1}></Icon>
                   KMZ
                 </button>
                 
-                <button id="mapImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
+                <button id="kmlImportButton" className="mapButton" onClick={() => { this.map.importKmx() }}>
                   <Icon path={mdiUpload} size={1}></Icon>
                   KMZ
                 </button>
@@ -190,8 +189,38 @@ class LogApp extends React.Component {
 
         </div>
 
+        {this.loadingIndicatorIfNeeded()}
+
       </Router>
     )
+  }
+
+  chosenLogsListElement() {
+    const chosenLogsElements = this.state.chosenLogs.map(chosenLogPath => {
+      const chosenLogName = chosenLogPath.split('/').at(-1)
+      const href = `/h5?file=${chosenLogPath}`
+      return <a key={chosenLogName} href={href} style={{padding: '10pt'}}>{chosenLogName}</a>
+    })
+
+    return <div id="logList" className="padded">
+      {chosenLogsElements}
+    </div>
+  }
+
+  loadingIndicatorIfNeeded(): React.JSX.Element {
+    if (this.busySemaphore > 0) {
+      return (
+        <div className='vertical flexbox maximized' style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#00000050'}}>
+          <img src = "/favicon.png" className='padded' style={{width: '50pt', height: '50pt'}} />
+          <div style={{textAlign: 'center'}}>
+            Loading
+          </div>
+        </div>
+      )
+    }
+    else {
+      return null
+    }
   }
 
   togglerLayerSwitcher() {
@@ -234,8 +263,6 @@ class LogApp extends React.Component {
   componentDidUpdate() {
     if (this.state.mapNeedsRefresh) {
       if (this.state.chosenLogs.length > 0) {
-        this.setState({busyIndicator: true})
-
         // Get map data
         const getMapJob = LogApi.get_map(this.state.chosenLogs).then((botIdToMapSeries) => {
           this.map.setMapDict(botIdToMapSeries)
@@ -261,6 +288,8 @@ class LogApp extends React.Component {
         const getDepthContoursJob = LogApi.get_depth_contours(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDepthContourGeoJSON(geoJSON)
         })
+
+        this.setState({busyIndicator: true})
 
         Promise.allSettled([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob]).finally(() => {
           this.setState({busyIndicator: false})
@@ -296,7 +325,7 @@ class LogApp extends React.Component {
     const self = this
 
     function openLogsWhenReady() {
-      this.setState({busyIndicator: true})
+      self.setState({busyIndicator: true})
 
       LogApi.post_convert_if_needed(logFilenames).then((response) => {
         if (response.done) {
@@ -308,7 +337,7 @@ class LogApp extends React.Component {
         }
       }).catch((err) => {
         alert(err)
-        this.setState({busyIndicator: false})
+        self.setState({busyIndicator: false})
       })
     }
 
@@ -317,6 +346,10 @@ class LogApp extends React.Component {
   }
 
   didSelectPaths(pathArray: string[]) {
+    this.setState({isPathSelectorDisplayed: false})
+
+    if (pathArray == null) return
+
     this.setState({busyIndicator: true})
 
     LogApi.get_series(this.state.chosenLogs, pathArray)
@@ -333,8 +366,6 @@ class LogApp extends React.Component {
         .finally(() => {
           this.setState({busyIndicator: false})
         })
-
-    this.setState({isPathSelectorDisplayed: false})
   }
 
   get_plot_range() {
@@ -451,8 +482,8 @@ class LogApp extends React.Component {
       var actionBar: JSX.Element | null
 
       if (this.state.chosenLogs.length > 0) {
-        actionBar = <div className = "plotButtonBar"><
-            button title = "Add Plot" className =
+        actionBar = <div className = "plotButtonBar">
+        <button title = "Add Plot" className =
                 "plotButton" onClick = {this.addPlotClicked.bind(this)}><
             Icon path = {mdiPlus} size = {1} style =
                 {{ verticalAlign: "middle" }}></Icon>
@@ -542,6 +573,11 @@ class LogApp extends React.Component {
 
     savePlotSetClicked() {
       const plotSetName = prompt("Please name this plot set")
+
+      if (plotSetName == null) {
+        // User clicked Cancel
+        return
+      }
 
       if (PlotProfiles.exists(plotSetName)) {
         if (!confirm(`Are you sure you want to overwrite plot set named \"${

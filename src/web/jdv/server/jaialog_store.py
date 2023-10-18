@@ -174,8 +174,12 @@ class JaialogStore:
         return list(log_file_dict.values())
 
 
+    def fullPathForLog(self, logName: str):
+        return f'{self.LOG_DIR}/{logName}.h5'
+
+
     def openLog(self, logName: str):
-        return h5py.File(f'{self.LOG_DIR}/{logName}.h5')
+        return h5py.File(self.fullPathForLog(logName))
     
 
     def openLogs(self, logNames: List[str]):
@@ -277,6 +281,11 @@ class JaialogStore:
     def generateKMZ(self, h5_filename: str, kmz_filename: str):
         task_packets = self.getTaskPackets([h5_filename])
         kmz.write_file(task_packets, kmz_filename)
+
+
+    def getH5File(self, logName: str):
+        '''Returns a Jaia H5 file object'''
+        return open(self.fullPathForLog(logName), 'br')
 
 
 # Testing

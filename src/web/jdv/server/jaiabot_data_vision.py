@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from flask import Flask, send_from_directory, Response, request
+from flask import *
 import simplejson as json
 import logging
 import os
@@ -10,6 +10,8 @@ import math
 import jaialog_store
 import moos_messages
 import pyjaia.contours
+
+from pathlib import *
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -29,7 +31,8 @@ jaialogStore = jaialog_store.JaialogStore(args.directory)
 app = Flask(__name__)
 
 # Parsing the arguments
-def parse_log_filenames(input):
+def parseFilenames(input: str):
+    '''Parses a comma-delimited set of filenames'''
     if input is None:
         return None
     else:
@@ -67,15 +70,19 @@ def convertLogs():
     log_names = request.json
     return JSONResponse(jaialogStore.convertIfNeeded(log_names))
 
+@app.route('/log/<logName>', methods=['DELETE'])
+def deleteLog(logName: str):
+    return JSONResponse(jaialogs.delete_log(logName))
+
 @app.route('/paths', methods=['GET'])
 def getFields():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogStore.getFields(log_names, root_path))
 
 @app.route('/series', methods=['GET'])
 def getSeries():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
     series_names = request.args.get('path')
 
     try:
@@ -86,13 +93,13 @@ def getSeries():
 
 @app.route('/map', methods=['GET'])
 def getMap():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
     return JSONResponse(jaialogStore.getMap(log_names))
 
 
 @app.route('/commands', methods=['GET'])
 def getCommands():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
 
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
@@ -102,7 +109,7 @@ def getCommands():
 
 @app.route('/active-goal', methods=['GET'])
 def getActiveGoals():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
 
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
@@ -112,7 +119,7 @@ def getActiveGoals():
 
 @app.route('/task-packet', methods=['GET'])
 def getTaskPackets():
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
 
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
@@ -123,7 +130,7 @@ def getTaskPackets():
 @app.route('/moos', methods=['GET'])
 def getMOOSMessages():
     '''Get a CSV of all the MOOSMessage objects between t_start and t_end from the logs'''
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
     t_start = int(request.args.get('t_start'))
     t_end = int(request.args.get('t_end'))
 
@@ -136,13 +143,27 @@ def getMOOSMessages():
 @app.route('/depth-contours', methods=['GET'])
 def getDepthContours():
     '''Get a GeoJSON of contours for the depth soundings in this mission'''
-    log_names = parse_log_filenames(request.args.get('log'))
+    log_names = parseFilenames(request.args.get('log'))
 
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
     taskPackets = jaialogStore.getTaskPacketDicts(log_names)
     return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
+
+
+@app.route('/h5', methods=['GET'])
+def getH5():
+    '''Download a Jaia HDF5 file'''
+    logName = request.args.get('file')
+
+    if logName is None:
+        return JSONErrorResponse('Please specify file to download with "file="')
+    
+    h5_name = logName + '.h5'
+    headers = { 'Content-Disposition': f'attachment; filename={h5_name}' }
+
+    return Response(jaialogStore.getH5File(logName), mimetype='application/x-hdf', headers=headers)
 
 
 if __name__ == '__main__':
