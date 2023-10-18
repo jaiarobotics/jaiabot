@@ -372,9 +372,7 @@ export default class LogSelector extends React.Component {
 
     async deleteClicked() {
         const logNames = Object.values(this.state.selectedLogs).map(log => {
-            const h5Name = log.filename.split('/').at(-1)
-            const logName = h5Name.slice(0, h5Name.length - 3)
-            return logName
+            return log.filename
         })
 
         const logNamesString = logNames.join('\n')

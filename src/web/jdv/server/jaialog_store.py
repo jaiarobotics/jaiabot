@@ -288,6 +288,13 @@ class JaialogStore:
         return open(self.fullPathForLog(logName), 'br')
 
 
+    def deleteLog(self, logName: str):
+        print(f'Deleting {self.LOG_DIR}/{logName}.*')
+        for path in glob.glob(f'{self.LOG_DIR}/{logName}.*'):
+            logging.warning(f'Deleting {path}')
+            os.remove(path)
+
+
 # Testing
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

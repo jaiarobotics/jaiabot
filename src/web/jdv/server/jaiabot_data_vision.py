@@ -72,7 +72,7 @@ def convertLogs():
 
 @app.route('/log/<logName>', methods=['DELETE'])
 def deleteLog(logName: str):
-    return JSONResponse(jaialogs.delete_log(logName))
+    return JSONResponse(jaialogStore.deleteLog(logName))
 
 @app.route('/paths', methods=['GET'])
 def getFields():
