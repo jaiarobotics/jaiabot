@@ -24,6 +24,7 @@ import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature, botPopupHTML } from './shared/BotFeature'
 import { createDivePacketFeature, createDriftPacketFeature } from './shared/TaskPacketFeatures'
+import * as Layers from './shared/Layers'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
 
@@ -235,18 +236,7 @@ export default class JaiaMap {
                 title: 'Base Maps'
             },
             layers: [
-                new TileLayer({
-                    properties: {
-                        title: 'ArcGIS Satellite Imagery',
-                        type: 'base',
-                    },
-                    zIndex: 1,
-                    source: new SourceXYZ({ 
-                        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                        attributions: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community, ESRI',
-                        attributionsCollapsible: false
-                    }),
-                }),
+                Layers.getArcGISSatelliteImageryLayer(),
                 new TileLayer({
                     properties: {
                         title: 'OpenStreetMap',
