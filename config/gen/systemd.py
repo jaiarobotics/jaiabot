@@ -78,9 +78,9 @@ class ELECTRONICS_STACK(Enum):
     STACK_3 = '2'
 
 if args.imu_type == 'bno055':
-    jaia_imu_type == IMU_TYPE.BNO055
+    jaia_imu_type=IMU_TYPE.BNO055
 elif args.imu_type == 'bno085':
-    jaia_imu_type == IMU_TYPE.BNO085
+    jaia_imu_type=IMU_TYPE.BNO085
 
 if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
