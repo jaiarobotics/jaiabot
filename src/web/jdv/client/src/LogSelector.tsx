@@ -181,7 +181,7 @@ export default class LogSelector extends React.Component {
     didToggleLog(log: Log) {
         var selectedLogs = this.state.selectedLogs
 
-        if (log.filename in Object.keys(selectedLogs)) {
+        if (log.filename in selectedLogs) {
             delete selectedLogs[log.filename]
             this.setState({selectedLogs})
         }
