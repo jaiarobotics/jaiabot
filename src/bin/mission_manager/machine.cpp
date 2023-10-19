@@ -554,7 +554,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
 
     // If bot is diving then use PID
-    if (bot_is_diving_)
+    if (context<Dive>().is_bot_diving())
     {
         setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
     }
@@ -614,7 +614,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
              << "\n cfg().dive_eps_to_determine_diving: " << cfg().dive_eps_to_determine_diving()
              << "\n Intial Timeout complete: "
              << (current_clock >= detect_bottom_logic_init_timeout_)
-             << "\n Is bot diving: " << bot_is_diving_
+             << "\n Is bot diving: " << context<Dive>().is_bot_diving()
              << "\n (now - last_depth_change_time_) >"
                 "static_cast<decltype(now)>(cfg().bottoming_timeout_with_units())"
              << ((now - last_depth_change_time_) >
@@ -633,17 +633,17 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     // if we've moved eps meters in depth, then we consider the bot to be diving
     // and check if we already determined the bot is diving
     if ((ev.depth - last_depth_) > cfg().dive_eps_to_determine_diving_with_units() &&
-        !bot_is_diving_)
+        !context<Dive>().is_bot_diving())
     {
         last_depth_change_time_ = now;
         last_depth_ = ev.depth;
         dive_pdescent_debug_.set_depth_changed(true);
-        bot_is_diving_ = true;
+        context<Dive>().set_is_bot_diving(true);
     }
 
     // Check if our initial timeout has been reached to detect bottom
     // or if the bot is diving.
-    if (current_clock >= detect_bottom_logic_init_timeout_ || bot_is_diving_)
+    if (current_clock >= detect_bottom_logic_init_timeout_ || context<Dive>().is_bot_diving())
     {
         // if we've moved eps meters in depth, reset the timer for determining hitting the seafloor
         if ((ev.depth - last_depth_) > cfg().dive_depth_eps_with_units())
