@@ -552,7 +552,13 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::loop(
 {
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
-    setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+
+    // If bot is diving then use PID
+    if (bot_is_diving_)
+    {
+        setpoint_msg.set_dive_depth_with_units(context<Dive>().goal_depth());
+    }
+
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();

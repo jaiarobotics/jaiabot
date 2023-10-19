@@ -22,6 +22,7 @@
 
 #include "app.h"
 
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include <goby/middleware/frontseat/groups.h>
 #include <goby/middleware/gpsd/groups.h>
@@ -240,6 +241,14 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " heading: " << actual_heading_
                                      << " depth: " << actual_depth_ << std::endl;
         });
+
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+            if (arduino_response.has_motor())
+            {
+                arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
+            }
+        });
 }
 
 void jaiabot::apps::BotPidControl::loop()
@@ -440,7 +449,13 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
             case MANUAL:
                 break;
             case PID_SPEED: throttle_speed_pid_->reset_iterm(); break;
-            case PID_DEPTH: throttle_depth_pid_->reset_iterm(); break;
+            case PID_DEPTH:
+                // Set the throttle to what the arduino is reporting
+                // based on its ramping. This way our PID is not skewed
+                // when switching from manual to dive.
+                throttle_ = arduino_motor_throttle_;
+                throttle_depth_pid_->reset_iterm();
+                break;
         }
     }
     _throttleMode_ = newThrottleMode;
@@ -705,23 +720,22 @@ void jaiabot::apps::BotPidControl::handle_remote_control(
 void jaiabot::apps::BotPidControl::handle_dive_depth(
     const jaiabot::protobuf::DesiredSetpoints& command)
 {
-    // No dive PID for now... set to -60% throttle
-    /*setThrottleMode(MANUAL);
-
-    if (bounds.motor().has_throttle_dive())
-    {
-        throttle = bounds.motor().throttle_dive();
-    }
-    else
-    {
-        throttle = -35.0;
-    }*/
 
     // Depth PID for dive
     if (command.has_dive_depth())
     {
         setThrottleMode(PID_DEPTH);
         target_depth_ = command.dive_depth();
+    }
+    else if (bounds_.motor().has_throttle_dive())
+    {
+        setThrottleMode(MANUAL);
+        throttle_ = bounds_.motor().throttle_dive();
+    }
+    else
+    {
+        setThrottleMode(MANUAL);
+        throttle_ = -35.0;
     }
 
     // Set rudder to center
