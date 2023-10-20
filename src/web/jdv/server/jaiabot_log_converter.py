@@ -52,7 +52,7 @@ def convert_taskpacket_files_to_kmz_files(path: str):
             continue
 
         taskpackets = taskpacketfile.read_file(taskpacket_file_path)
-        kmz.write_file(taskpackets, kmz_file_path)
+        kmz.writeTaskPacketsToKMZ(taskpackets, kmz_file_path)
 
 while True:
     # Get all goby files

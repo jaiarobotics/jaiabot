@@ -26,7 +26,9 @@ const satellite = require('./satellite.svg') as string
 export const taskNone = require('./taskNone.svg') as string
 
 // Export the PNG data for use in KMZ files
-export const arrowHeadPng = require('./arrowHead.png') as string
+export const driftArrowPngs = [0, 1, 2, 3, 4, 5].map((index: number) => {
+    return require(`./drift-arrows/drift-arrow-${index}.png`) as string
+})
 export const bottomStrikePng = require('./bottomStrike.png') as string
 
 // Colors
@@ -346,11 +348,24 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
     })
 }
 
-export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
+/**
+ * Returns the drift icon index that should be displayed, given a drift speed.
+ * 
+ * @param driftSpeed Speed of the drift, in m/s
+ * @returns Index into Styles.driftArrowPngs, of the icon sthat should represent this drift
+ */
+export function driftSpeedToBinIndex(driftSpeed: number) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
     // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    if (driftSpeed == null) return null
+    
     const binValueIncrement = 0.5
-    let binNumber = Math.floor(feature.get('speed') / binValueIncrement)
+    return Math.floor(driftSpeed / binValueIncrement)
+}
+
+
+export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
+    let binNumber = driftSpeedToBinIndex(feature.get('speed'))
 
     const defaultSrc = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
     const animatedSrc = require(`./drift-arrows/drift-arrow-animated-${binNumber}.svg`)

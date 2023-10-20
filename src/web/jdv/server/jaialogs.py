@@ -497,7 +497,7 @@ def get_task_packets(log_filenames, scheme=1) -> Iterable[TaskPacket]:
 
 def generate_kmz(h5_filename: str, kmz_filename: str):
     task_packets = get_task_packets([h5_filename])
-    kmz.write_file(task_packets, kmz_filename)
+    kmz.writeTaskPacketsToKMZ(task_packets, kmz_filename)
 
 
 def getH5File(h5_filename: str):
