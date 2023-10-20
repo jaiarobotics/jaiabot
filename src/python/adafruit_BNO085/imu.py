@@ -105,6 +105,16 @@ class Adafruit(IMU):
             except RuntimeError as re:
                 log.warning("RuntimeError")
 
+            except IndexError as ie:
+                log.warning("IndexError")
+
+            except KeyError as re:
+                log.warning("KeyError")
+
+            except AttributeError as ae:
+                log.warning("AttributeError")
+            
+
     def takeReading(self):
         if not self.is_setup:
             self.setup()
