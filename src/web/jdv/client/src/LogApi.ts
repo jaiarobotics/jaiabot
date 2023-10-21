@@ -105,6 +105,14 @@ export class LogApi {
     return this.get_json(url.toString())
   }
 
+  // Get drift_interpolations
+  static get_drift_interpolations(logs: string[]) {
+    var url = new URL('interpolated-drifts', window.location.origin)
+    url.searchParams.append('log', logs.join(','))
+
+    return this.get_json(url.toString())
+  }
+
   static delete_log(logName: string) {
     const request = new Request(`/log/${logName}`, {method: 'DELETE'})
     fetch(request)

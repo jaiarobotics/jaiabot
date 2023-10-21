@@ -17,7 +17,7 @@ import { ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
-import { geoJSONToDepthContourFeatures } from './shared/Contours'
+import { geoJSONToDepthContourFeatures, geoJSONToFeatures } from './shared/Contours'
 import { GeographicCoordinate } from './shared/JAIAProtobuf';
 import { createMissionFeatures } from './shared/MissionFeatures'
 import { PortalBotStatus } from './shared/PortalStatus';
@@ -157,6 +157,7 @@ export default class JaiaMap {
     botVectorSource = new VectorSource()
     missionVectorSource = new VectorSource()
     depthContourVectorSource = new VectorSource()
+    driftInterpolationVectorSource = new VectorSource()
     command_dict: {[key: number]: LogCommand[]}
     depthContourFeatures: Feature[]
 
@@ -185,6 +186,7 @@ export default class JaiaMap {
                 this.createMissionLayer(),
                 this.createTaskPacketLayer(),
                 this.createDepthContourLayer(),
+                this.createDriftInterpolationLayer(),
             ],
             view: view,
             controls: [
@@ -334,6 +336,20 @@ export default class JaiaMap {
         })
     }
 
+    createDriftInterpolationLayer() {
+        const layer = new VectorLayer({
+            properties: {
+                title: 'Drift Interpolation',
+            },
+            source: this.driftInterpolationVectorSource,
+            zIndex: 13,
+            style: Styles.driftMapStyle,
+            opacity: 0.6
+        })
+
+        return layer
+    }
+
     // Set the array of paths
     setMapDict(botIdToMapSeries: {[key: string]: number[][]}) {
         this.botIdToMapSeries = botIdToMapSeries
@@ -471,6 +487,12 @@ export default class JaiaMap {
     updateWithDepthContourGeoJSON(depthContourGeoJSON: object) {
         this.depthContourFeatures = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), depthContourGeoJSON)
         this.updateDepthContours()
+    }
+
+    updateWithDriftInterpolationGeoJSON(driftInterpolationGeoJSON: object) {
+        let driftInterpolationFeatures = geoJSONToFeatures(this.map.getView().getProjection(), driftInterpolationGeoJSON)
+        this.driftInterpolationVectorSource.clear()
+        this.driftInterpolationVectorSource.addFeatures(driftInterpolationFeatures)
     }
 
     clear() {
