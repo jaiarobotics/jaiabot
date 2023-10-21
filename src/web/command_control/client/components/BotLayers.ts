@@ -1,15 +1,15 @@
-import { Map } from "ol"
-import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
+import VectorLayer from "ol/layer/Vector"
 import Collection from "ol/Collection"
-import { PortalBotStatus } from "./shared/PortalStatus"
-import { HubOrBot } from "./HubOrBot"
 import Feature from "ol/Feature"
+import { Map } from "ol"
 import { Point } from "ol/geom"
+
+import { HubOrBot } from "./HubOrBot"
+import { PortalBotStatus } from "./shared/PortalStatus"
+import { createGPSMarker } from "./shared/Marker"
 import { getMapCoordinate } from "./shared/Utilities"
 import * as Styles from "./shared/Styles"
-import { isRemoteControlled } from "./shared/PortalStatus"
-import { createGPSMarker } from "./shared/Marker"
 
 export class BotLayers {
     layers: {[key: number]: VectorLayer<VectorSource>} = {}
@@ -23,7 +23,6 @@ export class BotLayers {
 
     getBotLayer(bot_id: number) {
 		if (this.layers[bot_id] == null) {
-            // console.log(`Created layer for bot ${bot_id}`)
 			this.layers[bot_id] = new VectorLayer({
 				properties: {
 					name: `Bot ${bot_id}`,
@@ -83,31 +82,14 @@ export class BotLayers {
 			botFeature.set('selected', isSelected)
 			botFeature.set('controlled', false);
 
-			if (isRemoteControlled(bot.mission_state)) {
+			if (botFeature.get('selected')) {
 				botLayer.setZIndex(this.zIndex + 3);
-			} else if (botFeature.get('selected')) {
+			} else if (botFeature.get('rcMode')) {
 				botLayer.setZIndex(this.zIndex + 2);
 			} else if (botFeature.get('tracked')) {
 				botLayer.setZIndex(this.zIndex + 1);
 			} else {
 				botLayer.setZIndex(this.zIndex);
-			}
-
-			if (bot?.mission_state.includes('REACQUIRE_GPS')) {
-				const gpsFeature = createGPSMarker(
-					this.map,
-					{
-						lon: botLongitude, 
-						lat: botLatitude,
-						style: Styles.getGpsStyle()
-					}
-				)
-				gpsFeature.setId(`gps-${bot.bot_id}`)
-				botSource.addFeature(gpsFeature)
-			} else {
-				if (botSource.getFeatureById(`gps-${bot.bot_id}`)) {
-					botSource.removeFeature(botSource.getFeatureById(`gps-${bot.bot_id}`))
-				}
 			}
 
 			botLayer.changed();

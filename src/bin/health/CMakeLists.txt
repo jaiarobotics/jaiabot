@@ -7,7 +7,6 @@ add_executable(${APP}
   linux_hardware_thread.cpp
   time_thread.cpp 
   helm_ivp_thread.cpp
-  arduino_thread.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

@@ -3,7 +3,7 @@ import { Feature } from 'ol'
 import { Goal, TaskType } from './JAIAProtobuf'
 import { LineString, Point } from 'ol/geom';
 import { Fill, Icon, Style, Text} from 'ol/style';
-import { PortalBotStatus, isRemoteControlled } from './PortalStatus';
+import { PortalBotStatus } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -79,7 +79,8 @@ export function botMarker(feature: Feature): Style[] {
 
     if (botStatus?.isDisconnected ?? false) {
         color = disconnectedColor
-    } else if (isRemoteControlled(botStatus?.mission_state)) {
+    } 
+    else if (feature.get('rcMode')) {
         color = remoteControlledColor
     } else if (feature.get('selected')) {
         color = selectedColor
@@ -111,6 +112,10 @@ export function botMarker(feature: Feature): Style[] {
             })
         })
     ]
+
+    if (botStatus.mission_state.includes('REACQUIRE_GPS')) {
+        style.push(getGpsStyle(heading))
+    }
 
     return style
 }
@@ -231,15 +236,6 @@ function createFlagIcon(taskType: TaskType | null | undefined, isSelected: boole
     })
 }
 
-function createGpsIcon() {
-    return new Icon({
-        src: satellite,
-        color: driftArrowColor,
-        anchor: [0.5, -1.25],
-        scale: 1.25
-    })
-}
-
 function createRallyIcon() {
     return new Icon({
         src: rallyPoint,
@@ -288,9 +284,16 @@ export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string,
     })
 }
 
-export function getGpsStyle() {
+function getGpsStyle(headingRadians: number) {
     return new Style({
-        image: createGpsIcon(),
+        image: new Icon({
+            src: satellite,
+            color: driftArrowColor,
+            anchor: [0.5, -1.25],
+            scale: 1.25,
+            rotation: headingRadians,
+            rotateWithView: true
+        }),
         zIndex: 104 // One higher than the bot's zIndex to prevent to the bot from covering the icon
     })
 }
@@ -359,6 +362,27 @@ export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
             rotation: feature.get('driftDirection') * DEG,
             rotateWithView: true,
             scale: 0.7
+        }),
+    })
+}
+
+export function driftMapStyle(feature: Feature) {
+    // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
+    // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const heading = feature.get('heading') as number
+    const speed = feature.get('speed') as number
+
+    const binValueIncrement = 0.5
+    let binNumber = Math.floor(speed / binValueIncrement)
+
+    const src = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
+    
+    return new Style({
+        image: new Icon({
+            src: src,
+            rotation: heading * DEG,
+            rotateWithView: true,
+            scale: 0.68
         }),
     })
 }
