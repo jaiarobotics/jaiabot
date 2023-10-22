@@ -449,8 +449,6 @@ export default class CommandControl extends React.Component {
 		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!')
-
-		CustomAlert.alert('Welcome to Jaia Command & Control!')
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
@@ -2328,22 +2326,26 @@ export default class CommandControl extends React.Component {
 
 		if (commDest.botIds.length === 0) {
 			CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
-		} else if(confirm(`Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-			commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+		}
+		else {
+			let confirmationText = `Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage;
 
-			for (const botId of commDest.botIds) {
-				let c = {
-					bot_id: botId,
-					type: CommandType.ACTIVATE
-				}
-		
-				console.log(c)
-				this.api.postCommand(c).then(response => {
-					if (response.message) {
-						error(response.message)
+			CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
+				for (const botId of commDest.botIds) {
+					let c = {
+						bot_id: botId,
+						type: CommandType.ACTIVATE
 					}
-				})
-			}
+			
+					console.log(c)
+					this.api.postCommand(c).then(response => {
+						if (response.message) {
+							error(response.message)
+						}
+					})
+				}
+			})
 		}
 	}
 

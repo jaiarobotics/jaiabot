@@ -8,6 +8,7 @@ div.fullscreen {
     right: 0pt;
     top: 0pt;
     bottom: 0pt;
+    z-index: 20;
 }
 
 div.custom-alert {
@@ -16,6 +17,7 @@ div.custom-alert {
     border: 1pt solid black;
     border-radius: 10pt;
     min-width: 400pt;
+    max-width: 25%;
     box-shadow: 2pt 2pt 10pt darkgray;
 }
 
@@ -37,17 +39,18 @@ div.button-container {
     padding: 10pt;
 }
 
-div.close-button {
+div.button {
     background-color: white;
     border-radius: 10pt;
     padding: 20pt;
+    margin: 0pt 20pt 0pt 20pt;
     user-select: none;
 }
 
-div.close-button:hover {
+div.button:hover {
     background-color: darkgray;
 }
 
-div.close-button:active {
+div.button:active {
     background-color: #707070;
 }

@@ -205,7 +205,7 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
         return
     }
 
-    if (confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`)) {
+    CustomAlert.confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`, command.description, () => {
         let c = {
             bot_id: botId,
             type: command.commandType as CommandType
@@ -219,10 +219,7 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
                 setRcMode(botId, false)
             }
         })
-
-        return true
-    }
-    return false
+    })
 }
 
 function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: CommandInfo) {

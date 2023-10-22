@@ -83,25 +83,45 @@ export class LoadMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
-    loadClicked() { 
-        if (this.props.areBotsAssignedToRuns() && !confirm('Loading a new mission will delete all runs in the mission. If the current mission is saved, select OK')) {
-            return 
+    loadClicked() {
+        function loadSelectedMission() {
+            this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
         }
-        this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
+
+        if (this.props.areBotsAssignedToRuns()) {
+            CustomAlert.confirm('Loading a new mission will delete all runs in the mission. Make sure the current mission is saved.', 'Replace Current Mission', loadSelectedMission.bind(this))
+        }
+        else {
+            loadSelectedMission()
+        }
     }
 
-    deleteClicked() {
+    
+    /**
+     * Deletes the selected mission without a user confirmation.
+     * @date 10/22/2023 - 10:08:48 AM
+     */
+    deleteSelectedMission() {
         let name = this.state.selectedMissionName
 
         if (name == null) {
             return
         }
-        
-        if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
-            this.props.missionLibrary.deleteMission(name)
-            this.state.selectedMissionName = null;
-            this.forceUpdate()
-        }
+
+        this.props.missionLibrary.deleteMission(name)
+        this.state.selectedMissionName = null;
+        this.forceUpdate()
+    }
+
+    
+    /**
+     * Deletes the selected mission after user confirmation.
+     * @date 10/22/2023 - 10:09:29 AM
+     */
+    deleteClicked() {
+        CustomAlert.confirm("Are you sure you want to delete the mission named \"" + name + "\"?", 'Delete Mission', () => {
+            this.deleteSelectedMission()
+        })
     }
 
     cancelClicked() {
