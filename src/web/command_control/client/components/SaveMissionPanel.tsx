@@ -99,7 +99,7 @@ export class SaveMissionPanel extends React.Component {
         this.setState({selectedMissionName: name})
     }
 
-    saveClicked() {
+    async saveClicked() {
         // Check to see if we have selected a mission
         if (Object.keys(this.props.mission.runs).length === 0) {
             CustomAlert.alert("Please create a mission to save")
@@ -113,7 +113,7 @@ export class SaveMissionPanel extends React.Component {
         }
 
         if (this.props.missionLibrary.hasMission(name)) {
-            if (!confirm('Do you really want to replace mission named \"' + name + '\"?')) {
+            if (!(await CustomAlert.confirmAsync('Do you really want to replace mission named \"' + name + '\"?', 'Replace Mission'))) {
                 return
             }
         }
@@ -123,14 +123,14 @@ export class SaveMissionPanel extends React.Component {
         this.props.onDone?.()
     }
 
-    deleteClicked() {
+    async deleteClicked() {
         let name = this.state.selectedMissionName
 
         if (name == null) {
             return
         }
         
-        if (confirm("Are you sure you want to delete the mission named \"" + name + "\"?")) {
+        if (await CustomAlert.confirmAsync("Are you sure you want to delete the mission named \"" + name + "\"?", 'Delete Mission')) {
             this.props.missionLibrary.deleteMission(name)
             this.state.selectedMissionName = null;
             this.forceUpdate()

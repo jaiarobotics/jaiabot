@@ -84,7 +84,7 @@ export class LoadMissionPanel extends React.Component {
     }
 
     loadClicked() {
-        function loadSelectedMission() {
+        const loadSelectedMission = () => {
             this.props.selectedMission?.(this.props.missionLibrary.loadMission(this.state.selectedMissionName))
         }
 

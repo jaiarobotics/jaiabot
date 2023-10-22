@@ -8,6 +8,7 @@ import { MissionInterface, PanelType} from './CommandControl';
 import { Icon } from '@mdi/react'
 import { mdiDelete } from '@mdi/js'
 import '../style/components/GoalSettingsPanel.css'
+import { CustomAlert } from './shared/CustomAlert';
 
 enum LatLon {
     LAT = 'lat',
@@ -162,11 +163,11 @@ export class GoalSettingsPanel extends React.Component {
         }
     }
 
-    deleteWaypoint() {
+    async deleteWaypoint() {
         const runs = this.props.runList.runs
         const wptNum = this.props.goalIndex
 
-        if (!confirm(`Are you sure you want to delete Waypoint ${wptNum}?`)) {
+        if (!await CustomAlert.confirmAsync(`Are you sure you want to delete Waypoint ${wptNum}?`, 'Delete Waypojnt')) {
             return
         }
 

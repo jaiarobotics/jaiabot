@@ -28,6 +28,7 @@ let prec = 2
 interface CommandInfo {
     commandType: CommandType | HubCommandType,
     description: string,
+    confirmationButtonText: string,
     statesAvailable?: RegExp[],
     statesNotAvailable?: RegExp[],
     humanReadableAvailable?: string,
@@ -38,6 +39,7 @@ const commands: {[key: string]: CommandInfo} = {
     active: {
         commandType: CommandType.ACTIVATE,
         description: 'system check',
+        confirmationButtonText: 'Run System Check',
         statesAvailable: [
             /^.+__IDLE$/,
             /^PRE_DEPLOYMENT__FAILED$/
@@ -48,6 +50,7 @@ const commands: {[key: string]: CommandInfo} = {
     nextTask: {
         commandType: CommandType.NEXT_TASK,
         description: 'go to the Next Task for',
+        confirmationButtonText: 'Go To Next Task',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ],
@@ -60,6 +63,7 @@ const commands: {[key: string]: CommandInfo} = {
     goHome: {
         commandType: CommandType.RETURN_TO_HOME,
         description: 'Return Home',
+        confirmationButtonText: 'Return Home',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ],
@@ -69,6 +73,7 @@ const commands: {[key: string]: CommandInfo} = {
     stop: {
         commandType: CommandType.STOP,
         description: 'Stop',
+        confirmationButtonText: 'Stop',
         statesAvailable: [
             /^IN_MISSION__.+$/
         ],
@@ -81,6 +86,7 @@ const commands: {[key: string]: CommandInfo} = {
     play: {
         commandType: CommandType.START_MISSION,
         description: 'Play mission',
+        confirmationButtonText: 'Play Mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
             /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/
@@ -91,6 +97,7 @@ const commands: {[key: string]: CommandInfo} = {
     rcMode: {
         commandType: CommandType.REMOTE_CONTROL_TASK,
         description: 'RC mission',
+        confirmationButtonText: 'RC Mission',
         statesAvailable: [
             /^IN_MISSION__.+$/,
             /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
@@ -102,6 +109,7 @@ const commands: {[key: string]: CommandInfo} = {
     recover: {
         commandType: CommandType.RECOVERED,
         description: 'Recover',
+        confirmationButtonText: 'Recover',
         statesAvailable: [
             /^PRE_DEPLOYMENT.+$/,
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
@@ -112,6 +120,7 @@ const commands: {[key: string]: CommandInfo} = {
     retryDataOffload: {
         commandType: CommandType.RETRY_DATA_OFFLOAD,
         description: 'Retry Data Offload for',
+        confirmationButtonText: 'Retry Data Offload',
         statesAvailable: [
             /^POST_DEPLOYMENT__IDLE$/,
             /^POST_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/,
@@ -122,6 +131,7 @@ const commands: {[key: string]: CommandInfo} = {
     shutdown: {
         commandType: CommandType.SHUTDOWN,
         description: 'Shutdown',
+        confirmationButtonText: 'Shutdown',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -133,6 +143,7 @@ const commands: {[key: string]: CommandInfo} = {
     restartServices: {
         commandType: CommandType.RESTART_ALL_SERVICES,
         description: 'Restart Services for',
+        confirmationButtonText: 'Restart Services',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -144,6 +155,7 @@ const commands: {[key: string]: CommandInfo} = {
     reboot: {
         commandType: CommandType.REBOOT_COMPUTER,
         description: 'Reboot',
+        confirmationButtonText: 'Reboot',
         statesAvailable: [
             /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/,
             /^PRE_DEPLOYMENT.+$/,
@@ -158,18 +170,21 @@ let commandsForHub: {[key: string]: CommandInfo} = {
     shutdown: {
         commandType: CommandType.SHUTDOWN_COMPUTER,
         description: 'Shutdown Hub',
+        confirmationButtonText: 'Shutdown Hub',
         statesNotAvailable: [
         ]
     },
     restartServices: {
         commandType: CommandType.RESTART_ALL_SERVICES,
         description: 'Restart Services',
+        confirmationButtonText: 'Restart Services',
         statesNotAvailable: [
         ]
     },
     reboot: {
         commandType: CommandType.REBOOT_COMPUTER,
         description: 'Reboot Hub',
+        confirmationButtonText: 'Reboot Hub',
         statesNotAvailable: [
         ]
     }
@@ -205,7 +220,7 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
             return
         }
 
-        CustomAlert.confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`, command.description, () => {
+        CustomAlert.confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`, command.confirmationButtonText, () => {
             let c = {
                 bot_id: botId,
                 type: command.commandType as CommandType
@@ -226,8 +241,8 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
 function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: CommandInfo) {
     console.log('Hub Command');
 
-    takeControlFunction(() => {
-        if (confirm("Are you sure you'd like to " + commandForHub.description + '?')) {
+    takeControlFunction(async () => {
+        if (await CustomAlert.confirmAsync("Are you sure you'd like to " + commandForHub.description + '?', commandForHub.confirmationButtonText)) {
             let c = {
                 hub_id: hub_id,
                 type: commandForHub.commandType as HubCommandType
@@ -247,19 +262,21 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, se
             return
         }
 
-        if (confirm("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?')) {
-            // Set the speed values
-            botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
+        CustomAlert.confirmAsync("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?', 'Play Run').then((confirmed) => {
+            if (confirmed) {
+                // Set the speed values
+                botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
 
-            info('Submitted for Bot: ' + bot.bot_id);
+                info('Submitted for Bot: ' + bot.bot_id);
 
-            api.postCommand(botRun).then(response => {
-                if (response.message) {
-                    error(response.message)
-                }
-                setRcMode(bot.bot_id, false)
-            })
-        }   
+                api.postCommand(botRun).then(response => {
+                    if (response.message) {
+                        error(response.message)
+                    }
+                    setRcMode(bot.bot_id, false)
+                })
+            }
+        })
     })
 }
 
@@ -288,7 +305,7 @@ function issueRCCommand(
             if (Array.isArray(bot?.error)) {
                 for (let e of bot?.error) {
                     if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
-                        isCriticallyLowBattery = "***Critically Low Battery in RC Mode coulde jeopardize your recovery!***\n"
+                        isCriticallyLowBattery = "***Critically Low Battery in RC Mode could jeopardize your recovery!***\n"
                     }
                 }
             }
@@ -311,7 +328,7 @@ function issueRCCommand(
     })
 }
 
-function runRCMode(bot: PortalBotStatus) {
+async function runRCMode(bot: PortalBotStatus) {
     const botId = bot.bot_id;
     if (!botId) {
         warning('No bots selected')
@@ -323,7 +340,7 @@ function runRCMode(bot: PortalBotStatus) {
     if (!datumLocation) {
         const warningString = 'RC mode issued, but bot has no location. Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
 
-        if (!confirm(warningString)) {
+        if (!(await CustomAlert.confirmAsync(warningString, 'Use (0, 0) Datum'))) {
             return null
         }
 
@@ -518,7 +535,7 @@ export interface BotDetailsProps {
     isExpanded: DetailsExpandedState,
     downloadQueue: PortalBotStatus[],
     closeWindow: () => void,
-    takeControl: () => boolean,
+    takeControl: (onSuccess: () => void) => void,
     deleteSingleMission: (runNumber?: number, disableMessage?: string) => void,
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
@@ -759,8 +776,8 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     ${props.isRCModeActive(bot?.bot_id) ? 'rc-active' : 'rc-inactive' }
                                     `
                                 } 
-                                onClick={() => { 
-                                    issueRCCommand(api, bot, runRCMode(bot), props.isRCModeActive, props.setRcMode, disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage) 
+                                onClick={async () => { 
+                                    issueRCCommand(api, bot, await runRCMode(bot), props.isRCModeActive, props.setRcMode, disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage) 
                                 }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>
@@ -788,9 +805,9 @@ export function BotDetailsComponent(props: BotDetailsProps) {
 
                                 <AccordionDetails>
                                     <Button className={disableButton(commands.shutdown, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
-                                                    confirm(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`) ?
+                                                    (await CustomAlert.confirmAsync(`Are you sure you'd like to shutdown bot: ${bot.bot_id} without doing a data offload?`, 'Shutdown Bot')) ?
                                                         issueCommand(api, bot.bot_id, commands.shutdown,  disableButton(commands.shutdown, missionState, bot, props.downloadQueue).disableMessage) : false;
                                                 } else {
                                                     issueCommand(api, bot.bot_id, commands.shutdown,  disableButton(commands.shutdown, missionState, bot, props.downloadQueue).disableMessage);
@@ -800,9 +817,9 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <Icon path={mdiPower} title='Shutdown'/>
                                     </Button>
                                     <Button className={disableButton(commands.reboot, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
-                                                    confirm(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`) ? 
+                                                    (await CustomAlert.confirmAsync(`Are you sure you'd like to reboot bot: ${bot.bot_id} without doing a data offload?`, 'Reboot Bot')) ? 
                                                         issueCommand(api, bot.bot_id, commands.reboot,  disableButton(commands.reboot, missionState, bot, props.downloadQueue).disableMessage) : false;
                                                 } else {
                                                     issueCommand(api, bot.bot_id, commands.reboot,  disableButton(commands.reboot, missionState, bot, props.downloadQueue).disableMessage);
@@ -812,9 +829,9 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                         <Icon path={mdiRestartAlert} title='Reboot'/>
                                     </Button>
                                     <Button className={disableButton(commands.restartServices, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (bot.mission_state == 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED') {
-                                                    confirm(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`) ? 
+                                                    (await CustomAlert.confirmAsync(`Are you sure you'd like to restart bot: ${bot.bot_id} without doing a data offload?`, 'Restart Bot')) ? 
                                                         issueCommand(api, bot.bot_id, commands.restartServices, disableButton(commands.restartServices, missionState, bot, props.downloadQueue).disableMessage) : false;
                                                 } else {
                                                     issueCommand(api, bot.bot_id, commands.restartServices,  disableButton(commands.restartServices, missionState, bot, props.downloadQueue).disableMessage);
@@ -1036,7 +1053,7 @@ export interface HubDetailsProps {
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     getFleetId: () => number
     closeWindow: () => void,
-    takeControl: () => boolean,
+    takeControl: (onSuccess: () => void) => void,
 }
 
 export function HubDetailsComponent(props: HubDetailsProps) {

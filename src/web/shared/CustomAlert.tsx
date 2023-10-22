@@ -70,19 +70,39 @@ export class CustomAlert extends React.Component {
         presentAlert({text})
     }
 
-    static confirm(text: string, actionTitle: string, action?: ()=>void) {
+    static confirm(text: string, actionTitle: string, action?: ()=>void, cancelAction?: () => void) {
         presentAlert({
             title: 'Confirm',
             text: text,
             buttons: [
                 {
-                    title: 'Cancel'
+                    title: 'Cancel',
+                    action: cancelAction
                 },
                 {
                     title: actionTitle,
-                    action: action
+                    action: action,
                 }
             ]
+        })
+    }
+
+    static async confirmAsync(text: string, actionTitle: string) {
+        return new Promise((resolve, reject) => {
+            presentAlert({
+                title: 'Confirm',
+                text: text,
+                buttons: [
+                    {
+                        title: 'Cancel',
+                        action: () => { resolve(false) }
+                    },
+                    {
+                        title: actionTitle,
+                        action: () => { resolve(true) },
+                    }
+                ]
+            })
         })
     }
 

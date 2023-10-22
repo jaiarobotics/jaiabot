@@ -13,7 +13,7 @@ interface Props {
 	hubs: {[key: number]: PortalHubStatus}
 	getSelectedBotId: () => number
 	getFleetId: () => number
-	control: () => boolean
+	control: (onSuccess: () => void) => void
 }
 
 interface State {

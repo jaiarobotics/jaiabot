@@ -19,6 +19,7 @@ import { Missions } from '../Missions';
 import { Slider } from '@mui/material';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
 import { jaiaAPI } from '../../../common/JaiaAPI';
+import { CustomAlert } from '../shared/CustomAlert';
 
 interface Props {
     bots: {[key: number]: PortalBotStatus}
@@ -163,10 +164,10 @@ export default class RunItem extends React.Component {
         runDeleteButton = (
             <Button 
                 className={`button-jcc missionAccordian`}
-                onClick={(event) => {
+                onClick={async (event) => {
                     event.stopPropagation()
                     const warningString = "Are you sure you want to delete " + this.props.run.name + "?"
-		            if (confirm(warningString)) {
+		            if (await CustomAlert.confirmAsync(warningString, 'Delete Run')) {
                         // Deep copy
                         const mission = this.props.mission
                         delete mission?.runs[this.props.run.id]

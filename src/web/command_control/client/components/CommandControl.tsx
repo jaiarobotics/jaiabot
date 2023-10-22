@@ -1136,42 +1136,49 @@ export default class CommandControl extends React.Component {
 
 			if (botIdsAssignedToRuns.length === 0) {
 				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
-			} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
-				commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
+			} 
+			else {
+				const alertText = `Run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
+					commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage
+
+				CustomAlert.confirm(alertText, 'Run Mission', () => {
 					
-				let continueToExecuteMission = true 
-
-				if (addRuns) {
-					continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
-
-					if (continueToExecuteMission) {
-						Object.keys(addRuns).map(key => {
-							Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-						});
-					}
-				}
-
-				if (continueToExecuteMission) {
-					Object.keys(runs).map(key => {
-						const botIndex = runs[key].assigned;
-			this.setRcMode(botIndex, false)
-						const runId = runs[key].id
-						if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-							this._runMission(runs[key].command)
-							// Turn off edit mode when run starts for completeness
-							if (runs[key].id === this.getRunList().runIdInEditMode) {
-								const runList = this.getRunList()
-								runList.runIdInEditMode = ''
-								this.setRunList(runList)
+					const doExecuteMission = () => {
+						Object.keys(runs).map(key => {
+							const botIndex = runs[key].assigned;
+							this.setRcMode(botIndex, false)
+							const runId = runs[key].id
+							if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+								this._runMission(runs[key].command)
+								// Turn off edit mode when run starts for completeness
+								if (runs[key].id === this.getRunList().runIdInEditMode) {
+									const runList = this.getRunList()
+									runList.runIdInEditMode = ''
+									this.setRunList(runList)
+								}
 							}
-						}
-					})
-		
-					success("Submitted missions")
-				}
+						})
+			
+						success("Submitted missions")
+					}
+
+					if (addRuns) {
+						this.deleteAllRunsInMission(missions, true, true).finally(() => {
+							Object.keys(addRuns).map(key => {
+								Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+							});
+
+							doExecuteMission()	
+						})
+						return
+					}
+
+					doExecuteMission()
+				})
 			}
 		})
 	}
+
 	// 
 	// Run Mission (End)
 	// 
@@ -1179,20 +1186,30 @@ export default class CommandControl extends React.Component {
 	// 
 	// Delete Mission (Start)
 	// 
-	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
-		const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
-		if (needConfirmation && !confirm(warningString)) {
-			return false
-		}
-		const runs = mission.runs
-		for (const run of Object.values(runs)) {
-			const runNumber = Number(run.id.substring(4)) // run.id => run-x
-				delete mission.runs[run.id]
-				delete mission.botsAssignedToRuns[run.assigned]
-		}
-		mission.runIdIncrement = 1
+	async deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 
-		return true
+		return new Promise((resolve, reject) => {
+			const doDelete = () => {
+				const runs = mission.runs
+				for (const run of Object.values(runs)) {
+					const runNumber = Number(run.id.substring(4)) // run.id => run-x
+						delete mission.runs[run.id]
+						delete mission.botsAssignedToRuns[run.assigned]
+				}
+				mission.runIdIncrement = 1
+	
+				resolve(true)			
+			}
+	
+			if (needConfirmation) {
+				const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
+				CustomAlert.confirm(warningString, 'Delete All Runs', doDelete, () => { resolve(false) })
+			}
+			else {
+				doDelete()
+			}
+		})
+
 	}
 
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {
@@ -1212,16 +1229,17 @@ export default class CommandControl extends React.Component {
 			runId = runList.botsAssignedToRuns[selectedBotId]
 		}
 
-		const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
-
-		if (runId !== '' && confirm(warningString)) {
-			const run = runList.runs[runId]
-			delete runList?.runs[runId]
-			delete runList?.botsAssignedToRuns[run.assigned]
-			if (this.state.visiblePanel === 'GOAL_SETTINGS') {
-				this.setVisiblePanel(PanelType.NONE)
-				this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
-			}
+		if (runId !== '') {
+			const warningString = runNumber ? `Are you sure you want to delete Run: ${runNumber}` : `Are you sure you want to delete this run for bot: ${selectedBotId}`
+			CustomAlert.confirm(warningString, 'Delete Run', () => {
+				const run = runList.runs[runId]
+				delete runList?.runs[runId]
+				delete runList?.botsAssignedToRuns[run.assigned]
+				if (this.state.visiblePanel === 'GOAL_SETTINGS') {
+					this.setVisiblePanel(PanelType.NONE)
+					this.setMoveWptMode(false, `run-${this.state.goalBeingEdited?.runNumber}`, this.state.goalBeingEdited?.goalIndex)
+				}
+			})
 		}
 	}
 
@@ -1241,12 +1259,15 @@ export default class CommandControl extends React.Component {
 	loadMissions(mission: MissionInterface) {
 		const runList = this.pushRunListToUndoStack().getRunList()
 
-		this.deleteAllRunsInMission(runList, true);
-		for (let run in mission?.runs) {
-			Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
-		}
+		this.deleteAllRunsInMission(runList, true).finally(() => {
+			console.log('MARKER')
 
-		this.setRunList(runList)
+			for (let run in mission?.runs) {
+				Missions.addRunWithCommand(-1, mission.runs[run].command, runList);
+			}
+	
+			this.setRunList(runList)
+		})
 	}
 
 	loadMissionButtonClicked() {
@@ -1961,12 +1982,9 @@ export default class CommandControl extends React.Component {
 
 		if (!datumLocation) {
 			const warningString = 'RC mode issued, but bot has no location.  Should I use (0, 0) as the datum, which may result in unexpected waypoint behavior?'
-
-			if (!confirm(warningString)) {
-				return
-			}
-
-			datumLocation = {lat: 0, lon: 0}
+			CustomAlert.confirm(warningString, 'Use (0, 0) Datum', () => {
+				datumLocation = {lat: 0, lon: 0}
+			})
 		}
 	}
 
@@ -2098,18 +2116,24 @@ export default class CommandControl extends React.Component {
 
 	removeBotFromQueue(bot: PortalBotStatus) {
 		const downloadStates = ['POST_DEPLOYMENT__DATA_PROCESSING', 'POST_DEPLOYMENT__DATA_OFFLOAD']
-        if (downloadStates.includes(this.getBotMissionState(bot.bot_id)) && !confirm('Removing this bot will not cancel the download, but it will allow the other bots to move up in the queue. You may experience slower download speeds. Select OK if you would like to continue:')) {
-            return
-        }
-		
-		const queue = this.state.botDownloadQueue
-		const updatedQueue = queue.filter((queuedBot) => {
-			if (!(queuedBot.bot_id === bot.bot_id)) {
-				return queuedBot
-			}
-		})
 
-		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+		const doRemoveBotFromQueue = () => {
+			const queue = this.state.botDownloadQueue
+			const updatedQueue = queue.filter((queuedBot) => {
+				if (!(queuedBot.bot_id === bot.bot_id)) {
+					return queuedBot
+				}
+			})
+	
+			this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+		}
+
+        if (downloadStates.includes(this.getBotMissionState(bot.bot_id))) {
+			CustomAlert.confirm('Removing this bot will not cancel the download, but it will allow the other bots to move up in the queue. You may experience slower download speeds. Are you sure?', 'Remove Bot From Queue', doRemoveBotFromQueue)
+        }
+		else {
+			doRemoveBotFromQueue()
+		}
 	}
 
 	getDownloadableBots() {
@@ -2378,22 +2402,24 @@ export default class CommandControl extends React.Component {
 
 			if (commDest.botIds.length === 0) {
 				CustomAlert.alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
-			} else if(confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-				commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+			} else {
+				CustomAlert.confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage, 'Stop All Bots', () => {
 
-				for (const botId of commDest.botIds) {
-					let c = {
-						bot_id: botId,
-						type: CommandType.STOP
-					}
-			
-					this.api.postCommand(c).then(response => {
-						if (response.message) {
-							error(response.message)
+					for (const botId of commDest.botIds) {
+						let c = {
+							bot_id: botId,
+							type: CommandType.STOP
 						}
-						this.setRcMode(botId, false)
-					})
-				}
+				
+						this.api.postCommand(c).then(response => {
+							if (response.message) {
+								error(response.message)
+							}
+							this.setRcMode(botId, false)
+						})
+					}
+				})
 			}
 		})
 	}
@@ -2412,8 +2438,8 @@ export default class CommandControl extends React.Component {
 
 			const commDest = this.determineAllCommandBots(false, false, false, false)
 
-			if(confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-				commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+			CustomAlert.confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				commDest.downloadQueueMessage + commDest.disconnectedMessage, 'Download Data', () => {
 
 				for (const botId of commDest.botIds) {
 					let c = {
@@ -2428,7 +2454,7 @@ export default class CommandControl extends React.Component {
 						}
 					})
 				}
-			}
+			})
 		})
 	}
 
@@ -2456,16 +2482,18 @@ export default class CommandControl extends React.Component {
 	 * @returns Nothing
 	 */
 	restoreUndo() {
-		if (!confirm('Click the OK button to undo the previous run edit that was made:')) return
+		if (this.state.undoRunListStack.length < 1) {
+			info("There is no goal or task to undo!");
+			return
+		}
 
-		if (this.state.undoRunListStack.length >= 1) {
+		CustomAlert.confirm('Undo the previous run edit that was made?', 'Undo Last Edit', () => {
 			const runList = this.state.undoRunListStack.pop()
 			this.setRunList(runList)
 			this.setState({goalBeingEdited: null})
-		} else {
-			info("There is no goal or task to undo!");
-		}
+		})
 	}
+
 	// 
 	// Command Drawer (End)
 	// 
@@ -2652,17 +2680,17 @@ export default class CommandControl extends React.Component {
 							this.missionPlans = getSurveyMissionPlans(this.getBotIdList(), rallyStartLocation, rallyEndLocation, missionParams, missionPlanningGrid, missionSettings.endTask, missionBaseGoal)
 
 							const runList = this.pushRunListToUndoStack().getRunList()
-							this.deleteAllRunsInMission(runList, false);
-
-							for (let id in this.missionPlans) {
-								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
-							}
-
-							// Default to edit mode off for runs created with line tool
-							runList.runIdInEditMode = ''
-
-							// Close panel after applying
-							this.setVisiblePanel(PanelType.NONE)
+							this.deleteAllRunsInMission(runList, false).finally(() => {
+								for (let id in this.missionPlans) {
+									Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
+								}
+	
+								// Default to edit mode off for runs created with line tool
+								runList.runIdInEditMode = ''
+	
+								// Close panel after applying
+								this.setVisiblePanel(PanelType.NONE)
+							})
 						} else {
 							// Polygon
 							this.genMission()

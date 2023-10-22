@@ -14,7 +14,7 @@ interface Props {
     mission: MissionInterface,
     loadMissionClick: any,
     saveMissionClick: any,
-    deleteAllRunsInMission: any,
+    deleteAllRunsInMission: (mission: MissionInterface, confirmationRequired: boolean) => Promise<boolean>,
     autoAssignBotsToRuns: any,
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
