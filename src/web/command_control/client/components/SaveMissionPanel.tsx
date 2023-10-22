@@ -13,6 +13,7 @@ import { downloadToFile } from './shared/Utilities';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
 import { CommandList } from './Missions';
 import { MissionInterface } from './CommandControl';
+import { CustomAlert } from './shared/CustomAlert';
 
 
 interface Props {
@@ -101,13 +102,13 @@ export class SaveMissionPanel extends React.Component {
     saveClicked() {
         // Check to see if we have selected a mission
         if (Object.keys(this.props.mission.runs).length === 0) {
-            alert("Please create a mission to save")
+            CustomAlert.alert("Please create a mission to save")
             return
         }
 
         let name = this.state.selectedMissionName
         if (name == null) {
-            alert("Please name this mission")
+            CustomAlert.alert("Please name this mission")
             return
         }
 

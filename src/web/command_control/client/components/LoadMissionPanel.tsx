@@ -12,6 +12,7 @@ import Button from '@mui/material/Button';
 import { MissionLibraryLocalStorage } from './MissionLibrary';
 import { CommandList } from './Missions';
 import { MissionInterface } from './CommandControl';
+import { CustomAlert } from './shared/CustomAlert';
 
 interface Props {
     missionLibrary: MissionLibraryLocalStorage
@@ -127,7 +128,7 @@ export class LoadMissionPanel extends React.Component {
                     this.props.selectedMission?.(mission)
                 }
                 catch (err) {
-                    alert("Error: " + err)
+                    CustomAlert.alert("Error: " + err)
                 }
             }
         }

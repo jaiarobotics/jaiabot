@@ -19,6 +19,7 @@ import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
 import { MissionInterface, RunInterface } from './CommandControl';
 import { Missions } from './Missions'
 import * as turf from '@turf/turf';
+import { CustomAlert } from './shared/CustomAlert';
 
 const rcMode = require('../icons/controller.svg') as string
 
@@ -200,7 +201,7 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
 
     // Exit if we have a disableMessage
     if (disableMessage !== "") {
-        alert(disableMessage)
+        CustomAlert.presentAlert({text: disableMessage})
         return
     }
 
@@ -246,7 +247,7 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, se
 
     // Exit if we have a disableMessage
     if (disableMessage !== "") {
-        alert(disableMessage)
+        CustomAlert.alert(disableMessage)
         return
     }
 
@@ -279,7 +280,7 @@ function issueRCCommand(
 
     // Exit if we have a disableMessage
     if (disableMessage !== "") {
-        alert(disableMessage)
+        CustomAlert.alert(disableMessage)
         return
     }
 

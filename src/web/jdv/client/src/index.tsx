@@ -29,6 +29,9 @@ import { Log } from './Log'
 import { Draw } from 'ol/interaction'
 
 import './styles/styles.css'
+import {CustomAlert, CustomAlertProps} from './shared/CustomAlert'
+
+import './index.css'
 
 var Plotly = require('plotly.js-dist')
 
@@ -71,6 +74,9 @@ interface State {
 
   // Modal busy indicator
   isBusy: boolean
+
+  // Custom Alert shown, if any
+  customAlert?: React.JSX.Element
 }
 
 
@@ -105,8 +111,20 @@ class LogApp extends React.Component {
       // Plot sets
       isOpenPlotSetDisplayed: false,
 
-      isBusy: false
+      isBusy: false,
+      customAlert: null
     }
+
+    CustomAlert.setPresenter((props: CustomAlertProps | null) => {
+      if (props == null) {
+        this.setState({customAlert: null})
+        return
+      }
+  
+      this.setState({
+        customAlert: <CustomAlert {...props} ></CustomAlert>
+      })
+    })
   }
 
   render() {
@@ -182,6 +200,8 @@ class LogApp extends React.Component {
           ></TimeSlider>
 
           { log_selector }
+
+          { this.state.customAlert }
 
         </div>
 
@@ -318,6 +338,8 @@ class LogApp extends React.Component {
   componentDidMount() {
     this.getElements()
     this.map = new JaiaMap('openlayers-map')
+
+    CustomAlert.presentAlert({text: 'Welcome to JDV!'})
   }
 
   getElements() {
@@ -344,7 +366,7 @@ class LogApp extends React.Component {
                 this.setState({plots : plots.concat(series), plotNeedsRefresh: true})
           }
         })
-        .catch(err => {alert(err)})
+        .catch(err => {CustomAlert.presentAlert({text: err})})
         .then(() => {
           this.stopBusyIndicator()
         })

@@ -1,4 +1,4 @@
-import React, { MouseEvent, ReactElement } from 'react'
+import React, { MouseEvent, ReactElement, ReactNode } from 'react'
 
 
 // Jaia Imports
@@ -41,6 +41,7 @@ import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './sha
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
 import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { CustomAlert, CustomAlertProps } from './shared/CustomAlert'
 
 
 // OpenLayers
@@ -202,6 +203,8 @@ interface State {
 	disconnectionMessage?: string,
 	viewportPadding: number[],
 	metadata: Metadata
+
+	customAlert?: ReactNode
 }
 
 interface BotAllCommandInfo {
@@ -352,7 +355,9 @@ export default class CommandControl extends React.Component {
 				viewportDefaultPadding,
 				viewportDefaultPadding + sidebarInitialWidth
 			],
-			metadata: {}
+			metadata: {},
+
+			customAlert: null
 		};
 
 		// Map initializations
@@ -401,6 +406,15 @@ export default class CommandControl extends React.Component {
 		this.enabledDownloadStates = ['PRE_DEPLOYMENT', 'STOPPED', 'POST_DEPLOYMENT']
 		this.flagNumber = 1
 
+		CustomAlert.setPresenter((props: CustomAlertProps) => {
+			if (props == null) {
+				this.setState({customAlert: null})
+				return
+			}
+
+			this.setState({customAlert: <CustomAlert {...props}></CustomAlert>})
+		})
+
 	}
 
 	/**
@@ -435,6 +449,8 @@ export default class CommandControl extends React.Component {
 		document.onkeydown = this.keyPressed.bind(this)
 
 		info('Welcome to Jaia Command & Control!')
+
+		CustomAlert.alert('Welcome to Jaia Command & Control!')
 	}
 
 	componentDidUpdate(prevProps: Props, prevState: State, snapshot: any) {
@@ -1115,7 +1131,7 @@ export default class CommandControl extends React.Component {
 		}
 
 		if (botIdsAssignedToRuns.length === 0) {
-			alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
+			CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
 		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
 				
@@ -1177,7 +1193,7 @@ export default class CommandControl extends React.Component {
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {
 		// Exit if we have a disableMessage
 		if (disableMessage !== "") {
-			alert(disableMessage)
+			CustomAlert.alert(disableMessage)
 			return
 		}
 
@@ -1985,7 +2001,7 @@ export default class CommandControl extends React.Component {
 		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
 
 		if (downloadableBotIds.length === 0) {
-			alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
+			CustomAlert.alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
 			return
 		}
 
@@ -2003,7 +2019,7 @@ export default class CommandControl extends React.Component {
 		
 		// Exit if we have a disableMessage
 		if (disableMessage !== "") {
-			alert(disableMessage)
+			CustomAlert.alert(disableMessage)
 			return
 		}
 
@@ -2311,7 +2327,7 @@ export default class CommandControl extends React.Component {
 		const commDest = this.determineAllCommandBots(false, true, false, false)
 
 		if (commDest.botIds.length === 0) {
-			alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+			CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
 		} else if(confirm(`Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
 			commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
 
@@ -2347,7 +2363,7 @@ export default class CommandControl extends React.Component {
 		const commDest = this.determineAllCommandBots(false, false, true, false)
 
 		if (commDest.botIds.length === 0) {
-			alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+			CustomAlert.alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
 		} else if(confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
 			commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
 
@@ -2369,7 +2385,7 @@ export default class CommandControl extends React.Component {
 
 	playClicked(evt: UIEvent) {
 		if (!this.areBotsAssignedToRuns()) {
-			alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
+			CustomAlert.alert('There are no runs assigned to bots yet.  Please assign one or more runs to one or more bots before you can run the mission.')
 			return
 		}
 
@@ -3004,6 +3020,8 @@ export default class CommandControl extends React.Component {
 				{this.state.saveMissionPanel}
 
 				{this.disconnectionPanel()}
+
+				{this.state.customAlert}
 				
 			</div>
 		)

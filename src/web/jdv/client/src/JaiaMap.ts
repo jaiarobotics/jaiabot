@@ -38,6 +38,7 @@ import { Buffer } from 'buffer';
 import JSZip from 'jszip';
 
 import './styles/JaiaMap.css'
+import { CustomAlert } from './shared/CustomAlert';
 
 // Get date description from microsecond timestamp
 function dateStringFromMicros(timestamp_micros?: number): string | null {
@@ -121,7 +122,6 @@ function DownloadFile(name: string, data: BlobPart) {
     }));
     a.dispatchEvent(new MouseEvent("click"));
 }
-
 
 
 export default class JaiaMap {
@@ -668,7 +668,7 @@ export default class JaiaMap {
             DownloadFile('map.kmz', kml)
         })
         .catch((reason) => {
-            alert(`Error: ${reason}`)
+            CustomAlert.presentAlert({text: `Error: ${reason}`})
         })
     }
 
@@ -693,7 +693,7 @@ export default class JaiaMap {
                     newLayer = await layerFromKmzString(await file.arrayBuffer())
                     break;
                 default:
-                    alert(`Unknown file extension: ${fileNameExtension}`)
+                    CustomAlert.presentAlert({text: `Unknown file extension: ${fileNameExtension}`})
                     continue;
             }
 
