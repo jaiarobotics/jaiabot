@@ -194,30 +194,31 @@ interface DisableInfo {
 }
 
 
-var takeControlFunction: () => boolean
+var takeControlFunction: (onSuccess: ()=>void) => void
 
 function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disableMessage: string, setRcMode?: (botId: number, rcMode: boolean) => void) {
-    if (!takeControlFunction()) return false
+    takeControlFunction(() => {
 
-    // Exit if we have a disableMessage
-    if (disableMessage !== "") {
-        CustomAlert.presentAlert({text: disableMessage})
-        return
-    }
-
-    CustomAlert.confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`, command.description, () => {
-        let c = {
-            bot_id: botId,
-            type: command.commandType as CommandType
+        // Exit if we have a disableMessage
+        if (disableMessage !== "") {
+            CustomAlert.presentAlert({text: disableMessage})
+            return
         }
 
-        api.postCommand(c).then(response => {
-            if (response.message) {
-                error(response.message)
+        CustomAlert.confirm(`Are you sure you'd like to ${command.description} bot: ${botId}?`, command.description, () => {
+            let c = {
+                bot_id: botId,
+                type: command.commandType as CommandType
             }
-            if (setRcMode) {
-                setRcMode(botId, false)
-            }
+
+            api.postCommand(c).then(response => {
+                if (response.message) {
+                    error(response.message)
+                }
+                if (setRcMode) {
+                    setRcMode(botId, false)
+                }
+            })
         })
     })
 }
@@ -225,43 +226,41 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
 function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: CommandInfo) {
     console.log('Hub Command');
 
-    if (!takeControlFunction()) return;
+    takeControlFunction(() => {
+        if (confirm("Are you sure you'd like to " + commandForHub.description + '?')) {
+            let c = {
+                hub_id: hub_id,
+                type: commandForHub.commandType as HubCommandType
+            }
 
-    if (confirm("Are you sure you'd like to " + commandForHub.description + '?')) {
-        let c = {
-            hub_id: hub_id,
-            type: commandForHub.commandType as HubCommandType
+            console.log(c)
+            api.postCommandForHub(c)
         }
-
-        console.log(c)
-        api.postCommandForHub(c)
-    }
+    })
 }
 
 function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, setRcMode: (botId: number, rcMode: boolean) => void, disableMessage: string) {
+    takeControlFunction(() => {
+        // Exit if we have a disableMessage
+        if (disableMessage !== "") {
+            CustomAlert.alert(disableMessage)
+            return
+        }
 
-    if (!takeControlFunction()) return;
+        if (confirm("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?')) {
+            // Set the speed values
+            botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
 
-    // Exit if we have a disableMessage
-    if (disableMessage !== "") {
-        CustomAlert.alert(disableMessage)
-        return
-    }
+            info('Submitted for Bot: ' + bot.bot_id);
 
-    if (confirm("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?')) {
-        // Set the speed values
-        botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
-
-        info('Submitted for Bot: ' + bot.bot_id);
-
-        api.postCommand(botRun).then(response => {
-            if (response.message) {
-                error(response.message)
-            }
-            setRcMode(bot.bot_id, false)
-        })
-    }   
-
+            api.postCommand(botRun).then(response => {
+                if (response.message) {
+                    error(response.message)
+                }
+                setRcMode(bot.bot_id, false)
+            })
+        }   
+    })
 }
 
 function issueRCCommand(
@@ -273,44 +272,43 @@ function issueRCCommand(
     disableMessage: string
 ) {
 
-    if (!takeControlFunction()) return;
-
-    // Exit if we have a disableMessage
-    if (disableMessage !== "") {
-        CustomAlert.alert(disableMessage)
-        return
-    }
-
-    const isRCActive = isRCModeActive(bot?.bot_id)
-
-    if (!isRCActive) {
-
-        let isCriticallyLowBattery = ""
-
-        if (Array.isArray(bot?.error)) {
-            for (let e of bot?.error) {
-                if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
-                    isCriticallyLowBattery = "***Critically Low Battery in RC Mode coulde jeopardize your recovery!***\n"
-                }
-            }
+    takeControlFunction(() => {
+        // Exit if we have a disableMessage
+        if (disableMessage !== "") {
+            CustomAlert.alert(disableMessage)
+            return
         }
 
-        if (confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + bot?.bot_id + '?')) {
+        const isRCActive = isRCModeActive(bot?.bot_id)
 
-            console.debug('Running Remote Control:')
-            console.debug(botMission)
+        if (!isRCActive) {
 
-            api.postCommand(botMission).then(response => {
-                if (response.message) {
-                    error(response.message)
-                } 
-                setRcMode(bot.bot_id, true)
+            let isCriticallyLowBattery = ""
+
+            if (Array.isArray(bot?.error)) {
+                for (let e of bot?.error) {
+                    if (e === 'ERROR__VEHICLE__CRITICALLY_LOW_BATTERY') {
+                        isCriticallyLowBattery = "***Critically Low Battery in RC Mode coulde jeopardize your recovery!***\n"
+                    }
+                }
+            }
+
+            CustomAlert.confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + bot?.bot_id + '?', 'Use Remote Control Mode', () => {
+                console.debug('Running Remote Control:')
+                console.debug(botMission)
+
+                api.postCommand(botMission).then(response => {
+                    if (response.message) {
+                        error(response.message)
+                    } 
+                    setRcMode(bot.bot_id, true)
+                })
             })
-        }   
-    } else {
-        issueCommand(api, bot.bot_id, commands.stop, disableMessage)
-        setRcMode(bot.bot_id, false)
-    }
+        } else {
+            issueCommand(api, bot.bot_id, commands.stop, disableMessage)
+            setRcMode(bot.bot_id, false)
+        }
+    })
 }
 
 function runRCMode(bot: PortalBotStatus) {

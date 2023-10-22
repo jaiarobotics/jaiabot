@@ -973,33 +973,39 @@ export default class CommandControl extends React.Component {
 		return (controllingClientId == this.api.clientId) || !controllingClientId
 	}
 
-	takeControl() {
+	takeControl(onSuccess: () => void) {
 		this.clearRemoteControlInterval()
 
-		if (this.weAreInControl()) return true
-
-		return confirm('WARNING:  Another client is currently controlling the team.  Click OK to take control of the team.')
+		if (this.weAreInControl()) {
+			onSuccess()
+		}
+		else {
+			CustomAlert.confirm('Another client is currently controlling the team.  Take control?', 'Take Control', () => {
+				this.api.takeControl()
+				onSuccess()
+			})
+		}
 	}
 
 	genMission() {
-		if (!this.takeControl()) return
-
-		let botList = [];
-		for (const bot in this.getPodStatus().bots) {
-			botList.push(this.getPodStatus().bots[bot].bot_id)
-		}
-
-		this.api.postMissionFilesCreate({
-			"bot_list": botList,
-			"sample_spacing": this.state.missionParams.spacing,
-			"mission_type": this.state.missionBaseGoal.task,
-			"orientation": this.state.missionParams.orientation,
-			"home_lon": this.state.homeLocation?.lon,
-			"home_lat": this.state.homeLocation?.lat,
-			"survey_polygon": this.state.surveyPolygonGeoCoords,
-			//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
-		}).then(data => {
-			this.loadMissions(data);
+		this.takeControl(() => {
+			let botList = [];
+			for (const bot in this.getPodStatus().bots) {
+				botList.push(this.getPodStatus().bots[bot].bot_id)
+			}
+	
+			this.api.postMissionFilesCreate({
+				"bot_list": botList,
+				"sample_spacing": this.state.missionParams.spacing,
+				"mission_type": this.state.missionBaseGoal.task,
+				"orientation": this.state.missionParams.orientation,
+				"home_lon": this.state.homeLocation?.lon,
+				"home_lat": this.state.homeLocation?.lat,
+				"survey_polygon": this.state.surveyPolygonGeoCoords,
+				//"inside_points_all": this.state.missionPlanningGrid.getCoordinates()
+			}).then(data => {
+				this.loadMissions(data);
+			})
 		})
 	}
 
@@ -1095,75 +1101,76 @@ export default class CommandControl extends React.Component {
 
 	// Runs a set of missions, and updates the GUI
 	runMissions(missions: MissionInterface, addRuns: CommandList, rallyPointRun?: boolean) {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 
-		const commDest = this.determineAllCommandBots(true, false, false, false)
-		const botIdsAssignedToRuns: number[] = []
-		const runs = missions.runs
-
-		if (addRuns) {
-			Object.keys(addRuns).map(botIndex => {
-				if (commDest.botIds.includes(Number(botIndex))) {
-					botIdsAssignedToRuns.push(Number(botIndex));
-				}
-			});
-		} else {
-			Object.keys(runs).map(key => {
-				const botIndex = runs[key].assigned;
-				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-					botIdsAssignedToRuns.push(botIndex);
-				}
-			})
-		}
-
-		botIdsAssignedToRuns.sort()
-
-		let botsNotAssignedToRuns = commDest.botIds.filter(id => !botIdsAssignedToRuns.includes(id));
-
-		let notAssignedMessage = ""
-
-		if (botsNotAssignedToRuns.length > 1) {
-			notAssignedMessage = "\nNot sending to bots: " + botsNotAssignedToRuns + " because they are not assigned to runs"
-		} else if (botsNotAssignedToRuns.length === 1) {
-			notAssignedMessage = "\nNot sending to bot: " + botsNotAssignedToRuns + " because it is not assigned to a run"
-		}
-
-		if (botIdsAssignedToRuns.length === 0) {
-			CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
-		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
-			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
-				
-			let continueToExecuteMission = true 
+			const commDest = this.determineAllCommandBots(true, false, false, false)
+			const botIdsAssignedToRuns: number[] = []
+			const runs = missions.runs
 
 			if (addRuns) {
-				continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
-
-				if (continueToExecuteMission) {
-					Object.keys(addRuns).map(key => {
-						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-					});
-				}
-			}
-
-			if (continueToExecuteMission) {
+				Object.keys(addRuns).map(botIndex => {
+					if (commDest.botIds.includes(Number(botIndex))) {
+						botIdsAssignedToRuns.push(Number(botIndex));
+					}
+				});
+			} else {
 				Object.keys(runs).map(key => {
 					const botIndex = runs[key].assigned;
-          this.setRcMode(botIndex, false)
-					const runId = runs[key].id
 					if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-						this._runMission(runs[key].command)
-						// Turn off edit mode when run starts for completeness
-						if (runs[key].id === this.getRunList().runIdInEditMode) {
-							const runList = this.getRunList()
-							runList.runIdInEditMode = ''
-							this.setRunList(runList)
-						}
+						botIdsAssignedToRuns.push(botIndex);
 					}
 				})
-	
-				success("Submitted missions")
 			}
-		}
+
+			botIdsAssignedToRuns.sort()
+
+			let botsNotAssignedToRuns = commDest.botIds.filter(id => !botIdsAssignedToRuns.includes(id));
+
+			let notAssignedMessage = ""
+
+			if (botsNotAssignedToRuns.length > 1) {
+				notAssignedMessage = "\nNot sending to bots: " + botsNotAssignedToRuns + " because they are not assigned to runs"
+			} else if (botsNotAssignedToRuns.length === 1) {
+				notAssignedMessage = "\nNot sending to bot: " + botsNotAssignedToRuns + " because it is not assigned to a run"
+			}
+
+			if (botIdsAssignedToRuns.length === 0) {
+				CustomAlert.alert(commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)
+			} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
+				commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
+					
+				let continueToExecuteMission = true 
+
+				if (addRuns) {
+					continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
+
+					if (continueToExecuteMission) {
+						Object.keys(addRuns).map(key => {
+							Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+						});
+					}
+				}
+
+				if (continueToExecuteMission) {
+					Object.keys(runs).map(key => {
+						const botIndex = runs[key].assigned;
+			this.setRcMode(botIndex, false)
+						const runId = runs[key].id
+						if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+							this._runMission(runs[key].command)
+							// Turn off edit mode when run starts for completeness
+							if (runs[key].id === this.getRunList().runIdInEditMode) {
+								const runList = this.getRunList()
+								runList.runIdInEditMode = ''
+								this.setRunList(runList)
+							}
+						}
+					})
+		
+					success("Submitted missions")
+				}
+			}
+		})
 	}
 	// 
 	// Run Mission (End)
@@ -1992,49 +1999,53 @@ export default class CommandControl extends React.Component {
 	// Download Queue (Start)
 	//
 	async processDownloadAllBots() {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 
-		const commDest = this.determineAllCommandBots(false, false, false, true)
-		const downloadableBots = this.getDownloadableBots()
-		const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
+			const commDest = this.determineAllCommandBots(false, false, false, true)
+			const downloadableBots = this.getDownloadableBots()
+			const downloadableBotIds = downloadableBots.map((bot) => bot.bot_id)
 
-		if (downloadableBotIds.length === 0) {
-			CustomAlert.alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
-			return
-		}
+			if (downloadableBotIds.length === 0) {
+				CustomAlert.alert(commDest.downloadQueueMessage + commDest.disconnectedMessage)
+				return
+			}
 
-		if (!confirm(`Would you like to do a data download for Bot${commDest.botIds.length > 1 ? 's': ''}:  ${commDest.botIds}` + 
-			commDest.downloadQueueMessage + commDest.disconnectedMessage)) { return }
+			const confirmText = `Would you like to do a data download for Bot${commDest.botIds.length > 1 ? 's': ''}:  ${commDest.botIds}` + 
+				commDest.downloadQueueMessage + commDest.disconnectedMessage;
 
-		const queue = this.state.botDownloadQueue
-		const updatedQueue = queue.concat(downloadableBots)
-		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
-		info('Open the Download Panel to see the bot download queue')
+			CustomAlert.confirm(confirmText, 'Data Download', () => {
+				const queue = this.state.botDownloadQueue
+				const updatedQueue = queue.concat(downloadableBots)
+				this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+				info('Open the Download Panel to see the bot download queue')
+			})
+		})
 	}
 
 	async processDownloadSingleBot(bot: PortalBotStatus, disableMessage: string) {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 		
-		// Exit if we have a disableMessage
-		if (disableMessage !== "") {
-			CustomAlert.alert(disableMessage)
-			return
-		}
-
-		if (!confirm(`Would you like to do a data download for Bot ${bot.bot_id}?`)) { return }
-		
-		const queue = this.state.botDownloadQueue
-		if (queue.length > 0) {
-			for (const queuedBot of queue) {
-				if (queuedBot.bot_id === bot.bot_id) {
-					info(`Bot ${bot.bot_id} is already queued`)
-					return
-				}
+			// Exit if we have a disableMessage
+			if (disableMessage !== "") {
+				CustomAlert.alert(disableMessage)
+				return
 			}
-		}
-		const updatedQueue = queue.concat(bot)
-		info(`Queued Bot ${bot.bot_id} for data download`)
-		this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+
+			CustomAlert.confirm(`Would you like to do a data download for Bot ${bot.bot_id}?`, 'Data Download', () => {
+				const queue = this.state.botDownloadQueue
+				if (queue.length > 0) {
+					for (const queuedBot of queue) {
+						if (queuedBot.bot_id === bot.bot_id) {
+							info(`Bot ${bot.bot_id} is already queued`)
+							return
+						}
+					}
+				}
+				const updatedQueue = queue.concat(bot)
+				info(`Queued Bot ${bot.bot_id} for data download`)
+				this.setState({ botDownloadQueue: updatedQueue }, () => this.downloadBotsInOrder())
+			})
+		})
 	}
 
 	async downloadBotsInOrder() {
@@ -2320,33 +2331,34 @@ export default class CommandControl extends React.Component {
 	}
 
 	activateAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return;
+		this.takeControl(() => {
 
-		const commDest = this.determineAllCommandBots(false, true, false, false)
+			const commDest = this.determineAllCommandBots(false, true, false, false)
 
-		if (commDest.botIds.length === 0) {
-			CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
-		}
-		else {
-			let confirmationText = `Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-				commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage;
+			if (commDest.botIds.length === 0) {
+				CustomAlert.alert(commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+			}
+			else {
+				let confirmationText = `Click the OK button to activate Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+					commDest.notIdleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage;
 
-			CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
-				for (const botId of commDest.botIds) {
-					let c = {
-						bot_id: botId,
-						type: CommandType.ACTIVATE
-					}
-			
-					console.log(c)
-					this.api.postCommand(c).then(response => {
-						if (response.message) {
-							error(response.message)
+				CustomAlert.confirm(confirmationText, 'Activate Bots', () => {
+					for (const botId of commDest.botIds) {
+						let c = {
+							bot_id: botId,
+							type: CommandType.ACTIVATE
 						}
-					})
-				}
-			})
-		}
+				
+						console.log(c)
+						this.api.postCommand(c).then(response => {
+							if (response.message) {
+								error(response.message)
+							}
+						})
+					}
+				})
+			}
+		})
 	}
 
 	rallyButtonClicked() {
@@ -2360,29 +2372,30 @@ export default class CommandControl extends React.Component {
 	}
 
 	sendStopAll() {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 
-		const commDest = this.determineAllCommandBots(false, false, true, false)
+			const commDest = this.determineAllCommandBots(false, false, true, false)
 
-		if (commDest.botIds.length === 0) {
-			CustomAlert.alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
-		} else if(confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-			commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+			if (commDest.botIds.length === 0) {
+				CustomAlert.alert(commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)
+			} else if(confirm(`Click the OK button to stop Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				commDest.stoppedStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
 
-			for (const botId of commDest.botIds) {
-				let c = {
-					bot_id: botId,
-					type: CommandType.STOP
-				}
-		
-				this.api.postCommand(c).then(response => {
-					if (response.message) {
-						error(response.message)
+				for (const botId of commDest.botIds) {
+					let c = {
+						bot_id: botId,
+						type: CommandType.STOP
 					}
-					this.setRcMode(botId, false)
-				})
+			
+					this.api.postCommand(c).then(response => {
+						if (response.message) {
+							error(response.message)
+						}
+						this.setRcMode(botId, false)
+					})
+				}
 			}
-		}
+		})
 	}
 
 	playClicked(evt: UIEvent) {
@@ -2395,44 +2408,46 @@ export default class CommandControl extends React.Component {
 	}
 
 	recoverAllClicked(evt: UIEvent) {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 
-		const commDest = this.determineAllCommandBots(false, false, false, false)
+			const commDest = this.determineAllCommandBots(false, false, false, false)
 
-		if(confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
-			commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
+			if(confirm(`Click the OK button to download data from Bot${commDest.botIds.length > 1 ? 's': ''}: ${commDest.botIds} ` + 
+				commDest.downloadQueueMessage + commDest.disconnectedMessage)) {
 
-			for (const botId of commDest.botIds) {
-				let c = {
-					bot_id: botId,
-					type: CommandType.RECOVERED
-				}
-		
-				console.log(c)
-				this.api.postCommand(c).then(response => {
-					if (response.message) {
-						error(response.message)
+				for (const botId of commDest.botIds) {
+					let c = {
+						bot_id: botId,
+						type: CommandType.RECOVERED
 					}
-				})
+			
+					console.log(c)
+					this.api.postCommand(c).then(response => {
+						if (response.message) {
+							error(response.message)
+						}
+					})
+				}
 			}
-		}
+		})
 	}
 
 	sendFlag(evt: UIEvent) {
-		if (!this.takeControl()) return
+		this.takeControl(() => {
 
-		// Send a user flag, to get recorded in the bot's logs
-		const botId = this.selectedBotId() || 0
-		let engineeringCommand: Engineering = {
-			bot_id: botId,
-			flag: this.flagNumber
-		}
+			// Send a user flag, to get recorded in the bot's logs
+			const botId = this.selectedBotId() || 0
+			let engineeringCommand: Engineering = {
+				bot_id: botId,
+				flag: this.flagNumber
+			}
 
-		this.api.postEngineering(engineeringCommand)
-		info("Posted Flag " + this.flagNumber + " to bot " + botId)
+			this.api.postEngineering(engineeringCommand)
+			info("Posted Flag " + this.flagNumber + " to bot " + botId)
 
-		// Increment the flag number
-		this.flagNumber ++
+			// Increment the flag number
+			this.flagNumber ++
+		})
 	}
 
 	/**
