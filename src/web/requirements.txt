@@ -1,9 +1,0 @@
-flask==2.2.2
-protobuf==3.20.0
-scipy==1.9.1
-cmocean==2.0
-matplotlib==3.6.0
-geopandas==0.11.1
-networkx==2.8.7
-fiona==1.8.22
-file:../python/pyjaia
