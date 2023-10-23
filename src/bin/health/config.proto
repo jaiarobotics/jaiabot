@@ -70,14 +70,6 @@ message HelmIVPStatusConfig
     optional int32 time_out_helm_status = 10 [default = 20];
 }
 
-message ArduinoStatusConfig
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    optional int32 arduino_report_timeout_seconds = 10 [default = 20];
-}
-
 message Health
 {
     option (dccl.msg) = {
@@ -95,12 +87,10 @@ message Health
 
     optional bool ignore_powerstate_changes = 20 [default = false];
     optional bool check_helm_ivp_status = 21 [default = true];
-    optional bool check_arduino_status = 22 [default = true];
     optional bool is_in_sim = 23 [default = false];
     optional bool test_hardware_in_sim = 24 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
-    optional ArduinoStatusConfig arduino = 42;
 }
