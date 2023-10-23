@@ -2,6 +2,7 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
+import { GeoJSON } from 'ol/format';
 import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
 import { randomBase57 } from '../client/components/shared/Utilities';
 
@@ -128,6 +129,21 @@ export class JaiaAPI {
 
   // Gets a JSON response containing a contour map's extent on the map
   getContourMapBounds() { return this.get('jaia/contour-bounds') }
+
+  
+  /**
+   * Gets a GeoJSON object with interpolated drift features
+   * @date 10/5/2023 - 5:22:32 AM
+   *
+   * @returns {*} A GeoJSON feature set containing interpolated drift features
+   */
+  getDriftMap() { 
+    return this.get('jaia/drift-map').then(geoJSON => {
+      const features = new GeoJSON().readFeatures(geoJSON)
+      return features
+    })
+  }
+
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), '/', false)

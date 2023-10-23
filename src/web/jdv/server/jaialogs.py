@@ -19,6 +19,7 @@ from objects import *
 from moos_messages import *
 from pprint import pprint
 from types import MethodType
+from zipfile import *
 
 
 # JAIA message types as python dataclasses
@@ -190,6 +191,15 @@ def get_logs():
         })
 
     return results
+
+
+def delete_log(logName: str):
+    logGlob = f'{LOG_DIR}/{logName}.*'
+    logPaths = glob.glob(logGlob)
+
+    for logPath in logPaths:
+        logging.warning(f'Deleting file {logPath}')
+        os.remove(logPath)
 
 
 def get_fields(log_names, root_path='/'):
@@ -488,6 +498,11 @@ def get_task_packets(log_filenames, scheme=1) -> Iterable[TaskPacket]:
 def generate_kmz(h5_filename: str, kmz_filename: str):
     task_packets = get_task_packets([h5_filename])
     kmz.write_file(task_packets, kmz_filename)
+
+
+def getH5File(h5_filename: str):
+    '''Returns a Jaia H5 file object'''
+    return open(h5_filename, 'br')
 
 
 # Testing

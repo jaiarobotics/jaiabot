@@ -52,11 +52,12 @@ import OlLayerSwitcher from 'ol-layerswitcher'
 import OlMultiLineString from 'ol/geom/MultiLineString'
 import { Coordinate } from 'ol/coordinate'
 import { Interaction } from 'ol/interaction'
+import { boundingExtent } from 'ol/extent.js';
 import { Feature, MapBrowserEvent } from 'ol'
 import { getLength as OlGetLength } from 'ol/sphere'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
-import {boundingExtent} from 'ol/extent.js';
+
 
 
 // TurfJS
@@ -73,6 +74,9 @@ import 'reset-css'
 import '../style/CommandControl.less'
 import { collapseTextChangeRangesAcrossMultipleVersions } from 'typescript'
 
+
+// Utility
+import cloneDeep from 'lodash.clonedeep'
 
 const rallyIcon = require('./shared/rally.svg') as string
 
@@ -131,6 +135,7 @@ interface State {
 	podStatusVersion: number
 	botExtents: {[key: number]: number[]},
 	lastBotCount: number,
+	areBotsLoadedJCC: boolean,
 
 	missionParams: MissionParams,
 	missionPlanningGrid?: {[key: string]: number[][]},
@@ -140,12 +145,12 @@ interface State {
 	missionEndTask: MissionTask,
 
 	runList: MissionInterface,
-	runListVersion: number
+	runListVersion: number,
 	undoRunListStack: MissionInterface[],
 	flagClickedInfo: {
 		runNum: number,
 		botId: number,
-	}
+	},
 
 	goalBeingEdited: {
 		goal?: Goal,
@@ -153,15 +158,15 @@ interface State {
 		botId?: number,
 		runNumber?: number,
 		moveWptMode?: boolean
-	}
+	},
 
 	selectedFeatures?: OlCollection<OlFeature>,
 	selectedHubOrBot?: HubOrBot,
 	measureFeature?: OlFeature,
 	rallyFeatureCount: number,
-	selectedRallyFeature: OlFeature<Point>
-	startRally: OlFeature<Point>
-	endRally: OlFeature<Point>
+	selectedRallyFeature: OlFeature<Point>,
+	startRally: OlFeature<Point>,
+	endRally: OlFeature<Point>,
 
 	mode: Mode,
 	currentInteraction: Interaction | null,
@@ -180,10 +185,12 @@ interface State {
 	surveyPolygonCoords?: LineString,
 	surveyExclusionCoords?: number[][],
 	surveyPolygonChanged: boolean,
-	centerLineString: turf.helpers.Feature<turf.helpers.LineString>
+	centerLineString: turf.helpers.Feature<turf.helpers.LineString>,
 
-	remoteControlValues: Engineering
+	rcModeStatus: {[botId: number]: boolean},
+	remoteControlValues: Engineering,
 	remoteControlInterval?: ReturnType<typeof setInterval>,
+	rcDives: {[botId: number]: {[taskParams: string]: string}},
 
 	taskPacketType: string,
 	taskPacketData: {[key: string]: {[key: string]: string}},
@@ -249,6 +256,7 @@ export default class CommandControl extends React.Component {
 			podStatusVersion: 0,
 			botExtents: {},
 			lastBotCount: 0,
+			areBotsLoadedJCC: false,
 
 			missionParams: {
 				'missionType': 'lines',
@@ -322,6 +330,7 @@ export default class CommandControl extends React.Component {
 			selectedFeatures: null,
 			centerLineString: null,
 
+			rcModeStatus: {},
 			remoteControlInterval: null,
 			remoteControlValues: {
 				bot_id: -1,
@@ -331,6 +340,7 @@ export default class CommandControl extends React.Component {
 					timeout: 2
 				}
 			},
+			rcDives: {},
 
 			taskPacketType: '',
 			taskPacketData: {},
@@ -495,6 +505,11 @@ export default class CommandControl extends React.Component {
 		// Update the map layers panel, if needed
 		if (this.state.visiblePanel == PanelType.MAP_LAYERS && prevState.visiblePanel != PanelType.MAP_LAYERS) {
 			this.setupMapLayersPanel()
+		}
+
+		if (!this.state.areBotsLoadedJCC && Object.keys(this.state.podStatus?.bots).length > 0) {
+			this.initRCDivesStorage(Object.keys(this.state.podStatus.bots))
+			this.setState({ areBotsLoadedJCC: true })
 		}
 	}
 
@@ -1104,9 +1119,8 @@ export default class CommandControl extends React.Component {
 		if (!this.takeControl()) return
 
 		const commDest = this.determineAllCommandBots(true, false, false, false)
-
-		const botIdsAssignedToRuns: number[] = [];
-		const runs = missions.runs;
+		const botIdsAssignedToRuns: number[] = []
+		const runs = missions.runs
 
 		if (addRuns) {
 			Object.keys(addRuns).map(botIndex => {
@@ -1140,28 +1154,36 @@ export default class CommandControl extends React.Component {
 		} else if (confirm(`Click the OK button to run this mission for Bot${botIdsAssignedToRuns.length > 1 ? 's': ''}: ` + botIdsAssignedToRuns + 
 			commDest.poorHealthMessage + commDest.idleStateMessage + commDest.downloadQueueMessage + commDest.disconnectedMessage + notAssignedMessage)) {
 				
+			let continueToExecuteMission = true 
+
 			if (addRuns) {
-				this.deleteAllRunsInMission(missions, true, true);
-				Object.keys(addRuns).map(key => {
-					Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
-				});
+				continueToExecuteMission = this.deleteAllRunsInMission(missions, true, true);
+
+				if (continueToExecuteMission) {
+					Object.keys(addRuns).map(key => {
+						Missions.addRunWithCommand(Number(key), addRuns[Number(key)], missions);
+					});
+				}
 			}
 
-			Object.keys(runs).map(key => {
-				const botIndex = runs[key].assigned;
-				const runId = runs[key].id
-				if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
-					this._runMission(runs[key].command)
-					// Turn off edit mode when run starts for completeness
-					if (runs[key].id === this.getRunList().runIdInEditMode) {
-						const runList = this.getRunList()
-						runList.runIdInEditMode = ''
-						this.setRunList(runList)
+			if (continueToExecuteMission) {
+				Object.keys(runs).map(key => {
+					const botIndex = runs[key].assigned;
+          this.setRcMode(botIndex, false)
+					const runId = runs[key].id
+					if (botIndex !== -1 && commDest.botIds.includes(botIndex)) {
+						this._runMission(runs[key].command)
+						// Turn off edit mode when run starts for completeness
+						if (runs[key].id === this.getRunList().runIdInEditMode) {
+							const runList = this.getRunList()
+							runList.runIdInEditMode = ''
+							this.setRunList(runList)
+						}
 					}
-				}
-			})
-
-			success("Submitted missions")
+				})
+	
+				success("Submitted missions")
+			}
 		}
 	}
 	// 
@@ -1174,7 +1196,7 @@ export default class CommandControl extends React.Component {
 	deleteAllRunsInMission(mission: MissionInterface, needConfirmation: boolean, rallyPointRun?: boolean) {
 		const warningString = this.generateDeleteAllRunsWarnStr(rallyPointRun)
 		if (needConfirmation && !confirm(warningString)) {
-			return
+			return false
 		}
 		const runs = mission.runs
 		for (const run of Object.values(runs)) {
@@ -1183,6 +1205,8 @@ export default class CommandControl extends React.Component {
 				delete mission.botsAssignedToRuns[run.assigned]
 		}
 		mission.runIdIncrement = 1
+
+		return true
 	}
 
 	deleteSingleRun(runNumber?: number, disableMessage?: string) {
@@ -2028,11 +2052,16 @@ export default class CommandControl extends React.Component {
 	// RC Mode (Start)
 	// 
 	isRCModeActive(botId: number) {
-		const selectedBot = this.getPodStatus().bots[botId]
-		if (selectedBot?.mission_state.includes('REMOTE_CONTROL')) {
-			return true
-		}
-		return false
+		return this.state.rcModeStatus[botId]
+	}
+
+	setRcMode(botId: number, rcMode: boolean) {
+		const rcModeStatus = this.state.rcModeStatus
+		rcModeStatus[botId] = rcMode
+		this.setState({ rcModeStatus })
+
+		const botFeature = this.botLayers.layers[botId].getSource().getFeatures()[0]
+		botFeature.setProperties({ 'rcMode': rcMode })
 	}
 
 	createRemoteControlInterval() {
@@ -2076,6 +2105,28 @@ export default class CommandControl extends React.Component {
 
 			datumLocation = {lat: 0, lon: 0}
 		}
+	}
+
+	initRCDivesStorage(botIds: string[]) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		for (let botId of botIds) {
+			newRCDives[Number(botId)] = {
+				maxDepth: '',
+				depthInterval: '',
+				holdTime: '',
+				driftTime: ''
+			}
+		}
+		this.setState({ rcDives: newRCDives })
+	}
+
+	setRCDiveParams(diveParams: {[param: string]: string}) {
+		let newRCDives = cloneDeep(this.state.rcDives)
+		newRCDives[this.selectedBotId()].maxDepth = diveParams.maxDepth
+		newRCDives[this.selectedBotId()].depthInterval = diveParams.depthInterval
+		newRCDives[this.selectedBotId()].holdTime = diveParams.holdTime
+		newRCDives[this.selectedBotId()].driftTime = diveParams.driftTime
+		this.setState({ rcDives: newRCDives })
 	}
 	// 
 	// RC Mode (End)
@@ -2464,11 +2515,11 @@ export default class CommandControl extends React.Component {
 					type: CommandType.STOP
 				}
 		
-				console.log(c)
 				this.api.postCommand(c).then(response => {
 					if (response.message) {
 						error(response.message)
 					}
+					this.setRcMode(botId, false)
 				})
 			}
 		}
@@ -2732,7 +2783,8 @@ export default class CommandControl extends React.Component {
 								Missions.addRunWithGoals(this.missionPlans[id].bot_id, this.missionPlans[id].plan.goal, runList);
 							}
 
-							this.setRunList(runList)
+							// Default to edit mode off for runs created with line tool
+							runList.runIdInEditMode = ''
 
 							// Close panel after applying
 							this.setVisiblePanel(PanelType.NONE)
@@ -2751,13 +2803,15 @@ export default class CommandControl extends React.Component {
 			rcControllerPanel = (
 				<RCControllerPanel 
 					api={this.api} 
-					bot={bots[this.selectedBotId()]}  
-					createInterval={this.createRemoteControlInterval.bind(this)} 
+					bot={bots[this.selectedBotId()]}
+					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
 					remoteControlValues={this.state.remoteControlValues}
+					rcDiveParameters={this.state.rcDives[this.selectedBotId()]}
+					createInterval={this.createRemoteControlInterval.bind(this)} 
 					weAreInControl={this.weAreInControl.bind(this)}
 					weHaveInterval={this.weHaveRemoteControlInterval.bind(this)}
-					isRCModeActive={this.isRCModeActive(this.selectedBotId())}
-			/>
+					setRCDiveParameters={this.setRCDiveParams.bind(this)}
+				/>
 			)
 		}
 
@@ -2796,6 +2850,7 @@ export default class CommandControl extends React.Component {
 					deleteSingleMission: this.deleteSingleRun.bind(this),
 					setDetailsExpanded: this.setDetailsExpanded.bind(this),
 					isRCModeActive: this.isRCModeActive.bind(this),
+					setRcMode: this.setRcMode.bind(this),
 					toggleEditMode: this.toggleEditMode.bind(this),
 					downloadIndividualBot: this.processDownloadSingleBot.bind(this)
 				}

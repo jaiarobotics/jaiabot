@@ -210,7 +210,7 @@ interface DisableInfo {
 
 var takeControlFunction: () => boolean
 
-function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disableMessage: string) {
+function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disableMessage: string, setRcMode?: (botId: number, rcMode: boolean) => void) {
     if (!takeControlFunction()) return false
 
     // Exit if we have a disableMessage
@@ -225,8 +225,15 @@ function issueCommand(api: JaiaAPI, botId: number, command: CommandInfo, disable
             type: command.commandType as CommandType
         }
 
-        console.log(c)
-        api.postCommand(c)
+        api.postCommand(c).then(response => {
+            if (response.message) {
+                error(response.message)
+            }
+            if (setRcMode) {
+                setRcMode(botId, false)
+            }
+        })
+
         return true
     }
     return false
@@ -248,7 +255,7 @@ function issueCommandForHub(api: JaiaAPI, hub_id: number, commandForHub: Command
     }
 }
 
-function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, botId: number, disableMessage: string) {
+function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, setRcMode: (botId: number, rcMode: boolean) => void, disableMessage: string) {
 
     if (!takeControlFunction()) return;
 
@@ -258,26 +265,30 @@ function issueRunCommand(api: JaiaAPI, bot: PortalBotStatus, botRun: Command, bo
         return
     }
 
-    if (confirm("Are you sure you'd like to play this run for Bot: " + botId + '?')) {
+    if (confirm("Are you sure you'd like to play this run for Bot: " + bot.bot_id + '?')) {
         // Set the speed values
         botRun.plan.speeds = GlobalSettings.missionPlanSpeeds
-        
-        console.debug('playing run:')
-        console.debug(botRun)
 
-        info('Submitted for Bot: ' + botId);
+        info('Submitted for Bot: ' + bot.bot_id);
 
         api.postCommand(botRun).then(response => {
             if (response.message) {
                 error(response.message)
             }
+            setRcMode(bot.bot_id, false)
         })
     }   
 
 }
 
-function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
-                        isRCModeActive: (botId: number) => boolean, bot: PortalBotStatus, disableMessage: string) {
+function issueRCCommand(
+    api: JaiaAPI,
+    bot: PortalBotStatus,
+    botMission: Command,
+    isRCModeActive: (botId: number) => boolean,
+    setRcMode: (botId: number, rcMode: boolean) => void,
+    disableMessage: string
+) {
 
     if (!takeControlFunction()) return;
 
@@ -287,7 +298,7 @@ function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
         return
     }
 
-    const isRCActive = isRCModeActive(botId)
+    const isRCActive = isRCModeActive(bot?.bot_id)
 
     if (!isRCActive) {
 
@@ -301,7 +312,7 @@ function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
             }
         }
 
-        if (confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + botId + '?')) {
+        if (confirm(isCriticallyLowBattery + "Are you sure you'd like to use remote control mode for Bot: " + bot?.bot_id + '?')) {
 
             console.debug('Running Remote Control:')
             console.debug(botMission)
@@ -309,17 +320,19 @@ function issueRCCommand(api: JaiaAPI, botMission: Command, botId: number,
             api.postCommand(botMission).then(response => {
                 if (response.message) {
                     error(response.message)
-                }
+                } 
+                setRcMode(bot.bot_id, true)
             })
         }   
     } else {
-        issueCommand(api, botId, commands.stop, disableMessage)
+        issueCommand(api, bot.bot_id, commands.stop, disableMessage)
+        setRcMode(bot.bot_id, false)
     }
 }
 
 function runRCMode(bot: PortalBotStatus) {
-    const bot_id = bot.bot_id;
-    if (!bot_id) {
+    const botId = bot.bot_id;
+    if (!botId) {
         warning('No bots selected')
         return null
     }
@@ -336,13 +349,13 @@ function runRCMode(bot: PortalBotStatus) {
         datumLocation = {lat: 0, lon: 0}
     }
 
-    return Missions.RCMode(bot_id, datumLocation);
+    return Missions.RCMode(botId, datumLocation);
 }
 
 // Check if there is a mission to run
-function runMission(bot_id: number, mission: MissionInterface) {
+function runMission(botId: number, mission: MissionInterface) {
     let runs = mission.runs;
-    let runId = mission.botsAssignedToRuns[bot_id];
+    let runId = mission.botsAssignedToRuns[botId];
     let run = runs[runId];
 
     if (run) {
@@ -468,13 +481,6 @@ function disablePlayButton(bot: PortalBotStatus, mission: MissionInterface, comm
     return disableInfo
 }
 
-function toggleRCModeButton(missionState: MissionState) {
-    if (missionState.includes('REMOTE_CONTROL')) {
-        return true
-    }
-    return false
-}
-
 // Get the table row for the health of the vehicle
 function healthRow(bot: BotStatus, allInfo: boolean) {
     let healthClassName = {
@@ -535,6 +541,7 @@ export interface BotDetailsProps {
     deleteSingleMission: (runNumber?: number, disableMessage?: string) => void,
     setDetailsExpanded: (section: keyof DetailsExpandedState, expanded: boolean) => void,
     isRCModeActive: (botId: number) => boolean,
+    setRcMode: (botId: number, rcMode: boolean) => void,
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean,
     downloadIndividualBot: (bot: PortalBotStatus, disableMessage: string) => void
 }
@@ -549,7 +556,6 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     const isExpanded = props.isExpanded
     const deleteSingleMission = props.deleteSingleMission
     const setDetailsExpanded = props.setDetailsExpanded
-    const isRCModeActive = props.isRCModeActive
 
     if (!bot) {
         return (<div></div>)
@@ -669,13 +675,13 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                     <div className='botDetailsToolbar'>
                         <Button
                             className={disableButton(commands.stop, missionState).isDisabled ? 'inactive button-jcc' : ' button-jcc stopMission'} 
-                            onClick={() => { issueCommand(api, bot.bot_id, commands.stop, disableButton(commands.stop, missionState).disableMessage) }}>
+                            onClick={() => { issueCommand(api, bot.bot_id, commands.stop, disableButton(commands.stop, missionState).disableMessage, props.setRcMode) }}>
                             <Icon path={mdiStop} title='Stop Mission'/>
                         </Button>
                         <Button
                             className={disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
                             onClick={() => { 
-                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), bot.bot_id, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage) 
+                                issueRunCommand(api, bot, runMission(bot.bot_id, mission), props.setRcMode, disablePlayButton(bot, mission, commands.play, missionState, props.downloadQueue).disableMessage) 
                             }}>
                             <Icon path={mdiPlay} title='Run Mission'/>
                         </Button>
@@ -769,11 +775,11 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                 className={
                                     `
                                     ${disableButton(commands.rcMode, missionState, bot, props.downloadQueue).isDisabled ? 'inactive button-jcc' : 'button-jcc'} 
-                                    ${toggleRCModeButton(missionState) ? 'rc-active' : 'rc-inactive' }
+                                    ${props.isRCModeActive(bot?.bot_id) ? 'rc-active' : 'rc-inactive' }
                                     `
                                 } 
                                 onClick={() => { 
-                                    issueRCCommand(api, runRCMode(bot), bot.bot_id, isRCModeActive, bot,  disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage) 
+                                    issueRCCommand(api, bot, runRCMode(bot), props.isRCModeActive, props.setRcMode, disableButton(commands.rcMode, missionState, bot, props.downloadQueue).disableMessage) 
                                 }}
                             >
                                 <img src={rcMode} alt='Activate RC Mode' title='RC Mode'></img>

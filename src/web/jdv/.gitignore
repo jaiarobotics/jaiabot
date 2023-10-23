@@ -2,3 +2,4 @@ __pycache__
 logs/
 jaiabot_data_vision.log
 node_modules
+venv/
