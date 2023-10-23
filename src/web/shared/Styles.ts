@@ -113,7 +113,7 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
-    if (botStatus.mission_state.includes('REACQUIRE_GPS')) {
+    if (botStatus.mission_state?.includes('REACQUIRE_GPS')) {
         style.push(getGpsStyle(heading))
     }
 

@@ -533,6 +533,7 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
+            botFeature.set('bot', bot)
             Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
 
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
