@@ -441,7 +441,7 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0)
 		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0)
-		setInterval(() => this.pollTaskPackets(), 3000)
+		setInterval(() => this.pollTaskPackets(), 5000)
 
 		this.setupMapLayersPanel()
 
