@@ -7,7 +7,8 @@ import logging
 import os
 import math
 
-import jaialogs
+import jaialog_store
+import moos_messages
 import pyjaia.contours
 
 from pathlib import *
@@ -25,12 +26,12 @@ logging.basicConfig(level=logLevel)
 logging.getLogger('werkzeug').setLevel('WARN')
 
 # Setup the directory
-jaialogs.set_directory(os.path.expanduser(args.directory))
+jaialogStore = jaialog_store.JaialogStore(args.directory)
 
 app = Flask(__name__)
 
 # Parsing the arguments
-def parseFilenames(input):
+def parseFilenames(input: str):
     '''Parses a comma-delimited set of filenames'''
     if input is None:
         return None
@@ -55,39 +56,45 @@ def getStaticFile(path):
 
 @app.route('/', methods=['GET'])
 def getRoot():
+    '''The html/css/javascript client'''
     return getStaticFile('index.html')
 
 ####### API endpoints
 
 @app.route('/logs', methods=['GET'])
 def getLogs():
-    return JSONResponse(jaialogs.get_logs())
+    return JSONResponse(jaialogStore.getLogs())
+
+@app.route('/convert-if-needed', methods=['POST'])
+def convertLogs():
+    log_names = request.json
+    return JSONResponse(jaialogStore.convertIfNeeded(log_names))
 
 @app.route('/log/<logName>', methods=['DELETE'])
 def deleteLog(logName: str):
-    return JSONResponse(jaialogs.delete_log(logName))
+    return JSONResponse(jaialogStore.deleteLog(logName))
 
 @app.route('/paths', methods=['GET'])
 def getFields():
-    log_names = request.args.get('log')
+    log_names = parseFilenames(request.args.get('log'))
     root_path = request.args.get('root_path')
-    return JSONResponse(jaialogs.get_fields(log_names, root_path))
+    return JSONResponse(jaialogStore.getFields(log_names, root_path))
 
 @app.route('/series', methods=['GET'])
 def getSeries():
-    log_names = request.args.get('log')
+    log_names = parseFilenames(request.args.get('log'))
     series_names = request.args.get('path')
 
     try:
-        series = jaialogs.get_series(log_names, series_names)
+        series = jaialogStore.getSeries(log_names, series_names)
         return JSONResponse(series)
     except Exception as e:
         return JSONErrorResponse(str(e))
 
 @app.route('/map', methods=['GET'])
 def getMap():
-    log_names = request.args.get('log')
-    return JSONResponse(jaialogs.get_map(log_names))
+    log_names = parseFilenames(request.args.get('log'))
+    return JSONResponse(jaialogStore.getMap(log_names))
 
 
 @app.route('/commands', methods=['GET'])
@@ -97,7 +104,7 @@ def getCommands():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return JSONResponse(jaialogs.get_commands(log_names))
+    return JSONResponse(jaialogStore.getCommands(log_names))
 
 
 @app.route('/active-goal', methods=['GET'])
@@ -107,7 +114,7 @@ def getActiveGoals():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return JSONResponse(jaialogs.get_active_goals(log_names))
+    return JSONResponse(jaialogStore.getActiveGoals(log_names))
 
 
 @app.route('/task-packet', methods=['GET'])
@@ -117,7 +124,7 @@ def getTaskPackets():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return JSONResponse(jaialogs.get_task_packet_dicts(log_names))
+    return JSONResponse(jaialogStore.getTaskPacketDicts(log_names))
 
 
 @app.route('/moos', methods=['GET'])
@@ -130,7 +137,7 @@ def getMOOSMessages():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    return Response(jaialogs.get_moos_messages(log_names, t_start, t_end), mimetype='text/csv')
+    return Response(moos_messages.get_moos_messages(log_names, t_start, t_end), mimetype='text/csv')
 
 
 @app.route('/depth-contours', methods=['GET'])
@@ -141,22 +148,22 @@ def getDepthContours():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    taskPackets = jaialogs.get_task_packet_dicts(log_names)
+    taskPackets = jaialogStore.getTaskPacketDicts(log_names)
     return JSONResponse(pyjaia.contours.taskPacketsToContours(taskPackets))
 
 
 @app.route('/h5', methods=['GET'])
 def getH5():
     '''Download a Jaia HDF5 file'''
-    h5_filename = request.args.get('file')
+    logName = request.args.get('file')
 
-    if h5_filename is None:
+    if logName is None:
         return JSONErrorResponse('Please specify file to download with "file="')
     
-    h5_name = Path(h5_filename).name
+    h5_name = logName + '.h5'
     headers = { 'Content-Disposition': f'attachment; filename={h5_name}' }
 
-    return Response(jaialogs.getH5File(h5_filename), mimetype='application/x-hdf', headers=headers)
+    return Response(jaialogStore.getH5File(logName), mimetype='application/x-hdf', headers=headers)
 
 
 if __name__ == '__main__':
