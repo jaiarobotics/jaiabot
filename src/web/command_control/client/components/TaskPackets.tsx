@@ -26,6 +26,7 @@ const POLL_INTERVAL = 5000
 export class TaskData {
     map: Map
     taskPackets: TaskPacket[]
+    taskPacketsTimeline: {[key: string]: string | boolean}
     styleCache: {[key: number]: Style}
     diveSource: VectorSource
     driftSource: VectorSource
@@ -36,6 +37,7 @@ export class TaskData {
 
     constructor() {
         this.taskPackets = []
+        this.taskPacketsTimeline = {}
         this.diveSource = new VectorSource()
         this.driftSource = new VectorSource()
         this.styleCache = {}
@@ -49,7 +51,7 @@ export class TaskData {
             opacity: 1,
             source: this.createClusterSource(this.diveSource, clusterDistance),
             style: this.createClusterIconStyle.bind(this),
-            visible: true
+            visible: false
         })
     
         this.driftPacketLayer = new VectorLayer({
@@ -60,7 +62,7 @@ export class TaskData {
             opacity: 1,
             source: this.createClusterSource(this.driftSource, clusterDistance),
             style: this.createClusterIconStyle.bind(this),
-            visible: true
+            visible: false
         })
 
         this.driftMapLayer = new VectorLayer({
@@ -91,6 +93,14 @@ export class TaskData {
 
     setTaskPackets(taskPackets: TaskPacket[]) {
         this.taskPackets = taskPackets
+    }
+
+    getTaskPacketsTimeline() {
+        return this.taskPacketsTimeline
+    }
+
+    setTaskPacketsTimeline(taskPacketsTimeline: {[key: string]: string | boolean}) {
+        this.taskPacketsTimeline = taskPacketsTimeline
     }
 
     calculateDiveDrift(taskPacket: TaskPacket) {
@@ -205,7 +215,9 @@ export class TaskData {
     }
 
     _updateContourPlot() {
-        jaiaAPI.getDepthContours().catch((error) => {
+        // To Do: Figure out how to make multiple contour maps based on time/location
+        jaiaAPI.getDepthContours()
+        .catch((error) => {
             console.error(error)
         }).then((geojson) => {
             const features = geoJSONToDepthContourFeatures(this.map.getView().getProjection(), geojson)
@@ -267,6 +279,7 @@ export class TaskData {
 
     /**
      * Updates the interpolated drift layer by accessing the API
+     * To Do: Figure out how to make multiple Drift Maps based on time/location
      * @date 10/5/2023 - 5:32:55 AM
      */
     _updateInterpolatedDrifts() {
