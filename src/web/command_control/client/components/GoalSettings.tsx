@@ -167,7 +167,7 @@ export class GoalSettingsPanel extends React.Component {
         const runs = this.props.runList.runs
         const wptNum = this.props.goalIndex
 
-        if (!await CustomAlert.confirmAsync(`Are you sure you want to delete Waypoint ${wptNum}?`, 'Delete Waypojnt')) {
+        if (!await CustomAlert.confirmAsync(`Are you sure you want to delete Waypoint ${wptNum}?`, 'Delete Waypoint')) {
             return
         }
 
