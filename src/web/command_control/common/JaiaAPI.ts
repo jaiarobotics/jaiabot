@@ -75,17 +75,25 @@ export class JaiaAPI {
 
   getStatus() { return this.get('jaia/status') }
 
-  getTaskPackets() { 
-    const DAY = 86400000 // Milliseconds
+  /**
+   * 
+   * @param startDate yyyy-mm-dd hh:mm
+   * @param endDate yyyy-mm-dd hh:mm
+   * @returns Array of TaskPackets
+   */
+  getTaskPackets(startDate?: string, endDate?: string) { 
+    if (startDate && endDate) {
+        const startDateString = new Date(startDate).toISOString().replace('T', ' ').split('.')[0]
+        const endDateString = new Date(endDate).toISOString().replace('T', ' ').split('.')[0]
+        return this.get(`jaia/task-packets?startDate=${startDateString}&endDate=${endDateString}`)
+    } else {
+        // Let server set default date values
+        return this.get(`jaia/task-packets`)
+    }
+  }
 
-    // Get task packets from the previous 14-hour period
-    const endDate = Date.now()
-    const startDate = endDate - ((DAY /24) * 14)
-
-    const endDateString = new Date(endDate).toISOString()
-    const startDateString = new Date(startDate).toISOString()
-    
-    return this.get(`jaia/task-packets?startDate=${startDateString}&endDate=${endDateString}`) 
+  getTaskPacketsCount() {
+      return this.get(`jaia/task-packets-count`)
   }
 
   getMetadata() { return this.get('jaia/metadata') }

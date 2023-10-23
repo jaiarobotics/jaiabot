@@ -24,28 +24,16 @@ const POLL_INTERVAL = 5000
 
 export class TaskData {
     map: Map
-    pollTimer = setInterval(this._pollTaskPackets.bind(this), POLL_INTERVAL)
-    taskPackets: TaskPacket[] = []
-    styleCache: {[key: number]: Style} = {}
-
-    // Layers
-    contourLayer: VectorLayer<VectorSource> = new VectorLayer({
-        properties: {
-            title: 'Depth Contours',
-        },
-        zIndex: 25,
-        opacity: 0.5,
-        source: null,
-        visible: false,
-      })
-
+    taskPackets: TaskPacket[]
+    styleCache: {[key: number]: Style}
     diveSource: VectorSource
     driftSource: VectorSource
-
     divePacketLayer: VectorLayer<VectorSource>
     driftPacketLayer: VectorLayer<VectorSource>
+    contourLayer: VectorLayer<VectorSource>
 
     constructor() {
+        this.taskPackets = []
         this.diveSource = new VectorSource()
         this.driftSource = new VectorSource()
         this.styleCache = {}
@@ -59,7 +47,7 @@ export class TaskData {
             opacity: 1,
             source: this.createClusterSource(this.diveSource, clusterDistance),
             style: this.createClusterIconStyle.bind(this),
-            visible: false
+            visible: true
         })
     
         this.driftPacketLayer = new VectorLayer({
@@ -70,8 +58,26 @@ export class TaskData {
             opacity: 1,
             source: this.createClusterSource(this.driftSource, clusterDistance),
             style: this.createClusterIconStyle.bind(this),
-            visible: false
+            visible: true
         })
+
+        this.contourLayer = new VectorLayer({
+            properties: {
+                title: 'Depth Contours',
+            },
+            zIndex: 25,
+            opacity: 0.5,
+            source: null,
+            visible: false,
+        })
+    }
+
+    getTaskPackets() {
+        this.taskPackets
+    }
+
+    setTaskPackets(taskPackets: TaskPacket[]) {
+        this.taskPackets = taskPackets
     }
 
     calculateDiveDrift(taskPacket: TaskPacket) {
@@ -199,56 +205,43 @@ export class TaskData {
         })
     }
 
-    _pollTaskPackets() {
-        const self = this
+    updateTaskPacketsLayers(taskPackets: TaskPacket[]) {
+        const divePacketLayer = this.divePacketLayer
+        const driftPacketLayer = this.driftPacketLayer
 
-        jaiaAPI.getTaskPackets().catch((error) => {
-            console.error(error)
-        }).then((taskPackets: TaskPacket[]) => {
+        const divePacketFeatures = []
+        const driftPacketFeatures = []
 
-            if (taskPackets.length != this.taskPackets.length) {
-                this.taskPackets = taskPackets
+        for (const taskPacket of taskPackets) {
+            if (taskPacket?.dive) {
+                // Dive packets include both dive and drift data
+                const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer)
+                const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
 
-                if (taskPackets.length >= 3) {
-                    this._updateContourPlot()
+                if (diveFeature) {
+                    divePacketFeatures.push(diveFeature)
+                }
+
+                if (driftFeature) {
+                    driftPacketFeatures.push(driftFeature)
+                }
+            } else if (taskPacket?.drift) {
+                const feature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
+
+                if (feature) {
+                    driftPacketFeatures.push(feature)
                 }
             }
+        }
+        
 
-            const divePacketLayer = this.divePacketLayer
-            const driftPacketLayer = this.driftPacketLayer
+        this.diveSource.clear()
+        this.driftSource.clear()
 
-            const divePacketFeatures = []
-            const driftPacketFeatures = []
+        this.diveSource.addFeatures(divePacketFeatures)
+        this.driftSource.addFeatures(driftPacketFeatures)
 
-            for (const taskPacket of taskPackets) {
-                if (taskPacket?.dive) {
-                    // Dive packets include both dive and drift data
-                    const diveFeature = getDivePacketFeature(this.map, taskPacket, divePacketLayer)
-                    const driftFeature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
-
-                    if (diveFeature) {
-                        divePacketFeatures.push(diveFeature)
-                    }
-
-                    if (driftFeature) {
-                        driftPacketFeatures.push(driftFeature)
-                    }
-                } else if (taskPacket?.drift) {
-                    const feature = getDriftPacketFeature(this.map, taskPacket, driftPacketLayer)
-
-                    if (feature) {
-                        driftPacketFeatures.push(feature)
-                    }
-                }
-            }
-            
-
-            this.diveSource.clear()
-            this.driftSource.clear()
-
-            this.diveSource.addFeatures(divePacketFeatures)
-            this.driftSource.addFeatures(driftPacketFeatures)
-        })
+        this.setTaskPackets(taskPackets)
     }
 
     getContourLayer() {

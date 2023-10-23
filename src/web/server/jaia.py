@@ -55,8 +55,8 @@ class Interface:
     # Dict from bot_id => engineeringStatus
     bots_engineering = {}
 
-    # List of all TaskPackets received, with last known location of that bot
-    received_task_packets = []
+    # List of all TaskPackets received from bots with comms
+    live_task_packets = []
 
     # ClientId that is currently in control
     controllingClientId = None
@@ -304,7 +304,6 @@ class Interface:
             self.post_command(cmd, clientId)
 
         self.setControllingClientId(clientId)
-
         return {'status': 'ok'}
 
     def post_all_activate(self, clientId):
@@ -356,7 +355,6 @@ class Interface:
         return {'status': 'ok'}
 
     def get_status(self):
-
         for hub in self.hubs.values():
             # Add the time since last status
             hub['portalStatusAge'] = now() - hub['lastStatusReceivedTime']
@@ -407,7 +405,7 @@ class Interface:
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
-        # Don''t automatically take control
+        # Don't automatically take control
         if self.controllingClientId is not None and clientId != self.controllingClientId:
             logging.warning(f'Refused to send engineering command from client {clientId}, controllingClientId: {self.controllingClientId}')
             return {'status': 'fail', 'message': 'Another client currently has control of the pod'}
@@ -419,7 +417,7 @@ class Interface:
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)
-        self.received_task_packets.append(task_packet)
+        self.live_task_packets.append(task_packet)
 
     def process_active_mission_plan(self, bot_id, active_mission_plan):
         try:
@@ -428,35 +426,43 @@ class Interface:
         except IndexError:
             logging.warning(f'Received active mission plan for unknown bot {active_mission_plan.bot_id}')
 
-    def get_task_packets(self, startDate: datetime=None, endDate: datetime=None):
-        # Get stored task packets within date range
-        if startDate is not None:
-            start_utime = utime(startDate)
-            startIndex = bisect.bisect_left(self.offloaded_task_packet_dates, start_utime)
-        else:
-            return self.received_task_packets
+    def get_task_packets_subset(self, task_packets_list, start_date, end_date):
+        start_index = bisect.bisect_left(
+            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)), 
+            utime(start_date)
+        )
+        end_index = bisect.bisect_right(
+            list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)),
+            utime(end_date)
+        )
+        return task_packets_list[start_index: end_index]
 
-        if endDate is not None:
-            end_utime = utime(endDate)
-            endIndex = bisect.bisect_right(self.offloaded_task_packet_dates, end_utime)
-        else:
-            return self.received_task_packets
+    def get_task_packets(self, start_date, end_date):
+        if not start_date or not end_date:
+            return self.live_task_packets
 
-        # Only attempt to merge after we check for more taskpacket files
-        if self.check_for_offloaded_task_packets:
-            for offloaded_task_packet in self.offloaded_task_packets[startIndex: endIndex]:
-                # Get the start_time from the offloaded task packet in seconds
-                offloaded_start_time = round(int(offloaded_task_packet.get('start_time')), -6)  
-                # Get the bot id associated with the start time
-                offloaded_bot_id = offloaded_task_packet.get('bot_id')
+        offloaded_task_packets_subset = self.get_task_packets_subset(
+            self.offloaded_task_packets, start_date, end_date
+        )
+        live_task_packets_subset = self.get_task_packets_subset(
+            self.live_task_packets, start_date, end_date
+        )
 
-                # Check if an item with the same start_time in seconds exists for the same bot id in merged_list
-                if not any((round(int(item.get('start_time')), -6) == offloaded_start_time and item.get('bot_id') == offloaded_bot_id) for item in self.received_task_packets):
-                    # If no matching start_time found in merged_list, add the offloaded task packet
-                    self.received_task_packets.append(offloaded_task_packet)
+        combined_task_packets = offloaded_task_packets_subset + live_task_packets_subset
+        # Filter out duplicates with dict comprehenson, then convert to list
+        unique_task_packets = list(
+            {f"{task_packet['bot_id']}-{task_packet['start_time']}": task_packet for task_packet in combined_task_packets}.values()
+        ) 
 
-        self.check_for_offloaded_task_packets = False
-        return self.received_task_packets
+        return unique_task_packets
+    
+    def get_total_task_packets_count(self):
+        total_combined_task_packets = self.offloaded_task_packets + self.live_task_packets
+        # Use set constructor to eliminate duplicate TaskPackets
+        count = len(
+            set(map(lambda task_packet: f'{task_packet["bot_id"]}-{task_packet["start_time"]}', total_combined_task_packets))
+        )
+        return count 
 
     # Contour map
 
@@ -490,7 +496,13 @@ class Interface:
                 except json.JSONDecodeError as e:
                     logging.warning(f"Error decoding JSON line: {line} because {e}")
 
-        self.offloaded_task_packets = filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
-        self.offloaded_task_packets = sorted(self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time']))
+        self.offloaded_task_packets = list(
+            filter(lambda taskPacket: 'start_time' in taskPacket, self.offloaded_task_packets)
+        )
+        self.offloaded_task_packets = sorted(
+            self.offloaded_task_packets, key=lambda taskPacket: int(taskPacket['start_time'])
+        )
 
-        self.offloaded_task_packet_dates = [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
+        self.offloaded_task_packet_dates = (
+            [int(taskPacket['start_time']) for taskPacket in self.offloaded_task_packets]
+        )

@@ -6,16 +6,17 @@ import json
 import logging
 from datetime import *
 
-def parseDate(dateString: str):
-    if dateString is None:
+def parseDate(date):
+    if date is None:
         return None
     
     try:
-        return datetime.fromisoformat(dateString.replace('Z', '+00:00'))
+        date_str = str(date).split(".")[0]
+        date_format = "%Y-%m-%d %H:%M:%S"
+        return datetime.strptime(date_str, date_format)
     except:
-        logging.warning(f'Could not parse dateString: {dateString}')
+        logging.warning(f'Could not parse date: {date}')
         return None
-    
 
 # Internal Imports
 import jaia
@@ -64,11 +65,17 @@ def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
 @app.route('/jaia/task-packets', methods=['GET'])
+# Date format: yyyy-mm-dd hh:mm:ss
+# Date timezone: GMT
+# Example request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
 def getPackets():
-    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14)))) or datetime.now() - timedelta(hours=14)
-    endDate = parseDate(request.args.get('endDate', datetime.now())) or datetime.now()
+    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    endDate = parseDate(request.args.get('endDate', datetime.now()))
+    return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
 
-    return JSONResponse(jaia_interface.get_task_packets(startDate=startDate, endDate=endDate))
+@app.route('/jaia/task-packets-count', methods=['GET'])
+def getPacketsCount():
+    return JSONResponse(jaia_interface.get_total_task_packets_count())
 
 @app.route('/jaia/metadata', methods=['GET'])
 def getMetadata():
