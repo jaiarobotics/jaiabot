@@ -247,6 +247,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
             if (arduino_response.has_motor())
             {
                 arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
+                glog.is_debug2() && glog << "Arduino Reported Throttle: " << arduino_motor_throttle_
+                                         << endl;
             }
         });
 }
@@ -454,6 +456,7 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
                 // based on its ramping. This way our PID is not skewed
                 // when switching from manual to dive.
                 throttle_ = arduino_motor_throttle_;
+                glog.is_debug2() && glog << "Init Depth PID Throttle: " << throttle_ << endl;
                 throttle_depth_pid_->reset_iterm();
                 break;
         }
