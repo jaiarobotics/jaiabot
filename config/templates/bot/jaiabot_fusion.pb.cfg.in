@@ -34,7 +34,7 @@ imu_detect_horizontal_pitch: 45 # (default=45 degrees)
 # REBOOT_BOT
 # REPORT_IMU
 # RESTART_IMU_PY
-imu_issue_solution: REPORT_IMU
+imu_issue_solution: RESTART_IMU_PY
 
 # Set the period to send bot status in milliseconds
 bot_status_period_ms: $bot_status_period # default ((bot_index * 10) + 1000 milliseconds)
