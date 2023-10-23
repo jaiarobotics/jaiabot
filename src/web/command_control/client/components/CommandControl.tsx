@@ -858,6 +858,7 @@ export default class CommandControl extends React.Component {
 		}).catch((err) => {
 			console.log('Task Packets Polling Error', err)
 		})
+		taskData.setTaskPacketsTimeline(this.state.taskPacketsTimeline)
 	}
 
 	getPodStatus() {
@@ -1997,6 +1998,7 @@ export default class CommandControl extends React.Component {
 			(taskPacketsTimeline.startTime > taskPacketsTimeline.endTime 
 			&& taskPacketsTimeline.startDate >= taskPacketsTimeline.endDate)
 			|| taskPacketsTimeline.startDate > taskPacketsTimeline.endDate
+			|| (taskPacketsTimeline.startDate === '' || taskPacketsTimeline.startTime === '')
 		) {
 			return true
 		}

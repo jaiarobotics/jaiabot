@@ -67,19 +67,6 @@ def JSONResponse(obj: any=None, string: str=None):
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
 
-@app.route('/jaia/task-packets', methods=['GET'])
-# Date format: yyyy-mm-dd hh:mm:ss
-# Date timezone: GMT
-# Example request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
-def getPackets():
-    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    endDate = parseDate(request.args.get('endDate', datetime.now()))
-    return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
-
-@app.route('/jaia/task-packets-count', methods=['GET'])
-def getPacketsCount():
-    return JSONResponse(jaia_interface.get_total_task_packets_count())
-
 @app.route('/jaia/metadata', methods=['GET'])
 def getMetadata():
     return JSONResponse(jaia_interface.get_Metadata())
@@ -185,18 +172,38 @@ def jedStaticFile(path):
 def jedRoot():
     return jedStaticFile('index.html')
 
+######## TaskPackets
+
+@app.route('/jaia/task-packets', methods=['GET'])
+def getPackets():
+    """
+    Date Format: yyyy-mm-dd hh:mm:ss
+    Timezone: GMT
+    Example Request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
+    """
+    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    endDate = parseDate(request.args.get('endDate', datetime.now()))
+    return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
+
+@app.route('/jaia/task-packets-count', methods=['GET'])
+def getPacketsCount():
+    return JSONResponse(jaia_interface.get_total_task_packets_count())
 
 ######## Contour map
 
 @app.route('/jaia/depth-contours', methods=['GET'])
 def get_deth_contours():
-    return JSONResponse(jaia_interface.get_depth_contours())
+    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    end_date = parseDate(request.args.get('endDate', datetime.now()))
+    return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
 
 ######## Drift map
 
 @app.route('/jaia/drift-map', methods=['GET'])
 def get_drift_map():
-    return JSONResponse(string=jaia_interface.get_drift_map())
+    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    end_date = parseDate(request.args.get('endDate', datetime.now()))
+    return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
 
 
 if __name__ == '__main__':

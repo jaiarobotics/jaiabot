@@ -468,13 +468,13 @@ class Interface:
 
     # Contour map
 
-    def get_depth_contours(self): 
-        return pyjaia.contours.taskPacketsToContours(self.get_task_packets())
+    def get_depth_contours(self, start_date, end_date): 
+        return pyjaia.contours.taskPacketsToContours(self.get_task_packets(start_date, end_date))
 
     # Drift map
-    def get_drift_map(self):
-        startDate = datetime.now() - timedelta(days=1)
-        return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(startDate=startDate))
+
+    def get_drift_map(self, start_date, end_date):
+        return pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(self.get_task_packets(start_date, end_date))
 
     # Controlling clientId
 

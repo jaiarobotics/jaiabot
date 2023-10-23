@@ -199,3 +199,12 @@ export function getHTMLTimeString(date: Date) {
     const mins = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes()
     return `${hours}:${mins}`
 }
+
+/**
+ * @param strDate "yyyy-mm-dd hh:mm"
+ * @returns ISO str date in GMT
+ * Example return value: "2023-10-18 09:04:00"
+ */
+export function convertHTMLStrDateToISO(strDate: string) {
+    return new Date(strDate).toISOString().replace('T', ' ').split('.')[0]
+}
