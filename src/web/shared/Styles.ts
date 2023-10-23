@@ -1,8 +1,9 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
 import { Goal, TaskType } from './JAIAProtobuf'
-import { LineString, Point } from 'ol/geom';
-import { Fill, Icon, Style, Text} from 'ol/style';
+import { LineString, Point, Circle } from 'ol/geom';
+import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
+import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
@@ -243,10 +244,26 @@ function createRallyIcon() {
     })
 }
 
-export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean, zIndex?: number) {
+
+/**
+ * Goal / Waypoint map style function
+ * @date 10/23/2023 - 8:58:49 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature
+ * @returns {{}} Style(s) for the feature
+ */
+export function getGoalStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+    const goalIndex = feature.get('goalIndex') as number
+    const zIndex = feature.get('zIndex') as number
+
     let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
-    return new Style({
+    const markerStyle = new Style({
         image: icon,
         stroke: new Stroke({
             color: 'rgba(0, 0, 0, 0)',
@@ -262,6 +279,39 @@ export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, i
         }),
         zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
+
+    const latitudeCoefficient = Math.cos(goal.location.lat ?? 0)
+    const captureRadius = 5.0 // meters, MOOS configuration from templates/bot/bot.bhv.in
+
+    const captureRadiusStyle = new Style({
+        geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius * latitudeCoefficient),
+        renderer(coordinates: Coordinate[], state) {
+            const [[x, y], [x1, y1]] = coordinates
+            const dx = x1 - x;
+            const dy = y1 - y;
+
+            const ctx = state.context;
+            const radius = Math.sqrt(dx * dx + dy * dy);
+
+            const innerRadius = 0;
+            const outerRadius = radius * 1.4;
+
+            const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
+            gradient.addColorStop(0, 'rgba(255,0,0,0)');
+            gradient.addColorStop(0.6, 'rgba(255,0,0,0.2)');
+            gradient.addColorStop(1, 'rgba(255,0,0,0.8)');
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+            ctx.strokeStyle = 'rgba(255,0,0,1)';
+            ctx.stroke();
+        }
+    })
+
+    return [ markerStyle, captureRadiusStyle ]
 }
 
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
