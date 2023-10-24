@@ -1,7 +1,8 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
-import { Goal, TaskType } from './JAIAProtobuf'
-import { LineString, Point } from 'ol/geom';
+import { Goal, HubStatus, TaskType } from './JAIAProtobuf'
+import { LineString, Point, Circle } from 'ol/geom';
+import { Coordinate } from 'ol/coordinate'
 import { Fill, Icon, Style, Text} from 'ol/style';
 import { PortalBotStatus } from './PortalStatus';
 
@@ -120,7 +121,8 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
-export function hubMarker(feature: Feature): Style[] {
+export function hubMarker(feature: Feature<Point>): Style[] {
+    const hub = feature.get('hub') as HubStatus
     const geometry = feature.getGeometry() as Point
 
     const textOffsetRadius = 11
@@ -133,7 +135,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const text = "HUB"
 
-    var style = [ 
+    var markerStyle = 
         // Hub body marker
         new Style({
             image: new Icon({
@@ -152,9 +154,38 @@ export function hubMarker(feature: Feature): Style[] {
                 offsetY: textOffsetRadius
             })
         })
-    ]
 
-    return style
+    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const center = feature.getGeometry().getCoordinates()
+
+    // In meters, scaled by latitude factor
+    const commsInnerRadius = 300.0 / latitudeCoefficient
+    const commsOuterRadius = 500.0 / latitudeCoefficient
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+                const screenRadius = Math.sqrt(dx * dx + dy * dy)
+
+                const ctx = state.context
+
+                ctx.beginPath()
+                ctx.arc(x, y, screenRadius, 0, 2 * Math.PI, true)
+                ctx.strokeStyle = color
+                ctx.lineWidth = lineWidth
+                ctx.stroke()
+            }
+        })
+    }
+
+    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
+        
+    return [ markerStyle, commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
