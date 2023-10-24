@@ -54,13 +54,14 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
-parser.add_argument('--imu_type', choices=['bno055', 'bno085'], help='If set, configure services for imu type')
+parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 
 args=parser.parse_args()
 
 class IMU_TYPE(Enum):
     BNO055 = 'bno055'
     BNO085 = 'bno085'
+    NONE = 'none'
 
 class LED_TYPE(Enum):
     HUB_LED = 'hub_led'
@@ -81,6 +82,8 @@ if args.imu_type == 'bno055':
     jaia_imu_type=IMU_TYPE.BNO055
 elif args.imu_type == 'bno085':
     jaia_imu_type=IMU_TYPE.BNO085
+else:
+    jaia_imu_type=IMU_TYPE.NONE
 
 if args.led_type == 'hub_led':
     jaia_led_type=LED_TYPE.HUB_LED
