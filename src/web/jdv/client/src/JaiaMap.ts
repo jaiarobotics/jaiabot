@@ -283,7 +283,7 @@ export default class JaiaMap {
     createHeadingLayer() {
         return new VectorLayer({
             properties: {
-                title: 'Heading'
+                title: 'Desired Heading'
             },
             source: this.botHeadingSource,
             zIndex: 11
