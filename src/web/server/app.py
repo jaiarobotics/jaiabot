@@ -6,16 +6,18 @@ import json
 import logging
 from datetime import *
 
-def parseDate(dateString: str):
-    if dateString is None:
-        return None
+def parseDate(date):
+    if date is None or date == '':
+        logging.warning('date is empty')
+        return ''
     
     try:
-        return datetime.fromisoformat(dateString.replace('Z', '+00:00'))
+        date_str = str(date).split(".")[0]
+        date_format = "%Y-%m-%d %H:%M:%S"
+        return datetime.strptime(date_str, date_format)
     except:
-        logging.warning(f'Could not parse dateString: {dateString}')
+        logging.warning(f'Could not parse date: {date}')
         return None
-    
 
 # Internal Imports
 import jaia_portal
@@ -65,13 +67,6 @@ def JSONResponse(obj: any=None, string: str=None):
 @app.route('/jaia/status', methods=['GET'])
 def getStatus():
     return JSONResponse(jaia_interface.get_status())
-
-@app.route('/jaia/task-packets', methods=['GET'])
-def getPackets():
-    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14)))) or datetime.now() - timedelta(hours=14)
-    endDate = parseDate(request.args.get('endDate', datetime.now())) or datetime.now()
-
-    return JSONResponse(jaia_interface.get_task_packets(startDate=startDate, endDate=endDate))
 
 @app.route('/jaia/metadata', methods=['GET'])
 def getMetadata():
@@ -178,18 +173,38 @@ def jedStaticFile(path):
 def jedRoot():
     return jedStaticFile('index.html')
 
+######## TaskPackets
+
+@app.route('/jaia/task-packets', methods=['GET'])
+def getPackets():
+    """
+    Date Format: yyyy-mm-dd hh:mm:ss
+    Timezone: GMT
+    Example Request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
+    """
+    startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    endDate = parseDate(request.args.get('endDate', ''))
+    return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
+
+@app.route('/jaia/task-packets-count', methods=['GET'])
+def getPacketsCount():
+    return JSONResponse(jaia_interface.get_total_task_packets_count())
 
 ######## Contour map
 
 @app.route('/jaia/depth-contours', methods=['GET'])
 def get_deth_contours():
-    return JSONResponse(jaia_interface.get_depth_contours())
+    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    end_date = parseDate(request.args.get('endDate', ''))
+    return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
 
 ######## Drift map
 
 @app.route('/jaia/drift-map', methods=['GET'])
 def get_drift_map():
-    return JSONResponse(string=jaia_interface.get_drift_map())
+    start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
+    end_date = parseDate(request.args.get('endDate', ''))
+    return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
 
 
 if __name__ == '__main__':
