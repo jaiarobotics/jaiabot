@@ -174,7 +174,6 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
 }
 
 export function headingArrow(heading: number): Style {
-    const finalHeading = heading * DEG
     const color = 'green'
 
     return new Style({
@@ -182,7 +181,7 @@ export function headingArrow(heading: number): Style {
             src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: finalHeading,
+            rotation: heading * DEG,
             rotateWithView: true
         })
     })
