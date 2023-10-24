@@ -280,11 +280,11 @@ export function getGoalStyle(feature: Feature<Point>) {
         zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
 
-    const latitudeCoefficient = Math.cos(goal.location.lat ?? 0)
-    const captureRadius = 5.0 // meters, MOOS configuration from templates/bot/bot.bhv.in
+    const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
+    const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
 
     const captureRadiusStyle = new Style({
-        geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius * latitudeCoefficient),
+        geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius),
         renderer(coordinates: Coordinate[], state) {
             const [[x, y], [x1, y1]] = coordinates
             const dx = x1 - x;
@@ -297,16 +297,16 @@ export function getGoalStyle(feature: Feature<Point>) {
             const outerRadius = radius * 1.4;
 
             const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
-            gradient.addColorStop(0, 'rgba(255,0,0,0)');
-            gradient.addColorStop(0.6, 'rgba(255,0,0,0.2)');
-            gradient.addColorStop(1, 'rgba(255,0,0,0.8)');
+            gradient.addColorStop(0, 'rgba(0,128,0,0)');
+            gradient.addColorStop(0.6, 'rgba(0,128,0,0.2)');
+            gradient.addColorStop(1, 'rgba(0,128,0,0.8)');
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
             ctx.fillStyle = gradient;
             ctx.fill();
 
             ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
-            ctx.strokeStyle = 'rgba(255,0,0,1)';
+            ctx.strokeStyle = 'rgba(0,128,0,1)';
             ctx.stroke();
         }
     })
