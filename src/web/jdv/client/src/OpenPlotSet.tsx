@@ -5,6 +5,7 @@ import Icon from "@mdi/react";
 
 interface OpenPlotSetProps {
     didSelectPlotSet: (plotSet: Profile) => undefined
+    didClose: () => void
 }
 
 interface OpenPlotSetState {
@@ -66,10 +67,11 @@ export class OpenPlotSet extends React.Component {
 
     didClickPlotSet(name: string, evt: Event) {
         this.props.didSelectPlotSet?.(this.state.plotSets[name])
+        this.props.didClose()
     }
 
     cancelClicked() {
-        this.props.didSelectPlotSet?.(null)
+        this.props.didClose()
     }
 
 }
