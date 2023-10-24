@@ -433,14 +433,17 @@ class Interface:
             list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)), 
             utime(start_date)
         )
+
+        if end_date == "":
+            return task_packets_list[start_index:]
+        
         end_index = bisect.bisect_right(
             list(map(lambda task_packet: int(task_packet['start_time']), task_packets_list)),
-            utime(end_date)
-        )
+            utime(end_date))
         return task_packets_list[start_index: end_index]
 
     def get_task_packets(self, start_date, end_date):
-        if not start_date or not end_date:
+        if start_date is None or end_date is None:
             return self.live_task_packets
 
         offloaded_task_packets_subset = self.get_task_packets_subset(

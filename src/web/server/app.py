@@ -7,8 +7,9 @@ import logging
 from datetime import *
 
 def parseDate(date):
-    if date is None:
-        return None
+    if date is None or date == '':
+        logging.warning('date is empty')
+        return ''
     
     try:
         date_str = str(date).split(".")[0]
@@ -182,7 +183,7 @@ def getPackets():
     Example Request: http://10.23.1.10/jaia/task-packets?startDate="2023-10-18 09:04:00"&endDate="2023-10-22 09:04:00"
     """
     startDate = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    endDate = parseDate(request.args.get('endDate', datetime.now()))
+    endDate = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_task_packets(start_date=startDate, end_date=endDate))
 
 @app.route('/jaia/task-packets-count', methods=['GET'])
@@ -194,7 +195,7 @@ def getPacketsCount():
 @app.route('/jaia/depth-contours', methods=['GET'])
 def get_deth_contours():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    end_date = parseDate(request.args.get('endDate', datetime.now()))
+    end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
 
 ######## Drift map
@@ -202,7 +203,7 @@ def get_deth_contours():
 @app.route('/jaia/drift-map', methods=['GET'])
 def get_drift_map():
     start_date = parseDate(request.args.get('startDate', (datetime.now() - timedelta(hours=14))))
-    end_date = parseDate(request.args.get('endDate', datetime.now()))
+    end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(string=jaia_interface.get_drift_map(start_date, end_date))
 
 

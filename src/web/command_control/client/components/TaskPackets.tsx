@@ -256,14 +256,14 @@ export class TaskData {
                 if (feature) {
                     driftPacketFeatures.push(feature)
                 }
+            }
 
-                if (taskPackets.length >= 2) {
-                    this._updateInterpolatedDrifts()
-                }
+            if (taskPackets.length >= 2) {
+                this._updateInterpolatedDrifts()
+            }
 
-                if (taskPackets.length >= 3) {
-                    this._updateContourPlot()
-                }
+            if (taskPackets.length >= 3) {
+                this._updateContourPlot()
             }
         }
         

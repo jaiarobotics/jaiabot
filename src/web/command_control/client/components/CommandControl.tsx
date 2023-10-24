@@ -844,10 +844,16 @@ export default class CommandControl extends React.Component {
 		this.api.getTaskPacketsCount().then((count) => {
 			// TaskPackets to be displayed is different than current display
 			if (this.getTaskPacketsCount() !== count) {
-			  this.setTaskPacketsCount(count)
+			  	this.setTaskPacketsCount(count)
+			
+				let end = ''
+
+				if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
+					end = this.state.taskPacketsTimeline.end as string
+				}
 				this.api.getTaskPackets(
 					this.state.taskPacketsTimeline.start as string, 
-					this.state.taskPacketsTimeline.end as string
+					end
 				).then((taskPackets) => {
 					this.setTaskPackets(taskPackets)
 					taskData.updateTaskPacketsLayers(taskPackets)
@@ -1971,9 +1977,15 @@ export default class CommandControl extends React.Component {
 			`${taskPacketsTimeline.endDate} ${taskPacketsTimeline.endTime}` // yyyy-mm-dd
 		)
 
+		let end = ''
+
+		if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
+			end = this.state.taskPacketsTimeline.end as string
+		}
+
 		this.api.getTaskPackets(
 			taskPacketsTimeline.start as string,
-			taskPacketsTimeline.end as string
+			end
 		).then((taskPackets) => {
 			this.setTaskPackets(taskPackets)
 			taskData.updateTaskPacketsLayers(taskPackets)
