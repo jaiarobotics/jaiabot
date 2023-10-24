@@ -7,6 +7,7 @@ export interface Log {
     bot: string
     timestamp: number
     duration: number
+    size: number
 }
 
 // Logs have an added _utime_ field on Commands

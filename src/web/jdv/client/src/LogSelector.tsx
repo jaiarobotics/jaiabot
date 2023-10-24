@@ -1,6 +1,7 @@
 import React, { ReactElement } from "react"
 
 import {Log} from './Log'
+import { LogApi } from "./LogApi"
 
 function duration_string_from_seconds(duration_seconds: number) {
     var components = []
@@ -42,9 +43,12 @@ function save(key: string, value: string) {
 
 type LogDict = {[key: string]: {[key: string]: {[key: string]: Log}}}
 
+interface LogSelectorDelegate {
+    didSelectLogs: (logs: string[]) => void
+}
+
 interface LogSelectorProps {
-    logs: Log[]
-    didSelectLogs: (logs: string[]) => undefined
+    delegate: LogSelectorDelegate
 }
 
 interface LogSelectorState {
@@ -53,7 +57,7 @@ interface LogSelectorState {
     bot: string
     fromDate: string
     toDate: string
-    selectedLogs: Set<Log>
+    selectedLogs: {[key: string]: Log}
 }
 
 // Dropdown menu showing all of the available logs to choose from
@@ -61,6 +65,8 @@ export default class LogSelector extends React.Component {
 
     props: LogSelectorProps
     state: LogSelectorState
+
+    refreshTimer: NodeJS.Timeout
 
     constructor(props: LogSelectorProps) {
         super(props)
@@ -71,8 +77,10 @@ export default class LogSelector extends React.Component {
             bot: localStorage.getItem("bot"),
             fromDate: localStorage.getItem("fromDate"),
             toDate: localStorage.getItem("toDate"),
-            selectedLogs: new Set()
+            selectedLogs: {}
         }
+
+        this.refreshLogs()
     }
 
     render() {
@@ -81,47 +89,31 @@ export default class LogSelector extends React.Component {
         const logs = this.getFilteredLogs()
 
         const logHeader = <div key="logHeader" className="logHeaderRow">
-            <div className="fleetCell logHeader">
+            <div className="smallCell logHeader">
                 Fleet
             </div>
-            <div className="botCell logHeader">
+            <div className="smallCell logHeader">
                 Bot
             </div>
-            <div className="timeCell logHeader">
+            <div className="bigCell logHeader">
                 Start time
             </div>
-            <div className="durationCell logHeader">
+            <div className="bigCell logHeader">
                 Duration
+            </div>
+            <div className="bigCell logHeader rightJustify">
+                Size (bytes)
             </div>
         </div>
 
-        const logItems = logs.map((log) => {
-            const key = `${log.fleet}-${log.bot}-${log.timestamp}`
-            const className = (self.state.selectedLogs.has(log)) ? "selected" : ""
-
-            const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
-                <div className="fleetCell">
-                    {log.fleet}
-                </div>
-                <div className="botCell">
-                    {log.bot}
-                </div>
-                <div className="timeCell">
-                    {date_string_from_microseconds(log.timestamp)}
-                </div>
-                <div className="durationCell">
-                    {duration_string_from_seconds(log.duration / 1e6)}
-                </div>
-            </div>
-
-            return row
-        })
+        const logItems = logs.map((log) => { return this.logRowElement(log) })
 
         return (
           <div className="logSelector dialog">
             <div className="dialogHeader">Select Logs</div>
             <div className="section">
                 <div className="dialogSectionHeader">Filters</div>
+                
 
                 <div className="horizontal flexbox equal" style={{justifyContent: "space-between", alignItems: "center"}}>
 
@@ -149,31 +141,68 @@ export default class LogSelector extends React.Component {
                 <div className="list">{logItems}</div>
             </div>
 
-            <div className="buttonSection section">
-                <button className="padded" onClick={self.cancelClicked.bind(self)}>Cancel</button>
-                <button className="padded" onClick={self.okClicked.bind(self)}>OK</button>
-            </div>
+            { this.buttonsElement() }
           </div>
         )
+    }
+
+    logRowElement(log: Log) {
+        const key = `${log.fleet}-${log.bot}-${log.timestamp}`
+        const className = (log.filename in this.state.selectedLogs) ? "selected" : ""
+
+        const row = <div key={key} onMouseDown={this.didToggleLog.bind(this, log)} onMouseEnter={(evt) => { if (evt.buttons) this.didToggleLog(log); }} className={"padded listItem " + className}>
+            <div className="smallCell">
+                {log.fleet}
+            </div>
+            <div className="smallCell">
+                {log.bot}
+            </div>
+            <div className="bigCell">
+                {date_string_from_microseconds(log.timestamp)}
+            </div>
+            <div className="bigCell">
+                {log.duration ? duration_string_from_seconds(log.duration / 1e6) : "Unconverted"}
+            </div>
+            <div className="bigCell rightJustify">
+                {log.size?.toLocaleString() ?? "?"}
+            </div>
+        </div>
+
+        return row
+    }
+
+    buttonsElement() {
+        return <div className="buttonSection section">
+            <button className="danger padded" onClick={this.deleteClicked.bind(this)}>Delete Logs</button>
+            <div className="spacer"></div>
+            <button className="padded" onClick={this.cancelClicked.bind(this)}>Cancel</button>
+            <button className="padded" onClick={this.okClicked.bind(this)}>Open Logs</button>
+        </div>
+    }
+
+    componentDidMount(): void {
+        this.refreshTimer = setInterval(this.refreshLogs.bind(this), 2000)
+    }
+
+    componentWillUnmount(): void {
+        clearInterval(this.refreshTimer)
     }
 
     didToggleLog(log: Log) {
         var selectedLogs = this.state.selectedLogs
 
-        if (selectedLogs.has(log)) {
-            selectedLogs.delete(log)
+        if (log.filename in selectedLogs) {
+            delete selectedLogs[log.filename]
             this.setState({selectedLogs})
         }
         else {
-            selectedLogs.add(log)
+            selectedLogs[log.filename] = log
             this.setState({selectedLogs})
         }
     }
 
     clearLogs() {
-        var selectedLogs = this.state.selectedLogs
-        selectedLogs.clear()
-        this.setState({selectedLogs})
+        this.setState({selectedLogs: {}})
     }
 
     getFilteredLogs(): Log[] {
@@ -222,20 +251,6 @@ export default class LogSelector extends React.Component {
         return log_array
     }
 
-    static getDerivedStateFromProps(props: LogSelectorProps): object {
-        let log_dict = LogSelector.log_dict(props.logs)
-
-        var stateUpdate: {[key: string]: any} = {
-            log_dict: log_dict
-        }
-
-        if (Object.keys(log_dict).length == 1) {
-            stateUpdate.fleet = Object.keys(log_dict)[0]
-        }
-
-        return stateUpdate
-    }
-
     static log_dict(logs: Log[]) {
         var log_dict: LogDict = {}
 
@@ -256,11 +271,20 @@ export default class LogSelector extends React.Component {
         return log_dict
     }
 
+    /**
+     * Returns <option> elements for "All" plus one for each key in the dict.
+     * @param dict A JS object with keys corresponding to each <option> element
+     * @returns The array of <option> elements
+     */
     dict_options(dict: {[key: string]: any}): ReactElement[] {
+        let first_option = <option key={"all"}>All</option>
+
+        if (!dict) {
+            return [ first_option ]            
+        }
+
         let names = Object.keys(dict)
         names.sort()
-
-        let first_option = <option key={"all"}>All</option>
 
         var elements = names.map(name => {
             return <option value={name} key={name}>{name}</option>
@@ -334,16 +358,44 @@ export default class LogSelector extends React.Component {
     }
 
     cancelClicked() {
-        this.props.didSelectLogs?.(null)
+        this.props.delegate.didSelectLogs(null)
     }
 
     okClicked() {
-        const selectedLogNames = Array.from(this.state.selectedLogs).map((log) => {
+        const selectedLogNames = Object.values(this.state.selectedLogs).map((log) => {
             return log.filename;
         })
 
         console.debug('Selected logs: ', selectedLogNames)
-        this.props.didSelectLogs?.(selectedLogNames)
+        this.props.delegate.didSelectLogs(selectedLogNames)
+    }
+
+    async deleteClicked() {
+        const logNames = Object.values(this.state.selectedLogs).map(log => {
+            return log.filename
+        })
+
+        const logNamesString = logNames.join('\n')
+
+        if (confirm(`Are you sure you want to DELETE the logs named:\n${logNamesString}`)) {
+            logNames.forEach(logName => {
+                LogApi.delete_log(logName)
+            })
+
+            // Deselect all logs
+            this.setState({selectedLogs: {}})
+        }
+    }
+
+    refreshLogs() {
+        LogApi.get_logs().then((logs) => {
+            const log_dict = LogSelector.log_dict(logs)
+            this.setState({log_dict})
+
+            if (!(this.state.fleet in Object.keys(log_dict))) {
+                this.setState({fleet: Object.keys(log_dict)[0]})
+            }
+        })
     }
 
 }

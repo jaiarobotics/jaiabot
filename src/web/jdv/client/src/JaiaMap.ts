@@ -283,7 +283,7 @@ export default class JaiaMap {
     createHeadingLayer() {
         return new VectorLayer({
             properties: {
-                title: 'Heading'
+                title: 'Desired Heading'
             },
             source: this.botHeadingSource,
             zIndex: 11
@@ -533,14 +533,15 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
-            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
+            botFeature.set('bot', bot)
+            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot, properties))
 
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
-            const botHeadingArrow = createBotHeadingFeature(properties)
+            // const botHeadingArrow = createBotHeadingFeature(properties)
 
             this.botVectorSource.addFeature(botFeature)
             this.courseOverGroundSource.addFeature(courseOverGroundArrow)
-            this.botHeadingSource.addFeature(botHeadingArrow)
+            // this.botHeadingSource.addFeature(botHeadingArrow)
 
             if (properties.desiredHeading != null) {
                 const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
@@ -641,7 +642,7 @@ export default class JaiaMap {
                 <table>
                     <tr><th>Bot ID</th><td>${task_packet.bot_id}</td></tr>
                     <tr><th>Speed</th><td>${drift.estimated_drift.speed.toFixed(2)} m/s</td></tr>
-                    <tr><th>Direction</th><td>${drift.estimated_drift.heading.toFixed(1)} deg</td></tr>
+                    <tr><th>Direction</th><td>${drift.estimated_drift.heading?.toFixed(1) ?? "?"} deg</td></tr>
                     <tr><th>Significant Wave Height (Beta)</th><td>${drift.significant_wave_height ?? "?"} m</td></tr>
                 </table>
                 `
