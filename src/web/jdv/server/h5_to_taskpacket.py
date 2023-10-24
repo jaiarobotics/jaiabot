@@ -4,7 +4,7 @@ from typing import *
 from pprint import *
 from datetime import *
 
-import jaialogs
+import web.jdv.server.jaialog_store as jaialog_store
 import taskpacketfile
 import argparse
 import dateutil.parser
@@ -29,7 +29,7 @@ def to_utime(dt: timedelta):
 ####
 
 
-task_packets = jaialogs.get_task_packets(args.input_filenames)
+task_packets = jaialog_store.get_task_packets(args.input_filenames)
 
 if args.start_time is not None:
     start_time = dateutil.parser.parse(args.start_time).astimezone(dateutil.tz.UTC)

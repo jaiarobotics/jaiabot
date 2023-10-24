@@ -281,7 +281,7 @@ export default class JaiaMap {
     createHeadingLayer() {
         return new VectorLayer({
             properties: {
-                title: 'Heading'
+                title: 'Desired Heading'
             },
             source: this.botHeadingSource,
             zIndex: 11
@@ -531,14 +531,15 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
-            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
+            botFeature.set('bot', bot)
+            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot, properties))
 
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
-            const botHeadingArrow = createBotHeadingFeature(properties)
+            // const botHeadingArrow = createBotHeadingFeature(properties)
 
             this.botVectorSource.addFeature(botFeature)
             this.courseOverGroundSource.addFeature(courseOverGroundArrow)
-            this.botHeadingSource.addFeature(botHeadingArrow)
+            // this.botHeadingSource.addFeature(botHeadingArrow)
 
             if (properties.desiredHeading != null) {
                 const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)

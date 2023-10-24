@@ -140,30 +140,26 @@ button {
     -moz-user-select: none; /* Firefox */
     -ms-user-select: none; /* IE10+/Edge */
     user-select: none; /* Standard */
+    display: flex;
 }
 
 .listItem:hover {
     background-color: lightblue;
 }
 
-.fleetCell {
+.smallCell {
     display: inline-block;
-    width: 15%;
+    flex: 2 2 0pt;
 }
 
-.botCell {
+.bigCell {
     display: inline-block;
-    width: 15%;
+    flex: 3 3 0pt;
 }
 
-.timeCell {
-    display: inline-block;
-    width: 30%;
-}
-
-.durationCell {
-    display: inline-block;
-    width: 30%;
+.rightJustify {
+    text-align: right;
+    padding-right: 10pt;
 }
 
 .selected {
@@ -175,6 +171,7 @@ button {
 }
 
 .logHeaderRow {
+    display: flex;
     padding: 8pt;
     background-color: lightgray;
 }
@@ -349,4 +346,24 @@ div.popup > table > tbody > tr > th {
 
 div.ol-attribution > button {
     display: none;
+
+.busy-overlay {
+    position:absolute;
+    top: 0%;
+    right: 0%;
+    bottom: 0%;
+    left: 0%;
+
+    text-align: center;
+
+    background-color: #00000033;
+}
+
+.vertical-center {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+
 }

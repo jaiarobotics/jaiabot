@@ -18,7 +18,7 @@ Behavior = BHV_Waypoint
   lead_to_start      = true
   capture_line       = false
   capture_radius     = 5.0
-  slip_radius        = 15.0
+  slip_radius        = 5.0
   efficiency_measure = all
   perpetual          = true
   
