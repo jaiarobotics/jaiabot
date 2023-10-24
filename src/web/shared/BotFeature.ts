@@ -26,17 +26,35 @@ export function createBotFeature(properties: Properties) {
     return feature
 }
 
-export function botPopupHTML(bot: BotStatus) {
+interface BotOtherProperties {
+    desiredHeading?: number
+}
+
+export function botPopupHTML(bot: BotStatus, properties: BotOtherProperties) {
+    var desiredHeadingRow = ''
+
+    if (properties.desiredHeading != null) {
+        desiredHeadingRow = `
+        <tr>
+            <th><image src="headingIcon.svg" style="vertical-align: middle; text-align: center;" /></th>
+            <th>Desired Heading</th>
+            <td>${properties.desiredHeading?.toFixed(1) ?? "?"}</td>
+            <td>deg</td>
+        </tr>
+        `
+    }
+
     return `
         <h3>Bot ${bot.bot_id}</h3>
         <table>
             <tbody>
                 <tr>
-                    <th><image src="headingIcon.svg" style="vertical-align: middle; text-align: center;" /></th>
+                    <th></th>
                     <th>Heading</th>
                     <td>${bot.attitude?.heading?.toFixed(1) ?? "?"}</td>
                     <td>deg</td>
                 </tr>
+                ${desiredHeadingRow}
                 <tr>
                     <th><image src="courseOverGroundIcon.svg" style="vertical-align: middle; text-align: center;" /></th>
                     <th>Course Over Ground</th>
@@ -70,10 +88,10 @@ export function createBotDesiredHeadingFeature(properties: Properties) {
     const feature = new Feature({
         name: properties.botId,
         geometry: new Point(fromLonLat(properties.lonLat, projection)),
-        style: Styles.desiredHeadingArrow,
     })
 
     feature.setProperties(properties)
+    feature.setStyle(Styles.desiredHeadingArrow)
 
     return feature
 }
