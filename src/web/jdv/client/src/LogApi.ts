@@ -45,6 +45,37 @@ export class LogApi {
         .catch(err => {console.error(err)})
   }
 
+  // Download a GET request
+  static download_file(url: string) {
+    return fetch(url, { method: 'GET' })
+    .then( res => res.blob() )
+    .then( blob => {
+      var file = window.URL.createObjectURL(blob);
+      window.location.assign(file);
+    });
+  }
+
+  // Do a JSON GET request
+  static post(url_string: string, jsonObject: object) {
+    var request = new Request(url_string, {
+      method : 'POST',
+      headers : new Headers({'Content-Type' : 'application/json'}),
+      body: JSON.stringify(jsonObject)
+    })
+
+    return fetch(request)
+        .then(resp => resp.json())
+        .then(response_object => {
+          // If there's an error message in there, we need to throw it
+          if (response_object.error != null) {
+            throw new Error(response_object.error)
+          } else {
+            return response_object
+          }
+        })
+        .catch(err => {console.error(err)})
+  }
+
   // Get a series corresponding to a set of log files and paths
   static get_series(logs: string[], paths: string[]) {
     var url = new URL('series', window.location.origin)
@@ -127,14 +158,9 @@ export class LogApi {
     return downloadURL(url.toString(), 'moos.csv', 'text/csv')
   }
 
-  static get_hdf5(log: string) {
-    var url = new URL('h5', window.location.origin)
-    url.searchParams.append('file', log)
-
-    const components = log.split('/')
-    const filename = components[components.length - 1]
-
-    return downloadURL(url.toString(), filename, 'application/x-hdf')
+  // Convert logs if needed
+  static post_convert_if_needed(logs: string[]) {
+    return this.post('convert-if-needed', logs)
   }
 
 }
