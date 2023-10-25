@@ -644,7 +644,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
 void jaiabot::apps::Fusion::init_node_status()
 {
-    // Set empy fields so NodeStatus gets published on startup
+    // Set empty fields so NodeStatus gets published on startup
     latest_node_status_.mutable_pose();
     latest_node_status_.mutable_global_fix();
     latest_node_status_.mutable_global_fix()->set_lat(0);
