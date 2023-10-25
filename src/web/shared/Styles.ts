@@ -73,6 +73,7 @@ export function botMarker(feature: Feature): Style[] {
 
     const botStatus = feature.get('bot') as PortalBotStatus
     const heading = (botStatus?.attitude?.heading ?? 0.0) * DEG
+
     const headingDelta = angleToXY(heading)
 
     const textOffsetRadius = 11
@@ -115,7 +116,7 @@ export function botMarker(feature: Feature): Style[] {
         })
     ]
 
-    if (botStatus.mission_state.includes('REACQUIRE_GPS')) {
+    if (botStatus?.mission_state?.includes('REACQUIRE_GPS')) {
         style.push(getGpsStyle(heading))
     }
 
@@ -175,7 +176,6 @@ export function courseOverGroundArrow(courseOverGround: number): Style {
 }
 
 export function headingArrow(heading: number): Style {
-    const finalHeading = heading * DEG
     const color = 'green'
 
     return new Style({
@@ -183,7 +183,7 @@ export function headingArrow(heading: number): Style {
             src: botDesiredHeading,
             color: color,
             anchor: [0.5, 1.0],
-            rotation: finalHeading,
+            rotation: heading * DEG,
             rotateWithView: true
         })
     })

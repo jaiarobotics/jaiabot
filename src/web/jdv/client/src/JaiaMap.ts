@@ -13,7 +13,7 @@ import { createEmpty, extend, isEmpty } from 'ol/extent';
 import Stroke from 'ol/style/Stroke';
 import { Style } from 'ol/style';
 import KML, { IconUrlFunction } from 'ol/format/KML.js';
-import { ScaleLine } from 'ol/control'
+import { Attribution, ScaleLine } from 'ol/control'
 
 import * as Styles from './shared/Styles'
 import * as Popup from './shared/Popup'
@@ -24,6 +24,7 @@ import { PortalBotStatus } from './shared/PortalStatus';
 import OlLayerSwitcher from 'ol-layerswitcher';
 import { createBotCourseOverGroundFeature, createBotFeature, createBotDesiredHeadingFeature, createBotHeadingFeature, botPopupHTML } from './shared/BotFeature'
 import { createDivePacketFeature, createDriftPacketFeature } from './shared/TaskPacketFeatures'
+import * as Layers from './shared/Layers'
 import SourceXYZ from 'ol/source/XYZ'
 import { bisect } from './bisect'
 
@@ -188,6 +189,10 @@ export default class JaiaMap {
             ],
             view: view,
             controls: [
+                new Attribution({
+                    collapseClassName: "attributionsCollapseButton",
+                    collapsible: false
+                }),
                 new ScaleLine({ units: 'metric' })
             ]
         })
@@ -231,18 +236,11 @@ export default class JaiaMap {
                 title: 'Base Maps'
             },
             layers: [
-                new TileLayer({
-                    properties: {
-                        title: 'Google Satellite & Roads',
-                        type: 'base',
-                    },
-                    zIndex: 1,
-                    source: new SourceXYZ({ url: 'http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' }),
-                }),
+                Layers.getArcGISSatelliteImageryLayer(),
                 new TileLayer({
                     properties: {
                         title: 'OpenStreetMap',
-                        type: 'base',
+                        type: 'base'
                     },
                     zIndex: 1,
                     source: new OSM(),
@@ -283,7 +281,7 @@ export default class JaiaMap {
     createHeadingLayer() {
         return new VectorLayer({
             properties: {
-                title: 'Heading'
+                title: 'Desired Heading'
             },
             source: this.botHeadingSource,
             zIndex: 11
@@ -533,14 +531,15 @@ export default class JaiaMap {
             }
 
             const botFeature = createBotFeature(properties)
-            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot))
+            botFeature.set('bot', bot)
+            Popup.addPopupHTML(this.map, botFeature, botPopupHTML(bot, properties))
 
             const courseOverGroundArrow = createBotCourseOverGroundFeature(properties)
-            const botHeadingArrow = createBotHeadingFeature(properties)
+            // const botHeadingArrow = createBotHeadingFeature(properties)
 
             this.botVectorSource.addFeature(botFeature)
             this.courseOverGroundSource.addFeature(courseOverGroundArrow)
-            this.botHeadingSource.addFeature(botHeadingArrow)
+            // this.botHeadingSource.addFeature(botHeadingArrow)
 
             if (properties.desiredHeading != null) {
                 const desiredHeadingArrow = createBotDesiredHeadingFeature(properties)
