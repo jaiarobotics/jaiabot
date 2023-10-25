@@ -22,3 +22,6 @@ arduino_version_table: {
     app_versions: "1.0.4"
     app_versions: "1.0.4~beta0"
 }
+
+# How long to wait until we report we are missing data
+arduino_report_timeout_seconds: 2  # (default = false)

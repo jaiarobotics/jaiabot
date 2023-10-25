@@ -104,9 +104,10 @@ export class Layers {
             fold: 'close',
         },
         layers: [
-            taskData.getContourLayer(),
             taskData.getDiveLayer(),
-            taskData.getDriftLayer()
+            taskData.getContourLayer(),
+            taskData.getDriftLayer(),
+            taskData.getDriftMapLayer()
         ]
     })
 

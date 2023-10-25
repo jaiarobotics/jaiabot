@@ -6,7 +6,6 @@ import string
 import os
 
 template_files = [
-    'jaiabot_log_converter.service.template',
     'jaiabot_data_vision.service.template'
 ]
 
