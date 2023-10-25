@@ -5,6 +5,7 @@ import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
+import { colorNameToHex } from './Color'
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -206,9 +207,7 @@ function getGoalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
-    taskType = taskType ?? TaskType.NONE
-    const src = getGoalSrc(taskType)
+function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     let nonActiveGoalColor: string
 
     if (canEdit) {
@@ -217,9 +216,17 @@ export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGo
         nonActiveGoalColor = isSelected ? selectedColor : defaultColor
     }
 
+    return isActiveGoal ? activeGoalColor : nonActiveGoalColor
+}
+
+export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    taskType = taskType ?? TaskType.NONE
+    const src = getGoalSrc(taskType)
+    const color = getGoalColor(isActiveGoal, isSelected, canEdit)
+
     return new Icon({
         src: src,
-        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
+        color: color,
         anchor: [0.5, 1],
     })
 }
@@ -266,7 +273,7 @@ export function getGoalStyle(feature: Feature<Point>) {
     const markerStyle = new Style({
         image: icon,
         stroke: new Stroke({
-            color: 'rgba(0, 0, 0, 0)',
+            color: 'black',
             width: 50
         }),
         text: new Text({
@@ -282,6 +289,8 @@ export function getGoalStyle(feature: Feature<Point>) {
 
     const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
+    const colorName = getGoalColor(isActive, isSelected, canEdit)
+    const color = colorNameToHex(colorName) ?? colorName
 
     const captureRadiusStyle = new Style({
         geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius),
@@ -297,16 +306,16 @@ export function getGoalStyle(feature: Feature<Point>) {
             const outerRadius = radius * 1.4;
 
             const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
-            gradient.addColorStop(0, 'rgba(0,128,0,0)');
-            gradient.addColorStop(0.6, 'rgba(0,128,0,0.2)');
-            gradient.addColorStop(1, 'rgba(0,128,0,0.8)');
+            gradient.addColorStop(0,   `${color}00`);
+            gradient.addColorStop(0.6, `${color}33`);
+            gradient.addColorStop(1,   `${color}cc`);
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
             ctx.fillStyle = gradient;
             ctx.fill();
 
             ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
-            ctx.strokeStyle = 'rgba(0,128,0,1)';
+            ctx.strokeStyle = color;
             ctx.stroke();
         }
     })
