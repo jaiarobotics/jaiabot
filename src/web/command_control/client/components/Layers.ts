@@ -86,7 +86,7 @@ export class Layers {
             title: 'Waypoint Capture Circles'
         },
         source: new VectorSource(),
-        visible: true,
+        visible: false,
         zIndex: 998
     })
 
