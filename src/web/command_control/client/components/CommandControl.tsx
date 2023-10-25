@@ -1820,31 +1820,42 @@ export default class CommandControl extends React.Component {
 	}
 
 	assignRallyPointsAfterDelete(rallyFeature: OlFeature) {
-		const rallyFeatures = layers.rallyPointLayer.getSource().getFeatures()
+		let rallyFeatures = layers.rallyPointLayer.getSource().getFeatures()
+		// Sort in ascending order
+		rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
 
 		// Check if deleted rally feature was start rally
 		if (rallyFeature.get('id') === this.state.startRally?.get('id')) {
-			this.setState({ startRally: null })
-			return
+			let newStartRally = null
+			if (rallyFeatures.length >= 2) {
+				// Assign start rally to lowest number (if end rally is the lowest, set start to the next highest)
+				newStartRally = (
+					rallyFeatures[0] === this.state.endRally ? rallyFeatures[1] : rallyFeatures[0]
+				)
+			}
+			this.setState({ startRally: newStartRally })
 		}
 
 		// Check if deleted rally feature was end rally
 		if (rallyFeature.get('id') === this.state.endRally?.get('id')) {
-			// Auto-assign end rally to be start rally + 1
-			if (!this.state.startRally) return
-
-			rallyFeatures.sort((a, b) => a.get('num') - b.get('num'))
-
+			let newEndRally = null
+			//  Find start rally, then make end rally equal to start rally + 1
 			for (let i = 0; i < rallyFeatures.length; i++) {
-				if (rallyFeatures[i].get('id') === this.state.startRally.get('id') && i + 1 < rallyFeatures.length) {
-					this.setState({ endRally: rallyFeatures[i + 1] })
+				if (rallyFeatures[i].get('id') === this.state?.startRally.get('id') && i + 1 < rallyFeatures.length) {
+					newEndRally = rallyFeatures[i + 1]
+					this.setState({ endRally: newEndRally })
 					return
 				}
 			}
-			// No rally numbers greater than the start rally
-			this.setState({ endRally: null })
-		}		
-		return
+
+			// If end rally was not set, then start rally is the highest rally point, so get one less
+			if (!newEndRally && rallyFeatures.length >= 2) {
+				newEndRally = rallyFeatures[rallyFeatures.length - 2]
+				this.setState({ endRally: newEndRally })
+			} else {
+				this.setState({ endRally: newEndRally })
+			}
+		}
 	}
 
 	setSelectedRallyPoint(rallyPoint: OlFeature<Geometry>, isStart: boolean) {
