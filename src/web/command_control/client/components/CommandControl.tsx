@@ -1212,6 +1212,7 @@ export default class CommandControl extends React.Component {
 				delete mission.botsAssignedToRuns[run.assigned]
 		}
 		mission.runIdIncrement = 1
+		mission.runIdInEditMode = ''
 
 		return true
 	}
