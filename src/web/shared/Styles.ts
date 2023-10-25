@@ -287,12 +287,30 @@ export function getGoalStyle(feature: Feature<Point>) {
         zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
 
+    return markerStyle
+}
+
+
+
+/**
+ * Gets the style to apply to the waypoint circle layer
+ * @date 10/25/2023 - 12:29:46 PM
+ *
+ * @export
+ * @param {Feature<Point>} feature The waypoint circle feature
+ */
+export function getWaypointCircleStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+
     const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
     const colorName = getGoalColor(isActive, isSelected, canEdit)
     const color = colorNameToHex(colorName) ?? colorName
 
-    const captureRadiusStyle = new Style({
+    return new Style({
         geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius),
         renderer(coordinates: Coordinate[], state) {
             const [[x, y], [x1, y1]] = coordinates
@@ -320,7 +338,6 @@ export function getGoalStyle(feature: Feature<Point>) {
         }
     })
 
-    return [ markerStyle, captureRadiusStyle ]
 }
 
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
