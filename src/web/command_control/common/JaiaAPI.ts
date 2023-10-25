@@ -2,8 +2,9 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
+import { GeoJSON } from 'ol/format';
 import { Command, Engineering, CommandForHub } from '../../shared/JAIAProtobuf';
-import { randomBase57 } from '../client/components/shared/Utilities';
+import { randomBase57, convertHTMLStrDateToISO } from '../client/components/shared/Utilities';
 
 export class JaiaAPI {
   clientId: string
@@ -73,24 +74,69 @@ export class JaiaAPI {
     return this.hit('GET', endpoint);
   }
 
-  getStatus() { return this.get('jaia/status') }
-
-  getTaskPackets() { 
-    const DAY = 86400000 // Milliseconds
-
-    // Get task packets from the previous 14-hour period
-    const endDate = Date.now()
-    const startDate = endDate - ((DAY /24) * 14)
-
-    const endDateString = new Date(endDate).toISOString()
-    const startDateString = new Date(startDate).toISOString()
-    
-    return this.get(`jaia/task-packets?startDate=${startDateString}&endDate=${endDateString}`) 
-  }
-
   getMetadata() { return this.get('jaia/metadata') }
 
-  getDepthContours() { return this.get('jaia/depth-contours') }
+  getStatus() { return this.get('jaia/status') }
+
+  /**
+   * 
+   * @param startDate yyyy-mm-dd hh:mm
+   * @param endDate yyyy-mm-dd hh:mm
+   * @returns Array of TaskPackets
+   */
+  getTaskPackets(startDate?: string, endDate?: string) { 
+    if (startDate && endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        const endDateStr = convertHTMLStrDateToISO(endDate)
+        return this.get(`jaia/task-packets?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else {
+        // Let server set default date values
+        return this.get(`jaia/task-packets`)
+    }
+  }
+
+  getTaskPacketsCount() {
+      return this.get(`jaia/task-packets-count`)
+  }
+
+  getDepthContours(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+        const startDateStr = convertHTMLStrDateToISO(startDate)
+        const endDateStr = convertHTMLStrDateToISO(endDate)
+      return this.get(`jaia/depth-contours?startDate=${startDateStr}&endDate=${endDateStr}`)
+    } else {
+      // Let server set default date values
+      return this.get(`jaia/depth-contours`)
+    }
+  }
+
+  /**
+   * Gets a GeoJSON object with interpolated drift features
+   * @date 10/5/2023 - 5:22:32 AM
+   *
+   * @returns {*} A GeoJSON feature set containing interpolated drift features
+   */
+  getDriftMap(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+      const startDateStr = convertHTMLStrDateToISO(startDate)
+      const endDateStr = convertHTMLStrDateToISO(endDate)
+      return (
+        this.get(`jaia/drift-map?startDate=${startDateStr}&endDate=${endDateStr}`).then((geoJSON) => {
+          const features = new GeoJSON().readFeatures(geoJSON)
+          console.log('driftMapFeatures', )
+          return features
+        })
+      )
+    } else {
+      // Let server set default date values
+      return (
+        this.get(`jaia/drift-map`).then((geoJSON) => {
+          const features = new GeoJSON().readFeatures(geoJSON)
+          return features
+        })
+      )
+    } 
+  }
 
   allStop() { return this.post('jaia/all-stop') }
 
@@ -117,9 +163,6 @@ export class JaiaAPI {
   postMissionFilesCreate(descriptor: any) {
     return this.post('missionfiles/create', descriptor)
   }
-
-  // Gets a JSON response containing a contour map's extent on the map
-  getContourMapBounds() { return this.get('jaia/contour-bounds') }
 }
 
 export const jaiaAPI = new JaiaAPI(randomBase57(22), '/', false)
