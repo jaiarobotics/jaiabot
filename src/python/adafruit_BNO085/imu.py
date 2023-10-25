@@ -11,6 +11,7 @@ from jaiabot.messages.imu_pb2 import IMUData
 import adafruit_bno08x
 from adafruit_bno08x.uart import BNO08X_UART
 import serial
+import time
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('imu')
@@ -35,7 +36,6 @@ class IMUReading:
     gravity: Vector3
     calibration_status: int
     quaternion: Quaternion
-
 
 class IMU:
     def setup(self):
@@ -69,7 +69,8 @@ class IMU:
         imu_data.gravity.y = reading.gravity.y
         imu_data.gravity.z = reading.gravity.z
 
-        imu_data.calibration_status = reading.calibration_status
+        if reading.calibration_status is not None:
+            imu_data.calibration_status = reading.calibration_status
 
         return imu_data
 
@@ -102,17 +103,15 @@ class Adafruit(IMU):
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GRAVITY)
 
                 self.is_setup = True
-            except RuntimeError as re:
-                log.warning("RuntimeError")
 
-            except IndexError as ie:
-                log.warning("IndexError")
+                # Set the duration for checking calibration
+                self.wait_to_check_cal_duration = 1
 
-            except KeyError as re:
-                log.warning("KeyError")
+                # Set the initial time for checking calibration
+                self.check_cal_time = time.time()
 
-            except AttributeError as ae:
-                log.warning("AttributeError")
+            except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                log.warning("Error trying to setup driver!")
             
 
     def takeReading(self):
@@ -124,9 +123,19 @@ class Adafruit(IMU):
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
-            calibration_status = self.sensor.calibration_status
+
+            if time.time() - self.check_cal_time >= self.wait_to_check_cal_duration:
+                logging.debug("Checking Calibration")
+                try:
+                    calibration_status = self.sensor.calibration_status
+                except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                    log.warning("Error trying to get calibration status!")
+                self.check_cal_time = time.time()  # Reset the start time
+            else:
+                logging.debug("Waiting To Check Calibration")
+                calibration_status = None
            
-            if None in quaternion or None in linear_acceleration or None in gravity or calibration_status == None:
+            if None in quaternion or None in linear_acceleration or None in gravity:
                 log.warning("We received None data in the takeReading function")
                 return None
 
@@ -156,20 +165,11 @@ class Adafruit(IMU):
 
         except OSError as e:
             self.is_setup = False
-            log.warning("OSError")
+            log.warning("OSError, retry setting up driver")
             raise e
-
-        except RuntimeError as re:
-            log.warning("RuntimeError")
         
-        except IndexError as ie:
-            log.warning("IndexError")
-
-        except KeyError as re:
-            log.warning("KeyError")
-
-        except AttributeError as ae:
-            log.warning("AttributeError")
+        except (RuntimeError, IndexError, KeyError, AttributeError) as error:
+                log.warning("Error trying to get data!")
     
 
 class Simulator(IMU):
