@@ -290,12 +290,12 @@ class LogApp extends React.Component {
         })
 
         // Get the drift interpolations
-        const getDriftInterpolationsPromise = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
+        const getDriftInterpolationsJob = LogApi.get_drift_interpolations(this.state.chosenLogs).then((geoJSON) => {
           this.map.updateWithDriftInterpolationGeoJSON(geoJSON)
         })
 
         this.startBusyIndicator()
-        Promise.all([getMapPromise, getCommandsPromise, getActiveGoalPromise, getTaskPacketsPromie, getDepthContoursPromise, getDriftInterpolationsPromise]).finally(() => {
+        Promise.all([getMapJob, getCommandsJob, getActiveGoalsJob, getTaskPacketsJob, getDepthContoursJob, getDriftInterpolationsJob]).finally(() => {
           this.stopBusyIndicator()
         })
 

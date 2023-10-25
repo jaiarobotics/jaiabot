@@ -161,7 +161,7 @@ def getInterpolatedDrifts():
     if log_names is None:
         return JSONErrorResponse("Missing log filename")
 
-    taskPackets = jaialogs.get_task_packet_dicts(log_names)
+    taskPackets = jaialogStore.getTaskPacketDicts(log_names)
     return Response(pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(taskPackets))
 
 
