@@ -171,16 +171,18 @@ class JaiaH5FileSet:
         return results
 
     def map(self):
+        BotStatus_bot_id_path = '/jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/bot_id'
         NodeStatus_lat_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lat'
         NodeStatus_lon_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/global_fix/lon'
         NodeStatus_heading_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/heading'
         NodeStatus_course_over_ground_path = 'goby::middleware::frontseat::node_status/goby.middleware.frontseat.protobuf.NodeStatus/pose/course_over_ground'
         DesiredSetpoints_heading_path = 'jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints/helm_course/heading'
 
-        seriesList = []
+        seriesDict: Dict[str, list] = {}
         desired_heading_series = Series()
 
         for log in self.h5Files:
+            bot_id_string = str(log[BotStatus_bot_id_path][0])
             lat_series = Series(log=log, path=NodeStatus_lat_path, invalid_values=[0])
             lon_series = Series(log=log, path=NodeStatus_lon_path, invalid_values=[0])
             heading_series = Series(log=log, path=NodeStatus_heading_path)
@@ -201,9 +203,12 @@ class JaiaH5FileSet:
                     most_recent_desired_heading
                 ])
 
-            seriesList.append(thisSeries)
+            if bot_id_string not in seriesDict:
+                seriesDict[bot_id_string] = []
 
-        return seriesList
+            seriesDict[bot_id_string].extend(thisSeries)
+
+        return seriesDict
 
     def activeGoals(self):
         # A dictionary mapping bot_id to an array of active_goal dictionaries
