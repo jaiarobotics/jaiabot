@@ -89,11 +89,11 @@ class Adafruit(IMU):
     def setup(self):
         if not self.is_setup:
             try:
-                log.warning('We are not setup: ')
+                log.warning('We are not setup')
 
                 self.sensor = BNO08X_UART(uart)
 
-                log.warning('Connected, now lets enable output: ')
+                log.warning('Connected, now lets enable output')
 
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_ACCELEROMETER)
                 self.sensor.enable_feature(adafruit_bno08x.BNO_REPORT_GYROSCOPE)
@@ -123,6 +123,7 @@ class Adafruit(IMU):
             quaternion = (quat_w, quat_x, quat_y, quat_z)
             linear_acceleration = self.sensor.linear_acceleration
             gravity = self.sensor.gravity
+            calibration_status = None
 
             if time.time() - self.check_cal_time >= self.wait_to_check_cal_duration:
                 logging.debug("Checking Calibration")
@@ -133,7 +134,6 @@ class Adafruit(IMU):
                 self.check_cal_time = time.time()  # Reset the start time
             else:
                 logging.debug("Waiting To Check Calibration")
-                calibration_status = None
            
             if None in quaternion or None in linear_acceleration or None in gravity:
                 log.warning("We received None data in the takeReading function")
