@@ -6,6 +6,7 @@ import MissionControllerPanel from './mission/MissionControllerPanel'
 import * as MissionFeatures from './shared/MissionFeatures'
 import RCControllerPanel from './RCControllerPanel'
 import EngineeringPanel from './EngineeringPanel'
+import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
@@ -30,7 +31,6 @@ import { LoadMissionPanel } from './LoadMissionPanel'
 import { SaveMissionPanel } from './SaveMissionPanel'
 import { GoalSettingsPanel } from './GoalSettings'
 import { Save, GlobalSettings } from './Settings'
-import { getGeographicCoordinate } from './shared/Utilities'
 import { MissionLibraryLocalStorage } from './MissionLibrary'
 import { playDisconnectReconnectSounds } from './DisconnectSound'
 import { error, success, warning, info } from '../libs/notifications'
@@ -39,8 +39,9 @@ import { PodStatus, PortalBotStatus, PortalHubStatus,  Metadata } from './shared
 import { divePacketIconStyle, driftPacketIconStyle, getRallyStyle } from './shared/Styles'
 import { createBotCourseOverGroundFeature, createBotHeadingFeature } from './shared/BotFeature'
 import { getSurveyMissionPlans, featuresFromMissionPlanningGrid, surveyStyle } from './SurveyMission'
-import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask } from './shared/JAIAProtobuf'
 import { BotDetailsComponent, HubDetailsComponent, DetailsExpandedState, BotDetailsProps, HubDetailsProps } from './Details'
+import { Goal, TaskType, GeographicCoordinate, CommandType, Command, Engineering, MissionTask, TaskPacket } from './shared/JAIAProtobuf'
+import { getGeographicCoordinate, deepcopy, equalValues, getMapCoordinate, getHTMLDateString, getHTMLTimeString } from './shared/Utilities'
 
 
 // OpenLayers
@@ -54,9 +55,9 @@ import { Interaction } from 'ol/interaction'
 import { boundingExtent } from 'ol/extent.js';
 import { Feature, MapBrowserEvent } from 'ol'
 import { getLength as OlGetLength } from 'ol/sphere'
-import { deepcopy, equalValues, getMapCoordinate } from './shared/Utilities'
 import { Geometry, LineString, LineString as OlLineString, Point } from 'ol/geom'
 import { Circle as OlCircleStyle, Fill as OlFillStyle, Stroke as OlStrokeStyle, Style as OlStyle } from 'ol/style'
+
 
 
 // TurfJS
@@ -71,14 +72,12 @@ import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortaw
 import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
+import { collapseTextChangeRangesAcrossMultipleVersions } from 'typescript'
 
 
 // Utility
 import cloneDeep from 'lodash.clonedeep'
 
-
-// Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
-const lessVars = require('!less-vars-loader?camelCase,resolveVariables!../style/CommandControl.less')
 const rallyIcon = require('./shared/rally.svg') as string
 
 // Sorry, map is a global because it really gets used from everywhere
@@ -197,6 +196,7 @@ interface State {
 	taskPacketData: {[key: string]: {[key: string]: string}},
 	selectedTaskPacketFeature: OlFeature,
 	taskPacketIntervalId: NodeJS.Timeout,
+	taskPacketsTimeline: {[key: string]: string | boolean},
 	isClusterModeOn: boolean
 
 	disconnectionMessage?: string,
@@ -232,6 +232,8 @@ export default class CommandControl extends React.Component {
 	hubLayers: HubLayers
 	oldPodStatus?: PodStatus
 	missionPlans?: CommandList = null
+	taskPackets: TaskPacket[]
+	taskPacketsCount: number
 	enabledEditStates: string[]
 	enabledDownloadStates: string[]
 	interactions: Interactions
@@ -344,6 +346,16 @@ export default class CommandControl extends React.Component {
 			taskPacketData: {},
 			selectedTaskPacketFeature: null,
 			taskPacketIntervalId: null,
+			taskPacketsTimeline: {
+				startDate: '', // yyyy-mm-dd
+				startTime: '', // hh:mm
+				endDate: '', // yyyy-mm-dd
+				endTime: '', // hh:mm
+				start: '', // yyyy-mm-dd hh:mm
+				end: '', // yyyy-mm-dd hh:mm
+				keepEndDateCurrent: true,
+				isEditing: false
+			},
 			isClusterModeOn: true,
 
 			viewportPadding: [
@@ -397,10 +409,11 @@ export default class CommandControl extends React.Component {
 			this.setState({ surveyExclusionCoords })
 		})
 
+		this.taskPackets = []
+		this.taskPacketsCount = 0
 		this.enabledEditStates = ['PRE_DEPLOYMENT', 'RECOVERY', 'STOPPED', 'POST_DEPLOYMENT', 'REMOTE_CONTROL']
 		this.enabledDownloadStates = ['PRE_DEPLOYMENT', 'STOPPED', 'POST_DEPLOYMENT']
 		this.flagNumber = 1
-
 	}
 
 	/**
@@ -428,6 +441,7 @@ export default class CommandControl extends React.Component {
 
 		this.timerID = setInterval(() => this.pollPodStatus(), 0)
 		this.metadataTimerID = setInterval(() => this.pollMetadata(), 0)
+		setInterval(() => this.pollTaskPackets(), 5000)
 
 		this.setupMapLayersPanel()
 
@@ -826,6 +840,34 @@ export default class CommandControl extends React.Component {
 		)
 	}
 
+	pollTaskPackets() {
+		this.setTaskPacketDates()
+		this.api.getTaskPacketsCount().then((count) => {
+			// TaskPackets to be displayed is different than current display
+			if (this.getTaskPacketsCount() !== count) {
+			  	this.setTaskPacketsCount(count)
+			
+				let end = ''
+
+				if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
+					end = this.state.taskPacketsTimeline.end as string
+				}
+				this.api.getTaskPackets(
+					this.state.taskPacketsTimeline.start as string, 
+					end
+				).then((taskPackets) => {
+					this.setTaskPackets(taskPackets)
+					taskData.updateTaskPacketsLayers(taskPackets)
+				}).catch((err) => {
+					console.error('Task Packets Retrieval Error:', err)
+		 		})
+			}
+		}).catch((err) => {
+			console.log('Task Packets Polling Error', err)
+		})
+		taskData.setTaskPacketsTimeline(this.state.taskPacketsTimeline)
+	}
+
 	getPodStatus() {
 		return this.state.podStatus
 	}
@@ -1171,6 +1213,7 @@ export default class CommandControl extends React.Component {
 				delete mission.botsAssignedToRuns[run.assigned]
 		}
 		mission.runIdIncrement = 1
+		mission.runIdInEditMode = ''
 
 		return true
 	}
@@ -1301,6 +1344,41 @@ export default class CommandControl extends React.Component {
 		return features
 	}
 
+	getWaypointFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
+		const features: OlFeature[] = []
+		let zIndex = 2
+
+		for (let key in missions?.runs) {
+			const run = missions?.runs[key]
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId) || run.id === missions.runIdInEditMode
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
+			const isEdit = this.getRunList().runIdInEditMode === run.id
+
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan) {
+				const runNumber = run.id.slice(4)
+
+				const newFeatures = (plan.goal ?? []).map((goal, goalIndex) => {
+					return new Feature({
+						geometry: new Point(getMapCoordinate(goal.location, map)),
+						goal: goal,
+						isActive: activeGoalIndex == goalIndex + 1,
+						isSelected: isSelected,
+						canEdit: isEdit,
+						zIndex: zIndex
+					})
+				})
+
+				features.push(...newFeatures)
+				zIndex += 1
+			}
+		}
+
+		return features
+	}
+
 	/**
 	 * Updates the mission layer
 	 * 
@@ -1313,10 +1391,14 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
-		const missionSource = layers.missionLayer.getSource()
+		const missionSource = layers.missionLayerSource
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
+
+		const waypointCircleSource = layers.waypointCircleLayer.getSource()
+		waypointCircleSource.clear()
+		waypointCircleSource.addFeatures(this.getWaypointFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
 	}
 
 	
@@ -1904,6 +1986,136 @@ export default class CommandControl extends React.Component {
 
 	setClusterModeStatus(isOn: boolean) {
 		this.setState({ isClusterModeOn: isOn })
+	}
+
+	handleTaskPacketEditDatesToggle() {
+		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
+		// Reset TaskPackets to default time gap
+		if (taskPacketsTimeline.isEditing) {
+			this.api.getTaskPackets().then((taskPackets) => {
+				this.setTaskPackets(taskPackets)
+				taskData.updateTaskPacketsLayers(taskPackets)
+			}).catch((err) => {
+				console.error('Task Packets Retrieval Error:', err)
+			})
+		}
+
+		taskPacketsTimeline.isEditing = !this.state.taskPacketsTimeline.isEditing
+		this.setState({ taskPacketsTimeline })
+	}
+
+	handleTaskPacketsTimelineChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
+		switch(evt.target.id) {
+			case 'task-packet-start-date':
+				taskPacketsTimeline.startDate = evt.target.value
+                break
+            case 'task-packet-start-time':
+				taskPacketsTimeline.startTime = evt.target.value
+                break
+            case 'task-packet-end-date':
+				taskPacketsTimeline.endDate = evt.target.value
+                break
+            case 'task-packet-end-time':
+				taskPacketsTimeline.endTime = evt.target.value
+                break
+        }
+		this.setState({ taskPacketsTimeline })
+    }
+
+	handleSubmitTaskPacketsTimeline() {
+		if (this.isTaskPacketsSendBtnDisabled()) {
+			warning('Start date cannot be ahead of end date')
+			return
+		}
+		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
+		taskPacketsTimeline.start = (
+			`${taskPacketsTimeline.startDate} ${taskPacketsTimeline.startTime}` // yyyy-mm-dd
+		)
+		taskPacketsTimeline.end = (
+			`${taskPacketsTimeline.endDate} ${taskPacketsTimeline.endTime}` // yyyy-mm-dd
+		)
+
+		let end = ''
+
+		if (!this.state.taskPacketsTimeline.keepEndDateCurrent) {
+			end = this.state.taskPacketsTimeline.end as string
+		}
+
+		this.api.getTaskPackets(
+			taskPacketsTimeline.start as string,
+			end
+		).then((taskPackets) => {
+			this.setTaskPackets(taskPackets)
+			taskData.updateTaskPacketsLayers(taskPackets)
+			success('Getting Task Packets...')
+		}).catch((err) => {
+			console.error('Task Packets Timeline Submission Error:', err)
+		 })
+
+		this.setState({ taskPacketsTimeline })
+	}
+
+	handleKeepEndDateCurrentToggle() {
+		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
+		taskPacketsTimeline.keepEndDateCurrent = !this.state.taskPacketsTimeline.keepEndDateCurrent
+		this.setState({ taskPacketsTimeline })
+	}
+
+	isTaskPacketsSendBtnDisabled() {
+		// Check that start date/time is not ahead of end date/time
+		const taskPacketsTimeline = this.state.taskPacketsTimeline
+		if (
+			(taskPacketsTimeline.startTime > taskPacketsTimeline.endTime 
+			&& taskPacketsTimeline.startDate >= taskPacketsTimeline.endDate)
+			|| taskPacketsTimeline.startDate > taskPacketsTimeline.endDate
+			|| (taskPacketsTimeline.startDate === '' || taskPacketsTimeline.startTime === '')
+		) {
+			return true
+		}
+		return false
+    }
+
+	getTaskPackets() {
+		return this.taskPackets
+	}
+
+	setTaskPackets(taskPackets: TaskPacket[]) {
+		this.taskPackets = taskPackets
+	}
+
+	getTaskPacketsCount() {
+		return this.taskPacketsCount
+	}
+
+	setTaskPacketsCount(count: number) {
+		this.taskPacketsCount = count
+	}
+
+	setTaskPacketDates() {
+		let taskPacketsTimeline = {...this.state.taskPacketsTimeline}
+		
+		// Operator does not want the dates they set to change
+		if (taskPacketsTimeline.isEditing && !taskPacketsTimeline.keepEndDateCurrent) {
+			return
+		}
+
+		// Operator wants end date to stay current
+		const endDate = new Date()
+		taskPacketsTimeline.endDate = getHTMLDateString(endDate)
+		taskPacketsTimeline.endTime = getHTMLTimeString(endDate)
+
+		// Operator wants start date to maintain the default gap with end date
+		if (!taskPacketsTimeline.isEditing) {
+			let startDate = new Date()
+			const defaultTimeGap = 14
+			startDate.setHours(endDate.getHours() - defaultTimeGap)
+			taskPacketsTimeline.startDate = getHTMLDateString(startDate)
+			taskPacketsTimeline.startTime = getHTMLTimeString(startDate)
+			taskPacketsTimeline.start = `${taskPacketsTimeline.startDate} ${taskPacketsTimeline.startTime}`
+		}
+
+		this.setState({ taskPacketsTimeline })
 	}
 	// 
 	// Task Packets (End)
@@ -2589,7 +2801,7 @@ export default class CommandControl extends React.Component {
 			trackingTarget,
 			goalBeingEdited
 		} = this.state;
-		
+
 		// Are we currently in control of the bots?
 		const containerClasses = this.weAreInControl() ? 'controlling' : 'noncontrolling'
 
@@ -2907,7 +3119,7 @@ export default class CommandControl extends React.Component {
 
 			case PanelType.MAP_LAYERS:
 				visiblePanelElement = (
-					<div id="mapLayers" />
+					<MapLayersPanel />
 				)
 				break
 
@@ -2969,7 +3181,13 @@ export default class CommandControl extends React.Component {
 			case PanelType.SETTINGS:
 				visiblePanelElement = (
 					<SettingsPanel
+						taskPacketsTimeline={this.state.taskPacketsTimeline}
 						isClusterModeOn={this.state.isClusterModeOn}
+						handleTaskPacketEditDatesToggle={this.handleTaskPacketEditDatesToggle.bind(this)}
+						handleTaskPacketsTimelineChange={this.handleTaskPacketsTimelineChange.bind(this)}
+						handleSubmitTaskPacketsTimeline={this.handleSubmitTaskPacketsTimeline.bind(this)}
+						handleKeepEndDateCurrentToggle={this.handleKeepEndDateCurrentToggle.bind(this)}
+						isTaskPacketsSendBtnDisabled={this.isTaskPacketsSendBtnDisabled.bind(this)}
 						setClusterModeStatus={this.setClusterModeStatus.bind(this)}
 					/>
 				)
