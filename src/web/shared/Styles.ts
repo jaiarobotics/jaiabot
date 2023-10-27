@@ -305,38 +305,52 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
     const isSelected = feature.get('isSelected') as boolean
     const canEdit = feature.get('canEdit') as boolean
 
+    //The reason we need to divide by the cosine of the latitude is because the map is using a Mercator projection, (with units in meters at the equator)
     const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
+    const centerCoordinate = feature.getGeometry().getCoordinates()
     const colorName = getGoalColor(isActive, isSelected, canEdit)
-    const color = colorNameToHex(colorName) ?? colorName
+    const colorMain = colorNameToHex(colorName) ?? colorName
+    const colorBorder = colorNameToHex('black')
 
-    return new Style({
-        geometry: new Circle(feature.getGeometry().getCoordinates(), captureRadius),
-        renderer(coordinates: Coordinate[], state) {
-            const [[x, y], [x1, y1]] = coordinates
-            const dx = x1 - x;
-            const dy = y1 - y;
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
 
-            const ctx = state.context;
-            const radius = Math.sqrt(dx * dx + dy * dy);
+                const ctx = state.context;
+                const radius = Math.sqrt(dx * dx + dy * dy);
+                
+                if (addInnerGradientColor)
+                {
+                    const innerRadius = 0;
+                    const outerRadius = radius * 1.4;
 
-            const innerRadius = 0;
-            const outerRadius = radius * 1.4;
+                    const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
+                    gradient.addColorStop(0,   `${color}00`);
+                    gradient.addColorStop(0.6, `${color}33`);
+                    gradient.addColorStop(1,   `${color}cc`);
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+                
+                ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        })
+    }
 
-            const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
-            gradient.addColorStop(0,   `${color}00`);
-            gradient.addColorStop(0.6, `${color}33`);
-            gradient.addColorStop(1,   `${color}cc`);
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
-            ctx.fillStyle = gradient;
-            ctx.fill();
+    const mainRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorMain, 5, true)
+    const borderRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorBorder, 1, false)
 
-            ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
-            ctx.strokeStyle = color;
-            ctx.stroke();
-        }
-    })
+    return [ mainRadiusStyle, borderRadiusStyle ]
 
 }
 
