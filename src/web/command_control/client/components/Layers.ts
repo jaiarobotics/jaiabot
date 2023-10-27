@@ -6,6 +6,7 @@ import { createBaseLayerGroup } from './BaseLayers';
 import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
+import * as Styles from './shared/Styles'
 
 
 export class Layers {
@@ -76,6 +77,16 @@ export class Layers {
         zIndex: 998
     })
 
+
+    hubCommsLimitCirclesLayer = new VectorLayer({
+        properties: {
+            title: 'Hub Comms Limit Circles'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 500
+    })
+
     
     /**
      * Layer group for mission-related layers
@@ -91,7 +102,8 @@ export class Layers {
             this.rallyPointLayer,
             this.missionPlanningLayer,
             this.courseOverGroundLayer,
-            this.headingLayer
+            this.headingLayer,
+            this.hubCommsLimitCirclesLayer
         ]
     })
     
@@ -140,6 +152,10 @@ export class Layers {
             this.missionLayerGroup,
             this.dragAndDropVectorLayer,
         ]
+    }
+
+    constructor() {
+        this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
     }
 }
 

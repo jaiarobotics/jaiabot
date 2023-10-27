@@ -9,7 +9,7 @@ import EngineeringPanel from './EngineeringPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import { layers } from './Layers'
+import { Layers, layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
@@ -462,6 +462,7 @@ export default class CommandControl extends React.Component {
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
+				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
 				this.updateBotCourseOverGroundLayer()
 				this.updateBotHeadingLayer()
@@ -1316,6 +1317,24 @@ export default class CommandControl extends React.Component {
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
+	}
+
+	
+	/**
+	 * Updates the circles denoting the comms limit for each hub
+	 * @date 10/27/2023 - 7:48:35 AM
+	 */
+	updateHubCommsCircles() {
+		const hubs = Object.values(this.state.podStatus.hubs)
+		const source = layers.hubCommsLimitCirclesLayer.getSource()
+		const features = hubs.map((hub) => {
+			const feature = new Feature(new Point(getMapCoordinate(hub.location, map)))
+			feature.set('hub', hub)
+			return feature
+		})
+
+		source.clear()
+		source.addFeatures(features)
 	}
 
 	/**

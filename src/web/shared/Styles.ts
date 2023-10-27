@@ -123,7 +123,6 @@ export function botMarker(feature: Feature): Style[] {
 
 export function hubMarker(feature: Feature<Point>): Style[] {
     const hub = feature.get('hub') as HubStatus
-    const geometry = feature.getGeometry() as Point
 
     const textOffsetRadius = 11
 
@@ -155,6 +154,25 @@ export function hubMarker(feature: Feature<Point>): Style[] {
             })
         })
 
+    return [ markerStyle ]
+}
+
+
+
+/**
+ * The style for the circles showing the comms limit radii for hubs
+ * @date 10/27/2023 - 7:36:33 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature Point feature of a hub
+ */
+export function hubCommsCircleStyle(feature: Feature<Point>) {
+    const hub = feature.get('hub') as HubStatus
+    if (hub == null) {
+        console.warn("Feature doesn't have hub property")
+        return
+    }
+
     const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
     const center = feature.getGeometry().getCoordinates()
 
@@ -185,7 +203,7 @@ export function hubMarker(feature: Feature<Point>): Style[] {
     const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
     const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
         
-    return [ markerStyle, commsInnerRadiusStyle, commsOuterRadiusStyle ]
+    return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
