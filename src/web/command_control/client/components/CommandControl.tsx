@@ -1343,6 +1343,41 @@ export default class CommandControl extends React.Component {
 		return features
 	}
 
+	getWaypointFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
+		const features: OlFeature[] = []
+		let zIndex = 2
+
+		for (let key in missions?.runs) {
+			const run = missions?.runs[key]
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId) || run.id === missions.runIdInEditMode
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
+			const isEdit = this.getRunList().runIdInEditMode === run.id
+
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan) {
+				const runNumber = run.id.slice(4)
+
+				const newFeatures = (plan.goal ?? []).map((goal, goalIndex) => {
+					return new Feature({
+						geometry: new Point(getMapCoordinate(goal.location, map)),
+						goal: goal,
+						isActive: activeGoalIndex == goalIndex + 1,
+						isSelected: isSelected,
+						canEdit: isEdit,
+						zIndex: zIndex
+					})
+				})
+
+				features.push(...newFeatures)
+				zIndex += 1
+			}
+		}
+
+		return features
+	}
+
 	/**
 	 * Updates the mission layer
 	 * 
@@ -1355,10 +1390,14 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
-		const missionSource = layers.missionLayer.getSource()
+		const missionSource = layers.missionLayerSource
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
+
+		const waypointCircleSource = layers.waypointCircleLayer.getSource()
+		waypointCircleSource.clear()
+		waypointCircleSource.addFeatures(this.getWaypointFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
 	}
 
 	/**

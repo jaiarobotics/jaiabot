@@ -6,9 +6,13 @@ import { createBaseLayerGroup } from './BaseLayers';
 import { Graticule } from 'ol';
 import { taskData } from './TaskPackets';
 import * as Style from 'ol/style';
+import * as Styles from './shared/Styles'
 
 
 export class Layers {
+
+    missionLayerSource = new VectorSource()
+
     /**
      * Layer for missions
      */
@@ -16,7 +20,7 @@ export class Layers {
         properties: {
             title: 'Missions',
         },
-        source: new VectorSource(),
+        source: this.missionLayerSource,
         zIndex: 2001
     })
 
@@ -77,6 +81,16 @@ export class Layers {
     })
 
     
+    waypointCircleLayer = new VectorLayer({
+        properties: {
+            title: 'Waypoint Capture Circles'
+        },
+        source: new VectorSource(),
+        visible: false,
+        zIndex: 998
+    })
+
+    
     /**
      * Layer group for mission-related layers
      */
@@ -91,7 +105,8 @@ export class Layers {
             this.rallyPointLayer,
             this.missionPlanningLayer,
             this.courseOverGroundLayer,
-            this.headingLayer
+            this.headingLayer,
+            this.waypointCircleLayer
         ]
     })
     
@@ -130,6 +145,11 @@ export class Layers {
     dragAndDropVectorLayer = new VectorLayer()
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
+
+    constructor() {
+        // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
+        this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
+    }
 
     getAllLayers() {
         return [
