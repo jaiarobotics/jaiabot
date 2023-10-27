@@ -116,7 +116,7 @@ export class Layers {
             this.missionPlanningLayer,
             this.courseOverGroundLayer,
             this.headingLayer,
-            this.hubCommsLimitCirclesLayer
+            this.hubCommsLimitCirclesLayer,
             this.waypointCircleLayer
         ]
     })
@@ -157,11 +157,6 @@ export class Layers {
     baseLayerGroup = createBaseLayerGroup()
     chartLayerGroup = createChartLayerGroup()
 
-    constructor() {
-        // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
-        this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
-    }
-
     getAllLayers() {
         return [
             this.baseLayerGroup,
@@ -174,6 +169,8 @@ export class Layers {
     }
 
     constructor() {
+        // We need to use setStyle in the constructor, because for some reason OpenLayers doesn't obey styles set in layer constructors
+        this.waypointCircleLayer.setStyle(Styles.getWaypointCircleStyle)
         this.hubCommsLimitCirclesLayer.setStyle(Styles.hubCommsCircleStyle)
     }
 }

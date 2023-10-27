@@ -174,12 +174,12 @@ export function hubCommsCircleStyle(feature: Feature<Point>) {
         console.warn("Feature doesn't have hub property")
         return
     }
-
-    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
     const center = feature.getGeometry().getCoordinates()
 
-    // In meters, scaled by latitude factor
-    const commsInnerRadius = 300.0 / latitudeCoefficient
+    // The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const commsInnerRadius = 250.0 / latitudeCoefficient
     const commsOuterRadius = 500.0 / latitudeCoefficient
 
     function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
@@ -353,7 +353,8 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
     const isSelected = feature.get('isSelected') as boolean
     const canEdit = feature.get('canEdit') as boolean
 
-    //The reason we need to divide by the cosine of the latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    //The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
     const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
     const centerCoordinate = feature.getGeometry().getCoordinates()
