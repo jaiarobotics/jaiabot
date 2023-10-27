@@ -10,7 +10,7 @@ import MapLayersPanel from './MapLayersPanel'
 import DownloadQueue from './DownloadQueue'
 import RunInfoPanel from './RunInfoPanel'
 import JaiaAbout from './JaiaAbout'
-import { layers } from './Layers'
+import { Layers, layers } from './Layers'
 import { jaiaAPI } from '../../common/JaiaAPI'
 import { Missions } from './Missions'
 import { taskData } from './TaskPackets'
@@ -478,6 +478,7 @@ export default class CommandControl extends React.Component {
 			prevState.selectedHubOrBot !== this.state.selectedHubOrBot) {
 				this.hubLayers.update(this.state.podStatus.hubs, this.state.selectedHubOrBot)
 				this.botLayers.update(this.state.podStatus.bots, this.state.selectedHubOrBot)
+				this.updateHubCommsCircles()
 				this.updateActiveMissionLayer()
 				this.updateBotCourseOverGroundLayer()
 				this.updateBotHeadingLayer()
@@ -1345,6 +1346,41 @@ export default class CommandControl extends React.Component {
 		return features
 	}
 
+	getWaypointFeatures(missions: MissionInterface, podStatus?: PodStatus, selectedBotId?: number) {
+		const features: OlFeature[] = []
+		let zIndex = 2
+
+		for (let key in missions?.runs) {
+			const run = missions?.runs[key]
+			const assignedBot = run.assigned
+			const isSelected = (assignedBot === selectedBotId) || run.id === missions.runIdInEditMode
+			const activeGoalIndex = podStatus?.bots?.[assignedBot]?.active_goal
+			const isEdit = this.getRunList().runIdInEditMode === run.id
+
+			// Add our goals
+			const plan = run.command?.plan
+			if (plan) {
+				const runNumber = run.id.slice(4)
+
+				const newFeatures = (plan.goal ?? []).map((goal, goalIndex) => {
+					return new Feature({
+						geometry: new Point(getMapCoordinate(goal.location, map)),
+						goal: goal,
+						isActive: activeGoalIndex == goalIndex + 1,
+						isSelected: isSelected,
+						canEdit: isEdit,
+						zIndex: zIndex
+					})
+				})
+
+				features.push(...newFeatures)
+				zIndex += 1
+			}
+		}
+
+		return features
+	}
+
 	/**
 	 * Updates the mission layer
 	 * 
@@ -1357,10 +1393,32 @@ export default class CommandControl extends React.Component {
 	 * layers.missionLayer features
 	 */
 	updateMissionLayer() {
-		const missionSource = layers.missionLayer.getSource()
+		const missionSource = layers.missionLayerSource
 		const missionFeatures = this.getMissionFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId())
 		missionSource.clear()
 		missionSource.addFeatures(missionFeatures)
+
+		const waypointCircleSource = layers.waypointCircleLayer.getSource()
+		waypointCircleSource.clear()
+		waypointCircleSource.addFeatures(this.getWaypointFeatures(this.getRunList(), this.getPodStatus(), this.selectedBotId()))
+	}
+
+	
+	/**
+	 * Updates the circles denoting the comms limit for each hub
+	 * @date 10/27/2023 - 7:48:35 AM
+	 */
+	updateHubCommsCircles() {
+		const hubs = Object.values(this.state.podStatus.hubs)
+		const source = layers.hubCommsLimitCirclesLayer.getSource()
+		const features = hubs.map((hub) => {
+			const feature = new Feature(new Point(getMapCoordinate(hub.location, map)))
+			feature.set('hub', hub)
+			return feature
+		})
+
+		source.clear()
+		source.addFeatures(features)
 	}
 
 	/**

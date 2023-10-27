@@ -1,9 +1,11 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
-import { Goal, TaskType } from './JAIAProtobuf'
-import { LineString, Point } from 'ol/geom';
-import { Fill, Icon, Style, Text} from 'ol/style';
+import { Goal, HubStatus, TaskType } from './JAIAProtobuf'
+import { LineString, Point, Circle } from 'ol/geom';
+import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
+import { Coordinate } from 'ol/coordinate';
 import { PortalBotStatus } from './PortalStatus';
+import { colorNameToHex } from './Color'
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require('./driftMapIcon.svg') as string
@@ -121,8 +123,8 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
-export function hubMarker(feature: Feature): Style[] {
-    const geometry = feature.getGeometry() as Point
+export function hubMarker(feature: Feature<Point>): Style[] {
+    const hub = feature.get('hub') as HubStatus
 
     const textOffsetRadius = 11
 
@@ -134,7 +136,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const text = "HUB"
 
-    var style = [ 
+    var markerStyle = 
         // Hub body marker
         new Style({
             image: new Icon({
@@ -153,9 +155,57 @@ export function hubMarker(feature: Feature): Style[] {
                 offsetY: textOffsetRadius
             })
         })
-    ]
 
-    return style
+    return [ markerStyle ]
+}
+
+
+
+/**
+ * The style for the circles showing the comms limit radii for hubs
+ * @date 10/27/2023 - 7:36:33 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature Point feature of a hub
+ */
+export function hubCommsCircleStyle(feature: Feature<Point>) {
+    const hub = feature.get('hub') as HubStatus
+    if (hub == null) {
+        console.warn("Feature doesn't have hub property")
+        return
+    }
+    const center = feature.getGeometry().getCoordinates()
+
+    // The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const commsInnerRadius = 250.0 / latitudeCoefficient
+    const commsOuterRadius = 500.0 / latitudeCoefficient
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+                const screenRadius = Math.sqrt(dx * dx + dy * dy)
+
+                const ctx = state.context
+
+                ctx.beginPath()
+                ctx.arc(x, y, screenRadius, 0, 2 * Math.PI, true)
+                ctx.strokeStyle = color
+                ctx.lineWidth = lineWidth
+                ctx.stroke()
+            }
+        })
+    }
+
+    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
+        
+    return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
@@ -205,9 +255,7 @@ function getGoalSrc(taskType: TaskType | null) {
     return srcMap[taskType ?? 'NONE'] ?? taskNone
 }
 
-export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
-    taskType = taskType ?? TaskType.NONE
-    const src = getGoalSrc(taskType)
+function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
     let nonActiveGoalColor: string
 
     if (canEdit) {
@@ -216,9 +264,17 @@ export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGo
         nonActiveGoalColor = isSelected ? selectedColor : defaultColor
     }
 
+    return isActiveGoal ? activeGoalColor : nonActiveGoalColor
+}
+
+export function createGoalIcon(taskType: TaskType | null | undefined, isActiveGoal: boolean, isSelected: boolean, canEdit: boolean) {
+    taskType = taskType ?? TaskType.NONE
+    const src = getGoalSrc(taskType)
+    const color = getGoalColor(isActiveGoal, isSelected, canEdit)
+
     return new Icon({
         src: src,
-        color: isActiveGoal ? activeGoalColor : nonActiveGoalColor,
+        color: color,
         anchor: [0.5, 1],
     })
 }
@@ -243,13 +299,29 @@ function createRallyIcon() {
     })
 }
 
-export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, isSelected: boolean, canEdit: boolean, zIndex?: number) {
+
+/**
+ * Goal / Waypoint map style function
+ * @date 10/23/2023 - 8:58:49 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature
+ * @returns {{}} Style(s) for the feature
+ */
+export function getGoalStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+    const goalIndex = feature.get('goalIndex') as number
+    const zIndex = feature.get('zIndex') as number
+
     let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit)
 
-    return new Style({
+    const markerStyle = new Style({
         image: icon,
         stroke: new Stroke({
-            color: 'rgba(0, 0, 0, 0)',
+            color: 'black',
             width: 50
         }),
         text: new Text({
@@ -262,6 +334,73 @@ export function getGoalStyle(goalIndex: number, goal: Goal, isActive: boolean, i
         }),
         zIndex: isSelected ? SELECTED_Z_INDEX : zIndex
     })
+
+    return markerStyle
+}
+
+
+
+/**
+ * Gets the style to apply to the waypoint circle layer
+ * @date 10/25/2023 - 12:29:46 PM
+ *
+ * @export
+ * @param {Feature<Point>} feature The waypoint circle feature
+ */
+export function getWaypointCircleStyle(feature: Feature<Point>) {
+    const goal = feature.get('goal') as Goal
+    const isActive = feature.get('isActive') as boolean
+    const isSelected = feature.get('isSelected') as boolean
+    const canEdit = feature.get('canEdit') as boolean
+
+    //The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
+    const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
+    const centerCoordinate = feature.getGeometry().getCoordinates()
+    const colorName = getGoalColor(isActive, isSelected, canEdit)
+    const colorMain = colorNameToHex(colorName) ?? colorName
+    const colorBorder = colorNameToHex('black')
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number, addInnerGradientColor: boolean) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+
+                const ctx = state.context;
+                const radius = Math.sqrt(dx * dx + dy * dy);
+                
+                if (addInnerGradientColor)
+                {
+                    const innerRadius = 0;
+                    const outerRadius = radius * 1.4;
+
+                    const gradient = ctx.createRadialGradient(x,y,innerRadius,x,y,outerRadius);
+                    gradient.addColorStop(0,   `${color}00`);
+                    gradient.addColorStop(0.6, `${color}33`);
+                    gradient.addColorStop(1,   `${color}cc`);
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+                
+                ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        })
+    }
+
+    const mainRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorMain, 5, true)
+    const borderRadiusStyle = getCircleStyle(centerCoordinate, captureRadius, colorBorder, 1, false)
+
+    return [ mainRadiusStyle, borderRadiusStyle ]
+
 }
 
 export function getFlagStyle(goal: Goal, isSelected: boolean, runNumber: string, zIndex: number, canEdit: boolean) {
