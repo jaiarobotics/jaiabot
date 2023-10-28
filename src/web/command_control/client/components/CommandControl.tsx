@@ -75,6 +75,7 @@ import '../style/CommandControl.less'
 
 // Utility
 import cloneDeep from 'lodash.clonedeep'
+import { HelpWindow } from './HelpWindow'
 
 
 // Must prefix less-vars-loader with ! to disable less-loader, otherwise less-vars-loader will get JS (less-loader output) as input instead of the less
@@ -2821,7 +2822,7 @@ export default class CommandControl extends React.Component {
 				this.setVisiblePanel(PanelType.ENGINEERING)
 			}} 
 			>
-				<FontAwesomeIcon icon={faWrench as any} title="Engineering Panel" />
+				<FontAwesomeIcon icon={faWrench} title="Engineering Panel" />
 			</Button>
 		))
 
@@ -3004,6 +3005,8 @@ export default class CommandControl extends React.Component {
 				{this.state.saveMissionPanel}
 
 				{this.disconnectionPanel()}
+
+				{HelpWindow()}
 				
 			</div>
 		)
