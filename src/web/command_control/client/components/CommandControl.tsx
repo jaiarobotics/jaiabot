@@ -347,7 +347,7 @@ export default class CommandControl extends React.Component {
 			selectedTaskPacketFeature: null,
 			taskPacketIntervalId: null,
 			isClusterModeOn: true,
-			isHelpWindowDisplayed: true,
+			isHelpWindowDisplayed: false,
 
 			viewportPadding: [
 				viewportDefaultPadding,
