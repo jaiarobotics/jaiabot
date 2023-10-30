@@ -41,29 +41,29 @@ target_link_libraries(jaiabot_messages_c protobuf-nanopb)
 project_install_lib(jaiabot_messages_c)
 
 
-function(check_dccl_md5_hash DCCL_NAME EXPECTED_MD5)
+function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(
         TARGET jaiabot_messages
         POST_BUILD
         COMMAND ${CMAKE_COMMAND}
         -D "DCCL_NAME=${DCCL_NAME}"
-        -D "EXPECTED_MD5=${EXPECTED_MD5}"
+        -D "EXPECTED_HASH=${EXPECTED_HASH}"
         -D "MESSAGES_LIB_PATH=$<TARGET_FILE:jaiabot_messages>"
-        -P "${CMAKE_SOURCE_DIR}/cmake/CheckDCCLMD5.cmake"
+        -P "${CMAKE_SOURCE_DIR}/cmake/CheckDCCLHASH.cmake"
     )
 endfunction()
 
 
 if(NOT CMAKE_CROSSCOMPILING)
-  # This list of all DCCL messages used on intervehicle comms with the latest MD5 hash of "dccl -a" is simply
+  # This list of all DCCL messages used on intervehicle comms with the latest hash ("dccl -a -H") is simply
   # to ensure that CMake checks that we don't accidentally change the DCCL message without updating PROJECT_INTERVEHICLE_API_VERSION if necessary.
 
   # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/CMakeLists.txt
-  # and update the hash here (dccl -l build/amd64/lib/libjaiabot_messages.so -a -m jaiabot.protobuf.BotStatus | md5sum)
+  # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "6f7bbe0c3dea4d261f2cbb9b63ddc7ea")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "c8b646292cf17c2dfb01cc345f1225c2")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "2e7b4a319da87c4c88d77046577941d9")
-  check_dccl_md5_hash("jaiabot.protobuf.Engineering" "c93eae42a168631b4a48f823294befe7")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xa4c59b51198ad564")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x72e30e5222062eee")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xea3df089a5e217d3")
+  check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0xa22f385d06f0177e")
 endif()
