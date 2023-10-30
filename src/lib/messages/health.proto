@@ -114,9 +114,11 @@ enum Error
     ERROR__VEHICLE__CRITICALLY_LOW_BATTERY = 601;
     ERROR__VEHICLE__MISSING_DATA_BATTERY = 602;
 
+    // arduino driver
     ERROR__VERSION__MISMATCH_ARDUINO = 700;
-    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB = 701; // INTERVEHICLE_API_VERSION_mismatch - hub version < bot_version
-    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT = 702; // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
+    ERROR__MISSION_DATA__ARDUINO_REPORT = 701;
+    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB = 702; // INTERVEHICLE_API_VERSION_mismatch - hub version < bot_version
+    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT = 703; // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
 }
 
 enum Warning
@@ -344,35 +346,6 @@ message HelmIVPStatus
     optional bool helm_ivp_desired_heading = 3 [default = false];
     optional bool helm_ivp_desired_depth = 4 [default = false];
     optional bool helm_ivp_data = 5 [default = false];
-}
-
-message ArduinoStatus
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-    optional sint32 code = 1 [default = 1];
-    optional float thermocouple_temperature = 2 [(dccl.field) = {
-        units { derived_dimensions: "temperature" system: "celsius" }
-    }];
-
-    optional float vccvoltage = 3 [
-        default = 0,
-        (dccl.field) = {
-            units { derived_dimensions: "electric_potential" system: "si" }
-        }
-    ];
-    optional float vcccurrent = 4 [
-        default = 0,
-        (dccl.field) = { units { derived_dimensions: "current" } }
-    ];
-    optional float vvcurrent = 5 [
-        default = 0,
-        (dccl.field) = { units { derived_dimensions: "current" } }
-    ];
-
-    optional uint32 crc = 50;
-    optional uint32 calculated_crc = 51;
 }
 
 message ThreadHealth

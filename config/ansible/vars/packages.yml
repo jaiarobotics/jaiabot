@@ -2,7 +2,6 @@ jaiabot_packages:
   - jaiabot-apps
   - jaiabot-arduino
   - jaiabot-config
-  - jaiabot-data-vision
   - jaiabot-embedded
   - jaiabot-python
   - jaiabot-web

@@ -88,6 +88,7 @@ constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
 // Arduino
 constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
 constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
+constexpr goby::middleware::Group arduino_debug{"jaiabot::arduino_debug"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
