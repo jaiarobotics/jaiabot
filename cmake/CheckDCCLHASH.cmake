@@ -15,5 +15,5 @@ string(REGEX REPLACE "\n$" "" OUTPUT_HASH "${OUTPUT_HASH}")
 
 # Check if the computed hash matches the expected hash
 if (NOT OUTPUT_HASH STREQUAL EXPECTED_HASH)
-  message(FATAL_ERROR "DCCL hash mismatch for message ${DCCL_NAME}! Expected: ${EXPECTED_HASH}, Got: ${OUTPUT_HASH}. Please update PROJECT_INTERVEHICLE_API_VERSION in jaiabot/CMakeLists.txt and expected hash in jaiabot/src/lib/messages/CMakeLists.txt ")
+  message(FATAL_ERROR "DCCL hash mismatch for message ${DCCL_NAME}! Expected: ${EXPECTED_HASH}, Got: ${OUTPUT_HASH}. Please update PROJECT_INTERVEHICLE_API_VERSION in jaiabot/CMakeLists.txt and expected hash in jaiabot/src/lib/messages/CMakeLists.txt. (Debug: Error: ${ERROR}; Result: ${RESULT}")
 endif()
