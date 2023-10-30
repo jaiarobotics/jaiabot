@@ -9,7 +9,7 @@ import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListen
 import { Icon } from '@mdi/react'
 import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
 	     mdiSkipNext, mdiDownload, mdiStop,
-         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete , mdiDatabaseEyeOutline} from '@mdi/js'
+         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete , mdiDatabaseEyeOutline, mdiRouterWireless} from '@mdi/js'
 import Button from '@mui/material/Button';
 import { error, warning, info} from '../libs/notifications';
 import { GlobalSettings } from './Settings';
@@ -1209,6 +1209,16 @@ export function HubDetailsComponent(props: HubDetailsProps) {
                                     }  
                             >
                                 <Icon path={mdiDatabaseEyeOutline} title='JDV'/>
+                            </Button>
+                            <Button className="button-jcc" onClick={() => {
+                                const fleetId = getFleetId()
+
+                                if (fleetId != undefined) {
+                                    const url = `http://10.23.${fleetId}.1`
+                                    window.open(url, '_blank')}}
+                                }
+                            >
+                                <Icon path={mdiRouterWireless} title="Router"></Icon>
                             </Button>
                         </AccordionDetails>
                     </Accordion>
