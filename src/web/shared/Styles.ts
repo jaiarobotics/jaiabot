@@ -1,6 +1,6 @@
 import Stroke from 'ol/style/Stroke';
 import { Feature } from 'ol'
-import { Goal, TaskType } from './JAIAProtobuf'
+import { Goal, HubStatus, TaskType } from './JAIAProtobuf'
 import { LineString, Point, Circle } from 'ol/geom';
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
@@ -123,8 +123,8 @@ export function botMarker(feature: Feature): Style[] {
     return style
 }
 
-export function hubMarker(feature: Feature): Style[] {
-    const geometry = feature.getGeometry() as Point
+export function hubMarker(feature: Feature<Point>): Style[] {
+    const hub = feature.get('hub') as HubStatus
 
     const textOffsetRadius = 11
 
@@ -136,7 +136,7 @@ export function hubMarker(feature: Feature): Style[] {
 
     const text = "HUB"
 
-    var style = [ 
+    var markerStyle = 
         // Hub body marker
         new Style({
             image: new Icon({
@@ -155,9 +155,57 @@ export function hubMarker(feature: Feature): Style[] {
                 offsetY: textOffsetRadius
             })
         })
-    ]
 
-    return style
+    return [ markerStyle ]
+}
+
+
+
+/**
+ * The style for the circles showing the comms limit radii for hubs
+ * @date 10/27/2023 - 7:36:33 AM
+ *
+ * @export
+ * @param {Feature<Point>} feature Point feature of a hub
+ */
+export function hubCommsCircleStyle(feature: Feature<Point>) {
+    const hub = feature.get('hub') as HubStatus
+    if (hub == null) {
+        console.warn("Feature doesn't have hub property")
+        return
+    }
+    const center = feature.getGeometry().getCoordinates()
+
+    // The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    const latitudeCoefficient = Math.max(Math.cos((hub.location?.lat ?? 0) * DEG), 0.001) // To avoid division by zero
+    const commsInnerRadius = 250.0 / latitudeCoefficient
+    const commsOuterRadius = 500.0 / latitudeCoefficient
+
+    function getCircleStyle(center: Coordinate, radius: number, color: string, lineWidth: number) {
+        return new Style({
+            geometry: new Circle(center, radius),
+            renderer(coordinates: Coordinate[], state) {
+                const [[x, y], [x1, y1]] = coordinates
+                const dx = x1 - x
+                const dy = y1 - y
+                const screenRadius = Math.sqrt(dx * dx + dy * dy)
+
+                const ctx = state.context
+
+                ctx.beginPath()
+                ctx.arc(x, y, screenRadius, 0, 2 * Math.PI, true)
+                ctx.strokeStyle = color
+                ctx.lineWidth = lineWidth
+                ctx.stroke()
+            }
+        })
+    }
+
+    const commsInnerRadiusStyle = getCircleStyle(center, commsInnerRadius, 'rgba(0,128,0,0.6)', 5)
+    const commsOuterRadiusStyle = getCircleStyle(center, commsOuterRadius, 'rgba(128,0,0,0.6)', 5)
+        
+    return [ commsInnerRadiusStyle, commsOuterRadiusStyle ]
 }
 
 export function courseOverGroundArrow(courseOverGround: number): Style {
@@ -305,7 +353,8 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
     const isSelected = feature.get('isSelected') as boolean
     const canEdit = feature.get('canEdit') as boolean
 
-    //The reason we need to divide by the cosine of the latitude is because the map is using a Mercator projection, (with units in meters at the equator)
+    //The reason we need to divide by the cosine of the 
+    // latitude is because the map is using a Mercator projection, (with units in meters at the equator)
     const latitudeCoefficient = Math.max(Math.cos((goal.location.lat ?? 0) * DEG), 0.001)
     const captureRadius = 5.0 / latitudeCoefficient // meters, MOOS configuration from templates/bot/bot.bhv.in
     const centerCoordinate = feature.getGeometry().getCoordinates()
