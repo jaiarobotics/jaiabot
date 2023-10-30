@@ -164,6 +164,24 @@ export class Missions {
         return mission;
     }
 
+    static duplicateRun(run: RunInterface, mission: MissionInterface) {
+        const newRun = deepcopy(run)
+        const runId = `run=${mission.runIdIncrement}`
+
+        newRun.id = runId
+        newRun.name = `Run ${mission.runIdIncrement}`
+        newRun.assigned = -1
+        const command = newRun.command
+        if (command) {
+            command.bot_id = null
+        }
+
+        mission.runs[newRun.id] = newRun
+
+        mission.runIdIncrement += 1
+        mission.runIdInEditMode = runId
+    }
+
     static addRunWithCommand(botId: number, command: Command, mission: MissionInterface) {
         let botsAssignedToRuns = mission?.botsAssignedToRuns;
 

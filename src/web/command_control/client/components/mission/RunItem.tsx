@@ -150,9 +150,8 @@ export default class RunItem extends React.Component {
                 className={'button-jcc missionAccordian'}
                 onClick={(event) => {
                     event.stopPropagation();
-                    const goals = deepcopy(this.props.run.command.plan.goal)
                     this.props.unSelectHubOrBot()
-                    Missions.addRunWithGoals(-1, goals, this.props.mission);
+                    Missions.duplicateRun(this.props.run, this.props.mission)
                 }}
             >
                 <Icon path={mdiContentDuplicate} title="Duplicate Run"/>
