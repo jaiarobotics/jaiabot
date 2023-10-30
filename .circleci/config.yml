@@ -267,7 +267,8 @@ jobs:
     environment:
       <<: *environment-template-common
       <<: *environment-template-focal
-      
+      <<: *environment-template-amd64
+
   amd64-focal-deb-build:
     <<: *job-template-deb-amd64
     docker: *docker-base-focal
