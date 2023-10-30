@@ -172,14 +172,12 @@ filter-template-master-only: &filter-template-master-only
     branches:
       only:
         - "1.y"
-        - "intervehicle_api_version"
 
 filter-template-non-master: &filter-template-non-master
   filters:
     branches:
       ignore:
         - "1.y"
-        - "intervehicle_api_version"
         
 ## Begin actual config
 version: 2
