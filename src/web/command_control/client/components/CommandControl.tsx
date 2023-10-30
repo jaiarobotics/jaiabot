@@ -68,7 +68,7 @@ import Icon from '@mdi/react'
 import Button from '@mui/material/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMapMarkerAlt, faRuler, faEdit, faLayerGroup, faWrench } from '@fortawesome/free-solid-svg-icons'
-import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog } from '@mdi/js'
+import { mdiPlay, mdiLanDisconnect, mdiCheckboxMarkedCirclePlusOutline, mdiFlagVariantPlus, mdiArrowULeftTop, mdiStop, mdiViewList, mdiDownloadMultiple, mdiProgressDownload, mdiCog, mdiHelp } from '@mdi/js'
 import 'reset-css'
 import '../style/CommandControl.less'
 
@@ -199,6 +199,7 @@ interface State {
 	selectedTaskPacketFeature: OlFeature,
 	taskPacketIntervalId: NodeJS.Timeout,
 	isClusterModeOn: boolean
+	isHelpWindowDisplayed: boolean
 
 	disconnectionMessage?: string,
 	viewportPadding: number[],
@@ -346,6 +347,7 @@ export default class CommandControl extends React.Component {
 			selectedTaskPacketFeature: null,
 			taskPacketIntervalId: null,
 			isClusterModeOn: true,
+			isHelpWindowDisplayed: true,
 
 			viewportPadding: [
 				viewportDefaultPadding,
@@ -2191,6 +2193,9 @@ export default class CommandControl extends React.Component {
 						<Icon path={mdiCog} title="Settings"/>
 					</Button>
 				))}
+				<Button className={'button-jcc' + (this.state.isHelpWindowDisplayed ? ' active' : '')} onClick={() => {this.setState({isHelpWindowDisplayed: !this.state.isHelpWindowDisplayed})}}>
+					<Icon path={mdiHelp} title="Help"></Icon>
+				</Button>
 				<img className="jaia-logo button" src="/favicon.png" onClick={() => {
 						const jaiaInfoContainer = document.getElementById('jaia-about-container') as HTMLElement
 				 		jaiaInfoContainer.style.display = "grid"
@@ -3006,7 +3011,7 @@ export default class CommandControl extends React.Component {
 
 				{this.disconnectionPanel()}
 
-				{HelpWindow()}
+				{this.state.isHelpWindowDisplayed ? <HelpWindow onClose={() => {this.setState({isHelpWindowDisplayed: false})}}></HelpWindow> : null}
 				
 			</div>
 		)

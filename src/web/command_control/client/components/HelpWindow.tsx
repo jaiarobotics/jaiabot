@@ -129,6 +129,11 @@ const buttons: ButtonDescriptor[] = [
 ]
 
 
+interface Props {
+    onClose?: () => void
+}
+
+
 /**
  * A window showing help information for the Jaia Command & Control user
  * @date 10/28/2023 - 11:36:47 AM
@@ -138,14 +143,14 @@ const buttons: ButtonDescriptor[] = [
  * @typedef {HelpWindow}
  * @extends {React.Component}
  */
-export function HelpWindow() {
+export function HelpWindow(props: Props) {
     return (
         <div className='help-window'>
             <div className='help-titlebar'>
                 <div className='help-title'>
                     Jaia Command & Control Help
                 </div>
-                <Button onClick={() => console.log('clicked')}>
+                <Button onClick={props.onClose}>
                     <Icon path={mdiWindowClose} title='Close Window'></Icon>
                 </Button>
             </div>
