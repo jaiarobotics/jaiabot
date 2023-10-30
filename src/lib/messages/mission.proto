@@ -24,7 +24,7 @@ enum MissionState
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT = 114;
     IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__REACQUIRE_GPS = 115;
     IN_MISSION__UNDERWAY__MOVEMENT__IMU_RESTART = 116;
-    
+
     IN_MISSION__UNDERWAY__TASK__STATION_KEEP = 120;
     IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT = 121;
     IN_MISSION__UNDERWAY__TASK__REACQUIRE_GPS = 122;
@@ -95,21 +95,14 @@ message MissionReport
         precision: 1
         units: { derived_dimensions: "length" }
     }];
-    optional uint32 active_goal_timeout = 14 [
-        (dccl.field) = {
-            min: 0
-            max: 3600
-            precision: 0
-            units { base_dimensions: "T" }
-        }
-    ];
-    optional int32 data_offload_percentage = 15 [
-        (dccl.field) = {
-            min: 0
-            max: 100
-            precision: 0
-        }
-    ];
+    optional uint32 active_goal_timeout = 14 [(dccl.field) = {
+        min: 0
+        max: 3600
+        precision: 0
+        units { base_dimensions: "T" }
+    }];
+    optional int32 data_offload_percentage = 15
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
 }
 
 message MissionTask
@@ -253,7 +246,8 @@ message MissionPlan
     optional Speeds speeds = 5;
     optional uint32 fragment_index = 6 [(dccl.field) = { min: 0 max: 2 }];
     optional uint32 expected_fragments = 7 [(dccl.field) = { min: 1 max: 3 }];
-    optional uint32 repeats = 8 [default = 1, (dccl.field) = {min: 1 max: 100 }];
+    optional uint32 repeats = 8
+        [default = 1, (dccl.field) = { min: 1 max: 100 }];
 }
 
 message IvPBehaviorUpdate

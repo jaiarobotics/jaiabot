@@ -1,19 +1,27 @@
-  load_protobuf {  #  (repeated)
+load_protobuf {  #  (repeated)
     name: "jaiabot.protobuf.Command"  #  (required)
     publish_to {
-      group: "jaiabot::hub_command" 
-      group_numeric_field_name: "bot_id"
-      layer: LAYER_INTERVEHICLE
+        group: "jaiabot::hub_command_full" 
+        layer: LAYER_INTERPROCESS
     }
     external_data {
-      name: "goby.middleware.protobuf.Route"
-      group: "goby::middleware::opencpn::route"
-      translate { from: "point" to: "plan.goal" }
-      }
+        name: "goby.middleware.protobuf.Route"
+        group: "goby::middleware::opencpn::route"
+        translate { from: "point" to: "plan.goal" }
+    }
     external_data {
-      name: "goby.middleware.protobuf.Waypoint"
-      group: "goby::middleware::opencpn::waypoint"
-      translate { from: "location" to: "plan.recovery.location" }
-      }
-  } 
+        name: "goby.middleware.protobuf.Waypoint"
+        group: "goby::middleware::opencpn::waypoint"
+        translate { from: "location" to: "plan.recovery.location" }
+    }
+} 
+
+load_protobuf {  #  (repeated)
+    name: "jaiabot.protobuf.Engineering"  #  (required)
+    publish_to {
+        group: "jaiabot::engineering_command"
+        group_numeric: 1  # jaiabot::INTERVEHICLE_API_VERSION
+        layer: LAYER_INTERVEHICLE
+    }
+} 
 

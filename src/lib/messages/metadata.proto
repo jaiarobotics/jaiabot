@@ -32,6 +32,8 @@ message DeviceMetadata
 
     optional string xbee_node_id = 6;
     optional string xbee_serial_number = 7;
+
+    optional uint32 intervehicle_api_version = 8;
 }
 
 message QueryDeviceMetaData
