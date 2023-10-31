@@ -71,6 +71,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int64_t lastAckTime_;
 
     uint64_t _time_last_command_received_ = 0;
+    bool last_command_acked_{true};
     const uint64_t timeout_ = 5e6;
 
     jaiabot::protobuf::Bounds bounds_;
@@ -235,6 +236,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
             last_arduino_report_time_ = goby::time::SteadyClock::now();
+            last_command_acked_ = true;
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -395,6 +397,8 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
     // Send the command to the Arduino
     auto raw_output = lora::serialize(arduino_cmd);
     interthread().publish<serial_out>(raw_output);
+
+    last_command_acked_ = false;
 }
 
 void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -425,7 +429,8 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+            goby::time::SteadyClock::now() &&
+        !last_command_acked_)
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
