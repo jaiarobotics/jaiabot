@@ -316,8 +316,6 @@ class LogApp extends React.Component {
   componentDidMount() {
     this.getElements()
     this.map = new JaiaMap('openlayers-map')
-
-    CustomAlert.presentAlert({text: 'Welcome to JDV!'})
   }
 
   getElements() {
