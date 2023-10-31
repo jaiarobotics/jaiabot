@@ -472,6 +472,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
+
             if (report.has_active_goal())
             {
                 latest_bot_status_.set_active_goal(report.active_goal());
@@ -485,6 +486,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_active_goal();
             }
+
             if (report.has_data_offload_percentage())
             {
                 latest_bot_status_.set_data_offload_percentage(report.data_offload_percentage());
@@ -493,6 +495,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_data_offload_percentage();
             }
+
+            if (report.has_repeat_index())
+            {
+                latest_bot_status_.set_repeat_index(report.repeat_index());
+            }
+            else
+            {
+                latest_bot_status_.clear_repeat_index();
+            }
+
         });
 
     interprocess().subscribe<jaiabot::groups::salinity>(

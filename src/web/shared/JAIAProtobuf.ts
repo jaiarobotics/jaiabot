@@ -1083,6 +1083,7 @@ export interface BotStatus {
     pdop?: number
     data_offload_percentage?: number
     wifi_link_quality_percentage?: number
+    repeat_index?: number
 }
 
 export interface EstimatedDrift {

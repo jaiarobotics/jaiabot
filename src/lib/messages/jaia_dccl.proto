@@ -209,6 +209,13 @@ message BotStatus
         precision: 0
         units { base_dimensions: "T" }
     }];
+    optional int32 repeat_index = 44 [
+        (dccl.field) = {
+            min: 0
+            max: 1000
+            precision: 0
+        }
+    ];
 
     optional double salinity = 51
         [(dccl.field) = { min: 0 max: 100 precision: 1 }];

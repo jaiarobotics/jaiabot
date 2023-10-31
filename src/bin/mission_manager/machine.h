@@ -727,6 +727,8 @@ struct InMission
 
     int goal_index() const { return goal_index_; }
 
+    int repeat_index() const { return repeat_index_; }
+
     boost::optional<protobuf::MissionPlan::Goal> current_goal() const
     {
         if (goal_index() >= this->machine().mission_plan().goal_size() ||

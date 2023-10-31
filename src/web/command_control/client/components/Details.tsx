@@ -575,6 +575,9 @@ export function BotDetailsComponent(props: BotDetailsProps) {
     }
 
     // Active Goal
+    const repeatNumberString = (bot.repeat_index != null && bot.active_mission_plan?.repeats != null) ? 
+        `${bot.repeat_index + 1} of ${bot.active_mission_plan?.repeats}` : 'N/A'
+
     let activeGoal = bot.active_goal ?? 'N/A'
     let distToGoal = bot.distance_to_active_goal ?? 'N/A'
     let goalTimeout = bot.active_goal_timeout ?? 'N/A'
@@ -739,6 +742,10 @@ export function BotDetailsComponent(props: BotDetailsProps) {
                                     <tr>
                                         <td>Distance to Goal</td>
                                         <td style={{whiteSpace: 'pre-line'}}>{(distToGoal)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Repeat Number</td>
+                                        <td style={{whiteSpace: 'pre-line'}}>{repeatNumberString}</td>
                                     </tr>
                                     <tr>
                                         <td>Distance from Hub</td>
