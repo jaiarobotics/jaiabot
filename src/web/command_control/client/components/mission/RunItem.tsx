@@ -78,12 +78,16 @@ export default class RunItem extends React.Component {
         let runDeleteButton = null
         let duplicateRunButton = null
         let editModeButton = null
-        let title = this.props.run.name
         let podStatusBotIds = Object.keys(this.props.bots)
         let botsAssignedToRunsIds = Object.keys(this.props.mission.botsAssignedToRuns)
         let assignedLabel = ""
         let assignedOption = null
         this.botsNotAssigned = []
+
+        let title = this.props.run.name
+        if (this.props.run.assigned != -1) {
+            title = title + ` - Bot ${this.props.run.assigned}`
+        }
 
         // Find the difference between the current botIds available
         // And the bots that are already assigned to get the ones that
