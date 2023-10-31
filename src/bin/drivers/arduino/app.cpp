@@ -66,6 +66,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void publish_arduino_commands();
 
     int64_t lastAckTime_;
 
@@ -120,7 +121,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
-    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(10 * si::hertz)
+    : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(1.0 / 10.0 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
@@ -324,9 +325,13 @@ void jaiabot::apps::ArduinoDriver::handle_control_surfaces(const ControlSurfaces
     }
 
     _time_last_command_received_ = now_microseconds();
+
+    publish_arduino_commands();
 }
 
-void jaiabot::apps::ArduinoDriver::loop()
+void jaiabot::apps::ArduinoDriver::loop() {}
+
+void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
 {
     jaiabot::protobuf::ArduinoCommand arduino_cmd;
     jaiabot::protobuf::ArduinoActuators arduino_actuators;
