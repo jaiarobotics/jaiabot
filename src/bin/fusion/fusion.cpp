@@ -91,7 +91,7 @@ class Fusion : public ApplicationBase
     double previous_course_over_ground_{0};
 
     // IMU Detection vars
-    bool imu_issue_{false};
+    bool imu_issue_detected_{false};
     int imu_issue_crs_hdg_incr_{0};
     double bot_desired_speed_{0};
     double bot_desired_heading_{0};
@@ -653,7 +653,7 @@ void jaiabot::apps::Fusion::loop()
     else
     {
         // If the imu issue is currently not detected and we are not running a sim
-        if (!imu_issue_ && !cfg().is_sim())
+        if (!imu_issue_detected_ && !cfg().is_sim())
         {
             // Detect an imu issue on a certain period interval
             if (last_imu_detect_time_ + std::chrono::seconds(cfg().imu_detect_period()) < now)
@@ -667,7 +667,7 @@ void jaiabot::apps::Fusion::loop()
                  now)
         {
             // Reset imu issue vars
-            imu_issue_ = false;
+            imu_issue_detected_ = false;
         }
     }
 
@@ -772,7 +772,7 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
             glog.is_warn() && glog << jaiabot::protobuf::Warning_Name(ep.second) << std::endl;
         }
     }*/
-    if (imu_issue_)
+    if (imu_issue_detected_)
     {
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__IMU_ISSUE);
@@ -822,6 +822,14 @@ void jaiabot::apps::Fusion::health(goby::middleware::protobuf::ThreadHealth& hea
                 (last_data_time_[ep.first] + std::chrono::seconds(cfg().heading_timeout_seconds()) <
                  now))
             {
+                jaiabot::protobuf::IMUIssue imu_issue;
+                imu_issue.set_solution(cfg().imu_issue_solution());
+                interprocess().publish<jaiabot::groups::imu>(imu_issue);
+                imu_issue_detected_ = true;
+
+                glog.is_debug2() && glog << "detect_imu_issue() Post IMU Warning: No heading data "
+                                            "indicates imu issue"
+                                         << endl;
                 health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(ep.second);
                 health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
                 glog.is_warn() && glog << jaiabot::protobuf::Error_Name(ep.second) << std::endl;
@@ -995,7 +1003,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         else
         {
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
-            imu_issue_ = true;
+            imu_issue_detected_ = true;
             glog.is_debug2() && glog
                                     << "detect_imu_issue() Post IMU Warning: The diff between "
                                        "course over ground and magnetic heading indicates imu issue"
@@ -1008,18 +1016,7 @@ void jaiabot::apps::Fusion::detect_imu_issue()
         imu_issue_crs_hdg_incr_ = 0;
     }
 
-    if ((last_data_time_[DataType::HEADING] +
-             std::chrono::seconds(cfg().heading_timeout_seconds()) <
-         now))
-    {
-        interprocess().publish<jaiabot::groups::imu>(imu_issue);
-        imu_issue_ = true;
-        glog.is_debug2() &&
-            glog << "detect_imu_issue() Post IMU Warning: No heading data indicates imu issue"
-                 << endl;
-    }
-
-    if (imu_issue_)
+    if (imu_issue_detected_)
     {
         glog.is_debug2() &&
             glog << "detect_imu_issue() Reported IMU issue so let's reset to detect another one"

@@ -110,6 +110,16 @@ class Adafruit(IMU):
                 # Set the initial time for checking calibration
                 self.check_cal_time = time.time()
 
+            except (OSError) as e:
+                self.is_setup = False
+                log.warning("Tried connecting, OSError, retry setting up driver")
+                raise e
+
+            except (serial.serialutil.SerialException) as se:
+                self.is_setup = False
+                log.warning("Tried connecting, SerialException, retry setting up driver")
+                raise se
+
             except (RuntimeError, IndexError, KeyError, AttributeError) as error:
                 log.warning("Error trying to setup driver!")
             
@@ -163,10 +173,15 @@ class Adafruit(IMU):
                         calibration_status=calibration_status,
                         quaternion=quaternion)
 
-        except OSError as e:
+        except (OSError) as e:
             self.is_setup = False
-            log.warning("OSError, retry setting up driver")
+            log.warning("Tried getting data, OSError, retry setting up driver")
             raise e
+        
+        except (serial.serialutil.SerialException) as se:
+            self.is_setup = False
+            log.warning("Tried getting data, SerialException, retry setting up driver")
+            raise se
         
         except (RuntimeError, IndexError, KeyError, AttributeError) as error:
                 log.warning("Error trying to get data!")
