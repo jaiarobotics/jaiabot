@@ -349,8 +349,16 @@ export function divePacketIconStyle(feature: Feature, animatedColor?: string) {
 export function driftPacketIconStyle(feature: Feature, animatedColor?: string) {
     // 6 bins for drift speeds of 0 m/s to 2.5+ m/s
     // Bin numbers (+ 1) correspond with the number of tick marks on the drift arrow visually indicating the speed of the drift to the operator
+    const maxBins = 6
     const binValueIncrement = 0.5
-    let binNumber = Math.floor(feature.get('speed') / binValueIncrement)
+    let binNumber = Math.floor(feature.get('speed') ?? 0 / binValueIncrement)
+
+    // If binNumber > maxBins then a file not found error will occur
+    if (binNumber > maxBins) {
+        binNumber = maxBins
+    } else if (binNumber === 0) {
+        binNumber = 1
+    }
 
     const defaultSrc = require(`./drift-arrows/drift-arrow-${binNumber}.svg`)
     const animatedSrc = require(`./drift-arrows/drift-arrow-animated-${binNumber}.svg`)
