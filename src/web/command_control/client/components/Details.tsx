@@ -1,23 +1,38 @@
 import React, { useEffect } from 'react'
+
+// Jaia Imports
+import EditModeToggle from './EditModeToggle'
+import { JaiaAPI } from '../../common/JaiaAPI';
+import { Missions } from './Missions'
+import { GlobalSettings } from './Settings';
+import { error, warning, info} from '../libs/notifications';
+import { MissionInterface, RunInterface } from './CommandControl';
+import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
+import { Command, CommandType, HubCommandType, BotStatus, MissionState } from './shared/JAIAProtobuf';
+import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
+
+// Style Imports
+import { 
+    mdiPlay,
+    mdiStop,
+    mdiPower,
+    mdiDelete,
+    mdiRestart,
+    mdiSkipNext,
+    mdiDownload,
+    mdiRestartAlert,
+    mdiDatabaseEyeOutline,
+    mdiCheckboxMarkedCirclePlusOutline
+} from '@mdi/js'
+import { Icon } from '@mdi/react'
+import Button from '@mui/material/Button';
 import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import EditModeToggle from './EditModeToggle';
-import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
-import { Icon } from '@mdi/react'
-import { mdiPlay, mdiCheckboxMarkedCirclePlusOutline, 
-	     mdiSkipNext, mdiDownload, mdiStop,
-         mdiPower, mdiRestart, mdiRestartAlert, mdiDelete , mdiDatabaseEyeOutline} from '@mdi/js'
-import Button from '@mui/material/Button';
-import { error, warning, info} from '../libs/notifications';
-import { GlobalSettings } from './Settings';
-import { JaiaAPI } from '../../common/JaiaAPI';
-import { Command, CommandType, HubCommandType, BotStatus, MissionState } from './shared/JAIAProtobuf';
-import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
-import { MissionInterface, RunInterface } from './CommandControl';
-import { Missions } from './Missions'
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+
+// Utility Imports
 import * as turf from '@turf/turf';
 import { CustomAlert } from './shared/CustomAlert';
 

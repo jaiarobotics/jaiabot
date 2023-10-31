@@ -68,7 +68,7 @@ export default class MissionControllerPanel extends React.Component {
                                     top: scrollAmount,
                                     behavior: 'smooth'
                                 })
-                            }, 150)
+                            }, 350)
                         }}
                     >
                         <Icon path={mdiPlus} title="Add Run"/>

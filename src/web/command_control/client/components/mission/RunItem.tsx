@@ -25,8 +25,10 @@ interface Props {
     bots: {[key: number]: PortalBotStatus}
     run: RunInterface
     mission: MissionInterface,
+    openRunPanels: {[runId: string]: boolean}
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
+    setOpenRunPanels: (runPanels: {[runId: string]: boolean}) => void
 }
 
 interface State {
@@ -61,6 +63,15 @@ export default class RunItem extends React.Component {
             this.props.run.command.bot_id = value
             this.props.mission.botsAssignedToRuns[this.props.run.assigned] = this.props.run.id
         }
+    }
+
+    isRunPanelOpen() {
+        return this.props.openRunPanels[this.props.run.id] ?? false
+    }
+
+    handleOpenCloseClick() {
+        this.props.openRunPanels[this.props.run.id] = !this.props.openRunPanels[this.props.run.id]
+        this.props.setOpenRunPanels(this.props.openRunPanels)
     }
 
     render() {
@@ -215,7 +226,12 @@ export default class RunItem extends React.Component {
         )
 
         return (
-            <Accordion className="run-accordion">
+            <Accordion 
+                id={`run-accordion-${this.props.run.id.split('-')[1]}`}
+                className="run-accordion"
+                expanded={this.isRunPanelOpen()}
+                onChange={() => this.handleOpenCloseClick()}
+            >
                 <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
