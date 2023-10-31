@@ -130,6 +130,16 @@ export interface MissionInterface {
 	runIdInEditMode: string
 }
 
+export function getRunAssignedToBot(mission: MissionInterface, bot_id: number) {
+	const runKey = mission.botsAssignedToRuns[bot_id]
+	if (runKey != null) {
+		return mission.runs[runKey]
+	}
+	else {
+		return
+	}
+}
+
 interface State {
 	podStatus: PodStatus
 	podStatusVersion: number

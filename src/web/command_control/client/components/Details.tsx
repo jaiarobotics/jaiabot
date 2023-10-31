@@ -6,7 +6,7 @@ import { JaiaAPI } from '../../common/JaiaAPI';
 import { Missions } from './Missions'
 import { GlobalSettings } from './Settings';
 import { error, warning, info} from '../libs/notifications';
-import { MissionInterface, RunInterface } from './CommandControl';
+import { MissionInterface, getRunAssignedToBot, RunInterface } from './CommandControl';
 import { PortalHubStatus, PortalBotStatus } from './shared/PortalStatus'
 import { Command, CommandType, HubCommandType, BotStatus, MissionState } from './shared/JAIAProtobuf';
 import { formatLatitude, formatLongitude, formatAttitudeAngle, addDropdownListener } from './shared/Utilities'
@@ -663,12 +663,23 @@ export function BotDetailsComponent(props: BotDetailsProps) {
         )
     }
 
+    function getTitleString() {
+        var titleString = `Bot ${bot?.bot_id}`
+
+        const run = getRunAssignedToBot(props.mission, bot.bot_id)
+        if (run) {
+            titleString = titleString + ` - ${run.name}`
+        }
+
+        return titleString
+    }
+
     return (
         <React.Fragment>
             <div id='botDetailsBox'>
                 <div className='botDetailsHeading'>
                     <div className='HorizontalFlexbox'>
-                        <h2 className='name'>{`Bot ${bot?.bot_id}`}</h2>
+                        <h2 className='name'>{getTitleString()}</h2>
                         <div onClick={() => closeWindow()} className='closeButton'>⨯</div>
                     </div>
                     {clickOnMap}
