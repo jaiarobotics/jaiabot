@@ -1,34 +1,29 @@
-import React from 'react';
-import RunItem from './RunItem';
-import { PortalBotStatus } from '../shared/PortalStatus';
-import { MissionInterface, RunInterface } from '../CommandControl';
+import React from 'react'
 
-interface Props {
+import RunItem from './RunItem'
+import { PortalBotStatus } from '../shared/PortalStatus'
+import { MissionInterface, RunInterface } from '../CommandControl'
+
+type RunListProps = {
     bots: {[key: number]: PortalBotStatus}
     mission: MissionInterface
-    loadMissionClick: any,
-    saveMissionClick: any,
-    deleteAllRunsInMission: any,
+    loadMissionClick: any
+    saveMissionClick: any
+    deleteAllRunsInMission: any
     autoAssignBotsToRuns: any
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
 }
 
-interface State {
+type RunListState = {
     openRunPanels: {[runId: string]: boolean}
     runIdInEditMode: string
 }
 
-export default class RunList extends React.Component {
-    props: Props
-    state: State
-
-    constructor(props: Props) {
-        super(props)
-        this.state = {
-            openRunPanels: {},
-            runIdInEditMode: ''
-        }
+export default class RunList extends React.Component<RunListProps, RunListState> {
+    state: RunListState = {
+        openRunPanels: {},
+        runIdInEditMode: ''
     }
 
     componentDidUpdate() {
@@ -80,6 +75,6 @@ export default class RunList extends React.Component {
                     )
                 }
             </div>
-        );
+        )
     }
-  }
+}
