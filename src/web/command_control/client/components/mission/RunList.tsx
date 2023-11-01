@@ -43,9 +43,7 @@ export default class RunList extends React.Component {
                 const element = document.getElementById(
                     `run-accordion-${this.props.mission.runIdInEditMode.split('-')[1]}`
                 )
-                setTimeout(() => {
-                    element.scrollIntoView()
-                }, 350)
+                element.scrollIntoView()
             }
         }
     }

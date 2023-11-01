@@ -1,23 +1,26 @@
 import React from 'react';
+
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
-import Icon from '@mdi/react'
-import EditModeToggle from '../EditModeToggle';
-import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
-import { PortalBotStatus } from '../shared/PortalStatus';
-import { RunInterface, MissionInterface } from '../CommandControl';
 import Box from '@mui/material/Box';
+import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import { Missions } from '../Missions';
-import { Slider } from '@mui/material';
+import { Slider, ThemeProvider, createTheme } from '@mui/material';
+
+import Icon from '@mdi/react'
+import { mdiDelete, mdiContentDuplicate } from '@mdi/js'
+
+import EditModeToggle from '../EditModeToggle';
+import { RunInterface, MissionInterface } from '../CommandControl';
 import { deepcopy, addDropdownListener } from '../shared/Utilities';
+import { PortalBotStatus } from '../shared/PortalStatus';
+import { Missions } from '../Missions';
 import { jaiaAPI } from '../../../common/JaiaAPI';
 
 interface Props {
@@ -45,8 +48,16 @@ export default class RunItem extends React.Component {
         super(props)
     }
 
+    makeAccordionTheme() {
+        return createTheme({
+            transitions: {
+                create: () => 'none',
+            }
+        })
+    }
+
     componentDidMount() {
-        addDropdownListener('run-accordion', 'runList', 300)
+        addDropdownListener('run-accordion', 'runList', 30)
     }
     
     handleBotSelectionChange(event: SelectChangeEvent) {
@@ -225,33 +236,35 @@ export default class RunItem extends React.Component {
         )
 
         return (
-            <Accordion 
-                id={`run-accordion-${this.props.run.id.split('-')[1]}`}
-                className="run-accordion"
-                expanded={this.isRunPanelOpen()}
-                onChange={() => this.handleOpenCloseClick()}
-            >
-                <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
-                    aria-controls="panel1a-content"
-                    id="panel1a-header"
+            <ThemeProvider theme={this.makeAccordionTheme()}>
+                <Accordion 
+                    id={`run-accordion-${this.props.run.id.split('-')[1]}`}
+                    className="run-accordion"
+                    expanded={this.isRunPanelOpen()}
+                    onChange={() => this.handleOpenCloseClick()}
                 >
-                    <Typography className="title">
-                        {title}
-                    </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <span className="runItemInfo">
-                        {runAssignSelect}
-                        {duplicateRunButton}
-                        {runDeleteButton}
-                        {editModeButton}
-                    </span>
-                    <div>
-                        {repeatsInput}
-                    </div>
-                </AccordionDetails>
-            </Accordion>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
+                    >
+                        <Typography className="title">
+                            {title}
+                        </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <span className="runItemInfo">
+                            {runAssignSelect}
+                            {duplicateRunButton}
+                            {runDeleteButton}
+                            {editModeButton}
+                        </span>
+                        <div>
+                            {repeatsInput}
+                        </div>
+                    </AccordionDetails>
+                </Accordion>
+            </ThemeProvider>
         )
     }
 }

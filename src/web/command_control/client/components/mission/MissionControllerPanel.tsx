@@ -66,9 +66,9 @@ export default class MissionControllerPanel extends React.Component {
                                 const scrollAmount = runListElement.scrollHeight
                                 runListElement.scrollTo({
                                     top: scrollAmount,
-                                    behavior: 'smooth'
+                                    // behavior: 'smooth'
                                 })
-                            }, 350)
+                            }, 30)
                         }}
                     >
                         <Icon path={mdiPlus} title="Add Run"/>

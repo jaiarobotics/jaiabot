@@ -159,13 +159,13 @@ function adjustAccordionScrollPosition(parentContainerId: string, dropdownContai
             // Subtracting heightDiff reduces scroll by number of pixels dropdownContainer is larger than botDetailsAccordionContainer
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom - heightDiff,
             left: 0,
-            behavior: 'smooth'
+            // behavior: 'smooth'
         })
     } else if (dropdownContainerSpecs.bottom > parentContainerSpecs.bottom) {
         parentContainer.scrollBy({
             top: dropdownContainerSpecs.bottom - parentContainerSpecs.bottom,
             left: 0,
-            behavior: 'smooth'
+            // behavior: 'smooth'
         })
     }
 }
