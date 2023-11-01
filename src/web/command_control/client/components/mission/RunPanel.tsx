@@ -1,50 +1,35 @@
-import React from 'react';
-import { PortalBotStatus } from '../shared/PortalStatus';
-import RunList from './RunList';
-import { MissionInterface, RunInterface } from '../CommandControl';
+import React from 'react'
 
-interface Props {
-    bots: {[key: number]: PortalBotStatus},
-    mission: MissionInterface,
-    loadMissionClick: any,
-    saveMissionClick: any,
-    deleteAllRunsInMission: any,
-    autoAssignBotsToRuns: any,
+import RunList from './RunList'
+import { PortalBotStatus } from '../shared/PortalStatus'
+import { MissionInterface, RunInterface } from '../CommandControl'
+
+type RunPanelProps = {
+    bots: {[key: number]: PortalBotStatus}
+    mission: MissionInterface
+    loadMissionClick: any
+    saveMissionClick: any
+    deleteAllRunsInMission: any
+    autoAssignBotsToRuns: any
     toggleEditMode: (evt: React.ChangeEvent, run: RunInterface) => boolean
     unSelectHubOrBot: () => void
 }
 
+type RunPanelState = {}
 
-interface State {}
-
-export default class RunPanel extends React.Component {
-
-  props: Props
-	state: State
-
-    constructor(props: Props) {
-        super(props)
-        this.state = {
-        }
-    }
-
+export default class RunPanel extends React.Component<RunPanelProps, RunPanelState> {
     render() { 
-    
-        let self = this
-    
         return (
-            <React.Fragment>
-                {<RunList
-                    bots={self.props.bots} 
-                    mission={self.props.mission}
-                    loadMissionClick={self.props.loadMissionClick}
-				    saveMissionClick={self.props.saveMissionClick}
-                    deleteAllRunsInMission={self.props.deleteAllRunsInMission}
-                    autoAssignBotsToRuns={self.props.autoAssignBotsToRuns}
-                    toggleEditMode={self.props.toggleEditMode}
-                    unSelectHubOrBot={self.props.unSelectHubOrBot}
-                />}
-            </React.Fragment>
-        );
+            <RunList
+                bots={this.props.bots} 
+                mission={this.props.mission}
+                loadMissionClick={this.props.loadMissionClick}
+                saveMissionClick={this.props.saveMissionClick}
+                deleteAllRunsInMission={this.props.deleteAllRunsInMission}
+                autoAssignBotsToRuns={this.props.autoAssignBotsToRuns}
+                toggleEditMode={this.props.toggleEditMode}
+                unSelectHubOrBot={this.props.unSelectHubOrBot}
+            />
+        )
     }
-  }
+}
