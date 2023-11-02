@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 import { RunInterface } from "./CommandControl"
 
@@ -15,29 +15,29 @@ interface Props {
     title: string
 }
 
-export default function EditModeToggle(props: Props) {
-    // MUI Styling: mui.com/material-ui/react-switch
-    const AmberSwitch = styled(Switch)(({ theme }) => ({
-        '& .MuiSwitch-switchBase.Mui-checked': {
-            color: amber[600],
-            '&:hover': {
-            backgroundColor: alpha(amber[600], theme.palette.action.hoverOpacity),
-            },
+// MUI Styling: mui.com/material-ui/react-switch
+const AmberSwitch = styled(Switch)(({ theme }) => ({
+    '& .MuiSwitch-switchBase.Mui-checked': {
+        color: amber[600],
+        '&:hover': {
+        backgroundColor: alpha(amber[600], theme.palette.action.hoverOpacity),
         },
-        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-            backgroundColor: amber[600],
-        },
-        '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
-            color: amber[300],
-        }        
-    }));
+    },
+    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+        backgroundColor: amber[600],
+    },
+    '& .MuiSwitch-switchBase.Mui-checked.Mui-disabled': {
+        color: amber[300],
+    }        
+}));
 
+export default function EditModeToggle(props: Props) {
     return (
         <FormGroup>
             <FormControlLabel 
                 control={
                     <AmberSwitch 
-                        checked={props.runIdInEditMode === props.run?.id} 
+                        checked={props.runIdInEditMode === props.run?.id}
                         onChange={(evt: React.ChangeEvent) => props.onClick(evt, props.run)}
                     />
                 }
